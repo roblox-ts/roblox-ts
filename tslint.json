@@ -1,0 +1,30 @@
+{
+	"extends": "tslint:recommended",
+	"rules": {
+		"triple-equals": true,
+		"no-var-keyword": true,
+		"quotemark": [true, "double", "avoid-escape" ],
+		"no-unnecessary-qualifier": true,
+		"class-name": true,
+		"prefer-const": true,
+		"semicolon": [true, "always", "ignore-bound-class-methods"],
+		"no-string-literal": true,
+		"array-type": [true, "generic"],
+		"no-unused-variable": true,
+		"curly": true,
+		"indent": [true, "tabs", 4],
+
+		"member-ordering": false,
+		"no-console": false,
+		"arrow-parens": false,
+		"no-empty": false,
+		"no-bitwise": false,
+		"variable-name": false,
+		"max-classes-per-file": false,
+		"no-unused-expression": false,
+		"interface-name": false,
+		"no-empty-interface": false,
+		"no-namespace": false,
+		"forin": false
+	}
+}

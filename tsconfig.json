@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"outDir": "out",
+		"rootDir": "src",
+		"target": "esnext",
+		"strict": true,
+		"lib": [ "es6" ],
+		"noFallthroughCasesInSwitch": true,
+		"strictNullChecks": true
+	},
+	"exclude": [
+		"node_modules",
+		"out"
+	]
+}
