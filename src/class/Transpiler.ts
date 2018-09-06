@@ -287,6 +287,14 @@ export class Transpiler {
 		}
 	}
 
+	private getSourceFileOrThrow() {
+		if (this.sourceFile) {
+			return this.sourceFile;
+		} else {
+			throw new Error("Could not find sourceFile!");
+		}
+	}
+
 	public transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
 		this.exportStack.push(new Array<string>());
@@ -408,7 +416,7 @@ export class Transpiler {
 			return "";
 		}
 
-		const relPath = path.relative(this.sourceFile!.getDirectoryPath(), sourceFile.getFilePath());
+		const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
 		const importPath = relPath.split("/").map(part => (part === ".." ? "Parent" : part));
 
 		const last = importPath.pop();
