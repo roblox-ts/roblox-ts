@@ -10,6 +10,7 @@ import { Compiler } from "./class/Compiler";
 const versionStr = require("../package.json").version as string;
 /* tslint:enable */
 
+// cli interface
 const argv = yargs
 	.usage("Usage: $0 [options]")
 
@@ -18,25 +19,27 @@ const argv = yargs
 	.version(versionStr)
 	.describe("version", "show version information")
 
-	// help text
+	// help
 	.alias("h", "help")
 	.help("help")
 	.describe("help", "show help")
 	.showHelpOnFail(false, "specify --help for available options")
 
+	// watch
 	.option("w", {
 		alias: "watch",
 		boolean: true,
 		describe: "enable watch mode",
 	})
 
-	// project option
+	// project
 	.option("p", {
 		alias: "project",
 		default: ".",
 		describe: "project path",
 	})
 
+	// includePath
 	.option("i", {
 		alias: "includePath",
 		demandOption: true,
