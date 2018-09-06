@@ -1,3 +1,3 @@
-# Roblox.ts
+# roblox-ts
 
 ## Here be dragons! 🐉
