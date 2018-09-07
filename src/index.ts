@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import * as yargs from "yargs";
-
 import * as fs from "fs";
 import * as path from "path";
 import { Compiler } from "./class/Compiler";
