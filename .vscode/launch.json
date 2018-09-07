@@ -5,15 +5,12 @@
 			"type": "node",
 			"request": "launch",
 			"name": "Launch Program",
-			"useWSL": true,
 			"program": "${workspaceFolder}/out/index.js",
-			"args": [
-				"-p",
-				"../../Nextcloud/TestProject/tsconfig.json",
-			],
+			"useWSL": true,
 			"sourceMaps": true,
-			"outFiles": [
-				"${workspaceFolder}/dist/**/*.js"
+			"args": [
+				"-p ../../../../Nextcloud/TSRbxTest/tsconfig.json",
+				"-i ../../../../Nextcloud/TSRbxTest/out/include",
 			]
 		}
 	]
