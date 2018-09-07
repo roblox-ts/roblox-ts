@@ -7,10 +7,14 @@
 		"strict": true,
 		"lib": [ "es6" ],
 		"noFallthroughCasesInSwitch": true,
-		"strictNullChecks": true
+		"strictNullChecks": true,
+		"sourceMap": true
 	},
+	"include": [
+		"src/**/*"
+	],
 	"exclude": [
-		"node_modules",
-		"out"
+		"node_modules/**/*",
+		"out/**/*"
 	]
 }
