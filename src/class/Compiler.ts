@@ -22,7 +22,7 @@ export class Compiler {
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
-
+		this.project.addExistingSourceFiles("**/*.d.ts");
 		this.includePath = path.resolve(includePath);
 	}
 
