@@ -65,7 +65,7 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 
 const compiler = new Compiler(configFilePath, argv.includePath);
 if (argv.watch === true) {
-	const rootDir = compiler.project.getCompilerOptions().rootDir;
+	const rootDir = compiler.rootDir;
 	if (!rootDir) {
 		throw new Error("Could not find rootDir!");
 	}

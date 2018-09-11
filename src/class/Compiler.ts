@@ -7,10 +7,10 @@ import path = require("path");
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 
 export class Compiler {
-	public project: Project;
+	private project: Project;
 	private includePath: string;
-	private rootDir: string;
-	private outDir: string;
+	public readonly rootDir: string;
+	public readonly outDir: string;
 
 	constructor(configFilePath: string, includePath: string) {
 		this.project = new Project({
@@ -70,18 +70,20 @@ export class Compiler {
 	}
 
 	public cleanDirRecursive(dir: string) {
-		const contents = fs.readdirSync(dir);
-		for (const name of contents) {
-			const filePath = path.join(dir, name);
-			if (fs.statSync(filePath).isDirectory()) {
-				this.cleanDirRecursive(filePath);
-				if (fs.readdirSync(filePath).length === 0) {
-					fs.rmdirSync(filePath);
-				}
-			} else {
-				const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
-				if (!this.project.getSourceFile(tsPath)) {
-					fs.removeSync(filePath);
+		if (fs.existsSync(dir)) {
+			const contents = fs.readdirSync(dir);
+			for (const name of contents) {
+				const filePath = path.join(dir, name);
+				if (fs.statSync(filePath).isDirectory()) {
+					this.cleanDirRecursive(filePath);
+					if (fs.readdirSync(filePath).length === 0) {
+						fs.rmdirSync(filePath);
+					}
+				} else {
+					const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
+					if (!this.project.getSourceFile(tsPath)) {
+						fs.removeSync(filePath);
+					}
 				}
 			}
 		}
