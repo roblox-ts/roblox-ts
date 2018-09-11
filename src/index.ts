@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import * as yargs from "yargs";
+import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as path from "path";
+import * as yargs from "yargs";
 import { Compiler } from "./class/Compiler";
 
 /* tslint:disable */
@@ -49,7 +50,6 @@ const argv = yargs
 	.parse();
 
 let configFilePath = path.resolve(argv.project as string);
-const isWatchMode = argv.watch === true; // TODO
 
 if (!fs.existsSync(configFilePath)) {
 	throw new Error("Project path does not exist!");
@@ -64,4 +64,40 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 }
 
 const compiler = new Compiler(configFilePath, argv.includePath);
-compiler.compile();
+if (argv.watch === true) {
+	const rootDir = compiler.project.getCompilerOptions().rootDir;
+	if (!rootDir) {
+		throw new Error("Could not find rootDir!");
+	}
+
+	const update = async (isInitial = false) => {
+		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
+		const start = Date.now();
+		compiler.refreshSync();
+		await compiler.compile();
+		console.log(`Done, took ${Date.now() - start} ms!`);
+	};
+
+	chokidar
+		.watch(rootDir, {
+			ignoreInitial: true,
+		})
+		.on("change", (path: string) => {
+			update();
+		})
+		.on("add", (path: string) => {
+			console.log("Add", path);
+			compiler.addFile(path);
+			update();
+		})
+		.on("unlink", (path: string) => {
+			console.log("Remove", path);
+			compiler.removeFile(path);
+			update();
+		});
+
+	console.log("Running in watch mode..");
+	update(true);
+} else {
+	compiler.compile();
+}
