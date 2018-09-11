@@ -46,6 +46,12 @@ const argv = yargs
 		describe: "path of folder to copy runtime .lua files to",
 	})
 
+	// noInclude
+	.option("noInclude", {
+		default: false,
+		describe: "do not copy runtime .lua files",
+	})
+
 	// parse
 	.parse();
 
@@ -63,6 +69,8 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 	throw new Error("Cannot find tsconfig.json!");
 }
 
+const noInclude = argv.noInclude === true;
+
 const compiler = new Compiler(configFilePath, argv.includePath);
 if (argv.watch === true) {
 	const rootDir = compiler.rootDir;
@@ -78,7 +86,7 @@ if (argv.watch === true) {
 			console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
 			const start = Date.now();
 			compiler.refreshSync();
-			await compiler.compile();
+			await compiler.compile(noInclude);
 			console.log(`Done, took ${Date.now() - start} ms!`);
 			isCompiling = false;
 		}
@@ -103,5 +111,5 @@ if (argv.watch === true) {
 	console.log("Running in watch mode..");
 	update(true);
 } else {
-	compiler.compile();
+	compiler.compile(noInclude);
 }

@@ -89,8 +89,14 @@ export class Compiler {
 		}
 	}
 
-	public async compile() {
+	public async compile(noInclude: boolean) {
+		const options = this.project.getCompilerOptions();
 		this.cleanDirRecursive(this.outDir);
+
+		if (options.declaration) {
+			const result = this.project.emit({ emitOnlyDtsFiles: true });
+		} else {
+		}
 
 		try {
 			this.project
@@ -98,7 +104,7 @@ export class Compiler {
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => [
 					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-					new Transpiler(this.rootDir, this.project.getCompilerOptions()).transpileSourceFile(sourceFile),
+					new Transpiler(this.rootDir, options).transpileSourceFile(sourceFile),
 				])
 				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));
 		} catch (e) {
@@ -111,10 +117,12 @@ export class Compiler {
 			process.exit(1);
 		}
 
-		try {
-			await fs.copy(INCLUDE_SRC_PATH, this.includePath);
-		} catch (e) {
-			// this rarely fails, unsure why
+		if (!noInclude) {
+			try {
+				await fs.copy(INCLUDE_SRC_PATH, this.includePath);
+			} catch (e) {
+				// this rarely fails, unsure why
+			}
 		}
 	}
 }
