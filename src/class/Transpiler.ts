@@ -433,7 +433,6 @@ export class Transpiler {
 			importPath.push(last);
 		}
 		importPath.unshift("script", "Parent");
-		console.log(importPath);
 		const luaPath = importPath.join(".");
 
 		const namespaceImport = node.getNamespaceImport();
