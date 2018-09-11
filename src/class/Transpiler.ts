@@ -422,7 +422,7 @@ export class Transpiler {
 		}
 
 		const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
-		const importPath = relPath.split("/").map(part => (part === ".." ? "Parent" : part));
+		const importPath = relPath.split(path.sep).map(part => (part === ".." ? "Parent" : part));
 
 		let last = importPath.pop();
 		if (!last) {
