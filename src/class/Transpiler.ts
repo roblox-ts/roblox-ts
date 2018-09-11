@@ -417,23 +417,35 @@ export class Transpiler {
 
 	public transpileImportDeclaration(node: ts.ImportDeclaration) {
 		const sourceFile = node.getModuleSpecifierSourceFile();
-		if (!sourceFile) {
-			return "";
-		}
+		let luaPath: string;
+		if (sourceFile) {
+			const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
+			const importPath = relPath.split(path.sep).map(part => (part === ".." ? "Parent" : part));
 
-		const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
-		const importPath = relPath.split(path.sep).map(part => (part === ".." ? "Parent" : part));
+			let last = importPath.pop();
+			if (!last) {
+				throw new TranspilerError("Invalid import path!", node);
+			}
+			const ext = path.extname(last);
+			last = path.basename(last, ext);
+			const subext = path.extname(last);
+			if (subext === ".d" && ext === ".ts") {
+				last = path.basename(last, subext);
+			}
 
-		let last = importPath.pop();
-		if (!last) {
-			throw new TranspilerError("Invalid import path!", node);
+			if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
+				importPath.push(last);
+			}
+			importPath.unshift("script", "Parent");
+			luaPath = importPath.join(".");
+		} else {
+			const value = node.getModuleSpecifierValue();
+			if (value.startsWith("game.")) {
+				luaPath = value;
+			} else {
+				throw new TranspilerError("Invalid import!", node);
+			}
 		}
-		last = path.basename(last, path.extname(last));
-		if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
-			importPath.push(last);
-		}
-		importPath.unshift("script", "Parent");
-		const luaPath = importPath.join(".");
 
 		const namespaceImport = node.getNamespaceImport();
 		const container = namespaceImport ? namespaceImport.getText() : this.getNewId();
