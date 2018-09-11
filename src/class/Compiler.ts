@@ -6,14 +6,6 @@ import path = require("path");
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 
-function transformPath(rootDir: string, outDir: string, filePath: string) {
-	return path.join(
-		outDir,
-		path.dirname(path.relative(rootDir, filePath)),
-		path.basename(filePath, path.extname(filePath)) + ".lua",
-	);
-}
-
 export class Compiler {
 	public project: Project;
 	private includePath: string;
@@ -24,6 +16,16 @@ export class Compiler {
 		});
 		this.project.addExistingSourceFiles("**/*.d.ts");
 		this.includePath = path.resolve(includePath);
+	}
+
+	private transformPath(rootDir: string, outDir: string, filePath: string) {
+		const relativeToRoot = path.dirname(path.relative(rootDir, filePath));
+		let name = path.basename(filePath, path.extname(filePath));
+		if (this.project.getCompilerOptions().module === ts.ModuleKind.CommonJS && name === "index") {
+			name = "init";
+		}
+		const luaName = name + ".lua";
+		return path.join(outDir, relativeToRoot, luaName);
 	}
 
 	public async compile() {
@@ -44,7 +46,7 @@ export class Compiler {
 				.getSourceFiles()
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => [
-					transformPath(rootDir, outDir, sourceFile.getFilePath()),
+					this.transformPath(rootDir, outDir, sourceFile.getFilePath()),
 					new Transpiler(rootDir, options).transpileSourceFile(sourceFile),
 				])
 				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));

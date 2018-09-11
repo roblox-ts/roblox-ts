@@ -424,12 +424,17 @@ export class Transpiler {
 		const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
 		const importPath = relPath.split("/").map(part => (part === ".." ? "Parent" : part));
 
-		const last = importPath.pop();
+		let last = importPath.pop();
 		if (!last) {
 			throw new TranspilerError("Invalid import path!", node);
 		}
-		importPath.push(path.basename(last, path.extname(last)));
+		last = path.basename(last, path.extname(last));
+		if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
+			console.log("push", this.compilerOptions.module === ts.ModuleKind.CommonJS, last === "index");
+			importPath.push(last);
+		}
 		importPath.unshift("script", "Parent");
+		console.log(importPath);
 		const luaPath = importPath.join(".");
 
 		const namespaceImport = node.getNamespaceImport();
