@@ -41,7 +41,7 @@ const argv = yargs
 	// includePath
 	.option("i", {
 		alias: "includePath",
-		demandOption: true,
+		default: "include",
 		describe: "path of folder to copy runtime .lua files to",
 	})
 
