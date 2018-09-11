@@ -82,9 +82,7 @@ if (argv.watch === true) {
 		.watch(rootDir, {
 			ignoreInitial: true,
 		})
-		.on("change", (filePath: string) => {
-			update();
-		})
+		.on("change", () => update())
 		.on("add", (filePath: string) => {
 			console.log("Add", filePath);
 			compiler.addFile(filePath);
