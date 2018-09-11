@@ -327,7 +327,12 @@ export class Transpiler {
 			result += this.indent + "return _exports;\n";
 		}
 		if (this.usesRuntimeLib) {
-			result = this.indent + "local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" + result;
+			result =
+				this.indent +
+				"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
+				this.indent +
+				"local Promise = TS.Promise;\n" +
+				result;
 		}
 		return result;
 	}

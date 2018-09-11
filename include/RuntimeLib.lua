@@ -2,6 +2,8 @@ local Promise = require(script.Parent.Promise)
 
 local TS = {}
 
+TS.Promise = Promise
+
 -- general utility functions
 function TS.typeof(value)
 	local type = typeof(value)
