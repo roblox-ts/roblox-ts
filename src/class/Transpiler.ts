@@ -430,7 +430,6 @@ export class Transpiler {
 		}
 		last = path.basename(last, path.extname(last));
 		if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
-			console.log("push", this.compilerOptions.module === ts.ModuleKind.CommonJS, last === "index");
 			importPath.push(last);
 		}
 		importPath.unshift("script", "Parent");
