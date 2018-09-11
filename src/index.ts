@@ -82,17 +82,17 @@ if (argv.watch === true) {
 		.watch(rootDir, {
 			ignoreInitial: true,
 		})
-		.on("change", (path: string) => {
+		.on("change", (filePath: string) => {
 			update();
 		})
-		.on("add", (path: string) => {
-			console.log("Add", path);
-			compiler.addFile(path);
+		.on("add", (filePath: string) => {
+			console.log("Add", filePath);
+			compiler.addFile(filePath);
 			update();
 		})
-		.on("unlink", (path: string) => {
-			console.log("Remove", path);
-			compiler.removeFile(path);
+		.on("unlink", (filePath: string) => {
+			console.log("Remove", filePath);
+			compiler.removeFile(filePath);
 			update();
 		});
 
