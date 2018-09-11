@@ -70,12 +70,18 @@ if (argv.watch === true) {
 		throw new Error("Could not find rootDir!");
 	}
 
+	let isCompiling = false;
+
 	const update = async (isInitial = false) => {
-		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
-		const start = Date.now();
-		compiler.refreshSync();
-		await compiler.compile();
-		console.log(`Done, took ${Date.now() - start} ms!`);
+		if (!isCompiling) {
+			isCompiling = true;
+			console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
+			const start = Date.now();
+			compiler.refreshSync();
+			await compiler.compile();
+			console.log(`Done, took ${Date.now() - start} ms!`);
+			isCompiling = false;
+		}
 	};
 
 	chokidar
