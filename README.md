@@ -13,17 +13,22 @@ You can then use roblox-ts via the CLI command `rbxtsc`.
 ### **Command Line Options**
 The `rbxtsc` command has a few flags you can use with it
 ```
+Usage: rbxtsc [options]
+
 Options:
   -w, --watch        enable watch mode                                 [boolean]
   -p, --project      project path                                 [default: "."]
-  -i, --includePath  path of folder to copy runtime .lua files to     [required]
+  -i, --includePath  folder to copy runtime .lua files to   [default: "include"]
+  --noInclude        do not copy runtime .lua files             [default: false]
   -v, --version      show version information                          [boolean]
   -h, --help         show help                                         [boolean]
 ```
 
-The `--includePath` flag is required for compiling.\
+The `--includePath` flag is not required for compiling, but it will default to "./include"\
 You should provide it a path to the folder you want to use for the included runtime library files.\
 This path should sync into studio as a folder at `game.ReplicatedStorage.RobloxTS`.
+
+It's recommended this sits outside of your rootDir.
 
 ### **Project Setup**
 
