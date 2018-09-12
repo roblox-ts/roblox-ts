@@ -24,7 +24,7 @@ Options:
   -h, --help         show help                                         [boolean]
 ```
 
-The `--includePath` flag is not required for compiling, but it will default to "./include"\
+The `--includePath` flag defaults to "./include"\
 You should provide it a path to the folder you want to use for the included runtime library files.\
 This path should sync into studio as a folder at `game.ReplicatedStorage.RobloxTS`.
 
