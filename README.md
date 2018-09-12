@@ -65,7 +65,8 @@ and your `tsconfig.json` file should resemble something like this:
 Compiled .lua files will be placed into the `out` directory.
 
 ### **Syncing Files into Roblox Studio**
-We recommend you use a tool like [Rojo](https://github.com/LPGhatguy/rojo) or [rofresh](https://github.com/osyrisrblx/rofresh) to sync your compiled .lua files into studio.
+We recommend you use a tool like [Rojo](https://github.com/LPGhatguy/rojo) or
+[rofresh](https://github.com/osyrisrblx/rofresh) to sync your compiled .lua files into studio.
 You should point your sync tool at the `out` directory in your project folder.
 
 
