@@ -106,7 +106,6 @@ if (argv.watch === true) {
 				// wait up to 50ms for actually empty files
 				let attempts = 0;
 				while (fs.readFileSync(filePath).length === 0 && attempts < MAX_READ_ATTEMPTS) {
-					console.log("empty", attempts);
 					attempts++;
 					await sleep(READ_DELAY);
 				}
