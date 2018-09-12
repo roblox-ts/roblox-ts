@@ -132,6 +132,7 @@ export class Transpiler {
 	private idStack = new Array<number>();
 	private hasModuleExports = false;
 	private usesRuntimeLib = false;
+	private isIndexModule = false;
 	private indent = "";
 
 	private sourceFile?: ts.SourceFile;
@@ -320,6 +321,10 @@ export class Transpiler {
 
 	public transpileSourceFile(node: ts.SourceFile) {
 		this.sourceFile = node;
+		this.isIndexModule =
+			this.compilerOptions.module === ts.ModuleKind.CommonJS &&
+			this.sourceFile.getBaseNameWithoutExtension() === "index";
+
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.hasModuleExports) {
@@ -436,7 +441,13 @@ export class Transpiler {
 			if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
 				importPath.push(last);
 			}
-			importPath.unshift("script", "Parent");
+
+			if (this.isIndexModule) {
+				importPath.unshift("script");
+			} else {
+				importPath.unshift("script", "Parent");
+			}
+
 			luaPath = importPath.join(".");
 		} else {
 			const value = node.getModuleSpecifierValue();
