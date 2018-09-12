@@ -47,13 +47,17 @@ and your `tsconfig.json` file should resemble something like this:
 ```JSON
 {
 	"compilerOptions": {
-		"strict": true,
 		"outDir": "out",
 		"rootDir": "src",
 		"baseUrl": "src",
-		"downlevelIteration": true,
+		"module": "commonjs",
+		"strict": true,
 		"noLib": true,
-		"target": "esnext"
+		"downlevelIteration": true,
+		"declaration": false
+	},
+	"typeAcquisition": {
+		"enable": true
 	}
 }
 ```
