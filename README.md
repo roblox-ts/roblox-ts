@@ -30,6 +30,9 @@ This path should sync into studio as a folder at `game.ReplicatedStorage.RobloxT
 
 It's recommended this sits outside of your rootDir.
 
+Upon compiling, roblox-ts will attempt to remove any unrecognized .lua files from your "out" folder.
+This prevents dangling .lua files from deleted .ts files.
+
 ### **Project Setup**
 
 We recommend that you should have your project directory resemble something like:
