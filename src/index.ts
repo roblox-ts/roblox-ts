@@ -15,7 +15,7 @@ const versionStr = require("../package.json").version as string;
 
 // cli interface
 const argv = yargs
-	.usage("Usage: $0 [options]")
+	.usage("Usage: rbxtsc [options]")
 
 	// version
 	.alias("v", "version")
@@ -46,7 +46,7 @@ const argv = yargs
 	.option("i", {
 		alias: "includePath",
 		default: "include",
-		describe: "path of folder to copy runtime .lua files to",
+		describe: "folder to copy runtime .lua files to",
 	})
 
 	// noInclude
