@@ -6,6 +6,9 @@ import * as path from "path";
 import * as yargs from "yargs";
 import { Compiler } from "./class/Compiler";
 
+const MAX_READ_ATTEMPTS = 5;
+const READ_DELAY = 10;
+
 /* tslint:disable */
 const versionStr = require("../package.json").version as string;
 /* tslint:enable */
@@ -69,6 +72,10 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 	throw new Error("Cannot find tsconfig.json!");
 }
 
+async function sleep(ms: number): Promise<void> {
+	return new Promise<void>((resolve, reject) => setTimeout(() => resolve(), ms));
+}
+
 const noInclude = argv.noInclude === true;
 
 const compiler = new Compiler(configFilePath, argv.includePath);
@@ -81,31 +88,49 @@ if (argv.watch === true) {
 	let isCompiling = false;
 
 	const update = async (isInitial = false) => {
-		if (!isCompiling) {
-			isCompiling = true;
-			console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
-			const start = Date.now();
-			compiler.refreshSync();
-			await compiler.compile(noInclude);
-			console.log(`Done, took ${Date.now() - start} ms!`);
-			isCompiling = false;
-		}
+		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
+		const start = Date.now();
+		compiler.refreshSync();
+		await compiler.compile(noInclude);
+		console.log(`Done, took ${Date.now() - start} ms!`);
 	};
 
 	chokidar
 		.watch(rootDir, {
 			ignoreInitial: true,
 		})
-		.on("change", () => update())
-		.on("add", (filePath: string) => {
-			console.log("Add", filePath);
-			compiler.addFile(filePath);
-			update();
+		.on("change", async (filePath: string) => {
+			if (!isCompiling) {
+				isCompiling = true;
+				// hack for chokidar sometimes getting empty files
+				// wait up to 50ms for actually empty files
+				let attempts = 0;
+				while (fs.readFileSync(filePath).length === 0 && attempts < MAX_READ_ATTEMPTS) {
+					console.log("empty", attempts);
+					attempts++;
+					await sleep(READ_DELAY);
+				}
+				await update();
+				isCompiling = false;
+			}
 		})
-		.on("unlink", (filePath: string) => {
-			console.log("Remove", filePath);
-			compiler.removeFile(filePath);
-			update();
+		.on("add", async (filePath: string) => {
+			if (!isCompiling) {
+				isCompiling = true;
+				console.log("Add", filePath);
+				compiler.addFile(filePath);
+				await update();
+				isCompiling = false;
+			}
+		})
+		.on("unlink", async (filePath: string) => {
+			if (!isCompiling) {
+				isCompiling = true;
+				console.log("Remove", filePath);
+				compiler.removeFile(filePath);
+				await update();
+				isCompiling = false;
+			}
 		});
 
 	console.log("Running in watch mode..");
