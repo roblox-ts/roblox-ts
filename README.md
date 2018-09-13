@@ -1,5 +1,5 @@
 <h1 align="center">roblox-ts</h1>
-<center>A TypeScript compiler for Roblox</center>
+<div align="center">A TypeScript compiler for Roblox</div>
 
 ⚠️ Documentation is a work in progress. ⚠️
 
