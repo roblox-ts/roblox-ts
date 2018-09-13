@@ -81,7 +81,8 @@ export class Compiler {
 					}
 				} else {
 					const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
-					if (!this.project.getSourceFile(tsPath)) {
+					const tsxPath = tsPath + "x";
+					if (!this.project.getSourceFile(tsPath) && !this.project.getSourceFile(tsxPath)) {
 						fs.removeSync(filePath);
 					}
 				}
