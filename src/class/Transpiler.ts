@@ -395,6 +395,8 @@ export class Transpiler {
 			return this.transpileBreakStatement(node);
 		} else if (ts.TypeGuards.isExpressionStatement(node)) {
 			return this.transpileExpressionStatement(node);
+		} else if (ts.TypeGuards.isContinueStatement(node)) {
+			return this.transpileContinueStatement(node);
 		} else if (ts.TypeGuards.isForInStatement(node)) {
 			return this.transpileForInStatement(node);
 		} else if (ts.TypeGuards.isForOfStatement(node)) {
@@ -415,6 +417,8 @@ export class Transpiler {
 			ts.TypeGuards.isInterfaceDeclaration(node)
 		) {
 			return "";
+		} else if (ts.TypeGuards.isLabeledStatement(node)) {
+			throw new TranspilerError("Labeled statements are not supported!", node);
 		} else {
 			throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node);
 		}
@@ -484,7 +488,7 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + "repeat\n";
 		this.pushIndent();
-		result += this.transpileStatement(node.getStatement());
+		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
 		result += this.indent + `until not (${condition});\n`;
 		return result;
@@ -517,6 +521,9 @@ export class Transpiler {
 	}
 
 	public transpileBreakStatement(node: ts.BreakStatement) {
+		if (node.getLabel()) {
+			throw new TranspilerError("Break labels are not supported!", node);
+		}
 		return this.indent + "break;\n";
 	}
 
@@ -551,6 +558,64 @@ export class Transpiler {
 		return this.indent + this.transpileExpression(expression) + ";\n";
 	}
 
+	private hasContinue(node: ts.Node) {
+		for (const child of node.getChildren()) {
+			if (ts.TypeGuards.isContinueStatement(child)) {
+				return true;
+			}
+			if (
+				!(
+					ts.TypeGuards.isForInStatement(child) ||
+					ts.TypeGuards.isForOfStatement(child) ||
+					ts.TypeGuards.isForStatement(child) ||
+					ts.TypeGuards.isWhileStatement(child) ||
+					ts.TypeGuards.isDoStatement(child)
+				)
+			) {
+				if (this.hasContinue(child)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private continueId = -1;
+	public transpileLoopBody(node: ts.Statement) {
+		const hasContinue = this.hasContinue(node);
+
+		let result = "";
+		if (hasContinue) {
+			this.continueId++;
+			result += this.indent + `local _continue_${this.continueId} = false;\n`;
+			result += this.indent + `repeat\n`;
+			this.pushIndent();
+		}
+
+		result += this.transpileStatement(node);
+
+		if (hasContinue) {
+			result += this.indent + `_continue_${this.continueId} = true;\n`;
+			this.popIndent();
+			result += this.indent + `until true;\n`;
+			result += this.indent + `if not _continue_${this.continueId} then\n`;
+			this.pushIndent();
+			result += this.indent + `break;\n`;
+			this.popIndent();
+			result += this.indent + `end\n`;
+			this.continueId--;
+		}
+
+		return result;
+	}
+
+	public transpileContinueStatement(node: ts.ContinueStatement) {
+		if (node.getLabel()) {
+			throw new TranspilerError("Continue labels are not supported!", node);
+		}
+		return this.indent + `_continue_${this.continueId} = true; break;\n`;
+	}
+
 	public transpileForInStatement(node: ts.ForInStatement) {
 		this.pushIdStack();
 		const init = node.getInitializer();
@@ -571,7 +636,6 @@ export class Transpiler {
 				init,
 			);
 		}
-		this.popIdStack();
 
 		if (varName.length === 0) {
 			throw new TranspilerError(`ForIn Loop empty varName!`, init);
@@ -582,9 +646,10 @@ export class Transpiler {
 		result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
-		result += this.transpileStatement(node.getStatement());
+		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
 		result += this.indent + `end;\n`;
+		this.popIdStack();
 		return result;
 	}
 
@@ -616,7 +681,6 @@ export class Transpiler {
 				initializer,
 			);
 		}
-		this.popIdStack();
 
 		if (varName.length === 0) {
 			throw new TranspilerError(`ForOf Loop empty varName!`, initializer);
@@ -627,9 +691,10 @@ export class Transpiler {
 		result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
 		this.pushIndent();
 		initializers.forEach(init => (result += this.indent + init));
-		result += this.transpileStatement(node.getStatement());
+		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
 		result += this.indent + `end;\n`;
+		this.popIdStack();
 		return result;
 	}
 
@@ -652,7 +717,7 @@ export class Transpiler {
 		}
 		result += this.indent + `while ${conditionStr} do\n`;
 		this.pushIndent();
-		result += this.transpileStatement(node.getStatement());
+		result += this.transpileLoopBody(node.getStatement());
 		if (incrementorStr) {
 			result += this.indent + incrementorStr;
 		}
@@ -754,7 +819,7 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + `while ${expStr} do\n`;
 		this.pushIndent();
-		result += this.transpileStatement(node.getStatement());
+		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		return result;
