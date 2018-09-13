@@ -1,6 +1,7 @@
-# roblox-ts
+<h1 align="center">roblox-ts</h1>
+<center>A TypeScript compiler for Roblox</center>
 
-<center>⚠️ Documentation is a work in progress. ⚠️</center>
+⚠️ Documentation is a work in progress. ⚠️
 
 ## **Quickstart Guide**
 
