@@ -3,6 +3,10 @@
 	"version": "0.0.1",
 	"description": "",
 	"main": "out/index.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/roblox-ts/roblox-ts.git"
+	},
 	"bin": {
 		"rbxtsc": "out/index.js"
 	},
