@@ -95,8 +95,7 @@ export class Compiler {
 		this.cleanDirRecursive(this.outDir);
 
 		if (options.declaration) {
-			const result = this.project.emit({ emitOnlyDtsFiles: true });
-		} else {
+			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
 		try {
