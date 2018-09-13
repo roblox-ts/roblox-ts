@@ -451,7 +451,7 @@ export class Transpiler {
 			luaPath = importPath.join(".");
 		} else {
 			const value = node.getModuleSpecifierValue();
-			if (value.startsWith("game.")) {
+			if (value.startsWith("game.") || !isNaN(Number(value))) {
 				luaPath = value;
 			} else {
 				throw new TranspilerError("Invalid import!", node);
