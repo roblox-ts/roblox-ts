@@ -10,7 +10,7 @@
 		"lint": "tslint -p tsconfig.json"
 	},
 	"author": "",
-	"license": "ISC",
+	"license": "MIT",
 	"dependencies": {
 		"chokidar": "^2.0.4",
 		"fs-extra": "^7.0.0",
