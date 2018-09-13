@@ -130,6 +130,7 @@ export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
 	private idStack = new Array<number>();
+	private continueId = -1;
 	private hasModuleExports = false;
 	private usesRuntimeLib = false;
 	private isIndexModule = false;
@@ -296,7 +297,29 @@ export class Transpiler {
 		}
 	}
 
-	public transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
+	private hasContinue(node: ts.Node) {
+		for (const child of node.getChildren()) {
+			if (ts.TypeGuards.isContinueStatement(child)) {
+				return true;
+			}
+			if (
+				!(
+					ts.TypeGuards.isForInStatement(child) ||
+					ts.TypeGuards.isForOfStatement(child) ||
+					ts.TypeGuards.isForStatement(child) ||
+					ts.TypeGuards.isWhileStatement(child) ||
+					ts.TypeGuards.isDoStatement(child)
+				)
+			) {
+				if (this.hasContinue(child)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
 		this.exportStack.push(new Array<string>());
 		let result = "";
@@ -558,29 +581,6 @@ export class Transpiler {
 		return this.indent + this.transpileExpression(expression) + ";\n";
 	}
 
-	private hasContinue(node: ts.Node) {
-		for (const child of node.getChildren()) {
-			if (ts.TypeGuards.isContinueStatement(child)) {
-				return true;
-			}
-			if (
-				!(
-					ts.TypeGuards.isForInStatement(child) ||
-					ts.TypeGuards.isForOfStatement(child) ||
-					ts.TypeGuards.isForStatement(child) ||
-					ts.TypeGuards.isWhileStatement(child) ||
-					ts.TypeGuards.isDoStatement(child)
-				)
-			) {
-				if (this.hasContinue(child)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	private continueId = -1;
 	public transpileLoopBody(node: ts.Statement) {
 		const hasContinue = this.hasContinue(node);
 
