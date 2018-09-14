@@ -473,18 +473,7 @@ export class Transpiler {
 				importPath.unshift("Parent");
 			}
 
-			luaPath = "script";
-			console.log(importPath);
-			while (importPath.length > 0) {
-				const part = importPath.shift();
-				if (part) {
-					if (part.indexOf("-") !== -1) {
-						luaPath += `["${part}"]`;
-					} else {
-						luaPath += "." + part;
-					}
-				}
-			}
+			luaPath = "script" + importPath.map(p => (p.indexOf("-") !== -1 ? `["${p}"]` : "." + p)).join("");
 		} else {
 			const value = node.getModuleSpecifierValue();
 			if (value.startsWith("game.") || !isNaN(Number(value))) {
