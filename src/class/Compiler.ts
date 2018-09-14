@@ -9,8 +9,11 @@ const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 export class Compiler {
 	private project: Project;
 	private includePath: string;
+
 	public readonly rootDir: string;
 	public readonly outDir: string;
+	public readonly options: ts.CompilerOptions;
+	public readonly moduleDir: ts.Directory | undefined;
 
 	constructor(configFilePath: string, includePath: string) {
 		this.project = new Project({
@@ -18,16 +21,16 @@ export class Compiler {
 		});
 		this.project.addExistingSourceFiles("**/*.d.ts");
 		this.includePath = path.resolve(includePath);
+		this.moduleDir = this.project.getDirectory("node_modules");
+		this.options = this.project.getCompilerOptions();
 
-		const options = this.project.getCompilerOptions();
-
-		const rootDir = options.rootDir;
+		const rootDir = this.options.rootDir;
 		if (!rootDir) {
 			throw new Error("Expected rootDir option in tsconfig.json!");
 		}
 		this.rootDir = rootDir;
 
-		const outDir = options.outDir;
+		const outDir = this.options.outDir;
 		if (!outDir) {
 			throw new Error("Expected outDir option in tsconfig.json!");
 		}
@@ -104,7 +107,7 @@ export class Compiler {
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => [
 					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-					new Transpiler(this.rootDir, options).transpileSourceFile(sourceFile),
+					new Transpiler(this).transpileSourceFile(sourceFile),
 				])
 				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));
 		} catch (e) {

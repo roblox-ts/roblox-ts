@@ -1,8 +1,37 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
 local Promise = require(script.Parent.Promise)
 
 local TS = {}
 
 TS.Promise = Promise
+
+local globalModules = ReplicatedStorage:FindFirstChild("TSModules")
+
+-- module resolution
+function TS.getModule(moduleName, object)
+	if not globalModules then
+		error("roblox-ts: Could not find any modules!")
+	end
+	if object:IsDescendantOf(globalModules) then
+		while object.Parent and object.Parent ~= globalModules do
+			local modules = object:FindFirstChild("node_modules")
+			if modules then
+				local module = modules:FindFirstChild(moduleName)
+				if module then
+					return module
+				end
+			end
+			object = object.Parent
+		end
+	else
+		local module = globalModules:FindFirstChild(moduleName)
+		if module then
+			return module
+		end
+	end
+	error("roblox-ts: Could not find module: " .. moduleName)
+end
 
 -- general utility functions
 function TS.typeof(value)

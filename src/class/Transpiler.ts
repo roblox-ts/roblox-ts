@@ -1,5 +1,6 @@
 import * as path from "path";
 import * as ts from "ts-simple-ast";
+import { Compiler } from "./Compiler";
 
 export class TranspilerError extends Error {
 	constructor(message: string, public node: ts.Node) {
@@ -56,13 +57,6 @@ const RBX_CLASSES = [
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
-}
-
-function isAssignment(node: ts.Node) {
-	if (ts.TypeGuards.isBinaryExpression(node) && node.getOperatorToken().getKind() === ts.SyntaxKind.EqualsToken) {
-		return true;
-	}
-	return false;
 }
 
 function getLuaPlusOperator(node: ts.BinaryExpression) {
@@ -132,13 +126,12 @@ export class Transpiler {
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private hasModuleExports = false;
-	private usesRuntimeLib = false;
 	private isIndexModule = false;
 	private indent = "";
 
 	private sourceFile?: ts.SourceFile;
 
-	constructor(public rootDir: string, private compilerOptions: ts.CompilerOptions) {}
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -241,7 +234,6 @@ export class Transpiler {
 	private getParameterData(paramNames: Array<string>, initializers: Array<string>, node: HasParameters) {
 		for (const param of node.getParameters()) {
 			const child =
-				false ||
 				param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
 				param.getFirstChildByKind(ts.SyntaxKind.ArrayBindingPattern) ||
 				param.getFirstChildByKind(ts.SyntaxKind.ObjectBindingPattern);
@@ -345,7 +337,7 @@ export class Transpiler {
 	public transpileSourceFile(node: ts.SourceFile) {
 		this.sourceFile = node;
 		this.isIndexModule =
-			this.compilerOptions.module === ts.ModuleKind.CommonJS &&
+			this.compiler.options.module === ts.ModuleKind.CommonJS &&
 			this.sourceFile.getBaseNameWithoutExtension() === "index";
 
 		let result = "";
@@ -354,14 +346,12 @@ export class Transpiler {
 			result = this.indent + `local _exports = {};\n` + result;
 			result += this.indent + "return _exports;\n";
 		}
-		if (this.usesRuntimeLib) {
-			result =
-				this.indent +
-				"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
-				this.indent +
-				"local Promise = TS.Promise;\n" +
-				result;
-		}
+		result =
+			this.indent +
+			"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
+			this.indent +
+			"local Promise = TS.Promise;\n" +
+			result;
 		return result;
 	}
 
@@ -451,35 +441,43 @@ export class Transpiler {
 		const sourceFile = node.getModuleSpecifierSourceFile();
 		let luaPath: string;
 		if (sourceFile) {
-			const relPath = path.relative(this.getSourceFileOrThrow().getDirectoryPath(), sourceFile.getFilePath());
-			const importPath = relPath.split(path.sep).map(part => (part === ".." ? "Parent" : part));
+			if (this.compiler.moduleDir && this.compiler.moduleDir.isAncestorOf(sourceFile)) {
+				let importPath = sourceFile.getFilePath().split(path.sep);
+				const index = importPath.lastIndexOf("node_modules") + 1;
+				const moduleName = importPath[index];
 
-			let last = importPath.pop();
-			if (!last) {
-				throw new TranspilerError("Invalid import path!", node);
-			}
-			const ext = path.extname(last);
-			last = path.basename(last, ext);
-			const subext = path.extname(last);
-			if (subext === ".d" && ext === ".ts") {
-				last = path.basename(last, subext);
-			}
+				importPath = importPath.slice(index + 1);
 
-			if (!(this.compilerOptions.module === ts.ModuleKind.CommonJS && last === "index")) {
-				importPath.push(last);
-			}
+				let last = importPath.pop()!;
+				const ext = path.extname(last);
+				if (ext.length > 0) {
+					last = path.basename(last, ext);
+					const subext = path.extname(last);
+					if (subext.length > 0) {
+						last = path.basename(last, subext);
+					}
+				}
 
-			if (!this.isIndexModule) {
-				importPath.unshift("Parent");
+				luaPath =
+					`TS.getModule("${moduleName}", script.Parent)` +
+					importPath.map(v => (v.indexOf("-") !== -1 ? `["${v}"]` : "." + v)).join("");
+			} else {
+				const relativePath = this.getSourceFileOrThrow().getRelativePathAsModuleSpecifierTo(sourceFile);
+				const importPath = relativePath
+					.split(path.sep)
+					.filter(v => v !== ".")
+					.map(v => (v === ".." ? "Parent" : v));
+				if (!this.isIndexModule) {
+					importPath.unshift("Parent");
+				}
+				luaPath = "script" + importPath.map(v => (v.indexOf("-") !== -1 ? `["${v}"]` : "." + v)).join("");
 			}
-
-			luaPath = "script" + importPath.map(p => (p.indexOf("-") !== -1 ? `["${p}"]` : "." + p)).join("");
 		} else {
 			const value = node.getModuleSpecifierValue();
 			if (value.startsWith("game.") || !isNaN(Number(value))) {
 				luaPath = value;
 			} else {
-				throw new TranspilerError("Invalid import!", node);
+				throw new TranspilerError("Invalid import: " + value, node);
 			}
 		}
 
@@ -834,7 +832,6 @@ export class Transpiler {
 		const paramStr = paramNames.join(", ");
 		let result = "";
 		if (node.isAsync()) {
-			this.usesRuntimeLib = true;
 			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
 		} else {
 			result += this.indent + `${name} = function(${paramStr})\n`;
@@ -1018,7 +1015,6 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
-			this.usesRuntimeLib = true;
 			result += this.indent + `${className}.${name} = TS.async(function(${paramStr})\n`;
 		} else {
 			result += this.indent + `${className}.${name} = function(${paramStr})\n`;
@@ -1193,7 +1189,6 @@ export class Transpiler {
 			throw new TranspilerError(`Bad function body (${body.getKindName()})`, node);
 		}
 		if (node.isAsync()) {
-			this.usesRuntimeLib = true;
 			result = `TS.async(${result})`;
 		}
 		this.popIdStack();
@@ -1238,7 +1233,6 @@ export class Transpiler {
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
-			this.usesRuntimeLib = true;
 			return `TS.array.${property}(${paramStr})`;
 		}
 
@@ -1247,7 +1241,6 @@ export class Transpiler {
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
-			this.usesRuntimeLib = true;
 			return `TS.string.${property}(${paramStr})`;
 		}
 
@@ -1426,7 +1419,6 @@ export class Transpiler {
 			case ts.SyntaxKind.LessThanEqualsToken:
 				return `${lhsStr} <= ${rhsStr}`;
 			case ts.SyntaxKind.InstanceOfKeyword:
-				this.usesRuntimeLib = true;
 				if (inheritsFrom(node.getRight().getType(), "Rbx_Instance")) {
 					return `TS.isA(${lhsStr}, "${rhsStr}")`;
 				} else if (isRbxClassType(node.getRight().getType())) {
@@ -1713,7 +1705,6 @@ export class Transpiler {
 
 	public transpileAwaitExpression(node: ts.AwaitExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
-		this.usesRuntimeLib = true;
 		return `TS.await(${expStr})`;
 	}
 
@@ -1726,7 +1717,6 @@ export class Transpiler {
 
 	public transpileTypeOfExpression(node: ts.TypeOfExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
-		this.usesRuntimeLib = true;
 		return `TS.typeof(${expStr})`;
 	}
 }
