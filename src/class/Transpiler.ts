@@ -469,13 +469,22 @@ export class Transpiler {
 				importPath.push(last);
 			}
 
-			if (this.isIndexModule) {
-				importPath.unshift("script");
-			} else {
-				importPath.unshift("script", "Parent");
+			if (!this.isIndexModule) {
+				importPath.unshift("Parent");
 			}
 
-			luaPath = importPath.join(".");
+			luaPath = "script";
+			console.log(importPath);
+			while (importPath.length > 0) {
+				const part = importPath.shift();
+				if (part) {
+					if (part.indexOf("-") !== -1) {
+						luaPath += `["${part}"]`;
+					} else {
+						luaPath += "." + part;
+					}
+				}
+			}
 		} else {
 			const value = node.getModuleSpecifierValue();
 			if (value.startsWith("game.") || !isNaN(Number(value))) {
