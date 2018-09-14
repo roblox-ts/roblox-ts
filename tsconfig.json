@@ -3,9 +3,8 @@
 		"module": "commonjs",
 		"outDir": "out",
 		"rootDir": "src",
-		"target": "esnext",
+		"target": "es6",
 		"strict": true,
-		"lib": [ "es6" ],
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
 		"sourceMap": true
