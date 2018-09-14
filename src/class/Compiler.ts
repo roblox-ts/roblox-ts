@@ -1,8 +1,8 @@
 import Project, * as ts from "ts-simple-ast";
 import { Transpiler, TranspilerError } from "./Transpiler";
 
-import fs = require("fs-extra");
-import path = require("path");
+import * as fs from "fs-extra";
+import * as path from "path";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 
