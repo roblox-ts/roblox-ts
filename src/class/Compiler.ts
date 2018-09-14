@@ -81,7 +81,8 @@ export class Compiler {
 					}
 				} else {
 					const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
-					if (!this.project.getSourceFile(tsPath)) {
+					const tsxPath = tsPath + "x";
+					if (!this.project.getSourceFile(tsPath) && !this.project.getSourceFile(tsxPath)) {
 						fs.removeSync(filePath);
 					}
 				}
@@ -94,8 +95,7 @@ export class Compiler {
 		this.cleanDirRecursive(this.outDir);
 
 		if (options.declaration) {
-			const result = this.project.emit({ emitOnlyDtsFiles: true });
-		} else {
+			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
 		try {
