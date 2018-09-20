@@ -464,7 +464,7 @@ export class Transpiler {
 			} else {
 				const relativePath = this.getSourceFileOrThrow().getRelativePathAsModuleSpecifierTo(sourceFile);
 				const importPath = relativePath
-					.split(path.sep)
+					.split("/")
 					.filter(v => v !== ".")
 					.map(v => (v === ".." ? "Parent" : v));
 				if (!this.isIndexModule) {
