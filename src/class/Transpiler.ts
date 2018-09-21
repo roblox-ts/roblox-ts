@@ -442,13 +442,14 @@ export class Transpiler {
 		let luaPath: string;
 		if (sourceFile) {
 			if (this.compiler.moduleDir && this.compiler.moduleDir.isAncestorOf(sourceFile)) {
-				let importPath = sourceFile.getFilePath().split(path.sep);
+				let importPath = sourceFile.getFilePath().split("/");
 				const index = importPath.lastIndexOf("node_modules") + 1;
 				const moduleName = importPath[index];
-
 				importPath = importPath.slice(index + 1);
-
-				let last = importPath.pop()!;
+				let last = importPath.pop();
+				if (!last) {
+					throw new TranspilerError("Malformed import path!", node);
+				}
 				const ext = path.extname(last);
 				if (ext.length > 0) {
 					last = path.basename(last, ext);
@@ -1250,7 +1251,7 @@ export class Transpiler {
 
 			// custom promises
 			if (subExpTypeName === "Promise") {
-				if (expression.getName() === "then") {
+				if (property === "then") {
 					return `${accessPath}:andThen(${params})`;
 				}
 			}
@@ -1258,7 +1259,7 @@ export class Transpiler {
 			// custom math
 			const MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 			if (MATH_CLASSES.some(className => subExpTypeName === className)) {
-				switch (expression.getName()) {
+				switch (property) {
 					case "add":
 						return `(${accessPath} + ${params})`;
 					case "sub":
