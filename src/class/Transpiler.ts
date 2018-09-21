@@ -1367,36 +1367,7 @@ export class Transpiler {
 			opKind === ts.SyntaxKind.SlashEqualsToken ||
 			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken
 		) {
-			if (!isSetter && ts.TypeGuards.isElementAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
-				const lhsExpNode = lhs.getExpression();
-				const lhsExpType = lhsExpNode.getType();
-				const lhsExpStr = this.transpileExpression(lhsExpNode);
-				let offset = "";
-				if (
-					lhsExpType.isTuple() ||
-					lhsExpType.isArray() ||
-					(ts.TypeGuards.isCallExpression(lhsExpNode) &&
-						(lhsExpNode.getReturnType().isArray() || lhsExpNode.getReturnType().isTuple()))
-				) {
-					offset = " + 1";
-				}
-				const argExpStr = this.transpileExpression(lhs.getArgumentExpressionOrThrow()) + offset;
-				const id = this.getNewId();
-				statements.push(`local ${id} = ${argExpStr}`);
-				if (ts.TypeGuards.isCallExpression(lhsExpNode) && lhsExpNode.getReturnType().isTuple()) {
-					lhsStr = `(select(${id}, ${lhsExpStr}))`;
-				} else {
-					if (this.isArrayLiteral(lhsExpNode)) {
-						lhsStr = `(${lhsExpStr})[${id}]`;
-					} else {
-						lhsStr = `${lhsExpStr}[${id}]`;
-					}
-				}
-			} else if (
-				!isSetter &&
-				ts.TypeGuards.isPropertyAccessExpression(lhs) &&
-				opKind !== ts.SyntaxKind.EqualsToken
-			) {
+			if (!isSetter && ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 				const expression = lhs.getExpression();
 				const opExpStr = this.transpileExpression(expression);
 				const propertyStr = lhs.getName();
@@ -1707,24 +1678,11 @@ export class Transpiler {
 		return bin.join(" .. ");
 	}
 
-	private isArrayLiteral(node: ts.Expression) {
-		let isArrayLiteral = false;
-		if (ts.TypeGuards.isArrayLiteralExpression(node)) {
-			isArrayLiteral = true;
-		} else if (ts.TypeGuards.isNewExpression(node)) {
-			const subExpNode = node.getExpression();
-			const subExpType = subExpNode.getType();
-			if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
-				isArrayLiteral = true;
-			}
-		}
-		return isArrayLiteral;
-	}
-
 	public transpileElementAccessExpression(node: ts.ElementAccessExpression) {
 		const expNode = node.getExpression();
 		const expType = expNode.getType();
 		const expStr = this.transpileExpression(expNode);
+
 		let offset = "";
 		if (
 			expType.isTuple() ||
@@ -1734,11 +1692,22 @@ export class Transpiler {
 		) {
 			offset = " + 1";
 		}
+
 		const argExpStr = this.transpileExpression(node.getArgumentExpressionOrThrow()) + offset;
 		if (ts.TypeGuards.isCallExpression(expNode) && expNode.getReturnType().isTuple()) {
 			return `(select(${argExpStr}, ${expStr}))`;
 		} else {
-			if (this.isArrayLiteral(expNode)) {
+			let isArrayLiteral = false;
+			if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
+				isArrayLiteral = true;
+			} else if (ts.TypeGuards.isNewExpression(expNode)) {
+				const subExpNode = expNode.getExpression();
+				const subExpType = subExpNode.getType();
+				if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
+					isArrayLiteral = true;
+				}
+			}
+			if (isArrayLiteral) {
 				return `(${expStr})[${argExpStr}]`;
 			} else {
 				return `${expStr}[${argExpStr}]`;
