@@ -1697,7 +1697,17 @@ export class Transpiler {
 		if (ts.TypeGuards.isCallExpression(expNode) && expNode.getReturnType().isTuple()) {
 			return `(select(${argExpStr}, ${expStr}))`;
 		} else {
+			let isArrayLiteral = false;
 			if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
+				isArrayLiteral = true;
+			} else if (ts.TypeGuards.isNewExpression(expNode)) {
+				const subExpNode = expNode.getExpression();
+				const subExpType = subExpNode.getType();
+				if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
+					isArrayLiteral = true;
+				}
+			}
+			if (isArrayLiteral) {
 				return `(${expStr})[${argExpStr}]`;
 			} else {
 				return `${expStr}[${argExpStr}]`;
