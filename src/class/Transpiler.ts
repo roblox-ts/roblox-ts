@@ -862,8 +862,10 @@ export class Transpiler {
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
+		this.hoistStack[this.hoistStack.length - 1].push(name);
+
 		let result = "";
-		result += this.indent + `local ${name} = (function(super)\n`;
+		result += this.indent + `${name} = (function(super)\n`;
 		this.pushIdStack();
 		this.pushIndent();
 
