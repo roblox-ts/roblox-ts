@@ -1381,17 +1381,15 @@ export class Transpiler {
 					offset = " + 1";
 				}
 				const argExpStr = this.transpileExpression(lhs.getArgumentExpressionOrThrow()) + offset;
-				const accessId = this.getNewId();
-				statements.push(`local ${accessId} = ${argExpStr}`);
+				const id = this.getNewId();
+				statements.push(`local ${id} = ${argExpStr}`);
 				if (ts.TypeGuards.isCallExpression(lhsExpNode) && lhsExpNode.getReturnType().isTuple()) {
-					const arrayId = this.getNewId();
-					statements.push(`local ${arrayId} = {${lhsExpStr}}`);
-					lhsStr = `${arrayId}[${accessId}]`;
+					lhsStr = `(select(${id}, ${lhsExpStr}))`;
 				} else {
 					if (this.isArrayLiteral(lhsExpNode)) {
-						lhsStr = `(${lhsExpStr})[${accessId}]`;
+						lhsStr = `(${lhsExpStr})[${id}]`;
 					} else {
-						lhsStr = `${lhsExpStr}[${accessId}]`;
+						lhsStr = `${lhsExpStr}[${id}]`;
 					}
 				}
 			} else if (
