@@ -897,14 +897,13 @@ export class Transpiler {
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
 		for (const prop of instanceProps) {
 			const propName = prop.getName();
-			let propValue = "nil";
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					propValue = this.transpileExpression(initializer);
+					const propValue = this.transpileExpression(initializer);
+					extraInitializers.push(`self.${propName} = ${propValue};\n`);
 				}
 			}
-			extraInitializers.push(`self.${propName} = ${propValue};\n`);
 		}
 
 		result += this.indent + `${id}.new = function(...)\n`;
