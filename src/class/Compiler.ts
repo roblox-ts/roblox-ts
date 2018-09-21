@@ -7,9 +7,8 @@ import * as path from "path";
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 
 export class Compiler {
-	private project: Project;
-	private includePath: string;
-
+	public readonly project: Project;
+	public readonly includePath: string;
 	public readonly rootDir: string;
 	public readonly outDir: string;
 	public readonly options: ts.CompilerOptions;
@@ -68,8 +67,8 @@ export class Compiler {
 		}
 	}
 
-	public refreshSync() {
-		this.project.getSourceFiles().forEach(sourceFile => sourceFile.refreshFromFileSystemSync());
+	public refresh(): Promise<Array<ts.FileSystemRefreshResult>> {
+		return Promise.all(this.project.getSourceFiles().map(sourceFile => sourceFile.refreshFromFileSystem()));
 	}
 
 	public cleanDirRecursive(dir: string) {

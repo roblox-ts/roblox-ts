@@ -90,7 +90,7 @@ if (argv.watch === true) {
 	const update = async (isInitial = false) => {
 		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
 		const start = Date.now();
-		compiler.refreshSync();
+		await compiler.refresh();
 		await compiler.compile(noInclude);
 		console.log(`Done, took ${Date.now() - start} ms!`);
 	};
