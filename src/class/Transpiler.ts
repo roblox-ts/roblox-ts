@@ -19,11 +19,6 @@ type HasParameters =
 
 // used for the typeof operator
 const RBX_CLASSES = [
-	"number",
-	"string",
-	"table",
-	"function",
-
 	"Axes",
 	"BrickColor",
 	"CFrame",
