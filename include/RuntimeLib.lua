@@ -6,9 +6,9 @@ local TS = {}
 
 TS.Promise = Promise
 
+-- module resolution
 local globalModules = ReplicatedStorage:FindFirstChild("TSModules")
 
--- module resolution
 function TS.getModule(moduleName, object)
 	if not globalModules then
 		error("roblox-ts: Could not find any modules!")
