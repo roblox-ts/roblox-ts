@@ -49,6 +49,8 @@ const RBX_CLASSES = [
 	"RBXScriptSignal",
 ];
 
+const RUNTIME_CLASSES = ["Promise"];
+
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
@@ -341,12 +343,7 @@ export class Transpiler {
 			result = this.indent + `local _exports = {};\n` + result;
 			result += this.indent + "return _exports;\n";
 		}
-		result =
-			this.indent +
-			"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
-			this.indent +
-			"local Promise = TS.Promise;\n" +
-			result;
+		result = this.indent + "local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" + result;
 		return result;
 	}
 
@@ -378,7 +375,11 @@ export class Transpiler {
 		if (identifier.getType().isUndefined()) {
 			return "nil";
 		}
-		return identifier.getText();
+		let name = identifier.getText();
+		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+			name = `TS.${name}`;
+		}
+		return name;
 	}
 
 	public transpileStatement(node: ts.Statement): string {
@@ -1252,6 +1253,22 @@ export class Transpiler {
 				}
 			}
 
+			if (subExpTypeName === "Map" || subExpTypeName === "ReadonlyMap" || subExpTypeName === "WeakMap") {
+				let paramStr = accessPath;
+				if (params.length > 0) {
+					paramStr += ", " + params;
+				}
+				return `TS.map.${property}(${paramStr})`;
+			}
+
+			if (subExpTypeName === "Set" || subExpTypeName === "ReadonlySet" || subExpTypeName === "WeakSet") {
+				let paramStr = accessPath;
+				if (params.length > 0) {
+					paramStr += ", " + params;
+				}
+				return `TS.set.${property}(${paramStr})`;
+			}
+
 			// custom math
 			const MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 			if (MATH_CLASSES.some(className => subExpTypeName === className)) {
@@ -1593,8 +1610,12 @@ export class Transpiler {
 
 		const expStr = node.getExpression();
 		const expressionType = expStr.getType();
-		const name = this.transpileExpression(expStr);
+		let name = this.transpileExpression(expStr);
 		const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
+
+		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+			name = `TS.${name}`;
+		}
 
 		if (expressionType.isObject()) {
 			if (inheritsFrom(expressionType, "Rbx_Instance")) {
@@ -1604,6 +1625,17 @@ export class Transpiler {
 
 			if (inheritsFrom(expressionType, "ArrayConstructor")) {
 				return "{}";
+			}
+
+			if (inheritsFrom(expressionType, "MapConstructor") || inheritsFrom(expressionType, "SetConstructor")) {
+				return "{}";
+			}
+
+			if (
+				inheritsFrom(expressionType, "WeakMapConstructor") ||
+				inheritsFrom(expressionType, "WeakSetConstructor")
+			) {
+				return `setmetatable({}, { __mode = "k" })`;
 			}
 		}
 

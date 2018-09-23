@@ -84,7 +84,7 @@ function TS.await(promise)
 	end
 end
 
--- array helper functions
+-- array macro functions
 TS.array = {}
 
 function TS.array.forEach(list, func)
@@ -291,7 +291,98 @@ function TS.array.join(list, separator)
 	return table.concat(list, separator or ",")
 end
 
--- string helper functions
+-- map macro functions
+TS.map = {}
+
+function TS.map.clear(map)
+	for key in pairs(map) do
+		map[key] = nil
+	end
+end
+
+function TS.map.size(map)
+	local result = 0
+	for _ in pairs(map) do
+		result = result + 1
+	end
+	return result
+end
+
+function TS.map.entries(map)
+	local result = {}
+	for key in pairs(map) do
+		table.insert(result, {key, map[key]})
+	end
+	return result
+end
+
+function TS.map.forEach(map, callback)
+	for key, value in pairs(map) do
+		callback(value, key, map)
+	end
+end
+
+function TS.map.get(map, key)
+	return map[key]
+end
+
+function TS.map.has(map, key)
+	return map[key] ~= nil
+end
+
+function TS.map.keys(map)
+	local result = {}
+	for key in pairs(map) do
+		table.insert(result, key)
+	end
+	return result
+end
+
+function TS.map.set(map, key, value)
+	map[key] = value
+end
+
+function TS.map.values(map)
+	local result = {}
+	for _, value in pairs(map) do
+		table.insert(result, value)
+	end
+	return result
+end
+
+-- set macro functions
+TS.set = {}
+
+function TS.set.add(set, value)
+	set[value] = true
+	return set
+end
+
+TS.set.clear = TS.map.clear
+
+function TS.set.delete(set, value)
+	local result = TS.set.has(set, value)
+	set[value] = nil
+	return result
+end
+
+function TS.set.forEach(set, callback)
+	for key in pairs(set) do
+		callback(key, key, set)
+	end
+end
+
+TS.set.has = TS.map.has
+
+TS.set.entries = TS.map.entries
+
+TS.set.values = TS.map.values
+
+TS.set.keys = TS.map.values
+
+TS.set.size = TS.map.size
+
+-- string macro functions
 TS.string = {}
 
 function TS.string.replace(source, searchVal, newVal)
