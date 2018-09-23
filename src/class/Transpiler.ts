@@ -343,7 +343,12 @@ export class Transpiler {
 			result = this.indent + `local _exports = {};\n` + result;
 			result += this.indent + "return _exports;\n";
 		}
-		result = this.indent + "local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" + result;
+		result =
+			this.indent +
+			"-- luacheck: ignore\n" +
+			this.indent +
+			"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
+			result;
 		return result;
 	}
 
@@ -420,6 +425,8 @@ export class Transpiler {
 			return this.transpileVariableStatement(node);
 		} else if (ts.TypeGuards.isWhileStatement(node)) {
 			return this.transpileWhileStatement(node);
+		} else if (ts.TypeGuards.isEnumDeclaration(node)) {
+			return this.transpileEnumDeclaration(node);
 		} else if (
 			ts.TypeGuards.isEmptyStatement(node) ||
 			ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -1035,11 +1042,45 @@ export class Transpiler {
 
 		const name = node.getName();
 		let result = "";
-		result += `local ${name} = {} do\n`;
+		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
 		result += this.transpileStatementedNode(node);
 		this.popIndent();
-		result += `end;\n`;
+		result += this.indent + `end;\n`;
+		return result;
+	}
+
+	public transpileEnumDeclaration(node: ts.EnumDeclaration) {
+		let result = "";
+		if (node.isConstEnum()) {
+			return result;
+		}
+		const name = node.getName();
+		let hoistStack = this.hoistStack[this.hoistStack.length - 1];
+		if (hoistStack.indexOf(name) === -1) {
+			hoistStack.push(name);
+		}
+		result += this.indent + `${name} = ${name} or {};\n`;
+		result += this.indent + `do\n`;
+		this.pushIndent();
+		let last = 0;
+		for (const member of node.getMembers()) {
+			const memberName = member.getName();
+			let memberValue = member.getValue();
+			if (typeof memberValue === "string") {
+				result += this.indent + `${name}["${memberName}"] = "${memberValue}";\n`;
+			} else if (typeof memberValue === "number") {
+				result += this.indent + `${name}["${memberName}"] = ${memberValue};\n`;
+				result += this.indent + `${name}[${memberValue}] = "${memberName}";\n`;
+				last++;
+			} else {
+				result += this.indent + `${name}["${memberName}"] = ${last};\n`;
+				result += this.indent + `${name}[${last}] = "${memberName}";\n`;
+				last++;
+			}
+		}
+		this.popIndent();
+		result += this.indent + `end\n`;
 		return result;
 	}
 
@@ -1651,9 +1692,18 @@ export class Transpiler {
 		const symbol = expression.getType().getSymbol();
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
-			if (valDec && ts.TypeGuards.isClassDeclaration(valDec)) {
-				if (valDec.getGetAccessor(propertyStr)) {
+			if (valDec) {
+				if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
 					return `${expStr}:_get_${propertyStr}()`;
+				} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
+					if (valDec.isConstEnum()) {
+						const value = valDec.getMemberOrThrow(propertyStr).getValue();
+						if (typeof value === "number") {
+							return `${value}`;
+						} else if (typeof value === "string") {
+							return `"${value}"`;
+						}
+					}
 				}
 			}
 		}
