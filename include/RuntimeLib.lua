@@ -288,7 +288,17 @@ function TS.array.pop(list)
 end
 
 function TS.array.join(list, separator)
-	return table.concat(list, separator or ",")
+	if #list == 0 then
+		return ""
+	end
+	if not separator then
+		separator = ", "
+	end
+	local result = tostring(list[1])
+	for i = 2, #list do
+		result = result .. separator .. tostring(list[i])
+	end
+	return result
 end
 
 -- map macro functions
@@ -376,9 +386,9 @@ TS.set.has = TS.map.has
 
 TS.set.entries = TS.map.entries
 
-TS.set.values = TS.map.values
+TS.set.values = TS.map.keys
 
-TS.set.keys = TS.map.values
+TS.set.keys = TS.map.keys
 
 TS.set.size = TS.map.size
 
