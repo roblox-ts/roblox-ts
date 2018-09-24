@@ -49,6 +49,8 @@ const RBX_CLASSES = [
 	"RBXScriptSignal",
 ];
 
+const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
+
 const RUNTIME_CLASSES = ["Promise", "Symbol"];
 
 const LUA_RESERVED_KEYWORDS = [
@@ -380,7 +382,7 @@ export class Transpiler {
 			this.indent +
 			"-- luacheck: ignore\n" +
 			this.indent +
-			"local TS = require(game.ReplicatedStorage.RobloxTS.RuntimeLib);\n" +
+			"local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n" +
 			result;
 		return result;
 	}
@@ -1358,17 +1360,29 @@ export class Transpiler {
 				return `TS.set.${property}(${paramStr})`;
 			}
 
+			const validateMathCall = () => {
+				if (ts.TypeGuards.isExpressionStatement(node.getParent())) {
+					throw new TranspilerError(
+						`${subExpTypeName}.${property}() cannot be an expression statement!`,
+						node,
+					);
+				}
+			};
+
 			// custom math
-			const MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
-			if (MATH_CLASSES.some(className => subExpTypeName === className)) {
+			if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
 				switch (property) {
 					case "add":
+						validateMathCall();
 						return `(${accessPath} + ${params})`;
 					case "sub":
+						validateMathCall();
 						return `(${accessPath} - ${params})`;
 					case "mul":
+						validateMathCall();
 						return `(${accessPath} * ${params})`;
 					case "div":
+						validateMathCall();
 						return `(${accessPath} / ${params})`;
 				}
 			}

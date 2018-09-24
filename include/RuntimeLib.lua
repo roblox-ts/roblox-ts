@@ -29,7 +29,7 @@ end
 TS.Symbol = Symbol
 
 -- module resolution
-local globalModules = ReplicatedStorage:FindFirstChild("TSModules")
+local globalModules = script.Parent:FindFirstChild("Modules")
 
 function TS.getModule(moduleName, object)
 	if not globalModules then

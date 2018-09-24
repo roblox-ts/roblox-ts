@@ -72,11 +72,11 @@ We recommmend that you write your TypeScript in [VS Code](https://code.visualstu
 	"partitions": {
 		"include": {
 			"path": "include",
-			"target": "ReplicatedStorage.RobloxTS"
+			"target": "ReplicatedStorage.RobloxTS.Include"
 		},
 		"modules": {
 			"path": "node_modules",
-			"target": "ReplicatedStorage.TSModules"
+			"target": "ReplicatedStorage.RobloxTS.Modules"
 		}
 	}
 }
