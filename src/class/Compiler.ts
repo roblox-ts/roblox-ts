@@ -117,7 +117,7 @@ export class Compiler {
 					e.node.getStartLineNumber(),
 					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
 				);
-				console.log("Transpile Error: %s", e.message);
+				console.log("\x1b[31mTranspile Error:\x1b[0m %s", e.message);
 			}
 			throw e;
 		}
