@@ -137,9 +137,11 @@ if (argv.watch === true) {
 	console.log("Running in watch mode..");
 	update(true);
 } else {
-	try {
-		compiler.compile(noInclude);
-	} catch (e) {
-		process.exit(1);
-	}
+	(async () => {
+		try {
+			await compiler.compile(noInclude);
+		} catch (e) {
+			process.exit(1);
+		}
+	})();
 }

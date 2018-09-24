@@ -898,7 +898,10 @@ export class Transpiler {
 		}
 
 		const name = node.getName() || this.getNewId();
-		this.checkReserved(name, node);
+		const nameNode = node.getNameNode();
+		if (nameNode) {
+			this.checkReserved(name, nameNode);
+		}
 		this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
@@ -1096,7 +1099,7 @@ export class Transpiler {
 			return result;
 		}
 		const name = node.getName();
-		this.checkReserved(name, node);
+		this.checkReserved(name, node.getNameNode());
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
@@ -1107,6 +1110,7 @@ export class Transpiler {
 		let last = 0;
 		for (const member of node.getMembers()) {
 			const memberName = member.getName();
+			this.checkReserved(memberName, member.getNameNode());
 			const memberValue = member.getValue();
 			if (typeof memberValue === "string") {
 				result += this.indent + `${name}["${memberName}"] = "${memberValue}";\n`;
@@ -1174,6 +1178,7 @@ export class Transpiler {
 				.getType()
 				.getSymbolOrThrow()
 				.getName();
+			this.checkReserved(className, node);
 			return `${className}`;
 		} else if (
 			ts.TypeGuards.isAsExpression(node) ||
@@ -1221,6 +1226,7 @@ export class Transpiler {
 			properties.forEach(property => {
 				if (ts.TypeGuards.isPropertyAssignment(property)) {
 					const lhs = property.getName();
+					this.checkReserved(lhs, property);
 					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
 					fields.push(`${lhs} = ${rhs}`);
 				}
@@ -1232,6 +1238,7 @@ export class Transpiler {
 			properties.forEach(property => {
 				if (ts.TypeGuards.isPropertyAssignment(property)) {
 					const lhs = property.getName();
+					this.checkReserved(lhs, property);
 					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
 					result += this.indent + `${lhs} = ${rhs},\n`;
 				}
