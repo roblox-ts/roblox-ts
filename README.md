@@ -3,16 +3,20 @@
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <div>&nbsp;</div>
 
-<div align="center">⚠️ Documentation is a work in progress. ⚠️</div>
 
 ## Why?
 As Roblox games become increasingly complex and larger in size, writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
 
 **roblox-ts** attempts to solve this problem by compiling TypeScript code into (Roblox flavored) Lua code.
 
+# Documentation
+⚠️ Documentation is a work in progress. ⚠️
+
+https://roblox-ts.github.io/
+
 # Getting Started
 
-## Installation
+## Installation & Usage
 
 In order to start using roblox-ts, you'll need to have NodeJS and npm installed. [You can download both from here.](https://nodejs.org/)
 
@@ -34,6 +38,8 @@ Options:
 ```
 
 ## Project Folder Setup
+
+We recommmend that you write your TypeScript in [VS Code](https://code.visualstudio.com/) for the best experience. However, also editors like [Sublime Text](https://www.sublimetext.com/) and [Atom](https://atom.io/) are supported.
 
 1. Create a new folder and name it whatever you'd like. For example: `MyCoolProject`
 
@@ -88,3 +94,5 @@ You should add more partitions for the subfolders of your `out` folder.
 # Join the Community!
 
 https://discord.gg/f6Rn6RY
+
+# Credits
