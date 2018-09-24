@@ -1,5 +1,3 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local Promise = require(script.Parent.Promise)
 
 local TS = {}
