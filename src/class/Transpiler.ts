@@ -53,7 +53,7 @@ const RUNTIME_CLASSES = ["Promise", "Symbol"];
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
-	"Break",
+	"break",
 	"do",
 	"else",
 	"elseif",
