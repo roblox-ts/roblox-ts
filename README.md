@@ -1,18 +1,26 @@
+<div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
 <h1 align="center">roblox-ts</h1>
-<div align="center">A TypeScript compiler for Roblox</div>
+<div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
+<div>&nbsp;</div>
 
-⚠️ Documentation is a work in progress. ⚠️
+<div align="center">⚠️ Documentation is a work in progress. ⚠️</div>
 
-## **Quickstart Guide**
+## Why?
+As Roblox games become increasingly complex and larger in size, writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
 
-### **Installation**
-You can install roblox-ts with npm, simply just:\
-`npm install -g roblox-ts`\
-(some systems may require you to prefix this with `sudo`)\
-You can then use roblox-ts via the CLI command `rbxtsc`.
+**roblox-ts** attempts to solve this problem by compiling TypeScript code into (Roblox flavored) Lua code.
 
-### **Command Line Options**
-The `rbxtsc` command has a few flags you can use with it
+# Getting Started
+
+## Installation
+
+In order to start using roblox-ts, you'll need to have NodeJS and npm installed. [You can download both from here.](https://nodejs.org/)
+
+Next, from your command line install roblox-ts: `npm install -g roblox-ts`\
+_(UNIX systems may need you to prefix this command with `sudo`)_
+
+You can now run roblox-ts with the command `rbxtsc`.
+
 ```
 Usage: rbxtsc [options]
 
@@ -25,29 +33,15 @@ Options:
   -h, --help         show help                                         [boolean]
 ```
 
-The `--includePath` flag defaults to "./include"\
-You should provide it a path to the folder you want to use for the included runtime library files.\
-This path should sync into studio as a folder at `game.ReplicatedStorage.RobloxTS`.
+## Project Folder Setup
 
-It's recommended this sits outside of your rootDir.
+1. Create a new folder and name it whatever you'd like.
 
-Upon compiling, roblox-ts will attempt to remove any unrecognized .lua files from your "out" folder.
-This prevents dangling .lua files from deleted .ts files.
+2. Run `npm init -y` inside of your folder. This will create your `package.json` file.
 
-### **Project Setup**
+3. Create a folder called `src` to contain your TypeScript files.
 
-We recommend that you should have your project directory resemble something like:
-```
-ProjectFolderName
-	src/
-		ServerScriptService/
-			HelloWorld.server.ts
-		roblox.d.ts
-	out/
-	tsconfig.json
-```
-
-and your `tsconfig.json` file should resemble something like this:
+4. Create a file named `tsconfig.json` in your project folder. The contents should look like this:
 ```JSON
 {
 	"compilerOptions": {
@@ -66,13 +60,30 @@ and your `tsconfig.json` file should resemble something like this:
 }
 ```
 
-Compiled .lua files will be placed into the `out` directory.
+5. Create a file for syncing your compiled .lua files to Roblox Studio. If you're using Rojo, this should be a `rojo.json` file and look like:
+```JSON
+{
+	"partitions": {
+		"include": {
+			"path": "include",
+			"target": "ReplicatedStorage.RobloxTS"
+		},
+		"modules": {
+			"path": "node_modules",
+			"target": "ReplicatedStorage.TSModules"
+		}
+	}
+}
+```
 
-### **Syncing Files into Roblox Studio**
-We recommend you use a tool like [Rojo](https://github.com/LPGhatguy/rojo) or
-[rofresh](https://github.com/osyrisrblx/rofresh) to sync your compiled .lua files into studio.
-You should point your sync tool at the `out` directory in your project folder.
+6. Run `npm install rbx-types` to install the Roblox API type definitions.
 
+7. Start roblox-ts in watch mode `rbxtsc -w`
 
-## **Join the community!**
+8. Run your sync program. If you're using Rojo, this is `rojo serve`
+
+9. Write code!
+
+# Join the Community!
+
 https://discord.gg/f6Rn6RY
