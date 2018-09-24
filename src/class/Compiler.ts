@@ -111,12 +111,15 @@ export class Compiler {
 				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));
 		} catch (e) {
 			if (e instanceof TranspilerError) {
-				console.log(e.node.getSourceFile().getFilePath());
-				console.log(e.stack);
-			} else {
-				throw e;
+				console.log(
+					"%s:%d:%d",
+					e.node.getSourceFile().getFilePath(),
+					e.node.getStartLineNumber(),
+					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+				);
+				console.log("Transpile Error: %s", e.message);
 			}
-			process.exit(1);
+			throw e;
 		}
 
 		if (!noInclude) {

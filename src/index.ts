@@ -91,7 +91,9 @@ if (argv.watch === true) {
 		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
 		const start = Date.now();
 		await compiler.refresh();
-		await compiler.compile(noInclude);
+		try {
+			await compiler.compile(noInclude);
+		} catch (e) {}
 		console.log(`Done, took ${Date.now() - start} ms!`);
 	};
 
@@ -135,5 +137,9 @@ if (argv.watch === true) {
 	console.log("Running in watch mode..");
 	update(true);
 } else {
-	compiler.compile(noInclude);
+	try {
+		compiler.compile(noInclude);
+	} catch (e) {
+		process.exit(1);
+	}
 }

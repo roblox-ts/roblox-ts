@@ -51,6 +51,30 @@ const RBX_CLASSES = [
 
 const RUNTIME_CLASSES = ["Promise", "Symbol"];
 
+const LUA_RESERVED_KEYWORDS = [
+	"and",
+	"Break",
+	"do",
+	"else",
+	"elseif",
+	"end",
+	"false",
+	"for",
+	"function",
+	"if",
+	"in",
+	"local",
+	"nil",
+	"not",
+	"or",
+	"repeat",
+	"return",
+	"then",
+	"true",
+	"until",
+	"while",
+];
+
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
@@ -136,6 +160,12 @@ export class Transpiler {
 		return `_${sum}`;
 	}
 
+	private checkReserved(name: string, node: ts.Node) {
+		if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
+			throw new TranspilerError(`Cannot use reserved Lua keyword as identifier '${name}'`, node);
+		}
+	}
+
 	private pushIdStack() {
 		this.idStack.push(0);
 	}
@@ -216,6 +246,7 @@ export class Transpiler {
 					if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
 						id = pattern.getText();
 					}
+					this.checkReserved(id, bindingPatern);
 					names.push(id);
 					if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 						const value = this.transpileExpression(pattern as ts.Expression);
@@ -247,6 +278,8 @@ export class Transpiler {
 			} else {
 				throw new TranspilerError(`Unexpected parameter type! (${child.getKindName()})`, param);
 			}
+
+			this.checkReserved(name, node);
 
 			if (param.isRestParameter()) {
 				paramNames.push("...");
@@ -376,11 +409,12 @@ export class Transpiler {
 		return result.join(", ");
 	}
 
-	public transpileIdentifier(identifier: ts.Identifier) {
-		if (identifier.getType().isUndefined()) {
+	public transpileIdentifier(node: ts.Identifier) {
+		if (node.getType().isUndefined()) {
 			return "nil";
 		}
-		let name = identifier.getText();
+		let name = node.getText();
+		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
 		}
@@ -769,7 +803,9 @@ export class Transpiler {
 			}
 
 			if (lhs.getKind() === ts.SyntaxKind.Identifier) {
-				names.push(lhs.getText());
+				const name = lhs.getText();
+				this.checkReserved(name, lhs);
+				names.push(name);
 				if (rhs) {
 					values.push(this.transpileExpression(rhs as ts.Expression));
 				} else {
@@ -827,6 +863,7 @@ export class Transpiler {
 
 	public transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
+		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 		const paramNames = new Array<string>();
@@ -861,6 +898,7 @@ export class Transpiler {
 		}
 
 		const name = node.getName() || this.getNewId();
+		this.checkReserved(name, node);
 		this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
@@ -1009,6 +1047,7 @@ export class Transpiler {
 
 	public transpileMethodDeclaration(className: string, node: ts.MethodDeclaration) {
 		const name = node.getName();
+		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
 
 		const paramNames = new Array<string>();
@@ -1041,6 +1080,7 @@ export class Transpiler {
 		}
 
 		const name = node.getName();
+		this.checkReserved(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1056,6 +1096,7 @@ export class Transpiler {
 			return result;
 		}
 		const name = node.getName();
+		this.checkReserved(name, node);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
