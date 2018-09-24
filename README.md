@@ -35,7 +35,7 @@ Options:
 
 ## Project Folder Setup
 
-1. Create a new folder and name it whatever you'd like.
+1. Create a new folder and name it whatever you'd like. For example: `MyCoolProject`
 
 2. Run `npm init -y` inside of your folder. This will create your `package.json` file.
 
@@ -75,6 +75,7 @@ Options:
 	}
 }
 ```
+You should add more partitions for the subfolders of your `out` folder.
 
 6. Run `npm install rbx-types` to install the Roblox API type definitions.
 
