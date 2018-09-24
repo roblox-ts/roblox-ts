@@ -49,7 +49,7 @@ const RBX_CLASSES = [
 	"RBXScriptSignal",
 ];
 
-const RUNTIME_CLASSES = ["Promise"];
+const RUNTIME_CLASSES = ["Promise", "Symbol"];
 
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
@@ -1056,7 +1056,7 @@ export class Transpiler {
 			return result;
 		}
 		const name = node.getName();
-		let hoistStack = this.hoistStack[this.hoistStack.length - 1];
+		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
 		}
@@ -1066,7 +1066,7 @@ export class Transpiler {
 		let last = 0;
 		for (const member of node.getMembers()) {
 			const memberName = member.getName();
-			let memberValue = member.getValue();
+			const memberValue = member.getValue();
 			if (typeof memberValue === "string") {
 				result += this.indent + `${name}["${memberName}"] = "${memberValue}";\n`;
 			} else if (typeof memberValue === "number") {

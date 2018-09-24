@@ -4,7 +4,29 @@ local Promise = require(script.Parent.Promise)
 
 local TS = {}
 
+-- runtime classes
 TS.Promise = Promise
+
+local Symbol do
+	Symbol = {}
+	Symbol.__index = Symbol
+	setmetatable(Symbol, {
+		__call = function(_, description)
+			local self = setmetatable({}, Symbol)
+			self.description = description or ""
+			return self
+		end
+	})
+
+	function Symbol:__tostring()
+		return "Symbol(" .. self.description .. ")"
+	end
+
+	function Symbol:toString()
+		return tostring(self)
+	end
+end
+TS.Symbol = Symbol
 
 -- module resolution
 local globalModules = ReplicatedStorage:FindFirstChild("TSModules")
