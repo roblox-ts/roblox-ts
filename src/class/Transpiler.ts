@@ -1209,10 +1209,11 @@ export class Transpiler {
 	}
 
 	public transpileArrayLiteralExpression(node: ts.ArrayLiteralExpression) {
-		const params = node
-			.getElements()
-			.map(element => this.transpileExpression(element))
-			.join(", ");
+		const elements = node.getElements();
+		if (elements.length === 0) {
+			return "{}";
+		}
+		const params = elements.map(element => this.transpileExpression(element)).join(", ");
 		return `{ ${params} }`;
 	}
 
