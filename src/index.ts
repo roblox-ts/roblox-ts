@@ -76,10 +76,6 @@ function isTSFile(filePath: string) {
 	return path.extname(filePath) === ".ts";
 }
 
-async function sleep(ms: number): Promise<void> {
-	return new Promise<void>((resolve, reject) => setTimeout(() => resolve(), ms));
-}
-
 const noInclude = argv.noInclude === true;
 
 const compiler = new Compiler(configFilePath, argv.includePath);
@@ -105,18 +101,18 @@ if (argv.watch === true) {
 
 	chokidar
 		.watch(rootDir, {
+			awaitWriteFinish: {
+				pollInterval: 10,
+				stabilityThreshold: 50,
+			},
 			ignoreInitial: true,
+			ignorePermissionErrors: true,
+			interval: 100,
+			usePolling: true,
 		})
 		.on("change", async (filePath: string) => {
 			if (!isCompiling && isTSFile(filePath)) {
 				isCompiling = true;
-				// hack for chokidar sometimes getting empty files
-				// wait up to 50ms for actually empty files
-				let attempts = 0;
-				while (fs.readFileSync(filePath).length === 0 && attempts < MAX_READ_ATTEMPTS) {
-					attempts++;
-					await sleep(READ_DELAY);
-				}
 				await update();
 				isCompiling = false;
 			}
