@@ -72,6 +72,10 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 	throw new Error("Cannot find tsconfig.json!");
 }
 
+function isTSFile(filePath: string) {
+	return path.extname(filePath) === "ts";
+}
+
 async function sleep(ms: number): Promise<void> {
 	return new Promise<void>((resolve, reject) => setTimeout(() => resolve(), ms));
 }
@@ -104,7 +108,7 @@ if (argv.watch === true) {
 			ignoreInitial: true,
 		})
 		.on("change", async (filePath: string) => {
-			if (!isCompiling) {
+			if (!isCompiling && isTSFile(filePath)) {
 				isCompiling = true;
 				// hack for chokidar sometimes getting empty files
 				// wait up to 50ms for actually empty files
@@ -118,7 +122,7 @@ if (argv.watch === true) {
 			}
 		})
 		.on("add", async (filePath: string) => {
-			if (!isCompiling) {
+			if (!isCompiling && isTSFile(filePath)) {
 				isCompiling = true;
 				console.log("Add", filePath);
 				compiler.addFile(filePath);
@@ -127,7 +131,7 @@ if (argv.watch === true) {
 			}
 		})
 		.on("unlink", async (filePath: string) => {
-			if (!isCompiling) {
+			if (!isCompiling && isTSFile(filePath)) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
