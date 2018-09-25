@@ -27,7 +27,7 @@ end
 TS.Symbol = Symbol
 
 -- module resolution
-local globalModules = script.Parent:FindFirstChild("Modules")
+local globalModules = script.Parent.Parent:FindFirstChild("Modules")
 
 function TS.getModule(moduleName, object)
 	if not globalModules then
