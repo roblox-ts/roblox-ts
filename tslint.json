@@ -40,13 +40,5 @@
 				"public-instance-method"
 			]
 		}]
-		// "no-empty": false,
-		// "no-bitwise": false,
-		// "variable-name": false,
-		// "no-unused-expression": false,
-		// "interface-name": false,
-		// "no-empty-interface": false,
-		// "no-namespace": false,
-		// "forin": false
 	}
 }
