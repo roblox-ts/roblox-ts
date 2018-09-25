@@ -16,7 +16,6 @@
 		"arrow-parens": false,
 		"max-classes-per-file": false,
 		"indent": [true, "tabs", 4],
-
 		"member-ordering": [true, {
 			"order": [
 				"private-static-field",
