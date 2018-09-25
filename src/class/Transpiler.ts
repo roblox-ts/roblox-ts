@@ -1514,6 +1514,7 @@ export class Transpiler {
 			case ts.SyntaxKind.EqualsEqualsEqualsToken:
 				return `${lhsStr} == ${rhsStr}`;
 			case ts.SyntaxKind.ExclamationEqualsToken:
+				throw new TranspilerError("operator '!=' is not supported! Use '!==' instead.", opToken);
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
 			case ts.SyntaxKind.PlusToken:
