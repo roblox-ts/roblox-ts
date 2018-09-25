@@ -82,10 +82,13 @@ export class Compiler {
 						fs.rmdirSync(filePath);
 					}
 				} else {
-					const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
-					const tsxPath = tsPath + "x";
-					if (!this.project.getSourceFile(tsPath) && !this.project.getSourceFile(tsxPath)) {
-						fs.removeSync(filePath);
+					const ext = path.extname(filePath);
+					if (ext === "lua") {
+						const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
+						const tsxPath = tsPath + "x";
+						if (!this.project.getSourceFile(tsPath) && !this.project.getSourceFile(tsxPath)) {
+							fs.removeSync(filePath);
+						}
 					}
 				}
 			}

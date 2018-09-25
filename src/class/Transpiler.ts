@@ -149,9 +149,8 @@ export class Transpiler {
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private hasModuleExports = false;
-	private isIndexModule = false;
 	private indent = "";
-
+	private isIndexModule = false;
 	private sourceFile?: ts.SourceFile;
 
 	constructor(private compiler: Compiler) {}

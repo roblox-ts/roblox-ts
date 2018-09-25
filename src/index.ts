@@ -93,7 +93,9 @@ if (argv.watch === true) {
 		await compiler.refresh();
 		try {
 			await compiler.compile(noInclude);
-		} catch (e) {}
+		} catch (e) {
+			// silence all exceptions
+		}
 		console.log(`Done, took ${Date.now() - start} ms!`);
 	};
 

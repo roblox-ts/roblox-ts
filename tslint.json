@@ -12,19 +12,41 @@
 		"array-type": [true, "generic"],
 		"no-unused-variable": true,
 		"curly": true,
-		"indent": [true, "tabs", 4],
-
-		"member-ordering": false,
 		"no-console": false,
 		"arrow-parens": false,
-		"no-empty": false,
-		"no-bitwise": false,
-		"variable-name": false,
 		"max-classes-per-file": false,
-		"no-unused-expression": false,
-		"interface-name": false,
-		"no-empty-interface": false,
-		"no-namespace": false,
-		"forin": false
+		"indent": [true, "tabs", 4],
+
+		"member-ordering": [true, {
+			"order": [
+				"private-static-field",
+				"protected-static-field",
+				"public-static-field",
+
+				"private-instance-field",
+				"protected-instance-field",
+				"public-instance-field",
+
+				"private-constructor",
+				"protected-constructor",
+				"public-constructor",
+
+				"private-static-method",
+				"protected-static-method",
+				"public-static-method",
+
+				"private-instance-method",
+				"protected-instance-method",
+				"public-instance-method"
+			]
+		}]
+		// "no-empty": false,
+		// "no-bitwise": false,
+		// "variable-name": false,
+		// "no-unused-expression": false,
+		// "interface-name": false,
+		// "no-empty-interface": false,
+		// "no-namespace": false,
+		// "forin": false
 	}
 }
