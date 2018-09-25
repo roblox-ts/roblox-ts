@@ -73,7 +73,7 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 }
 
 function isTSFile(filePath: string) {
-	return path.extname(filePath) === "ts";
+	return path.extname(filePath) === ".ts";
 }
 
 async function sleep(ms: number): Promise<void> {
