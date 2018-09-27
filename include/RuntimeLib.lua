@@ -34,8 +34,8 @@ function TS.getModule(moduleName, object)
 		error("roblox-ts: Could not find any modules!")
 	end
 	if object:IsDescendantOf(globalModules) then
-		while object.Parent and object.Parent ~= globalModules do
-			local modules = object:FindFirstChild("node_modules")
+		while object.Parent do
+			local modules = object == globalModules and object or object:FindFirstChild("node_modules")
 			if modules then
 				local module = modules:FindFirstChild(moduleName)
 				if module then
