@@ -374,7 +374,11 @@ export class Transpiler {
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.hasModuleExports) {
-			result = this.indent + `local _exports = {};\n` + result;
+			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
+				result = this.indent + `local _exports;\n` + result;
+			} else {
+				result = this.indent + `local _exports = {};\n` + result;
+			}
 			result += this.indent + "return _exports;\n";
 		}
 		result =
@@ -430,6 +434,8 @@ export class Transpiler {
 			return this.transpileBlock(node);
 		} else if (ts.TypeGuards.isImportDeclaration(node)) {
 			return this.transpileImportDeclaration(node);
+		} else if (ts.TypeGuards.isImportEqualsDeclaration(node)) {
+			return this.transpileImportEqualsDeclaration(node);
 		} else if (ts.TypeGuards.isFunctionDeclaration(node)) {
 			return this.transpileFunctionDeclaration(node);
 		} else if (ts.TypeGuards.isClassDeclaration(node)) {
@@ -462,6 +468,8 @@ export class Transpiler {
 			return this.transpileWhileStatement(node);
 		} else if (ts.TypeGuards.isEnumDeclaration(node)) {
 			return this.transpileEnumDeclaration(node);
+		} else if (ts.TypeGuards.isExportAssignment(node)) {
+			return this.transpileExportAssignment(node);
 		} else if (
 			ts.TypeGuards.isEmptyStatement(node) ||
 			ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -476,6 +484,14 @@ export class Transpiler {
 	}
 
 	public transpileImportDeclaration(node: ts.ImportDeclaration) {
+		return "";
+	}
+
+	public transpileImportEqualsDeclaration(node: ts.ImportEqualsDeclaration) {
+		return "";
+	}
+
+	public transpileImportDeclaration2(node: ts.ImportDeclaration) {
 		const sourceFile = node.getModuleSpecifierSourceFile();
 		let luaPath: string;
 		if (sourceFile) {
@@ -497,9 +513,11 @@ export class Transpiler {
 					}
 				}
 
-				luaPath =
-					`TS.getModule("${moduleName}", script.Parent)` +
-					importPath.map(v => (v.indexOf("-") !== -1 ? `["${v}"]` : "." + v)).join("");
+				if (last !== "index") {
+					importPath.push(last);
+				}
+
+				luaPath = `TS.getModule("${moduleName}", script.Parent)` + importPath.map(v => "." + v).join("");
 			} else {
 				const relativePath = this.getSourceFileOrThrow().getRelativePathAsModuleSpecifierTo(sourceFile);
 				const importPath = relativePath
@@ -1127,6 +1145,16 @@ export class Transpiler {
 		}
 		this.popIndent();
 		result += this.indent + `end\n`;
+		return result;
+	}
+
+	public transpileExportAssignment(node: ts.ExportAssignment) {
+		let result = "";
+		if (node.isExportEquals()) {
+			this.hasModuleExports = true;
+			const expStr = this.transpileExpression(node.getExpression());
+			result = this.indent + `_exports = ${expStr};\n`;
+		}
 		return result;
 	}
 
