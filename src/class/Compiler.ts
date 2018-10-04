@@ -2,6 +2,7 @@ import Project, * as ts from "ts-simple-ast";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
+import { stripExts } from "../utility";
 
 import * as fs from "fs-extra";
 import * as path from "path";
@@ -30,15 +31,6 @@ function red(s: string) {
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 function isValidLuaIdentifier(id: string) {
 	return luaIdentifierRegex.test(id);
-}
-
-function stripExts(fileName: string): string {
-	const ext = path.extname(fileName);
-	if (ext.length > 0) {
-		return stripExts(path.basename(fileName, ext));
-	} else {
-		return fileName;
-	}
 }
 
 const moduleCache = new Map<string, string>();
@@ -113,10 +105,23 @@ export class Compiler {
 	private transformPathToLua(rootDir: string, outDir: string, filePath: string) {
 		const relativeToRoot = path.dirname(path.relative(rootDir, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
+		const exts = new Array<string>();
+		while (true) {
+			const ext = path.extname(name);
+			if (ext.length > 0) {
+				exts.push(ext);
+				name = path.basename(name, ext);
+			} else {
+				break;
+			}
+		}
+		if (exts[exts.length - 1] === ".d") {
+			exts.pop();
+		}
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && name === "index") {
 			name = "init";
 		}
-		const luaName = name + ".lua";
+		const luaName = name + exts.join("") + ".lua";
 		return path.join(outDir, relativeToRoot, luaName);
 	}
 
