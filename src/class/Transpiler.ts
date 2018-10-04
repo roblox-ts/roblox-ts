@@ -453,7 +453,8 @@ export class Transpiler {
 				luaPath = this.compiler.getImportPathFromFile(moduleFile);
 			} else {
 				throw new TranspilerError(
-					`Could not find file for '${node.getModuleSpecifier().getLiteralText()}'`,
+					`Could not find file for '${node.getModuleSpecifier().getLiteralText()}'. ` +
+						`Did you forget to "npm install"?`,
 					node,
 				);
 			}
@@ -1174,8 +1175,13 @@ export class Transpiler {
 	}
 
 	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
-		const text = node.getText().slice(1, -1);
-		return `"${text}"`;
+		let text = node.getText();
+		if (text.startsWith("`") && text.endsWith("`")) {
+			text = text.slice(1, -1).replace(/"/g, '\\"');
+			text = `"${text}"`;
+		}
+
+		return text;
 	}
 
 	private transpileNumericLiteral(node: ts.NumericLiteral) {
