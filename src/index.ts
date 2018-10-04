@@ -5,9 +5,8 @@ import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
 import { Compiler } from "./class/Compiler";
-
-const MAX_READ_ATTEMPTS = 5;
-const READ_DELAY = 10;
+import { CompilerError } from "./class/errors/CompilerError";
+import { TranspilerError } from "./class/errors/TranspilerError";
 
 /* tslint:disable */
 const versionStr = require("../package.json").version as string;
@@ -73,30 +72,37 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 }
 
 function isTSFile(filePath: string) {
-	return path.extname(filePath) === ".ts";
+	const ext = path.extname(filePath);
+	return ext === ".ts" || ext === ".tsx";
 }
 
 const noInclude = argv.noInclude === true;
 
 const compiler = new Compiler(configFilePath, argv.includePath);
 if (argv.watch === true) {
-	const rootDir = compiler.rootDir;
-	if (!rootDir) {
-		throw new Error("Could not find rootDir!");
-	}
-
+	const rootDir = compiler.getRootDirOrThrow();
 	let isCompiling = false;
 
-	const update = async (isInitial = false) => {
-		console.log(isInitial ? "Starting initial compile.." : "Change detected, compiling..");
+	const time = async (callback: () => any) => {
 		const start = Date.now();
-		await compiler.refresh();
 		try {
-			await compiler.compile(noInclude);
+			await callback();
 		} catch (e) {
-			// silence all exceptions
+			if (e instanceof CompilerError || e instanceof TranspilerError) {
+				process.exitCode = 0;
+			} else {
+				throw e;
+			}
 		}
 		console.log(`Done, took ${Date.now() - start} ms!`);
+	};
+
+	const update = async (filePath: string) => {
+		console.log("Change detected, compiling..");
+		await compiler.refresh();
+		await time(async () => {
+			await compiler.compileFileByPath(filePath, noInclude);
+		});
 	};
 
 	chokidar
@@ -113,7 +119,7 @@ if (argv.watch === true) {
 		.on("change", async (filePath: string) => {
 			if (!isCompiling && isTSFile(filePath)) {
 				isCompiling = true;
-				await update();
+				await update(filePath);
 				isCompiling = false;
 			}
 		})
@@ -122,7 +128,7 @@ if (argv.watch === true) {
 				isCompiling = true;
 				console.log("Add", filePath);
 				compiler.addFile(filePath);
-				await update();
+				await update(filePath);
 				isCompiling = false;
 			}
 		})
@@ -131,17 +137,20 @@ if (argv.watch === true) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
-				await update();
+				await update(filePath);
 				isCompiling = false;
 			}
 		});
 
 	console.log("Running in watch mode..");
-	update(true);
+	console.log("Starting initial compile..");
+	time(() => {
+		compiler.compileAll(noInclude);
+	});
 } else {
 	(async () => {
 		try {
-			await compiler.compile(noInclude);
+			await compiler.compileAll(noInclude);
 		} catch (e) {
 			process.exit(1);
 		}

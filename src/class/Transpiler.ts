@@ -1,12 +1,6 @@
-import * as path from "path";
 import * as ts from "ts-simple-ast";
 import { Compiler } from "./Compiler";
-
-export class TranspilerError extends Error {
-	constructor(message: string, public node: ts.Node) {
-		super(message);
-	}
-}
+import { TranspilerError } from "./errors/TranspilerError";
 
 type HasParameters =
 	| ts.FunctionExpression
@@ -128,14 +122,14 @@ function isBindingPattern(node: ts.Node) {
 	);
 }
 
-function classGetMethod(classDec: ts.ClassDeclaration, methodName: string): ts.MethodDeclaration | undefined {
+function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.MethodDeclaration | undefined {
 	const method = classDec.getMethod(methodName);
 	if (method) {
 		return method;
 	}
 	const baseClass = classDec.getBaseClass();
 	if (baseClass) {
-		const baseMethod = classGetMethod(baseClass, methodName);
+		const baseMethod = getClassMethod(baseClass, methodName);
 		if (baseMethod) {
 			return baseMethod;
 		}
@@ -148,10 +142,8 @@ export class Transpiler {
 	private exportStack = new Array<Array<string>>();
 	private idStack = new Array<number>();
 	private continueId = -1;
-	private hasModuleExports = false;
+	private isModule = false;
 	private indent = "";
-	private isIndexModule = false;
-	private sourceFile?: ts.SourceFile;
 
 	constructor(private compiler: Compiler) {}
 
@@ -200,7 +192,7 @@ export class Transpiler {
 		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
 			ancestorName = ancestor.getName();
 		} else {
-			this.hasModuleExports = true;
+			this.isModule = true;
 			ancestorName = "_exports";
 		}
 		const alias = node.isDefaultExport() ? "_default" : name;
@@ -277,7 +269,8 @@ export class Transpiler {
 			} else if (isBindingPattern(child)) {
 				name = this.getNewId();
 			} else {
-				throw new TranspilerError(`Unexpected parameter type! (${child.getKindName()})`, param);
+				const kindName = child.getKindName();
+				throw new TranspilerError(`Unexpected parameter type! (${kindName})`, param);
 			}
 
 			this.checkReserved(name, node);
@@ -309,14 +302,6 @@ export class Transpiler {
 				initializers.push(`local ${names.join(", ")} = ${values.join(", ")};`);
 				postStatements.forEach(statement => initializers.push(statement));
 			}
-		}
-	}
-
-	private getSourceFileOrThrow() {
-		if (this.sourceFile) {
-			return this.sourceFile;
-		} else {
-			throw new Error("Could not find sourceFile!");
 		}
 	}
 
@@ -365,32 +350,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileSourceFile(node: ts.SourceFile) {
-		this.sourceFile = node;
-		this.isIndexModule =
-			this.compiler.options.module === ts.ModuleKind.CommonJS &&
-			this.sourceFile.getBaseNameWithoutExtension() === "index";
-
-		let result = "";
-		result += this.transpileStatementedNode(node);
-		if (this.hasModuleExports) {
-			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
-				result = this.indent + `local _exports;\n` + result;
-			} else {
-				result = this.indent + `local _exports = {};\n` + result;
-			}
-			result += this.indent + "return _exports;\n";
-		}
-		result =
-			this.indent +
-			"-- luacheck: ignore\n" +
-			this.indent +
-			"local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n" +
-			result;
-		return result;
-	}
-
-	public transpileBlock(node: ts.Block) {
+	private transpileBlock(node: ts.Block) {
 		let result = "";
 		const parent = node.getParentIfKind(ts.SyntaxKind.SourceFile) || node.getParentIfKind(ts.SyntaxKind.Block);
 		if (parent) {
@@ -405,16 +365,14 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
-		const result = new Array<string>();
+	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
 		if (context) {
-			result.push(this.transpileExpression(context));
+			args.unshift(context);
 		}
-		args.forEach(arg => result.push(this.transpileExpression(arg)));
-		return result.join(", ");
+		return args.map(arg => this.transpileExpression(arg)).join(", ");
 	}
 
-	public transpileIdentifier(node: ts.Identifier) {
+	private transpileIdentifier(node: ts.Identifier) {
 		if (node.getType().isUndefined()) {
 			return "nil";
 		}
@@ -426,7 +384,7 @@ export class Transpiler {
 		return name;
 	}
 
-	public transpileStatement(node: ts.Statement): string {
+	private transpileStatement(node: ts.Statement): string {
 		if (ts.TypeGuards.isBlock(node)) {
 			if (node.getStatements().length === 0) {
 				return "";
@@ -483,83 +441,74 @@ export class Transpiler {
 		}
 	}
 
-	public transpileImportDeclaration(node: ts.ImportDeclaration) {
-		return "";
-	}
-
-	public transpileImportEqualsDeclaration(node: ts.ImportEqualsDeclaration) {
-		return "";
-	}
-
-	public transpileImportDeclaration2(node: ts.ImportDeclaration) {
-		const sourceFile = node.getModuleSpecifierSourceFile();
+	private transpileImportDeclaration(node: ts.ImportDeclaration) {
 		let luaPath: string;
-		if (sourceFile) {
-			if (this.compiler.moduleDir && this.compiler.moduleDir.isAncestorOf(sourceFile)) {
-				let importPath = sourceFile.getFilePath().split("/");
-				const index = importPath.lastIndexOf("node_modules") + 1;
-				const moduleName = importPath[index];
-				importPath = importPath.slice(index + 1);
-				let last = importPath.pop();
-				if (!last) {
-					throw new TranspilerError("Malformed import path!", node);
-				}
-				const ext = path.extname(last);
-				if (ext.length > 0) {
-					last = path.basename(last, ext);
-					const subext = path.extname(last);
-					if (subext.length > 0) {
-						last = path.basename(last, subext);
-					}
-				}
-
-				if (last !== "index") {
-					importPath.push(last);
-				}
-
-				luaPath = `TS.getModule("${moduleName}", script.Parent)` + importPath.map(v => "." + v).join("");
-			} else {
-				const relativePath = this.getSourceFileOrThrow().getRelativePathAsModuleSpecifierTo(sourceFile);
-				const importPath = relativePath
-					.split("/")
-					.filter(v => v !== ".")
-					.map(v => (v === ".." ? "Parent" : v));
-				if (!this.isIndexModule) {
-					importPath.unshift("Parent");
-				}
-				luaPath = "script" + importPath.map(v => (v.indexOf("-") !== -1 ? `["${v}"]` : "." + v)).join("");
-			}
+		if (node.isModuleSpecifierRelative()) {
+			luaPath = this.compiler.getRelativeImportPath(node.getModuleSpecifier().getLiteralText());
 		} else {
-			const value = node.getModuleSpecifierValue();
-			if (value.startsWith("game.") || !isNaN(Number(value))) {
-				luaPath = value;
+			const moduleFile = node.getModuleSpecifierSourceFile();
+			if (moduleFile) {
+				luaPath = this.compiler.getImportPathFromFile(moduleFile);
 			} else {
-				throw new TranspilerError("Invalid import: " + value, node);
+				throw new TranspilerError(
+					`Could not find file for '${node.getModuleSpecifier().getLiteralText()}'`,
+					node,
+				);
 			}
 		}
 
-		const namespaceImport = node.getNamespaceImport();
-		const container = namespaceImport ? namespaceImport.getText() : this.getNewId();
-		const importNames = node.getNamedImports();
-		const variables = importNames.map(v => {
-			const alias = v.getAliasNode();
-			return alias ? alias.getText() : v.getName();
-		});
-		const accessors = importNames.map(v => `${container}.${v.getName()}`);
 		const defaultImport = node.getDefaultImport();
+		const namespaceImport = node.getNamespaceImport();
+		const namedImports = node.getNamedImports();
+
+		const lhs = new Array<string>();
+		const rhs = new Array<string>();
+
 		if (defaultImport) {
-			variables.unshift(defaultImport.getText());
-			accessors.unshift(`${container}._default`);
+			lhs.push(this.transpileExpression(defaultImport));
+			rhs.push(`._default`);
 		}
+
+		if (namespaceImport) {
+			lhs.push(this.transpileExpression(namespaceImport));
+			rhs.push("");
+		}
+
+		namedImports.forEach(namedImport => {
+			const name = namedImport.getName();
+			lhs.push(name);
+			rhs.push(`.${name}`);
+		});
+
 		let result = "";
-		result += this.indent + `local ${container} = require(${luaPath});\n`;
-		if (variables.length > 0) {
-			result += this.indent + `local ${variables.join(", ")} = ${accessors.join(", ")};\n`;
+		let prefix: string;
+		if (lhs.length === 1) {
+			prefix = `require(${luaPath})`;
+		} else {
+			prefix = this.getNewId();
+			result += `local ${prefix} = require(${luaPath});\n`;
 		}
+		const lhsStr = lhs.join(", ");
+		const rhsStr = rhs.map(v => prefix + v).join(", ");
+		result += `local ${lhsStr} = ${rhsStr};\n`;
 		return result;
 	}
 
-	public transpileDoStatement(node: ts.DoStatement) {
+	private transpileImportEqualsDeclaration(node: ts.ImportEqualsDeclaration) {
+		let luaPath: string;
+		const moduleFile = node.getExternalModuleReferenceSourceFile();
+		if (moduleFile) {
+			luaPath = this.compiler.getImportPathFromFile(moduleFile);
+		} else {
+			const text = node.getModuleReference().getText();
+			throw new TranspilerError(`Could not find file for '${text}'`, node);
+		}
+
+		const name = node.getName();
+		return this.indent + `local ${name} = require(${luaPath});\n`;
+	}
+
+	private transpileDoStatement(node: ts.DoStatement) {
 		const condition = this.transpileExpression(node.getExpression());
 		let result = "";
 		result += this.indent + "repeat\n";
@@ -570,7 +519,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileIfStatement(node: ts.IfStatement) {
+	private transpileIfStatement(node: ts.IfStatement) {
 		let result = "";
 		const expStr = this.transpileExpression(node.getExpression());
 		result += this.indent + `if ${expStr} then\n`;
@@ -596,14 +545,14 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileBreakStatement(node: ts.BreakStatement) {
+	private transpileBreakStatement(node: ts.BreakStatement) {
 		if (node.getLabel()) {
 			throw new TranspilerError("Break labels are not supported!", node);
 		}
 		return this.indent + "break;\n";
 	}
 
-	public transpileExpressionStatement(node: ts.ExpressionStatement) {
+	private transpileExpressionStatement(node: ts.ExpressionStatement) {
 		// big set of rules for expression statements
 		const expression = node.getExpression();
 		if (
@@ -634,7 +583,7 @@ export class Transpiler {
 		return this.indent + this.transpileExpression(expression) + ";\n";
 	}
 
-	public transpileLoopBody(node: ts.Statement) {
+	private transpileLoopBody(node: ts.Statement) {
 		const hasContinue = this.hasContinue(node);
 
 		let result = "";
@@ -662,14 +611,14 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileContinueStatement(node: ts.ContinueStatement) {
+	private transpileContinueStatement(node: ts.ContinueStatement) {
 		if (node.getLabel()) {
 			throw new TranspilerError("Continue labels are not supported!", node);
 		}
 		return this.indent + `_continue_${this.continueId} = true; break;\n`;
 	}
 
-	public transpileForInStatement(node: ts.ForInStatement) {
+	private transpileForInStatement(node: ts.ForInStatement) {
 		this.pushIdStack();
 		const init = node.getInitializer();
 		let varName = "";
@@ -706,7 +655,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileForOfStatement(node: ts.ForOfStatement) {
+	private transpileForOfStatement(node: ts.ForOfStatement) {
 		this.pushIdStack();
 		const initializer = node.getInitializer();
 		let varName = "";
@@ -751,7 +700,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileForStatement(node: ts.ForStatement) {
+	private transpileForStatement(node: ts.ForStatement) {
 		const condition = node.getCondition();
 		const conditionStr = condition ? this.transpileExpression(condition) : "true";
 		const incrementor = node.getIncrementor();
@@ -781,7 +730,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileReturnStatement(node: ts.ReturnStatement) {
+	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		const dec = getReturnedTypedAncestor(node);
 		if (dec && exp && dec.getReturnType().isTuple()) {
@@ -798,12 +747,12 @@ export class Transpiler {
 		}
 	}
 
-	public transpileThrowStatement(node: ts.ThrowStatement) {
+	private transpileThrowStatement(node: ts.ThrowStatement) {
 		const expStr = this.transpileExpression(node.getExpressionOrThrow());
 		return this.indent + `error(${expStr});\n`;
 	}
 
-	public transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
+	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
 		if (node.getDeclarationKind() === ts.VariableDeclarationKind.Var) {
 			throw new TranspilerError("'var' keyword is not supported! Use 'let' or 'const' instead.", node);
 		}
@@ -864,12 +813,12 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileVariableStatement(node: ts.VariableStatement) {
+	private transpileVariableStatement(node: ts.VariableStatement) {
 		const list = node.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
 		return this.transpileVariableDeclarationList(list);
 	}
 
-	public transpileWhileStatement(node: ts.WhileStatement) {
+	private transpileWhileStatement(node: ts.WhileStatement) {
 		const expStr = this.transpileExpression(node.getExpression());
 		let result = "";
 		result += this.indent + `while ${expStr} do\n`;
@@ -880,7 +829,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
+	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
@@ -911,7 +860,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileClassDeclaration(node: ts.ClassDeclaration) {
+	private transpileClassDeclaration(node: ts.ClassDeclaration) {
 		if (node.hasDeclareKeyword()) {
 			return "";
 		}
@@ -937,7 +886,7 @@ export class Transpiler {
 		result += this.indent + `local ${id} = setmetatable({}, super);\n`;
 		result += this.indent + `${id}.__index = ${id};\n`;
 
-		const toStrMethod = classGetMethod(node, "toString");
+		const toStrMethod = getClassMethod(node, "toString");
 		if (toStrMethod && (toStrMethod.getReturnType().isString() || toStrMethod.getReturnType().isStringLiteral())) {
 			result += this.indent + `${id}.__tostring = function(self) return self:toString(); end;\n`;
 		}
@@ -1002,7 +951,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileConstructorDeclaration(
+	private transpileConstructorDeclaration(
 		className: string,
 		node?: ts.ConstructorDeclaration,
 		extraInitializers?: Array<string>,
@@ -1042,7 +991,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileAccessorDeclaration(
+	private transpileAccessorDeclaration(
 		node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
 		className: string,
 		name: string,
@@ -1067,7 +1016,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileMethodDeclaration(className: string, node: ts.MethodDeclaration) {
+	private transpileMethodDeclaration(className: string, node: ts.MethodDeclaration) {
 		const name = node.getName();
 		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
@@ -1096,7 +1045,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
+	private transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
 		if (node.hasDeclareKeyword()) {
 			return "";
 		}
@@ -1112,7 +1061,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileEnumDeclaration(node: ts.EnumDeclaration) {
+	private transpileEnumDeclaration(node: ts.EnumDeclaration) {
 		let result = "";
 		if (node.isConstEnum()) {
 			return result;
@@ -1148,17 +1097,17 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileExportAssignment(node: ts.ExportAssignment) {
+	private transpileExportAssignment(node: ts.ExportAssignment) {
 		let result = "";
 		if (node.isExportEquals()) {
-			this.hasModuleExports = true;
+			this.isModule = true;
 			const expStr = this.transpileExpression(node.getExpression());
 			result = this.indent + `_exports = ${expStr};\n`;
 		}
 		return result;
 	}
 
-	public transpileExpression(node: ts.Expression, compress = false): string {
+	private transpileExpression(node: ts.Expression, compress = false): string {
 		if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 			return this.transpileStringLiteral(node);
 		} else if (ts.TypeGuards.isNumericLiteral(node)) {
@@ -1223,20 +1172,20 @@ export class Transpiler {
 		}
 	}
 
-	public transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
+	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
 		const text = node.getText().slice(1, -1);
 		return `"${text}"`;
 	}
 
-	public transpileNumericLiteral(node: ts.NumericLiteral) {
+	private transpileNumericLiteral(node: ts.NumericLiteral) {
 		return node.getLiteralValue().toString();
 	}
 
-	public transpileBooleanLiteral(node: ts.BooleanLiteral) {
+	private transpileBooleanLiteral(node: ts.BooleanLiteral) {
 		return node.getLiteralValue() === true ? "true" : "false";
 	}
 
-	public transpileArrayLiteralExpression(node: ts.ArrayLiteralExpression) {
+	private transpileArrayLiteralExpression(node: ts.ArrayLiteralExpression) {
 		const elements = node.getElements();
 		if (elements.length === 0) {
 			return "{}";
@@ -1245,7 +1194,7 @@ export class Transpiler {
 		return `{ ${params} }`;
 	}
 
-	public transpileObjectLiteralExpression(node: ts.ObjectLiteralExpression, compress: boolean) {
+	private transpileObjectLiteralExpression(node: ts.ObjectLiteralExpression, compress: boolean) {
 		const properties = node.getProperties();
 		if (properties.length === 0) {
 			return "{}";
@@ -1279,7 +1228,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileFunctionExpression(node: ts.FunctionExpression | ts.ArrowFunction) {
+	private transpileFunctionExpression(node: ts.FunctionExpression | ts.ArrowFunction) {
 		const body = node.getBody();
 		const paramNames = new Array<string>();
 		const initializers = new Array<string>();
@@ -1312,7 +1261,7 @@ export class Transpiler {
 		return result;
 	}
 
-	public transpileCallExpression(node: ts.CallExpression) {
+	private transpileCallExpression(node: ts.CallExpression) {
 		const expStr = node.getExpression();
 		if (ts.TypeGuards.isPropertyAccessExpression(expStr)) {
 			return this.transpilePropertyCallExpression(node);
@@ -1334,7 +1283,7 @@ export class Transpiler {
 		}
 	}
 
-	public transpilePropertyCallExpression(node: ts.CallExpression) {
+	private transpilePropertyCallExpression(node: ts.CallExpression) {
 		const expression = node.getExpression();
 		if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 			throw new TranspilerError("Expected PropertyAccessExpression", node);
@@ -1439,7 +1388,7 @@ export class Transpiler {
 		return `${accessPath}${sep}${property}(${params})`;
 	}
 
-	public transpileBinaryExpression(node: ts.BinaryExpression) {
+	private transpileBinaryExpression(node: ts.BinaryExpression) {
 		const opToken = node.getOperatorToken();
 		const opKind = opToken.getKind();
 
@@ -1583,7 +1532,7 @@ export class Transpiler {
 		}
 	}
 
-	public transpilePrefixUnaryExpression(node: ts.PrefixUnaryExpression) {
+	private transpilePrefixUnaryExpression(node: ts.PrefixUnaryExpression) {
 		const parent = node.getParentOrThrow();
 		const operand = node.getOperand();
 
@@ -1664,7 +1613,7 @@ export class Transpiler {
 		throw new TranspilerError(`Bad prefix unary expression! (${node.getOperatorToken()})`, node);
 	}
 
-	public transpilePostfixUnaryExpression(node: ts.PostfixUnaryExpression) {
+	private transpilePostfixUnaryExpression(node: ts.PostfixUnaryExpression) {
 		const parent = node.getParentOrThrow();
 		const operand = node.getOperand();
 
@@ -1741,7 +1690,7 @@ export class Transpiler {
 		throw new TranspilerError(`Bad postfix unary expression! (${node.getOperatorToken()})`, node);
 	}
 
-	public transpileNewExpression(node: ts.NewExpression) {
+	private transpileNewExpression(node: ts.NewExpression) {
 		if (!node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)) {
 			throw new TranspilerError("Parentheses-less new expressions not allowed!", node);
 		}
@@ -1780,7 +1729,7 @@ export class Transpiler {
 		return `${name}.new(${params})`;
 	}
 
-	public transpilePropertyAccessExpression(node: ts.PropertyAccessExpression) {
+	private transpilePropertyAccessExpression(node: ts.PropertyAccessExpression) {
 		const expression = node.getExpression();
 		const expressionType = expression.getType();
 		const expStr = this.transpileExpression(expression);
@@ -1814,12 +1763,12 @@ export class Transpiler {
 		return `${expStr}.${propertyStr}`;
 	}
 
-	public transpileParenthesizedExpression(node: ts.ParenthesizedExpression) {
+	private transpileParenthesizedExpression(node: ts.ParenthesizedExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
 		return `(${expStr})`;
 	}
 
-	public transpileTemplateExpression(node: ts.TemplateExpression) {
+	private transpileTemplateExpression(node: ts.TemplateExpression) {
 		const bin = new Array<string>();
 
 		const headText = node
@@ -1852,7 +1801,7 @@ export class Transpiler {
 		return bin.join(" .. ");
 	}
 
-	public transpileElementAccessExpression(node: ts.ElementAccessExpression) {
+	private transpileElementAccessExpression(node: ts.ElementAccessExpression) {
 		const expNode = node.getExpression();
 		const expType = expNode.getType();
 		const expStr = this.transpileExpression(expNode);
@@ -1889,20 +1838,40 @@ export class Transpiler {
 		}
 	}
 
-	public transpileAwaitExpression(node: ts.AwaitExpression) {
+	private transpileAwaitExpression(node: ts.AwaitExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
 		return `TS.await(${expStr})`;
 	}
 
-	public transpileConditionalExpression(node: ts.ConditionalExpression) {
+	private transpileConditionalExpression(node: ts.ConditionalExpression) {
 		const conditionStr = this.transpileExpression(node.getCondition());
 		const trueStr = this.transpileExpression(node.getWhenTrue());
 		const falseStr = this.transpileExpression(node.getWhenFalse());
 		return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
 	}
 
-	public transpileTypeOfExpression(node: ts.TypeOfExpression) {
+	private transpileTypeOfExpression(node: ts.TypeOfExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
 		return `TS.typeof(${expStr})`;
+	}
+
+	public transpileSourceFile(node: ts.SourceFile) {
+		let result = "";
+		result += this.transpileStatementedNode(node);
+		if (this.isModule) {
+			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
+				result = this.indent + `local _exports;\n` + result;
+			} else {
+				result = this.indent + `local _exports = {};\n` + result;
+			}
+			result += this.indent + "return _exports;\n";
+		}
+		result =
+			this.indent +
+			"-- luacheck: ignore\n" +
+			this.indent +
+			"local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n" +
+			result;
+		return result;
 	}
 }
