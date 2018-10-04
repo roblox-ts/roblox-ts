@@ -109,7 +109,7 @@ export class Compiler {
 		while (true) {
 			const ext = path.extname(name);
 			if (ext.length > 0) {
-				exts.push(ext);
+				exts.unshift(ext);
 				name = path.basename(name, ext);
 			} else {
 				break;
