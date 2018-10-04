@@ -1291,9 +1291,9 @@ export class Transpiler {
 		}
 		const subExp = expression.getExpression();
 		const subExpType = subExp.getType();
-		const accessPath = this.transpileExpression(subExp);
+		let accessPath = this.transpileExpression(subExp);
 		const property = expression.getName();
-		const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
+		let params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 
 		if (subExpType.isArray()) {
 			let paramStr = accessPath;
@@ -1366,15 +1366,9 @@ export class Transpiler {
 			}
 		}
 
-		if (ts.TypeGuards.isSuperExpression(subExp)) {
-			let paramStr = "";
-			if (params.length > 0) {
-				paramStr = `, ${params}`;
-			}
-			return `${accessPath}.${property}(self${paramStr})`;
-		}
-
 		const symbol = expression.getType().getSymbol();
+
+		const isSuper = ts.TypeGuards.isSuperExpression(subExp);
 
 		let sep = ".";
 		if (
@@ -1383,7 +1377,16 @@ export class Transpiler {
 				.getDeclarations()
 				.some(dec => ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec))
 		) {
-			sep = ":";
+			if (isSuper) {
+				const className = subExp
+					.getType()
+					.getSymbolOrThrow()
+					.getName();
+				accessPath = className;
+				params = "self" + (params.length > 0 ? ", " : "") + params;
+			} else {
+				sep = ":";
+			}
 		}
 
 		return `${accessPath}${sep}${property}(${params})`;
@@ -1857,18 +1860,6 @@ export class Transpiler {
 	}
 
 	private transpileSuperExpression(node: ts.SuperExpression) {
-		const className = node
-			.getType()
-			.getSymbolOrThrow()
-			.getName();
-		this.checkReserved(className, node);
-
-		if (ts.TypeGuards.isPropertyAccessExpression(node.getParent())) {
-			if (ts.TypeGuards.isCallExpression(node.getParent().getParent())) {
-				return className;
-			}
-		}
-
 		return `self`;
 	}
 
