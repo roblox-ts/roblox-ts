@@ -184,7 +184,6 @@ export class Compiler {
 
 			const hasLuaFilesMap = new Map<string, boolean>();
 			const search = async (dir: string) => {
-				console.log("search", dir);
 				let hasLuaFiles = false;
 				for (const fileName of await fs.readdir(dir)) {
 					const filePath = path.join(dir, fileName);
