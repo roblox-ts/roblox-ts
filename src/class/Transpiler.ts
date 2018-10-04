@@ -394,6 +394,8 @@ export class Transpiler {
 			return this.transpileImportDeclaration(node);
 		} else if (ts.TypeGuards.isImportEqualsDeclaration(node)) {
 			return this.transpileImportEqualsDeclaration(node);
+		} else if (ts.TypeGuards.isExportDeclaration(node)) {
+			return this.transpileExportDeclaration(node);
 		} else if (ts.TypeGuards.isFunctionDeclaration(node)) {
 			return this.transpileFunctionDeclaration(node);
 		} else if (ts.TypeGuards.isClassDeclaration(node)) {
@@ -506,6 +508,10 @@ export class Transpiler {
 
 		const name = node.getName();
 		return this.indent + `local ${name} = require(${luaPath});\n`;
+	}
+
+	private transpileExportDeclaration(node: ts.ExportDeclaration) {
+		return "";
 	}
 
 	private transpileDoStatement(node: ts.DoStatement) {
@@ -1152,12 +1158,7 @@ export class Transpiler {
 			}
 			return "self";
 		} else if (ts.TypeGuards.isSuperExpression(node)) {
-			const className = node
-				.getType()
-				.getSymbolOrThrow()
-				.getName();
-			this.checkReserved(className, node);
-			return `${className}`;
+			return this.transpileSuperExpression(node);
 		} else if (
 			ts.TypeGuards.isAsExpression(node) ||
 			ts.TypeGuards.isTypeAssertion(node) ||
@@ -1853,6 +1854,22 @@ export class Transpiler {
 	private transpileTypeOfExpression(node: ts.TypeOfExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
 		return `TS.typeof(${expStr})`;
+	}
+
+	private transpileSuperExpression(node: ts.SuperExpression) {
+		const className = node
+			.getType()
+			.getSymbolOrThrow()
+			.getName();
+		this.checkReserved(className, node);
+
+		if (ts.TypeGuards.isPropertyAccessExpression(node.getParent())) {
+			if (ts.TypeGuards.isCallExpression(node.getParent().getParent())) {
+				return className;
+			}
+		}
+
+		return `self`;
 	}
 
 	public transpileSourceFile(node: ts.SourceFile) {

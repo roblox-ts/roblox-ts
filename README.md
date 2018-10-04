@@ -58,13 +58,15 @@ We recommmend that you write your TypeScript in [VS Code](https://code.visualstu
 		"strict": true,
 		"noLib": true,
 		"downlevelIteration": true,
-		"declaration": false
+		"declaration": false,
+		"target": "es6"
 	},
 	"typeAcquisition": {
 		"enable": true
 	}
 }
 ```
+_**(warning: do not change these values unless you know what you are doing!)**_
 
 5. Create a file for syncing your compiled .lua files to Roblox Studio. If you're using Rojo, this should be a `rojo.json` file and look like:
 ```JSON
