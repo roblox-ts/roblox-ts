@@ -203,9 +203,6 @@ export class Compiler {
 
 			await fs.copy(modulesDirPath, this.modulesPath, {
 				filter: async (src, dest) => {
-					console.log("src", src);
-					console.log("dest", dest);
-
 					const stats = await fs.stat(src);
 					if (stats.isDirectory() && hasLuaFilesMap.get(src) === true) {
 						return true;
