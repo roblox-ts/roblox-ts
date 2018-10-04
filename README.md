@@ -77,7 +77,7 @@ _**(warning: do not change these values unless you know what you are doing!)**_
 			"target": "ReplicatedStorage.RobloxTS.Include"
 		},
 		"modules": {
-			"path": "node_modules",
+			"path": "modules",
 			"target": "ReplicatedStorage.RobloxTS.Modules"
 		}
 	}
