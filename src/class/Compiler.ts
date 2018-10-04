@@ -47,19 +47,21 @@ export class Compiler {
 	private readonly project: Project;
 	private readonly projectPath: string;
 	private readonly includePath: string;
+	private readonly modulesPath: string;
 	private readonly rootDir: string;
 	private readonly outDir: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
 
-	constructor(configFilePath: string, includePath: string) {
+	constructor(configFilePath: string, includePath: string, modulesPath: string) {
 		this.projectPath = path.resolve(configFilePath, "..");
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
 		this.project.addExistingSourceFiles("**/*.d.ts");
 		this.includePath = path.resolve(includePath);
+		this.modulesPath = path.resolve(modulesPath);
 		this.compilerOptions = this.project.getCompilerOptions();
 
 		const rootDir = this.compilerOptions.rootDir;
@@ -175,13 +177,53 @@ export class Compiler {
 	}
 
 	public async compileAll(noInclude: boolean) {
-		this.compileFiles(this.project.getSourceFiles(), noInclude);
+		await this.compileFiles(this.project.getSourceFiles(), noInclude);
+
+		// copy modules
+		if (this.modulesDir) {
+			const modulesDirPath = path.resolve(this.modulesDir.getPath());
+
+			const hasLuaFilesMap = new Map<string, boolean>();
+			const search = async (dir: string) => {
+				let hasLuaFiles = false;
+				for (const fileName of await fs.readdir(dir)) {
+					const filePath = path.join(dir, fileName);
+					const stats = await fs.stat(filePath);
+					if (stats.isFile() && path.extname(fileName) === ".lua") {
+						hasLuaFiles = true;
+					} else if (stats.isDirectory()) {
+						if (await search(filePath)) {
+							hasLuaFiles = true;
+						}
+					}
+				}
+				hasLuaFilesMap.set(dir, hasLuaFiles);
+				return hasLuaFiles;
+			};
+			await search(modulesDirPath);
+
+			await fs.copy(modulesDirPath, this.modulesPath, {
+				filter: async (src, dest) => {
+					console.log("src", src);
+					console.log("dest", dest);
+
+					const stats = await fs.stat(src);
+					if (stats.isDirectory() && hasLuaFilesMap.get(src) === true) {
+						return true;
+					} else if (stats.isFile() && path.extname(src) === ".lua") {
+						return true;
+					}
+					return false;
+				},
+				recursive: true,
+			});
+		}
 	}
 
 	public async compileFileByPath(filePath: string, noInclude: boolean) {
 		const sourceFile = this.project.getSourceFile(filePath);
 		if (!sourceFile) {
-			throw new CompilerError(`No SourceFile for Compiler.compileFileByPath() (filePath = ${filePath})`);
+			throw new CompilerError(`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`);
 		}
 
 		const seen = new Set<string>();
@@ -236,6 +278,7 @@ export class Compiler {
 			process.exitCode = 1;
 		}
 
+		// copy include files
 		if (!noInclude) {
 			try {
 				await fs.copy(INCLUDE_SRC_PATH, this.includePath);

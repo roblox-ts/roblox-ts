@@ -54,6 +54,12 @@ const argv = yargs
 		describe: "do not copy runtime .lua files",
 	})
 
+	// modulesPath
+	.option("modulesPath", {
+		default: "modules",
+		describe: "folder to copy .lua files from node_modules to",
+	})
+
 	// parse
 	.parse();
 
@@ -78,7 +84,7 @@ function isTSFile(filePath: string) {
 
 const noInclude = argv.noInclude === true;
 
-const compiler = new Compiler(configFilePath, argv.includePath);
+const compiler = new Compiler(configFilePath, argv.includePath, argv.modulesPath);
 if (argv.watch === true) {
 	const rootDir = compiler.getRootDirOrThrow();
 	let isCompiling = false;
