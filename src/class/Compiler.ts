@@ -328,7 +328,7 @@ export class Compiler {
 				throw new CompilerError("Compiler.getImportPath() failed! #2");
 			}
 			last = stripExts(last);
-			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "index") {
+			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "init") {
 				parts.push(last);
 			}
 
