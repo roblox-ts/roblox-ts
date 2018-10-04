@@ -50,6 +50,7 @@ export class Compiler {
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
+	private readonly moduleCache = new Map<string, string>();
 
 	constructor(configFilePath: string, includePath: string) {
 		this.projectPath = path.resolve(configFilePath, "..");
@@ -267,8 +268,14 @@ export class Compiler {
 				throw new CompilerError("Compiler.getImportPath() failed! #1");
 			}
 
-			const pkgJson = require(path.join(this.modulesDir.getPath(), moduleName, "package.json"));
-			const mainPath = pkgJson.main as string;
+			let mainPath: string;
+			if (this.moduleCache.has(moduleName)) {
+				mainPath = this.moduleCache.get(moduleName)!;
+			} else {
+				const pkgJson = require(path.join(this.modulesDir.getPath(), moduleName, "package.json"));
+				mainPath = pkgJson.main as string;
+				this.moduleCache.set(moduleName, mainPath);
+			}
 
 			parts = mainPath.split(/[\\/]/g);
 			let last = parts.pop();
