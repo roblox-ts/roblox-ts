@@ -184,6 +184,7 @@ export class Compiler {
 
 			const hasLuaFilesMap = new Map<string, boolean>();
 			const search = async (dir: string) => {
+				console.log("search", dir);
 				let hasLuaFiles = false;
 				for (const fileName of await fs.readdir(dir)) {
 					const filePath = path.join(dir, fileName);
@@ -336,7 +337,7 @@ export class Compiler {
 				.filter(part => part !== ".")
 				.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
-			return `TS.getModule("${moduleName}")` + parts.join("");
+			return `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
 		} else {
 			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
 			if (!partition) {
