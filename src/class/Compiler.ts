@@ -176,11 +176,10 @@ export class Compiler {
 		return this.rootDir;
 	}
 
-	public async compileAll(noInclude: boolean) {
-		await this.compileFiles(this.project.getSourceFiles(), noInclude);
-
-		// copy modules
+	public async copyModules() {
 		if (this.modulesDir) {
+			await fs.remove(this.modulesPath);
+
 			const modulesDirPath = path.resolve(this.modulesDir.getPath());
 
 			const hasLuaFilesMap = new Map<string, boolean>();
@@ -218,6 +217,11 @@ export class Compiler {
 				recursive: true,
 			});
 		}
+	}
+
+	public async compileAll(noInclude: boolean) {
+		await this.compileFiles(this.project.getSourceFiles(), noInclude);
+		await this.copyModules();
 	}
 
 	public async compileFileByPath(filePath: string, noInclude: boolean) {

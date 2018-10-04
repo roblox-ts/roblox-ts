@@ -148,6 +148,14 @@ if (argv.watch === true) {
 			}
 		});
 
+	const pkgLockJsonPath = path.resolve("package-lock.json");
+	if (fs.existsSync(pkgLockJsonPath)) {
+		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
+			console.log("Modules updated, copying..");
+			await compiler.copyModules();
+		});
+	}
+
 	console.log("Running in watch mode..");
 	console.log("Starting initial compile..");
 	time(() => {
