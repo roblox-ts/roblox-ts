@@ -41,6 +41,8 @@ function stripExts(fileName: string): string {
 	}
 }
 
+const moduleCache = new Map<string, string>();
+
 export class Compiler {
 	private readonly project: Project;
 	private readonly projectPath: string;
@@ -50,7 +52,6 @@ export class Compiler {
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
-	private readonly moduleCache = new Map<string, string>();
 
 	constructor(configFilePath: string, includePath: string) {
 		this.projectPath = path.resolve(configFilePath, "..");
@@ -269,12 +270,12 @@ export class Compiler {
 			}
 
 			let mainPath: string;
-			if (this.moduleCache.has(moduleName)) {
-				mainPath = this.moduleCache.get(moduleName)!;
+			if (moduleCache.has(moduleName)) {
+				mainPath = moduleCache.get(moduleName)!;
 			} else {
 				const pkgJson = require(path.join(this.modulesDir.getPath(), moduleName, "package.json"));
 				mainPath = pkgJson.main as string;
-				this.moduleCache.set(moduleName, mainPath);
+				moduleCache.set(moduleName, mainPath);
 			}
 
 			parts = mainPath.split(/[\\/]/g);
