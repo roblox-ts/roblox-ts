@@ -1749,7 +1749,9 @@ export class Transpiler {
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
-				if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
+				if (ts.TypeGuards.isFunctionDeclaration(valDec)) {
+					throw new TranspilerError("Cannot index a function value!", node);
+				} else if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
 					return `${expStr}:_get_${propertyStr}()`;
 				} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
 					if (valDec.isConstEnum()) {
