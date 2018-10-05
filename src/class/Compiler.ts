@@ -1,8 +1,8 @@
 import Project, * as ts from "ts-simple-ast";
+import { stripExts } from "../utility";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
-import { stripExts } from "../utility";
 
 import * as fs from "fs-extra";
 import * as path from "path";
