@@ -1215,6 +1215,10 @@ export class Transpiler {
 					this.checkReserved(lhs, property);
 					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
 					fields.push(`${lhs} = ${rhs}`);
+				} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+					const name = property.getName();
+					this.checkReserved(name, property);
+					fields.push(`${name} = ${name}`);
 				}
 			});
 			result += `{ ${fields.join(", ")} }`;
@@ -1227,6 +1231,10 @@ export class Transpiler {
 					this.checkReserved(lhs, property);
 					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
 					result += this.indent + `${lhs} = ${rhs},\n`;
+				} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+					const name = property.getName();
+					this.checkReserved(name, property);
+					result += this.indent + `${name} = ${name},\n`;
 				}
 			});
 			this.popIndent();
