@@ -1757,7 +1757,12 @@ export class Transpiler {
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
-				if (ts.TypeGuards.isFunctionDeclaration(valDec)) {
+				if (
+					ts.TypeGuards.isFunctionDeclaration(valDec) ||
+					ts.TypeGuards.isArrowFunction(valDec) ||
+					ts.TypeGuards.isFunctionExpression(valDec) ||
+					ts.TypeGuards.isMethodDeclaration(valDec)
+				) {
 					throw new TranspilerError("Cannot index a function value!", node);
 				} else if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
 					return `${expStr}:_get_${propertyStr}()`;
@@ -1770,6 +1775,8 @@ export class Transpiler {
 							return `"${value}"`;
 						}
 					}
+				} else {
+					console.log(valDec.getKindName());
 				}
 			}
 		}
