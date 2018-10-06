@@ -446,7 +446,10 @@ export class Transpiler {
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
-			luaPath = this.compiler.getRelativeImportPath(node.getModuleSpecifier().getLiteralText());
+			luaPath = this.compiler.getRelativeImportPath(
+				node.getSourceFile(),
+				node.getModuleSpecifier().getLiteralText(),
+			);
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
@@ -1775,8 +1778,6 @@ export class Transpiler {
 							return `"${value}"`;
 						}
 					}
-				} else {
-					console.log(valDec.getKindName());
 				}
 			}
 		}

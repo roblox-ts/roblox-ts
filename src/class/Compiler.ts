@@ -294,7 +294,7 @@ export class Compiler {
 		}
 	}
 
-	public getRelativeImportPath(specifier: string) {
+	public getRelativeImportPath(sourceFile: ts.SourceFile, specifier: string) {
 		const parts = specifier
 			.split("/")
 			.filter(part => part !== ".")
@@ -303,7 +303,11 @@ export class Compiler {
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
 			parts.pop();
 		}
-		return "script.Parent" + parts.join("");
+		let prefix = "script";
+		if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || stripExts(sourceFile.getBaseName()) !== "index") {
+			prefix += ".Parent";
+		}
+		return prefix + parts.join("");
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
