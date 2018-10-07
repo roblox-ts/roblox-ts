@@ -842,6 +842,7 @@ export class Transpiler {
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
+		this.pushExport(name, node);
 		const body = node.getBodyOrThrow();
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 		const paramNames = new Array<string>();
@@ -1062,6 +1063,7 @@ export class Transpiler {
 
 		const name = node.getName();
 		this.checkReserved(name, node);
+		this.pushExport(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1078,6 +1080,7 @@ export class Transpiler {
 		}
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
+		this.pushExport(name, node);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
