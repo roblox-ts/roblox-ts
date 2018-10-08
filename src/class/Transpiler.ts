@@ -478,9 +478,11 @@ export class Transpiler {
 		}
 
 		namedImports.forEach(namedImport => {
-			const name = namedImport.getName();
+			const alias = namedImport.getAliasNode();
+			const realName = namedImport.getName();
+			const name = alias ? alias.getText() : realName;
 			lhs.push(name);
-			rhs.push(`.${name}`);
+			rhs.push(`.${realName}`);
 		});
 
 		let result = "";
