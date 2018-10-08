@@ -446,7 +446,10 @@ export class Transpiler {
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
-			luaPath = this.compiler.getRelativeImportPath(node.getModuleSpecifier().getLiteralText());
+			luaPath = this.compiler.getRelativeImportPath(
+				node.getSourceFile(),
+				node.getModuleSpecifier().getLiteralText(),
+			);
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
@@ -841,6 +844,7 @@ export class Transpiler {
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
+		this.pushExport(name, node);
 		const body = node.getBodyOrThrow();
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 		const paramNames = new Array<string>();
@@ -1061,6 +1065,7 @@ export class Transpiler {
 
 		const name = node.getName();
 		this.checkReserved(name, node);
+		this.pushExport(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1077,6 +1082,7 @@ export class Transpiler {
 		}
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
+		this.pushExport(name, node);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
@@ -1759,7 +1765,12 @@ export class Transpiler {
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
-				if (ts.TypeGuards.isFunctionDeclaration(valDec)) {
+				if (
+					ts.TypeGuards.isFunctionDeclaration(valDec) ||
+					ts.TypeGuards.isArrowFunction(valDec) ||
+					ts.TypeGuards.isFunctionExpression(valDec) ||
+					ts.TypeGuards.isMethodDeclaration(valDec)
+				) {
 					throw new TranspilerError("Cannot index a function value!", node);
 				} else if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
 					return `${expStr}:_get_${propertyStr}()`;
