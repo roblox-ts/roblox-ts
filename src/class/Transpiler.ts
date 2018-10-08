@@ -463,41 +463,39 @@ export class Transpiler {
 			}
 		}
 
-		const defaultImport = node.getDefaultImport();
-		const namespaceImport = node.getNamespaceImport();
-		const namedImports = node.getNamedImports();
-
 		const lhs = new Array<string>();
 		const rhs = new Array<string>();
 
+		const defaultImport = node.getDefaultImport();
 		if (defaultImport) {
 			lhs.push(this.transpileExpression(defaultImport));
 			rhs.push(`._default`);
 		}
 
+		const namespaceImport = node.getNamespaceImport();
 		if (namespaceImport) {
 			lhs.push(this.transpileExpression(namespaceImport));
 			rhs.push("");
 		}
 
-		namedImports.forEach(namedImport => {
-			const alias = namedImport.getAliasNode();
-			const realName = namedImport.getName();
-			const name = alias ? alias.getText() : realName;
-			lhs.push(name);
-			rhs.push(`.${realName}`);
+		node.getNamedImports().forEach(namedImport => {
+			const aliasNode = namedImport.getAliasNode();
+			const name = namedImport.getName();
+			const alias = aliasNode ? aliasNode.getText() : name;
+			lhs.push(alias);
+			rhs.push(`.${name}`);
 		});
 
 		let result = "";
-		let prefix: string;
-		if (lhs.length === 1) {
-			prefix = `require(${luaPath})`;
+		let rhsPrefix: string;
+		if (rhs.length === 1) {
+			rhsPrefix = `require(${luaPath})`;
 		} else {
-			prefix = this.getNewId();
-			result += `local ${prefix} = require(${luaPath});\n`;
+			rhsPrefix = this.getNewId();
+			result += `local ${rhsPrefix} = require(${luaPath});\n`;
 		}
 		const lhsStr = lhs.join(", ");
-		const rhsStr = rhs.map(v => prefix + v).join(", ");
+		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
 		result += `local ${lhsStr} = ${rhsStr};\n`;
 		return result;
 	}
@@ -517,7 +515,75 @@ export class Transpiler {
 	}
 
 	private transpileExportDeclaration(node: ts.ExportDeclaration) {
-		return "";
+		let luaPath: string = "";
+		const moduleSpecifier = node.getModuleSpecifier();
+		if (moduleSpecifier) {
+			if (node.isModuleSpecifierRelative()) {
+				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), moduleSpecifier.getLiteralText());
+			} else {
+				const moduleFile = node.getModuleSpecifierSourceFile();
+				if (moduleFile) {
+					luaPath = this.compiler.getImportPathFromFile(moduleFile);
+				} else {
+					throw new TranspilerError(
+						`Could not find file for '${moduleSpecifier.getLiteralText()}'. ` +
+							`Did you forget to "npm install"?`,
+						node,
+					);
+				}
+			}
+		}
+
+		const ancestor =
+			node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration) ||
+			node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
+
+		if (!ancestor) {
+			throw new TranspilerError("Could not find export ancestor!", node);
+		}
+
+		let ancestorName: string;
+		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
+			ancestorName = ancestor.getName();
+		} else {
+			this.isModule = true;
+			ancestorName = "_exports";
+		}
+
+		const lhs = new Array<string>();
+		const rhs = new Array<string>();
+
+		if (node.isNamespaceExport()) {
+			if (!moduleSpecifier) {
+				throw new TranspilerError("Namespace exports require a module specifier!", node);
+			}
+			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
+		} else {
+			node.getNamedExports().forEach(namedExport => {
+				const aliasNode = namedExport.getAliasNode();
+				let name = namedExport.getNameNode().getText();
+				if (name === "default") {
+					name = "_" + name;
+				}
+				const alias = aliasNode ? aliasNode.getText() : name;
+				lhs.push(alias);
+				rhs.push(`.${name}`);
+			});
+
+			let result = "";
+			let rhsPrefix: string;
+			const lhsPrefix = ancestorName + ".";
+			if (rhs.length <= 1) {
+				rhsPrefix = `require(${luaPath})`;
+			} else {
+				rhsPrefix = this.getNewId();
+				result += `${rhsPrefix} = require(${luaPath});\n`;
+			}
+			const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
+			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+			result += `${lhsStr} = ${rhsStr};\n`;
+			return result;
+		}
 	}
 
 	private transpileDoStatement(node: ts.DoStatement) {

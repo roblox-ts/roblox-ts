@@ -53,6 +53,12 @@ function TS.getModule(moduleName, object)
 	error("roblox-ts: Could not find module: " .. moduleName)
 end
 
+function TS.exportNamespace(module, ancestor)
+	for key, value in pairs(module) do
+		ancestor[key] = value
+	end
+end
+
 -- general utility functions
 function TS.typeof(value)
 	local type = typeof(value)
