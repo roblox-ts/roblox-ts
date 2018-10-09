@@ -24,7 +24,7 @@
 	"devDependencies": {
 		"@types/chokidar": "^1.7.5",
 		"@types/fs-extra": "^5.0.4",
-		"@types/node": "^10.11.0",
+		"@types/node": "^10.11.6",
 		"@types/yargs": "^11.1.2"
 	}
 }
