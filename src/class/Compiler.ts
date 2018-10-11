@@ -33,6 +33,62 @@ function isValidLuaIdentifier(id: string) {
 	return luaIdentifierRegex.test(id);
 }
 
+const LUA_EXT = ".lua";
+async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
+	const hasLuaFilesMap = new Map<string, boolean>();
+	const searchForLuaFiles = async (dir: string) => {
+		let hasLuaFiles = false;
+		for (const fileName of await fs.readdir(dir)) {
+			const filePath = path.join(dir, fileName);
+			const stats = await fs.stat(filePath);
+			if (stats.isFile() && path.extname(fileName) === LUA_EXT) {
+				hasLuaFiles = true;
+			} else if (stats.isDirectory()) {
+				if (await searchForLuaFiles(filePath)) {
+					hasLuaFiles = true;
+				}
+			}
+		}
+		hasLuaFilesMap.set(dir, hasLuaFiles);
+		return hasLuaFiles;
+	};
+	await searchForLuaFiles(sourceFolder);
+
+	await fs.copy(sourceFolder, destinationFolder, {
+		filter: async filePath => {
+			const stats = await fs.stat(filePath);
+			if (stats.isDirectory() && hasLuaFilesMap.get(filePath) === true) {
+				return true;
+			} else if (stats.isFile() && path.extname(filePath) === LUA_EXT) {
+				return true;
+			}
+			return false;
+		},
+		recursive: true,
+	});
+
+	const searchForDeadFiles = async (dir: string) => {
+		for (const fileName of await fs.readdir(dir)) {
+			const filePath = path.join(dir, fileName);
+			const stats = await fs.stat(filePath);
+			if (stats.isDirectory()) {
+				searchForDeadFiles(filePath);
+				if ((await fs.readdir(dir)).length === 0) {
+					fs.remove(filePath);
+					console.log("delete", "dir", filePath);
+				}
+			} else if (stats.isFile()) {
+				const relativeToDestFolder = path.relative(destinationFolder, filePath);
+				if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
+					fs.remove(filePath);
+					console.log("delete", "file", filePath);
+				}
+			}
+		}
+	};
+	await searchForDeadFiles(destinationFolder);
+}
+
 const moduleCache = new Map<string, string>();
 
 export class Compiler {
@@ -183,41 +239,13 @@ export class Compiler {
 
 	public async copyModules() {
 		if (this.modulesDir) {
-			await fs.remove(this.modulesPath);
+			await copyLuaFiles(path.resolve(this.modulesDir.getPath()), this.modulesPath);
+		}
+	}
 
-			const modulesDirPath = path.resolve(this.modulesDir.getPath());
-
-			const hasLuaFilesMap = new Map<string, boolean>();
-			const search = async (dir: string) => {
-				let hasLuaFiles = false;
-				for (const fileName of await fs.readdir(dir)) {
-					const filePath = path.join(dir, fileName);
-					const stats = await fs.stat(filePath);
-					if (stats.isFile() && path.extname(fileName) === ".lua") {
-						hasLuaFiles = true;
-					} else if (stats.isDirectory()) {
-						if (await search(filePath)) {
-							hasLuaFiles = true;
-						}
-					}
-				}
-				hasLuaFilesMap.set(dir, hasLuaFiles);
-				return hasLuaFiles;
-			};
-			await search(modulesDirPath);
-
-			await fs.copy(modulesDirPath, this.modulesPath, {
-				filter: async (src, dest) => {
-					const stats = await fs.stat(src);
-					if (stats.isDirectory() && hasLuaFilesMap.get(src) === true) {
-						return true;
-					} else if (stats.isFile() && path.extname(src) === ".lua") {
-						return true;
-					}
-					return false;
-				},
-				recursive: true,
-			});
+	public async copyIncludes(noInclude: boolean) {
+		if (!noInclude) {
+			await copyLuaFiles(INCLUDE_SRC_PATH, this.includePath);
 		}
 	}
 
@@ -284,14 +312,7 @@ export class Compiler {
 			process.exitCode = 1;
 		}
 
-		// copy include files
-		if (!noInclude) {
-			try {
-				await fs.copy(INCLUDE_SRC_PATH, this.includePath);
-			} catch (e) {
-				// this rarely fails, unsure why
-			}
-		}
+		this.copyIncludes(noInclude);
 	}
 
 	public getRelativeImportPath(sourceFile: ts.SourceFile, specifier: string) {
