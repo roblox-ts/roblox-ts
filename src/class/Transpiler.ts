@@ -1790,7 +1790,8 @@ export class Transpiler {
 		const expStr = node.getExpression();
 		const expressionType = expStr.getType();
 		let name = this.transpileExpression(expStr);
-		const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
+		const args = node.getArguments() as Array<ts.Expression>;
+		const params = this.transpileArguments(args);
 
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
@@ -1806,8 +1807,20 @@ export class Transpiler {
 				return "{}";
 			}
 
-			if (inheritsFrom(expressionType, "MapConstructor") || inheritsFrom(expressionType, "SetConstructor")) {
-				return "{}";
+			if (inheritsFrom(expressionType, "MapConstructor")) {
+				if (args.length > 0) {
+					return `TS.map.new(${params})`;
+				} else {
+					return "{}";
+				}
+			}
+
+			if (inheritsFrom(expressionType, "SetConstructor")) {
+				if (args.length > 0) {
+					return `TS.set.new(${params})`;
+				} else {
+					return "{}";
+				}
 			}
 
 			if (

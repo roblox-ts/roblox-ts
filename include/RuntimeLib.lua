@@ -330,6 +330,14 @@ end
 -- map macro functions
 TS.map = {}
 
+function TS.map.new(value)
+	local result = {}
+	for _, pair in pairs(value) do
+		result[pair[1]] = pair[2]
+	end
+	return result
+end
+
 function TS.map.clear(map)
 	for key in pairs(map) do
 		map[key] = nil
@@ -388,6 +396,14 @@ end
 
 -- set macro functions
 TS.set = {}
+
+function TS.set.new(value)
+	local result = {}
+	for _, v in pairs(value) do
+		result[v] = true
+	end
+	return result
+end
 
 function TS.set.add(set, value)
 	set[value] = true
