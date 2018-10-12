@@ -838,8 +838,34 @@ export class Transpiler {
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
+		const declarations = node.getDeclarations();
 
-		for (const declaration of node.getDeclarations()) {
+		if (declarations.length === 1) {
+			const declaration = declarations[0];
+			const lhs = declaration.getChildAtIndex(0);
+			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
+
+			let rhs: ts.Node | undefined;
+			if (equalsToken) {
+				rhs = equalsToken.getNextSibling();
+			}
+
+			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
+				const isFlatBinding = lhs
+					.getElements()
+					.filter(v => ts.TypeGuards.isBindingElement(v))
+					.every(bindingElement => {
+						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
+					});
+				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs)) {
+					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
+					values.push(this.transpileExpression(rhs as ts.Expression));
+					return this.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+				}
+			}
+		}
+
+		for (const declaration of declarations) {
 			const lhs = declaration.getChildAtIndex(0);
 			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
 
@@ -853,22 +879,32 @@ export class Transpiler {
 				this.checkReserved(name, lhs);
 				names.push(name);
 				if (rhs) {
-					values.push(this.transpileExpression(rhs as ts.Expression));
+					const rhsStr = this.transpileExpression(rhs as ts.Expression);
+					if (ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
+						values.push(`{ ${rhsStr} }`);
+					} else {
+						values.push(rhsStr);
+					}
 				} else {
 					values.push("nil");
 				}
 			} else if (isBindingPattern(lhs)) {
-				const rootId = this.getNewId();
-				if (rhs) {
-					let rhsStr = this.transpileExpression(rhs as ts.Expression);
-					if (ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
-						rhsStr = `{ ${rhsStr} }`;
-					}
-					preStatements.push(`local ${rootId} = ${rhsStr};`);
+				if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
+					const rhsStr = this.transpileExpression(rhs);
+					this.getBindingData(names, values, preStatements, postStatements, lhs, rhsStr);
 				} else {
-					preStatements.push(`local ${rootId};`); // ???
+					const rootId = this.getNewId();
+					if (rhs) {
+						let rhsStr = this.transpileExpression(rhs as ts.Expression);
+						if (ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
+							rhsStr = `{ ${rhsStr} }`;
+						}
+						preStatements.push(`local ${rootId} = ${rhsStr};`);
+					} else {
+						preStatements.push(`local ${rootId};`); // ???
+					}
+					this.getBindingData(names, values, preStatements, postStatements, lhs, rootId);
 				}
-				this.getBindingData(names, values, preStatements, postStatements, lhs, rootId);
 			}
 		}
 		while (values[values.length - 1] === "nil") {
