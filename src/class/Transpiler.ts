@@ -1263,6 +1263,8 @@ export class Transpiler {
 			return this.transpileConditionalExpression(node);
 		} else if (ts.TypeGuards.isTypeOfExpression(node)) {
 			return this.transpileTypeOfExpression(node);
+		} else if (ts.TypeGuards.isSpreadElement(node)) {
+			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isThisExpression(node)) {
 			if (!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration)) {
 				throw new TranspilerError("'this' may only be used inside a class definition", node);
@@ -2005,6 +2007,11 @@ export class Transpiler {
 
 	private transpileSuperExpression(node: ts.SuperExpression) {
 		return `self`;
+	}
+
+	private transpileSpreadElement(node: ts.SpreadElement) {
+		const expStr = this.transpileExpression(node.getExpression());
+		return `unpack(${expStr})`;
 	}
 
 	public transpileSourceFile(node: ts.SourceFile) {
