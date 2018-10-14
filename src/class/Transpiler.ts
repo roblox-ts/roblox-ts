@@ -999,7 +999,52 @@ export class Transpiler {
 		const id = this.getNewId();
 
 		result += this.indent + `local ${id} = setmetatable({}, super);\n`;
-		result += this.indent + `${id}.__index = ${id};\n`;
+
+		const getters = node
+			.getInstanceProperties()
+			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
+		if (getters.length > 0) {
+			result += this.indent + `local _getters = {};\n`;
+			for (const getter of getters) {
+				const propName = getter.getName();
+				result += this.transpileAccessorDeclaration(getter, `_getters["${propName}"]`);
+			}
+			result += this.indent + `${id}.__index = function(self, index)\n`;
+			this.pushIndent();
+			result += this.indent + `local getter = _getters[index];\n`;
+			result += this.indent + `if getter then\n`;
+			this.pushIndent();
+			result += this.indent + `return getter(self);\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+			result += this.indent + `return ${id}[index];\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+		} else {
+			result += this.indent + `${id}.__index = ${id};\n`;
+		}
+
+		const setters = node
+			.getInstanceProperties()
+			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
+		if (setters.length > 0) {
+			result += this.indent + `local _setters = {};\n`;
+			for (const setter of setters) {
+				const propName = setter.getName();
+				result += this.transpileAccessorDeclaration(setter, `_setters["${propName}"]`);
+			}
+			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
+			this.pushIndent();
+			result += this.indent + `local setter = _setters[index];\n`;
+			result += this.indent + `if setter then\n`;
+			this.pushIndent();
+			result += this.indent + `setter(self, value);\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+			result += this.indent + `${id}[index] = value;\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+		}
 
 		const toStrMethod = getClassMethod(node, "toString");
 		if (toStrMethod && (toStrMethod.getReturnType().isString() || toStrMethod.getReturnType().isStringLiteral())) {
@@ -1049,15 +1094,6 @@ export class Transpiler {
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
-		node.getInstanceProperties().forEach(prop => {
-			const propName = prop.getName();
-			if (ts.TypeGuards.isGetAccessorDeclaration(prop)) {
-				result += this.transpileAccessorDeclaration(prop, id, `_get_${propName}`);
-			} else if (ts.TypeGuards.isSetAccessorDeclaration(prop)) {
-				result += this.transpileAccessorDeclaration(prop, id, `_set_${propName}`);
-			}
-		});
-
 		result += this.indent + `return ${id};\n`;
 		this.popIndent();
 		this.popIdStack();
@@ -1106,11 +1142,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileAccessorDeclaration(
-		node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
-		className: string,
-		name: string,
-	) {
+	private transpileAccessorDeclaration(node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration, name: string) {
 		const body = node.getBody();
 		const paramNames = new Array<string>();
 		paramNames.push("self");
@@ -1119,7 +1151,7 @@ export class Transpiler {
 		this.getParameterData(paramNames, initializers, node);
 		const paramStr = paramNames.join(", ");
 		let result = "";
-		result += this.indent + `${className}.${name} = function(${paramStr})\n`;
+		result += this.indent + `${name} = function(${paramStr})\n`;
 		this.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
 			initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
@@ -1534,55 +1566,20 @@ export class Transpiler {
 		const rhsStr = this.transpileExpression(rhs);
 		const statements = new Array<string>();
 
-		let isSetter = false;
-		let setterName = "";
-		let setterExp = "";
-		if (ts.TypeGuards.isPropertyAccessExpression(lhs)) {
-			const lhsExp = lhs.getExpression();
-			const symbol = lhsExp.getType().getSymbol();
-			if (symbol) {
-				const valDec = symbol.getValueDeclaration();
-				if (valDec && ts.TypeGuards.isClassDeclaration(valDec)) {
-					setterName = lhs.getName();
-					setterExp = this.transpileExpression(lhsExp);
-					if (valDec.getSetAccessor(setterName)) {
-						isSetter = true;
-					}
-				}
-			}
-		}
-
 		function getOperandStr() {
-			if (!isSetter) {
-				switch (opKind) {
-					case ts.SyntaxKind.EqualsToken:
-						return `${lhsStr} = ${rhsStr}`;
-					case ts.SyntaxKind.PlusEqualsToken:
-						return `${lhsStr} = ${lhsStr} ${getLuaPlusOperator(node)} (${rhsStr})`;
-					case ts.SyntaxKind.MinusEqualsToken:
-						return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
-					case ts.SyntaxKind.AsteriskEqualsToken:
-						return `${lhsStr} = ${lhsStr} * (${rhsStr})`;
-					case ts.SyntaxKind.SlashEqualsToken:
-						return `${lhsStr} = ${lhsStr} / (${rhsStr})`;
-					case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
-						return `${lhsStr} = ${lhsStr} ^ (${rhsStr})`;
-				}
-			} else {
-				switch (opKind) {
-					case ts.SyntaxKind.EqualsToken:
-						return `${setterExp}:_set_${setterName}(${rhsStr})`;
-					case ts.SyntaxKind.PlusEqualsToken:
-						return `${setterExp}:_set_${setterName}(${lhsStr} ${getLuaPlusOperator(node)} ${rhsStr})`;
-					case ts.SyntaxKind.MinusEqualsToken:
-						return `${setterExp}:_set_${setterName}(${lhsStr} - ${rhsStr})`;
-					case ts.SyntaxKind.AsteriskEqualsToken:
-						return `${setterExp}:_set_${setterName}(${lhsStr} * ${rhsStr})`;
-					case ts.SyntaxKind.SlashEqualsToken:
-						return `${setterExp}:_set_${setterName}(${lhsStr} / ${rhsStr})`;
-					case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
-						return `${setterExp}:_set_${setterName}(${lhsStr} ^ ${rhsStr})`;
-				}
+			switch (opKind) {
+				case ts.SyntaxKind.EqualsToken:
+					return `${lhsStr} = ${rhsStr}`;
+				case ts.SyntaxKind.PlusEqualsToken:
+					return `${lhsStr} = ${lhsStr} ${getLuaPlusOperator(node)} (${rhsStr})`;
+				case ts.SyntaxKind.MinusEqualsToken:
+					return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
+				case ts.SyntaxKind.AsteriskEqualsToken:
+					return `${lhsStr} = ${lhsStr} * (${rhsStr})`;
+				case ts.SyntaxKind.SlashEqualsToken:
+					return `${lhsStr} = ${lhsStr} / (${rhsStr})`;
+				case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
+					return `${lhsStr} = ${lhsStr} ^ (${rhsStr})`;
 			}
 			throw new TranspilerError("Unrecognized operation!", node);
 		}
@@ -1595,7 +1592,7 @@ export class Transpiler {
 			opKind === ts.SyntaxKind.SlashEqualsToken ||
 			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken
 		) {
-			if (!isSetter && ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
+			if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 				const expression = lhs.getExpression();
 				const opExpStr = this.transpileExpression(expression);
 				const propertyStr = lhs.getName();
@@ -1669,29 +1666,10 @@ export class Transpiler {
 		let expStr: string;
 		const statements = new Array<string>();
 
-		let isSetter = false;
-		let setterName = "";
-		let setterExp = "";
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const opExp = operand.getExpression();
-			const symbol = opExp.getType().getSymbol();
-			if (symbol) {
-				const valDec = symbol.getValueDeclaration();
-				if (valDec && ts.TypeGuards.isClassDeclaration(valDec)) {
-					setterName = operand.getName();
-					setterExp = this.transpileExpression(opExp);
-					if (valDec.getSetAccessor(setterName)) {
-						isSetter = true;
-					}
-				}
-			}
-		}
-
 		const opKind = node.getOperatorToken();
 		this.pushIdStack();
 		if (
 			(opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) &&
-			!isSetter &&
 			ts.TypeGuards.isPropertyAccessExpression(operand)
 		) {
 			const expression = operand.getExpression();
@@ -1705,20 +1683,11 @@ export class Transpiler {
 		}
 
 		function getOperandStr() {
-			if (!isSetter) {
-				switch (opKind) {
-					case ts.SyntaxKind.PlusPlusToken:
-						return `${expStr} = ${expStr} + 1`;
-					case ts.SyntaxKind.MinusMinusToken:
-						return `${expStr} = ${expStr} - 1`;
-				}
-			} else {
-				switch (opKind) {
-					case ts.SyntaxKind.PlusPlusToken:
-						return `${setterExp}:_set_${setterName}(${expStr} + 1)`;
-					case ts.SyntaxKind.MinusMinusToken:
-						return `${setterExp}:_set_${setterName}(${expStr} - 1)`;
-				}
+			switch (opKind) {
+				case ts.SyntaxKind.PlusPlusToken:
+					return `${expStr} = ${expStr} + 1`;
+				case ts.SyntaxKind.MinusMinusToken:
+					return `${expStr} = ${expStr} - 1`;
 			}
 			throw new TranspilerError("Unrecognized operation!", node);
 		}
@@ -1750,29 +1719,10 @@ export class Transpiler {
 		let expStr: string;
 		const statements = new Array<string>();
 
-		let isSetter = false;
-		let setterName = "";
-		let setterExp = "";
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const opExp = operand.getExpression();
-			const symbol = opExp.getType().getSymbol();
-			if (symbol) {
-				const valDec = symbol.getValueDeclaration();
-				if (valDec && ts.TypeGuards.isClassDeclaration(valDec)) {
-					setterName = operand.getName();
-					setterExp = this.transpileExpression(opExp);
-					if (valDec.getSetAccessor(setterName)) {
-						isSetter = true;
-					}
-				}
-			}
-		}
-
 		const opKind = node.getOperatorToken();
 		this.pushIdStack();
 		if (
 			(opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) &&
-			!isSetter &&
 			ts.TypeGuards.isPropertyAccessExpression(operand)
 		) {
 			const expression = operand.getExpression();
@@ -1786,20 +1736,11 @@ export class Transpiler {
 		}
 
 		function getOperandStr() {
-			if (!isSetter) {
-				switch (opKind) {
-					case ts.SyntaxKind.PlusPlusToken:
-						return `${expStr} = ${expStr} + 1`;
-					case ts.SyntaxKind.MinusMinusToken:
-						return `${expStr} = ${expStr} - 1`;
-				}
-			} else {
-				switch (opKind) {
-					case ts.SyntaxKind.PlusPlusToken:
-						return `${setterExp}:_set_${setterName}(${expStr} + 1)`;
-					case ts.SyntaxKind.MinusMinusToken:
-						return `${setterExp}:_set_${setterName}(${expStr} - 1)`;
-				}
+			switch (opKind) {
+				case ts.SyntaxKind.PlusPlusToken:
+					return `${expStr} = ${expStr} + 1`;
+				case ts.SyntaxKind.MinusMinusToken:
+					return `${expStr} = ${expStr} - 1`;
 			}
 			throw new TranspilerError("Unrecognized operation!", node);
 		}
@@ -1889,8 +1830,6 @@ export class Transpiler {
 					ts.TypeGuards.isMethodDeclaration(valDec)
 				) {
 					throw new TranspilerError("Cannot index a function value!", node);
-				} else if (ts.TypeGuards.isClassDeclaration(valDec) && valDec.getGetAccessor(propertyStr)) {
-					return `${expStr}:_get_${propertyStr}()`;
 				} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
 					if (valDec.isConstEnum()) {
 						const value = valDec.getMemberOrThrow(propertyStr).getValue();
