@@ -455,6 +455,8 @@ export class Transpiler {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
 				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+			} else if (!isNaN(Number(node.getModuleSpecifier().getLiteralText()))) {
+				luaPath = node.getModuleSpecifier().getLiteralText()
 			} else {
 				throw new TranspilerError(
 					`Could not find file for '${node.getModuleSpecifier().getLiteralText()}'. ` +
