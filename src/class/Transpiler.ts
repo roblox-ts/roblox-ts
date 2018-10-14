@@ -1018,7 +1018,7 @@ export class Transpiler {
 			result += this.indent + `return getter(self);\n`;
 			this.popIndent();
 			result += this.indent + `else\n`;
-			this.popIndent();
+			this.pushIndent();
 			result += this.indent + `return ${id}[index];\n`;
 			this.popIndent();
 			result += this.indent + `end;\n`;
