@@ -1017,8 +1017,11 @@ export class Transpiler {
 			this.pushIndent();
 			result += this.indent + `return getter(self);\n`;
 			this.popIndent();
-			result += this.indent + `end;\n`;
+			result += this.indent + `else\n`;
+			this.popIndent();
 			result += this.indent + `return ${id}[index];\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
 			this.popIndent();
 			result += this.indent + `end;\n`;
 		} else {
@@ -1041,8 +1044,11 @@ export class Transpiler {
 			this.pushIndent();
 			result += this.indent + `setter(self, value);\n`;
 			this.popIndent();
+			result += this.indent + `else\n`;
+			this.pushIndent();
+			result += this.indent + `rawset(self, index, value);\n`;
+			this.popIndent();
 			result += this.indent + `end;\n`;
-			result += this.indent + `${id}[index] = value;\n`;
 			this.popIndent();
 			result += this.indent + `end;\n`;
 		}
