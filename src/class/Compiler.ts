@@ -1,5 +1,5 @@
 import Project, * as ts from "ts-simple-ast";
-import { stripExts } from "../utility";
+import { isValidLuaIdentifier, stripExts } from "../utility";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
@@ -26,11 +26,6 @@ interface Partition {
 
 function red(s: string) {
 	return `\x1b[31m${s}\x1b[0m`;
-}
-
-const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
-function isValidLuaIdentifier(id: string) {
-	return luaIdentifierRegex.test(id);
 }
 
 const LUA_EXT = ".lua";

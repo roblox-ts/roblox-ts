@@ -1,4 +1,5 @@
 import * as ts from "ts-simple-ast";
+import { safeLuaIndex } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
@@ -1007,7 +1008,7 @@ export class Transpiler {
 			result += this.indent + `local _getters = {};\n`;
 			for (const getter of getters) {
 				const propName = getter.getName();
-				result += this.transpileAccessorDeclaration(getter, `_getters["${propName}"]`);
+				result += this.transpileAccessorDeclaration(getter, safeLuaIndex("_getters", propName));
 			}
 			result += this.indent + `${id}.__index = function(self, index)\n`;
 			this.pushIndent();
@@ -1031,7 +1032,7 @@ export class Transpiler {
 			result += this.indent + `local _setters = {};\n`;
 			for (const setter of setters) {
 				const propName = setter.getName();
-				result += this.transpileAccessorDeclaration(setter, `_setters["${propName}"]`);
+				result += this.transpileAccessorDeclaration(setter, safeLuaIndex("_setters", propName));
 			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
@@ -1229,14 +1230,15 @@ export class Transpiler {
 			const memberName = member.getName();
 			this.checkReserved(memberName, member.getNameNode());
 			const memberValue = member.getValue();
+			const safeIndex = safeLuaIndex(name, memberName);
 			if (typeof memberValue === "string") {
-				result += this.indent + `${name}["${memberName}"] = "${memberValue}";\n`;
+				result += this.indent + `${safeIndex} = "${memberValue}";\n`;
 			} else if (typeof memberValue === "number") {
-				result += this.indent + `${name}["${memberName}"] = ${memberValue};\n`;
+				result += this.indent + `${safeIndex} = ${memberValue};\n`;
 				result += this.indent + `${name}[${memberValue}] = "${memberName}";\n`;
 				last++;
 			} else {
-				result += this.indent + `${name}["${memberName}"] = ${last};\n`;
+				result += this.indent + `${safeIndex} = ${last};\n`;
 				result += this.indent + `${name}[${last}] = "${memberName}";\n`;
 				last++;
 			}
