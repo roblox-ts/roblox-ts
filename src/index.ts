@@ -153,6 +153,7 @@ if (argv.watch === true) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
 			await compiler.copyModules();
+			await compiler.copyIncludes(noInclude);
 		});
 	}
 

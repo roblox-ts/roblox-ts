@@ -252,6 +252,7 @@ export class Compiler {
 	public async compileAll(noInclude: boolean) {
 		await this.compileFiles(this.project.getSourceFiles(), noInclude);
 		await this.copyModules();
+		await this.copyIncludes(noInclude);
 	}
 
 	public async compileFileByPath(filePath: string, noInclude: boolean) {
@@ -311,8 +312,6 @@ export class Compiler {
 			}
 			process.exitCode = 1;
 		}
-
-		this.copyIncludes(noInclude);
 	}
 
 	public getRelativeImportPath(sourceFile: ts.SourceFile, specifier: string) {
