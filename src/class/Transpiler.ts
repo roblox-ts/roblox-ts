@@ -1654,6 +1654,8 @@ export class Transpiler {
 				return `${lhsStr} >= ${rhsStr}`;
 			case ts.SyntaxKind.LessThanEqualsToken:
 				return `${lhsStr} <= ${rhsStr}`;
+			case ts.SyntaxKind.PercentToken:
+				return `${lhsStr} % ${rhsStr}`;
 			case ts.SyntaxKind.InstanceOfKeyword:
 				if (inheritsFrom(node.getRight().getType(), "Rbx_Instance")) {
 					return `TS.isA(${lhsStr}, "${rhsStr}")`;
