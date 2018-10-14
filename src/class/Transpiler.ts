@@ -651,7 +651,8 @@ export class Transpiler {
 					expression.getOperatorToken().getKind() === ts.SyntaxKind.MinusEqualsToken ||
 					expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskEqualsToken ||
 					expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
-					expression.getOperatorToken().getKind() === ts.SyntaxKind.SlashEqualsToken)
+					expression.getOperatorToken().getKind() === ts.SyntaxKind.SlashEqualsToken ||
+					expression.getOperatorToken().getKind() === ts.SyntaxKind.PercentEqualsToken)
 			)
 		) {
 			throw new TranspilerError(
@@ -1588,6 +1589,8 @@ export class Transpiler {
 					return `${lhsStr} = ${lhsStr} / (${rhsStr})`;
 				case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
 					return `${lhsStr} = ${lhsStr} ^ (${rhsStr})`;
+				case ts.SyntaxKind.PercentEqualsToken:
+					return `${lhsStr} = ${lhsStr} % (${rhsStr})`;
 			}
 			throw new TranspilerError("Unrecognized operation!", node);
 		}
@@ -1598,7 +1601,8 @@ export class Transpiler {
 			opKind === ts.SyntaxKind.MinusEqualsToken ||
 			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
 			opKind === ts.SyntaxKind.SlashEqualsToken ||
-			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken
+			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
+			opKind === ts.SyntaxKind.PercentEqualsToken
 		) {
 			if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 				const expression = lhs.getExpression();
