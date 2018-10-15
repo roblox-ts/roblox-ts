@@ -108,7 +108,7 @@ export class Compiler {
 		this.modulesPath = path.resolve(modulesPath);
 		this.compilerOptions = this.project.getCompilerOptions();
 
-		this.baseUrl = this.compilerOptions.baseUrl
+		this.baseUrl = this.compilerOptions.baseUrl;
 
 		const rootDir = this.compilerOptions.rootDir;
 		if (!rootDir) {
