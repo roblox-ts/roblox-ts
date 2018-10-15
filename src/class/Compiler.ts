@@ -91,6 +91,7 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly modulesPath: string;
+	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
 	private readonly outDir: string;
 	private readonly modulesDir?: ts.Directory;
@@ -106,6 +107,8 @@ export class Compiler {
 		this.includePath = path.resolve(includePath);
 		this.modulesPath = path.resolve(modulesPath);
 		this.compilerOptions = this.project.getCompilerOptions();
+
+		this.baseUrl = this.compilerOptions.baseUrl
 
 		const rootDir = this.compilerOptions.rootDir;
 		if (!rootDir) {
@@ -130,6 +133,18 @@ export class Compiler {
 				if (partPath.startsWith(this.outDir)) {
 					const directory = this.project.getDirectory(
 						path.resolve(this.rootDir, path.relative(this.outDir, partPath)),
+					);
+					if (directory) {
+						this.syncInfo.push({
+							dir: directory,
+							target: part.target,
+						});
+					} else {
+						throw new CompilerError(`Could not find directory for partition: ${JSON.stringify(part)}`);
+					}
+				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
+					const directory = this.project.getDirectory(
+						path.resolve(this.baseUrl, path.relative(this.baseUrl, partPath)),
 					);
 					if (directory) {
 						this.syncInfo.push({
