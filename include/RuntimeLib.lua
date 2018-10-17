@@ -72,13 +72,13 @@ function TS.typeof(value)
 end
 
 function TS.instanceof(obj, class)
-	while obj ~= nil do
-		if obj.__index == class then
-			return true
-		end
-		obj = obj.__base
-	end
-	return false
+    while obj ~= nil do
+        if obj == class then
+            return true
+        end
+        obj = getmetatable(obj)
+    end
+    return false
 end
 
 function TS.isA(instance, className)
