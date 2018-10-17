@@ -324,7 +324,13 @@ export class Compiler {
 		}
 	}
 
-	public getRelativeImportPath(sourceFile: ts.SourceFile, specifier: string) {
+	public getRelativeImportPath(sourceFile: ts.SourceFile, destinationFile: ts.SourceFile | undefined, specifier: string) {
+		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile))
+		const destinationPartition = destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile))
+
+		if (destinationFile && currentPartition && currentPartition.target !== (destinationPartition && destinationPartition.target))
+			return this.getImportPathFromFile(destinationFile)
+
 		const parts = path.posix.normalize(specifier)
 			.split("/")
 			.filter(part => part !== ".")
@@ -339,7 +345,7 @@ export class Compiler {
 
 		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("");
 		const importParts = parts.filter((p) => p !== ".Parent");
-		return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"`: ""})`;
+    return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"`: ""})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
