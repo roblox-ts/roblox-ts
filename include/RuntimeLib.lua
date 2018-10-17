@@ -31,7 +31,7 @@ local globalModules = script.Parent.Parent:FindFirstChild("Modules")
 
 function TS.getModule(moduleName, object)
 	if not globalModules then
-		error("roblox-ts: Could not find any modules!")
+		error("Could not find any modules!", 2)
 	end
 	if object:IsDescendantOf(globalModules) then
 		while object.Parent do
@@ -50,7 +50,22 @@ function TS.getModule(moduleName, object)
 			return module
 		end
 	end
-	error("roblox-ts: Could not find module: " .. moduleName)
+	error("Could not find module: " .. moduleName, 2)
+end
+
+function TS.import(root, ...)
+	local currentInstance = typeof(root) == "Instance" and root or game:GetService(root)
+	local path = { ... }
+	if currentInstance then
+		for _, part in pairs(path) do
+			currentInstance = currentInstance and currentInstance:WaitForChild(part)
+		end
+	end
+	if currentInstance and currentInstance:IsA("ModuleScript") then
+		return require(currentInstance)
+	else
+		error("Failed to import!", 2)
+	end
 end
 
 function TS.exportNamespace(module, ancestor)
