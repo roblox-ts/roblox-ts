@@ -98,4 +98,4 @@ You should add more partitions for the subfolders of your `out` folder.
 https://discord.gg/f6Rn6RY
 
 # Credits
-roblox-ts is powered by is powered by [ts-simple-ast](https://github.com/dsherret/ts-simple-ast) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
+roblox-ts is powered by [ts-simple-ast](https://github.com/dsherret/ts-simple-ast) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
