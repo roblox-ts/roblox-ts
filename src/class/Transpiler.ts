@@ -490,7 +490,7 @@ export class Transpiler {
 		let result = "";
 		let rhsPrefix: string;
 		if (rhs.length === 1) {
-			rhsPrefix = `require(${luaPath})`;
+			rhsPrefix = luaPath;
 		} else {
 			rhsPrefix = this.getNewId();
 			result += `local ${rhsPrefix} = require(${luaPath});\n`;

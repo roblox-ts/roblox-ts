@@ -325,11 +325,10 @@ export class Compiler {
 	}
 
 	public getRelativeImportPath(sourceFile: ts.SourceFile, specifier: string) {
-		const parts = specifier
+		const parts = path.posix.normalize(specifier)
 			.split("/")
 			.filter(part => part !== ".")
-			.map(part => (part === ".." ? "Parent" : part))
-			.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
+			.map(part => (part === ".." ? ".Parent" : part))
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
 			parts.pop();
 		}
@@ -337,7 +336,10 @@ export class Compiler {
 		if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || stripExts(sourceFile.getBaseName()) !== "index") {
 			prefix += ".Parent";
 		}
-		return prefix + parts.join("");
+
+		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("")
+		const importParts = parts.filter((p) => p !== ".Parent")
+		return `TS.import(${importRoot}${importParts.length > 0 && `, "${importParts.join(`", "`)}"`})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
@@ -375,7 +377,7 @@ export class Compiler {
 				.filter(part => part !== ".")
 				.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
-			return `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+			return `require(TS.getModule("${moduleName}", script.Parent)${parts.join("")})`;
 		} else {
 			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
 			if (!partition) {
@@ -398,7 +400,7 @@ export class Compiler {
 
 			parts = parts.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
-			return ["game", partition.target].filter(v => v.length > 0).join(".") + parts.join("");
+			return `TS.import("${partition.target.split(".").join(`", "`)}")`;
 		}
 	}
 }
