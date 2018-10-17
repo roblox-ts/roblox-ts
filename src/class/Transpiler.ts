@@ -493,7 +493,7 @@ export class Transpiler {
 			rhsPrefix = luaPath;
 		} else {
 			rhsPrefix = this.getNewId();
-			result += `local ${rhsPrefix} = require(${luaPath});\n`;
+			result += `local ${rhsPrefix} = ${luaPath};\n`;
 		}
 		const lhsStr = lhs.join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");

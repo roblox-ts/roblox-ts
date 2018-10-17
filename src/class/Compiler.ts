@@ -398,9 +398,7 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			parts = parts.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
-			return `TS.import("${partition.target.split(".").join(`", "`)}")`;
+			return `TS.import("${partition.target.split(".").join(`", "`)}${parts.length > 0 && `", "${parts.join(`", "`)}`}")`;
 		}
 	}
 }
