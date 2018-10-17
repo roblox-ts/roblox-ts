@@ -337,9 +337,9 @@ export class Compiler {
 			prefix += ".Parent";
 		}
 
-		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("")
-		const importParts = parts.filter((p) => p !== ".Parent")
-		return `TS.import(${importRoot}${importParts.length > 0 && `, "${importParts.join(`", "`)}"`})`;
+		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("");
+		const importParts = parts.filter((p) => p !== ".Parent");
+		return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"`: ""})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
@@ -398,7 +398,7 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			return `TS.import("${partition.target.split(".").join(`", "`)}${parts.length > 0 && `", "${parts.join(`", "`)}`}")`;
+			return `TS.import("${partition.target.split(".").join(`", "`)}${parts.length > 0 ? `", "${parts.join(`", "`)}`: ""}")`;
 		}
 	}
 }
