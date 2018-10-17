@@ -345,7 +345,7 @@ export class Compiler {
 
 		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("");
 		const importParts = parts.filter((p) => p !== ".Parent");
-		return `TS.import(${importRoot}${importParts.length > 0 && `, "${importParts.join(`", "`)}"`})`;
+    return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"`: ""})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
@@ -404,9 +404,7 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			parts = parts.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
-			return `TS.import("${partition.target.split(".").join(`", "`)}")`;
+			return `TS.import("${partition.target.split(".").join(`", "`)}${parts.length > 0 ? `", "${parts.join(`", "`)}`: ""}")`;
 		}
 	}
 }
