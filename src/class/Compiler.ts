@@ -324,17 +324,28 @@ export class Compiler {
 		}
 	}
 
-	public getRelativeImportPath(sourceFile: ts.SourceFile, destinationFile: ts.SourceFile | undefined, specifier: string) {
-		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile))
-		const destinationPartition = destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile))
+	public getRelativeImportPath(
+		sourceFile: ts.SourceFile,
+		destinationFile: ts.SourceFile | undefined,
+		specifier: string,
+	) {
+		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+		const destinationPartition =
+			destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile));
 
-		if (destinationFile && currentPartition && currentPartition.target !== (destinationPartition && destinationPartition.target))
-			return this.getImportPathFromFile(destinationFile)
+		if (
+			destinationFile &&
+			currentPartition &&
+			currentPartition.target !== (destinationPartition && destinationPartition.target)
+		) {
+			return this.getImportPathFromFile(destinationFile);
+		}
 
-		const parts = path.posix.normalize(specifier)
+		const parts = path.posix
+			.normalize(specifier)
 			.split("/")
 			.filter(part => part !== ".")
-			.map(part => (part === ".." ? ".Parent" : part))
+			.map(part => (part === ".." ? ".Parent" : part));
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
 			parts.pop();
 		}
@@ -343,9 +354,9 @@ export class Compiler {
 			prefix += ".Parent";
 		}
 
-		const importRoot = prefix + parts.filter((p) => p === ".Parent").join("");
-		const importParts = parts.filter((p) => p !== ".Parent");
-    return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"`: ""})`;
+		const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
+		const importParts = parts.filter(p => p !== ".Parent");
+		return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : ""})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
@@ -390,7 +401,7 @@ export class Compiler {
 				throw new CompilerError("Could not compile non-relative import, no data from rojo.json");
 			}
 
-			let parts = partition.dir
+			const parts = partition.dir
 				.getRelativePathAsModuleSpecifierTo(file)
 				.split("/")
 				.filter(part => part !== ".");
@@ -404,7 +415,9 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			return `TS.import("${partition.target.split(".").join(`", "`)}${parts.length > 0 ? `", "${parts.join(`", "`)}`: ""}")`;
+			return `TS.import("${partition.target.split(".").join(`", "`)}${
+				parts.length > 0 ? `", "${parts.join(`", "`)}` : ""
+			}")`;
 		}
 	}
 }
