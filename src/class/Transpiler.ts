@@ -450,7 +450,7 @@ export class Transpiler {
 			luaPath = this.compiler.getRelativeImportPath(
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
-				node.getModuleSpecifier().getLiteralText()
+				node.getModuleSpecifier().getLiteralText(),
 			);
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
@@ -521,7 +521,11 @@ export class Transpiler {
 		const moduleSpecifier = node.getModuleSpecifier();
 		if (moduleSpecifier) {
 			if (node.isModuleSpecifierRelative()) {
-				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), node.getModuleSpecifierSourceFile(), moduleSpecifier.getLiteralText());
+				luaPath = this.compiler.getRelativeImportPath(
+					node.getSourceFile(),
+					node.getModuleSpecifierSourceFile(),
+					moduleSpecifier.getLiteralText(),
+				);
 			} else {
 				const moduleFile = node.getModuleSpecifierSourceFile();
 				if (moduleFile) {
