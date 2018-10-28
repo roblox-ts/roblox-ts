@@ -817,8 +817,7 @@ export class Transpiler {
 
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
-		const dec = getReturnedTypedAncestor(node);
-		if (dec && exp && dec.getReturnType().isTuple()) {
+		if (exp && ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = this.transpileExpression(exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return this.indent + `return ${expStr};\n`;
