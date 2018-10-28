@@ -399,6 +399,7 @@ end
 
 function TS.map.set(map, key, value)
 	map[key] = value
+	return map
 end
 
 function TS.map.values(map)
