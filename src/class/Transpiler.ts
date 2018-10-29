@@ -431,6 +431,8 @@ export class Transpiler {
 			return this.transpileEnumDeclaration(node);
 		} else if (ts.TypeGuards.isExportAssignment(node)) {
 			return this.transpileExportAssignment(node);
+		} else if (ts.TypeGuards.isSwitchStatement(node)) {
+			return this.transpileSwitchStatement(node);
 		} else if (
 			ts.TypeGuards.isEmptyStatement(node) ||
 			ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -1266,6 +1268,34 @@ export class Transpiler {
 			const expStr = this.transpileExpression(node.getExpression());
 			result = this.indent + `_exports = ${expStr};\n`;
 		}
+		return result;
+	}
+
+	private transpileSwitchStatement(node: ts.SwitchStatement) {
+		const expStr = this.transpileExpression(node.getExpression());
+		let result = "";
+		result += this.indent + `repeat\n`;
+		this.pushIndent();
+		this.pushIdStack();
+		const fallThroughVar = this.getNewId();
+		result += this.indent + `local ${fallThroughVar} = false;\n`;
+		for (const clause of node.getCaseBlock().getClauses()) {
+			// add if statement if the clause is non-default
+			if (ts.TypeGuards.isCaseClause(clause)) {
+				const clauseExpStr = this.transpileExpression(clause.getExpression());
+				result += this.indent + `if ${fallThroughVar} or ${expStr} == ( ${clauseExpStr} ) then\n`;
+				this.pushIndent();
+			}
+			result += this.transpileStatementedNode(clause);
+			if (ts.TypeGuards.isCaseClause(clause)) {
+				result += this.indent + `${fallThroughVar} = true;\n`;
+				this.popIndent();
+				result += this.indent + `end;\n`;
+			}
+		}
+		this.popIdStack();
+		this.popIndent();
+		result += this.indent + `until true;\n`;
 		return result;
 	}
 
