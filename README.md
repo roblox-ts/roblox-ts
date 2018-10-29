@@ -7,10 +7,7 @@
 ## Why?
 As Roblox games become increasingly complex and larger in size, writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
 
-**roblox-ts** attempts to solve this problem by compiling TypeScript code into (Roblox flavored) Lua code.
-
-# Documentation
-⚠️ Documentation is a work in progress. ⚠️
+**roblox-ts** attempts to solve this problem by compiling TypeScript code into Lua code for Roblox usage.
 
 https://roblox-ts.github.io/
 
