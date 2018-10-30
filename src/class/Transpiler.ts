@@ -1636,7 +1636,7 @@ export class Transpiler {
 				case ts.SyntaxKind.EqualsToken:
 					return `${lhsStr} = ${rhsStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
-					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr);
+					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
 					return `${lhsStr} = ${addExpStr}`;
 				case ts.SyntaxKind.MinusEqualsToken:
 					return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
