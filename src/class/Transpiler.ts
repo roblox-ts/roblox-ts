@@ -1305,9 +1305,17 @@ export class Transpiler {
 				result += this.indent + `if ${fallThroughVar} or ${expStr} == ( ${clauseExpStr} ) then\n`;
 				this.pushIndent();
 			}
+
+			const statements = clause.getStatements();
+			const lastChild = statements[statements.length - 1];
+			const endsInReturnStatement = lastChild && lastChild.getKind() === ts.SyntaxKind.ReturnStatement;
+
 			result += this.transpileStatementedNode(clause);
+
 			if (ts.TypeGuards.isCaseClause(clause)) {
-				result += this.indent + `${fallThroughVar} = true;\n`;
+				if (!endsInReturnStatement) {
+					result += this.indent + `${fallThroughVar} = true;\n`;
+				}
 				this.popIndent();
 				result += this.indent + `end;\n`;
 			}
