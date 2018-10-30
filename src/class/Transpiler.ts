@@ -1653,7 +1653,8 @@ export class Transpiler {
 			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
 				return statements.join("; ");
 			} else {
-				return `(function() ${statements.join("; ")}; return ${lhsStr}; end)()`;
+				const statementsStr = statements.join("; ");
+				return `(function() ${statementsStr}; return ${lhsStr}; end)()`;
 			}
 		} else {
 			lhsStr = this.transpileExpression(lhs);
