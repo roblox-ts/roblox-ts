@@ -1306,9 +1306,9 @@ export class Transpiler {
 				this.pushIndent();
 			}
 
-			let statements = clause.getStatements();
-			let lastChild = statements[statements.length - 1];
-			let endsInReturnStatement = lastChild && lastChild.getKind() === ts.SyntaxKind.ReturnStatement;
+			const statements = clause.getStatements();
+			const lastChild = statements[statements.length - 1];
+			const endsInReturnStatement = lastChild && lastChild.getKind() === ts.SyntaxKind.ReturnStatement;
 
 			result += this.transpileStatementedNode(clause);
 
