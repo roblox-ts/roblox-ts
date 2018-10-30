@@ -152,8 +152,8 @@ if (argv.watch === true) {
 	if (fs.existsSync(pkgLockJsonPath)) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
-			await compiler.copyModules();
 			await compiler.copyIncludes(noInclude);
+			await compiler.copyModules();
 		});
 	}
 

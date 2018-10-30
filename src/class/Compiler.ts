@@ -63,20 +63,22 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 	});
 
 	const searchForDeadFiles = async (dir: string) => {
-		for (const fileName of await fs.readdir(dir)) {
-			const filePath = path.join(dir, fileName);
-			const stats = await fs.stat(filePath);
-			if (stats.isDirectory()) {
-				searchForDeadFiles(filePath);
-				if ((await fs.readdir(dir)).length === 0) {
-					fs.remove(filePath);
-					console.log("delete", "dir", filePath);
-				}
-			} else if (stats.isFile()) {
-				const relativeToDestFolder = path.relative(destinationFolder, filePath);
-				if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-					fs.remove(filePath);
-					console.log("delete", "file", filePath);
+		if (await fs.pathExists(dir)) {
+			for (const fileName of await fs.readdir(dir)) {
+				const filePath = path.join(dir, fileName);
+				const stats = await fs.stat(filePath);
+				if (stats.isDirectory()) {
+					searchForDeadFiles(filePath);
+					if ((await fs.readdir(dir)).length === 0) {
+						fs.remove(filePath);
+						console.log("delete", "dir", filePath);
+					}
+				} else if (stats.isFile()) {
+					const relativeToDestFolder = path.relative(destinationFolder, filePath);
+					if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
+						fs.remove(filePath);
+						console.log("delete", "file", filePath);
+					}
 				}
 			}
 		}
@@ -261,8 +263,8 @@ export class Compiler {
 
 	public async compileAll(noInclude: boolean) {
 		await this.compileFiles(this.project.getSourceFiles(), noInclude);
-		await this.copyModules();
 		await this.copyIncludes(noInclude);
+		await this.copyModules();
 	}
 
 	public async compileFileByPath(filePath: string, noInclude: boolean) {
