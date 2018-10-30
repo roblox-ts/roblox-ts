@@ -221,7 +221,8 @@ export class Transpiler {
 		for (const bindingElement of listItems) {
 			if (bindingElement.getKind() === ts.SyntaxKind.BindingElement) {
 				const [child, op, pattern] = bindingElement.getChildren();
-				const key = strKeys ? `"${child.getText()}"` : childIndex;
+				const childText = child.getText();
+				const key = strKeys ? `"${childText}"` : childIndex;
 
 				if (child.getKind() === ts.SyntaxKind.DotDotDotToken) {
 					throw new TranspilerError("Operator ... is not supported for destructuring!", child);
@@ -300,7 +301,9 @@ export class Transpiler {
 				const postStatements = new Array<string>();
 				this.getBindingData(names, values, preStatements, postStatements, child, name);
 				preStatements.forEach(statement => initializers.push(statement));
-				initializers.push(`local ${names.join(", ")} = ${values.join(", ")};`);
+				const namesStr = names.join(", ");
+				const valuesStr = values.join(", ");
+				initializers.push(`local ${namesStr} = ${valuesStr};`);
 				postStatements.forEach(statement => initializers.push(statement));
 			}
 		}
@@ -341,7 +344,8 @@ export class Transpiler {
 		}
 		const hoists = this.hoistStack.pop();
 		if (hoists && hoists.length > 0) {
-			result = this.indent + `local ${hoists.join(", ")};\n` + result;
+			const hoistsStr = hoists.join(", ");
+			result = this.indent + `local ${hoistsStr};\n` + result;
 		}
 		const scopeExports = this.exportStack.pop();
 		if (scopeExports && scopeExports.length > 0) {
@@ -442,7 +446,8 @@ export class Transpiler {
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
 			throw new TranspilerError("Labeled statements are not supported!", node);
 		} else {
-			throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node);
+			const kindName = node.getKindName();
+			throw new TranspilerError(`Bad statement! (${kindName})`, node);
 		}
 	}
 
@@ -459,9 +464,9 @@ export class Transpiler {
 			if (moduleFile) {
 				luaPath = this.compiler.getImportPathFromFile(moduleFile);
 			} else {
+				const specifierText = node.getModuleSpecifier().getLiteralText();
 				throw new TranspilerError(
-					`Could not find file for '${node.getModuleSpecifier().getLiteralText()}'. ` +
-						`Did you forget to "npm install"?`,
+					`Could not find file for '${specifierText}'. ` + `Did you forget to "npm install"?`,
 					node,
 				);
 			}
@@ -533,9 +538,9 @@ export class Transpiler {
 				if (moduleFile) {
 					luaPath = this.compiler.getImportPathFromFile(moduleFile);
 				} else {
+					const specifierText = moduleSpecifier.getLiteralText();
 					throw new TranspilerError(
-						`Could not find file for '${moduleSpecifier.getLiteralText()}'. ` +
-							`Did you forget to "npm install"?`,
+						`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
 						node,
 					);
 				}
@@ -720,10 +725,8 @@ export class Transpiler {
 				}
 			}
 		} else if (ts.TypeGuards.isExpression(init)) {
-			throw new TranspilerError(
-				`ForIn Loop did not expect expression initializer! (${init.getKindName()})`,
-				init,
-			);
+			const initKindName = init.getKindName();
+			throw new TranspilerError(`ForIn Loop did not expect expression initializer! (${initKindName})`, init);
 		}
 
 		if (varName.length === 0) {
@@ -758,15 +761,18 @@ export class Transpiler {
 					const postStatements = new Array<string>();
 					this.getBindingData(names, values, preStatements, postStatements, lhs, varName);
 					preStatements.forEach(statement => initializers.push(statement));
-					initializers.push(`local ${names.join(", ")} = ${values.join(", ")};\n`);
+					const namesStr = names.join(", ");
+					const valuesStr = values.join(", ");
+					initializers.push(`local ${namesStr} = ${valuesStr};\n`);
 					postStatements.forEach(statement => initializers.push(statement));
 				} else if (ts.TypeGuards.isIdentifier(lhs)) {
 					varName = lhs.getText();
 				}
 			}
 		} else if (ts.TypeGuards.isExpression(initializer)) {
+			const initKindName = initializer.getKindName();
 			throw new TranspilerError(
-				`ForOf Loop did not expect expression initializer! (${initializer.getKindName()})`,
+				`ForOf Loop did not expect expression initializer! (${initKindName})`,
 				initializer,
 			);
 		}
@@ -868,7 +874,9 @@ export class Transpiler {
 				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs)) {
 					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
 					values.push(this.transpileExpression(rhs as ts.Expression));
-					return this.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+					const flatNamesStr = names.join(", ");
+					const flatValuesStr = values.join(", ");
+					return this.indent + `local ${flatNamesStr} = ${flatValuesStr};\n`;
 				}
 			}
 		}
@@ -926,10 +934,12 @@ export class Transpiler {
 
 		let result = "";
 		preStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
+		const namesStr = names.join(", ");
 		if (values.length > 0) {
-			result += this.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+			const valuesStr = values.join(", ");
+			result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
 		} else {
-			result += this.indent + `local ${names.join(", ")};\n`;
+			result += this.indent + `local ${namesStr};\n`;
 		}
 		postStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
 		return result;
@@ -1408,7 +1418,8 @@ export class Transpiler {
 					fields.push(`${name} = ${name}`);
 				}
 			});
-			result += `{ ${fields.join(", ")} }`;
+			const fieldsStr = fields.join(", ");
+			result += `{ ${fieldsStr} }`;
 		} else {
 			result += `{\n`;
 			this.pushIndent();
@@ -1452,9 +1463,11 @@ export class Transpiler {
 			}
 			const expStr = this.transpileExpression(body);
 			initializers.push(`return ${expStr};`);
-			result += ` ${initializers.join(" ")} end`;
+			const initializersStr = initializers.join(" ");
+			result += ` ${initializersStr} end`;
 		} else {
-			throw new TranspilerError(`Bad function body (${body.getKindName()})`, node);
+			const bodyKindName = body.getKindName();
+			throw new TranspilerError(`Bad function body (${bodyKindName})`, node);
 		}
 		if (node.isAsync()) {
 			result = `TS.async(${result})`;
@@ -1614,7 +1627,8 @@ export class Transpiler {
 				case ts.SyntaxKind.EqualsToken:
 					return `${lhsStr} = ${rhsStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
-					return `${lhsStr} = ${lhsStr} ${getLuaPlusOperator(node)} (${rhsStr})`;
+					const opStr = getLuaPlusOperator(node);
+					return `${lhsStr} = ${lhsStr} ${opStr} (${rhsStr})`;
 				case ts.SyntaxKind.MinusEqualsToken:
 					return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
 				case ts.SyntaxKind.AsteriskEqualsToken:
@@ -1670,7 +1684,8 @@ export class Transpiler {
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
 			case ts.SyntaxKind.PlusToken:
-				return `${lhsStr} ${getLuaPlusOperator(node)} ${rhsStr}`;
+				const opStr = getLuaPlusOperator(node);
+				return `${lhsStr} ${opStr} ${rhsStr}`;
 			case ts.SyntaxKind.MinusToken:
 				return `${lhsStr} - ${rhsStr}`;
 			case ts.SyntaxKind.AsteriskToken:
@@ -1704,7 +1719,8 @@ export class Transpiler {
 					return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 				}
 			default:
-				throw new TranspilerError(`Bad binary expression! (${node.getOperatorToken().getKindName()})`, opToken);
+				const opKindName = node.getOperatorToken().getKindName();
+				throw new TranspilerError(`Bad binary expression! (${opKindName})`, opToken);
 		}
 	}
 
@@ -1748,17 +1764,19 @@ export class Transpiler {
 				return statements.join("; ");
 			} else {
 				this.popIdStack();
-				return `(function() ${statements.join("; ")}; return ${expStr}; end)()`;
+				const statementsStr = statements.join("; ");
+				return `(function() ${statementsStr}; return ${expStr}; end)()`;
 			}
 		}
 
-		switch (node.getOperatorToken()) {
+		const tokenKind = node.getOperatorToken();
+		switch (tokenKind) {
 			case ts.SyntaxKind.ExclamationToken:
 				return `not ${expStr}`;
 			case ts.SyntaxKind.MinusToken:
 				return `-${expStr}`;
 		}
-		throw new TranspilerError(`Bad prefix unary expression! (${node.getOperatorToken()})`, node);
+		throw new TranspilerError(`Bad prefix unary expression! (${tokenKind})`, node);
 	}
 
 	private transpilePostfixUnaryExpression(node: ts.PostfixUnaryExpression) {
@@ -1804,10 +1822,11 @@ export class Transpiler {
 				this.popIdStack();
 				statements.push(`local ${id} = ${expStr}`);
 				statements.push(getOperandStr());
-				return `(function() ${statements.join("; ")}; return ${id}; end)()`;
+				const statementsStr = statements.join("; ");
+				return `(function() ${statementsStr}; return ${id}; end)()`;
 			}
 		}
-		throw new TranspilerError(`Bad postfix unary expression! (${node.getOperatorToken()})`, node);
+		throw new TranspilerError(`Bad postfix unary expression! (${opKind})`, node);
 	}
 
 	private transpileNewExpression(node: ts.NewExpression) {
