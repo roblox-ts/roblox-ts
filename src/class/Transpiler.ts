@@ -1598,9 +1598,9 @@ export class Transpiler {
 		const opKind = opToken.getKind();
 
 		if (opKind === ts.SyntaxKind.CaretToken) {
-			throw new TranspilerError("Binary XOR operator not supported! Did you mean to use `**`?", node);
+			throw new TranspilerError("Binary XOR operator ( `^` ) is not supported! Did you mean to use `**`?", node);
 		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
-			throw new TranspilerError("Binary XOR operator not supported! Did you mean to use `**=`?", node);
+			throw new TranspilerError("Binary XOR operator ( `^` ) is not supported! Did you mean to use `**=`?", node);
 		}
 
 		const lhs = node.getLeft();
