@@ -82,7 +82,7 @@ _**(warning: do not change these values unless you know what you are doing!)**_
 ```
 You should add more partitions for the subfolders of your `out` folder.
 
-6. Run `npm install rbx-types` and `npm install rbx-services` to install the Roblox API type definitions.
+6. Run `npm install rbx-types` to install the Roblox API type definitions. You may optionally run `npm install rbx-services` for auto-importing of Roblox's services.
 
 7. Start roblox-ts in watch mode `rbxtsc -w`
 
