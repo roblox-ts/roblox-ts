@@ -77,13 +77,22 @@ function isRbxClassType(type: ts.Type) {
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
-function getLuaPlusOperator(node: ts.BinaryExpression) {
+function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
+	if (wrap) {
+		rhsStr = `(${rhsStr})`;
+	}
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
 	if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
-		return "..";
+		return `${lhsStr} .. ${rhsStr}`;
+	} else if (
+		(leftType.isNumber() || leftType.isNumberLiteral()) &&
+		(rightType.isNumber() || rightType.isNumberLiteral())
+	) {
+		return `${lhsStr} + ${rhsStr}`;
+	} else {
+		return `TS.add(${lhsStr}, ${rhsStr})`;
 	}
-	return "+";
 }
 
 function inheritsFrom(type: ts.Type, className: string): boolean {
@@ -1627,8 +1636,8 @@ export class Transpiler {
 				case ts.SyntaxKind.EqualsToken:
 					return `${lhsStr} = ${rhsStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
-					const opStr = getLuaPlusOperator(node);
-					return `${lhsStr} = ${lhsStr} ${opStr} (${rhsStr})`;
+					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr);
+					return `${lhsStr} = ${addExpStr}`;
 				case ts.SyntaxKind.MinusEqualsToken:
 					return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
 				case ts.SyntaxKind.AsteriskEqualsToken:
@@ -1684,8 +1693,7 @@ export class Transpiler {
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
 			case ts.SyntaxKind.PlusToken:
-				const opStr = getLuaPlusOperator(node);
-				return `${lhsStr} ${opStr} ${rhsStr}`;
+				return getLuaAddExpression(node, lhsStr, rhsStr);
 			case ts.SyntaxKind.MinusToken:
 				return `${lhsStr} - ${rhsStr}`;
 			case ts.SyntaxKind.AsteriskToken:

@@ -1,5 +1,9 @@
 local Promise = require(script.Parent.Promise)
 
+-- constants
+local TYPE_TABLE = "table"
+local TYPE_STRING = "string"
+
 local TS = {}
 
 -- runtime classes
@@ -122,6 +126,14 @@ function TS.await(promise)
 		return result
 	else
 		error(result, 2)
+	end
+end
+
+function TS.add(a, b)
+	if typeof(a) == TYPE_STRING or typeof(b) == TYPE_STRING then
+		return a .. b
+	else
+		return a + b
 	end
 end
 
@@ -306,7 +318,7 @@ function TS.array.concat(list, ...)
 	end
 	for i = 1, #args do
 		local value = args[i]
-		if typeof(value) == "table" then
+		if typeof(value) == TYPE_TABLE then
 			for j = 1, #value do
 				result[#result + 1] = value[j]
 			end
