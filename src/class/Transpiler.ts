@@ -1953,6 +1953,12 @@ export class Transpiler {
 		const expStr = this.transpileExpression(expression);
 		const propertyStr = node.getName();
 
+		if (ts.TypeGuards.isSuperExpression(expression)) {
+			const indexA = safeLuaIndex("super._getters", propertyStr);
+			const indexB = safeLuaIndex("self", propertyStr);
+			return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
+		}
+
 		const symbol = expression.getType().getSymbol();
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
@@ -2079,7 +2085,7 @@ export class Transpiler {
 	}
 
 	private transpileSuperExpression(node: ts.SuperExpression) {
-		return `self`;
+		return `super`;
 	}
 
 	private transpileSpreadElement(node: ts.SpreadElement) {
