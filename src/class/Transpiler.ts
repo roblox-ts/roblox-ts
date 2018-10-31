@@ -1087,7 +1087,7 @@ export class Transpiler {
 		if (hasGetters) {
 			if (getters.length > 0) {
 				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters });\n\n`;
+					result += this.indent + `${id}._getters = setmetatable({}, { __index = ${baseClassName}._getters });\n\n`;
 				} else {
 					result += this.indent + `${id}._getters = {};\n\n`;
 				}
@@ -1096,7 +1096,7 @@ export class Transpiler {
 					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
 				}
 			} else {
-				result += this.indent + `${id}._getters = super._getters;\n`;
+				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
 			}
 			result += this.indent + `${id}.__index = function(self, index)\n`;
 			this.pushIndent();
@@ -1119,7 +1119,7 @@ export class Transpiler {
 		if (hasSetters) {
 			if (setters.length > 0) {
 				if (ancestorHasSetters) {
-					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters });\n\n`;
+					result += this.indent + `${id}._setters = setmetatable({}, { __index = ${baseClassName}._setters });\n\n`;
 				} else {
 					result += this.indent + `${id}._setters = {};\n\n`;
 				}
@@ -1128,7 +1128,7 @@ export class Transpiler {
 					result += this.transpileAccessorDeclaration(setter, id, safeLuaIndex("_setters", propName));
 				}
 			} else {
-				result += this.indent + `${id}._setters = super._setters;\n\n`;
+				result += this.indent + `${id}._setters = ${baseClassName}._setters;\n\n`;
 			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
