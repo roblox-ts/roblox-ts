@@ -465,10 +465,6 @@ TS.set.size = TS.map.size
 -- string macro functions
 TS.string = {}
 
-function TS.string.replace(source, searchVal, newVal)
-	return string.gsub(source, searchVal, newVal)
-end
-
 function TS.string.split(input, sep)
 	if sep == nil then
 		sep = "%s"

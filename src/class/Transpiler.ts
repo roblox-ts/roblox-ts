@@ -44,6 +44,22 @@ const RBX_CLASSES = [
 	"RBXScriptSignal",
 ];
 
+const STRING_MACRO_METHODS = [
+	"byte",
+	"char",
+	"find",
+	"format",
+	"gmatch",
+	"gsub",
+	"len",
+	"lower",
+	"match",
+	"rep",
+	"reverse",
+	"sub",
+	"upper",
+];
+
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
 const RUNTIME_CLASSES = ["Promise", "Symbol"];
@@ -1588,6 +1604,9 @@ export class Transpiler {
 			let paramStr = accessPath;
 			if (params.length > 0) {
 				paramStr += ", " + params;
+			}
+			if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
+				return `string.${property}(${paramStr})`;
 			}
 			return `TS.string.${property}(${paramStr})`;
 		}
