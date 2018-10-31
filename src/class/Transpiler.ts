@@ -2,7 +2,6 @@ import * as ts from "ts-simple-ast";
 import { safeLuaIndex } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
-import { SyntaxKind } from "ts-simple-ast";
 
 type HasParameters =
 	| ts.FunctionExpression
