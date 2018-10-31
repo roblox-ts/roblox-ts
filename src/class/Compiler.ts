@@ -93,6 +93,7 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly modulesPath: string;
+	private readonly strictMode: boolean;
 	private readonly noHeader: boolean;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
@@ -109,6 +110,7 @@ export class Compiler {
 		this.project.addExistingSourceFiles("**/*.d.ts");
 		this.includePath = path.resolve(args.includePath);
 		this.modulesPath = path.resolve(args.modulesPath);
+		this.strictMode = args.strict;
 		this.noHeader = args.noHeader;
 		this.compilerOptions = this.project.getCompilerOptions();
 
@@ -297,6 +299,32 @@ export class Compiler {
 		this.cleanDirRecursive(this.outDir);
 		if (this.compilerOptions.declaration === true) {
 			this.project.emit({ emitOnlyDtsFiles: true });
+		}
+
+		if (this.strictMode) {
+			let errors = 0;
+
+			files.forEach(file => {
+				for (const diagnostic of file.getPreEmitDiagnostics()) {
+					if (diagnostic.getCategory() === ts.DiagnosticCategory.Error) {
+						const diagnosticFile = diagnostic.getSourceFile();
+						const line = diagnostic.getLineNumber();
+						if (diagnosticFile) {
+							if (line) {
+								console.log("%s:%d", diagnosticFile.getFilePath(), line);
+							} else {
+								console.log("%s", diagnosticFile.getFilePath());
+							}
+						}
+						console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
+						errors++;
+					}
+				}
+			});
+			if (errors > 0) {
+				process.exitCode = 1;
+				return;
+			}
 		}
 
 		try {

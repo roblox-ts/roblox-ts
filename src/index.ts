@@ -41,6 +41,13 @@ const argv = yargs
 		describe: "project path",
 	})
 
+	// strict
+	.option("s", {
+		alias: "strict",
+		boolean: true,
+		describe: "ensures compiled code is type safe (slower)",
+	})
+
 	// includePath
 	.option("i", {
 		alias: "includePath",
@@ -60,6 +67,7 @@ const argv = yargs
 		describe: "folder to copy .lua files from node_modules to",
 	})
 
+	// noHeader
 	.option("noHeader", {
 		boolean: true,
 		hidden: true,
