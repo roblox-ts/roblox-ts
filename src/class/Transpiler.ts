@@ -989,7 +989,10 @@ export class Transpiler {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
 		this.pushExport(name, node);
-		const body = node.getBodyOrThrow();
+		const body = node.getBody();
+		if (!body) {
+			return "";
+		}
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 		const paramNames = new Array<string>();
 		const initializers = new Array<string>();
