@@ -50,13 +50,13 @@ We recommmend that you write your TypeScript in [VS Code](https://code.visualstu
 	"compilerOptions": {
 		"outDir": "out",
 		"rootDir": "src",
-		"baseUrl": "src",
 		"module": "commonjs",
 		"strict": true,
 		"noLib": true,
 		"downlevelIteration": true,
 		"declaration": false,
-		"target": "es6"
+		"target": "es6",
+		"typeRoots": [ "rbx-types" ]
 	},
 	"typeAcquisition": {
 		"enable": true
