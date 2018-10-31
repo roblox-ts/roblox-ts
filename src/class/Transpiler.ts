@@ -1064,7 +1064,8 @@ export class Transpiler {
 		if (getters.length > 0 || ancestorHasGetters) {
 			if (getters.length > 0) {
 				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({}, { __index = ${baseClassName}._getters });\n`;
+					result +=
+						this.indent + `${id}._getters = setmetatable({}, { __index = ${baseClassName}._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {};\n`;
 				}
@@ -1112,7 +1113,8 @@ export class Transpiler {
 		if (setters.length > 0 || ancestorHasSetters) {
 			if (setters.length > 0) {
 				if (ancestorHasSetters) {
-					result += this.indent + `${id}._setters = setmetatable({}, { __index = ${baseClassName}._setters });\n`;
+					result +=
+						this.indent + `${id}._setters = setmetatable({}, { __index = ${baseClassName}._setters });\n`;
 				} else {
 					result += this.indent + `${id}._setters = {};\n`;
 				}
@@ -1197,7 +1199,7 @@ export class Transpiler {
 		className: string,
 		node?: ts.ConstructorDeclaration,
 		extraInitializers?: Array<string>,
-		baseClassName?: string
+		baseClassName?: string,
 	) {
 		const paramNames = new Array<string>();
 		paramNames.push("self");
@@ -1563,22 +1565,22 @@ export class Transpiler {
 	}
 
 	private transpileCallExpression(node: ts.CallExpression) {
-		const expStr = node.getExpression();
-		if (ts.TypeGuards.isPropertyAccessExpression(expStr)) {
+		const exp = node.getExpression();
+		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 			return this.transpilePropertyCallExpression(node);
-		} else if (ts.TypeGuards.isSuperExpression(expStr)) {
+		} else if (ts.TypeGuards.isSuperExpression(exp)) {
 			let params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 			if (params.length > 0) {
 				params = ", " + params;
 			}
 			params = "self" + params;
-			const className = expStr
+			const className = exp
 				.getType()
 				.getSymbolOrThrow()
 				.getName();
 			return `${className}.constructor(${params})`;
 		} else {
-			const callPath = this.transpileExpression(expStr);
+			const callPath = this.transpileExpression(exp);
 			const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 			return `${callPath}(${params})`;
 		}
@@ -1976,7 +1978,11 @@ export class Transpiler {
 		const propertyStr = node.getName();
 
 		if (ts.TypeGuards.isSuperExpression(expression)) {
-			const indexA = safeLuaIndex("super._getters", propertyStr);
+			const baseClassName = expression
+				.getType()
+				.getSymbolOrThrow()
+				.getName();
+			const indexA = safeLuaIndex(`${baseClassName}._getters`, propertyStr);
 			const indexB = safeLuaIndex("self", propertyStr);
 			return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
 		}
