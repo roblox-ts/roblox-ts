@@ -294,13 +294,24 @@ export class Transpiler {
 			}
 
 			const initial = param.getInitializer();
+			const hasScopeKeyword = param.hasScopeKeyword()
+			const value = (initial) ? this.transpileExpression(initial, true) : undefined;
+			const canBeBoolean = param.getType().getText().includes("boolean"); // TODO: This could probably be improved
+			const canUseOrFallback = initial && hasScopeKeyword && (!canBeBoolean || value === "false")
+			// If the value can be a boolean, you can't use the `or` fallback unless the value is false
+
 			if (initial) {
-				const value = this.transpileExpression(initial, true);
-				initializers.push(`if ${name} == nil then ${name} = ${value} end;`);
+				if (!canUseOrFallback) {
+					initializers.push(`if ${name} == nil then ${name} = ${value} end;`);
+				}
 			}
 
-			if (param.hasScopeKeyword()) {
-				initializers.push(`self.${name} = ${name};`);
+			if (hasScopeKeyword) {
+				if (canUseOrFallback) {
+					initializers.push(`self.${name} = ${name} or ${value};`);
+				} else {
+					initializers.push(`self.${name} = ${name};`);
+				}
 			}
 
 			if (isBindingPattern(child)) {
@@ -1018,20 +1029,14 @@ export class Transpiler {
 
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 
-		let result = "";
-		result += this.indent + `${name} = (function(super)\n`;
-		this.pushIdStack();
-		this.pushIndent();
-
-		const id = this.getNewId();
-
-		result += this.indent + `local ${id} = setmetatable({}, super);\n`;
+		let result = "\n";
 
 		const getters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 		let ancestorHasGetters = false;
 		let ancestorClass: ts.ClassDeclaration | undefined = node;
+
 		while (!ancestorHasGetters && ancestorClass !== undefined) {
 			ancestorClass = ancestorClass.getBaseClass();
 			if (ancestorClass !== undefined) {
@@ -1042,37 +1047,6 @@ export class Transpiler {
 					ancestorHasGetters = true;
 				}
 			}
-		}
-		if (getters.length > 0 || ancestorHasGetters) {
-			if (getters.length > 0) {
-				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters });\n`;
-				} else {
-					result += this.indent + `${id}._getters = {};\n`;
-				}
-				for (const getter of getters) {
-					const propName = getter.getName();
-					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
-				}
-			} else {
-				result += this.indent + `${id}._getters = super._getters;\n`;
-			}
-			result += this.indent + `${id}.__index = function(self, index)\n`;
-			this.pushIndent();
-			result += this.indent + `local getter = ${id}._getters[index];\n`;
-			result += this.indent + `if getter then\n`;
-			this.pushIndent();
-			result += this.indent + `return getter(self);\n`;
-			this.popIndent();
-			result += this.indent + `else\n`;
-			this.pushIndent();
-			result += this.indent + `return ${id}[index];\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
-		} else {
-			result += this.indent + `${id}.__index = ${id};\n`;
 		}
 
 		const setters = node
@@ -1091,23 +1065,74 @@ export class Transpiler {
 				}
 			}
 		}
-		if (setters.length > 0 || ancestorHasSetters) {
+
+		const hasGetters = getters.length > 0 || ancestorHasGetters
+		const hasSetters = setters.length > 0 || ancestorHasSetters
+		const needsScoping = hasGetters && hasSetters
+
+		if (needsScoping) {
+			result += this.indent + `do\n`;
+			this.pushIndent();
+		}
+
+		const id = name;
+
+		if (baseClassName) {
+			result += this.indent + `${id} = setmetatable({}, ${baseClassName});\n`;
+		}
+		else {
+			result += this.indent + `${id} = {};\n`;
+		}
+
+		if (hasGetters) {
+			if (getters.length > 0) {
+				if (ancestorHasGetters) {
+					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters });\n\n`;
+				} else {
+					result += this.indent + `${id}._getters = {};\n\n`;
+				}
+				for (const getter of getters) {
+					const propName = getter.getName();
+					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
+				}
+			} else {
+				result += this.indent + `${id}._getters = super._getters;\n`;
+			}
+			result += this.indent + `${id}.__index = function(self, index)\n`;
+			this.pushIndent();
+			result += this.indent + `local getter = ${id}._getters[index];\n\n`;
+			result += this.indent + `if getter then\n`;
+			this.pushIndent();
+			result += this.indent + `return getter(self);\n`;
+			this.popIndent();
+			result += this.indent + `else\n`;
+			this.pushIndent();
+			result += this.indent + `return ${id}[index];\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+			this.popIndent();
+			result += this.indent + `end;\n\n`;
+		} else {
+			result += this.indent + `${id}.__index = ${id};\n\n`;
+		}
+
+		if (hasSetters) {
 			if (setters.length > 0) {
 				if (ancestorHasSetters) {
-					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters });\n`;
+					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters });\n\n`;
 				} else {
-					result += this.indent + `${id}._setters = {};\n`;
+					result += this.indent + `${id}._setters = {};\n\n`;
 				}
 				for (const setter of setters) {
 					const propName = setter.getName();
 					result += this.transpileAccessorDeclaration(setter, id, safeLuaIndex("_setters", propName));
 				}
 			} else {
-				result += this.indent + `${id}._setters = super._setters;\n`;
+				result += this.indent + `${id}._setters = super._setters;\n\n`;
 			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
-			result += this.indent + `local setter = ${id}._setters[index];\n`;
+			result += this.indent + `local setter = ${id}._setters[index];\n\n`;
 			result += this.indent + `if setter then\n`;
 			this.pushIndent();
 			result += this.indent + `setter(self, value);\n`;
@@ -1118,7 +1143,7 @@ export class Transpiler {
 			this.popIndent();
 			result += this.indent + `end;\n`;
 			this.popIndent();
-			result += this.indent + `end;\n`;
+			result += this.indent + `end;\n\n`;
 		}
 
 		const toStrMethod = getClassMethod(node, "toString");
@@ -1155,24 +1180,16 @@ export class Transpiler {
 			}
 		}
 
-		result += this.indent + `${id}.new = function(...)\n`;
-		this.pushIndent();
-		result += this.indent + `local self = setmetatable({}, ${id});\n`;
-		result += this.indent + `self:constructor(...);\n`;
-		result += this.indent + `return self;\n`;
-		this.popIndent();
-		result += this.indent + `end;\n`;
-
 		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers);
 
 		node.getMethods()
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
-		result += this.indent + `return ${id};\n`;
-		this.popIndent();
-		this.popIdStack();
-		result += this.indent + `end)(${baseClassName});\n`;
+		if (needsScoping) {
+			this.popIndent();
+			result += this.indent + `end;\n\n`;
+		}
 
 		return result;
 	}
@@ -1200,20 +1217,20 @@ export class Transpiler {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
 				if (extraInitializers) {
-					extraInitializers.forEach(initializer => (result += this.indent + initializer));
+					extraInitializers.forEach(initializer => (result += this.indent + initializer.replace(/\nend;/g, "\n" + this.indent + "end;"))); // Quick fix
 				}
-				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+				initializers.forEach(initializer => {result += this.indent + initializer + "\n"});
 				result += this.transpileBlock(body);
 			}
 		} else {
-			result += this.indent + `if super then super.constructor(self, ...) end;\n`;
 			if (extraInitializers) {
 				extraInitializers.forEach(initializer => (result += this.indent + initializer));
 			}
 		}
+		result += this.indent + "return self;\n";
 		this.popIndent();
 		this.popIdStack();
-		result += this.indent + "end;\n";
+		result += this.indent + "end;\n\n";
 		return result;
 	}
 
@@ -1238,7 +1255,7 @@ export class Transpiler {
 		}
 		this.popIndent();
 		this.popIdStack();
-		result += this.indent + "end;\n";
+		result += this.indent + "end;\n\n";
 		return result;
 	}
 
@@ -1267,7 +1284,7 @@ export class Transpiler {
 		}
 		this.popIndent();
 		this.popIdStack();
-		result += this.indent + "end" + (node.isAsync() ? ")" : "") + ";\n";
+		result += this.indent + "end" + (node.isAsync() ? ")" : "") + ";\n\n";
 		return result;
 	}
 
@@ -1944,7 +1961,7 @@ export class Transpiler {
 			}
 		}
 
-		return `${name}.new(${params})`;
+		return `setmetatable({}, ${name}):constructor(${params})`;
 	}
 
 	private transpilePropertyAccessExpression(node: ts.PropertyAccessExpression) {
@@ -2110,6 +2127,6 @@ export class Transpiler {
 		}
 		result = this.indent + runtimeLibImport + result;
 		result = this.indent + "-- luacheck: ignore\n" + result;
-		return result;
+		return result.replace(/\n\n\n+/g, "\n\n").replace(/\n\nend/g, `\nend`);
 	}
 }
