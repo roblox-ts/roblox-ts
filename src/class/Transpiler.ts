@@ -46,7 +46,6 @@ const RBX_CLASSES = [
 
 const STRING_MACRO_METHODS = [
 	"byte",
-	"char",
 	"find",
 	"format",
 	"gmatch",
