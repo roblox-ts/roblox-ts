@@ -1045,7 +1045,11 @@ export class Transpiler {
 		}
 		if (getters.length > 0 || ancestorHasGetters) {
 			if (getters.length > 0) {
-				result += this.indent + `${id}._getters = {};\n`;
+				if (ancestorHasGetters) {
+					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters })\n`;
+				} else {
+					result += this.indent + `${id}._getters = {};\n`;
+				}
 				for (const getter of getters) {
 					const propName = getter.getName();
 					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
@@ -1088,7 +1092,11 @@ export class Transpiler {
 		}
 		if (setters.length > 0 || ancestorHasSetters) {
 			if (setters.length > 0) {
-				result += this.indent + `${id}._setters = {};\n`;
+				if (ancestorHasSetters) {
+					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters })\n`;
+				} else {
+					result += this.indent + `${id}._setters = {};\n`;
+				}
 				for (const setter of setters) {
 					const propName = setter.getName();
 					result += this.transpileAccessorDeclaration(setter, id, safeLuaIndex("_setters", propName));
