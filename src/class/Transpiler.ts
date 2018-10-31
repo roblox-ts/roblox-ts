@@ -1035,13 +1035,16 @@ export class Transpiler {
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 
 		let result = "";
-		result += this.indent + `${name} = (function(super)\n`;
-		this.pushIdStack();
+		result += this.indent + `do\n`;
 		this.pushIndent();
 
-		const id = this.getNewId();
+		const id = name;
 
-		result += this.indent + `local ${id} = setmetatable({}, super);\n`;
+		if (baseClassName) {
+			result += this.indent + `${id} = setmetatable({}, ${baseClassName});\n`;
+		} else {
+			result += this.indent + `${id} = {};\n`;
+		}
 
 		const getters = node
 			.getInstanceProperties()
@@ -1062,7 +1065,7 @@ export class Transpiler {
 		if (getters.length > 0 || ancestorHasGetters) {
 			if (getters.length > 0) {
 				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters });\n`;
+					result += this.indent + `${id}._getters = setmetatable({}, { __index = ${baseClassName}._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {};\n`;
 				}
@@ -1071,7 +1074,7 @@ export class Transpiler {
 					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
 				}
 			} else {
-				result += this.indent + `${id}._getters = super._getters;\n`;
+				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
 			}
 			result += this.indent + `${id}.__index = function(self, index)\n`;
 			this.pushIndent();
@@ -1110,7 +1113,7 @@ export class Transpiler {
 		if (setters.length > 0 || ancestorHasSetters) {
 			if (setters.length > 0) {
 				if (ancestorHasSetters) {
-					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters });\n`;
+					result += this.indent + `${id}._setters = setmetatable({}, { __index = ${baseClassName}._setters });\n`;
 				} else {
 					result += this.indent + `${id}._setters = {};\n`;
 				}
@@ -1119,7 +1122,7 @@ export class Transpiler {
 					result += this.transpileAccessorDeclaration(setter, id, safeLuaIndex("_setters", propName));
 				}
 			} else {
-				result += this.indent + `${id}._setters = super._setters;\n`;
+				result += this.indent + `${id}._setters = ${baseClassName}._setters;\n`;
 			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
@@ -1179,16 +1182,14 @@ export class Transpiler {
 		this.popIndent();
 		result += this.indent + `end;\n`;
 
-		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers);
+		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
 
 		node.getMethods()
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
-		result += this.indent + `return ${id};\n`;
 		this.popIndent();
-		this.popIdStack();
-		result += this.indent + `end)(${baseClassName});\n`;
+		result += this.indent + `end;\n`;
 
 		return result;
 	}
@@ -1197,6 +1198,7 @@ export class Transpiler {
 		className: string,
 		node?: ts.ConstructorDeclaration,
 		extraInitializers?: Array<string>,
+		baseClassName?: string
 	) {
 		const paramNames = new Array<string>();
 		paramNames.push("self");
@@ -1222,7 +1224,9 @@ export class Transpiler {
 				result += this.transpileBlock(body);
 			}
 		} else {
-			result += this.indent + `if super then super.constructor(self, ...) end;\n`;
+			if (baseClassName) {
+				result += this.indent + `${baseClassName}.constructor(self, ...);\n`;
+			}
 			if (extraInitializers) {
 				extraInitializers.forEach(initializer => (result += this.indent + initializer));
 			}
