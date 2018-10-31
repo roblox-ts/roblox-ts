@@ -544,7 +544,7 @@ export class Transpiler {
 		}
 
 		const name = node.getName();
-		return this.indent + `local ${name} = require(${luaPath});\n`;
+		return this.indent + `local ${name} = ${luaPath};\n`;
 	}
 
 	private transpileExportDeclaration(node: ts.ExportDeclaration) {
