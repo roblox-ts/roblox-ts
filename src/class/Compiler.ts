@@ -93,6 +93,7 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly modulesPath: string;
+	private readonly noHeader: boolean;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
 	private readonly outDir: string;
@@ -100,14 +101,15 @@ export class Compiler {
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
 
-	constructor(configFilePath: string, includePath: string, modulesPath: string) {
+	constructor(configFilePath: string, args: { [argName: string]: any }) {
 		this.projectPath = path.resolve(configFilePath, "..");
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
 		this.project.addExistingSourceFiles("**/*.d.ts");
-		this.includePath = path.resolve(includePath);
-		this.modulesPath = path.resolve(modulesPath);
+		this.includePath = path.resolve(args.includePath);
+		this.modulesPath = path.resolve(args.modulesPath);
+		this.noHeader = args.noHeader;
 		this.compilerOptions = this.project.getCompilerOptions();
 
 		this.baseUrl = this.compilerOptions.baseUrl;
@@ -304,7 +306,7 @@ export class Compiler {
 					const transpiler = new Transpiler(this);
 					return [
 						this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile),
+						transpiler.transpileSourceFile(sourceFile, this.noHeader),
 					];
 				})
 				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));

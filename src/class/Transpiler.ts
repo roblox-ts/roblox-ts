@@ -2087,7 +2087,7 @@ export class Transpiler {
 		return `unpack(${expStr})`;
 	}
 
-	public transpileSourceFile(node: ts.SourceFile) {
+	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.isModule) {
@@ -2098,12 +2098,12 @@ export class Transpiler {
 			}
 			result += this.indent + "return _exports;\n";
 		}
-		result =
-			this.indent +
-			"-- luacheck: ignore\n" +
-			this.indent +
-			"local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n" +
-			result;
+		let runtimeLibImport = "local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n";
+		if (noHeader) {
+			runtimeLibImport = "-- " + runtimeLibImport;
+		}
+		result = this.indent + runtimeLibImport + result;
+		result = this.indent + "-- luacheck: ignore\n" + result;
 		return result;
 	}
 }

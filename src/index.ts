@@ -60,6 +60,11 @@ const argv = yargs
 		describe: "folder to copy .lua files from node_modules to",
 	})
 
+	.option("noHeader", {
+		boolean: true,
+		hidden: true,
+	})
+
 	// parse
 	.parse();
 
@@ -84,7 +89,7 @@ function isTSFile(filePath: string) {
 
 const noInclude = argv.noInclude === true;
 
-const compiler = new Compiler(configFilePath, argv.includePath, argv.modulesPath);
+const compiler = new Compiler(configFilePath, argv);
 if (argv.watch === true) {
 	const rootDir = compiler.getRootDirOrThrow();
 	let isCompiling = false;
