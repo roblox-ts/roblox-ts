@@ -1177,9 +1177,7 @@ export class Transpiler {
 
 		result += this.indent + `${id}.new = function(...)\n`;
 		this.pushIndent();
-		result += this.indent + `local self = setmetatable({}, ${id});\n`;
-		result += this.indent + `self:constructor(...);\n`;
-		result += this.indent + `return self;\n`;
+		result += this.indent + `return setmetatable({}, ${id}):constructor(...);\n`;
 		this.popIndent();
 		result += this.indent + `end;\n`;
 
@@ -1189,6 +1187,7 @@ export class Transpiler {
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
+		result += this.indent + `${id}.prototype = ${id};\n`;
 		this.popIndent();
 		result += this.indent + `end;\n`;
 
@@ -1232,6 +1231,7 @@ export class Transpiler {
 				extraInitializers.forEach(initializer => (result += this.indent + initializer));
 			}
 		}
+		result += this.indent + "return self;\n";
 		this.popIndent();
 		this.popIdStack();
 		result += this.indent + "end;\n";
