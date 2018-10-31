@@ -99,12 +99,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-		symbol.getDeclarations().some(declaration =>
-			declaration
-				.getType()
-				.getBaseTypes()
-				.some(baseType => inheritsFrom(baseType, className)),
-		)
+				symbol.getDeclarations().some(declaration =>
+					declaration
+						.getType()
+						.getBaseTypes()
+						.some(baseType => inheritsFrom(baseType, className)),
+				)
 		: false;
 }
 
@@ -155,7 +155,7 @@ export class Transpiler {
 	private isModule = false;
 	private indent = "";
 
-	constructor(private compiler: Compiler) { }
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1086,8 +1086,9 @@ export class Transpiler {
 				const ancestorSetters = ancestorClass
 					.getInstanceProperties()
 					.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-				if (ancestorSetters.length > 0)
+				if (ancestorSetters.length > 0) {
 					ancestorHasSetters = true;
+				}
 			}
 		}
 		if (setters.length > 0 || ancestorHasSetters) {
@@ -1216,7 +1217,11 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileAccessorDeclaration(node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration, nodeId: string, name: string) {
+	private transpileAccessorDeclaration(
+		node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
+		nodeId: string,
+		name: string,
+	) {
 		const body = node.getBody();
 		const paramNames = new Array<string>();
 		paramNames.push("self");
