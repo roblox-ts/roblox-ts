@@ -1433,6 +1433,8 @@ export class Transpiler {
 					const name = property.getName();
 					this.checkReserved(name, property);
 					fields.push(`${name} = ${name}`);
+				} else if (ts.TypeGuards.isSpreadAssignment(property)) {
+					throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
 				}
 			});
 			const fieldsStr = fields.join(", ");
@@ -1450,6 +1452,8 @@ export class Transpiler {
 					const name = property.getName();
 					this.checkReserved(name, property);
 					result += this.indent + `${name} = ${name},\n`;
+				} else if (ts.TypeGuards.isSpreadAssignment(property)) {
+					throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
 				}
 			});
 			this.popIndent();
