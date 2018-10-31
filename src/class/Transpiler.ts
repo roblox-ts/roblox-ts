@@ -1038,8 +1038,9 @@ export class Transpiler {
 				const ancestorGetters = ancestorClass
 					.getInstanceProperties()
 					.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-				if (ancestorGetters.length > 0)
+				if (ancestorGetters.length > 0) {
 					ancestorHasGetters = true;
+				}
 			}
 		}
 		if (getters.length > 0 || ancestorHasGetters) {
