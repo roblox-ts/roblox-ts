@@ -1268,7 +1268,7 @@ export class Transpiler {
 			} else if (typeof memberValue === "number") {
 				result += this.indent + `${safeIndex} = ${memberValue};\n`;
 				result += this.indent + `${name}[${memberValue}] = "${memberName}";\n`;
-				last++;
+				last = memberValue + 1;
 			} else {
 				result += this.indent + `${safeIndex} = ${last};\n`;
 				result += this.indent + `${name}[${last}] = "${memberName}";\n`;
