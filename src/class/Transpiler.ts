@@ -1030,16 +1030,16 @@ export class Transpiler {
 		const getters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-		let ancestorHasGetters: boolean = false
-		let ancestorClass: ts.ClassDeclaration | undefined = node
+		let ancestorHasGetters = false;
+		let ancestorClass: ts.ClassDeclaration | undefined = node;
 		while (!ancestorHasGetters && ancestorClass !== undefined) {
-			ancestorClass = ancestorClass.getBaseClass()
+			ancestorClass = ancestorClass.getBaseClass();
 			if (ancestorClass !== undefined) {
 				const ancestorGetters = ancestorClass
 					.getInstanceProperties()
 					.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 				if (ancestorGetters.length > 0)
-					ancestorHasGetters = true
+					ancestorHasGetters = true;
 			}
 		}
 		if (getters.length > 0 || ancestorHasGetters) {
@@ -1049,8 +1049,9 @@ export class Transpiler {
 					const propName = getter.getName();
 					result += this.transpileAccessorDeclaration(getter, id, safeLuaIndex("_getters", propName));
 				}
-			} else
-				result += this.indent + `${id}._getters = super._getters;\n`
+			} else {
+				result += this.indent + `${id}._getters = super._getters;\n`;
+			}
 			result += this.indent + `${id}.__index = function(self, index)\n`;
 			this.pushIndent();
 			result += this.indent + `local getter = ${id}._getters[index];\n`;
@@ -1072,16 +1073,16 @@ export class Transpiler {
 		const setters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-		let ancestorHasSetters: boolean = false
-		ancestorClass = node
+		let ancestorHasSetters = false;
+		ancestorClass = node;
 		while (!ancestorHasSetters && ancestorClass !== undefined) {
-			ancestorClass = ancestorClass.getBaseClass()
+			ancestorClass = ancestorClass.getBaseClass();
 			if (ancestorClass !== undefined) {
 				const ancestorSetters = ancestorClass
 					.getInstanceProperties()
 					.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
 				if (ancestorSetters.length > 0)
-					ancestorHasSetters = true
+					ancestorHasSetters = true;
 			}
 		}
 		if (setters.length > 0 || ancestorHasSetters) {
@@ -1091,8 +1092,9 @@ export class Transpiler {
 					const propName = setter.getName();
 					result += this.transpileAccessorDeclaration(setter, id, safeLuaIndex("_setters", propName));
 				}
-			} else
-				result += this.indent + `${id}._setters = super._setters;\n`
+			} else {
+				result += this.indent + `${id}._setters = super._setters;\n`;
+			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
 			result += this.indent + `local setter = ${id}._setters[index];\n`;
