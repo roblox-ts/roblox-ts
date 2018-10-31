@@ -1046,7 +1046,7 @@ export class Transpiler {
 		if (getters.length > 0 || ancestorHasGetters) {
 			if (getters.length > 0) {
 				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters })\n`;
+					result += this.indent + `${id}._getters = setmetatable({}, { __index = super._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {};\n`;
 				}
@@ -1093,7 +1093,7 @@ export class Transpiler {
 		if (setters.length > 0 || ancestorHasSetters) {
 			if (setters.length > 0) {
 				if (ancestorHasSetters) {
-					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters })\n`;
+					result += this.indent + `${id}._setters = setmetatable({}, { __index = super._setters });\n`;
 				} else {
 					result += this.indent + `${id}._setters = {};\n`;
 				}
