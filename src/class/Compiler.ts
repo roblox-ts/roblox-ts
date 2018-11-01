@@ -50,12 +50,18 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 	await searchForLuaFiles(sourceFolder);
 
 	await fs.copy(sourceFolder, destinationFolder, {
-		filter: async filePath => {
-			const stats = await fs.stat(filePath);
-			if (stats.isDirectory() && hasLuaFilesMap.get(filePath) === true) {
+		filter: async (oldPath, newPath) => {
+			const stats = await fs.stat(oldPath);
+			if (stats.isDirectory() && hasLuaFilesMap.get(oldPath) === true) {
 				return true;
-			} else if (stats.isFile() && path.extname(filePath) === LUA_EXT) {
-				return true;
+			} else if (stats.isFile() && path.extname(oldPath) === LUA_EXT) {
+				if (await fs.pathExists(newPath)) {
+					const oldContents = await fs.readFile(oldPath);
+					const newContents = await fs.readFile(newPath);
+					return !oldContents.equals(newContents);
+				} else {
+					return true;
+				}
 			}
 			return false;
 		},
@@ -328,16 +334,24 @@ export class Compiler {
 		}
 
 		try {
-			files
-				.filter(sourceFile => !sourceFile.isDeclarationFile())
-				.map(sourceFile => {
-					const transpiler = new Transpiler(this);
-					return [
-						this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile, this.noHeader),
-					];
-				})
-				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));
+			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
+				const transpiler = new Transpiler(this);
+				return [
+					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
+					transpiler.transpileSourceFile(sourceFile, this.noHeader),
+				];
+			});
+
+			for (const [filePath, contents] of sources) {
+				if (await fs.pathExists(filePath)) {
+					const oldContents = (await fs.readFile(filePath)).toString();
+					if (oldContents === contents) {
+						continue;
+					}
+				}
+				await fs.ensureFile(filePath);
+				await fs.writeFile(filePath, contents);
+			}
 		} catch (e) {
 			if (e instanceof TranspilerError) {
 				console.log(
