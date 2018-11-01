@@ -1094,6 +1094,8 @@ export class Transpiler {
 			result += this.indent + `${id}.__index = ${id};\n`;
 		}
 
+		result += this.indent + `${id}.prototype = ${id};\n`;
+
 		const setters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
@@ -1187,7 +1189,6 @@ export class Transpiler {
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
-		result += this.indent + `${id}.prototype = ${id};\n`;
 		this.popIndent();
 		result += this.indent + `end;\n`;
 
