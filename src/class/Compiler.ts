@@ -470,9 +470,14 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			return `TS.import("${partition.target.split(".").join(`", "`)}${
-				parts.length > 0 ? `", "${parts.join(`", "`)}` : ""
-			}")`;
+			const params = partition.target
+				.split(".")
+				.concat(parts)
+				.filter(v => v.length > 0)
+				.map(v => `"${v}"`)
+				.join(", ");
+
+			return `TS.import(${params})`;
 		}
 	}
 }
