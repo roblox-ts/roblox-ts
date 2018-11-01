@@ -1094,8 +1094,6 @@ export class Transpiler {
 			result += this.indent + `${id}.__index = ${id};\n`;
 		}
 
-		result += this.indent + `${id}.prototype = ${id};\n`;
-
 		const setters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
