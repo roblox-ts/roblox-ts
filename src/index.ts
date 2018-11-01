@@ -52,19 +52,19 @@ const argv = yargs
 	.option("i", {
 		alias: "includePath",
 		default: "include",
-		describe: "folder to copy runtime .lua files to",
+		describe: "folder to copy runtime files to",
 	})
 
 	// noInclude
 	.option("noInclude", {
 		default: false,
-		describe: "do not copy runtime .lua files",
+		describe: "do not copy runtime files",
 	})
 
 	// modulesPath
 	.option("modulesPath", {
 		default: "modules",
-		describe: "folder to copy .lua files from node_modules to",
+		describe: "folder to copy modules to",
 	})
 
 	// noHeader
