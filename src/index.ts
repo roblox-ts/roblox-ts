@@ -45,7 +45,7 @@ const argv = yargs
 	.option("s", {
 		alias: "strict",
 		boolean: true,
-		describe: "ensures compiled code is type safe (slower)",
+		describe: "ensure compiled code is type safe (slower)",
 	})
 
 	// includePath
