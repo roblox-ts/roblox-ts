@@ -537,7 +537,19 @@ export class Transpiler {
 		let luaPath: string;
 		const moduleFile = node.getExternalModuleReferenceSourceFile();
 		if (moduleFile) {
-			luaPath = this.compiler.getImportPathFromFile(moduleFile);
+			if (node.isExternalModuleReferenceRelative()) {
+				let specifier: string;
+				const moduleReference = node.getModuleReference();
+				if (ts.TypeGuards.isExternalModuleReference(moduleReference)) {
+					const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
+					specifier = exp.getLiteralText();
+				} else {
+					throw new TranspilerError("Bad specifier", node);
+				}
+				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), moduleFile, specifier);
+			} else {
+				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+			}
 		} else {
 			const text = node.getModuleReference().getText();
 			throw new TranspilerError(`Could not find file for '${text}'`, node);

@@ -411,7 +411,10 @@ export class Compiler {
 
 		const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
 		const importParts = parts.filter(p => p !== ".Parent");
-		return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : ""})`;
+
+		const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
+
+		return `TS.import(${params})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
