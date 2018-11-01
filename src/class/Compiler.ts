@@ -449,7 +449,8 @@ export class Compiler {
 				.filter(part => part !== ".")
 				.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
-			return `require(TS.getModule("${moduleName}", script.Parent)${parts.join("")})`;
+			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+			return `require(${params})`;
 		} else {
 			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
 			if (!partition) {
