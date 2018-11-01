@@ -28,8 +28,11 @@ Usage: rbxtsc [options]
 Options:
   -w, --watch        enable watch mode                                 [boolean]
   -p, --project      project path                                 [default: "."]
+  -s, --strict       ensures compiled code is type safe (slower)       [boolean]
   -i, --includePath  folder to copy runtime .lua files to   [default: "include"]
   --noInclude        do not copy runtime .lua files             [default: false]
+  --modulesPath      folder to copy .lua files from node_modules to
+                                                            [default: "modules"]
   -v, --version      show version information                          [boolean]
   -h, --help         show help                                         [boolean]
 ```
