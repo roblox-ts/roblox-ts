@@ -9,6 +9,7 @@ import * as path from "path";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
+const MODULE_PREFIX = "rbx-";
 
 interface RojoJson {
 	partitions: {
@@ -261,7 +262,15 @@ export class Compiler {
 
 	public async copyModules() {
 		if (this.modulesDir) {
-			await copyLuaFiles(path.resolve(this.modulesDir.getPath()), this.modulesPath);
+			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
+			const modulesPath = this.modulesPath;
+			for (const name of await fs.readdir(nodeModulesPath)) {
+				if (name.startsWith(MODULE_PREFIX)) {
+					const oldModulePath = path.join(nodeModulesPath, name);
+					const newModulePath = path.join(modulesPath, name);
+					await copyLuaFiles(oldModulePath, newModulePath);
+				}
+			}
 		}
 	}
 
