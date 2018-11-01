@@ -9,6 +9,7 @@
 		"indent": [true, "tabs", 4],
 		"interface-name": false,
 		"max-classes-per-file": false,
+		"no-bitwise": false,
 		"no-console": false,
 		"no-empty-interface": false,
 		"no-empty": false,

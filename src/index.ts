@@ -78,7 +78,9 @@ const argv = yargs
 
 let configFilePath = path.resolve(argv.project as string);
 
-if (!fs.existsSync(configFilePath)) {
+try {
+	fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
+} catch (e) {
 	throw new Error("Project path does not exist!");
 }
 
