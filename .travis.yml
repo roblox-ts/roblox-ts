@@ -1,0 +1,26 @@
+# http://kiki.to/blog/2016/02/04/talk-continuous-integration-with-lua/
+language: python
+sudo: false
+
+branches:
+  only:
+    - master
+
+env:
+  - LUA="lua=5.1"
+  - NODE_VERSION="8"
+
+before_install:
+  - wget https://raw.githubusercontent.com/creationix/nvm/v0.33.11/nvm.sh -O ~/.nvm/nvm.sh # Node.js
+  - source ~/.nvm/nvm.sh
+  - nvm install $NODE_VERSION
+  - node --version
+  - pip install hererocks # Lua
+  - hererocks lua_install -r^ --$LUA
+  - export PATH=$PATH:$PWD/lua_install/bin
+
+install:
+  - luarocks install luafilesystem
+
+script:
+  - npm test
