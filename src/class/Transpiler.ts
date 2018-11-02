@@ -1107,10 +1107,13 @@ export class Transpiler {
 		result += this.indent + `${id} = {};\n`;
 
 		if (baseClassName) {
-			result += this.indent + `${id}.__index = setmetatable({}, ${baseClassName});\n`;
+			result += this.indent + `${id}.__index = setmetatable({`;
 		} else {
-			result += this.indent + `${id}.__index = {};\n`;
+			result += this.indent + `${id}.__index = {`;
 		}
+
+		this.pushIndent();
+		let hasIndexMembers = false;
 
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
@@ -1135,13 +1138,25 @@ export class Transpiler {
 							initializerKind === ts.SyntaxKind.TrueKeyword ||
 							initializerKind === ts.SyntaxKind.FalseKeyword
 						) {
-							result += this.indent + `${id}.__index.${propName} = ${propValue};\n`;
+							if (!hasIndexMembers) {
+								hasIndexMembers = true;
+								result += "\n";
+							}
+							result += this.indent + `${propName} = ${propValue};\n`;
 						} else {
 							extraInitializers.push(`self.${propName} = ${propValue};\n`);
 						}
 					}
 				}
 			}
+		}
+
+		this.popIndent();
+
+		if (baseClassName) {
+			result += `${((hasIndexMembers) ? this.indent : "")}}, ${baseClassName});\n`;
+		} else {
+			result += `${((hasIndexMembers) ? this.indent : "")}};\n`;
 		}
 
 		for (const prop of node.getStaticProperties()) {
