@@ -1150,7 +1150,18 @@ export class Transpiler {
 					const initializer = prop.getInitializer();
 					if (initializer) {
 						const propValue = this.transpileExpression(initializer);
-						extraInitializers.push(`self.${propName} = ${propValue};\n`);
+						const initializerKind = initializer.getKind();
+
+						if (
+							initializerKind === ts.SyntaxKind.StringLiteral ||
+							initializerKind === ts.SyntaxKind.NumericLiteral ||
+							initializerKind === ts.SyntaxKind.TrueKeyword ||
+							initializerKind === ts.SyntaxKind.FalseKeyword
+						) {
+							result += this.indent + `${id}.__index.${propName} = ${propValue};\n`;
+						} else {
+							extraInitializers.push(`self.${propName} = ${propValue};\n`);
+						}
 					}
 				}
 			}
