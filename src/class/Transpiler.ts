@@ -2042,7 +2042,8 @@ export class Transpiler {
 			.replace(/\\"/g, '"')
 			.replace(/"/g, '\\"')
 			.slice(1, -2);
-		if (headText.length > 2) {
+
+		if (headText.length > 0) {
 			bin.push(`"${headText}"`);
 		}
 
