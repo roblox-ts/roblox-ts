@@ -876,11 +876,11 @@ export class Transpiler {
 			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
-				let x = this.transpileExpression(initializer);
-				if (!x.includes("=") && !ts.TypeGuards.isCallExpression(initializer)) {
-					x = `local _ = ` + x;
+				let expStr = this.transpileExpression(initializer);
+				if (!ts.TypeGuards.isVariableDeclarationList(initializer) && !ts.TypeGuards.isCallExpression(initializer)) {
+					expStr = `local _ = ` + expStr;
 				}
-				result += this.indent + x + ";\n";
+				result += this.indent + expStr + ";\n";
 			}
 		}
 		result += this.indent + `while ${conditionStr} do\n`;
@@ -2200,7 +2200,7 @@ export class Transpiler {
 			}
 			result += this.indent + "return _exports;\n";
 		}
-		let runtimeLibImport = "local TS = require(game:GetService(\"ReplicatedStorage\").RobloxTS.Include.RuntimeLib);\n";
+		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
 		if (noHeader) {
 			runtimeLibImport = "-- " + runtimeLibImport;
 		}
