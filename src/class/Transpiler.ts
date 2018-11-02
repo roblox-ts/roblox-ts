@@ -1101,7 +1101,7 @@ export class Transpiler {
 					propValue = this.transpileExpression(initializer);
 				}
 			}
-			result += this.indent + `${id}.__index.${propName} = ${propValue};\n`;
+			result += this.indent + `${id}.${propName} = ${propValue};\n`;
 		}
 
 		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
