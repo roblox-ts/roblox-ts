@@ -9,6 +9,7 @@ import * as path from "path";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
+const MODULE_PREFIX = "rbx-";
 
 interface RojoJson {
 	partitions: {
@@ -50,12 +51,18 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 	await searchForLuaFiles(sourceFolder);
 
 	await fs.copy(sourceFolder, destinationFolder, {
-		filter: async filePath => {
-			const stats = await fs.stat(filePath);
-			if (stats.isDirectory() && hasLuaFilesMap.get(filePath) === true) {
+		filter: async (oldPath, newPath) => {
+			const stats = await fs.stat(oldPath);
+			if (stats.isDirectory() && hasLuaFilesMap.get(oldPath) === true) {
 				return true;
-			} else if (stats.isFile() && path.extname(filePath) === LUA_EXT) {
-				return true;
+			} else if (stats.isFile() && path.extname(oldPath) === LUA_EXT) {
+				if (await fs.pathExists(newPath)) {
+					const oldContents = await fs.readFile(oldPath);
+					const newContents = await fs.readFile(newPath);
+					return !oldContents.equals(newContents);
+				} else {
+					return true;
+				}
 			}
 			return false;
 		},
@@ -255,7 +262,15 @@ export class Compiler {
 
 	public async copyModules() {
 		if (this.modulesDir) {
-			await copyLuaFiles(path.resolve(this.modulesDir.getPath()), this.modulesPath);
+			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
+			const modulesPath = this.modulesPath;
+			for (const name of await fs.readdir(nodeModulesPath)) {
+				if (name.startsWith(MODULE_PREFIX)) {
+					const oldModulePath = path.join(nodeModulesPath, name);
+					const newModulePath = path.join(modulesPath, name);
+					await copyLuaFiles(oldModulePath, newModulePath);
+				}
+			}
 		}
 	}
 
@@ -328,16 +343,24 @@ export class Compiler {
 		}
 
 		try {
-			files
-				.filter(sourceFile => !sourceFile.isDeclarationFile())
-				.map(sourceFile => {
-					const transpiler = new Transpiler(this);
-					return [
-						this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile, this.noHeader),
-					];
-				})
-				.forEach(([filePath, contents]) => ts.ts.sys.writeFile(filePath, contents));
+			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
+				const transpiler = new Transpiler(this);
+				return [
+					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
+					transpiler.transpileSourceFile(sourceFile, this.noHeader),
+				];
+			});
+
+			for (const [filePath, contents] of sources) {
+				if (await fs.pathExists(filePath)) {
+					const oldContents = (await fs.readFile(filePath)).toString();
+					if (oldContents === contents) {
+						continue;
+					}
+				}
+				await fs.ensureFile(filePath);
+				await fs.writeFile(filePath, contents);
+			}
 		} catch (e) {
 			if (e instanceof TranspilerError) {
 				console.log(
@@ -388,7 +411,10 @@ export class Compiler {
 
 		const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
 		const importParts = parts.filter(p => p !== ".Parent");
-		return `TS.import(${importRoot}${importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : ""})`;
+
+		const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
+
+		return `TS.import(${params})`;
 	}
 
 	public getImportPathFromFile(file: ts.SourceFile) {
@@ -426,7 +452,8 @@ export class Compiler {
 				.filter(part => part !== ".")
 				.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
-			return `require(TS.getModule("${moduleName}", script.Parent)${parts.join("")})`;
+			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+			return `require(${params})`;
 		} else {
 			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
 			if (!partition) {
@@ -447,9 +474,14 @@ export class Compiler {
 				parts.push(last);
 			}
 
-			return `TS.import("${partition.target.split(".").join(`", "`)}${
-				parts.length > 0 ? `", "${parts.join(`", "`)}` : ""
-			}")`;
+			const params = partition.target
+				.split(".")
+				.concat(parts)
+				.filter(v => v.length > 0)
+				.map(v => `"${v}"`)
+				.join(", ");
+
+			return `TS.import(${params})`;
 		}
 	}
 }
