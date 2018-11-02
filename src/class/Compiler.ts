@@ -115,8 +115,8 @@ export class Compiler {
 			tsConfigFilePath: configFilePath,
 		});
 		this.project.addExistingSourceFiles("**/*.d.ts");
-		this.includePath = path.resolve(args.includePath);
-		this.modulesPath = path.resolve(args.modulesPath);
+		this.includePath = path.resolve(this.projectPath, args.includePath);
+		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.strictMode = args.strict;
 		this.noHeader = args.noHeader;
 		this.compilerOptions = this.project.getCompilerOptions();
