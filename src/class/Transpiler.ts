@@ -1134,11 +1134,13 @@ export class Transpiler {
 			}
 		}
 
-		result += this.indent + `${id}.new = function(...)\n`;
-		this.pushIndent();
-		result += this.indent + `return ${id}.constructor(setmetatable({}, ${id}), ...);\n`;
-		this.popIndent();
-		result += this.indent + `end;\n`;
+		if (!node.isAbstract()) {
+			result += this.indent + `${id}.new = function(...)\n`;
+			this.pushIndent();
+			result += this.indent + `return ${id}.constructor(setmetatable({}, ${id}), ...);\n`;
+			this.popIndent();
+			result += this.indent + `end;\n`;
+		}
 
 		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
 
