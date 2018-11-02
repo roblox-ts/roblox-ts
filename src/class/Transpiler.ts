@@ -1169,20 +1169,6 @@ export class Transpiler {
 			result += `${((hasIndexMembers) ? this.indent : "")}};\n`;
 		}
 
-		for (const prop of node.getStaticProperties()) {
-			const propName = prop.getName();
-			this.checkMethodReserved(propName, prop);
-
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					propValue = this.transpileExpression(initializer);
-				}
-			}
-			result += this.indent + `${id}.${propName} = ${propValue};\n`;
-		}
-
 		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 			if (getClassMethod(node, metamethod)) {
 				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
@@ -1201,6 +1187,20 @@ export class Transpiler {
 		}
 
 		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
+
+		for (const prop of node.getStaticProperties()) {
+			const propName = prop.getName();
+			this.checkMethodReserved(propName, prop);
+
+			let propValue = "nil";
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					propValue = this.transpileExpression(initializer);
+				}
+			}
+			result += this.indent + `${id}.${propName} = ${propValue};\n`;
+		}
 
 		const getters = node
 			.getInstanceProperties()
