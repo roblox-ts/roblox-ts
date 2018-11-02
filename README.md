@@ -1,6 +1,7 @@
 <div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
 <h1 align="center">roblox-ts</h1>
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
+<div align="center"><a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a></div>
 <div>&nbsp;</div>
 
 
