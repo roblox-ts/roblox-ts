@@ -1112,29 +1112,6 @@ export class Transpiler {
 			result += this.indent + `${id}.__index = {};\n`;
 		}
 
-		for (const prop of node.getStaticProperties()) {
-			const propName = prop.getName();
-			this.checkMethodReserved(propName, prop);
-
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					propValue = this.transpileExpression(initializer);
-				}
-			}
-			result += this.indent + `${id}.${propName} = ${propValue};\n`;
-		}
-
-		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
-			if (getClassMethod(node, metamethod)) {
-				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
-				}
-				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
-			}
-		});
-
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
 			.getInstanceProperties()
@@ -1166,6 +1143,29 @@ export class Transpiler {
 				}
 			}
 		}
+
+		for (const prop of node.getStaticProperties()) {
+			const propName = prop.getName();
+			this.checkMethodReserved(propName, prop);
+
+			let propValue = "nil";
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					propValue = this.transpileExpression(initializer);
+				}
+			}
+			result += this.indent + `${id}.${propName} = ${propValue};\n`;
+		}
+
+		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+			if (getClassMethod(node, metamethod)) {
+				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+				}
+				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+			}
+		});
 
 		if (!node.isAbstract()) {
 			result += this.indent + `${id}.new = function(...)\n`;
