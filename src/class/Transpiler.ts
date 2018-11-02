@@ -131,16 +131,6 @@ function getConstructor(node: ts.ClassDeclaration) {
 	}
 }
 
-function getReturnedTypedAncestor(node: ts.Node) {
-	let parent: ts.Node | undefined = node;
-	while (parent !== undefined) {
-		if (ts.TypeGuards.isReturnTypedNode(parent)) {
-			return parent;
-		}
-		parent = parent.getParent();
-	}
-}
-
 function isBindingPattern(node: ts.Node) {
 	return (
 		node.getKind() === ts.SyntaxKind.ArrayBindingPattern || node.getKind() === ts.SyntaxKind.ObjectBindingPattern
