@@ -1,6 +1,6 @@
-[submodule "modules/lemur"]
+[submodule "submodules/lemur"]
 	path = modules/lemur
 	url = https://github.com/LPGhatguy/lemur.git
-[submodule "modules/testez"]
+[submodule "submodules/testez"]
 	path = modules/testez
 	url = https://github.com/Roblox/testez.git
