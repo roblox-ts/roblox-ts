@@ -108,11 +108,7 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-const LUA_UNDEFINABLE_METAMETHODS = [
-	"__index",
-	"__newindex",
-	"__mode",
-];
+const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
@@ -868,7 +864,10 @@ export class Transpiler {
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
 				let expStr = this.transpileExpression(initializer);
-				if (!ts.TypeGuards.isVariableDeclarationList(initializer) && !ts.TypeGuards.isCallExpression(initializer)) {
+				if (
+					!ts.TypeGuards.isVariableDeclarationList(initializer) &&
+					!ts.TypeGuards.isCallExpression(initializer)
+				) {
 					expStr = `local _ = ` + expStr;
 				}
 				result += this.indent + expStr + ";\n";
@@ -1107,9 +1106,13 @@ export class Transpiler {
 		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 			if (getClassMethod(node, metamethod)) {
 				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+					throw new TranspilerError(
+						`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
+						node,
+					);
 				}
-				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+				result +=
+					this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 			}
 		});
 
@@ -1283,7 +1286,10 @@ export class Transpiler {
 				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
 				if (returnStatement) {
-					throw new TranspilerError(`Cannot use return statement in constructor for ${className}`, returnStatement);
+					throw new TranspilerError(
+						`Cannot use return statement in constructor for ${className}`,
+						returnStatement,
+					);
 				}
 			}
 		} else {
