@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"lint": "tslint -p tsconfig.json",
-		"test": "node out/index.js -p tests && lua spec.lua"
+		"test": "node out/index.js --noInclude -p tests && lua spec.lua"
 	},
 	"author": "",
 	"license": "MIT",
