@@ -1091,13 +1091,14 @@ export class Transpiler {
 
 		const id = name;
 
+		result += this.indent + `${id} = {};\n`;
+
 		if (baseClassName) {
-			result += this.indent + `${id} = setmetatable({}, ${baseClassName});\n`;
+			result += this.indent + `${id}.__index = setmetatable({}, ${baseClassName});\n`;
 		} else {
-			result += this.indent + `${id} = {};\n`;
+			result += this.indent + `${id}.__index = {};\n`;
 		}
 
-		result += this.indent + `${id}.__index = {};\n`;
 
 		for (const prop of node.getStaticProperties()) {
 			const propName = prop.getName();
