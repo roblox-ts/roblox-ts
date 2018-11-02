@@ -301,7 +301,12 @@ export class Transpiler {
 		}
 	}
 
-	private getParameterData(paramNames: Array<string>, initializers: Array<string>, node: HasParameters) {
+	private getParameterData(
+		paramNames: Array<string>,
+		initializers: Array<string>,
+		node: HasParameters,
+		defaults?: Array<string>,
+	) {
 		for (const param of node.getParameters()) {
 			const child =
 				param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
@@ -333,8 +338,12 @@ export class Transpiler {
 
 			const initial = param.getInitializer();
 			if (initial) {
-				const value = this.transpileExpression(initial, true);
-				initializers.push(`if ${name} == nil then ${name} = ${value} end;`);
+				const defaultValue = `if ${name} == nil then ${name} = ${this.transpileExpression(initial, true)} end;`;
+				if (defaults) {
+					defaults.push(defaultValue);
+				} else {
+					initializers.push(defaultValue);
+				}
 			}
 
 			if (param.hasScopeKeyword()) {
@@ -1272,9 +1281,11 @@ export class Transpiler {
 		const paramNames = new Array<string>();
 		paramNames.push("self");
 		const initializers = new Array<string>();
+		const defaults = new Array<string>();
+
 		this.pushIdStack();
 		if (node) {
-			this.getParameterData(paramNames, initializers, node);
+			this.getParameterData(paramNames, initializers, node, defaults);
 		} else {
 			paramNames.push("...");
 		}
@@ -1287,7 +1298,7 @@ export class Transpiler {
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
-				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+				defaults.forEach(initializer => (result += this.indent + initializer + "\n"));
 
 				const bodyStatements = body.getStatements();
 				let k = 0;
@@ -1295,6 +1306,8 @@ export class Transpiler {
 				if (this.containsSuperExpression(bodyStatements[k])) {
 					result += this.transpileStatement(bodyStatements[k++]);
 				}
+
+				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 
 				if (extraInitializers) {
 					extraInitializers.forEach(initializer => (result += this.indent + initializer));
