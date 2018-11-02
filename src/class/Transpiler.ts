@@ -1145,7 +1145,7 @@ export class Transpiler {
 
 		result += this.indent + `${id}.new = function(...)\n`;
 		this.pushIndent();
-		result += this.indent + `return ${id}.constructor(setmetatable({}, ${id}), ...);\n`;
+		result += this.indent + `return ${id}.constructor(setmetatable({}, ${id}.__index), ...);\n`;
 		this.popIndent();
 		result += this.indent + `end;\n`;
 
