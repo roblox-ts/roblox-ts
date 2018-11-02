@@ -87,6 +87,33 @@ const LUA_RESERVED_KEYWORDS = [
 	"while",
 ];
 
+const LUA_RESERVED_METAMETHODS = [
+	"__index",
+	"__newindex",
+	"__add",
+	"__sub",
+	"__mul",
+	"__div",
+	"__mod",
+	"__pow",
+	"__unm",
+	"__eq",
+	"__lt",
+	"__le",
+	"__call",
+	"__concat",
+	"__tostring",
+	"__len",
+	"__metatable",
+	"__mode",
+]
+
+const LUA_UNDEFINABLE_METAMETHODS = [
+	"__index",
+	"__newindex",
+	"__mode",
+]
+
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
@@ -181,6 +208,12 @@ export class Transpiler {
 	private checkReserved(name: string, node: ts.Node) {
 		if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
 			throw new TranspilerError(`Cannot use reserved Lua keyword as identifier '${name}'`, node);
+		}
+	}
+
+	private checkMethodReserved(name: string, node: ts.Node) {
+		if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
+			throw new TranspilerError(`Cannot use reserved Lua metamethod as identifier '${name}'`, node);
 		}
 	}
 
@@ -843,7 +876,11 @@ export class Transpiler {
 			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
-				result += this.indent + this.transpileExpression(initializer) + ";\n";
+				let x = this.transpileExpression(initializer);
+				if (!x.includes("=") && !ts.TypeGuards.isCallExpression(initializer)) {
+					x = `local _ = ` + x;
+				}
+				result += this.indent + x + ";\n";
 			}
 		}
 		result += this.indent + `while ${conditionStr} do\n`;
@@ -1060,6 +1097,64 @@ export class Transpiler {
 			result += this.indent + `${id} = {};\n`;
 		}
 
+		result += this.indent + `${id}.__index = {};\n`;
+
+		for (const prop of node.getStaticProperties()) {
+			const propName = prop.getName();
+			this.checkMethodReserved(propName, prop);
+
+			let propValue = "nil";
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					propValue = this.transpileExpression(initializer);
+				}
+			}
+			result += this.indent + `${id}.__index.${propName} = ${propValue};\n`;
+		}
+
+		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+			if (getClassMethod(node, metamethod)) {
+				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+				}
+				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+			}
+		})
+
+		const extraInitializers = new Array<string>();
+		const instanceProps = node
+			.getInstanceProperties()
+			.filter(prop => prop.getParent() === node)
+			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
+			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
+		for (const prop of instanceProps) {
+			const propName = prop.getName();
+			if (propName) {
+				this.checkMethodReserved(propName, prop);
+
+				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+					const initializer = prop.getInitializer();
+					if (initializer) {
+						const propValue = this.transpileExpression(initializer);
+						extraInitializers.push(`self.${propName} = ${propValue};\n`);
+					}
+				}
+			}
+		}
+
+		result += this.indent + `${id}.new = function(...)\n`;
+		this.pushIndent();
+		result += this.indent + `return ${id}.constructor(setmetatable({}, ${id}), ...);\n`;
+		this.popIndent();
+		result += this.indent + `end;\n`;
+
+		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
+
+		node.getMethods()
+			.filter(method => method.getBody() !== undefined)
+			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
+
 		const getters = node
 			.getInstanceProperties()
 			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
@@ -1076,6 +1171,7 @@ export class Transpiler {
 				}
 			}
 		}
+
 		if (getters.length > 0 || ancestorHasGetters) {
 			if (getters.length > 0) {
 				if (ancestorHasGetters) {
@@ -1091,6 +1187,7 @@ export class Transpiler {
 			} else {
 				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
 			}
+			result += this.indent + `local __index = ${id}.__index\n`;
 			result += this.indent + `${id}.__index = function(self, index)\n`;
 			this.pushIndent();
 			result += this.indent + `local getter = ${id}._getters[index];\n`;
@@ -1100,13 +1197,11 @@ export class Transpiler {
 			this.popIndent();
 			result += this.indent + `else\n`;
 			this.pushIndent();
-			result += this.indent + `return ${id}[index];\n`;
+			result += this.indent + `return __index[index];\n`;
 			this.popIndent();
 			result += this.indent + `end;\n`;
 			this.popIndent();
 			result += this.indent + `end;\n`;
-		} else {
-			result += this.indent + `${id}.__index = ${id};\n`;
 		}
 
 		const setters = node
@@ -1155,52 +1250,6 @@ export class Transpiler {
 			this.popIndent();
 			result += this.indent + `end;\n`;
 		}
-
-		const toStrMethod = getClassMethod(node, "toString");
-		if (toStrMethod && (toStrMethod.getReturnType().isString() || toStrMethod.getReturnType().isStringLiteral())) {
-			result += this.indent + `${id}.__tostring = function(self) return self:toString(); end;\n`;
-		}
-
-		for (const prop of node.getStaticProperties()) {
-			const propName = prop.getName();
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					propValue = this.transpileExpression(initializer);
-				}
-			}
-			result += this.indent + `${id}.${propName} = ${propValue};\n`;
-		}
-
-		const extraInitializers = new Array<string>();
-		const instanceProps = node
-			.getInstanceProperties()
-			.filter(prop => prop.getParent() === node)
-			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
-			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
-		for (const prop of instanceProps) {
-			const propName = prop.getName();
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					const propValue = this.transpileExpression(initializer);
-					extraInitializers.push(`self.${propName} = ${propValue};\n`);
-				}
-			}
-		}
-
-		result += this.indent + `${id}.new = function(...)\n`;
-		this.pushIndent();
-		result += this.indent + `return setmetatable({}, ${id}):constructor(...);\n`;
-		this.popIndent();
-		result += this.indent + `end;\n`;
-
-		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
-
-		node.getMethods()
-			.filter(method => method.getBody() !== undefined)
-			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
 		this.popIndent();
 		result += this.indent + `end;\n`;
@@ -1291,9 +1340,9 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
-			result += this.indent + `${className}.${name} = TS.async(function(${paramStr})\n`;
+			result += this.indent + `${className}.__index.${name} = TS.async(function(${paramStr})\n`;
 		} else {
-			result += this.indent + `${className}.${name} = function(${paramStr})\n`;
+			result += this.indent + `${className}.__index.${name} = function(${paramStr})\n`;
 		}
 		this.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
@@ -1701,7 +1750,7 @@ export class Transpiler {
 					.getType()
 					.getSymbolOrThrow()
 					.getName();
-				accessPath = className;
+				accessPath = className + ".__index";
 				params = "self" + (params.length > 0 ? ", " : "") + params;
 			} else {
 				sep = ":";
@@ -2150,7 +2199,7 @@ export class Transpiler {
 			}
 			result += this.indent + "return _exports;\n";
 		}
-		let runtimeLibImport = "local TS = require(game.ReplicatedStorage.RobloxTS.Include.RuntimeLib);\n";
+		let runtimeLibImport = "local TS = require(game:GetService(\"ReplicatedStorage\").RobloxTS.Include.RuntimeLib);\n";
 		if (noHeader) {
 			runtimeLibImport = "-- " + runtimeLibImport;
 		}
