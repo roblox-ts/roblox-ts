@@ -1151,6 +1151,16 @@ export class Transpiler {
 			}
 		}
 
+		node.getMethods()
+			.filter(method => method.getBody() !== undefined)
+			.forEach(method => {
+				if (!hasIndexMembers) {
+					hasIndexMembers = true;
+					result += "\n";
+				}
+				result += this.transpileMethodDeclaration(id, method);
+			});
+
 		this.popIndent();
 
 		if (baseClassName) {
@@ -1191,10 +1201,6 @@ export class Transpiler {
 		}
 
 		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
-
-		node.getMethods()
-			.filter(method => method.getBody() !== undefined)
-			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
 
 		const getters = node
 			.getInstanceProperties()
@@ -1403,9 +1409,9 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
-			result += this.indent + `${className}.__index.${name} = TS.async(function(${paramStr})\n`;
+			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
 		} else {
-			result += this.indent + `${className}.__index.${name} = function(${paramStr})\n`;
+			result += this.indent + `${name} = function(${paramStr})\n`;
 		}
 		this.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
