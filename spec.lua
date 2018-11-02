@@ -25,7 +25,6 @@ end
 -- Roblox TS Stuff
 local robloxTsFolder = newFolder("RobloxTS", ReplicatedStorage)
 local includeFolder = newFolder("Include", robloxTsFolder, "include")
-local moduleFolder = newFolder("Modules", robloxTsFolder, "modules")
 
 -- TestEZ
 local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "submodules/testez/lib")
