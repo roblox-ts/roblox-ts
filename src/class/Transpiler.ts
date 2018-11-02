@@ -399,6 +399,7 @@ export class Transpiler {
 				break;
 			}
 		}
+
 		const hoists = this.hoistStack.pop();
 		if (hoists && hoists.length > 0) {
 			const hoistsStr = hoists.join(", ");
@@ -1278,6 +1279,8 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + `${className}.constructor = function(${paramStr})\n`;
 		this.pushIndent();
+
+
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
@@ -1286,6 +1289,12 @@ export class Transpiler {
 				}
 				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 				result += this.transpileBlock(body);
+
+				for (const child of node.getStatements()) {
+					if (ts.TypeGuards.isReturnStatement(child)) {
+						throw new TranspilerError(`Cannot use return statement in constructor for ${className}`, child)
+					}
+				}
 			}
 		} else {
 			if (baseClassName) {
