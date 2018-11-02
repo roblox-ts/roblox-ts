@@ -11,7 +11,8 @@
 		"rbxtsc": "out/index.js"
 	},
 	"scripts": {
-		"lint": "tslint -p tsconfig.json"
+		"lint": "tslint -p tsconfig.json",
+		"test": "node out/index.js -p tests || lua spec.lua"
 	},
 	"author": "",
 	"license": "MIT",
