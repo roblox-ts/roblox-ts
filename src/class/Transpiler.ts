@@ -2021,6 +2021,10 @@ export class Transpiler {
 							return `"${value}"`;
 						}
 					}
+				} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
+					if (propertyStr === "prototype") {
+						throw new TranspilerError("Class prototypes are not supported!", node);
+					}
 				}
 			}
 		}
