@@ -378,6 +378,19 @@ export class Transpiler {
 		return false;
 	}
 
+	private containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
+		if (child && ts.TypeGuards.isExpressionStatement(child)) {
+			const exp = child.getExpression();
+			if (ts.TypeGuards.isCallExpression(exp)) {
+				const superExp = exp.getExpression();
+				if (ts.TypeGuards.isSuperExpression(superExp)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
 		this.exportStack.push(new Array<string>());
@@ -1274,11 +1287,22 @@ export class Transpiler {
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
+				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+
+				const bodyStatements = body.getStatements();
+				let k = 0;
+
+				if (this.containsSuperExpression(bodyStatements[k])) {
+					result += this.transpileStatement(bodyStatements[k++]);
+				}
+
 				if (extraInitializers) {
 					extraInitializers.forEach(initializer => (result += this.indent + initializer));
 				}
-				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
-				result += this.transpileBlock(body);
+
+				for (; k < bodyStatements.length; ++k) {
+					result += this.transpileStatement(bodyStatements[k]);
+				}
 
 				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
