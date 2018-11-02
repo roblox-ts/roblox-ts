@@ -20,7 +20,7 @@ before_install:
 
 install:
   - luarocks install luafilesystem
-  - npm install typescript -g
+  - npm install typescript tslint prettier -g
   - npm install
   - tsc
 
