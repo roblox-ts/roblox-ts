@@ -106,13 +106,13 @@ const LUA_RESERVED_METAMETHODS = [
 	"__len",
 	"__metatable",
 	"__mode",
-]
+];
 
 const LUA_UNDEFINABLE_METAMETHODS = [
 	"__index",
 	"__newindex",
 	"__mode",
-]
+];
 
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
@@ -1100,7 +1100,6 @@ export class Transpiler {
 			result += this.indent + `${id}.__index = {};\n`;
 		}
 
-
 		for (const prop of node.getStaticProperties()) {
 			const propName = prop.getName();
 			this.checkMethodReserved(propName, prop);
@@ -1122,7 +1121,7 @@ export class Transpiler {
 				}
 				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 			}
-		})
+		});
 
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
@@ -1280,7 +1279,6 @@ export class Transpiler {
 		result += this.indent + `${className}.constructor = function(${paramStr})\n`;
 		this.pushIndent();
 
-
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
@@ -1290,10 +1288,10 @@ export class Transpiler {
 				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 				result += this.transpileBlock(body);
 
-				for (const child of node.getStatements()) {
-					if (ts.TypeGuards.isReturnStatement(child)) {
-						throw new TranspilerError(`Cannot use return statement in constructor for ${className}`, child)
-					}
+				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
+
+				if (returnStatement) {
+					throw new TranspilerError(`Cannot use return statement in constructor for ${className}`, returnStatement);
 				}
 			}
 		} else {
