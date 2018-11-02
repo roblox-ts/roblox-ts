@@ -108,11 +108,7 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-const LUA_UNDEFINABLE_METAMETHODS = [
-	"__index",
-	"__newindex",
-	"__mode",
-];
+const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
@@ -890,7 +886,10 @@ export class Transpiler {
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
 				let expStr = this.transpileExpression(initializer);
-				if (!ts.TypeGuards.isVariableDeclarationList(initializer) && !ts.TypeGuards.isCallExpression(initializer)) {
+				if (
+					!ts.TypeGuards.isVariableDeclarationList(initializer) &&
+					!ts.TypeGuards.isCallExpression(initializer)
+				) {
 					expStr = `local _ = ` + expStr;
 				}
 				result += this.indent + expStr + ";\n";
@@ -1352,7 +1351,10 @@ export class Transpiler {
 				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
 				if (returnStatement) {
-					throw new TranspilerError(`Cannot use return statement in constructor for ${className}`, returnStatement);
+					throw new TranspilerError(
+						`Cannot use return statement in constructor for ${className}`,
+						returnStatement,
+					);
 				}
 			}
 		} else {
