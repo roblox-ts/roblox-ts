@@ -114,7 +114,7 @@ export class Compiler {
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
-		this.project.addExistingSourceFiles("**/*.d.ts");
+		this.project.addExistingSourceFiles(path.join(this.projectPath, "**/*.d.ts"));
 		this.includePath = path.resolve(this.projectPath, args.includePath);
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.strictMode = args.strict;
@@ -135,14 +135,14 @@ export class Compiler {
 		}
 		this.outDir = outDir;
 
-		this.modulesDir = this.project.getDirectory("node_modules");
+		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
 		const syncFilePath = this.getSyncFilePath();
 		if (syncFilePath) {
 			const rojoJson = JSON.parse(fs.readFileSync(syncFilePath).toString()) as RojoJson;
 			for (const key in rojoJson.partitions) {
 				const part = rojoJson.partitions[key];
-				const partPath = path.resolve(part.path).replace(/\\/g, "/");
+				const partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
 				if (partPath.startsWith(this.outDir)) {
 					const directory = this.project.getDirectory(
 						path.resolve(this.rootDir, path.relative(this.outDir, partPath)),
@@ -411,7 +411,6 @@ export class Compiler {
 
 		const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
 		const importParts = parts.filter(p => p !== ".Parent");
-
 		const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
 
 		return `TS.import(${params})`;
