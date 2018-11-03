@@ -1128,23 +1128,7 @@ export class Transpiler {
 				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 					const initializer = prop.getInitializer();
 					if (initializer) {
-						const propValue = this.transpileExpression(initializer);
-						const initializerKind = initializer.getKind();
-
-						if (
-							initializerKind === ts.SyntaxKind.StringLiteral ||
-							initializerKind === ts.SyntaxKind.NumericLiteral ||
-							initializerKind === ts.SyntaxKind.TrueKeyword ||
-							initializerKind === ts.SyntaxKind.FalseKeyword
-						) {
-							if (!hasIndexMembers) {
-								hasIndexMembers = true;
-								result += "\n";
-							}
-							result += this.indent + `${propName} = ${propValue};\n`;
-						} else {
-							extraInitializers.push(`self.${propName} = ${propValue};\n`);
-						}
+						extraInitializers.push(`self.${propName} = ${this.transpileExpression(initializer)};\n`);
 					}
 				}
 			}
