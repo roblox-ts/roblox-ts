@@ -137,12 +137,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-		symbol.getDeclarations().some(declaration =>
-			declaration
-				.getType()
-				.getBaseTypes()
-				.some(baseType => inheritsFrom(baseType, className)),
-		)
+				symbol.getDeclarations().some(declaration =>
+					declaration
+						.getType()
+						.getBaseTypes()
+						.some(baseType => inheritsFrom(baseType, className)),
+				)
 		: false;
 }
 
@@ -183,7 +183,7 @@ export class Transpiler {
 	private isModule = false;
 	private indent = "";
 
-	constructor(private compiler: Compiler) { }
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
