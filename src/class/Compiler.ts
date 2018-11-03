@@ -415,11 +415,8 @@ export class Compiler {
 
 	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
 		const sourceContext = this.getScriptContext(sourceFile);
-		const moduleContext = this.getScriptContext(moduleFile);
-
 		const sourceRbxPath = this.getRbxPath(sourceFile);
 		const moduleRbxPath = this.getRbxPath(moduleFile);
-
 		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
 			if (sourceContext === ScriptContext.Client) {
 				if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
