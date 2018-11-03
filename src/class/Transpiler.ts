@@ -297,7 +297,12 @@ export class Transpiler {
 		}
 	}
 
-	private getParameterData(paramNames: Array<string>, initializers: Array<string>, node: HasParameters) {
+	private getParameterData(
+		paramNames: Array<string>,
+		initializers: Array<string>,
+		node: HasParameters,
+		defaults?: Array<string>,
+	) {
 		for (const param of node.getParameters()) {
 			const child =
 				param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
@@ -329,8 +334,12 @@ export class Transpiler {
 
 			const initial = param.getInitializer();
 			if (initial) {
-				const value = this.transpileExpression(initial, true);
-				initializers.push(`if ${name} == nil then ${name} = ${value} end;`);
+				const defaultValue = `if ${name} == nil then ${name} = ${this.transpileExpression(initial, true)} end;`;
+				if (defaults) {
+					defaults.push(defaultValue);
+				} else {
+					initializers.push(defaultValue);
+				}
 			}
 
 			if (param.hasScopeKeyword()) {
@@ -367,6 +376,19 @@ export class Transpiler {
 				)
 			) {
 				if (this.hasContinue(child)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
+		if (child && ts.TypeGuards.isExpressionStatement(child)) {
+			const exp = child.getExpression();
+			if (ts.TypeGuards.isCallExpression(exp)) {
+				const superExp = exp.getExpression();
+				if (ts.TypeGuards.isSuperExpression(superExp)) {
 					return true;
 				}
 			}
@@ -1084,37 +1106,13 @@ export class Transpiler {
 		result += this.indent + `${id} = {};\n`;
 
 		if (baseClassName) {
-			result += this.indent + `${id}.__index = setmetatable({}, ${baseClassName});\n`;
+			result += this.indent + `${id}.__index = setmetatable({`;
 		} else {
-			result += this.indent + `${id}.__index = {};\n`;
+			result += this.indent + `${id}.__index = {`;
 		}
 
-		for (const prop of node.getStaticProperties()) {
-			const propName = prop.getName();
-			this.checkMethodReserved(propName, prop);
-
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					propValue = this.transpileExpression(initializer);
-				}
-			}
-			result += this.indent + `${id}.${propName} = ${propValue};\n`;
-		}
-
-		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
-			if (getClassMethod(node, metamethod)) {
-				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-					throw new TranspilerError(
-						`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
-						node,
-					);
-				}
-				result +=
-					this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
-			}
-		});
+		this.pushIndent();
+		let hasIndexMembers = false;
 
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
@@ -1131,11 +1129,53 @@ export class Transpiler {
 					const initializer = prop.getInitializer();
 					if (initializer) {
 						const propValue = this.transpileExpression(initializer);
-						extraInitializers.push(`self.${propName} = ${propValue};\n`);
+						const initializerKind = initializer.getKind();
+
+						if (
+							initializerKind === ts.SyntaxKind.StringLiteral ||
+							initializerKind === ts.SyntaxKind.NumericLiteral ||
+							initializerKind === ts.SyntaxKind.TrueKeyword ||
+							initializerKind === ts.SyntaxKind.FalseKeyword
+						) {
+							if (!hasIndexMembers) {
+								hasIndexMembers = true;
+								result += "\n";
+							}
+							result += this.indent + `${propName} = ${propValue};\n`;
+						} else {
+							extraInitializers.push(`self.${propName} = ${propValue};\n`);
+						}
 					}
 				}
 			}
 		}
+
+		node.getMethods()
+			.filter(method => method.getBody() !== undefined)
+			.forEach(method => {
+				if (!hasIndexMembers) {
+					hasIndexMembers = true;
+					result += "\n";
+				}
+				result += this.transpileMethodDeclaration(id, method);
+			});
+
+		this.popIndent();
+
+		if (baseClassName) {
+			result += `${((hasIndexMembers) ? this.indent : "")}}, ${baseClassName});\n`;
+		} else {
+			result += `${((hasIndexMembers) ? this.indent : "")}};\n`;
+		}
+
+		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+			if (getClassMethod(node, metamethod)) {
+				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+				}
+				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+			}
+		});
 
 		if (!node.isAbstract()) {
 			result += this.indent + `${id}.new = function(...)\n`;
@@ -1147,9 +1187,19 @@ export class Transpiler {
 
 		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
 
-		node.getMethods()
-			.filter(method => method.getBody() !== undefined)
-			.forEach(method => (result += this.transpileMethodDeclaration(id, method)));
+		for (const prop of node.getStaticProperties()) {
+			const propName = prop.getName();
+			this.checkMethodReserved(propName, prop);
+
+			let propValue = "nil";
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					propValue = this.transpileExpression(initializer);
+				}
+			}
+			result += this.indent + `${id}.${propName} = ${propValue};\n`;
+		}
 
 		const getters = node
 			.getInstanceProperties()
@@ -1262,9 +1312,11 @@ export class Transpiler {
 		const paramNames = new Array<string>();
 		paramNames.push("self");
 		const initializers = new Array<string>();
+		const defaults = new Array<string>();
+
 		this.pushIdStack();
 		if (node) {
-			this.getParameterData(paramNames, initializers, node);
+			this.getParameterData(paramNames, initializers, node, defaults);
 		} else {
 			paramNames.push("...");
 		}
@@ -1277,11 +1329,24 @@ export class Transpiler {
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
+				defaults.forEach(initializer => (result += this.indent + initializer + "\n"));
+
+				const bodyStatements = body.getStatements();
+				let k = 0;
+
+				if (this.containsSuperExpression(bodyStatements[k])) {
+					result += this.transpileStatement(bodyStatements[k++]);
+				}
+
+				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+
 				if (extraInitializers) {
 					extraInitializers.forEach(initializer => (result += this.indent + initializer));
 				}
-				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
-				result += this.transpileBlock(body);
+
+				for (; k < bodyStatements.length; ++k) {
+					result += this.transpileStatement(bodyStatements[k]);
+				}
 
 				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
@@ -1346,9 +1411,9 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
-			result += this.indent + `${className}.__index.${name} = TS.async(function(${paramStr})\n`;
+			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
 		} else {
-			result += this.indent + `${className}.__index.${name} = function(${paramStr})\n`;
+			result += this.indent + `${name} = function(${paramStr})\n`;
 		}
 		this.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
