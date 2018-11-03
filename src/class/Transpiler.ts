@@ -1217,21 +1217,7 @@ export class Transpiler {
 			} else {
 				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
 			}
-			result += this.indent + `local __index = ${id}.__index\n`;
-			result += this.indent + `${id}.__index = function(self, index)\n`;
-			this.pushIndent();
-			result += this.indent + `local getter = ${id}._getters[index];\n`;
-			result += this.indent + `if getter then\n`;
-			this.pushIndent();
-			result += this.indent + `return getter(self);\n`;
-			this.popIndent();
-			result += this.indent + `else\n`;
-			this.pushIndent();
-			result += this.indent + `return __index[index];\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
+			result += this.indent + `${id}.__index = TS.accessors.gettersIndex(${id}.__index, ${id}._getters);\n`
 		}
 
 		const setters = node
@@ -1265,20 +1251,7 @@ export class Transpiler {
 			} else {
 				result += this.indent + `${id}._setters = ${baseClassName}._setters;\n`;
 			}
-			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
-			this.pushIndent();
-			result += this.indent + `local setter = ${id}._setters[index];\n`;
-			result += this.indent + `if setter then\n`;
-			this.pushIndent();
-			result += this.indent + `setter(self, value);\n`;
-			this.popIndent();
-			result += this.indent + `else\n`;
-			this.pushIndent();
-			result += this.indent + `rawset(self, index, value);\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
-			this.popIndent();
-			result += this.indent + `end;\n`;
+			result += this.indent + `${id}.__newindex = TS.accessors.settersNewIndex(${id}._setters);\n`
 		}
 
 		this.popIndent();

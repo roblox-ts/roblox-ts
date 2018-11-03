@@ -137,6 +137,31 @@ function TS.add(a, b)
 	end
 end
 
+-- accessor index functions
+TS.accessors = {}
+
+function TS.accessors.gettersIndex(classIndex, getters)
+	return function(self, index)
+		local getter = getters[index]
+		if getter then
+			return getter(self)
+		else
+			return classIndex[index]
+		end
+	end
+end
+
+function TS.accessors.settersNewIndex(setters)
+	return function(self, index, value)
+		local setter = setters[index]
+		if setter then
+			setter(self, value)
+		else
+			rawset(self, index, value)
+		end
+	end
+end
+
 -- array macro functions
 TS.array = {}
 
