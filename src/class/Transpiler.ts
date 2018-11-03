@@ -1217,7 +1217,7 @@ export class Transpiler {
 			} else {
 				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
 			}
-			result += this.indent + `${id}.__index = TS.accessors.gettersIndex(${id}.__index, ${id}._getters);\n`
+			result += this.indent + `${id}.__index = TS.accessors.gettersIndex(${id}.__index, ${id}._getters);\n`;
 		}
 
 		const setters = node
@@ -1251,7 +1251,7 @@ export class Transpiler {
 			} else {
 				result += this.indent + `${id}._setters = ${baseClassName}._setters;\n`;
 			}
-			result += this.indent + `${id}.__newindex = TS.accessors.settersNewIndex(${id}._setters);\n`
+			result += this.indent + `${id}.__newindex = TS.accessors.settersNewIndex(${id}._setters);\n`;
 		}
 
 		this.popIndent();
