@@ -1,6 +1,6 @@
 import * as ts from "ts-simple-ast";
 import { safeLuaIndex } from "../utility";
-import { Compiler } from "./Compiler";
+import { Compiler, ScriptContext } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
 type HasParameters =
@@ -182,6 +182,7 @@ export class Transpiler {
 	private continueId = -1;
 	private isModule = false;
 	private indent = "";
+	private scriptContext = ScriptContext.None;
 
 	constructor(private compiler: Compiler) {}
 
@@ -528,7 +529,7 @@ export class Transpiler {
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 			} else {
 				const specifierText = node.getModuleSpecifier().getLiteralText();
 				throw new TranspilerError(
@@ -590,7 +591,7 @@ export class Transpiler {
 				}
 				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), moduleFile, specifier);
 			} else {
-				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 			}
 		} else {
 			const text = node.getModuleReference().getText();
@@ -614,7 +615,7 @@ export class Transpiler {
 			} else {
 				const moduleFile = node.getModuleSpecifierSourceFile();
 				if (moduleFile) {
-					luaPath = this.compiler.getImportPathFromFile(moduleFile);
+					luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 				} else {
 					const specifierText = moduleSpecifier.getLiteralText();
 					throw new TranspilerError(
@@ -2261,6 +2262,22 @@ export class Transpiler {
 	}
 
 	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
+		this.scriptContext = this.compiler.getScriptContext(node);
+
+		function getScriptContextName(context: ScriptContext) {
+			switch (context) {
+				case ScriptContext.Both:
+					return "Both";
+				case ScriptContext.Server:
+					return "Server";
+				case ScriptContext.Client:
+					return "Client";
+				case ScriptContext.None:
+					return "None";
+			}
+		}
+		console.log(getScriptContextName(this.scriptContext), node.getFilePath());
+
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.isModule) {

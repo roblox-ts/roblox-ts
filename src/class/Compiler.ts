@@ -6,6 +6,7 @@ import { Transpiler } from "./Transpiler";
 
 import * as fs from "fs-extra";
 import * as path from "path";
+import * as util from "util";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -94,6 +95,14 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 }
 
 const moduleCache = new Map<string, string>();
+
+const scriptContextCache = new Map<string, ScriptContext>();
+export enum ScriptContext {
+	None,
+	Client,
+	Server,
+	Both,
+}
 
 export class Compiler {
 	private readonly project: Project;
@@ -379,21 +388,64 @@ export class Compiler {
 		}
 	}
 
-	public getRelativeImportPath(
-		sourceFile: ts.SourceFile,
-		destinationFile: ts.SourceFile | undefined,
-		specifier: string,
-	) {
-		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-		const destinationPartition =
-			destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile));
+	public getRobloxPathString(rbxPath: Array<string>) {
+		rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
+		return "game" + rbxPath.join("");
+	}
 
-		if (
-			destinationFile &&
-			currentPartition &&
-			currentPartition.target !== (destinationPartition && destinationPartition.target)
-		) {
-			return this.getImportPathFromFile(destinationFile);
+	public getRbxPath(sourceFile: ts.SourceFile) {
+		const partition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+		if (partition) {
+			const rbxPath = partition.dir
+				.getRelativePathTo(sourceFile)
+				.split("/")
+				.filter(part => part !== ".");
+
+			let last = rbxPath.pop()!;
+			let ext = path.extname(last);
+			while (ext !== "") {
+				last = path.basename(last, ext);
+				ext = path.extname(last);
+			}
+			rbxPath.push(last);
+
+			return rbxPath;
+		}
+	}
+
+	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+		const sourceContext = this.getScriptContext(sourceFile);
+		const moduleContext = this.getScriptContext(moduleFile);
+
+		const sourceRbxPath = this.getRbxPath(sourceFile);
+		const moduleRbxPath = this.getRbxPath(moduleFile);
+
+		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
+			if (sourceContext === ScriptContext.Client) {
+				if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
+					throw new TranspilerError(
+						util.format(
+							"%s is not allowed to import %s",
+							this.getRobloxPathString(sourceRbxPath),
+							this.getRobloxPathString(moduleRbxPath),
+						),
+						sourceFile,
+					);
+				}
+			}
+		}
+	}
+
+	public getRelativeImportPath(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile | undefined, specifier: string) {
+		if (moduleFile) {
+			this.validateImport(sourceFile, moduleFile);
+		}
+
+		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+		const modulePartition = moduleFile && this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
+
+		if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
+			return this.getImportPathFromFile(sourceFile, moduleFile);
 		}
 
 		const parts = path.posix
@@ -416,10 +468,11 @@ export class Compiler {
 		return `TS.import(${params})`;
 	}
 
-	public getImportPathFromFile(file: ts.SourceFile) {
-		if (this.modulesDir && this.modulesDir.isAncestorOf(file)) {
+	public getImportPathFromFile(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+		this.validateImport(sourceFile, moduleFile);
+		if (this.modulesDir && this.modulesDir.isAncestorOf(moduleFile)) {
 			let parts = this.modulesDir
-				.getRelativePathTo(file)
+				.getRelativePathTo(moduleFile)
 				.split("/")
 				.filter(part => part !== ".");
 
@@ -454,13 +507,13 @@ export class Compiler {
 			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
 			return `require(${params})`;
 		} else {
-			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
+			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 			if (!partition) {
 				throw new CompilerError("Could not compile non-relative import, no data from rojo.json");
 			}
 
 			const parts = partition.dir
-				.getRelativePathAsModuleSpecifierTo(file)
+				.getRelativePathAsModuleSpecifierTo(moduleFile)
 				.split("/")
 				.filter(part => part !== ".");
 
@@ -481,6 +534,50 @@ export class Compiler {
 				.join(", ");
 
 			return `TS.import(${params})`;
+		}
+	}
+
+	public getScriptContext(file: ts.SourceFile): ScriptContext {
+		const filePath = file.getFilePath();
+		if (scriptContextCache.has(filePath)) {
+			return scriptContextCache.get(filePath)!;
+		}
+
+		const ext = path.extname(filePath);
+		if (ext !== ".ts" && ext !== ".tsx") {
+			throw new CompilerError(`Unexpected extension type: ${ext}`);
+		}
+
+		const subext = path.extname(path.basename(filePath, ext));
+		if (subext === ".server") {
+			return ScriptContext.Server;
+		} else if (subext === ".client") {
+			return ScriptContext.Client;
+		} else {
+			let isServer = false;
+			let isClient = false;
+
+			for (const referencingFile of file.getReferencingSourceFiles()) {
+				const referenceContext = this.getScriptContext(referencingFile);
+				if (referenceContext === ScriptContext.Server) {
+					isServer = true;
+				} else if (referenceContext === ScriptContext.Client) {
+					isClient = true;
+				} else if (referenceContext === ScriptContext.Both) {
+					isServer = true;
+					isClient = true;
+				}
+			}
+
+			if (isServer && isClient) {
+				return ScriptContext.Both;
+			} else if (isServer) {
+				return ScriptContext.Server;
+			} else if (isClient) {
+				return ScriptContext.Client;
+			} else {
+				return ScriptContext.None;
+			}
 		}
 	}
 }
