@@ -1210,9 +1210,10 @@ export class Transpiler {
 					getterContent += this.transpileAccessorDeclaration(getter, getter.getName());
 				}
 				this.popIndent();
-				getterContent += this.indent
+				getterContent += this.indent;
 				if (ancestorHasGetters) {
-					result += this.indent + `${id}._getters = setmetatable({${getterContent}}, { __index = ${baseClassName}._getters });\n`;
+					result +=
+						this.indent + `${id}._getters = setmetatable({${getterContent}}, { __index = ${baseClassName}._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {${getterContent}};\n`;
 				}
@@ -1260,7 +1261,7 @@ export class Transpiler {
 					setterContent += this.transpileAccessorDeclaration(setter, setter.getName());
 				}
 				this.popIndent();
-				setterContent += this.indent
+				setterContent += this.indent;
 				if (ancestorHasSetters) {
 					result +=
 						this.indent + `${id}._setters = setmetatable({${setterContent}}, { __index = ${baseClassName}._setters });\n`;
