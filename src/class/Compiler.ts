@@ -102,6 +102,7 @@ export class Compiler {
 	private readonly modulesPath: string;
 	private readonly strictMode: boolean;
 	private readonly noHeader: boolean;
+	private readonly noHueristics: boolean;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
 	private readonly outDir: string;
@@ -119,6 +120,7 @@ export class Compiler {
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.strictMode = args.strict;
 		this.noHeader = args.noHeader;
+		this.noHueristics = args.noHueristics;
 		this.compilerOptions = this.project.getCompilerOptions();
 
 		this.baseUrl = this.compilerOptions.baseUrl;
@@ -405,6 +407,10 @@ export class Compiler {
 	}
 
 	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+		if (this.noHueristics) {
+			return;
+		}
+
 		const sourceContext = getScriptContext(sourceFile);
 		const sourceRbxPath = this.getRbxPath(sourceFile);
 		const moduleRbxPath = this.getRbxPath(moduleFile);
