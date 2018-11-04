@@ -143,8 +143,9 @@ export class Compiler {
 			for (const key in rojoJson.partitions) {
 				const part = rojoJson.partitions[key];
 				let partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
-				if (path.extname(partPath))
-					partPath = partPath.substring(0, partPath.lastIndexOf("/"))
+				if (path.extname(partPath)) {
+					partPath = partPath.substring(0, partPath.lastIndexOf("/"));
+				}
 				if (partPath.startsWith(this.outDir)) {
 					const directory = this.project.getDirectory(
 						path.resolve(this.rootDir, path.relative(this.outDir, partPath)),
