@@ -2268,6 +2268,8 @@ export class Transpiler {
 				result = this.indent + `local _exports = {};\n` + result;
 			}
 			result += this.indent + "return _exports;\n";
+		} else {
+			result += this.indent + "return nil;\n";
 		}
 		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
 		if (noHeader) {
