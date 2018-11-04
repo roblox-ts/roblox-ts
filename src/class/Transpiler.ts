@@ -518,10 +518,10 @@ export class Transpiler {
 	}
 
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
-		let sourceFile: ts.SourceFile | undefined
+		let sourceFile: ts.SourceFile | undefined;
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
-			sourceFile = node.getModuleSpecifierSourceFile()
+			sourceFile = node.getModuleSpecifierSourceFile();
 			luaPath = this.compiler.getRelativeImportPath(
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
@@ -544,7 +544,7 @@ export class Transpiler {
 		const rhs = new Array<string>();
 
 		const defaultImport = node.getDefaultImport();
-		const defaultImportExp = defaultImport && this.transpileExpression(defaultImport)
+		const defaultImportExp = defaultImport && this.transpileExpression(defaultImport);
 		if (defaultImportExp && !(sourceFile && sourceFile.getInterface(defaultImportExp))) {
 			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
@@ -591,7 +591,7 @@ export class Transpiler {
 				const moduleReference = node.getModuleReference();
 				if (ts.TypeGuards.isExternalModuleReference(moduleReference)) {
 					if (this.transpileExpression(moduleFile.getExportAssignments()[0].getExpression()) === "nil") {
-						return ""
+						return "";
 					}
 					const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
 					specifier = exp.getLiteralText();
