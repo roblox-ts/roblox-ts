@@ -589,6 +589,9 @@ export class Transpiler {
 				let specifier: string;
 				const moduleReference = node.getModuleReference();
 				if (ts.TypeGuards.isExternalModuleReference(moduleReference)) {
+					if (this.transpileExpression(moduleFile.getExportAssignments()[0].getExpression()) === "nil") {
+						return ""
+					}
 					const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
 					specifier = exp.getLiteralText();
 				} else {
