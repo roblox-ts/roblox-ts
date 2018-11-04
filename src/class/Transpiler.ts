@@ -178,6 +178,7 @@ function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.M
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
+	private namespaceStack = new Array<string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
@@ -224,17 +225,9 @@ export class Transpiler {
 			return;
 		}
 
-		const ancestor =
-			node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration) ||
-			node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
-
-		if (!ancestor) {
-			throw new TranspilerError("Could not find export ancestor!", node);
-		}
-
 		let ancestorName: string;
-		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
-			ancestorName = ancestor.getName();
+		if (this.namespaceStack.length > 0) {
+			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
 		} else {
 			this.isModule = true;
 			ancestorName = "_exports";
@@ -1422,16 +1415,21 @@ export class Transpiler {
 		if (node.hasDeclareKeyword()) {
 			return "";
 		}
-
+		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
 		this.pushExport(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
+		const id = this.getNewId();
+		result += this.indent + `local ${id} = ${name};\n`;
+		this.namespaceStack.push(id);
 		result += this.transpileStatementedNode(node);
+		this.namespaceStack.pop();
 		this.popIndent();
 		result += this.indent + `end;\n`;
+		this.popIdStack();
 		return result;
 	}
 
