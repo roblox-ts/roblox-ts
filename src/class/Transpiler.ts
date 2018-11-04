@@ -662,26 +662,23 @@ export class Transpiler {
 		} else {
 			node.getNamedExports().forEach(namedExport => {
 				const aliasNode = namedExport.getAliasNode();
+				const aliasSource = aliasNode && aliasNode.getSourceFile() || ancestor;
 				let name = namedExport.getNameNode().getText();
 				if (name === "default") {
 					name = "_" + name;
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
-				lhs.push(alias);
-				rhs.push(`.${name}`);
+				const exportSource = namedExport.getSourceFile()
+				if (!exportSource.getInterface(name) && !aliasSource.getInterface(alias)) {
+					lhs.push(alias);
+					rhs.push(`${name}`);
+				}
 			});
 
 			let result = "";
-			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
-			if (rhs.length <= 1) {
-				rhsPrefix = `require(${luaPath})`;
-			} else {
-				rhsPrefix = this.getNewId();
-				result += `${rhsPrefix} = require(${luaPath});\n`;
-			}
 			const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
-			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+			const rhsStr = rhs.map(v => v).join(", ");
 			result += `${lhsStr} = ${rhsStr};\n`;
 			return result;
 		}
