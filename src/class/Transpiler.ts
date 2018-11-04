@@ -518,8 +518,10 @@ export class Transpiler {
 	}
 
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
+		let sourceFile: ts.SourceFile | undefined
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
+			sourceFile = node.getModuleSpecifierSourceFile()
 			luaPath = this.compiler.getRelativeImportPath(
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
@@ -557,13 +559,17 @@ export class Transpiler {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
-			lhs.push(alias);
-			rhs.push(`.${name}`);
+			if (!(sourceFile && sourceFile.getInterface(name))) {
+				lhs.push(alias);
+				rhs.push(`.${name}`);
+			}
 		});
 
 		let result = "";
 		let rhsPrefix: string;
-		if (rhs.length === 1) {
+		if (lhs.length === 0) {
+			return result;
+		} else if (rhs.length === 1) {
 			rhsPrefix = luaPath;
 		} else {
 			rhsPrefix = this.getNewId();
