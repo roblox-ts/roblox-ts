@@ -6,6 +6,7 @@ import { Transpiler } from "./Transpiler";
 
 import * as fs from "fs-extra";
 import * as path from "path";
+import { type } from "os";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -21,7 +22,7 @@ interface RojoJson {
 }
 
 interface Partition {
-	dir: ts.Directory;
+	file: ts.Directory | ts.SourceFile | string;
 	target: string;
 }
 
@@ -121,19 +122,19 @@ export class Compiler {
 		this.noHeader = args.noHeader;
 		this.compilerOptions = this.project.getCompilerOptions();
 
-		this.baseUrl = this.compilerOptions.baseUrl;
+		this.baseUrl = this.compilerOptions.baseUrl && path.normalize(this.compilerOptions.baseUrl);
 
 		const rootDir = this.compilerOptions.rootDir;
 		if (!rootDir) {
 			throw new CompilerError("Expected 'rootDir' option in tsconfig.json!");
 		}
-		this.rootDir = rootDir;
+		this.rootDir = path.normalize(rootDir);
 
 		const outDir = this.compilerOptions.outDir;
 		if (!outDir) {
 			throw new CompilerError("Expected 'outDir' option in tsconfig.json!");
 		}
-		this.outDir = outDir;
+		this.outDir = path.normalize(outDir);
 
 		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
@@ -142,29 +143,25 @@ export class Compiler {
 			const rojoJson = JSON.parse(fs.readFileSync(syncFilePath).toString()) as RojoJson;
 			for (const key in rojoJson.partitions) {
 				const part = rojoJson.partitions[key];
-				let partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
-				if (path.extname(partPath)) {
-					partPath = partPath.substring(0, partPath.lastIndexOf("/"));
-				}
+				let partPath = path.normalize(path.resolve(this.projectPath, part.path));
+				const isFile = path.extname(partPath) !== "";
 				if (partPath.startsWith(this.outDir)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.rootDir, path.relative(this.outDir, partPath)),
-					);
-					if (directory) {
+					const resolved = path.resolve(this.rootDir, path.relative(this.outDir, path.normalize(partPath)))
+					const file = isFile ? resolved : this.project.getDirectory(resolved);
+					if (file) {
 						this.syncInfo.push({
-							dir: directory,
+							file: file,
 							target: part.target,
 						});
 					} else {
 						throw new CompilerError(`Could not find directory for partition: ${JSON.stringify(part)}`);
 					}
 				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.baseUrl, path.relative(this.baseUrl, partPath)),
-					);
-					if (directory) {
+					const resolved = path.resolve(this.baseUrl, path.relative(this.baseUrl, path.normalize(partPath)))
+					const file = isFile ? resolved : this.project.getDirectory(resolved);
+					if (file) {
 						this.syncInfo.push({
-							dir: directory,
+							file: file,
 							target: part.target,
 						});
 					} else {
@@ -178,7 +175,7 @@ export class Compiler {
 	private getSyncFilePath() {
 		for (const name of SYNC_FILE_NAMES) {
 			const filePath = path.resolve(this.projectPath, name);
-			if (fs.existsSync(filePath)) {
+			if (fs.existsSync(filePath.replace("/", "\\"))) {
 				return filePath;
 			}
 		}
@@ -382,14 +379,52 @@ export class Compiler {
 		}
 	}
 
+	private getPartition(sourceFile: ts.SourceFile) {
+		return this.syncInfo.find(part => {
+			let directory: ts.Directory;
+			if (part.file instanceof ts.Directory) {
+				directory = part.file;
+			} else if (part.file instanceof ts.SourceFile) {
+				directory = part.file.getDirectory();
+			} else {
+				let partPath: string = path.resolve(this.projectPath, part.file);
+				if (partPath.startsWith(this.outDir)) {
+					partPath = path.resolve(this.rootDir, path.relative(this.outDir, partPath));
+				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
+					partPath = path.resolve(this.baseUrl, path.relative(this.baseUrl, partPath));
+				} else {
+					throw new CompilerError("Invalid file partition provided: " + partPath);
+				}
+
+				const name = path.basename(partPath);
+				let newName: string = name;
+				if (ts.ModuleKind.CommonJS === this.compilerOptions.module && name.startsWith("init")) {
+					newName = name.replace("init", "index")
+				}
+				newName = newName.replace(".lua", ".ts");
+				partPath = partPath.replace(name, newName);
+
+				console.log(partPath);
+
+				const file = this.project.getSourceFile(partPath);
+				if (file === undefined) {
+					throw new CompilerError("Could not find file from partition path: " + partPath);
+				}
+				part.file = file;
+				directory = file.getDirectory();
+			}
+
+			return directory.isAncestorOf(sourceFile) && (!(part.file instanceof ts.SourceFile) || part.file.getBaseName() !== sourceFile.getBaseName());
+		})
+	}
+
 	public getRelativeImportPath(
 		sourceFile: ts.SourceFile,
 		destinationFile: ts.SourceFile | undefined,
 		specifier: string,
 	) {
-		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-		const destinationPartition =
-			destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile));
+		const currentPartition = this.getPartition(sourceFile);
+		const destinationPartition = destinationFile && this.getPartition(destinationFile);
 
 		if (
 			destinationFile &&
@@ -457,12 +492,12 @@ export class Compiler {
 			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
 			return `require(${params})`;
 		} else {
-			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
+			const partition = this.getPartition(file);
 			if (!partition) {
 				throw new CompilerError("Could not compile non-relative import, no data from rojo.json");
 			}
 
-			const parts = partition.dir
+			const parts = (partition.file as ts.Directory | ts.SourceFile)
 				.getRelativePathAsModuleSpecifierTo(file)
 				.split("/")
 				.filter(part => part !== ".");
