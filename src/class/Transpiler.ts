@@ -1147,17 +1147,21 @@ export class Transpiler {
 		this.popIndent();
 
 		if (baseClassName) {
-			result += `${((hasIndexMembers) ? this.indent : "")}}, ${baseClassName});\n`;
+			result += `${hasIndexMembers ? this.indent : ""}}, ${baseClassName});\n`;
 		} else {
-			result += `${((hasIndexMembers) ? this.indent : "")}};\n`;
+			result += `${hasIndexMembers ? this.indent : ""}};\n`;
 		}
 
 		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 			if (getClassMethod(node, metamethod)) {
 				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+					throw new TranspilerError(
+						`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
+						node,
+					);
 				}
-				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+				result +=
+					this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 			}
 		});
 
@@ -1213,7 +1217,8 @@ export class Transpiler {
 				getterContent += this.indent;
 				if (ancestorHasGetters) {
 					result +=
-						this.indent + `${id}._getters = setmetatable({${getterContent}}, { __index = ${baseClassName}._getters });\n`;
+						this.indent +
+						`${id}._getters = setmetatable({${getterContent}}, { __index = ${baseClassName}._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {${getterContent}};\n`;
 				}
@@ -1264,7 +1269,8 @@ export class Transpiler {
 				setterContent += this.indent;
 				if (ancestorHasSetters) {
 					result +=
-						this.indent + `${id}._setters = setmetatable({${setterContent}}, { __index = ${baseClassName}._setters });\n`;
+						this.indent +
+						`${id}._setters = setmetatable({${setterContent}}, { __index = ${baseClassName}._setters });\n`;
 				} else {
 					result += this.indent + `${id}._setters = {${setterContent}};\n`;
 				}
@@ -1362,10 +1368,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileAccessorDeclaration(
-		node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
-		name: string,
-	) {
+	private transpileAccessorDeclaration(node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration, name: string) {
 		const body = node.getBody();
 		const paramNames = new Array<string>();
 		paramNames.push("self");
