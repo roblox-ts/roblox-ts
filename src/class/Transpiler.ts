@@ -662,14 +662,12 @@ export class Transpiler {
 		} else {
 			node.getNamedExports().forEach(namedExport => {
 				const aliasNode = namedExport.getAliasNode();
-				const aliasSource = aliasNode && aliasNode.getSourceFile() || ancestor;
 				let name = namedExport.getNameNode().getText();
 				if (name === "default") {
 					name = "_" + name;
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
-				const exportSource = namedExport.getSourceFile()
-				if (!exportSource.getInterface(name) && !aliasSource.getInterface(alias)) {
+				if (!(ancestor && ancestor.getInterface(alias))) {
 					lhs.push(alias);
 					rhs.push(`${name}`);
 				}
