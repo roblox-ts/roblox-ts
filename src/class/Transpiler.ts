@@ -444,7 +444,7 @@ export class Transpiler {
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
-		if (node.getType().isUndefined()) {
+		if (node.getType().isUndefined() || node.getType().isInterface()) {
 			return "nil";
 		}
 		let name = node.getText();
