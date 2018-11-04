@@ -7,6 +7,7 @@ import * as yargs from "yargs";
 import { Compiler } from "./class/Compiler";
 import { CompilerError } from "./class/errors/CompilerError";
 import { TranspilerError } from "./class/errors/TranspilerError";
+import { clearContextCache } from "./utility";
 
 /* tslint:disable */
 const versionStr = require("../package.json").version as string;
@@ -67,6 +68,11 @@ const argv = yargs
 		describe: "folder to copy modules to",
 	})
 
+	.option("noHueristics", {
+		boolean: true,
+		describe: "disables hueristics",
+	})
+
 	// noHeader
 	.option("noHeader", {
 		boolean: true,
@@ -121,6 +127,7 @@ if (argv.watch === true) {
 	const update = async (filePath: string) => {
 		console.log("Change detected, compiling..");
 		await compiler.refresh();
+		clearContextCache();
 		await time(async () => {
 			await compiler.compileFileByPath(filePath, noInclude);
 		});

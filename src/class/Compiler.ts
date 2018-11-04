@@ -1,12 +1,11 @@
+import * as fs from "fs-extra";
+import * as path from "path";
 import Project, * as ts from "ts-simple-ast";
-import { isValidLuaIdentifier, stripExts } from "../utility";
+import * as util from "util";
+import { getScriptContext, isValidLuaIdentifier, ScriptContext, stripExts } from "../utility";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
-
-import * as fs from "fs-extra";
-import * as path from "path";
-import * as util from "util";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -95,14 +94,6 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 }
 
 const moduleCache = new Map<string, string>();
-
-const scriptContextCache = new Map<string, ScriptContext>();
-export enum ScriptContext {
-	None,
-	Client,
-	Server,
-	Both,
-}
 
 export class Compiler {
 	private readonly project: Project;
@@ -414,7 +405,7 @@ export class Compiler {
 	}
 
 	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-		const sourceContext = this.getScriptContext(sourceFile);
+		const sourceContext = getScriptContext(sourceFile);
 		const sourceRbxPath = this.getRbxPath(sourceFile);
 		const moduleRbxPath = this.getRbxPath(moduleFile);
 		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
@@ -531,50 +522,6 @@ export class Compiler {
 				.join(", ");
 
 			return `TS.import(${params})`;
-		}
-	}
-
-	public getScriptContext(file: ts.SourceFile): ScriptContext {
-		const filePath = file.getFilePath();
-		if (scriptContextCache.has(filePath)) {
-			return scriptContextCache.get(filePath)!;
-		}
-
-		const ext = path.extname(filePath);
-		if (ext !== ".ts" && ext !== ".tsx") {
-			throw new CompilerError(`Unexpected extension type: ${ext}`);
-		}
-
-		const subext = path.extname(path.basename(filePath, ext));
-		if (subext === ".server") {
-			return ScriptContext.Server;
-		} else if (subext === ".client") {
-			return ScriptContext.Client;
-		} else {
-			let isServer = false;
-			let isClient = false;
-
-			for (const referencingFile of file.getReferencingSourceFiles()) {
-				const referenceContext = this.getScriptContext(referencingFile);
-				if (referenceContext === ScriptContext.Server) {
-					isServer = true;
-				} else if (referenceContext === ScriptContext.Client) {
-					isClient = true;
-				} else if (referenceContext === ScriptContext.Both) {
-					isServer = true;
-					isClient = true;
-				}
-			}
-
-			if (isServer && isClient) {
-				return ScriptContext.Both;
-			} else if (isServer) {
-				return ScriptContext.Server;
-			} else if (isClient) {
-				return ScriptContext.Client;
-			} else {
-				return ScriptContext.None;
-			}
 		}
 	}
 }

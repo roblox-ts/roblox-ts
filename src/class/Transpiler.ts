@@ -1,6 +1,6 @@
 import * as ts from "ts-simple-ast";
-import { safeLuaIndex } from "../utility";
-import { Compiler, ScriptContext } from "./Compiler";
+import { getScriptContext, safeLuaIndex, ScriptContext } from "../utility";
+import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
 type HasParameters =
@@ -1164,17 +1164,21 @@ export class Transpiler {
 		this.popIndent();
 
 		if (baseClassName) {
-			result += `${((hasIndexMembers) ? this.indent : "")}}, ${baseClassName});\n`;
+			result += `${hasIndexMembers ? this.indent : ""}}, ${baseClassName});\n`;
 		} else {
-			result += `${((hasIndexMembers) ? this.indent : "")}};\n`;
+			result += `${hasIndexMembers ? this.indent : ""}};\n`;
 		}
 
 		LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 			if (getClassMethod(node, metamethod)) {
 				if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-					throw new TranspilerError(`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`, node);
+					throw new TranspilerError(
+						`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
+						node,
+					);
 				}
-				result += this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+				result +=
+					this.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 			}
 		});
 
@@ -2262,7 +2266,7 @@ export class Transpiler {
 	}
 
 	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
-		this.scriptContext = this.compiler.getScriptContext(node);
+		this.scriptContext = getScriptContext(node);
 
 		function getScriptContextName(context: ScriptContext) {
 			switch (context) {
