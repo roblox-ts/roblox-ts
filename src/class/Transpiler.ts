@@ -220,7 +220,7 @@ export class Transpiler {
 	}
 
 	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.isExported()) {
+		if (!node.hasExportKeyword()) {
 			return;
 		}
 
