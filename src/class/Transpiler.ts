@@ -544,8 +544,9 @@ export class Transpiler {
 		const rhs = new Array<string>();
 
 		const defaultImport = node.getDefaultImport();
-		if (defaultImport) {
-			lhs.push(this.transpileExpression(defaultImport));
+		const defaultImportExp = defaultImport && this.transpileExpression(defaultImport)
+		if (defaultImportExp && !(sourceFile && sourceFile.getInterface(defaultImportExp))) {
+			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
 		}
 
