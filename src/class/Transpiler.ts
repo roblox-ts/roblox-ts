@@ -1614,7 +1614,9 @@ export class Transpiler {
 		}
 		let result = "";
 		result += "{" + (compress ? " " : "\n");
-		this.pushIndent();
+		if (!compress) {
+			this.pushIndent();
+		}
 		properties.forEach(property => {
 			if (ts.TypeGuards.isPropertyAssignment(property)) {
 				let lhs = property.getName();
@@ -1634,7 +1636,9 @@ export class Transpiler {
 				throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
 			}
 		});
-		this.popIndent();
+		if (!compress) {
+			this.popIndent();
+		}
 		result += (compress ? "" : this.indent) + "}";
 		return result;
 	}
