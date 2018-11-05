@@ -354,6 +354,14 @@ function TS.array.join(list, separator)
 	return result
 end
 
+function TS.array.find(list, callback)
+	for i = 1, #list do
+		if callback(list[i]) == true then
+			return list[i]
+		end
+	end
+end
+
 -- map macro functions
 TS.map = {}
 
