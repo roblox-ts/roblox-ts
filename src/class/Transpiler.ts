@@ -1,5 +1,5 @@
 import * as ts from "ts-simple-ast";
-import { getScriptContext, safeLuaIndex, ScriptContext } from "../utility";
+import { getScriptContext, isValidLuaIdentifier, safeLuaIndex, ScriptContext } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
@@ -1613,44 +1613,29 @@ export class Transpiler {
 			return "{}";
 		}
 		let result = "";
-		if (compress) {
-			const fields = new Array<string>();
-			properties.forEach(property => {
-				if (ts.TypeGuards.isPropertyAssignment(property)) {
-					const lhs = property.getName();
-					this.checkReserved(lhs, property);
-					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
-					fields.push(`${lhs} = ${rhs}`);
-				} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
-					const name = property.getName();
-					this.checkReserved(name, property);
-					fields.push(`${name} = ${name}`);
-				} else if (ts.TypeGuards.isSpreadAssignment(property)) {
-					throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
+		result += "{" + (compress ? " " : "\n");
+		this.pushIndent();
+		properties.forEach(property => {
+			if (ts.TypeGuards.isPropertyAssignment(property)) {
+				let lhs = property.getName();
+				if (/^\d+$/.test(lhs)) {
+					lhs = `[${lhs}]`;
+				} else if (!isValidLuaIdentifier(lhs)) {
+					lhs = `["${lhs}"]`;
 				}
-			});
-			const fieldsStr = fields.join(", ");
-			result += `{ ${fieldsStr} }`;
-		} else {
-			result += `{\n`;
-			this.pushIndent();
-			properties.forEach(property => {
-				if (ts.TypeGuards.isPropertyAssignment(property)) {
-					const lhs = property.getName();
-					this.checkReserved(lhs, property);
-					const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
-					result += this.indent + `${lhs} = ${rhs},\n`;
-				} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
-					const name = property.getName();
-					this.checkReserved(name, property);
-					result += this.indent + `${name} = ${name},\n`;
-				} else if (ts.TypeGuards.isSpreadAssignment(property)) {
-					throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
-				}
-			});
-			this.popIndent();
-			result += this.indent + "}";
-		}
+				this.checkReserved(lhs, property);
+				const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
+				result += (compress ? "" : this.indent) + `${lhs} = ${rhs},` + (compress ? " " : "\n");
+			} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+				const name = property.getName();
+				this.checkReserved(name, property);
+				result += (compress ? "" : this.indent) + `${name} = ${name},` + (compress ? " " : "\n");
+			} else if (ts.TypeGuards.isSpreadAssignment(property)) {
+				throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
+			}
+		});
+		this.popIndent();
+		result += (compress ? "" : this.indent) + "}";
 		return result;
 	}
 
@@ -1767,6 +1752,10 @@ export class Transpiler {
 					paramStr += ", " + params;
 				}
 				return `TS.set.${property}(${paramStr})`;
+			}
+
+			if (subExpTypeName === "ObjectConstructor") {
+				return `TS.Object.${property}(${params})`;
 			}
 
 			const validateMathCall = () => {

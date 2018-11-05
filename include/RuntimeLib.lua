@@ -484,4 +484,40 @@ function TS.string.split(input, sep)
 	return result
 end
 
+-- Object static functions
+TS.Object = {}
+
+function TS.Object.keys(object)
+	local result = {}
+	for key in pairs(object) do
+		result[#result + 1] = key
+	end
+	return result
+end
+
+function TS.Object.values(object)
+	local result = {}
+	for _, value in pairs(object) do
+		result[#result + 1] = value
+	end
+	return result
+end
+
+function TS.Object.entries(object)
+	local result = {}
+	for key, value in pairs(object) do
+		result[#result + 1] = {key, value}
+	end
+	return result
+end
+
+function TS.Object.assign(toObj, ...)
+	for _, fromObj in ipairs({ ... }) do
+		for key, value in pairs(fromObj) do
+			toObj[key] = value
+		end
+	end
+	return toObj
+end
+
 return TS
