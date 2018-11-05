@@ -356,7 +356,7 @@ end
 
 function TS.array.find(list, callback)
 	for i = 1, #list do
-		if callback(list[i]) == true then
+		if callback(list[i], i - 1, list) == true then
 			return list[i]
 		end
 	end
