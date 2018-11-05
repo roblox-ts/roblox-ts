@@ -100,15 +100,16 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly modulesPath: string;
-	private readonly strictMode: boolean;
-	private readonly noHeader: boolean;
-	private readonly noHueristics: boolean;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
 	private readonly outDir: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
+
+	public readonly strictMode: boolean;
+	public readonly noHeader: boolean;
+	public readonly noHueristics: boolean;
 
 	constructor(configFilePath: string, args: { [argName: string]: any }) {
 		this.projectPath = path.resolve(configFilePath, "..");
