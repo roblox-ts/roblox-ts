@@ -59,7 +59,7 @@ We recommmend that you write your TypeScript in [VS Code](https://code.visualstu
 		"downlevelIteration": true,
 		"declaration": false,
 		"target": "es6",
-		"typeRoots": [ "rbx-types" ]
+		"types": [ "rbx-types" ]
 	},
 	"typeAcquisition": {
 		"enable": true

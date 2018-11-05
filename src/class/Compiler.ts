@@ -1,11 +1,11 @@
+import * as fs from "fs-extra";
+import * as path from "path";
 import Project, * as ts from "ts-simple-ast";
-import { isValidLuaIdentifier, stripExts } from "../utility";
+import * as util from "util";
+import { getScriptContext, isValidLuaIdentifier, ScriptContext, stripExts } from "../utility";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
-
-import * as fs from "fs-extra";
-import * as path from "path";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -100,14 +100,16 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly modulesPath: string;
-	private readonly strictMode: boolean;
-	private readonly noHeader: boolean;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDir: string;
 	private readonly outDir: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
+
+	public readonly strictMode: boolean;
+	public readonly noHeader: boolean;
+	public readonly noHueristics: boolean;
 
 	constructor(configFilePath: string, args: { [argName: string]: any }) {
 		this.projectPath = path.resolve(configFilePath, "..");
@@ -119,6 +121,7 @@ export class Compiler {
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.strictMode = args.strict;
 		this.noHeader = args.noHeader;
+		this.noHueristics = args.noHueristics;
 		this.compilerOptions = this.project.getCompilerOptions();
 
 		this.baseUrl = this.compilerOptions.baseUrl;
@@ -379,21 +382,65 @@ export class Compiler {
 		}
 	}
 
-	public getRelativeImportPath(
-		sourceFile: ts.SourceFile,
-		destinationFile: ts.SourceFile | undefined,
-		specifier: string,
-	) {
-		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-		const destinationPartition =
-			destinationFile && this.syncInfo.find(part => part.dir.isAncestorOf(destinationFile));
+	public getRobloxPathString(rbxPath: Array<string>) {
+		rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
+		return "game" + rbxPath.join("");
+	}
 
-		if (
-			destinationFile &&
-			currentPartition &&
-			currentPartition.target !== (destinationPartition && destinationPartition.target)
-		) {
-			return this.getImportPathFromFile(destinationFile);
+	public getRbxPath(sourceFile: ts.SourceFile) {
+		const partition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+		if (partition) {
+			const rbxPath = partition.dir
+				.getRelativePathTo(sourceFile)
+				.split("/")
+				.filter(part => part !== ".");
+
+			let last = rbxPath.pop()!;
+			let ext = path.extname(last);
+			while (ext !== "") {
+				last = path.basename(last, ext);
+				ext = path.extname(last);
+			}
+			rbxPath.push(last);
+
+			return rbxPath;
+		}
+	}
+
+	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+		if (this.noHueristics) {
+			return;
+		}
+
+		const sourceContext = getScriptContext(sourceFile);
+		const sourceRbxPath = this.getRbxPath(sourceFile);
+		const moduleRbxPath = this.getRbxPath(moduleFile);
+		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
+			if (sourceContext === ScriptContext.Client) {
+				if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
+					throw new TranspilerError(
+						util.format(
+							"%s is not allowed to import %s",
+							this.getRobloxPathString(sourceRbxPath),
+							this.getRobloxPathString(moduleRbxPath),
+						),
+						sourceFile,
+					);
+				}
+			}
+		}
+	}
+
+	public getRelativeImportPath(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile | undefined, specifier: string) {
+		if (moduleFile) {
+			this.validateImport(sourceFile, moduleFile);
+		}
+
+		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+		const modulePartition = moduleFile && this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
+
+		if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
+			return this.getImportPathFromFile(sourceFile, moduleFile);
 		}
 
 		const parts = path.posix
@@ -416,10 +463,11 @@ export class Compiler {
 		return `TS.import(${params})`;
 	}
 
-	public getImportPathFromFile(file: ts.SourceFile) {
-		if (this.modulesDir && this.modulesDir.isAncestorOf(file)) {
+	public getImportPathFromFile(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+		this.validateImport(sourceFile, moduleFile);
+		if (this.modulesDir && this.modulesDir.isAncestorOf(moduleFile)) {
 			let parts = this.modulesDir
-				.getRelativePathTo(file)
+				.getRelativePathTo(moduleFile)
 				.split("/")
 				.filter(part => part !== ".");
 
@@ -454,13 +502,13 @@ export class Compiler {
 			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
 			return `require(${params})`;
 		} else {
-			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(file));
+			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 			if (!partition) {
 				throw new CompilerError("Could not compile non-relative import, no data from rojo.json");
 			}
 
 			const parts = partition.dir
-				.getRelativePathAsModuleSpecifierTo(file)
+				.getRelativePathAsModuleSpecifierTo(moduleFile)
 				.split("/")
 				.filter(part => part !== ".");
 

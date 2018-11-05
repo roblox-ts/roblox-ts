@@ -1,5 +1,5 @@
 import * as ts from "ts-simple-ast";
-import { safeLuaIndex } from "../utility";
+import { getScriptContext, safeLuaIndex, ScriptContext } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
@@ -183,6 +183,7 @@ export class Transpiler {
 	private continueId = -1;
 	private isModule = false;
 	private indent = "";
+	private scriptContext = ScriptContext.None;
 
 	constructor(private compiler: Compiler) {}
 
@@ -521,7 +522,7 @@ export class Transpiler {
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 			} else {
 				const specifierText = node.getModuleSpecifier().getLiteralText();
 				throw new TranspilerError(
@@ -583,7 +584,7 @@ export class Transpiler {
 				}
 				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), moduleFile, specifier);
 			} else {
-				luaPath = this.compiler.getImportPathFromFile(moduleFile);
+				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 			}
 		} else {
 			const text = node.getModuleReference().getText();
@@ -607,7 +608,7 @@ export class Transpiler {
 			} else {
 				const moduleFile = node.getModuleSpecifierSourceFile();
 				if (moduleFile) {
-					luaPath = this.compiler.getImportPathFromFile(moduleFile);
+					luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 				} else {
 					const specifierText = moduleSpecifier.getLiteralText();
 					throw new TranspilerError(
@@ -1715,6 +1716,7 @@ export class Transpiler {
 		if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 			throw new TranspilerError("Expected PropertyAccessExpression", node);
 		}
+		this.validateApiAccess(expression.getNameNode());
 		const subExp = expression.getExpression();
 		const subExpType = subExp.getType();
 		let accessPath = this.transpileExpression(subExp);
@@ -2095,14 +2097,61 @@ export class Transpiler {
 		return `${name}.new(${params})`;
 	}
 
+	private getJSDocs(node: ts.Node) {
+		const symbol = node.getSymbol();
+		if (symbol) {
+			const valDec = symbol.getValueDeclaration();
+			if (valDec) {
+				if (ts.TypeGuards.isPropertySignature(valDec) || ts.TypeGuards.isMethodSignature(valDec)) {
+					return valDec.getJsDocs();
+				} else {
+					const valDecKindName = valDec.getKindName();
+					throw new TranspilerError(`Unexpected value declaration type: ${valDecKindName}`, node);
+				}
+			}
+		}
+		return [];
+	}
+
+	private hasDirective(node: ts.Node, directive: string) {
+		for (const jsDoc of this.getJSDocs(node)) {
+			if (
+				jsDoc
+					.getText()
+					.split(" ")
+					.indexOf(directive) !== -1
+			) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private validateApiAccess(node: ts.Node) {
+		if (this.compiler.noHueristics) {
+			return;
+		}
+		if (this.scriptContext === ScriptContext.Server) {
+			if (this.hasDirective(node, "@rbx-client")) {
+				throw new TranspilerError("Server script attempted to access a client-only API!", node);
+			}
+		} else if (this.scriptContext === ScriptContext.Client) {
+			if (this.hasDirective(node, "@rbx-server")) {
+				throw new TranspilerError("Client script attempted to access a server-only API!", node);
+			}
+		}
+	}
+
 	private transpilePropertyAccessExpression(node: ts.PropertyAccessExpression) {
-		const expression = node.getExpression();
-		const expressionType = expression.getType();
-		const expStr = this.transpileExpression(expression);
+		const exp = node.getExpression();
+		const expType = exp.getType();
+		const expStr = this.transpileExpression(exp);
 		const propertyStr = node.getName();
 
-		if (ts.TypeGuards.isSuperExpression(expression)) {
-			const baseClassName = expression
+		this.validateApiAccess(node.getNameNode());
+
+		if (ts.TypeGuards.isSuperExpression(exp)) {
+			const baseClassName = exp
 				.getType()
 				.getSymbolOrThrow()
 				.getName();
@@ -2111,7 +2160,7 @@ export class Transpiler {
 			return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
 		}
 
-		const symbol = expression.getType().getSymbol();
+		const symbol = exp.getType().getSymbol();
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
@@ -2139,7 +2188,7 @@ export class Transpiler {
 			}
 		}
 
-		if (expressionType.isString() || expressionType.isStringLiteral() || expressionType.isArray()) {
+		if (expType.isString() || expType.isStringLiteral() || expType.isArray()) {
 			if (propertyStr === "length") {
 				return `#${expStr}`;
 			}
@@ -2251,6 +2300,8 @@ export class Transpiler {
 	}
 
 	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
+		this.scriptContext = getScriptContext(node);
+
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.isModule) {
