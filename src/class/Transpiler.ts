@@ -2102,15 +2102,8 @@ export class Transpiler {
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
-				if (
-					ts.TypeGuards.isPropertySignature(valDec) ||
-					ts.TypeGuards.isMethodSignature(valDec) ||
-					ts.TypeGuards.isMethodDeclaration(valDec)
-				) {
+				if (ts.TypeGuards.isPropertySignature(valDec) || ts.TypeGuards.isMethodSignature(valDec)) {
 					return valDec.getJsDocs();
-				} else {
-					const valDecKindName = valDec.getKindName();
-					throw new TranspilerError(`Unexpected value declaration type: ${valDecKindName}`, node);
 				}
 			}
 		}
