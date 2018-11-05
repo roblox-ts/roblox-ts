@@ -328,7 +328,7 @@ export class Transpiler {
 
 			const initial = param.getInitializer();
 			if (initial) {
-				const defaultValue = `if ${name} == nil then ${name} = ${this.transpileExpression(initial, true)} end;`;
+				const defaultValue = `if ${name} == nil then ${name} = ${this.transpileExpression(initial)} end;`;
 				if (defaults) {
 					defaults.push(defaultValue);
 				} else {
@@ -1518,7 +1518,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileExpression(node: ts.Expression, compress = false): string {
+	private transpileExpression(node: ts.Expression): string {
 		if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 			return this.transpileStringLiteral(node);
 		} else if (ts.TypeGuards.isNumericLiteral(node)) {
@@ -1528,7 +1528,7 @@ export class Transpiler {
 		} else if (ts.TypeGuards.isArrayLiteralExpression(node)) {
 			return this.transpileArrayLiteralExpression(node);
 		} else if (ts.TypeGuards.isObjectLiteralExpression(node)) {
-			return this.transpileObjectLiteralExpression(node, compress);
+			return this.transpileObjectLiteralExpression(node);
 		} else if (ts.TypeGuards.isFunctionExpression(node) || ts.TypeGuards.isArrowFunction(node)) {
 			return this.transpileFunctionExpression(node);
 		} else if (ts.TypeGuards.isCallExpression(node)) {
@@ -1607,16 +1607,14 @@ export class Transpiler {
 		return `{ ${params} }`;
 	}
 
-	private transpileObjectLiteralExpression(node: ts.ObjectLiteralExpression, compress: boolean) {
+	private transpileObjectLiteralExpression(node: ts.ObjectLiteralExpression) {
 		const properties = node.getProperties();
 		if (properties.length === 0) {
 			return "{}";
 		}
 		let result = "";
-		result += "{" + (compress ? " " : "\n");
-		if (!compress) {
-			this.pushIndent();
-		}
+		result += "{\n";
+		this.pushIndent();
 		properties.forEach(property => {
 			if (ts.TypeGuards.isPropertyAssignment(property)) {
 				let lhs = property.getName();
@@ -1626,20 +1624,18 @@ export class Transpiler {
 					lhs = `["${lhs}"]`;
 				}
 				this.checkReserved(lhs, property);
-				const rhs = this.transpileExpression(property.getInitializerOrThrow(), compress);
-				result += (compress ? "" : this.indent) + `${lhs} = ${rhs},` + (compress ? " " : "\n");
+				const rhs = this.transpileExpression(property.getInitializerOrThrow());
+				result += this.indent + `${lhs} = ${rhs},\n`;
 			} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
 				const name = property.getName();
 				this.checkReserved(name, property);
-				result += (compress ? "" : this.indent) + `${name} = ${name},` + (compress ? " " : "\n");
+				result += this.indent + `${name} = ${name},\n`;
 			} else if (ts.TypeGuards.isSpreadAssignment(property)) {
 				throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
 			}
 		});
-		if (!compress) {
-			this.popIndent();
-		}
-		result += (compress ? "" : this.indent) + "}";
+		this.popIndent();
+		result += this.indent + "}";
 		return result;
 	}
 
