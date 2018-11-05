@@ -2102,7 +2102,11 @@ export class Transpiler {
 		if (symbol) {
 			const valDec = symbol.getValueDeclaration();
 			if (valDec) {
-				if (ts.TypeGuards.isPropertySignature(valDec) || ts.TypeGuards.isMethodSignature(valDec)) {
+				if (
+					ts.TypeGuards.isPropertySignature(valDec) ||
+					ts.TypeGuards.isMethodSignature(valDec) ||
+					ts.TypeGuards.isMethodDeclaration(valDec)
+				) {
 					return valDec.getJsDocs();
 				} else {
 					const valDecKindName = valDec.getKindName();
