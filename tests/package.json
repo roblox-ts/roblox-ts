@@ -1,0 +1,15 @@
+{
+	"name": "roblox-ts-tests",
+	"version": "1.0.0",
+	"description": "",
+	"main": "out/index.js",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/roblox-ts/roblox-ts.git"
+	},
+	"author": "",
+	"license": "MIT",
+	"dependencies": {
+		"rbx-types": "^1.0.0"
+	}
+}
