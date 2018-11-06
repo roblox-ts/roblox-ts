@@ -31,8 +31,8 @@ local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "submodules/testez/l
 
 -- Testing code
 local testsFolder = newFolder("Tests", ReplicatedStorage)
-local specFolder = newFolder("spec", testsFolder, "tests/spec")
-newFolder("out", testsFolder, "tests/out")
+local specFolder = newFolder("spec", testsFolder, "spec")
+newFolder("out", testsFolder, "out")
 
 -- Load TestEZ and run our tests
 local TestEZ = habitat:require(testEZFolder)
