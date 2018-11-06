@@ -19,7 +19,7 @@ https://roblox-ts.github.io/
 In order to start using roblox-ts, you'll need to have NodeJS and npm installed. [You can download both from here.](https://nodejs.org/)
 
 Next, from your command line install roblox-ts: `npm install -g roblox-ts`\
-_(UNIX systems may need you to prefix this command with `sudo`)_
+_(On Unix systems, you may need to prefix this command with `sudo`)_
 
 You can now run roblox-ts with the command `rbxtsc`.
 
@@ -39,7 +39,7 @@ Options:
 
 ## Project Folder Setup
 
-We recommmend that you write your TypeScript in [VS Code](https://code.visualstudio.com/) for the best experience. However, also editors like [Sublime Text](https://www.sublimetext.com/) and [Atom](https://atom.io/) are supported.
+We recommmend that you write your TypeScript in [VS Code](https://code.visualstudio.com/) for the best experience. However, other editors like [Sublime Text](https://www.sublimetext.com/) and [Atom](https://atom.io/) are supported.
 
 1. Create a new folder and name it whatever you'd like. For example: `MyCoolProject`
 
@@ -92,6 +92,8 @@ You should add more partitions for the subfolders of your `out` folder.
 8. Run your sync program. If you're using Rojo, this is `rojo serve`
 
 9. Write code!
+
+More detailed documentation can be found on the [wiki](https://github.com/roblox-ts/roblox-ts/wiki). It is recommended that you peruse through all of the wiki pages as you get started!
 
 # Join the Community!
 
