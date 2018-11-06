@@ -1603,8 +1603,31 @@ export class Transpiler {
 		if (elements.length === 0) {
 			return "{}";
 		}
-		const params = elements.map(element => this.transpileExpression(element)).join(", ");
-		return `{ ${params} }`;
+		let isInArray = false;
+		const parts = new Array<Array<string> | string>();
+		elements.forEach(element => {
+			if (ts.TypeGuards.isSpreadElement(element)) {
+				parts.push(this.transpileExpression(element.getExpression()));
+				isInArray = false;
+			} else {
+				let last: Array<string>;
+				if (isInArray) {
+					last = parts[parts.length - 1] as Array<string>;
+				} else {
+					last = new Array<string>();
+					parts.push(last);
+				}
+				last.push(this.transpileExpression(element));
+				isInArray = true;
+			}
+		});
+
+		const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
+		if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
+			return `TS.array.concat(${params})`;
+		} else {
+			return params;
+		}
 	}
 
 	private transpileObjectLiteralExpression(node: ts.ObjectLiteralExpression) {
@@ -1612,31 +1635,60 @@ export class Transpiler {
 		if (properties.length === 0) {
 			return "{}";
 		}
-		let result = "";
-		result += "{\n";
-		this.pushIndent();
-		properties.forEach(property => {
-			if (ts.TypeGuards.isPropertyAssignment(property)) {
-				let lhs = property.getName();
+
+		let isInObject = false;
+		const parts = new Array<string>();
+		properties.forEach((prop, index) => {
+			if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
+				let lhs = prop.getName();
 				if (/^\d+$/.test(lhs)) {
 					lhs = `[${lhs}]`;
 				} else if (!isValidLuaIdentifier(lhs)) {
 					lhs = `["${lhs}"]`;
+				} else {
+					this.checkReserved(lhs, prop);
 				}
-				this.checkReserved(lhs, property);
-				const rhs = this.transpileExpression(property.getInitializerOrThrow());
-				result += this.indent + `${lhs} = ${rhs},\n`;
-			} else if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
-				const name = property.getName();
-				this.checkReserved(name, property);
-				result += this.indent + `${name} = ${name},\n`;
-			} else if (ts.TypeGuards.isSpreadAssignment(property)) {
-				throw new TranspilerError("Spread operator `...` is not supported in object literals!", property);
+
+				let rhs: string;
+				if (ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
+					rhs = prop.getName();
+				} else {
+					rhs = this.transpileExpression(prop.getInitializerOrThrow());
+				}
+
+				if (!isInObject) {
+					parts.push("");
+					if (index !== 0) {
+						parts[parts.length - 1] += this.indent;
+					}
+					parts[parts.length - 1] += "{\n";
+					this.pushIndent();
+				}
+
+				parts[parts.length - 1] += this.indent + `${lhs} = ${rhs};\n`;
+				isInObject = true;
+			} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
+				if (isInObject) {
+					this.popIndent();
+					parts[parts.length - 1] += this.indent + "}";
+				}
+				const expStr = this.transpileExpression(prop.getExpression());
+				parts.push((index === 0 ? "" : this.indent) + expStr);
+				isInObject = false;
 			}
 		});
-		this.popIndent();
-		result += this.indent + "}";
-		return result;
+
+		if (isInObject) {
+			this.popIndent();
+			parts[parts.length - 1] += this.indent + "}";
+		}
+
+		if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
+			const params = parts.join(", ");
+			return `TS.Object.assign(${params})`;
+		} else {
+			return parts.join(", ");
+		}
 	}
 
 	private transpileFunctionExpression(node: ts.FunctionExpression | ts.ArrowFunction) {
