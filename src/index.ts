@@ -68,9 +68,9 @@ const argv = yargs
 		describe: "folder to copy modules to",
 	})
 
-	.option("noHueristics", {
+	.option("noHeuristics", {
 		boolean: true,
-		describe: "disables hueristics",
+		describe: "disables api restriction heuristics",
 	})
 
 	// noHeader
