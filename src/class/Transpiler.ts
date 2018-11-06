@@ -1,5 +1,12 @@
 import * as ts from "ts-simple-ast";
-import { getScriptContext, isValidLuaIdentifier, safeLuaIndex, ScriptContext } from "../utility";
+import {
+	getScriptContext,
+	getScriptType,
+	isValidLuaIdentifier,
+	safeLuaIndex,
+	ScriptContext,
+	ScriptType,
+} from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError } from "./errors/TranspilerError";
 
@@ -2339,16 +2346,25 @@ export class Transpiler {
 
 	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
 		this.scriptContext = getScriptContext(node);
+		const scriptType = getScriptType(node);
 
 		let result = "";
 		result += this.transpileStatementedNode(node);
 		if (this.isModule) {
+			if (!this.compiler.noHeuristics && scriptType !== ScriptType.Module) {
+				throw new TranspilerError("Attempted to export in a non-ModuleScript!", node);
+			}
+
 			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
 				result = this.indent + `local _exports;\n` + result;
 			} else {
 				result = this.indent + `local _exports = {};\n` + result;
 			}
 			result += this.indent + "return _exports;\n";
+		} else {
+			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
+				throw new TranspilerError("ModuleScript contains no exports!", node);
+			}
 		}
 		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
 		if (noHeader) {

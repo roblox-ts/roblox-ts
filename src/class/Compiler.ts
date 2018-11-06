@@ -2,7 +2,14 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import Project, * as ts from "ts-simple-ast";
 import * as util from "util";
-import { getScriptContext, isValidLuaIdentifier, ScriptContext, stripExts } from "../utility";
+import {
+	getScriptContext,
+	getScriptType,
+	isValidLuaIdentifier,
+	ScriptContext,
+	ScriptType,
+	stripExts,
+} from "../utility";
 import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
@@ -435,15 +442,20 @@ export class Compiler {
 		const sourceRbxPath = this.getRbxPath(sourceFile);
 		const moduleRbxPath = this.getRbxPath(moduleFile);
 		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
+			if (getScriptType(moduleFile) !== ScriptType.Module) {
+				throw new CompilerError(
+					util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
+				);
+			}
+
 			if (sourceContext === ScriptContext.Client) {
 				if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
-					throw new TranspilerError(
+					throw new CompilerError(
 						util.format(
 							"%s is not allowed to import %s",
 							this.getRobloxPathString(sourceRbxPath),
 							this.getRobloxPathString(moduleRbxPath),
 						),
-						sourceFile,
 					);
 				}
 			}
