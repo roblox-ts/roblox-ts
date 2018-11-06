@@ -107,7 +107,7 @@ export class Compiler {
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
 
-	public readonly strictMode: boolean;
+	public readonly noStrict: boolean;
 	public readonly noHeader: boolean;
 	public readonly noHeuristics: boolean;
 
@@ -119,7 +119,7 @@ export class Compiler {
 		this.project.addExistingSourceFiles(path.join(this.projectPath, "**/*.d.ts"));
 		this.includePath = path.resolve(this.projectPath, args.includePath);
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
-		this.strictMode = args.strict;
+		this.noStrict = args.noStrict;
 		this.noHeader = args.noHeader;
 		this.noHeuristics = args.noHeuristics;
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -319,7 +319,7 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
-		if (this.strictMode) {
+		if (!this.noStrict) {
 			let errors = 0;
 
 			files.forEach(file => {

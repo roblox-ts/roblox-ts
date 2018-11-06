@@ -42,18 +42,17 @@ const argv = yargs
 		describe: "project path",
 	})
 
-	// strict
-	.option("s", {
-		alias: "strict",
-		boolean: true,
-		describe: "ensure compiled code is type safe (slower)",
-	})
-
 	// includePath
 	.option("i", {
 		alias: "includePath",
 		default: "include",
 		describe: "folder to copy runtime files to",
+	})
+
+	// noStrict
+	.option("noStrict", {
+		boolean: true,
+		describe: "disable diagnostic checks (faster, unsafe)",
 	})
 
 	// noInclude
