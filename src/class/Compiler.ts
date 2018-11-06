@@ -68,7 +68,9 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 		},
 		recursive: true,
 	});
+}
 
+async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
 	const searchForDeadFiles = async (dir: string) => {
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
@@ -91,6 +93,11 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 		}
 	};
 	await searchForDeadFiles(destinationFolder);
+}
+
+async function copyAndCleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
+	await copyLuaFiles(sourceFolder, destinationFolder);
+	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
 const moduleCache = new Map<string, string>();
@@ -207,14 +214,13 @@ export class Compiler {
 		return path.join(outDir, relativeToRoot, luaName);
 	}
 
-	private transformPathToTS(rootDir: string, outDir: string, filePath: string) {
+	private transformPath(rootDir: string, outDir: string, filePath: string) {
 		const relativeToOut = path.dirname(path.relative(outDir, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && name === "init") {
 			name = "index";
 		}
-		const luaName = name + ".ts";
-		return path.join(rootDir, relativeToOut, luaName);
+		return path.join(rootDir, relativeToOut, name);
 	}
 
 	public addFile(filePath: string) {
@@ -232,22 +238,25 @@ export class Compiler {
 		return Promise.all(this.project.getSourceFiles().map(sourceFile => sourceFile.refreshFromFileSystem()));
 	}
 
-	public cleanDirRecursive(dir: string) {
+	public async cleanDirRecursive(dir: string) {
 		if (fs.existsSync(dir)) {
 			const contents = fs.readdirSync(dir);
 			for (const name of contents) {
 				const filePath = path.join(dir, name);
 				if (fs.statSync(filePath).isDirectory()) {
-					this.cleanDirRecursive(filePath);
+					await this.cleanDirRecursive(filePath);
 					if (fs.readdirSync(filePath).length === 0) {
 						fs.rmdirSync(filePath);
 					}
 				} else {
 					const ext = path.extname(filePath);
 					if (ext === ".lua") {
-						const tsPath = this.transformPathToTS(this.rootDir, this.outDir, filePath);
-						const tsxPath = tsPath + "x";
-						if (!this.project.getSourceFile(tsPath) && !this.project.getSourceFile(tsxPath)) {
+						const rootPath = this.transformPath(this.rootDir, this.outDir, filePath);
+						if (
+							!(await fs.pathExists(rootPath + ".ts")) &&
+							!(await fs.pathExists(rootPath + ".lua")) &&
+							!(await fs.pathExists(rootPath + ".tsx"))
+						) {
 							fs.removeSync(filePath);
 						}
 					}
@@ -263,7 +272,7 @@ export class Compiler {
 		return this.rootDir;
 	}
 
-	public async copyModules() {
+	public async copyModuleFiles() {
 		if (this.modulesDir) {
 			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
 			const modulesPath = this.modulesPath;
@@ -271,50 +280,60 @@ export class Compiler {
 				if (name.startsWith(MODULE_PREFIX)) {
 					const oldModulePath = path.join(nodeModulesPath, name);
 					const newModulePath = path.join(modulesPath, name);
-					await copyLuaFiles(oldModulePath, newModulePath);
+					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath);
 				}
 			}
 		}
 	}
 
-	public async copyIncludes(noInclude: boolean) {
+	public async copyIncludeFiles(noInclude: boolean) {
 		if (!noInclude) {
-			await copyLuaFiles(INCLUDE_SRC_PATH, this.includePath);
+			await copyAndCleanDeadLuaFiles(INCLUDE_SRC_PATH, this.includePath);
 		}
+	}
+
+	public async copyLuaSourceFiles() {
+		await copyLuaFiles(this.rootDir, this.outDir);
 	}
 
 	public async compileAll(noInclude: boolean) {
-		await this.compileFiles(this.project.getSourceFiles(), noInclude);
-		await this.copyIncludes(noInclude);
-		await this.copyModules();
+		await this.copyLuaSourceFiles();
+		await this.compileFiles(this.project.getSourceFiles());
+		await this.copyIncludeFiles(noInclude);
+		await this.copyModuleFiles();
 	}
 
-	public async compileFileByPath(filePath: string, noInclude: boolean) {
-		const sourceFile = this.project.getSourceFile(filePath);
-		if (!sourceFile) {
-			throw new CompilerError(`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`);
+	public async compileFileByPath(filePath: string) {
+		const ext = path.extname(filePath);
+		if (ext === ".ts") {
+			const sourceFile = this.project.getSourceFile(filePath);
+			if (!sourceFile) {
+				throw new CompilerError(`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`);
+			}
+
+			const seen = new Set<string>();
+			const files = new Array<ts.SourceFile>();
+
+			const search = (file: ts.SourceFile) => {
+				files.push(file);
+				file.getReferencingSourceFiles().forEach(ref => {
+					const refPath = ref.getFilePath();
+					if (!seen.has(refPath)) {
+						seen.add(refPath);
+						search(ref);
+					}
+				});
+			};
+			search(sourceFile);
+
+			return this.compileFiles(files);
+		} else if (ext === ".lua") {
+			await this.copyLuaSourceFiles();
 		}
-
-		const seen = new Set<string>();
-		const files = new Array<ts.SourceFile>();
-
-		const search = (file: ts.SourceFile) => {
-			files.push(file);
-			file.getReferencingSourceFiles().forEach(ref => {
-				const refPath = ref.getFilePath();
-				if (!seen.has(refPath)) {
-					seen.add(refPath);
-					search(ref);
-				}
-			});
-		};
-		search(sourceFile);
-
-		return this.compileFiles(files, noInclude);
 	}
 
-	public async compileFiles(files: Array<ts.SourceFile>, noInclude: boolean) {
-		this.cleanDirRecursive(this.outDir);
+	public async compileFiles(files: Array<ts.SourceFile>) {
+		await this.cleanDirRecursive(this.outDir);
 		if (this.compilerOptions.declaration === true) {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}

@@ -97,11 +97,6 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 	throw new Error("Cannot find tsconfig.json!");
 }
 
-function isTSFile(filePath: string) {
-	const ext = path.extname(filePath);
-	return ext === ".ts" || ext === ".tsx";
-}
-
 const noInclude = argv.noInclude === true;
 
 const compiler = new Compiler(configFilePath, argv);
@@ -128,7 +123,7 @@ if (argv.watch === true) {
 		await compiler.refresh();
 		clearContextCache();
 		await time(async () => {
-			await compiler.compileFileByPath(filePath, noInclude);
+			await compiler.compileFileByPath(filePath);
 		});
 	};
 
@@ -144,14 +139,14 @@ if (argv.watch === true) {
 			usePolling: true,
 		})
 		.on("change", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				await update(filePath);
 				isCompiling = false;
 			}
 		})
 		.on("add", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Add", filePath);
 				compiler.addFile(filePath);
@@ -160,7 +155,7 @@ if (argv.watch === true) {
 			}
 		})
 		.on("unlink", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
@@ -173,8 +168,7 @@ if (argv.watch === true) {
 	if (fs.existsSync(pkgLockJsonPath)) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
-			await compiler.copyIncludes(noInclude);
-			await compiler.copyModules();
+			await compiler.copyModuleFiles();
 		});
 	}
 
