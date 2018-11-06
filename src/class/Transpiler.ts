@@ -185,6 +185,8 @@ export class Transpiler {
 	private indent = "";
 	private scriptContext = ScriptContext.None;
 
+	private prefixStatementQueue = new Array<string>();
+
 	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
@@ -450,65 +452,72 @@ export class Transpiler {
 	}
 
 	private transpileStatement(node: ts.Statement): string {
+		let result: string;
 		if (ts.TypeGuards.isBlock(node)) {
 			if (node.getStatements().length === 0) {
 				return "";
 			}
-			return this.transpileBlock(node);
+			result = this.transpileBlock(node);
 		} else if (ts.TypeGuards.isImportDeclaration(node)) {
-			return this.transpileImportDeclaration(node);
+			result = this.transpileImportDeclaration(node);
 		} else if (ts.TypeGuards.isImportEqualsDeclaration(node)) {
-			return this.transpileImportEqualsDeclaration(node);
+			result = this.transpileImportEqualsDeclaration(node);
 		} else if (ts.TypeGuards.isExportDeclaration(node)) {
-			return this.transpileExportDeclaration(node);
+			result = this.transpileExportDeclaration(node);
 		} else if (ts.TypeGuards.isFunctionDeclaration(node)) {
-			return this.transpileFunctionDeclaration(node);
+			result = this.transpileFunctionDeclaration(node);
 		} else if (ts.TypeGuards.isClassDeclaration(node)) {
-			return this.transpileClassDeclaration(node);
+			result = this.transpileClassDeclaration(node);
 		} else if (ts.TypeGuards.isNamespaceDeclaration(node)) {
-			return this.transpileNamespaceDeclaration(node);
+			result = this.transpileNamespaceDeclaration(node);
 		} else if (ts.TypeGuards.isDoStatement(node)) {
-			return this.transpileDoStatement(node);
+			result = this.transpileDoStatement(node);
 		} else if (ts.TypeGuards.isIfStatement(node)) {
-			return this.transpileIfStatement(node);
+			result = this.transpileIfStatement(node);
 		} else if (ts.TypeGuards.isBreakStatement(node)) {
-			return this.transpileBreakStatement(node);
+			result = this.transpileBreakStatement(node);
 		} else if (ts.TypeGuards.isExpressionStatement(node)) {
-			return this.transpileExpressionStatement(node);
+			result = this.transpileExpressionStatement(node);
 		} else if (ts.TypeGuards.isContinueStatement(node)) {
-			return this.transpileContinueStatement(node);
+			result = this.transpileContinueStatement(node);
 		} else if (ts.TypeGuards.isForInStatement(node)) {
-			return this.transpileForInStatement(node);
+			result = this.transpileForInStatement(node);
 		} else if (ts.TypeGuards.isForOfStatement(node)) {
-			return this.transpileForOfStatement(node);
+			result = this.transpileForOfStatement(node);
 		} else if (ts.TypeGuards.isForStatement(node)) {
-			return this.transpileForStatement(node);
+			result = this.transpileForStatement(node);
 		} else if (ts.TypeGuards.isReturnStatement(node)) {
-			return this.transpileReturnStatement(node);
+			result = this.transpileReturnStatement(node);
 		} else if (ts.TypeGuards.isThrowStatement(node)) {
-			return this.transpileThrowStatement(node);
+			result = this.transpileThrowStatement(node);
 		} else if (ts.TypeGuards.isVariableStatement(node)) {
-			return this.transpileVariableStatement(node);
+			result = this.transpileVariableStatement(node);
 		} else if (ts.TypeGuards.isWhileStatement(node)) {
-			return this.transpileWhileStatement(node);
+			result = this.transpileWhileStatement(node);
 		} else if (ts.TypeGuards.isEnumDeclaration(node)) {
-			return this.transpileEnumDeclaration(node);
+			result = this.transpileEnumDeclaration(node);
 		} else if (ts.TypeGuards.isExportAssignment(node)) {
-			return this.transpileExportAssignment(node);
+			result = this.transpileExportAssignment(node);
 		} else if (ts.TypeGuards.isSwitchStatement(node)) {
-			return this.transpileSwitchStatement(node);
+			result = this.transpileSwitchStatement(node);
 		} else if (
 			ts.TypeGuards.isEmptyStatement(node) ||
 			ts.TypeGuards.isTypeAliasDeclaration(node) ||
 			ts.TypeGuards.isInterfaceDeclaration(node)
 		) {
-			return "";
+			result = "";
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
 			throw new TranspilerError("Labeled statements are not supported!", node);
 		} else {
 			const kindName = node.getKindName();
 			throw new TranspilerError(`Bad statement! (${kindName})`, node);
 		}
+
+		while (this.prefixStatementQueue.length > 0) {
+			result = this.indent + this.prefixStatementQueue.shift()! + "\n" + result;
+		}
+
+		return result;
 	}
 
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
@@ -1982,6 +1991,32 @@ export class Transpiler {
 	}
 
 	private transpilePrefixUnaryExpression(node: ts.PrefixUnaryExpression) {
+		const op = node.getOperand();
+		const opStr = this.transpileExpression(op);
+		const opKind = node.getOperatorToken();
+
+		let expStr: string;
+		switch (opKind) {
+			case ts.SyntaxKind.PlusPlusToken:
+				expStr = `${opStr} = ${opStr} + 1`;
+				break;
+			case ts.SyntaxKind.MinusMinusToken:
+				expStr = `${opStr} = ${opStr} - 1`;
+				break;
+			default:
+				throw new TranspilerError("Unrecognized operation!", node);
+		}
+
+		const parentKind = node.getParent().getKind();
+		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
+			return expStr;
+		}
+
+		this.prefixStatementQueue.push(expStr);
+		return opStr;
+	}
+
+	private transpilePrefixUnaryExpression2(node: ts.PrefixUnaryExpression) {
 		const parent = node.getParentOrThrow();
 		const operand = node.getOperand();
 
