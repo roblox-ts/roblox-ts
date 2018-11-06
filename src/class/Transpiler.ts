@@ -2166,7 +2166,7 @@ export class Transpiler {
 	}
 
 	private validateApiAccess(node: ts.Node) {
-		if (this.compiler.noHueristics) {
+		if (this.compiler.noHeuristics) {
 			return;
 		}
 		if (this.scriptContext === ScriptContext.Server) {
