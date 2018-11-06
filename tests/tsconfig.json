@@ -9,7 +9,10 @@
 		"downlevelIteration": true,
 		"declaration": false,
 		"target": "es6",
-		"strictNullChecks": true
+		"strictNullChecks": true,
+		"types": [
+			"rbx-types"
+		]
 	},
 	"typeAcquisition": {
 		"enable": true
