@@ -14,19 +14,18 @@
 		"lint": "tslint -p tsconfig.json",
 		"setup-tests": "cd tests && npm install",
 		"test": "mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts",
-		"coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
+		"coverage": "nyc npm test && nyc report | coveralls",
 		"integration-tests": "cd tests && lua spec.lua"
 	},
 	"nyc": {
 		"extension": [
 			".ts"
 		],
-		"exclude": [
-			"tests/**/*.ts",
-			"**/*.d.ts"
+		"include": [
+			"src/class/Transpiler.ts"
 		],
 		"reporter": [
-			"html"
+			"text-lcov"
 		],
 		"all": true
 	},
