@@ -255,12 +255,7 @@ export class Transpiler {
 				str += this.indent + prefixStatement + ";\n";
 			}
 		}
-
-		if (str) {
-			return str;
-		} else {
-			return "";
-		}
+		return str;
 	}
 
 	private popPrefixedStatements() {
@@ -1889,14 +1884,13 @@ export class Transpiler {
 			result += this.indent + "end";
 		} else if (ts.TypeGuards.isExpression(body)) {
 			this.pushIndent();
-			if (initializers.length > 0) {
-				result += "\n";
-			}
+			result += "\n";
 			const expStr = this.transpileExpression(body);
-			initializers.push(`${this.popPrefixedStatements()}${this.indent}return ${expStr};`);
-			result += `${this.indent}${initializers.join("\n")}`;
+			initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+			result += this.popPrefixedStatements();
+			result += this.indent + `return ${expStr};\n`;
 			this.popIndent();
-			result += `\n${this.indent}end`;
+			result += this.indent + "end";
 		} else {
 			const bodyKindName = body.getKindName();
 			throw new TranspilerError(`Bad function body (${bodyKindName})`, node);
