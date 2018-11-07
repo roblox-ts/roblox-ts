@@ -11,10 +11,11 @@ describe("compile", () => {
 			noHeuristics: true,
 			noStrict: false,
 		};
+		process.exitCode = 0;
 		const compiler = new Compiler("tests/tsconfig.json", args);
-		await compiler.compileAll(true, true);
+		await compiler.compileAll(true);
 		if (process.exitCode !== 0) {
-			throw new Error("exit code non-zero!");
+			throw new Error("non-zero exit code");
 		}
 	});
 });

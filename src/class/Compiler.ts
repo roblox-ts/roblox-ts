@@ -303,9 +303,9 @@ export class Compiler {
 		await copyLuaFiles(this.rootDir, this.outDir);
 	}
 
-	public async compileAll(noInclude: boolean, doNotSilence = false) {
+	public async compileAll(noInclude: boolean) {
 		await this.copyLuaSourceFiles();
-		await this.compileFiles(this.project.getSourceFiles(), doNotSilence);
+		await this.compileFiles(this.project.getSourceFiles());
 		await this.copyIncludeFiles(noInclude);
 		await this.copyModuleFiles();
 	}
@@ -339,7 +339,7 @@ export class Compiler {
 		}
 	}
 
-	public async compileFiles(files: Array<ts.SourceFile>, doNotSilence = false) {
+	public async compileFiles(files: Array<ts.SourceFile>) {
 		await this.cleanDirRecursive(this.outDir);
 		if (this.compilerOptions.declaration === true) {
 			this.project.emit({ emitOnlyDtsFiles: true });
@@ -393,20 +393,16 @@ export class Compiler {
 				await fs.writeFile(filePath, contents);
 			}
 		} catch (e) {
-			if (!doNotSilence) {
-				if (e instanceof TranspilerError) {
-					console.log(
-						"%s:%d:%d",
-						e.node.getSourceFile().getFilePath(),
-						e.node.getStartLineNumber(),
-						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-					);
-					console.log(`${red("Transpiler Error:")} ${e.message}`);
-				} else if (e instanceof CompilerError) {
-					console.log(`${red("Compiler Error:")} ${e.message}`);
-				} else {
-					throw e;
-				}
+			if (e instanceof TranspilerError) {
+				console.log(
+					"%s:%d:%d",
+					e.node.getSourceFile().getFilePath(),
+					e.node.getStartLineNumber(),
+					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+				);
+				console.log(`${red("Transpiler Error:")} ${e.message}`);
+			} else if (e instanceof CompilerError) {
+				console.log(`${red("Compiler Error:")} ${e.message}`);
 			} else {
 				throw e;
 			}
