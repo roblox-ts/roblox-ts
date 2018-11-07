@@ -12,8 +12,9 @@
 	},
 	"scripts": {
 		"lint": "tslint -p tsconfig.json",
+		"setup-tests": "cd tests && npm install",
 		"coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec out/test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
-		"test": "lua spec.lua"
+		"test": "lua tests/spec.lua"
 	},
 	"author": "",
 	"license": "MIT",

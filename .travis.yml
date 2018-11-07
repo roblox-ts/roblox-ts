@@ -26,5 +26,6 @@ install:
 
 script:
   - npm run lint
+  - npm run setup-tests
   - npm run coverage
   - npm run test
