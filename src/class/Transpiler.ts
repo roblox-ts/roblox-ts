@@ -1600,6 +1600,10 @@ export class Transpiler {
 	}
 
 	private transpileNumericLiteral(node: ts.NumericLiteral) {
+		const text = node.getText();
+		if (text.indexOf("e") !== -1) {
+			return text;
+		}
 		return node.getLiteralValue().toString();
 	}
 

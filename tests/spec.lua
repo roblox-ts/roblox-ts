@@ -31,13 +31,12 @@ local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "submodules/testez/l
 
 -- Testing code
 local testsFolder = newFolder("Tests", ReplicatedStorage)
-local specFolder = newFolder("spec", testsFolder, "spec")
-newFolder("out", testsFolder, "out")
+local outFolder = newFolder("out", testsFolder, "out")
 
 -- Load TestEZ and run our tests
 local TestEZ = habitat:require(testEZFolder)
 
-local results = TestEZ.TestBootstrap:run({specFolder}, TestEZ.Reporters.TextReporter)
+local results = TestEZ.TestBootstrap:run({ outFolder }, TestEZ.Reporters.TextReporter)
 
 -- Did something go wrong?
 if results.failureCount > 0 then
