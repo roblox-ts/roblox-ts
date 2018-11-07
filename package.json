@@ -12,7 +12,8 @@
 	},
 	"scripts": {
 		"lint": "tslint -p tsconfig.json",
-		"test": "cd tests && npm install && node ../out/index.js --noInclude && lua spec.lua"
+		"coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec out/test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+		"test": "lua spec.lua"
 	},
 	"author": "",
 	"license": "MIT",
@@ -25,7 +26,11 @@
 	"devDependencies": {
 		"@types/chokidar": "^1.7.5",
 		"@types/fs-extra": "^5.0.4",
+		"@types/mocha": "^5.2.5",
 		"@types/node": "^10.11.6",
-		"@types/yargs": "^11.1.2"
+		"@types/yargs": "^11.1.2",
+		"coveralls": "^3.0.2",
+		"istanbul": "^0.4.5",
+		"mocha": "^5.2.0"
 	}
 }

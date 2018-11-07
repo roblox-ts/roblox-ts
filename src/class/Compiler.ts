@@ -349,20 +349,22 @@ export class Compiler {
 			let errors = 0;
 
 			files.forEach(file => {
-				for (const diagnostic of file.getPreEmitDiagnostics()) {
-					if (diagnostic.getCategory() === ts.DiagnosticCategory.Error) {
-						const diagnosticFile = diagnostic.getSourceFile();
-						const line = diagnostic.getLineNumber();
-						if (diagnosticFile) {
-							if (line) {
-								console.log("%s:%d", diagnosticFile.getFilePath(), line);
-							} else {
-								console.log("%s", diagnosticFile.getFilePath());
-							}
+				const diagnostics = file
+					.getPreEmitDiagnostics()
+					.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
+					.filter(diagnostic => diagnostic.getCode() !== 2688);
+				for (const diagnostic of diagnostics) {
+					const diagnosticFile = diagnostic.getSourceFile();
+					const line = diagnostic.getLineNumber();
+					if (diagnosticFile) {
+						if (line) {
+							console.log("%s:%d", diagnosticFile.getFilePath(), line);
+						} else {
+							console.log("%s", diagnosticFile.getFilePath());
 						}
-						console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
-						errors++;
 					}
+					console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
+					errors++;
 				}
 			});
 			if (errors > 0) {
