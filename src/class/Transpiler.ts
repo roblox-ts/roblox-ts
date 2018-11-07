@@ -488,10 +488,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private getPrefixMapHelper(
-		element: ts.PrefixUnaryExpression,
-		lastPrefixUnaries: Array<ts.PrefixUnaryExpression>,
-	) {
+	private getPrefixMapHelper(element: ts.PrefixUnaryExpression, lastPrefixUnaries: Array<ts.PrefixUnaryExpression>) {
 		const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
 		if (id) {
 			const idName = id.getText();
@@ -505,7 +502,6 @@ export class Transpiler {
 		args: Array<ts.Expression<ts.ts.Expression>>,
 		lastPrefixUnaries = new Array<ts.PrefixUnaryExpression>(),
 	): Array<ts.PrefixUnaryExpression> {
-
 		const prefixElementRecurser = (element: ts.Expression<ts.ts.Expression>) => {
 			if (ts.TypeGuards.isPrefixUnaryExpression(element)) {
 				this.getPrefixMapHelper(element, lastPrefixUnaries);
@@ -519,10 +515,7 @@ export class Transpiler {
 		return lastPrefixUnaries;
 	}
 
-	private transpileArguments(
-		args: Array<ts.Expression>,
-		context?: ts.Expression,
-	) {
+	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
 		if (context) {
 			args.unshift(context);
 		}
@@ -530,34 +523,38 @@ export class Transpiler {
 		const lastPrefixUnaries = this.lastPrefixUnaries;
 		this.getPrefixUnaryMaps(args, lastPrefixUnaries);
 
-		const result = args.map(element => {
-			let expressionStr: string;
-			const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
-			let idName: string;
+		const result = args
+			.map(element => {
+				let expressionStr: string;
+				const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
+				let idName: string;
 
-			if (id && ts.TypeGuards.isIdentifier(id)) {
-				idName = id.getText();
-			} else {
-				idName = "";
-			}
-
-			if (
-				ts.TypeGuards.isPrefixUnaryExpression(element) &&
-				idName &&
-				element !== lastPrefixUnaries[lastPrefixUnaries.length - 1]
-			) {
-				// If there are multiple prefixUnaries of the same name in this statement, transpile manually
-				expressionStr = this.getNewId();
-				this.prefixStatementQueue.push(`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`);
-			} else {
-				if (ts.TypeGuards.isCallExpression(element) || ts.TypeGuards.isNewExpression(element)) {
+				if (id && ts.TypeGuards.isIdentifier(id)) {
+					idName = id.getText();
+				} else {
+					idName = "";
 				}
-				expressionStr = this.transpileExpression(element);
-				// console.log(":", element.getKindName(), element.getText(), expressionStr)
-			}
 
-			return expressionStr;
-		}).join(", ");
+				if (
+					ts.TypeGuards.isPrefixUnaryExpression(element) &&
+					idName &&
+					element !== lastPrefixUnaries[lastPrefixUnaries.length - 1]
+				) {
+					// If there are multiple prefixUnaries of the same name in this statement, transpile manually
+					expressionStr = this.getNewId();
+					this.prefixStatementQueue.push(
+						`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`,
+					);
+				} else {
+					if (ts.TypeGuards.isCallExpression(element) || ts.TypeGuards.isNewExpression(element)) {
+					}
+					expressionStr = this.transpileExpression(element);
+					// console.log(":", element.getKindName(), element.getText(), expressionStr)
+				}
+
+				return expressionStr;
+			})
+			.join(", ");
 		return result;
 	}
 
@@ -1042,7 +1039,10 @@ export class Transpiler {
 			if (AccessorFunction) {
 				const funcName = AccessorFunction.getName();
 				const className = AccessorFunction.getParent().getName();
-				throw new TranspilerError(`Cannot return multiple values from getter ${funcName} in ${className}`, node);
+				throw new TranspilerError(
+					`Cannot return multiple values from getter ${funcName} in ${className}`,
+					node,
+				);
 			}
 			let expStr = this.transpileExpression(exp);
 			expStr = expStr.substr(2, expStr.length - 4);
@@ -1791,7 +1791,9 @@ export class Transpiler {
 				) {
 					// If there are multiple prefixUnaries of the same name in this statement, transpile manually
 					expressionStr = this.getNewId();
-					this.prefixStatementQueue.push(`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`);
+					this.prefixStatementQueue.push(
+						`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`,
+					);
 				} else {
 					expressionStr = this.transpileExpression(element);
 				}
