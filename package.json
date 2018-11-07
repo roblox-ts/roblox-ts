@@ -19,10 +19,10 @@
 	},
 	"nyc": {
 		"extension": [
-			".ts",
-			".tsx"
+			".ts"
 		],
 		"exclude": [
+			"tests/**/*.ts",
 			"**/*.d.ts"
 		],
 		"reporter": [
