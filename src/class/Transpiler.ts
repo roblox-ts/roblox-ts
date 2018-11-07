@@ -186,6 +186,10 @@ export class Transpiler {
 	private scriptContext = ScriptContext.None;
 
 	private prefixStatementQueue = new Array<string>();
+	private prefixStatementQueueStack = new Array<Array<string>>(this.prefixStatementQueue);
+
+	private lastPrefixUnaries = new Array<ts.PrefixUnaryExpression>();
+	private lastPrefixUnariesStack = new Array<Array<ts.PrefixUnaryExpression>>();
 
 	constructor(private compiler: Compiler) {}
 
@@ -207,6 +211,16 @@ export class Transpiler {
 		}
 	}
 
+	private pushPrefixUnariesStack() {
+		this.lastPrefixUnaries = new Array<ts.PrefixUnaryExpression>();
+		this.lastPrefixUnariesStack.push(this.lastPrefixUnaries);
+	}
+
+	private popPrefixUnariesStack() {
+		this.lastPrefixUnariesStack.pop();
+		this.lastPrefixUnaries = this.lastPrefixUnariesStack[this.lastPrefixUnariesStack.length - 1];
+	}
+
 	private pushIdStack() {
 		this.idStack.push(0);
 	}
@@ -221,6 +235,36 @@ export class Transpiler {
 
 	private popIndent() {
 		this.indent = this.indent.substr(1);
+	}
+
+	private pushPrefixStatementQueue() {
+		this.prefixStatementQueue = new Array<string>();
+		this.prefixStatementQueueStack.push(this.prefixStatementQueue);
+	}
+
+	private popPrefixStatementQueue() {
+		this.prefixStatementQueueStack.pop();
+		this.prefixStatementQueue = this.prefixStatementQueueStack[this.prefixStatementQueueStack.length - 1];
+	}
+
+	private getStringForPrefixedStatements(prefixStatementQueue: Array<string>) {
+		let str = "";
+		while (prefixStatementQueue.length > 0) {
+			const prefixStatement = prefixStatementQueue.shift();
+			if (prefixStatement) {
+				str += this.indent + prefixStatement + ";\n";
+			}
+		}
+
+		if (str) {
+			return str;
+		} else {
+			return "";
+		}
+	}
+
+	private popPrefixedStatements() {
+		return this.getStringForPrefixedStatements(this.prefixStatementQueue);
 	}
 
 	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
@@ -299,6 +343,8 @@ export class Transpiler {
 		node: HasParameters,
 		defaults?: Array<string>,
 	) {
+		this.pushPrefixStatementQueue();
+
 		for (const param of node.getParameters()) {
 			const child =
 				param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
@@ -330,7 +376,14 @@ export class Transpiler {
 
 			const initial = param.getInitializer();
 			if (initial) {
-				const defaultValue = `if ${name} == nil then ${name} = ${this.transpileExpression(initial)} end;`;
+				const expStr = this.transpileExpression(initial);
+				this.pushIndent();
+				this.pushIndent();
+				const prefixExps = `${this.popPrefixedStatements()}${this.indent}${name} = ${expStr}`;
+				this.popIndent();
+				const defaultValue = `if ${name} == nil then\n${prefixExps}\n${this.indent}end;`;
+				this.popIndent();
+
 				if (defaults) {
 					defaults.push(defaultValue);
 				} else {
@@ -355,6 +408,7 @@ export class Transpiler {
 				postStatements.forEach(statement => initializers.push(statement));
 			}
 		}
+		this.popPrefixStatementQueue();
 	}
 
 	private hasContinue(node: ts.Node) {
@@ -418,6 +472,7 @@ export class Transpiler {
 	}
 
 	private transpileBlock(node: ts.Block) {
+		this.pushPrefixStatementQueue();
 		let result = "";
 		const parent = node.getParentIfKind(ts.SyntaxKind.SourceFile) || node.getParentIfKind(ts.SyntaxKind.Block);
 		if (parent) {
@@ -429,14 +484,81 @@ export class Transpiler {
 			this.popIndent();
 			result += this.indent + "end;\n";
 		}
+		this.popPrefixStatementQueue();
 		return result;
 	}
 
-	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
+	private getPrefixMapHelper(
+		element: ts.PrefixUnaryExpression,
+		lastPrefixUnaries: Array<ts.PrefixUnaryExpression>,
+	) {
+		const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
+		if (id) {
+			const idName = id.getText();
+			if (lastPrefixUnaries.indexOf(element) === -1) {
+				lastPrefixUnaries.push(element);
+			}
+		}
+	}
+
+	private getPrefixUnaryMaps(
+		args: Array<ts.Expression<ts.ts.Expression>>,
+		lastPrefixUnaries = new Array<ts.PrefixUnaryExpression>(),
+	): Array<ts.PrefixUnaryExpression> {
+
+		const prefixElementRecurser = (element: ts.Expression<ts.ts.Expression>) => {
+			if (ts.TypeGuards.isPrefixUnaryExpression(element)) {
+				this.getPrefixMapHelper(element, lastPrefixUnaries);
+			} else if (ts.TypeGuards.isCallExpression(element) || ts.TypeGuards.isNewExpression(element)) {
+				(element.getArguments() as Array<ts.Expression>).forEach(prefixElementRecurser);
+			}
+		};
+
+		args.forEach(prefixElementRecurser);
+
+		return lastPrefixUnaries;
+	}
+
+	private transpileArguments(
+		args: Array<ts.Expression>,
+		context?: ts.Expression,
+	) {
 		if (context) {
 			args.unshift(context);
 		}
-		return args.map(arg => this.transpileExpression(arg)).join(", ");
+
+		const lastPrefixUnaries = this.lastPrefixUnaries;
+		this.getPrefixUnaryMaps(args, lastPrefixUnaries);
+
+		const result = args.map(element => {
+			let expressionStr: string;
+			const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
+			let idName: string;
+
+			if (id && ts.TypeGuards.isIdentifier(id)) {
+				idName = id.getText();
+			} else {
+				idName = "";
+			}
+
+			if (
+				ts.TypeGuards.isPrefixUnaryExpression(element) &&
+				idName &&
+				element !== lastPrefixUnaries[lastPrefixUnaries.length - 1]
+			) {
+				// If there are multiple prefixUnaries of the same name in this statement, transpile manually
+				expressionStr = this.getNewId();
+				this.prefixStatementQueue.push(`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`);
+			} else {
+				if (ts.TypeGuards.isCallExpression(element) || ts.TypeGuards.isNewExpression(element)) {
+				}
+				expressionStr = this.transpileExpression(element);
+				// console.log(":", element.getKindName(), element.getText(), expressionStr)
+			}
+
+			return expressionStr;
+		}).join(", ");
+		return result;
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
@@ -453,6 +575,8 @@ export class Transpiler {
 
 	private transpileStatement(node: ts.Statement): string {
 		let result: string;
+		this.pushPrefixUnariesStack();
+
 		if (ts.TypeGuards.isBlock(node)) {
 			if (node.getStatements().length === 0) {
 				return "";
@@ -513,11 +637,8 @@ export class Transpiler {
 			throw new TranspilerError(`Bad statement! (${kindName})`, node);
 		}
 
-		while (this.prefixStatementQueue.length > 0) {
-			result = this.indent + this.prefixStatementQueue.shift()! + "\n" + result;
-		}
-
-		return result;
+		this.popPrefixUnariesStack();
+		return this.popPrefixedStatements() + result;
 	}
 
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
@@ -685,7 +806,10 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + "repeat\n";
 		this.pushIndent();
+		this.pushPrefixStatementQueue();
 		result += this.transpileLoopBody(node.getStatement());
+		this.popPrefixStatementQueue();
+		result += this.popPrefixedStatements();
 		this.popIndent();
 		result += this.indent + `until not (${condition});\n`;
 		return result;
@@ -914,6 +1038,12 @@ export class Transpiler {
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp && ts.TypeGuards.isArrayLiteralExpression(exp)) {
+			const AccessorFunction = node.getFirstAncestorByKind(ts.SyntaxKind.GetAccessor);
+			if (AccessorFunction) {
+				const funcName = AccessorFunction.getName();
+				const className = AccessorFunction.getParent().getName();
+				throw new TranspilerError(`Cannot return multiple values from getter ${funcName} in ${className}`, node);
+			}
 			let expStr = this.transpileExpression(exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return this.indent + `return ${expStr};\n`;
@@ -1040,10 +1170,14 @@ export class Transpiler {
 
 	private transpileWhileStatement(node: ts.WhileStatement) {
 		const expStr = this.transpileExpression(node.getExpression());
-		let result = "";
+		const previousPrefixQueue = this.prefixStatementQueue.slice();
+		const prefixStatements = this.popPrefixedStatements();
+		let result = prefixStatements;
+
 		result += this.indent + `while ${expStr} do\n`;
 		this.pushIndent();
 		result += this.transpileLoopBody(node.getStatement());
+		result += this.getStringForPrefixedStatements(previousPrefixQueue);
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		return result;
@@ -1328,6 +1462,8 @@ export class Transpiler {
 		if (node) {
 			const body = node.getBodyOrThrow();
 			if (ts.TypeGuards.isBlock(body)) {
+				this.pushPrefixStatementQueue();
+
 				defaults.forEach(initializer => (result += this.indent + initializer + "\n"));
 
 				const bodyStatements = body.getStatements();
@@ -1338,6 +1474,10 @@ export class Transpiler {
 				}
 
 				initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
+				result += this.popPrefixedStatements();
+				this.popPrefixStatementQueue();
+				result += this.popPrefixedStatements();
+				this.pushPrefixStatementQueue();
 
 				if (extraInitializers) {
 					extraInitializers.forEach(initializer => (result += this.indent + initializer));
@@ -1346,6 +1486,9 @@ export class Transpiler {
 				for (; k < bodyStatements.length; ++k) {
 					result += this.transpileStatement(bodyStatements[k]);
 				}
+
+				result += this.popPrefixedStatements();
+				this.popPrefixStatementQueue();
 
 				const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
@@ -1360,6 +1503,7 @@ export class Transpiler {
 			if (baseClassName) {
 				result += this.indent + `${baseClassName}.constructor(self, ...);\n`;
 			}
+			result += this.popPrefixedStatements();
 			if (extraInitializers) {
 				extraInitializers.forEach(initializer => (result += this.indent + initializer));
 			}
@@ -1493,8 +1637,7 @@ export class Transpiler {
 
 	private transpileSwitchStatement(node: ts.SwitchStatement) {
 		const expStr = this.transpileExpression(node.getExpression());
-		let result = "";
-		result += this.indent + `repeat\n`;
+		let result = `${this.popPrefixedStatements()}${this.indent}repeat\n`;
 		this.pushIndent();
 		this.pushIdStack();
 		const fallThroughVar = this.getNewId();
@@ -1614,6 +1757,9 @@ export class Transpiler {
 		}
 		let isInArray = false;
 		const parts = new Array<Array<string> | string>();
+
+		const lastPrefixUnaries = this.getPrefixUnaryMaps(elements);
+
 		elements.forEach(element => {
 			if (ts.TypeGuards.isSpreadElement(element)) {
 				parts.push(this.transpileExpression(element.getExpression()));
@@ -1626,7 +1772,31 @@ export class Transpiler {
 					last = new Array<string>();
 					parts.push(last);
 				}
-				last.push(this.transpileExpression(element));
+
+				let expressionStr: string;
+
+				const id = element.getLastChildByKind(ts.SyntaxKind.Identifier);
+				let idName: string;
+
+				if (id && ts.TypeGuards.isIdentifier(id)) {
+					idName = id.getText();
+				} else {
+					idName = "";
+				}
+
+				if (
+					ts.TypeGuards.isPrefixUnaryExpression(element) &&
+					idName &&
+					element !== lastPrefixUnaries[lastPrefixUnaries.length - 1]
+				) {
+					// If there are multiple prefixUnaries of the same name in this statement, transpile manually
+					expressionStr = this.getNewId();
+					this.prefixStatementQueue.push(`local ${expressionStr} = ${this.transpilePrefixUnaryExpression(element)}`);
+				} else {
+					expressionStr = this.transpileExpression(element);
+				}
+
+				last.push(expressionStr);
 				isInArray = true;
 			}
 		});
@@ -1707,8 +1877,7 @@ export class Transpiler {
 		this.pushIdStack();
 		this.getParameterData(paramNames, initializers, node);
 		const paramStr = paramNames.join(", ");
-		let result = "";
-		result += `function(${paramStr})`;
+		let result = `function(${paramStr})`;
 		if (ts.TypeGuards.isBlock(body)) {
 			result += "\n";
 			this.pushIndent();
@@ -1717,13 +1886,15 @@ export class Transpiler {
 			this.popIndent();
 			result += this.indent + "end";
 		} else if (ts.TypeGuards.isExpression(body)) {
+			this.pushIndent();
 			if (initializers.length > 0) {
-				result += " ";
+				result += "\n";
 			}
 			const expStr = this.transpileExpression(body);
-			initializers.push(`return ${expStr};`);
-			const initializersStr = initializers.join(" ");
-			result += ` ${initializersStr} end`;
+			initializers.push(`${this.popPrefixedStatements()}${this.indent}return ${expStr};`);
+			result += `${this.indent}${initializers.join("\n")}`;
+			this.popIndent();
+			result += `\n${this.indent}end`;
 		} else {
 			const bodyKindName = body.getKindName();
 			throw new TranspilerError(`Bad function body (${bodyKindName})`, node);
@@ -2013,6 +2184,7 @@ export class Transpiler {
 		}
 
 		this.prefixStatementQueue.push(expStr);
+
 		return opStr;
 	}
 
