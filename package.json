@@ -15,7 +15,7 @@
 		"setup-tests": "cd tests && npm install",
 		"test": "mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts",
 		"coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
-		"integration-test": "cd tests && lua spec.lua"
+		"integration-tests": "cd tests && lua spec.lua"
 	},
 	"nyc": {
 		"extension": [
