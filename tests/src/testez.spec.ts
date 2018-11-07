@@ -1,7 +1,7 @@
 // ..does testez actuall work?
 
 export = () => {
-	it("should work!", () => {
+	it("should work with testez", () => {
 		// Equality
 		expect(1).to.equal(1);
 		expect(1).never.to.equal(2);
