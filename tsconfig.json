@@ -6,7 +6,8 @@
 		"target": "es6",
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
-		"strictNullChecks": true
+		"strictNullChecks": true,
+		"sourceMap": true
 	},
 	"include": [
 		"src/**/*"
