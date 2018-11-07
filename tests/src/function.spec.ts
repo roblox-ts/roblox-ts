@@ -51,4 +51,16 @@ export = () => {
 			})(),
 		).to.equal(456);
 	});
+
+	it("should allow binding patterns", () => {
+		function foo({ a }: { a: number }) {
+			return a * 2;
+		}
+		expect(foo({ a: 4 })).to.equal(8);
+
+		function bar([a, b]: [number, number]) {
+			return a * b;
+		}
+		expect(bar([4, 7])).to.equal(28);
+	});
 };
