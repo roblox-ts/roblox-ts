@@ -58,4 +58,44 @@ export = () => {
 		expect(one).to.equal(1);
 		expect(four).to.equal(4);
 	});
+
+	it("should allow default values", () => {
+		const foo = {
+			a: {
+				b: 1,
+			},
+		};
+
+		const bar = {
+			a: {
+				b: undefined,
+			},
+		};
+
+		{
+			const {
+				a: { b = 5 },
+			} = foo;
+			expect(b).to.equal(1);
+		}
+		{
+			const {
+				a: { b = 5 },
+			} = bar;
+			expect(b).to.equal(5);
+		}
+	});
+
+	it("should allow aliases", () => {
+		const foo = {
+			a: {
+				b: 123,
+			},
+		};
+
+		const {
+			a: { b: z },
+		} = foo;
+		expect(z).to.equal(123);
+	});
 };
