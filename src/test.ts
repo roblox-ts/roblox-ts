@@ -8,7 +8,7 @@ describe("compile", () => {
 			includePath: "include",
 			modulesPath: "modules",
 			noHeader: false,
-			noHeuristics: false,
+			noHeuristics: true,
 			noStrict: false,
 		};
 		const compiler = new Compiler("tests/tsconfig.json", args);
