@@ -13,8 +13,22 @@
 	"scripts": {
 		"lint": "tslint -p tsconfig.json",
 		"setup-tests": "cd tests && npm install",
-		"coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --timeout 0 out/test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
-		"test": "cd tests && lua spec.lua"
+		"test": "mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts",
+		"coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
+		"integration-test": "cd tests && lua spec.lua"
+	},
+	"nyc": {
+		"extension": [
+			".ts",
+			".tsx"
+		],
+		"exclude": [
+			"**/*.d.ts"
+		],
+		"reporter": [
+			"html"
+		],
+		"all": true
 	},
 	"author": "",
 	"license": "MIT",
@@ -31,7 +45,9 @@
 		"@types/node": "^10.11.6",
 		"@types/yargs": "^11.1.2",
 		"coveralls": "^3.0.2",
-		"istanbul": "^0.4.5",
-		"mocha": "^5.2.0"
+		"mocha": "^5.2.0",
+		"nyc": "^13.1.0",
+		"source-map-support": "^0.5.9",
+		"ts-node": "^7.0.1"
 	}
 }
