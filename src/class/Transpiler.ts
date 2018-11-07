@@ -1566,13 +1566,15 @@ export class Transpiler {
 			return this.transpileTypeOfExpression(node);
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
+		} else if (ts.TypeGuards.isOmittedExpression(node)) {
+			return "nil";
 		} else if (ts.TypeGuards.isThisExpression(node)) {
 			if (!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration)) {
 				throw new TranspilerError("'this' may only be used inside a class definition", node);
 			}
 			return "self";
 		} else if (ts.TypeGuards.isSuperExpression(node)) {
-			return this.transpileSuperExpression(node);
+			return "super";
 		} else if (
 			ts.TypeGuards.isAsExpression(node) ||
 			ts.TypeGuards.isTypeAssertion(node) ||
@@ -2333,10 +2335,6 @@ export class Transpiler {
 	private transpileTypeOfExpression(node: ts.TypeOfExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
 		return `TS.typeof(${expStr})`;
-	}
-
-	private transpileSuperExpression(node: ts.SuperExpression) {
-		return `super`;
 	}
 
 	private transpileSpreadElement(node: ts.SpreadElement) {

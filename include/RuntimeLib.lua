@@ -140,41 +140,53 @@ end
 -- array macro functions
 TS.array = {}
 
-function TS.array.forEach(list, func)
+function TS.array.forEach(list, callback)
 	for i = 1, #list do
-		func(list[i], i, list)
+		callback(list[i], i - 1, list)
 	end
 end
 
-function TS.array.map(list, func)
-	local out = {}
+function TS.array.map(list, callback)
+	local result = {}
 	for i = 1, #list do
-		table.insert(out, func(list[i]))
+		result[i] = callback(list[i], i - 1, list)
 	end
-	return out
+	return result
 end
 
-function TS.array.filter(list, func)
-	local out = {}
+function TS.array.filter(list, callback)
+	local result = {}
 	for i = 1, #list do
-		if func(list[i]) then
-			table.insert(out, list[i])
+		local v = list[i]
+		if callback(v, i - 1, list) == true then
+			result[#result + 1] = v
 		end
 	end
-	return out
+	return result
 end
 
 function TS.array.slice(list, startI, endI)
-	if not endI or endI > #list then endI = #list end
-	if startI < 1 then startI = math.max(#list + startI, 1) end
-	if endI < 1 then endI = math.max(#list + endI, 1) end
-	local out = {}
-	for i = startI, endI do
-		table.insert(out, list[i])
+	local length = #list
+	if not startI then
+		startI = 0
 	end
-	return out
+	if not endI then
+		endI = length
+	end
+	if startI < 0 then
+		startI = length + startI
+	end
+	if endI < 0 then
+		endI = length + endI
+	end
+	startI = startI + 1
+	endI = endI + 1
+	local result = {}
+	for i = startI, endI - 1 do
+		result[i - startI + 1] = list[i]
+	end
+	return result
 end
-
 
 function TS.array.splice(list, start, deleteCount, ...)
 	local len = #list
@@ -184,7 +196,7 @@ function TS.array.splice(list, start, deleteCount, ...)
 	else
 		actualStart = math.min(start, len)
 	end
-	local items = {...}
+	local items = { ... }
 	local itemCount = #items
 	local actualDeleteCount
 	if not start then
@@ -246,16 +258,30 @@ function TS.array.splice(list, start, deleteCount, ...)
 	return out
 end
 
-function TS.array.some(list, func)
-	return #TS.array.filter(list, func) > 0
-end
-
-function TS.array.every(list, func)
-	return #list == #TS.array.filter(list, func)
-end
-
-function TS.array.indexOf(list, object)
+function TS.array.some(list, callback)
 	for i = 1, #list do
+		if callback(list[i], i - 1, list) == true then
+			return true
+		end
+	end
+	return false
+end
+
+function TS.array.every(list, callback)
+	for i = 1, #list do
+		if callback(list[i], i - 1, list) == false then
+			return false
+		end
+	end
+	return true
+end
+
+function TS.array.indexOf(list, object, fromIndex)
+	if fromIndex == nil then
+		fromIndex = 0
+	end
+	fromIndex = fromIndex + 1
+	for i = fromIndex, #list do
 		if object == list[i] then
 			return i - 1
 		end
@@ -274,25 +300,27 @@ end
 function TS.array.reduce(list, callback, initialValue)
 	local start = 1
 	if not initialValue then
-		initialValue = list[1]
-		start = 2
+		initialValue = list[start]
+		start = start + 1
 	end
 	local accumulator = initialValue
 	for i = start, #list do
-		callback(accumulator, list[i], i)
+		accumulator = callback(accumulator, list[i], i)
 	end
+	return accumulator
 end
 
 function TS.array.reduceRight(list, callback, initialValue)
-	local start = 1
+	local start = #list
 	if not initialValue then
-		initialValue = list[1]
-		start = 2
+		initialValue = list[start]
+		start = start - 1
 	end
 	local accumulator = initialValue
-	for i = #list, start do
-		callback(accumulator, list[i], i)
+	for i = start, 1, -1 do
+		accumulator = callback(accumulator, list[i], i)
 	end
+	return accumulator
 end
 
 function TS.array.shift(list)
