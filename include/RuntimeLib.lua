@@ -276,13 +276,26 @@ function TS.array.every(list, callback)
 	return true
 end
 
-function TS.array.indexOf(list, object, fromIndex)
+function TS.array.indexOf(list, value, fromIndex)
 	if fromIndex == nil then
 		fromIndex = 0
 	end
 	fromIndex = fromIndex + 1
 	for i = fromIndex, #list do
-		if object == list[i] then
+		if value == list[i] then
+			return i - 1
+		end
+	end
+	return -1
+end
+
+function TS.array.lastIndexOf(list, value, fromIndex)
+	if fromIndex == nil then
+		fromIndex = #list - 1
+	end
+	fromIndex = fromIndex + 1
+	for i = fromIndex, 1, -1 do
+		if value == list[i] then
 			return i - 1
 		end
 	end
@@ -329,7 +342,7 @@ end
 
 function TS.array.unshift(list, ...)
 	local args = { ... }
-	for i = #list, 1 do
+	for i = #list, 1, -1 do
 		list[i + #args] = list[i]
 	end
 	for i = 1, #args do
