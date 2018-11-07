@@ -13,7 +13,7 @@
 	"scripts": {
 		"lint": "tslint -p tsconfig.json",
 		"setup-tests": "cd tests && npm install",
-		"coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec out/test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
+		"coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --timeout 0 out/test.js && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js && rm -rf ./coverage",
 		"test": "cd tests && lua spec.lua"
 	},
 	"author": "",

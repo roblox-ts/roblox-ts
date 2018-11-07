@@ -13,6 +13,7 @@
 		"no-console": false,
 		"no-empty-interface": false,
 		"no-empty": false,
+		"no-var-requires": false,
 		"no-string-literal": true,
 		"no-unnecessary-qualifier": true,
 		"no-unused-variable": true,

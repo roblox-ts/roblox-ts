@@ -1,5 +1,6 @@
-import mocha = require("mocha");
 import { Compiler } from "./class/Compiler";
+
+require("mocha");
 
 describe("compile", () => {
 	it("should compile all test cases", done => {
