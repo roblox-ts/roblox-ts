@@ -12,7 +12,7 @@ describe("compile", () => {
 			noStrict: false,
 		};
 		const compiler = new Compiler("tests/tsconfig.json", args);
-		await compiler.compileAll(true);
+		await compiler.compileAll(true, true);
 		if (process.exitCode !== 0) {
 			throw new Error("exit code non-zero!");
 		}
