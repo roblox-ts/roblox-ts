@@ -29,4 +29,28 @@ export = () => {
 		expect(obj.b).to.equal(3);
 		expect(obj.c).to.equal(4);
 	});
+
+	it("should allow break", () => {
+		const array = [1, 2, 3, 4, 5];
+		let sum = 0;
+		for (const value of array) {
+			sum += value;
+			if (value === 3) {
+				break;
+			}
+		}
+		expect(sum).to.equal(6);
+	});
+
+	it("should allow continue", () => {
+		const array = [1, 2, 3, 4];
+		let sum = 0;
+		for (const value of array) {
+			if (value === 3) {
+				continue;
+			}
+			sum += value;
+		}
+		expect(sum).to.equal(7);
+	});
 };
