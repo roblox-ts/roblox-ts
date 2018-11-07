@@ -407,6 +407,8 @@ export class Compiler {
 				} else {
 					throw e;
 				}
+			} else {
+				throw e;
 			}
 			process.exitCode = 1;
 		}
