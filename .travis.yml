@@ -27,6 +27,6 @@ install:
 
 script:
   - npm run lint
-  - nyc npm test
-  - nyc report | coveralls
+  - npx nyc npm test
+  - npx nyc report | npx coveralls
   - npm run integration-tests
