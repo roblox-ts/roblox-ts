@@ -1,4 +1,22 @@
 export = () => {
+	it("should support element access", () => {
+		const a = [1, 2, 3];
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(3);
+		expect([1, 2, 3][0]).to.equal(1);
+		expect([1, 2, 3][1]).to.equal(2);
+		expect([1, 2, 3][2]).to.equal(3);
+
+		function foo() {
+			const result = [1, 2, 3];
+			return result;
+		}
+		expect(foo()[0]).to.equal(1);
+		expect(foo()[1]).to.equal(2);
+		expect(foo()[2]).to.equal(3);
+	});
+
 	it("should support length", () => {
 		expect([].length).to.equal(0);
 		expect([1].length).to.equal(1);
@@ -73,7 +91,17 @@ export = () => {
 		expect(c[0]).to.equal(1);
 
 		const d = a.slice(-2);
+		expect(d).never.to.equal(a);
+		expect(d.length).to.equal(2);
+		expect(d[0]).to.equal(2);
+		expect(d[1]).to.equal(3);
+
 		const e = a.slice();
+		expect(e).never.to.equal(a);
+		expect(e.length).to.equal(3);
+		expect(e[0]).to.equal(1);
+		expect(e[1]).to.equal(2);
+		expect(e[2]).to.equal(3);
 	});
 
 	// TODO issue #98
