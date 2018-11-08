@@ -46,4 +46,77 @@ export = () => {
 		expect(two + one).to.equal(3);
 		expect(two + two).to.equal(4);
 	});
+
+	it("should support ===", () => {
+		const a = (() => false)();
+		const b = (() => true)();
+		expect(a === a).to.equal(true);
+		expect(a === b).to.equal(false);
+		expect(b === b).to.equal(true);
+		expect(b === a).to.equal(false);
+	});
+
+	it("should support !==", () => {
+		const a = (() => false)();
+		const b = (() => true)();
+		expect(a !== a).to.equal(false);
+		expect(a !== b).to.equal(true);
+		expect(b !== b).to.equal(false);
+		expect(b !== a).to.equal(true);
+	});
+
+	it("should support &&", () => {
+		const a = false;
+		const b = true;
+		expect(a && a).to.equal(false);
+		expect(a && b).to.equal(false);
+		expect(b && b).to.equal(true);
+		expect(b && a).to.equal(false);
+	});
+
+	it("should support ||", () => {
+		const a = false;
+		const b = true;
+		expect(a || a).to.equal(false);
+		expect(a || b).to.equal(true);
+		expect(b || b).to.equal(true);
+		expect(b || a).to.equal(true);
+	});
+
+	it("should support `in`", () => {
+		const foo = {
+			a: 1,
+		};
+		expect("a" in foo).to.equal(true);
+		expect("b" in foo).to.equal(false);
+	});
+
+	it("should support <", () => {
+		expect(1 < 2).to.equal(true);
+		expect(2 < 1).to.equal(false);
+		expect(2 < 2).to.equal(false);
+	});
+
+	it("should support >", () => {
+		expect(1 > 2).to.equal(false);
+		expect(2 > 1).to.equal(true);
+		expect(2 > 2).to.equal(false);
+	});
+
+	it("should support <=", () => {
+		expect(1 <= 2).to.equal(true);
+		expect(2 <= 1).to.equal(false);
+		expect(2 <= 2).to.equal(true);
+	});
+
+	it("should support >=", () => {
+		expect(1 >= 2).to.equal(false);
+		expect(2 >= 1).to.equal(true);
+		expect(2 >= 2).to.equal(true);
+	});
+
+	it("should support !", () => {
+		expect(!false).to.equal(true);
+		expect(!true).to.equal(false);
+	});
 };
