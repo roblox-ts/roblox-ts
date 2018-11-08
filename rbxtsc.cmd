@@ -1,1 +1,1 @@
-node "C:\Users\Lior\Desktop\OneDrive\Roblox\roblox-ts\out\index.js" %*
+node ".\out\index.js" %*
