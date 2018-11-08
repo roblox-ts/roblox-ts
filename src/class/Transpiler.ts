@@ -1653,9 +1653,14 @@ export class Transpiler {
 		}
 
 		let isInObject = false;
+		let first = true;
+		let firstIsObj = false;
 		const parts = new Array<string>();
-		properties.forEach((prop, index) => {
+		properties.forEach(prop => {
 			if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
+				if (first) {
+					firstIsObj = true;
+				}
 				let lhs = prop.getName();
 				if (/^\d+$/.test(lhs)) {
 					lhs = `[${lhs}]`;
@@ -1673,24 +1678,26 @@ export class Transpiler {
 				}
 
 				if (!isInObject) {
-					parts.push("");
-					if (index !== 0) {
-						parts[parts.length - 1] += this.indent;
-					}
-					parts[parts.length - 1] += "{\n";
+					parts.push("{\n");
 					this.pushIndent();
 				}
 
 				parts[parts.length - 1] += this.indent + `${lhs} = ${rhs};\n`;
 				isInObject = true;
 			} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
+				if (first) {
+					firstIsObj = false;
+				}
 				if (isInObject) {
 					this.popIndent();
 					parts[parts.length - 1] += this.indent + "}";
 				}
 				const expStr = this.transpileExpression(prop.getExpression());
-				parts.push((index === 0 ? "" : this.indent) + expStr);
+				parts.push(expStr);
 				isInObject = false;
+			}
+			if (first) {
+				first = false;
 			}
 		});
 
@@ -1701,7 +1708,11 @@ export class Transpiler {
 
 		if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
 			const params = parts.join(", ");
-			return `TS.Object.assign(${params})`;
+			if (!firstIsObj) {
+				return `TS.Object.assign({}, ${params})`;
+			} else {
+				return `TS.Object.assign(${params})`;
+			}
 		} else {
 			return parts.join(", ");
 		}
