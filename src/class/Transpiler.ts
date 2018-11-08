@@ -504,6 +504,8 @@ export class Transpiler {
 			return this.transpileExportAssignment(node);
 		} else if (ts.TypeGuards.isSwitchStatement(node)) {
 			return this.transpileSwitchStatement(node);
+		} else if (ts.TypeGuards.isTryStatement(node)) {
+			return this.transpileTryStatement(node);
 		} else if (
 			ts.TypeGuards.isEmptyStatement(node) ||
 			ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -927,7 +929,7 @@ export class Transpiler {
 
 	private transpileThrowStatement(node: ts.ThrowStatement) {
 		const expStr = this.transpileExpression(node.getExpressionOrThrow());
-		return this.indent + `error(${expStr});\n`;
+		return this.indent + `TS.error(${expStr});\n`;
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
@@ -1525,6 +1527,29 @@ export class Transpiler {
 		this.popIdStack();
 		this.popIndent();
 		result += this.indent + `until true;\n`;
+		return result;
+	}
+
+	private transpileTryStatement(node: ts.TryStatement) {
+		let result = "";
+		result += this.indent + "local TS_success, TS_error = pcall(function()\n";
+		this.pushIndent();
+		result += this.transpileStatementedNode(node.getTryBlock());
+		this.popIndent();
+		result += this.indent + "end);\n";
+		let catchClause = node.getCatchClause();
+		if (catchClause !== undefined) {
+			result += this.indent + "if not TS_success then\n";
+			this.pushIndent();
+			result += this.indent + "local " + catchClause.getVariableDeclarationOrThrow().getName() + " = TS.decodeError(TS_error)\n";
+			result += this.transpileStatementedNode(catchClause.getBlock());
+			this.popIndent();
+			result += this.indent + "end\n";
+		}
+		let finallyBlock = node.getFinallyBlock();
+		if (finallyBlock !== undefined) {
+			result += this.transpileStatementedNode(finallyBlock);
+		}
 		return result;
 	}
 

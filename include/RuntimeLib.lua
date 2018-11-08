@@ -561,4 +561,31 @@ function TS.Object.assign(toObj, ...)
 	return toObj
 end
 
+-- Error objects
+local errors = setmetatable({}, {__mode = "v"})
+
+function TS.error(object, level)
+	if level ~= 0 then
+		level = (level or 1) + 1
+	end
+	local id = ""
+	for i = 1, 16 do
+		id = id .. string.char(math.random(65, 90))
+	end
+	if type(object) == "table" and object.message ~= nil then
+		id = id .. "; message: " .. object.message
+	end
+	errors[id] = object
+	error("error: [<[" .. id .. "]>]", level)
+end
+
+function TS.decodeError(errorMessage)
+	local result
+	local key = errorMessage:match("error%: %[%<%[(.-)%]%>%]")
+	if key ~= nil then
+		result = errors[key]
+	end
+	return result or errorMessage
+end
+
 return TS
