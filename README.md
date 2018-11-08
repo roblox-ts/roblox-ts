@@ -14,6 +14,31 @@ As Roblox games become increasingly complex and larger in size, writing safe cod
 
 **roblox-ts** attempts to solve this problem by compiling TypeScript code into Lua code for Roblox usage.
 
+## Goals
+*(What we want to do)*
+- Provide static type checking for Roblox games.
+- Always generate syntactically sound Lua.
+- Maintain compatability with TypeScript tooling.
+- Allow interoperability between TS<->Lua and Lua<->TS.
+- Mirror data type APIs where there is missing functionality in Lua -- and augment data types in the spirit of JavaScript.
+- Enable and encourage efficient development workflows.
+- Optimize emitted Lua depending on context, but not at the cost of stability.
+- Do not introduce unexpected members in the global scope or on user-defined objects.
+
+## Pillars 
+*(How we'll do it)*
+- Stability over complexity.
+- Prevent footguns wherever possible. Encourage falling into the pit of success!
+- Do not assume developer intention when ambiguity arises.
+- Be unopinionated about code style and project structure when feasible.
+
+## Non-goals
+*(What we don't want to do*)
+- Implement/simulate the entire JavaScript API.
+- Interoperability with vanilla TypeScript modules.
+- Wrap or rename existing Lua APIs in order to make them more JavaScript-like.
+- Take over the world. 
+
 https://roblox-ts.github.io/
 
 # Getting Started
