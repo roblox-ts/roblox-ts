@@ -10,9 +10,9 @@
 
 
 ## Why?
-As Roblox games become increasingly complex and larger in size, writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
+As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
 
-**roblox-ts** attempts to solve this problem by compiling TypeScript code into Lua code for Roblox usage.
+**roblox-ts** attempts to solve these problems by compiling TypeScript code directly into Lua, tuned for use in Roblox specifically.
 
 ## Goals
 *(What we want to do)*
