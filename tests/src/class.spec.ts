@@ -79,5 +79,38 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should support getters", () => {});
+	it("should support getters", () => {
+		class Foo {
+			get bar() {
+				return "baz";
+			}
+		}
+		expect(new Foo().bar).to.equal("baz");
+	});
+
+	it("should support setters", () => {
+		class Foo {
+			private baz = "";
+			set bar(value: string) {
+				this.baz = value;
+			}
+			get bar() {
+				return this.baz;
+			}
+		}
+		const foo = new Foo();
+		foo.bar = "a";
+		expect(foo.bar).to.equal("a");
+		foo.bar = "b";
+		expect(foo.bar).to.equal("b");
+	});
+
+	it("should support __tostring", () => {
+		class Foo {
+			public __tostring() {
+				return "Foo";
+			}
+		}
+		expect(tostring(new Foo())).to.equal("Foo");
+	});
 };
