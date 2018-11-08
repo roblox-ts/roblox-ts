@@ -22,11 +22,12 @@ install:
   - luarocks install luafilesystem
   - npm install typescript tslint prettier -g
   - npm install
-  - tsc
   - pushd tests && npm install && popd
 
 script:
   - npm run lint
-  - npx nyc npm test
-  - npx nyc report | npx coveralls
+  - npm test
   - npm run integration-tests
+
+after_success:
+  - npm run coverage
