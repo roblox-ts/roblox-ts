@@ -963,7 +963,7 @@ export class Transpiler {
 	}
 
 	private transpileForStatement(node: ts.ForStatement) {
-		this.pushPrefixStatementQueue()
+		this.pushPrefixStatementQueue();
 		const condition = node.getCondition();
 		const conditionStr = condition ? this.transpileExpression(condition) : "true";
 		const prefixInits = this.prefixStatementQueue.slice();
