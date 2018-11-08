@@ -420,6 +420,14 @@ function TS.map.clear(map)
 	end
 end
 
+function TS.map.delete(map, key)
+	local has = TS.map.has(map, key)
+	if has then
+		map[key] = nil
+	end
+	return has
+end
+
 function TS.map.size(map)
 	local result = 0
 	for _ in pairs(map) do
@@ -503,7 +511,13 @@ end
 
 TS.set.has = TS.map.has
 
-TS.set.entries = TS.map.entries
+function TS.set.entries(map)
+	local result = {}
+	for key in pairs(map) do
+		table.insert(result, {key, key})
+	end
+	return result
+end
 
 TS.set.values = TS.map.keys
 
@@ -515,9 +529,6 @@ TS.set.size = TS.map.size
 TS.string = {}
 
 function TS.string.split(input, sep)
-	if sep == nil then
-		sep = "%s"
-	end
 	local result = {}
 	for str in string.gmatch(input, "[^" .. sep .. "]+") do
 		table.insert(result, str)
