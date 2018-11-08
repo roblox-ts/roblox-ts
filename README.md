@@ -1,5 +1,5 @@
 <div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
-<h1 align="center">roblox-ts</h1>
+<h1 align="center"><a href="https://roblox-ts.github.io/">roblox-ts</a></h1>
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <br>
 <div align="center">
@@ -7,7 +7,6 @@
 	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
 </div>
 <div>&nbsp;</div>
-
 
 ## Why?
 As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
@@ -38,8 +37,6 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 - Interoperability with vanilla TypeScript modules.
 - Wrap or rename existing Lua APIs in order to make them more JavaScript-like.
 - Take over the world. 
-
-https://roblox-ts.github.io/
 
 # Getting Started
 
