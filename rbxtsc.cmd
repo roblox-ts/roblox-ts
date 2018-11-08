@@ -1,0 +1,1 @@
+node "C:\Users\Lior\Desktop\OneDrive\Roblox\roblox-ts\out\index.js" %*
