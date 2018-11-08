@@ -59,14 +59,5 @@ export = () => {
 		expect(obj1.b).to.equal(2);
 		expect(obj1.c).to.equal(3);
 		expect(obj1.d).to.equal(2);
-
-		const baz = {
-			a: 6,
-			...foo,
-			...foo,
-			...foo,
-			e: 72,
-			...bar,
-		};
 	});
 };
