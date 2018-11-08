@@ -1030,14 +1030,8 @@ export class Transpiler {
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp && ts.TypeGuards.isArrayLiteralExpression(exp)) {
-			const AccessorFunction = node.getFirstAncestorByKind(ts.SyntaxKind.GetAccessor);
-			if (AccessorFunction) {
-				const funcName = AccessorFunction.getName();
-				const className = AccessorFunction.getParent().getName();
-				throw new TranspilerError(
-					`Cannot return multiple values from getter ${funcName} in ${className}`,
-					node,
-				);
+			if (node.getFirstAncestorByKind(ts.SyntaxKind.GetAccessor)) {
+				throw new TranspilerError("Cannot return multiple values from getter", node);
 			}
 			let expStr = this.transpileExpression(exp);
 			expStr = expStr.substr(2, expStr.length - 4);
