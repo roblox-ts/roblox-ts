@@ -1,18 +1,18 @@
 export = () => {
-	it("should allow length", () => {
+	it("should support length", () => {
 		expect([].length).to.equal(0);
 		expect([1].length).to.equal(1);
 		expect([1, 2].length).to.equal(2);
 		expect([1, 2, 3].length).to.equal(3);
 	});
 
-	it("should allow push", () => {
+	it("should support push", () => {
 		const a = new Array<number>();
 		a.push(123);
 		expect(a[0]).to.equal(123);
 	});
 
-	it("should allow pop", () => {
+	it("should support pop", () => {
 		const a = [456];
 		const b = a.pop();
 		expect(b).to.equal(456);
@@ -20,7 +20,7 @@ export = () => {
 		expect(a[0]).never.to.be.ok();
 	});
 
-	it("should allow concat", () => {
+	it("should support concat", () => {
 		const a = [1, 2, 3];
 		const b = [4, 5, 6];
 		const c = a.concat(b);
@@ -34,12 +34,12 @@ export = () => {
 		expect(c[5]).to.equal(6);
 	});
 
-	it("should allow join", () => {
+	it("should support join", () => {
 		const a = [1, 2, 3];
 		expect(a.join(", ")).to.equal("1, 2, 3");
 	});
 
-	it("should allow reverse", () => {
+	it("should support reverse", () => {
 		const a = [1, 2, 3];
 		const b = a.reverse();
 		expect(b).never.to.equal(a);
@@ -48,7 +48,7 @@ export = () => {
 		expect(b[2]).to.equal(1);
 	});
 
-	it("should allow shift", () => {
+	it("should support shift", () => {
 		const a = [1, 2, 3];
 		const b = a.shift();
 		expect(b).to.equal(1);
@@ -57,7 +57,7 @@ export = () => {
 		expect(a[1]).to.equal(3);
 	});
 
-	it("should allow slice", () => {
+	it("should support slice", () => {
 		const a = [1, 2, 3];
 
 		const b = a.slice();
@@ -77,9 +77,9 @@ export = () => {
 	});
 
 	// TODO issue #98
-	it("should allow sort", () => {});
+	it("should support sort", () => {});
 
-	it("should allow splice", () => {
+	it("should support splice", () => {
 		function equal<T>(a: Array<T>, b: Array<T>) {
 			if (a.length !== b.length) {
 				return false;
@@ -101,7 +101,7 @@ export = () => {
 		expect(equal(months, ["Jan", "Feb", "March", "April", "May"])).to.be.ok();
 	});
 
-	it("should allow unshift", () => {
+	it("should support unshift", () => {
 		const a = [1, 2, 3];
 		const b = a.unshift(4);
 		expect(a[0]).to.equal(4);
@@ -111,19 +111,19 @@ export = () => {
 		expect(b).to.equal(4);
 	});
 
-	it("should allow indexOf", () => {
+	it("should support indexOf", () => {
 		const a = [7, 1, 8, 1, 9];
 		expect(a.indexOf(1)).to.equal(1);
 		expect(a.indexOf(2)).to.equal(-1);
 	});
 
-	it("should allow lastIndexOf", () => {
+	it("should support lastIndexOf", () => {
 		const a = [7, 1, 8, 1, 9];
 		expect(a.lastIndexOf(1)).to.equal(3);
 		expect(a.lastIndexOf(2)).to.equal(-1);
 	});
 
-	it("should allow every", () => {
+	it("should support every", () => {
 		function even(value: number) {
 			return value % 2 === 0;
 		}
@@ -145,20 +145,20 @@ export = () => {
 		expect(c.every(odd)).to.equal(false);
 	});
 
-	it("should allow some", () => {
+	it("should support some", () => {
 		const a = [1, 2, 3];
 		expect(a.some(v => v === 2)).to.equal(true);
 		expect(a.some(v => v === 4)).to.equal(false);
 	});
 
-	it("should allow forEach", () => {
+	it("should support forEach", () => {
 		const bin = [1, 2, 3];
 		let str = "";
 		bin.forEach(v => (str += v));
 		expect(str).to.equal("123");
 	});
 
-	it("should allow map", () => {
+	it("should support map", () => {
 		const a = [1, 2, 3];
 		const b = a.map(v => v + 1);
 		expect(b).never.to.equal(a);
@@ -167,7 +167,7 @@ export = () => {
 		expect(b[2]).to.equal(4);
 	});
 
-	it("should allow filter", () => {
+	it("should support filter", () => {
 		const a = [1, 2, 3, 4, 5];
 		const b = a.filter(v => v % 2 === 0);
 		expect(b).never.to.equal(a);
@@ -176,7 +176,7 @@ export = () => {
 		expect(b[1]).to.equal(4);
 	});
 
-	it("should allow reduce", () => {
+	it("should support reduce", () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
@@ -189,7 +189,7 @@ export = () => {
 		expect(a[5]).to.equal(5);
 	});
 
-	it("should allow reduceRight", () => {
+	it("should support reduceRight", () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
@@ -202,7 +202,7 @@ export = () => {
 		expect(a[5]).to.equal(1);
 	});
 
-	it("should allow find", () => {
+	it("should support find", () => {
 		const a = [1, 2, 3, 4, 5];
 
 		const b = a.find(v => v % 2 === 0);
@@ -215,7 +215,7 @@ export = () => {
 		expect(d).to.equal(1);
 	});
 
-	it("should allow spread", () => {
+	it("should support spread", () => {
 		const a = [1, 2, 3];
 		const b = [...a, 4, 5, 6];
 		expect(b[0]).to.equal(1);

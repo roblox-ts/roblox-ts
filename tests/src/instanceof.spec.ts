@@ -1,5 +1,5 @@
 export = () => {
-	it("should allow instanceof", () => {
+	it("should support instanceof", () => {
 		class Vector {
 			constructor(public readonly x = 0, public readonly y = 0, public readonly z = 0) {}
 		}

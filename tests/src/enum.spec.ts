@@ -26,13 +26,13 @@ export = () => {
 		expect(Fruits[2]).to.equal("Pear");
 	});
 
-	it("should allow overriding indices", () => {
+	it("should support overriding indices", () => {
 		expect(Breads[5]).to.equal("White");
 		expect(Breads.Wheat).to.equal(6);
 		expect(Breads[0]).never.to.be.ok();
 	});
 
-	it("should allow for string indices", () => {
+	it("should support for string indices", () => {
 		expect(Soups.ChickenNoodle).to.equal("CHICKENNOODLE");
 	});
 };

@@ -1,5 +1,5 @@
 export = () => {
-	it("should allow numeric for loops", () => {
+	it("should support numeric for loops", () => {
 		let sum = 10;
 		for (let i = 0; i < 10; i++) {
 			sum--;
@@ -7,7 +7,7 @@ export = () => {
 		expect(sum).to.equal(0);
 	});
 
-	it("should allow for-of loops", () => {
+	it("should support for-of loops", () => {
 		const array = [1, 2, 3];
 		let sum = 0;
 		for (const value of array) {
@@ -16,7 +16,7 @@ export = () => {
 		expect(sum).to.equal(6);
 	});
 
-	it("should allow for-in loops", () => {
+	it("should support for-in loops", () => {
 		const obj: { [index: string]: number } = {
 			a: 1,
 			b: 2,
@@ -30,7 +30,7 @@ export = () => {
 		expect(obj.c).to.equal(4);
 	});
 
-	it("should allow break", () => {
+	it("should support break", () => {
 		const array = [1, 2, 3, 4, 5];
 		let sum = 0;
 		for (const value of array) {
@@ -42,7 +42,7 @@ export = () => {
 		expect(sum).to.equal(6);
 	});
 
-	it("should allow continue", () => {
+	it("should support continue", () => {
 		const array = [1, 2, 3, 4];
 		let sum = 0;
 		for (const value of array) {
@@ -54,7 +54,7 @@ export = () => {
 		expect(sum).to.equal(7);
 	});
 
-	it("should allow do-while loops", () => {
+	it("should support do-while loops", () => {
 		let x = 0;
 		do {
 			x += 5;
@@ -62,7 +62,7 @@ export = () => {
 		expect(x).to.equal(25);
 	});
 
-	it("should allow while loops", () => {
+	it("should support while loops", () => {
 		let x = 0;
 		while (x < 10) {
 			x++;

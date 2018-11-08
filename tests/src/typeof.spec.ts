@@ -1,5 +1,5 @@
 export = () => {
-	it("should allow typeof", () => {
+	it("should support typeof", () => {
 		expect(typeof {}).to.equal("object");
 		expect(typeof undefined).to.equal("undefined");
 		expect(typeof 1).to.equal("number");

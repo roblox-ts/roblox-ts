@@ -59,7 +59,7 @@ export = () => {
 		expect(four).to.equal(4);
 	});
 
-	it("should allow default values", () => {
+	it("should support default values", () => {
 		const foo = {
 			a: {
 				b: 1,
@@ -86,7 +86,7 @@ export = () => {
 		}
 	});
 
-	it("should allow aliases", () => {
+	it("should support aliases", () => {
 		const foo = {
 			a: {
 				b: 123,

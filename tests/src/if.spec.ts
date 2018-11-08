@@ -1,5 +1,5 @@
 export = () => {
-	it("should allow if statements", () => {
+	it("should support if statements", () => {
 		function foo(n: number) {
 			if (n < 5) {
 				return "bar";

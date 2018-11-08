@@ -71,7 +71,7 @@ export = () => {
 		expect(apollo.bark()).to.equal("apollo barks");
 	});
 
-	it("should allow parameter initializers", () => {
+	it("should support parameter initializers", () => {
 		class Foo {
 			public bar = "baz";
 		}
@@ -79,5 +79,5 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should allow getters", () => {});
+	it("should support getters", () => {});
 };
