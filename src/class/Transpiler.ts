@@ -909,16 +909,33 @@ export class Transpiler {
 		return result;
 	}
 
+	private getFirstFunctionLikeAncestor(node: ts.Node): ts.FunctionLikeDeclaration | undefined {
+		for (const ancestor of node.getAncestors()) {
+			if (ts.TypeGuards.isFunctionDeclaration(ancestor)
+				|| ts.TypeGuards.isMethodDeclaration(ancestor)
+				|| ts.TypeGuards.isFunctionExpression(ancestor)
+				|| ts.TypeGuards.isArrowFunction(ancestor)) {
+				return ancestor;
+			}
+		}
+		return undefined;
+	}
+
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
-		if (exp && ts.TypeGuards.isArrayLiteralExpression(exp)) {
-			let expStr = this.transpileExpression(exp);
-			expStr = expStr.substr(2, expStr.length - 4);
-			return this.indent + `return ${expStr};\n`;
-		}
-
 		if (exp) {
-			const expStr = this.transpileExpression(exp);
+			let expStr = this.transpileExpression(exp);
+			const ancestor = this.getFirstFunctionLikeAncestor(node);
+			if (ancestor) {
+				if (ancestor.getReturnType().isTuple()) {
+					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+						expStr = expStr.substr(2, expStr.length - 4);
+						return this.indent + `return ${expStr};\n`;
+					} else {
+						return this.indent + `return unpack(${expStr})`;
+					}
+				}
+			}
 			return this.indent + `return ${expStr};\n`;
 		} else {
 			return this.indent + `return;\n`;
@@ -1925,7 +1942,7 @@ export class Transpiler {
 				case ts.SyntaxKind.PercentEqualsToken:
 					return `${lhsStr} = ${lhsStr} % (${rhsStr})`;
 			}
-			throw new TranspilerError("Unrecognized operation!", node);
+			throw new TranspilerError("Unrecognized operation! #1", node);
 		}
 
 		if (
@@ -2038,7 +2055,7 @@ export class Transpiler {
 				case ts.SyntaxKind.MinusMinusToken:
 					return `${expStr} = ${expStr} - 1`;
 			}
-			throw new TranspilerError("Unrecognized operation!", node);
+			throw new TranspilerError("Unrecognized operation! #2", node);
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -2093,7 +2110,7 @@ export class Transpiler {
 				case ts.SyntaxKind.MinusMinusToken:
 					return `${expStr} = ${expStr} - 1`;
 			}
-			throw new TranspilerError("Unrecognized operation!", node);
+			throw new TranspilerError("Unrecognized operation! #3", node);
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
