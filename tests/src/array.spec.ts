@@ -242,39 +242,4 @@ export = () => {
 		const d = a.find(v => v % 2 !== 0);
 		expect(d).to.equal(1);
 	});
-
-	it("should support spread", () => {
-		const a = [1, 2, 3];
-		const b = [...a, 4, 5, 6];
-		expect(b[0]).to.equal(1);
-		expect(b[1]).to.equal(2);
-		expect(b[2]).to.equal(3);
-		expect(b[3]).to.equal(4);
-		expect(b[4]).to.equal(5);
-		expect(b[5]).to.equal(6);
-		expect(b.length).to.equal(6);
-
-		const c = [...[1], ...[2]];
-		expect(c[0]).to.equal(1);
-		expect(c[1]).to.equal(2);
-	});
-
-	it("should copy on spread", () => {
-		const a = [1, 2, 3];
-		const b = [...a];
-		expect(a).never.to.equal(b);
-		expect(a.length).to.equal(b.length);
-		for (let i = 0; i < a.length; i++) {
-			expect(b[i]).to.equal(a[i]);
-		}
-	});
-
-	it("should unpack spread into function calls", () => {
-		function foo(...args: Array<number>) {
-			expect(args[0]).to.equal(1);
-			expect(args[1]).to.equal(2);
-			expect(args[2]).to.equal(3);
-		}
-		foo(...[1, 2, 3]);
-	});
 };
