@@ -61,7 +61,7 @@ export = () => {
 		expect(x).to.equal(8);
 	});
 
-	it("should compound assign", () => {
+	describe("should compound assign", () => {
 		it("should compound assign addition", () => {
 			let x = 10;
 			x += 2;
