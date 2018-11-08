@@ -119,4 +119,11 @@ export = () => {
 		expect(!false).to.equal(true);
 		expect(!true).to.equal(false);
 	});
+
+	it("should support ternary expressions", () => {
+		expect(true ? 1 : 0).to.equal(1);
+		expect(false ? 1 : 0).to.equal(0);
+		expect(true ? false : true).to.equal(false);
+		expect(false ? false : true).to.equal(true);
+	});
 };
