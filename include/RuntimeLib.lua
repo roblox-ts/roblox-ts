@@ -125,7 +125,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		error(result, 2)
+		TS.error(result)
 	end
 end
 
