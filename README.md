@@ -4,7 +4,8 @@
 <br>
 <div align="center">
 	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
-	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
+	<!-- <a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a> -->
+	<a href="https://codecov.io/gh/roblox-ts/roblox-ts"><img src="https://codecov.io/gh/roblox-ts/roblox-ts/branch/master/graph/badge.svg" /></a>
 </div>
 <div>&nbsp;</div>
 
@@ -24,7 +25,7 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 - Optimize emitted Lua depending on context, but not at the cost of stability.
 - Do not introduce unexpected members in the global scope or on user-defined objects.
 
-## Pillars 
+## Pillars
 *(How we'll do it)*
 - Stability over complexity.
 - Prevent footguns wherever possible. Encourage falling into the pit of success!
@@ -36,7 +37,7 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 - Implement/simulate the entire JavaScript API.
 - Interoperability with vanilla TypeScript modules.
 - Wrap or rename existing Lua APIs in order to make them more JavaScript-like.
-- Take over the world. 
+- Take over the world.
 
 # Getting Started
 
