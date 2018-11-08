@@ -23,9 +23,10 @@ install:
   - npm install typescript tslint prettier -g
   - npm install
   - tsc
+  - pushd tests && npm install && popd
 
 script:
   - npm run lint
-  - npm run setup-tests
-  - npm run coverage
+  - nyc npm test
+  - nyc report | coveralls
   - npm run integration-tests
