@@ -1507,12 +1507,15 @@ export class Transpiler {
 
 			const statements = clause.getStatements();
 			const lastChild = statements[statements.length - 1];
-			const endsInReturnStatement = lastChild && lastChild.getKind() === ts.SyntaxKind.ReturnStatement;
+			const endsInReturnOrBreakStatement =
+				lastChild &&
+				(lastChild.getKind() === ts.SyntaxKind.ReturnStatement ||
+					lastChild.getKind() === ts.SyntaxKind.BreakStatement);
 
 			result += this.transpileStatementedNode(clause);
 
 			if (ts.TypeGuards.isCaseClause(clause)) {
-				if (!endsInReturnStatement) {
+				if (!endsInReturnOrBreakStatement) {
 					result += this.indent + `${fallThroughVar} = true;\n`;
 				}
 				this.popIndent();
