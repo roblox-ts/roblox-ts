@@ -1,0 +1,9 @@
+{
+	"name": "roblox-ts-tests",
+	"partitions": {
+		"src": {
+			"path": "src",
+			"target": ""
+		}
+	}
+}
