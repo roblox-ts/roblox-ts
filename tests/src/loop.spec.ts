@@ -53,4 +53,20 @@ export = () => {
 		}
 		expect(sum).to.equal(7);
 	});
+
+	it("should allow do-while loops", () => {
+		let x = 0;
+		do {
+			x += 5;
+		} while (x < 25);
+		expect(x).to.equal(25);
+	});
+
+	it("should allow while loops", () => {
+		let x = 0;
+		while (x < 10) {
+			x++;
+		}
+		expect(x).to.equal(10);
+	});
 };
