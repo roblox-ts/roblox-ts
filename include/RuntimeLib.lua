@@ -564,8 +564,9 @@ function TS.Object.entries(object)
 end
 
 function TS.Object.assign(toObj, ...)
-	for _, fromObj in ipairs({ ... }) do
-		for key, value in pairs(fromObj) do
+	local args = { ... }
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
 			toObj[key] = value
 		end
 	end
