@@ -1,6 +1,6 @@
 -- Import lemur
 package.path = package.path .. ";?/init.lua"
-local lemur = require("submodules.lemur")
+local lemur = require("tests.submodules.lemur")
 
 local habitat = lemur.Habitat.new()
 
@@ -24,14 +24,14 @@ end
 
 -- Roblox TS Stuff
 local robloxTsFolder = newFolder("RobloxTS", ReplicatedStorage)
-newFolder("Include", robloxTsFolder, "../include")
+newFolder("Include", robloxTsFolder, "include")
 
 -- TestEZ
-local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "submodules/testez/lib")
+local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "tests/submodules/testez/lib")
 
 -- Testing code
 local testsFolder = newFolder("Tests", ReplicatedStorage)
-local outFolder = newFolder("out", testsFolder, "out")
+local outFolder = newFolder("out", testsFolder, "tests/out")
 
 -- Load TestEZ and run our tests
 local TestEZ = habitat:require(testEZFolder)
