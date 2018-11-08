@@ -60,4 +60,43 @@ export = () => {
 		expect(obj1.c).to.equal(3);
 		expect(obj1.d).to.equal(2);
 	});
+
+	it("should support Object.entries", () => {
+		const foo = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+
+		const a = Object.entries(foo);
+		expect(a.some(v => v[0] === "a" && v[1] === 1)).to.equal(true);
+		expect(a.some(v => v[0] === "b" && v[1] === 2)).to.equal(true);
+		expect(a.some(v => v[0] === "c" && v[1] === 3)).to.equal(true);
+	});
+
+	it("should support Object.keys", () => {
+		const foo = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+
+		const a = Object.keys(foo);
+		expect(a.some(v => v === "a")).to.equal(true);
+		expect(a.some(v => v === "b")).to.equal(true);
+		expect(a.some(v => v === "c")).to.equal(true);
+	});
+
+	it("should support Object.values", () => {
+		const foo = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+
+		const a = Object.values(foo);
+		expect(a.some(v => v === 1)).to.equal(true);
+		expect(a.some(v => v === 2)).to.equal(true);
+		expect(a.some(v => v === 3)).to.equal(true);
+	});
 };
