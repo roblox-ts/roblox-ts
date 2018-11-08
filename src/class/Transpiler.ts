@@ -963,8 +963,12 @@ export class Transpiler {
 	}
 
 	private transpileForStatement(node: ts.ForStatement) {
+		this.pushPrefixStatementQueue()
 		const condition = node.getCondition();
 		const conditionStr = condition ? this.transpileExpression(condition) : "true";
+		const prefixInits = this.prefixStatementQueue.slice();
+		const prefixInits2 = this.prefixStatementQueue.slice();
+		this.popPrefixStatementQueue();
 		const incrementor = node.getIncrementor();
 		const incrementorStr = incrementor ? this.transpileExpression(incrementor) + ";\n" : undefined;
 
@@ -986,12 +990,15 @@ export class Transpiler {
 				result += this.indent + expStr + ";\n";
 			}
 		}
+		result += this.getStringForPrefixedStatements(prefixInits);
 		result += this.indent + `while ${conditionStr} do\n`;
 		this.pushIndent();
 		result += this.transpileLoopBody(node.getStatement());
 		if (incrementorStr) {
 			result += this.indent + incrementorStr;
 		}
+
+		result += this.getStringForPrefixedStatements(prefixInits2).replace(/local /g, "");
 		this.popIndent();
 		result += this.indent + "end;\n";
 		this.popIndent();
