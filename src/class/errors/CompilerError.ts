@@ -9,6 +9,7 @@ export enum CompilerErrorType {
 	GetImportPathFail2,
 	GetImportPathFail3,
 	NoRojoData,
+	UnexpectedExtensionType,
 }
 
 export class CompilerError extends Error {
