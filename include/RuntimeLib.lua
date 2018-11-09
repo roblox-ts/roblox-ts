@@ -121,6 +121,10 @@ function TS.async(callback)
 end
 
 function TS.await(promise)
+	if not Promise.is(promise) then
+		return promise
+	end
+
 	local ok, result = promise:await()
 	if ok then
 		return result
@@ -138,15 +142,14 @@ function TS.add(a, b)
 end
 
 -- array macro functions
-TS.array = {}
 
-function TS.array.forEach(list, callback)
+function TS.array_forEach(list, callback)
 	for i = 1, #list do
 		callback(list[i], i - 1, list)
 	end
 end
 
-function TS.array.map(list, callback)
+function TS.array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
 		result[i] = callback(list[i], i - 1, list)
@@ -154,7 +157,7 @@ function TS.array.map(list, callback)
 	return result
 end
 
-function TS.array.filter(list, callback)
+function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
 		local v = list[i]
@@ -165,7 +168,7 @@ function TS.array.filter(list, callback)
 	return result
 end
 
-function TS.array.slice(list, startI, endI)
+function TS.array_slice(list, startI, endI)
 	local length = #list
 	if not startI then
 		startI = 0
@@ -188,7 +191,7 @@ function TS.array.slice(list, startI, endI)
 	return result
 end
 
-function TS.array.splice(list, start, deleteCount, ...)
+function TS.array_splice(list, start, deleteCount, ...)
 	local len = #list
 	local actualStart
 	if start <  0 then
@@ -258,7 +261,7 @@ function TS.array.splice(list, start, deleteCount, ...)
 	return out
 end
 
-function TS.array.some(list, callback)
+function TS.array_some(list, callback)
 	for i = 1, #list do
 		if callback(list[i], i - 1, list) == true then
 			return true
@@ -267,7 +270,7 @@ function TS.array.some(list, callback)
 	return false
 end
 
-function TS.array.every(list, callback)
+function TS.array_every(list, callback)
 	for i = 1, #list do
 		if callback(list[i], i - 1, list) == false then
 			return false
@@ -276,7 +279,7 @@ function TS.array.every(list, callback)
 	return true
 end
 
-function TS.array.indexOf(list, value, fromIndex)
+function TS.array_indexOf(list, value, fromIndex)
 	if fromIndex == nil then
 		fromIndex = 0
 	end
@@ -289,7 +292,7 @@ function TS.array.indexOf(list, value, fromIndex)
 	return -1
 end
 
-function TS.array.lastIndexOf(list, value, fromIndex)
+function TS.array_lastIndexOf(list, value, fromIndex)
 	if fromIndex == nil then
 		fromIndex = #list - 1
 	end
@@ -302,7 +305,7 @@ function TS.array.lastIndexOf(list, value, fromIndex)
 	return -1
 end
 
-function TS.array.reverse(list)
+function TS.array_reverse(list)
 	local result = {}
 	for i = 1, #list do
 		result[i] = list[#list - i + 1]
@@ -310,7 +313,7 @@ function TS.array.reverse(list)
 	return result
 end
 
-function TS.array.reduce(list, callback, initialValue)
+function TS.array_reduce(list, callback, initialValue)
 	local start = 1
 	if not initialValue then
 		initialValue = list[start]
@@ -323,7 +326,7 @@ function TS.array.reduce(list, callback, initialValue)
 	return accumulator
 end
 
-function TS.array.reduceRight(list, callback, initialValue)
+function TS.array_reduceRight(list, callback, initialValue)
 	local start = #list
 	if not initialValue then
 		initialValue = list[start]
@@ -336,11 +339,11 @@ function TS.array.reduceRight(list, callback, initialValue)
 	return accumulator
 end
 
-function TS.array.shift(list)
+function TS.array_shift(list)
 	return table.remove(list, 1)
 end
 
-function TS.array.unshift(list, ...)
+function TS.array_unshift(list, ...)
 	local args = { ... }
 	for i = #list, 1, -1 do
 		list[i + #args] = list[i]
@@ -351,7 +354,7 @@ function TS.array.unshift(list, ...)
 	return #list
 end
 
-function TS.array.concat(list, ...)
+function TS.array_concat(list, ...)
 	local args = { ... }
 	local result = {}
 	for i = 1, #list do
@@ -370,18 +373,16 @@ function TS.array.concat(list, ...)
 	return result
 end
 
-function TS.array.push(list, ...)
+function TS.array_push(list, ...)
 	local args = { ... }
 	for i = 1, #args do
 		list[#list + 1] = args[i]
 	end
 end
 
-function TS.array.pop(list)
-	return table.remove(list)
-end
+TS.array_pop = table.remove
 
-function TS.array.join(list, separator)
+function TS.array_join(list, separator)
 	if #list == 0 then
 		return ""
 	end
@@ -395,7 +396,7 @@ function TS.array.join(list, separator)
 	return result
 end
 
-function TS.array.find(list, callback)
+function TS.array_find(list, callback)
 	for i = 1, #list do
 		if callback(list[i], i - 1, list) == true then
 			return list[i]
@@ -404,9 +405,8 @@ function TS.array.find(list, callback)
 end
 
 -- map macro functions
-TS.map = {}
 
-function TS.map.new(value)
+function TS.map_new(value)
 	local result = {}
 	for _, pair in pairs(value) do
 		result[pair[1]] = pair[2]
@@ -414,13 +414,21 @@ function TS.map.new(value)
 	return result
 end
 
-function TS.map.clear(map)
+function TS.map_clear(map)
 	for key in pairs(map) do
 		map[key] = nil
 	end
 end
 
-function TS.map.size(map)
+function TS.map_delete(map, key)
+	local has = TS.map_has(map, key)
+	if has then
+		map[key] = nil
+	end
+	return has
+end
+
+function TS.map_size(map)
 	local result = 0
 	for _ in pairs(map) do
 		result = result + 1
@@ -428,29 +436,29 @@ function TS.map.size(map)
 	return result
 end
 
-function TS.map.entries(map)
+function TS.map_entries(map)
 	local result = {}
-	for key in pairs(map) do
-		table.insert(result, {key, map[key]})
+	for key, value in pairs(map) do
+		table.insert(result, {key, value})
 	end
 	return result
 end
 
-function TS.map.forEach(map, callback)
+function TS.map_forEach(map, callback)
 	for key, value in pairs(map) do
 		callback(value, key, map)
 	end
 end
 
-function TS.map.get(map, key)
+function TS.map_get(map, key)
 	return map[key]
 end
 
-function TS.map.has(map, key)
+function TS.map_has(map, key)
 	return map[key] ~= nil
 end
 
-function TS.map.keys(map)
+function TS.map_keys(map)
 	local result = {}
 	for key in pairs(map) do
 		table.insert(result, key)
@@ -458,12 +466,12 @@ function TS.map.keys(map)
 	return result
 end
 
-function TS.map.set(map, key, value)
+function TS.map_set(map, key, value)
 	map[key] = value
 	return map
 end
 
-function TS.map.values(map)
+function TS.map_values(map)
 	local result = {}
 	for _, value in pairs(map) do
 		table.insert(result, value)
@@ -472,9 +480,8 @@ function TS.map.values(map)
 end
 
 -- set macro functions
-TS.set = {}
 
-function TS.set.new(value)
+function TS.set_new(value)
 	local result = {}
 	for _, v in pairs(value) do
 		result[v] = true
@@ -482,53 +489,56 @@ function TS.set.new(value)
 	return result
 end
 
-function TS.set.add(set, value)
+function TS.set_add(set, value)
 	set[value] = true
 	return set
 end
 
-TS.set.clear = TS.map.clear
+TS.set_clear = TS.map_clear
 
-function TS.set.delete(set, value)
-	local result = TS.set.has(set, value)
+function TS.set_delete(set, value)
+	local result = TS.set_has(set, value)
 	set[value] = nil
 	return result
 end
 
-function TS.set.forEach(set, callback)
+function TS.set_forEach(set, callback)
 	for key in pairs(set) do
 		callback(key, key, set)
 	end
 end
 
-TS.set.has = TS.map.has
+TS.set_has = TS.map_has
 
-TS.set.entries = TS.map.entries
+function TS.set_entries(map)
+	local result = {}
+	for key in pairs(map) do
+		table.insert(result, {key, key})
+	end
+	return result
+end
 
-TS.set.values = TS.map.keys
+TS.set_values = TS.map_keys
 
-TS.set.keys = TS.map.keys
+TS.set_keys = TS.map_keys
 
-TS.set.size = TS.map.size
+TS.set_size = TS.map_size
 
 -- string macro functions
-TS.string = {}
 
-function TS.string.split(input, sep)
-	if sep == nil then
-		sep = "%s"
-	end
+function TS.string_split(input, sep)
 	local result = {}
-	for str in string.gmatch(input, "[^" .. sep .. "]+") do
-		table.insert(result, str)
+	local count = 0
+	for str in input:gmatch(sep == "" and "." or "[^" .. sep .. "]+") do
+		count = count + 1
+		result[count] = str
 	end
 	return result
 end
 
 -- Object static functions
-TS.Object = {}
 
-function TS.Object.keys(object)
+function TS.Object_keys(object)
 	local result = {}
 	for key in pairs(object) do
 		result[#result + 1] = key
@@ -536,7 +546,7 @@ function TS.Object.keys(object)
 	return result
 end
 
-function TS.Object.values(object)
+function TS.Object_values(object)
 	local result = {}
 	for _, value in pairs(object) do
 		result[#result + 1] = value
@@ -544,7 +554,7 @@ function TS.Object.values(object)
 	return result
 end
 
-function TS.Object.entries(object)
+function TS.Object_entries(object)
 	local result = {}
 	for key, value in pairs(object) do
 		result[#result + 1] = {key, value}
@@ -552,9 +562,10 @@ function TS.Object.entries(object)
 	return result
 end
 
-function TS.Object.assign(toObj, ...)
-	for _, fromObj in ipairs({ ... }) do
-		for key, value in pairs(fromObj) do
+function TS.Object_assign(toObj, ...)
+	local args = { ... }
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
 			toObj[key] = value
 		end
 	end
