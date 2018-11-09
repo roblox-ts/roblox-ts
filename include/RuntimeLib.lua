@@ -1,7 +1,6 @@
 local Promise = require(script.Parent.Promise)
 
 -- constants
-local TYPE_TABLE = "table"
 local TYPE_STRING = "string"
 
 local TS = {}
@@ -376,7 +375,12 @@ function TS.array_push(list, ...)
 	end
 end
 
-TS.array_pop = table.remove
+function TS.array_pop(list)
+	local length = #list;
+	local lastValue = list[length]
+	list[length] = nil
+	return lastValue
+end
 
 function TS.array_join(list, separator)
 	if #list == 0 then
