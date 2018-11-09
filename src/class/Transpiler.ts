@@ -348,7 +348,12 @@ export class Transpiler {
 
 			if (param.isRestParameter()) {
 				paramNames.push("...");
-				initializers.push(`local ${name} = { ... };`);
+				const defaultValue = `local ${name} = { ... };`;
+				if (defaults) {
+					defaults.push(defaultValue);
+				} else {
+					initializers.push(defaultValue);
+				}
 			} else {
 				paramNames.push(name);
 			}
@@ -461,7 +466,20 @@ export class Transpiler {
 		if (context) {
 			args.unshift(context);
 		}
-		return args.map(arg => this.transpileExpression(arg)).join(", ");
+
+		let numSpreadElements = 0;
+		const n = args.length - 1;
+
+		return args.map((arg, i) => {
+			const expStr = this.transpileExpression(arg);
+
+			if (i !== n && ts.TypeGuards.isSpreadElement(arg)) {
+				++numSpreadElements;
+				return `unpack(TS.array_push({${expStr}}`;
+			} else {
+				return expStr;
+			}
+		}).join(", ") + ")".repeat(2 * numSpreadElements);
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
