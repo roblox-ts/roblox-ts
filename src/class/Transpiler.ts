@@ -191,6 +191,17 @@ function isType(node: ts.Node) {
 	);
 }
 
+function isTypeRef(node: ts.Identifier) {
+	const refs = node.findReferences();
+	return refs.some(ref => {
+		const parent = ref
+			.getDefinition()
+			.getNode()
+			.getParent();
+		return parent !== undefined && isType(parent);
+	});
+}
+
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
@@ -573,7 +584,7 @@ export class Transpiler {
 		const rhs = new Array<string>();
 
 		const defaultImport = node.getDefaultImport();
-		if (defaultImport) {
+		if (defaultImport && !isTypeRef(defaultImport)) {
 			lhs.push(this.transpileExpression(defaultImport));
 			rhs.push(`._default`);
 		}
@@ -588,9 +599,15 @@ export class Transpiler {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
-			lhs.push(alias);
-			rhs.push(`.${name}`);
+			if (!isTypeRef(namedImport.getNameNode())) {
+				lhs.push(alias);
+				rhs.push(`.${name}`);
+			}
 		});
+
+		if (rhs.length === 0) {
+			return "";
+		}
 
 		let result = "";
 		let rhsPrefix: string;
@@ -607,6 +624,10 @@ export class Transpiler {
 	}
 
 	private transpileImportEqualsDeclaration(node: ts.ImportEqualsDeclaration) {
+		if (isTypeRef(node.getNameNode())) {
+			return "";
+		}
+
 		let luaPath: string;
 		const moduleFile = node.getExternalModuleReferenceSourceFile();
 		if (moduleFile) {
