@@ -30,5 +30,4 @@ script:
   - npm run integration-tests
 
 after_success:
-  - npm run codecov-coverage
-  - npm run coveralls-coverage
+  - npm run coverage

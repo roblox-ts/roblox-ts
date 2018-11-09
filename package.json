@@ -14,8 +14,7 @@
 		"lint": "tslint -p tsconfig.json",
 		"test": "nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts",
 		"integration-tests": "lua tests/spec.lua",
-		"codecov-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
-		"coveralls-coverage": "nyc report --reporter=text-lcov | coveralls"
+		"coverage": "nyc report --reporter=text-lcov | coveralls"
 	},
 	"nyc": {
 		"extension": [
@@ -43,7 +42,6 @@
 		"@types/mocha": "^5.2.5",
 		"@types/node": "^10.12.3",
 		"@types/yargs": "^11.1.2",
-		"codecov": "^3.1.0",
 		"coveralls": "^3.0.2",
 		"mocha": "^5.2.0",
 		"nyc": "^13.1.0",
