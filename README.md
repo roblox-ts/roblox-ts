@@ -4,8 +4,7 @@
 <br>
 <div align="center">
 	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
-	<!-- <a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a> -->
-	<a href="https://codecov.io/gh/roblox-ts/roblox-ts"><img src="https://codecov.io/gh/roblox-ts/roblox-ts/branch/master/graph/badge.svg" /></a>
+	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
 </div>
 <div>&nbsp;</div>
 
