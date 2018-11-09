@@ -362,12 +362,8 @@ function TS.array_concat(list, ...)
 	end
 	for i = 1, #args do
 		local value = args[i]
-		if typeof(value) == TYPE_TABLE then
-			for j = 1, #value do
-				result[#result + 1] = value[j]
-			end
-		else
-			result[#result + 1] = value
+		for j = 1, #value do
+			result[#result + 1] = value[j]
 		end
 	end
 	return result
