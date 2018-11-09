@@ -1209,7 +1209,7 @@ export class Transpiler {
 					hasIndexMembers = true;
 					result += "\n";
 				}
-				result += this.transpileMethodDeclaration(id, method);
+				result += this.transpileMethodDeclaration(method);
 			});
 
 		this.popIndent();
@@ -1462,7 +1462,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileMethodDeclaration(className: string, node: ts.MethodDeclaration) {
+	private transpileMethodDeclaration(node: ts.MethodDeclaration) {
 		const name = node.getName();
 		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
@@ -1491,8 +1491,30 @@ export class Transpiler {
 		return result;
 	}
 
+	private isTypeOnlyNamespace(node: ts.NamespaceDeclaration) {
+		const statements = node.getStatements();
+		for (const statement of statements) {
+			if (!ts.TypeGuards.isNamespaceDeclaration(statement)) {
+				const isType =
+					ts.TypeGuards.isTypeAliasDeclaration(statement) || ts.TypeGuards.isInterfaceDeclaration(statement);
+				const isDeclared = ts.TypeGuards.isAmbientableNode(statement) && statement.hasDeclareKeyword();
+				if (!isType && !isDeclared) {
+					return false;
+				}
+			}
+		}
+		for (const statement of statements) {
+			if (ts.TypeGuards.isNamespaceDeclaration(statement)) {
+				if (!this.isTypeOnlyNamespace(statement)) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
 	private transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
-		if (node.hasDeclareKeyword()) {
+		if (node.hasDeclareKeyword() || this.isTypeOnlyNamespace(node)) {
 			return "";
 		}
 		this.pushIdStack();
