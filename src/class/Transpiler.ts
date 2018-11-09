@@ -184,6 +184,7 @@ function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.M
 
 function isType(node: ts.Node) {
 	return (
+		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
 		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
@@ -485,7 +486,9 @@ export class Transpiler {
 	}
 
 	private transpileStatement(node: ts.Statement): string {
-		if (ts.TypeGuards.isBlock(node)) {
+		if (isType(node)) {
+			return "";
+		} else if (ts.TypeGuards.isBlock(node)) {
 			if (node.getStatements().length === 0) {
 				return "";
 			}
@@ -532,12 +535,6 @@ export class Transpiler {
 			return this.transpileExportAssignment(node);
 		} else if (ts.TypeGuards.isSwitchStatement(node)) {
 			return this.transpileSwitchStatement(node);
-		} else if (
-			ts.TypeGuards.isEmptyStatement(node) ||
-			ts.TypeGuards.isTypeAliasDeclaration(node) ||
-			ts.TypeGuards.isInterfaceDeclaration(node)
-		) {
-			return "";
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
 			throw new TranspilerError(
 				"Labeled statements are not supported!",
@@ -1158,10 +1155,6 @@ export class Transpiler {
 	}
 
 	private transpileClassDeclaration(node: ts.ClassDeclaration) {
-		if (node.hasDeclareKeyword()) {
-			return "";
-		}
-
 		const name = node.getName() || this.getNewId();
 		const nameNode = node.getNameNode();
 		if (nameNode) {
@@ -1515,7 +1508,7 @@ export class Transpiler {
 	}
 
 	private transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
-		if (node.hasDeclareKeyword() || this.isTypeOnlyNamespace(node)) {
+		if (this.isTypeOnlyNamespace(node)) {
 			return "";
 		}
 		this.pushIdStack();
