@@ -458,9 +458,6 @@ export class Transpiler {
 	}
 
 	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
-		if (context) {
-			args.unshift(context);
-		}
 		return args.map(arg => this.transpileExpression(arg)).join(", ");
 	}
 

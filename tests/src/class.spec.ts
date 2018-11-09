@@ -113,4 +113,15 @@ export = () => {
 		}
 		expect(tostring(new Foo())).to.equal("Foo");
 	});
+
+	it("should support __tostring inheritance", () => {
+		class Foo {
+			public __tostring() {
+				return "Foo";
+			}
+		}
+
+		class Bar extends Foo {}
+		expect(tostring(new Bar())).to.equal("Foo");
+	});
 };
