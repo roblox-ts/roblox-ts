@@ -182,6 +182,14 @@ function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.M
 	return undefined;
 }
 
+function isType(node: ts.Node) {
+	return (
+		ts.TypeGuards.isTypeAliasDeclaration(node) ||
+		ts.TypeGuards.isInterfaceDeclaration(node) ||
+		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+	);
+}
+
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
@@ -1494,20 +1502,13 @@ export class Transpiler {
 	private isTypeOnlyNamespace(node: ts.NamespaceDeclaration) {
 		const statements = node.getStatements();
 		for (const statement of statements) {
-			if (!ts.TypeGuards.isNamespaceDeclaration(statement)) {
-				const isType =
-					ts.TypeGuards.isTypeAliasDeclaration(statement) || ts.TypeGuards.isInterfaceDeclaration(statement);
-				const isDeclared = ts.TypeGuards.isAmbientableNode(statement) && statement.hasDeclareKeyword();
-				if (!isType && !isDeclared) {
-					return false;
-				}
+			if (!ts.TypeGuards.isNamespaceDeclaration(statement) && !isType(statement)) {
+				return false;
 			}
 		}
 		for (const statement of statements) {
-			if (ts.TypeGuards.isNamespaceDeclaration(statement)) {
-				if (!this.isTypeOnlyNamespace(statement)) {
-					return false;
-				}
+			if (ts.TypeGuards.isNamespaceDeclaration(statement) && !this.isTypeOnlyNamespace(statement)) {
+				return false;
 			}
 		}
 		return true;
