@@ -983,7 +983,7 @@ export class Transpiler {
 						expStr = expStr.substr(2, expStr.length - 4);
 						return this.indent + `return ${expStr};\n`;
 					} else {
-						return this.indent + `return unpack(${expStr})`;
+						return this.indent + `return unpack(${expStr});\n`;
 					}
 				}
 			}
