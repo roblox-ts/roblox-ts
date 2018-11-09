@@ -1717,7 +1717,7 @@ export class Transpiler {
 
 		const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 		if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
-			return `TS.array.concat(${params})`;
+			return `TS.array_concat(${params})`;
 		} else {
 			return params;
 		}
@@ -1786,9 +1786,9 @@ export class Transpiler {
 		if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
 			const params = parts.join(", ");
 			if (!firstIsObj) {
-				return `TS.Object.assign({}, ${params})`;
+				return `TS.Object_assign({}, ${params})`;
 			} else {
-				return `TS.Object.assign(${params})`;
+				return `TS.Object_assign(${params})`;
 			}
 		} else {
 			return parts.join(", ");
@@ -1873,7 +1873,7 @@ export class Transpiler {
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
-			return `TS.array.${property}(${paramStr})`;
+			return `TS.array_${property}(${paramStr})`;
 		}
 
 		if (subExpType.isString() || subExpType.isStringLiteral()) {
@@ -1884,7 +1884,7 @@ export class Transpiler {
 			if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 				return `string.${property}(${paramStr})`;
 			}
-			return `TS.string.${property}(${paramStr})`;
+			return `TS.string_${property}(${paramStr})`;
 		}
 
 		const subExpTypeSym = subExpType.getSymbol();
@@ -1903,7 +1903,7 @@ export class Transpiler {
 				if (params.length > 0) {
 					paramStr += ", " + params;
 				}
-				return `TS.map.${property}(${paramStr})`;
+				return `TS.map_${property}(${paramStr})`;
 			}
 
 			if (subExpTypeName === "Set" || subExpTypeName === "ReadonlySet" || subExpTypeName === "WeakSet") {
@@ -1911,11 +1911,11 @@ export class Transpiler {
 				if (params.length > 0) {
 					paramStr += ", " + params;
 				}
-				return `TS.set.${property}(${paramStr})`;
+				return `TS.set_${property}(${paramStr})`;
 			}
 
 			if (subExpTypeName === "ObjectConstructor") {
-				return `TS.Object.${property}(${params})`;
+				return `TS.Object_${property}(${params})`;
 			}
 
 			const validateMathCall = () => {
@@ -2254,7 +2254,7 @@ export class Transpiler {
 
 			if (inheritsFrom(expressionType, "MapConstructor")) {
 				if (args.length > 0) {
-					return `TS.map.new(${params})`;
+					return `TS.map_new(${params})`;
 				} else {
 					return "{}";
 				}
@@ -2262,7 +2262,7 @@ export class Transpiler {
 
 			if (inheritsFrom(expressionType, "SetConstructor")) {
 				if (args.length > 0) {
-					return `TS.set.new(${params})`;
+					return `TS.set_new(${params})`;
 				} else {
 					return "{}";
 				}
