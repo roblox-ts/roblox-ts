@@ -11,8 +11,8 @@ import {
 	stripExts,
 } from "../utility";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
-import { TranspilerError } from "./errors/TranspilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
@@ -388,13 +388,15 @@ export class Compiler {
 		}
 
 		try {
-			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
-				const transpiler = new Transpiler(this);
-				return [
-					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-					transpiler.transpileSourceFile(sourceFile, this.noHeader),
-				];
-			});
+			const sources = files
+				.filter(sourceFile => !sourceFile.isDeclarationFile())
+				.map(sourceFile => {
+					const transpiler = new Transpiler(this);
+					return [
+						this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
+						transpiler.transpileSourceFile(sourceFile, this.noHeader),
+					];
+				});
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

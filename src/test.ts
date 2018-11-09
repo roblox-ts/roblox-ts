@@ -1,19 +1,18 @@
-import { Compiler } from "./class/Compiler";
-import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerError";
-import { CompilerError, CompilerErrorType } from "./class/errors/CompilerError";
-import { DiagnosticError } from "./class/errors/DiagnosticError";
-import * as path from "path";
 import * as fs from "fs-extra";
+import * as path from "path";
+import { Compiler } from "./class/Compiler";
+import { DiagnosticError } from "./class/errors/DiagnosticError";
+import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerError";
 
 require("mocha");
 
 const compilerArgs = {
+	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
 	noHeader: false,
 	noHeuristics: true,
 	noStrict: false,
-	ci: true,
 };
 
 const tsconfigPath = "tests/tsconfig.json";
@@ -41,8 +40,6 @@ describe("compile integration tests", () => {
 
 describe("compile error unit tests", () => {
 	// compiler error unit tests
-	const errorFolder = path.resolve(srcFolder, "errors");
-
 	it("should not allow var keyword", done => {
 		compile("errors/var.spec.ts")
 			.then(() => done("Did not throw!"))

@@ -908,7 +908,7 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
 		this.pushIndent();
-		initializers.forEach(init => (result += this.indent + init));
+		initializers.forEach(initializer => (result += this.indent + initializer));
 		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
 		result += this.indent + `end;\n`;
