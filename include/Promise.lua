@@ -1,5 +1,6 @@
 --[[
 	An implementation of Promises similar to Promise/A+.
+	Forked from LPGhatguy/roblox-lua-promise, modified for roblox-ts.
 ]]
 
 local PROMISE_DEBUG = false
@@ -19,7 +20,7 @@ end
 	wpcallPacked is a version of xpcall that:
 	* Returns the length of the result first
 	* Returns the result packed into a table
-	* Passes extra arguments through to the passed function, which xpcall does not
+	* Passes extra arguments through to the passed function; xpcall doesn't
 	* Issues a warning if PROMISE_DEBUG is enabled
 ]]
 local function wpcallPacked(f, ...)
@@ -62,13 +63,29 @@ local function isEmpty(t)
 	return next(t) == nil
 end
 
+local function createSymbol(name)
+	assert(type(name) == "string", "createSymbol requires `name` to be a string.")
+
+	local symbol = newproxy(true)
+
+	getmetatable(symbol).__tostring = function()
+		return ("Symbol(%s)"):format(name)
+	end
+
+	return symbol
+end
+
+local PromiseMarker = createSymbol("PromiseMarker")
+
 local Promise = {}
-Promise.__index = Promise
+Promise.prototype = {}
+Promise.__index = Promise.prototype
 
 Promise.Status = {
-	Started = "Started",
-	Resolved = "Resolved",
-	Rejected = "Rejected",
+	Started = createSymbol("Started"),
+	Resolved = createSymbol("Resolved"),
+	Rejected = createSymbol("Rejected"),
+	Cancelled = createSymbol("Cancelled"),
 }
 
 --[[
@@ -94,14 +111,21 @@ Promise.Status = {
 			:andThen(function(stuff)
 				print("Got some stuff!", stuff)
 			end)
+
+	Second parameter, parent, is used internally for tracking the "parent" in a
+	promise chain. External code shouldn't need to worry about this.
 ]]
-function Promise.new(callback)
-	local promise = {
+function Promise.new(callback, parent)
+	if parent ~= nil and not Promise.is(parent) then
+		error("Argument #2 to Promise.new must be a promise or nil", 2)
+	end
+
+	local self = {
 		-- Used to locate where a promise was created
 		_source = debug.traceback(),
 
 		-- A tag to identify us as a promise
-		_type = "Promise",
+		[PromiseMarker] = true,
 
 		_status = Promise.Status.Started,
 
@@ -119,27 +143,50 @@ function Promise.new(callback)
 		-- Queues representing functions we should invoke when we update!
 		_queuedResolve = {},
 		_queuedReject = {},
+		_queuedFinally = {},
+
+		-- The function to run when/if this promise is cancelled.
+		_cancellationHook = nil,
+
+		-- The "parent" of this promise in a promise chain. Required for
+		-- cancellation propagation.
+		_parent = parent,
+
+		-- The number of consumers attached to this promise. This is needed so that
+		-- we don't propagate promise cancellations when there are still uncancelled
+		-- consumers.
+		_numConsumers = 0,
 	}
 
-	setmetatable(promise, Promise)
+	setmetatable(self, Promise)
 
 	local function resolve(...)
-		promise:_resolve(...)
+		self:_resolve(...)
 	end
 
 	local function reject(...)
-		promise:_reject(...)
+		self:_reject(...)
 	end
 
-	local _, result = wpcallPacked(callback, resolve, reject)
+	local function onCancel(cancellationHook)
+		assert(type(cancellationHook) == "function", "onCancel must be called with a function as its first argument.")
+
+		if self._status == Promise.Status.Cancelled then
+			cancellationHook()
+		else
+			self._cancellationHook = cancellationHook
+		end
+	end
+
+	local _, result = wpcallPacked(callback, resolve, reject, onCancel)
 	local ok = result[1]
 	local err = result[2]
 
-	if not ok and promise._status == Promise.Status.Started then
+	if not ok and self._status == Promise.Status.Started then
 		reject(err)
 	end
 
-	return promise
+	return self
 end
 
 --[[
@@ -165,8 +212,55 @@ end
 		* is resolved when all input promises resolve
 		* is rejected if ANY input promises reject
 ]]
-function Promise.all(...)
-	error("unimplemented", 2)
+function Promise.all(promises)
+	if type(promises) ~= "table" then
+		error("Please pass a list of promises to Promise.all", 2)
+	end
+
+	-- If there are no values then return an already resolved promise.
+	if #promises == 0 then
+		return Promise.resolve({})
+	end
+
+	-- We need to check that each value is a promise here so that we can produce
+	-- a proper error rather than a rejected promise with our error.
+	for i = 1, #promises do
+		if not Promise.is(promises[i]) then
+			error(("Non-promise value passed into Promise.all at index #%d"):format(i), 2)
+		end
+	end
+
+	return Promise.new(function(resolve, reject)
+		-- An array to contain our resolved values from the given promises.
+		local resolvedValues = {}
+
+		-- Keep a count of resolved promises because just checking the resolved
+		-- values length wouldn't account for promises that resolve with nil.
+		local resolvedCount = 0
+
+		-- Called when a single value is resolved and resolves if all are done.
+		local function resolveOne(i, ...)
+			resolvedValues[i] = ...
+			resolvedCount = resolvedCount + 1
+
+			if resolvedCount == #promises then
+				resolve(resolvedValues)
+			end
+		end
+
+		-- We can assume the values inside `promises` are all promises since we
+		-- checked above.
+		for i = 1, #promises do
+			promises[i]:andThen(
+				function(...)
+					resolveOne(i, ...)
+				end,
+				function(...)
+					reject(...)
+				end
+			)
+		end
+	end)
 end
 
 --[[
@@ -177,11 +271,27 @@ function Promise.is(object)
 		return false
 	end
 
-	return object._type == "Promise"
+	return object[PromiseMarker] == true
 end
 
-function Promise:getStatus()
+function Promise.prototype:getStatus()
 	return self._status
+end
+
+function Promise.prototype:isRejected()
+	return self._status == Promise.Status.Rejected
+end
+
+function Promise.prototype:isResolved()
+	return self._status == Promise.Status.Resolved
+end
+
+function Promise.prototype:isPending()
+	return self._status == Promise.Status.Started
+end
+
+function Promise.prototype:isCancelled()
+	return self._status == Promise.Status.Cancelled
 end
 
 --[[
@@ -189,8 +299,9 @@ end
 
 	The given callbacks are invoked depending on that result.
 ]]
-function Promise:andThen(successHandler, failureHandler)
+function Promise.prototype:andThen(successHandler, failureHandler)
 	self._unhandledRejection = false
+	self._numConsumers = self._numConsumers + 1
 
 	-- Create a new promise to follow this part of the chain
 	return Promise.new(function(resolve, reject)
@@ -217,15 +328,77 @@ function Promise:andThen(successHandler, failureHandler)
 		elseif self._status == Promise.Status.Rejected then
 			-- This promise died a terrible death! Trigger failure immediately.
 			failureCallback(unpack(self._values, 1, self._valuesLength))
+		elseif self._status == Promise.Status.Cancelled then
+			-- We don't want to call the success handler or the failure handler,
+			-- we just reject this promise outright.
+			reject("Promise is cancelled")
 		end
-	end)
+	end, self)
 end
 
 --[[
 	Used to catch any errors that may have occurred in the promise.
 ]]
-function Promise:catch(failureCallback)
+function Promise.prototype:catch(failureCallback)
 	return self:andThen(nil, failureCallback)
+end
+
+--[[
+	Cancels the promise, disallowing it from rejecting or resolving, and calls
+	the cancellation hook if provided.
+]]
+function Promise.prototype:cancel()
+	if self._status ~= Promise.Status.Started then
+		return
+	end
+
+	self._status = Promise.Status.Cancelled
+
+	if self._cancellationHook then
+		self._cancellationHook()
+	end
+
+	if self._parent then
+		self._parent:_consumerCancelled()
+	end
+
+	self:_finalize()
+end
+
+--[[
+	Used to decrease the number of consumers by 1, and if there are no more,
+	cancel this promise.
+]]
+function Promise.prototype:_consumerCancelled()
+	self._numConsumers = self._numConsumers - 1
+
+	if self._numConsumers <= 0 then
+		self:cancel()
+	end
+end
+
+--[[
+	Used to set a handler for when the promise resolves, rejects, or is
+	cancelled. Returns a new promise chained from this promise.
+]]
+function Promise.prototype:finally(finallyHandler)
+	self._numConsumers = self._numConsumers + 1
+
+	-- Return a promise chained off of this promise
+	return Promise.new(function(resolve, reject)
+		local finallyCallback = resolve
+		if finallyHandler then
+			finallyCallback = createAdvancer(finallyHandler, resolve, reject)
+		end
+
+		if self._status == Promise.Status.Started then
+			-- The promise is not settled, so queue this.
+			table.insert(self._queuedFinally, finallyCallback)
+		else
+			-- The promise already settled or was cancelled, run the callback now.
+			finallyCallback()
+		end
+	end, self)
 end
 
 --[[
@@ -233,7 +406,7 @@ end
 
 	This matches the execution model of normal Roblox functions.
 ]]
-function Promise:await()
+function Promise.prototype:await()
 	self._unhandledRejection = false
 
 	if self._status == Promise.Status.Started then
@@ -241,18 +414,27 @@ function Promise:await()
 		local resultLength
 		local bindable = Instance.new("BindableEvent")
 
-		self:andThen(function(...)
-			result = {...}
-			resultLength = select("#", ...)
-			bindable:Fire(true)
-		end, function(...)
-			result = {...}
-			resultLength = select("#", ...)
-			bindable:Fire(false)
+		self:andThen(
+			function(...)
+				resultLength, result = pack(...)
+				bindable:Fire(true)
+			end,
+			function(...)
+				resultLength, result = pack(...)
+				bindable:Fire(false)
+			end
+		)
+		self:finally(function()
+			bindable:Fire(nil)
 		end)
 
 		local ok = bindable.Event:Wait()
 		bindable:Destroy()
+
+		if ok == nil then
+			-- If cancelled, we return nil.
+			return nil
+		end
 
 		return ok, unpack(result, 1, resultLength)
 	elseif self._status == Promise.Status.Resolved then
@@ -260,19 +442,37 @@ function Promise:await()
 	elseif self._status == Promise.Status.Rejected then
 		return false, unpack(self._values, 1, self._valuesLength)
 	end
+
+	-- If the promise is cancelled, fall through to nil.
+	return nil
 end
 
-function Promise:_resolve(...)
+--[[
+	Intended for use in tests.
+
+	Similar to await(), but instead of yielding if the promise is unresolved,
+	_unwrap will throw. This indicates an assumption that a promise has
+	resolved.
+]]
+function Promise.prototype:_unwrap()
+	if self._status == Promise.Status.Started then
+		error("Promise has not resolved or rejected.", 2)
+	end
+
+	local success = self._status == Promise.Status.Resolved
+
+	return success, unpack(self._values, 1, self._valuesLength)
+end
+
+function Promise.prototype:_resolve(...)
 	if self._status ~= Promise.Status.Started then
 		return
 	end
 
-	local argLength = select("#", ...)
-
 	-- If the resolved value was a Promise, we chain onto it!
 	if Promise.is((...)) then
 		-- Without this warning, arguments sometimes mysteriously disappear
-		if argLength > 1 then
+		if select("#", ...) > 1 then
 			local message = (
 				"When returning a Promise from andThen, extra arguments are " ..
 				"discarded! See:\n\n%s"
@@ -282,33 +482,36 @@ function Promise:_resolve(...)
 			warn(message)
 		end
 
-		(...):andThen(function(...)
-			self:_resolve(...)
-		end, function(...)
-			self:_reject(...)
-		end)
+		(...):andThen(
+			function(...)
+				self:_resolve(...)
+			end,
+			function(...)
+				self:_reject(...)
+			end
+		)
 
 		return
 	end
 
 	self._status = Promise.Status.Resolved
-	self._values = {...}
-	self._valuesLength = argLength
+	self._valuesLength, self._values = pack(...)
 
 	-- We assume that these callbacks will not throw errors.
 	for _, callback in ipairs(self._queuedResolve) do
 		callback(...)
 	end
+
+	self:_finalize()
 end
 
-function Promise:_reject(...)
+function Promise.prototype:_reject(...)
 	if self._status ~= Promise.Status.Started then
 		return
 	end
 
 	self._status = Promise.Status.Rejected
-	self._values = {...}
-	self._valuesLength = select("#", ...)
+	self._valuesLength, self._values = pack(...)
 
 	-- If there are any rejection handlers, call those!
 	if not isEmpty(self._queuedReject) then
@@ -338,6 +541,22 @@ function Promise:_reject(...)
 			)
 			warn(message)
 		end)
+	end
+
+	self:_finalize()
+end
+
+--[[
+	Calls any :finally handlers. We need this to be a separate method and
+	queue because we must call all of the finally callbacks upon a success,
+	failure, *and* cancellation.
+]]
+function Promise.prototype:_finalize()
+	for _, callback in ipairs(self._queuedFinally) do
+		-- Purposefully not passing values to callbacks here, as it could be the
+		-- resolved values, or rejected errors. If the developer needs the values,
+		-- they should use :andThen or :catch explicitly.
+		callback()
 	end
 end
 
