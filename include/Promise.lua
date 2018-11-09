@@ -171,7 +171,11 @@ function Promise.new(callback, parent)
 	local function onCancel(cancellationHook)
 		assert(type(cancellationHook) == "function", "onCancel must be called with a function as its first argument.")
 
-		self._cancellationHook = cancellationHook
+		if self._status == Promise.Status.Cancelled then
+			cancellationHook()
+		else
+			self._cancellationHook = cancellationHook
+		end
 	end
 
 	local _, result = wpcallPacked(callback, resolve, reject, onCancel)
