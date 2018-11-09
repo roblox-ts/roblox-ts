@@ -1440,6 +1440,9 @@ export class Transpiler {
 
 	private transpileAccessorDeclaration(node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration, name: string) {
 		const body = node.getBody();
+		if (!body) {
+			return "";
+		}
 		const paramNames = new Array<string>();
 		paramNames.push("self");
 		const initializers = new Array<string>();

@@ -33,7 +33,7 @@
 	"dependencies": {
 		"chokidar": "^2.0.4",
 		"fs-extra": "^7.0.1",
-		"ts-simple-ast": "^14.4.5",
+		"ts-simple-ast": "^18.0.0",
 		"yargs": "^12.0.2"
 	},
 	"devDependencies": {
