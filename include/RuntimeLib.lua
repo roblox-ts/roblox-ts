@@ -121,6 +121,10 @@ function TS.async(callback)
 end
 
 function TS.await(promise)
+	if not Promise.is(promise) then
+		return promise
+	end
+
 	local ok, result = promise:await()
 	if ok then
 		return result
