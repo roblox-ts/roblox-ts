@@ -8,7 +8,7 @@ import {
 	ScriptType,
 } from "../utility";
 import { Compiler } from "./Compiler";
-import { TranspilerError } from "./errors/TranspilerError";
+import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 
 type HasParameters =
 	| ts.FunctionExpression
@@ -202,13 +202,21 @@ export class Transpiler {
 
 	private checkReserved(name: string, node: ts.Node) {
 		if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
-			throw new TranspilerError(`Cannot use reserved Lua keyword as identifier '${name}'`, node);
+			throw new TranspilerError(
+				`Cannot use reserved Lua keyword as identifier '${name}'`,
+				node,
+				TranspilerErrorType.ReservedKeyword,
+			);
 		}
 	}
 
 	private checkMethodReserved(name: string, node: ts.Node) {
 		if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
-			throw new TranspilerError(`Cannot use reserved Lua metamethod as identifier '${name}'`, node);
+			throw new TranspilerError(
+				`Cannot use reserved Lua metamethod as identifier '${name}'`,
+				node,
+				TranspilerErrorType.ReservedMethodName,
+			);
 		}
 	}
 
@@ -269,7 +277,11 @@ export class Transpiler {
 				const key = strKeys ? `"${childText}"` : childIndex;
 
 				if (child.getKind() === ts.SyntaxKind.DotDotDotToken) {
-					throw new TranspilerError("Operator ... is not supported for destructuring!", child);
+					throw new TranspilerError(
+						"Operator ... is not supported for destructuring!",
+						child,
+						TranspilerErrorType.SpreadDestructuring,
+					);
 				}
 
 				if (pattern && isBindingPattern(pattern)) {
@@ -311,7 +323,11 @@ export class Transpiler {
 				param.getFirstChildByKind(ts.SyntaxKind.ObjectBindingPattern);
 
 			if (child === undefined) {
-				throw new TranspilerError("Child missing from parameter!", param);
+				throw new TranspilerError(
+					"Child missing from parameter!",
+					param,
+					TranspilerErrorType.ParameterChildMissing,
+				);
 			}
 
 			let name: string;
@@ -321,7 +337,11 @@ export class Transpiler {
 				name = this.getNewId();
 			} else {
 				const kindName = child.getKindName();
-				throw new TranspilerError(`Unexpected parameter type! (${kindName})`, param);
+				throw new TranspilerError(
+					`Unexpected parameter type! (${kindName})`,
+					param,
+					TranspilerErrorType.UnexpectedParameterType,
+				);
 			}
 
 			this.checkReserved(name, node);
@@ -511,10 +531,14 @@ export class Transpiler {
 		) {
 			return "";
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
-			throw new TranspilerError("Labeled statements are not supported!", node);
+			throw new TranspilerError(
+				"Labeled statements are not supported!",
+				node,
+				TranspilerErrorType.NoLabeledStatement,
+			);
 		} else {
 			const kindName = node.getKindName();
-			throw new TranspilerError(`Bad statement! (${kindName})`, node);
+			throw new TranspilerError(`Bad statement! (${kindName})`, node, TranspilerErrorType.BadStatement);
 		}
 	}
 
@@ -533,8 +557,9 @@ export class Transpiler {
 			} else {
 				const specifierText = node.getModuleSpecifier().getLiteralText();
 				throw new TranspilerError(
-					`Could not find file for '${specifierText}'. ` + `Did you forget to "npm install"?`,
+					`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
 					node,
+					TranspilerErrorType.MissingModuleFile,
 				);
 			}
 		}
@@ -587,7 +612,7 @@ export class Transpiler {
 					const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
 					specifier = exp.getLiteralText();
 				} else {
-					throw new TranspilerError("Bad specifier", node);
+					throw new TranspilerError("Bad specifier", node, TranspilerErrorType.BadSpecifier);
 				}
 				luaPath = this.compiler.getRelativeImportPath(node.getSourceFile(), moduleFile, specifier);
 			} else {
@@ -595,7 +620,7 @@ export class Transpiler {
 			}
 		} else {
 			const text = node.getModuleReference().getText();
-			throw new TranspilerError(`Could not find file for '${text}'`, node);
+			throw new TranspilerError(`Could not find file for '${text}'`, node, TranspilerErrorType.MissingModuleFile);
 		}
 
 		const name = node.getName();
@@ -621,6 +646,7 @@ export class Transpiler {
 					throw new TranspilerError(
 						`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
 						node,
+						TranspilerErrorType.MissingModuleFile,
 					);
 				}
 			}
@@ -631,7 +657,7 @@ export class Transpiler {
 			node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
 
 		if (!ancestor) {
-			throw new TranspilerError("Could not find export ancestor!", node);
+			throw new TranspilerError("Could not find export ancestor!", node, TranspilerErrorType.BadAncestor);
 		}
 
 		let ancestorName: string;
@@ -647,7 +673,11 @@ export class Transpiler {
 
 		if (node.isNamespaceExport()) {
 			if (!moduleSpecifier) {
-				throw new TranspilerError("Namespace exports require a module specifier!", node);
+				throw new TranspilerError(
+					"Namespace exports require a module specifier!",
+					node,
+					TranspilerErrorType.BadSpecifier,
+				);
 			}
 			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 		} else {
@@ -717,7 +747,7 @@ export class Transpiler {
 
 	private transpileBreakStatement(node: ts.BreakStatement) {
 		if (node.getLabel()) {
-			throw new TranspilerError("Break labels are not supported!", node);
+			throw new TranspilerError("Break labels are not supported!", node, TranspilerErrorType.NoLabeledStatement);
 		}
 		return this.indent + "break;\n";
 	}
@@ -749,6 +779,7 @@ export class Transpiler {
 			throw new TranspilerError(
 				"Expression statements must be variable assignments or function calls.",
 				expression,
+				TranspilerErrorType.BadExpressionStatement,
 			);
 		}
 		return this.indent + this.transpileExpression(expression) + ";\n";
@@ -784,7 +815,11 @@ export class Transpiler {
 
 	private transpileContinueStatement(node: ts.ContinueStatement) {
 		if (node.getLabel()) {
-			throw new TranspilerError("Continue labels are not supported!", node);
+			throw new TranspilerError(
+				"Continue labels are not supported!",
+				node,
+				TranspilerErrorType.NoLabeledStatement,
+			);
 		}
 		return this.indent + `_continue_${this.continueId} = true; break;\n`;
 	}
@@ -798,18 +833,26 @@ export class Transpiler {
 			for (const declaration of init.getDeclarations()) {
 				const lhs = declaration.getChildAtIndex(0);
 				if (isBindingPattern(lhs)) {
-					throw new TranspilerError(`ForIn Loop did not expect binding pattern!`, init);
+					throw new TranspilerError(
+						`ForIn Loop did not expect binding pattern!`,
+						init,
+						TranspilerErrorType.UnexpectedBindingPattern,
+					);
 				} else if (ts.TypeGuards.isIdentifier(lhs)) {
 					varName = lhs.getText();
 				}
 			}
 		} else if (ts.TypeGuards.isExpression(init)) {
 			const initKindName = init.getKindName();
-			throw new TranspilerError(`ForIn Loop did not expect expression initializer! (${initKindName})`, init);
+			throw new TranspilerError(
+				`ForIn Loop did not expect expression initializer! (${initKindName})`,
+				init,
+				TranspilerErrorType.UnexpectedInitializer,
+			);
 		}
 
 		if (varName.length === 0) {
-			throw new TranspilerError(`ForIn Loop empty varName!`, init);
+			throw new TranspilerError(`ForIn Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
 		const expStr = this.transpileExpression(node.getExpression());
@@ -826,11 +869,11 @@ export class Transpiler {
 
 	private transpileForOfStatement(node: ts.ForOfStatement) {
 		this.pushIdStack();
-		const initializer = node.getInitializer();
+		const init = node.getInitializer();
 		let varName = "";
 		const initializers = new Array<string>();
-		if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
-			for (const declaration of initializer.getDeclarations()) {
+		if (ts.TypeGuards.isVariableDeclarationList(init)) {
+			for (const declaration of init.getDeclarations()) {
 				const lhs = declaration.getChildAtIndex(0);
 				if (isBindingPattern(lhs)) {
 					varName = this.getNewId();
@@ -848,16 +891,17 @@ export class Transpiler {
 					varName = lhs.getText();
 				}
 			}
-		} else if (ts.TypeGuards.isExpression(initializer)) {
-			const initKindName = initializer.getKindName();
+		} else if (ts.TypeGuards.isExpression(init)) {
+			const initKindName = init.getKindName();
 			throw new TranspilerError(
 				`ForOf Loop did not expect expression initializer! (${initKindName})`,
-				initializer,
+				init,
+				TranspilerErrorType.UnexpectedInitializer,
 			);
 		}
 
 		if (varName.length === 0) {
-			throw new TranspilerError(`ForOf Loop empty varName!`, initializer);
+			throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
 		const expStr = this.transpileExpression(node.getExpression());
@@ -911,10 +955,12 @@ export class Transpiler {
 
 	private getFirstFunctionLikeAncestor(node: ts.Node): ts.FunctionLikeDeclaration | undefined {
 		for (const ancestor of node.getAncestors()) {
-			if (ts.TypeGuards.isFunctionDeclaration(ancestor)
-				|| ts.TypeGuards.isMethodDeclaration(ancestor)
-				|| ts.TypeGuards.isFunctionExpression(ancestor)
-				|| ts.TypeGuards.isArrowFunction(ancestor)) {
+			if (
+				ts.TypeGuards.isFunctionDeclaration(ancestor) ||
+				ts.TypeGuards.isMethodDeclaration(ancestor) ||
+				ts.TypeGuards.isFunctionExpression(ancestor) ||
+				ts.TypeGuards.isArrowFunction(ancestor)
+			) {
 				return ancestor;
 			}
 		}
@@ -949,7 +995,11 @@ export class Transpiler {
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
 		if (node.getDeclarationKind() === ts.VariableDeclarationKind.Var) {
-			throw new TranspilerError("'var' keyword is not supported! Use 'let' or 'const' instead.", node);
+			throw new TranspilerError(
+				"'var' keyword is not supported! Use 'let' or 'const' instead.",
+				node,
+				TranspilerErrorType.NoVarKeyword,
+			);
 		}
 		const names = new Array<string>();
 		const values = new Array<string>();
@@ -1176,6 +1226,7 @@ export class Transpiler {
 					throw new TranspilerError(
 						`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
 						node,
+						TranspilerErrorType.UndefinableMetamethod,
 					);
 				}
 				result +=
@@ -1368,6 +1419,7 @@ export class Transpiler {
 					throw new TranspilerError(
 						`Cannot use return statement in constructor for ${className}`,
 						returnStatement,
+						TranspilerErrorType.NoConstructorReturn,
 					);
 				}
 			}
@@ -1590,7 +1642,11 @@ export class Transpiler {
 			return "nil";
 		} else if (ts.TypeGuards.isThisExpression(node)) {
 			if (!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration)) {
-				throw new TranspilerError("'this' may only be used inside a class definition", node);
+				throw new TranspilerError(
+					"'this' may only be used inside a class definition",
+					node,
+					TranspilerErrorType.NoThisOutsideClass,
+				);
 			}
 			return "self";
 		} else if (ts.TypeGuards.isSuperExpression(node)) {
@@ -1602,10 +1658,14 @@ export class Transpiler {
 		) {
 			return this.transpileExpression(node.getExpression());
 		} else if (ts.TypeGuards.isNullLiteral(node)) {
-			throw new TranspilerError("'null' is not supported! Use 'undefined' instead.", node);
+			throw new TranspilerError(
+				"'null' is not supported! Use 'undefined' instead.",
+				node,
+				TranspilerErrorType.NoNull,
+			);
 		} else {
 			const kindName = node.getKindName();
-			throw new TranspilerError(`Bad expression! (${kindName})`, node);
+			throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
 		}
 	}
 
@@ -1761,7 +1821,7 @@ export class Transpiler {
 			result += ` ${initializersStr} end`;
 		} else {
 			const bodyKindName = body.getKindName();
-			throw new TranspilerError(`Bad function body (${bodyKindName})`, node);
+			throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
 		}
 		if (node.isAsync()) {
 			result = `TS.async(${result})`;
@@ -1795,7 +1855,11 @@ export class Transpiler {
 	private transpilePropertyCallExpression(node: ts.CallExpression) {
 		const expression = node.getExpression();
 		if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
-			throw new TranspilerError("Expected PropertyAccessExpression", node);
+			throw new TranspilerError(
+				"Expected PropertyAccessExpression",
+				node,
+				TranspilerErrorType.ExpectedPropertyAccessExpression,
+			);
 		}
 		this.validateApiAccess(expression.getNameNode());
 		const subExp = expression.getExpression();
@@ -1859,6 +1923,7 @@ export class Transpiler {
 					throw new TranspilerError(
 						`${subExpTypeName}.${property}() cannot be an expression statement!`,
 						node,
+						TranspilerErrorType.NoMacroMathExpressionStatement,
 					);
 				}
 			};
@@ -1913,9 +1978,17 @@ export class Transpiler {
 		const opKind = opToken.getKind();
 
 		if (opKind === ts.SyntaxKind.CaretToken) {
-			throw new TranspilerError("Binary XOR operator ( `^` ) is not supported! Did you mean to use `**`?", node);
+			throw new TranspilerError(
+				"Binary XOR operator ( `^` ) is not supported! Did you mean to use `**`?",
+				node,
+				TranspilerErrorType.NoXOROperator,
+			);
 		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
-			throw new TranspilerError("Binary XOR operator ( `^` ) is not supported! Did you mean to use `**=`?", node);
+			throw new TranspilerError(
+				"Binary XOR operator ( `^` ) is not supported! Did you mean to use `**=`?",
+				node,
+				TranspilerErrorType.NoXOROperator,
+			);
 		}
 
 		const lhs = node.getLeft();
@@ -1942,7 +2015,7 @@ export class Transpiler {
 				case ts.SyntaxKind.PercentEqualsToken:
 					return `${lhsStr} = ${lhsStr} % (${rhsStr})`;
 			}
-			throw new TranspilerError("Unrecognized operation! #1", node);
+			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
 		}
 
 		if (
@@ -1978,11 +2051,19 @@ export class Transpiler {
 
 		switch (opKind) {
 			case ts.SyntaxKind.EqualsEqualsToken:
-				throw new TranspilerError("operator '==' is not supported! Use '===' instead.", opToken);
+				throw new TranspilerError(
+					"operator '==' is not supported! Use '===' instead.",
+					opToken,
+					TranspilerErrorType.NoEqualsEquals,
+				);
 			case ts.SyntaxKind.EqualsEqualsEqualsToken:
 				return `${lhsStr} == ${rhsStr}`;
 			case ts.SyntaxKind.ExclamationEqualsToken:
-				throw new TranspilerError("operator '!=' is not supported! Use '!==' instead.", opToken);
+				throw new TranspilerError(
+					"operator '!=' is not supported! Use '!==' instead.",
+					opToken,
+					TranspilerErrorType.NoExclamationEquals,
+				);
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
 			case ts.SyntaxKind.PlusToken:
@@ -2021,7 +2102,11 @@ export class Transpiler {
 				}
 			default:
 				const opKindName = node.getOperatorToken().getKindName();
-				throw new TranspilerError(`Bad binary expression! (${opKindName})`, opToken);
+				throw new TranspilerError(
+					`Bad binary expression! (${opKindName})`,
+					opToken,
+					TranspilerErrorType.BadBinaryExpression,
+				);
 		}
 	}
 
@@ -2055,7 +2140,7 @@ export class Transpiler {
 				case ts.SyntaxKind.MinusMinusToken:
 					return `${expStr} = ${expStr} - 1`;
 			}
-			throw new TranspilerError("Unrecognized operation! #2", node);
+			throw new TranspilerError("Unrecognized operation! #2", node, TranspilerErrorType.UnrecognizedOperation2);
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -2077,7 +2162,11 @@ export class Transpiler {
 			case ts.SyntaxKind.MinusToken:
 				return `-${expStr}`;
 		}
-		throw new TranspilerError(`Bad prefix unary expression! (${tokenKind})`, node);
+		throw new TranspilerError(
+			`Bad prefix unary expression! (${tokenKind})`,
+			node,
+			TranspilerErrorType.BadPrefixUnaryExpression,
+		);
 	}
 
 	private transpilePostfixUnaryExpression(node: ts.PostfixUnaryExpression) {
@@ -2110,7 +2199,7 @@ export class Transpiler {
 				case ts.SyntaxKind.MinusMinusToken:
 					return `${expStr} = ${expStr} - 1`;
 			}
-			throw new TranspilerError("Unrecognized operation! #3", node);
+			throw new TranspilerError("Unrecognized operation! #3", node, TranspilerErrorType.UnrecognizedOperation3);
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -2127,12 +2216,20 @@ export class Transpiler {
 				return `(function() ${statementsStr}; return ${id}; end)()`;
 			}
 		}
-		throw new TranspilerError(`Bad postfix unary expression! (${opKind})`, node);
+		throw new TranspilerError(
+			`Bad postfix unary expression! (${opKind})`,
+			node,
+			TranspilerErrorType.BadPostfixUnaryExpression,
+		);
 	}
 
 	private transpileNewExpression(node: ts.NewExpression) {
 		if (!node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)) {
-			throw new TranspilerError("Parentheses-less new expressions not allowed!", node);
+			throw new TranspilerError(
+				"Parentheses-less new expressions not allowed!",
+				node,
+				TranspilerErrorType.NoParentheseslessNewExpression,
+			);
 		}
 
 		const expStr = node.getExpression();
@@ -2215,11 +2312,19 @@ export class Transpiler {
 		}
 		if (this.scriptContext === ScriptContext.Server) {
 			if (this.hasDirective(node, "@rbx-client")) {
-				throw new TranspilerError("Server script attempted to access a client-only API!", node);
+				throw new TranspilerError(
+					"Server script attempted to access a client-only API!",
+					node,
+					TranspilerErrorType.InvalidClientOnlyAPIAccess,
+				);
 			}
 		} else if (this.scriptContext === ScriptContext.Client) {
 			if (this.hasDirective(node, "@rbx-server")) {
-				throw new TranspilerError("Client script attempted to access a server-only API!", node);
+				throw new TranspilerError(
+					"Client script attempted to access a server-only API!",
+					node,
+					TranspilerErrorType.InvalidServerOnlyAPIAccess,
+				);
 			}
 		}
 	}
@@ -2252,7 +2357,11 @@ export class Transpiler {
 					ts.TypeGuards.isFunctionExpression(valDec) ||
 					ts.TypeGuards.isMethodDeclaration(valDec)
 				) {
-					throw new TranspilerError("Cannot index a function value!", node);
+					throw new TranspilerError(
+						"Cannot index a function value!",
+						node,
+						TranspilerErrorType.NoFunctionIndex,
+					);
 				} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
 					if (valDec.isConstEnum()) {
 						const value = valDec.getMemberOrThrow(propertyStr).getValue();
@@ -2264,7 +2373,11 @@ export class Transpiler {
 					}
 				} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
 					if (propertyStr === "prototype") {
-						throw new TranspilerError("Class prototypes are not supported!", node);
+						throw new TranspilerError(
+							"Class prototypes are not supported!",
+							node,
+							TranspilerErrorType.NoClassPrototype,
+						);
 					}
 				}
 			}
@@ -2385,7 +2498,11 @@ export class Transpiler {
 		result += this.transpileStatementedNode(node);
 		if (this.isModule) {
 			if (!this.compiler.noHeuristics && scriptType !== ScriptType.Module) {
-				throw new TranspilerError("Attempted to export in a non-ModuleScript!", node);
+				throw new TranspilerError(
+					"Attempted to export in a non-ModuleScript!",
+					node,
+					TranspilerErrorType.ExportInNonModuleScript,
+				);
 			}
 
 			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
@@ -2396,7 +2513,11 @@ export class Transpiler {
 			result += this.indent + "return _exports;\n";
 		} else {
 			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
-				throw new TranspilerError("ModuleScript contains no exports!", node);
+				throw new TranspilerError(
+					"ModuleScript contains no exports!",
+					node,
+					TranspilerErrorType.ModuleScriptContainsNoExports,
+				);
 			}
 		}
 		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;

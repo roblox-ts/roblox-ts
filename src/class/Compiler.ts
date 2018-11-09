@@ -10,7 +10,7 @@ import {
 	ScriptType,
 	stripExts,
 } from "../utility";
-import { CompilerError } from "./errors/CompilerError";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
 
@@ -124,6 +124,7 @@ export class Compiler {
 	public readonly noStrict: boolean;
 	public readonly noHeader: boolean;
 	public readonly noHeuristics: boolean;
+	public readonly ci: boolean;
 
 	constructor(configFilePath: string, args: { [argName: string]: any }) {
 		this.projectPath = path.resolve(configFilePath, "..");
@@ -136,19 +137,20 @@ export class Compiler {
 		this.noStrict = args.noStrict;
 		this.noHeader = args.noHeader;
 		this.noHeuristics = args.noHeuristics;
+		this.ci = args.ci;
 		this.compilerOptions = this.project.getCompilerOptions();
 
 		this.baseUrl = this.compilerOptions.baseUrl;
 
 		const rootDir = this.compilerOptions.rootDir;
 		if (!rootDir) {
-			throw new CompilerError("Expected 'rootDir' option in tsconfig.json!");
+			throw new CompilerError("Expected 'rootDir' option in tsconfig.json!", CompilerErrorType.MissingRootDir);
 		}
 		this.rootDir = rootDir;
 
 		const outDir = this.compilerOptions.outDir;
 		if (!outDir) {
-			throw new CompilerError("Expected 'outDir' option in tsconfig.json!");
+			throw new CompilerError("Expected 'outDir' option in tsconfig.json!", CompilerErrorType.MissingOutDir);
 		}
 		this.outDir = outDir;
 
@@ -170,7 +172,10 @@ export class Compiler {
 							target: part.target,
 						});
 					} else {
-						throw new CompilerError(`Could not find directory for partition: ${JSON.stringify(part)}`);
+						throw new CompilerError(
+							`Could not find directory for partition: ${JSON.stringify(part)}`,
+							CompilerErrorType.MissingPartitionDir,
+						);
 					}
 				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
 					const directory = this.project.getDirectory(
@@ -182,7 +187,10 @@ export class Compiler {
 							target: part.target,
 						});
 					} else {
-						throw new CompilerError(`Could not find directory for partition: ${JSON.stringify(part)}`);
+						throw new CompilerError(
+							`Could not find directory for partition: ${JSON.stringify(part)}`,
+							CompilerErrorType.MissingPartitionDir,
+						);
 					}
 				}
 			}
@@ -274,7 +282,7 @@ export class Compiler {
 
 	public getRootDirOrThrow() {
 		if (!this.rootDir) {
-			throw new CompilerError("Could not find rootDir!");
+			throw new CompilerError("Could not find rootDir!", CompilerErrorType.MissingRootDir);
 		}
 		return this.rootDir;
 	}
@@ -315,7 +323,10 @@ export class Compiler {
 		if (ext === ".ts") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
-				throw new CompilerError(`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`);
+				throw new CompilerError(
+					`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`,
+					CompilerErrorType.MissingSourceFile,
+				);
 			}
 
 			const seen = new Set<string>();
@@ -393,6 +404,9 @@ export class Compiler {
 				await fs.writeFile(filePath, contents);
 			}
 		} catch (e) {
+			if (this.ci) {
+				throw e;
+			}
 			if (e instanceof TranspilerError) {
 				console.log(
 					"%s:%d:%d",
@@ -447,6 +461,7 @@ export class Compiler {
 			if (getScriptType(moduleFile) !== ScriptType.Module) {
 				throw new CompilerError(
 					util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
+					CompilerErrorType.ImportNonModuleScript,
 				);
 			}
 
@@ -458,6 +473,7 @@ export class Compiler {
 							this.getRobloxPathString(sourceRbxPath),
 							this.getRobloxPathString(moduleRbxPath),
 						),
+						CompilerErrorType.InvalidImportAccess,
 					);
 				}
 			}
@@ -506,7 +522,7 @@ export class Compiler {
 
 			const moduleName = parts.shift();
 			if (!moduleName) {
-				throw new CompilerError("Compiler.getImportPath() failed! #1");
+				throw new CompilerError("Compiler.getImportPath() failed! #1", CompilerErrorType.GetImportPathFail1);
 			}
 
 			let mainPath: string;
@@ -521,7 +537,7 @@ export class Compiler {
 			parts = mainPath.split(/[\\/]/g);
 			let last = parts.pop();
 			if (!last) {
-				throw new CompilerError("Compiler.getImportPath() failed! #2");
+				throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
 			}
 			last = stripExts(last);
 			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "init") {
@@ -537,7 +553,10 @@ export class Compiler {
 		} else {
 			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 			if (!partition) {
-				throw new CompilerError("Could not compile non-relative import, no data from rojo.json");
+				throw new CompilerError(
+					"Could not compile non-relative import, no data from rojo.json",
+					CompilerErrorType.NoRojoData,
+				);
 			}
 
 			const parts = partition.dir
@@ -547,7 +566,7 @@ export class Compiler {
 
 			const last = parts.pop();
 			if (!last) {
-				throw new CompilerError("Compiler.getImportPath() failed! #3");
+				throw new CompilerError("Compiler.getImportPath() failed! #3", CompilerErrorType.GetImportPathFail3);
 			}
 
 			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "index") {
