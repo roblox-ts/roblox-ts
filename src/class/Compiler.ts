@@ -12,6 +12,7 @@ import {
 } from "../utility";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
+import { DiagnosticError } from "./errors/DiagnosticError";
 import { Transpiler } from "./Transpiler";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
@@ -367,20 +368,22 @@ export class Compiler {
 				for (const diagnostic of diagnostics) {
 					const diagnosticFile = diagnostic.getSourceFile();
 					const line = diagnostic.getLineNumber();
-					if (diagnosticFile) {
-						if (line) {
-							console.log("%s:%d", diagnosticFile.getFilePath(), line);
-						} else {
-							console.log("%s", diagnosticFile.getFilePath());
+					if (!this.ci) {
+						if (diagnosticFile) {
+							if (line) {
+								console.log("%s:%d", diagnosticFile.getFilePath(), line);
+							} else {
+								console.log("%s", diagnosticFile.getFilePath());
+							}
 						}
+						console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
 					}
-					console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
 					errors++;
 				}
 			});
 			if (errors > 0) {
 				process.exitCode = 1;
-				return;
+				throw new DiagnosticError(errors);
 			}
 		}
 
@@ -417,6 +420,8 @@ export class Compiler {
 				console.log(`${red("Transpiler Error:")} ${e.message}`);
 			} else if (e instanceof CompilerError) {
 				console.log(`${red("Compiler Error:")} ${e.message}`);
+			} else if (e instanceof DiagnosticError) {
+				// log above
 			} else {
 				throw e;
 			}
