@@ -410,26 +410,26 @@ function Promise.prototype:await()
 	self._unhandledRejection = false
 
 	if self._status == Promise.Status.Started then
-		local ok, result, resultLength
+		local result
+		local resultLength
+		local bindable = Instance.new("BindableEvent")
 
-		local thread = coroutine.running()
-
-		spawn(function()
-			self:andThen(
-				function(...)
-					resultLength, result = pack(...)
-					ok = true
-				end,
-				function(...)
-					resultLength, result = pack(...)
-					ok = false
-				end
-			):finally(function()
-				coroutine.resume(thread)
-			end)
+		self:andThen(
+			function(...)
+				resultLength, result = pack(...)
+				bindable:Fire(true)
+			end,
+			function(...)
+				resultLength, result = pack(...)
+				bindable:Fire(false)
+			end
+		)
+		self:finally(function()
+			bindable:Fire(nil)
 		end)
 
-		coroutine.yield()
+		local ok = bindable.Event:Wait()
+		bindable:Destroy()
 
 		if ok == nil then
 			-- If cancelled, we return nil.
