@@ -69,4 +69,19 @@ export = () => {
 		}
 		expect(x).to.equal(10);
 	});
+
+	it("should support for-of destructuring", () => {
+		const arr = [
+			{
+				a: 1,
+				b: 2,
+				c: 3,
+			},
+		];
+		for (const { a, b, c } of arr) {
+			expect(a).to.equal(1);
+			expect(b).to.equal(2);
+			expect(c).to.equal(3);
+		}
+	});
 };
