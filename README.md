@@ -1,5 +1,5 @@
 <div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
-<h1 align="center">roblox-ts</h1>
+<h1 align="center"><a href="https://roblox-ts.github.io/">roblox-ts</a></h1>
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <br>
 <div align="center">
@@ -8,13 +8,35 @@
 </div>
 <div>&nbsp;</div>
 
-
 ## Why?
-As Roblox games become increasingly complex and larger in size, writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
+As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
 
-**roblox-ts** attempts to solve this problem by compiling TypeScript code into Lua code for Roblox usage.
+**roblox-ts** is designed to solve these problems by compiling TypeScript code directly into Lua, tuned for use in Roblox specifically.
 
-https://roblox-ts.github.io/
+## Goals
+*(What we want to do)*
+- Provide static type checking for Roblox games.
+- Always generate syntactically sound Lua.
+- Maintain compatability with TypeScript tooling.
+- Allow interoperability between TS<->Lua and Lua<->TS.
+- Mirror data type APIs where there is missing functionality in Lua -- and augment data types in the spirit of JavaScript.
+- Enable and encourage efficient development workflows.
+- Optimize emitted Lua depending on context, but not at the cost of stability.
+- Do not introduce unexpected members in the global scope or on user-defined objects.
+
+## Pillars
+*(How we'll do it)*
+- Stability over complexity.
+- Prevent footguns wherever possible. Encourage falling into the pit of success!
+- Do not assume developer intention when ambiguity arises.
+- Be unopinionated about code style and project structure when feasible.
+
+## Non-goals
+*(What we don't want to do*)
+- Implement/simulate the entire JavaScript API.
+- Interoperability with vanilla TypeScript modules.
+- Wrap or rename existing Lua APIs in order to make them more JavaScript-like.
+- Take over the world.
 
 # Getting Started
 

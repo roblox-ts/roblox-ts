@@ -13,15 +13,15 @@ namespace foo {
 /* tslint:enable */
 
 export = () => {
-	it("should allow namespaces", () => {
+	it("should support namespaces", () => {
 		expect(n1.a).to.equal("a");
 	});
 
-	it("should allow nested namespaces", () => {
+	it("should support nested namespaces", () => {
 		expect(n2.n3.a).to.equal("a");
 	});
 
-	it("should allow shadowed namespaces", () => {
+	it("should support shadowed namespaces", () => {
 		expect(foo.foo.foo.bar).to.equal("bar");
 	});
 };

@@ -1,19 +1,45 @@
 export = () => {
-	it("should allow function declarations", () => {
+	it("should support function declarations", () => {
 		function foo() {
 			return true;
 		}
 		expect(foo()).to.be.ok();
 	});
 
-	it("should allow function arguments", () => {
+	it("should support function arguments", () => {
 		function add(a: number, b: number) {
 			return a + b;
 		}
 		expect(add(123, 456)).to.equal(579);
 	});
 
-	it("should allow variadic arguments", () => {
+	it("should support no return value", () => {
+		function doStuff(doIHaveToMom: boolean) {
+			if (doIHaveToMom) {
+				return "cleans room";
+			} else {
+				return;
+			}
+		}
+
+		expect(doStuff(true)).to.equal("cleans room");
+		expect(doStuff(false)).never.to.be.ok();
+	});
+
+	it("should support destructuring in assignment", () => {
+		function addAndMultiply(a: number, b: number): [number, number] {
+			const sum = a + b;
+			const product = a * b;
+			return [sum, product];
+		}
+
+		const [x, y] = addAndMultiply(5, 6);
+
+		expect(x).to.equal(11);
+		expect(y).to.equal(30);
+	});
+
+	it("should support variadic arguments", () => {
 		function addAll(...n: Array<number>) {
 			let sum = 0;
 			for (const value of n) {
@@ -26,7 +52,7 @@ export = () => {
 		expect(addAll(1, 2, 3)).to.equal(6);
 	});
 
-	it("should allow default arguments", () => {
+	it("should support default arguments", () => {
 		function addSeven(n = 5) {
 			return n + 7;
 		}
@@ -34,7 +60,7 @@ export = () => {
 		expect(addSeven(7)).to.equal(14);
 	});
 
-	it("should allow function expressions", () => {
+	it("should support function expressions", () => {
 		/* tslint:disable */
 		expect(
 			(function() {
@@ -44,7 +70,7 @@ export = () => {
 		/* tslint:enable */
 	});
 
-	it("should allow arrow functions", () => {
+	it("should support arrow functions", () => {
 		expect(
 			(() => {
 				return 456;
@@ -52,7 +78,7 @@ export = () => {
 		).to.equal(456);
 	});
 
-	it("should allow binding patterns", () => {
+	it("should support binding patterns", () => {
 		function foo({ a }: { a: number }) {
 			return a * 2;
 		}

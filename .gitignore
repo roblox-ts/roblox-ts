@@ -1,4 +1,5 @@
 *.cmd
+coverage.lcov
 .nyc_output
 coverage
 node_modules

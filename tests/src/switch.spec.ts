@@ -16,7 +16,7 @@ function foo(s: string) {
 }
 
 export = () => {
-	it("should allow switch statements", () => {
+	it("should support switch statements", () => {
 		expect(foo("a")).to.equal(1);
 		expect(foo("b")).to.equal(1);
 		expect(foo("c")).to.equal(2);
