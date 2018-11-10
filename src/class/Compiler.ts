@@ -409,6 +409,7 @@ export class Compiler {
 				await fs.writeFile(filePath, contents);
 			}
 		} catch (e) {
+			// do not silence errors for CI tests
 			if (this.ci) {
 				throw e;
 			}
