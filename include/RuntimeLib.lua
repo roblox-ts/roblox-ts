@@ -142,9 +142,43 @@ end
 
 -- bitwise operations
 
+local function bitop(a, b, oper)
+	local r, m, s = 0, 2^52
+	repeat
+		s, a, b = a + b + m, a % m, b % m
+		r, m = r + m * oper % (s - a - b), m / 2
+	until m < 1
+	return r
+end
+
 function TS.bor(a, b)
-	-- TODO
-	TS.error("TODO")
+	a = math.floor(tonumber(a))
+	b = math.floor(tonumber(b))
+	return bitop(a, b, 1)
+end
+
+function TS.band(a, b)
+	a = math.floor(tonumber(a))
+	b = math.floor(tonumber(b))
+	return bitop(a, b, 4)
+end
+
+function TS.bxor(a, b)
+	a = math.floor(tonumber(a))
+	b = math.floor(tonumber(b))
+	return bitop(a, b, 3)
+end
+
+function TS.blsh(a, b)
+	a = math.floor(tonumber(a))
+	b = math.floor(tonumber(b))
+	return a * 2 ^ b
+end
+
+function TS.brsh(a, b)
+	a = math.floor(tonumber(a))
+	b = math.floor(tonumber(b))
+	return math.floor(a / 2 ^ b)
 end
 
 -- array macro functions
