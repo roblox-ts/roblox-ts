@@ -98,4 +98,24 @@ export = () => {
 		} = foo;
 		expect(z).to.equal(123);
 	});
+
+	it("should not optimize array destructuring", () => {
+		function a() {
+			return [1, 2, 3];
+		}
+		const [d, e, f] = a();
+		expect(d).to.equal(1);
+		expect(e).to.equal(2);
+		expect(f).to.equal(3);
+	});
+
+	it("should optimize tuple destructuring", () => {
+		function a(): [number, number, number] {
+			return [1, 2, 3];
+		}
+		const [d, e, f] = a();
+		expect(d).to.equal(1);
+		expect(e).to.equal(2);
+		expect(f).to.equal(3);
+	});
 };

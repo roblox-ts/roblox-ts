@@ -59,11 +59,17 @@ export enum ScriptContext {
 	Both,
 }
 
-export function getScriptContext(file: ts.SourceFile): ScriptContext {
+export function getScriptContext(file: ts.SourceFile, seen = new Set<string>()): ScriptContext {
 	const filePath = file.getFilePath();
 	if (scriptContextCache.has(filePath)) {
 		return scriptContextCache.get(filePath)!;
 	}
+
+	// prevent infinite recursion
+	if (seen.has(filePath)) {
+		return ScriptContext.None;
+	}
+	seen.add(filePath);
 
 	const scriptType = getScriptType(file);
 	if (scriptType === ScriptType.Server) {
@@ -75,7 +81,7 @@ export function getScriptContext(file: ts.SourceFile): ScriptContext {
 		let isClient = false;
 
 		for (const referencingFile of file.getReferencingSourceFiles()) {
-			const referenceContext = getScriptContext(referencingFile);
+			const referenceContext = getScriptContext(referencingFile, seen);
 			if (referenceContext === ScriptContext.Server) {
 				isServer = true;
 			} else if (referenceContext === ScriptContext.Client) {

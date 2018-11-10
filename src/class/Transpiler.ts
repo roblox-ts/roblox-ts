@@ -490,9 +490,6 @@ export class Transpiler {
 	}
 
 	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
-		if (context) {
-			args.unshift(context);
-		}
 		return args.map(arg => this.transpileExpression(arg)).join(", ");
 	}
 
@@ -1068,7 +1065,7 @@ export class Transpiler {
 					.every(bindingElement => {
 						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
 					});
-				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs)) {
+				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
 					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
 					values.push(this.transpileExpression(rhs as ts.Expression));
 					const flatNamesStr = names.join(", ");
