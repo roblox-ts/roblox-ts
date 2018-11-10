@@ -13,6 +13,32 @@ export = () => {
 		expect(add(123, 456)).to.equal(579);
 	});
 
+	it("should support no return value", () => {
+		function doStuff(doIHaveToMom: boolean) {
+			if (doIHaveToMom) {
+				return "cleans room";
+			} else {
+				return;
+			}
+		}
+
+		expect(doStuff(true)).to.equal("cleans room");
+		expect(doStuff(false)).never.to.be.ok();
+	});
+
+	it("should support destructuring in assignment", () => {
+		function addAndMultiply(a: number, b: number): [number, number] {
+			const sum = a + b;
+			const product = a * b;
+			return [sum, product];
+		}
+
+		const [x, y] = addAndMultiply(5, 6);
+
+		expect(x).to.equal(11);
+		expect(y).to.equal(30);
+	});
+
 	it("should support variadic arguments", () => {
 		function addAll(...n: Array<number>) {
 			let sum = 0;
