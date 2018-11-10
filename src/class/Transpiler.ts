@@ -219,7 +219,6 @@ function isUsedAsType(node: ts.Identifier) {
 
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
-	private exportStack = new Array<Array<string>>();
 	private namespaceStack = new Array<string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
@@ -269,22 +268,6 @@ export class Transpiler {
 
 	private popIndent() {
 		this.indent = this.indent.substr(1);
-	}
-
-	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.isExported()) {
-			return;
-		}
-
-		let ancestorName: string;
-		if (this.namespaceStack.length > 0) {
-			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-		} else {
-			this.isModule = true;
-			ancestorName = "_exports";
-		}
-		const alias = node.isDefaultExport() ? "_default" : name;
-		this.exportStack[this.exportStack.length - 1].push(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
 	private getBindingData(
@@ -454,12 +437,11 @@ export class Transpiler {
 
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
-		this.exportStack.push(new Array<string>());
 		let result = "";
 		this.hoistStack.push(new Array<string>());
-		for (const child of node.getStatements()) {
-			result += this.transpileStatement(child);
-			if (child.getKind() === ts.SyntaxKind.ReturnStatement) {
+		for (const statement of node.getStatements()) {
+			result += this.transpileStatement(statement);
+			if (ts.TypeGuards.isReturnStatement(statement)) {
 				break;
 			}
 		}
@@ -469,10 +451,25 @@ export class Transpiler {
 			const hoistsStr = hoists.join(", ");
 			result = this.indent + `local ${hoistsStr};\n` + result;
 		}
-		const scopeExports = this.exportStack.pop();
-		if (scopeExports && scopeExports.length > 0) {
-			scopeExports.forEach(scopeExport => (result += this.indent + scopeExport));
+
+		if (ts.TypeGuards.isSourceFile(node) || ts.TypeGuards.isNamespaceDeclaration(node)) {
+			for (const expSym of node.getExportSymbols()) {
+				const name = expSym.getName();
+				const valDec = expSym.getValueDeclaration();
+				if (valDec) {
+					let ancestorName: string;
+					if (this.namespaceStack.length > 0) {
+						ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
+					} else {
+						this.isModule = true;
+						ancestorName = "_exports";
+					}
+
+					result += this.indent + `${ancestorName}.${name} = ${name};\n`;
+				}
+			}
 		}
+
 		this.popIdStack();
 		return result;
 	}
@@ -671,25 +668,27 @@ export class Transpiler {
 	private transpileExportDeclaration(node: ts.ExportDeclaration) {
 		let luaPath: string = "";
 		const moduleSpecifier = node.getModuleSpecifier();
-		if (moduleSpecifier) {
-			if (node.isModuleSpecifierRelative()) {
-				luaPath = this.compiler.getRelativeImportPath(
-					node.getSourceFile(),
-					node.getModuleSpecifierSourceFile(),
-					moduleSpecifier.getLiteralText(),
-				);
+		if (!moduleSpecifier) {
+			return "";
+		}
+
+		if (node.isModuleSpecifierRelative()) {
+			luaPath = this.compiler.getRelativeImportPath(
+				node.getSourceFile(),
+				node.getModuleSpecifierSourceFile(),
+				moduleSpecifier.getLiteralText(),
+			);
+		} else {
+			const moduleFile = node.getModuleSpecifierSourceFile();
+			if (moduleFile) {
+				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
 			} else {
-				const moduleFile = node.getModuleSpecifierSourceFile();
-				if (moduleFile) {
-					luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
-				} else {
-					const specifierText = moduleSpecifier.getLiteralText();
-					throw new TranspilerError(
-						`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
-						node,
-						TranspilerErrorType.MissingModuleFile,
-					);
-				}
+				const specifierText = moduleSpecifier.getLiteralText();
+				throw new TranspilerError(
+					`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
+					node,
+					TranspilerErrorType.MissingModuleFile,
+				);
 			}
 		}
 
@@ -702,8 +701,8 @@ export class Transpiler {
 		}
 
 		let ancestorName: string;
-		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
-			ancestorName = ancestor.getName();
+		if (this.namespaceStack.length > 0) {
+			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
 		} else {
 			this.isModule = true;
 			ancestorName = "_exports";
@@ -733,10 +732,14 @@ export class Transpiler {
 				rhs.push(`.${name}`);
 			});
 
+			if (rhs.length === 0) {
+				return "";
+			}
+
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
-			if (rhs.length <= 1) {
+			if (rhs.length == 1) {
 				rhsPrefix = `require(${luaPath})`;
 			} else {
 				rhsPrefix = this.getNewId();
@@ -1123,7 +1126,7 @@ export class Transpiler {
 
 		const parent = node.getParent();
 		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			names.forEach(name => this.pushExport(name, parent));
+			// names.forEach(name => this.pushExport(name, parent));
 		}
 
 		let result = "";
@@ -1158,7 +1161,7 @@ export class Transpiler {
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
-		this.pushExport(name, node);
+		// this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
 			return "";
@@ -1196,7 +1199,7 @@ export class Transpiler {
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
 		}
-		this.pushExport(name, node);
+		// this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
@@ -1547,10 +1550,11 @@ export class Transpiler {
 		if (this.isTypeOnlyNamespace(node)) {
 			return "";
 		}
+
 		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
-		this.pushExport(name, node);
+		// this.pushExport(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1572,7 +1576,7 @@ export class Transpiler {
 		}
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
-		this.pushExport(name, node);
+		// this.pushExport(name, node);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
@@ -2560,20 +2564,14 @@ export class Transpiler {
 				);
 			}
 
-			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
+			if (node.getExportAssignments().length > 0) {
 				result = this.indent + `local _exports;\n` + result;
 			} else {
 				result = this.indent + `local _exports = {};\n` + result;
 			}
 			result += this.indent + "return _exports;\n";
-		} else {
-			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
-				throw new TranspilerError(
-					"ModuleScript contains no exports!",
-					node,
-					TranspilerErrorType.ModuleScriptContainsNoExports,
-				);
-			}
+		} else if (scriptType === ScriptType.Module) {
+			result += this.indent + "return nil;\n";
 		}
 		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
 		if (noHeader) {
@@ -2581,6 +2579,7 @@ export class Transpiler {
 		}
 		result = this.indent + runtimeLibImport + result;
 		result = this.indent + "-- luacheck: ignore\n" + result;
+
 		return result;
 	}
 }
