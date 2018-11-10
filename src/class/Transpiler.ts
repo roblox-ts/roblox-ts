@@ -736,7 +736,7 @@ export class Transpiler {
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
-			if (rhs.length == 1) {
+			if (rhs.length === 1) {
 				rhsPrefix = `require(${luaPath})`;
 			} else {
 				rhsPrefix = this.getNewId();
