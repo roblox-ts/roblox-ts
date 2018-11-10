@@ -182,6 +182,15 @@ function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.M
 	return undefined;
 }
 
+function isType(node: ts.Node) {
+	return (
+		ts.TypeGuards.isEmptyStatement(node) ||
+		ts.TypeGuards.isTypeAliasDeclaration(node) ||
+		ts.TypeGuards.isInterfaceDeclaration(node) ||
+		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+	);
+}
+
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
@@ -474,7 +483,9 @@ export class Transpiler {
 	}
 
 	private transpileStatement(node: ts.Statement): string {
-		if (ts.TypeGuards.isBlock(node)) {
+		if (isType(node)) {
+			return "";
+		} else if (ts.TypeGuards.isBlock(node)) {
 			if (node.getStatements().length === 0) {
 				return "";
 			}
@@ -521,12 +532,6 @@ export class Transpiler {
 			return this.transpileExportAssignment(node);
 		} else if (ts.TypeGuards.isSwitchStatement(node)) {
 			return this.transpileSwitchStatement(node);
-		} else if (
-			ts.TypeGuards.isEmptyStatement(node) ||
-			ts.TypeGuards.isTypeAliasDeclaration(node) ||
-			ts.TypeGuards.isInterfaceDeclaration(node)
-		) {
-			return "";
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
 			throw new TranspilerError(
 				"Labeled statements are not supported!",
@@ -975,7 +980,7 @@ export class Transpiler {
 						expStr = expStr.substr(2, expStr.length - 4);
 						return this.indent + `return ${expStr};\n`;
 					} else {
-						return this.indent + `return unpack(${expStr})`;
+						return this.indent + `return unpack(${expStr});\n`;
 					}
 				}
 			}
@@ -1147,10 +1152,6 @@ export class Transpiler {
 	}
 
 	private transpileClassDeclaration(node: ts.ClassDeclaration) {
-		if (node.hasDeclareKeyword()) {
-			return "";
-		}
-
 		const name = node.getName() || this.getNewId();
 		const nameNode = node.getNameNode();
 		if (nameNode) {
@@ -1206,7 +1207,7 @@ export class Transpiler {
 					hasIndexMembers = true;
 					result += "\n";
 				}
-				result += this.transpileMethodDeclaration(id, method);
+				result += this.transpileMethodDeclaration(method);
 			});
 
 		this.popIndent();
@@ -1437,6 +1438,9 @@ export class Transpiler {
 
 	private transpileAccessorDeclaration(node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration, name: string) {
 		const body = node.getBody();
+		if (!body) {
+			return "";
+		}
 		const paramNames = new Array<string>();
 		paramNames.push("self");
 		const initializers = new Array<string>();
@@ -1456,7 +1460,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileMethodDeclaration(className: string, node: ts.MethodDeclaration) {
+	private transpileMethodDeclaration(node: ts.MethodDeclaration) {
 		const name = node.getName();
 		this.checkReserved(name, node);
 		const body = node.getBodyOrThrow();
@@ -1485,8 +1489,23 @@ export class Transpiler {
 		return result;
 	}
 
+	private isTypeOnlyNamespace(node: ts.NamespaceDeclaration) {
+		const statements = node.getStatements();
+		for (const statement of statements) {
+			if (!ts.TypeGuards.isNamespaceDeclaration(statement) && !isType(statement)) {
+				return false;
+			}
+		}
+		for (const statement of statements) {
+			if (ts.TypeGuards.isNamespaceDeclaration(statement) && !this.isTypeOnlyNamespace(statement)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	private transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
-		if (node.hasDeclareKeyword()) {
+		if (this.isTypeOnlyNamespace(node)) {
 			return "";
 		}
 		this.pushIdStack();

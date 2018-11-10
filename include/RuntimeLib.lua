@@ -1,7 +1,6 @@
 local Promise = require(script.Parent.Promise)
 
 -- constants
-local TYPE_TABLE = "table"
 local TYPE_STRING = "string"
 
 local TS = {}
@@ -129,7 +128,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		error(result, 2)
+		error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
@@ -362,12 +361,8 @@ function TS.array_concat(list, ...)
 	end
 	for i = 1, #args do
 		local value = args[i]
-		if typeof(value) == TYPE_TABLE then
-			for j = 1, #value do
-				result[#result + 1] = value[j]
-			end
-		else
-			result[#result + 1] = value
+		for j = 1, #value do
+			result[#result + 1] = value[j]
 		end
 	end
 	return result
@@ -380,7 +375,12 @@ function TS.array_push(list, ...)
 	end
 end
 
-TS.array_pop = table.remove
+function TS.array_pop(list)
+	local length = #list;
+	local lastValue = list[length]
+	list[length] = nil
+	return lastValue
+end
 
 function TS.array_join(list, separator)
 	if #list == 0 then
