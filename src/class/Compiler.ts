@@ -382,8 +382,8 @@ export class Compiler {
 				}
 			});
 			if (errors > 0) {
-				process.exitCode = 1;
-				throw new DiagnosticError(errors);
+				//process.exitCode = 1;
+				//throw new DiagnosticError(errors);
 			}
 		}
 

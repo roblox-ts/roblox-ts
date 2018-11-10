@@ -147,7 +147,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
 	if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
-		return `${lhsStr} .. ${rhsStr}`;
+		return `(${lhsStr}) .. ${rhsStr}`;
 	} else if (
 		(leftType.isNumber() || leftType.isNumberLiteral()) &&
 		(rightType.isNumber() || rightType.isNumberLiteral())
