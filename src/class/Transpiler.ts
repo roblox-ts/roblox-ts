@@ -185,6 +185,7 @@ function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.M
 function isType(node: ts.Node) {
 	return (
 		ts.TypeGuards.isEmptyStatement(node) ||
+		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
 		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
@@ -200,6 +201,20 @@ function isTypeRef(node: ts.Identifier) {
 			.getParent();
 		return parent !== undefined && isType(parent);
 	});
+}
+
+function isUsedAsType(node: ts.Identifier) {
+	for (const ref of node.findReferences()) {
+		for (const ref2 of ref.getReferences()) {
+			const parent = ref2.getNode().getParent() as ts.Node;
+			if (ref2.getSourceFile() === node.getSourceFile() && !ts.TypeGuards.isImportSpecifier(parent)) {
+				if (!isType(parent)) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
 
 export class Transpiler {
@@ -584,7 +599,7 @@ export class Transpiler {
 		const rhs = new Array<string>();
 
 		const defaultImport = node.getDefaultImport();
-		if (defaultImport && !isTypeRef(defaultImport)) {
+		if (defaultImport && !isUsedAsType(defaultImport)) {
 			lhs.push(this.transpileExpression(defaultImport));
 			rhs.push(`._default`);
 		}
@@ -599,7 +614,7 @@ export class Transpiler {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
-			if (!isTypeRef(namedImport.getNameNode())) {
+			if (!isUsedAsType(namedImport.getNameNode())) {
 				lhs.push(alias);
 				rhs.push(`.${name}`);
 			}
@@ -624,7 +639,7 @@ export class Transpiler {
 	}
 
 	private transpileImportEqualsDeclaration(node: ts.ImportEqualsDeclaration) {
-		if (isTypeRef(node.getNameNode())) {
+		if (isUsedAsType(node.getNameNode())) {
 			return "";
 		}
 
