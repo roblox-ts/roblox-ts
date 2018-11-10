@@ -23,6 +23,7 @@ const compilerArgs = {
 	noStrict: false,
 };
 
+/* tslint:disable:object-literal-sort-keys */
 const errorMatrix: ErrorMatrix = {
 	"var.spec.ts": {
 		message: "should not allow var keyword",
@@ -34,6 +35,7 @@ const errorMatrix: ErrorMatrix = {
 		instance: DiagnosticError,
 	},
 };
+/* tslint:enable:object-literal-sort-keys */
 
 const tsconfigPath = "tests/tsconfig.json";
 const srcFolder = path.resolve("tests", "src");
