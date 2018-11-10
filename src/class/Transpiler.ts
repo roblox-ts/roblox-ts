@@ -396,6 +396,10 @@ export class Transpiler {
 		return false;
 	}
 
+	private isInterfaceImportExport(spec: ts.ImportSpecifier | ts.ExportSpecifier) {
+		return spec.getNameNode().findReferencesAsNodes().some(ref => ref.getType().isInterface());
+	}
+
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
 		this.exportStack.push(new Array<string>());
@@ -444,7 +448,7 @@ export class Transpiler {
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
-		if (node.getType().isUndefined() || node.getType().isInterface()) {
+		if (node.getType().isUndefined()) {
 			return "nil";
 		}
 		let name = node.getText();
@@ -545,6 +549,7 @@ export class Transpiler {
 
 		const defaultImport = node.getDefaultImport();
 		const defaultImportExp = defaultImport && this.transpileExpression(defaultImport);
+		//TODO: Figure out how to get the ImportSpecifier here
 		if (defaultImportExp && !(sourceFile && sourceFile.getInterface(defaultImportExp))) {
 			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
@@ -560,7 +565,7 @@ export class Transpiler {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
-			if (!(sourceFile && sourceFile.getInterface(name))) {
+			if (!this.isInterfaceImportExport(namedImport)) {
 				lhs.push(alias);
 				rhs.push(`.${name}`);
 			}
@@ -667,7 +672,7 @@ export class Transpiler {
 					name = "_" + name;
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
-				if (!(ancestor && ancestor.getInterface(alias))) {
+				if (!this.isInterfaceImportExport(namedExport)) {
 					lhs.push(alias);
 					rhs.push(`${name}`);
 				}
