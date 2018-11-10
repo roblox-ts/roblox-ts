@@ -19,6 +19,7 @@
 		"no-unnecessary-qualifier": true,
 		"no-unused-variable": true,
 		"no-var-keyword": true,
+		"object-literal-sort-keys": false,
 		"prefer-const": true,
 		"quotemark": [true, "double", "avoid-escape" ],
 		"semicolon": [true, "always", "ignore-bound-class-methods"],

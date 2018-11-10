@@ -6,6 +6,14 @@ import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerE
 
 require("mocha");
 
+interface ErrorMatix {
+	[propName: string]: {
+		message: string;
+		instance: any;
+		type?: TranspilerErrorType;
+	};
+}
+
 const compilerArgs = {
 	ci: true,
 	includePath: "include",
@@ -13,6 +21,18 @@ const compilerArgs = {
 	noHeader: false,
 	noHeuristics: true,
 	noStrict: false,
+};
+
+const errorMatrix: ErrorMatix = {
+	"var.spec.ts": {
+		message: "should not allow var keyword",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoVarKeyword,
+	},
+	"diagnostic.spec.ts": {
+		message: "should not allow diagnostic errors",
+		instance: DiagnosticError,
+	},
 };
 
 const tsconfigPath = "tests/tsconfig.json";
@@ -39,28 +59,23 @@ describe("compile integration tests", () => {
 });
 
 describe("compile error unit tests", () => {
-	// compiler error unit tests
-	it("should not allow var keyword", done => {
-		compile("errors/var.spec.ts")
-			.then(() => done("Did not throw!"))
-			.catch(e => {
-				if (e instanceof TranspilerError && e.type === TranspilerErrorType.NoVarKeyword) {
-					done();
-				} else {
-					done("Unexpected error");
-				}
-			});
-	});
-
-	it("should not allow diagnostic errors", done => {
-		compile("errors/diagnostic.spec.ts")
-			.then(() => done("Did not throw!"))
-			.catch(e => {
-				if (e instanceof DiagnosticError) {
-					done();
-				} else {
-					done("Unexpected error");
-				}
-			});
-	});
+	for (const file in errorMatrix) {
+		it(errorMatrix[file].message, done => {
+			compile("errors/" + file)
+				.then(() => done("Did not throw!"))
+				.catch(e => {
+					if (e instanceof errorMatrix[file].instance) {
+						if (errorMatrix[file].type === undefined) {
+							done();
+						} else if (errorMatrix[file].type === e.type) {
+							done();
+						} else {
+							done("Unexpected error");
+						}
+					} else {
+						done("Unexpected error");
+					}
+				});
+		});
+	}
 });
