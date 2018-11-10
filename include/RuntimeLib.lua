@@ -137,6 +137,13 @@ function TS.add(a, b)
 	end
 end
 
+-- bitwise operations
+
+function TS.bor(a, b)
+	-- TODO
+	TS.error("TODO")
+end
+
 -- array macro functions
 TS.array = {}
 

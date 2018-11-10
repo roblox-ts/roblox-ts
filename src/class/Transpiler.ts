@@ -122,6 +122,17 @@ function isRbxClassType(type: ts.Type) {
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
+function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
+	if (wrap) {
+		rhsStr = `(${rhsStr})`;
+	}
+	if (rhsStr === "0" || rhsStr === "(0)") {
+		return `math.floor(${lhsStr})`;
+	} else {
+		return `TS.bor(${lhsStr}, ${rhsStr})`;
+	}
+}
+
 function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
@@ -1982,6 +1993,9 @@ export class Transpiler {
 				throw new TranspilerError("operator '!=' is not supported! Use '!==' instead.", opToken);
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
+			/* Bitwise Operations */
+			case ts.SyntaxKind.BarToken:
+				return getLuaBarExpression(node, lhsStr, rhsStr);
 			case ts.SyntaxKind.PlusToken:
 				return getLuaAddExpression(node, lhsStr, rhsStr);
 			case ts.SyntaxKind.MinusToken:
@@ -2361,7 +2375,11 @@ export class Transpiler {
 		const conditionStr = this.transpileExpression(node.getCondition());
 		const trueStr = this.transpileExpression(node.getWhenTrue());
 		const falseStr = this.transpileExpression(node.getWhenFalse());
-		return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
+		if (node.getWhenTrue().getType().isNullable()) {
+			return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
+		} else {
+			return `(${conditionStr} and ${trueStr} or ${falseStr})`;
+		}
 	}
 
 	private transpileTypeOfExpression(node: ts.TypeOfExpression) {
