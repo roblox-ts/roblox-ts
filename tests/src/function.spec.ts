@@ -26,9 +26,8 @@ export = () => {
 		expect(doStuff(false)).never.to.be.ok();
 	});
 
-	/* https://github.com/roblox-ts/roblox-ts/issues/114
 	it("should support destructuring in assignment", () => {
-		function addAndMultiply(a: number, b: number) {
+		function addAndMultiply(a: number, b: number): [number, number] {
 			const sum = a + b;
 			const product = a * b;
 			return [sum, product];
@@ -39,7 +38,6 @@ export = () => {
 		expect(x).to.equal(11);
 		expect(y).to.equal(30);
 	});
-	*/
 
 	it("should support variadic arguments", () => {
 		function addAll(...n: Array<number>) {

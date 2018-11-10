@@ -6,7 +6,7 @@ import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerE
 
 require("mocha");
 
-interface ErrorMatix {
+interface ErrorMatrix {
 	[propName: string]: {
 		message: string;
 		instance: any;
@@ -23,7 +23,7 @@ const compilerArgs = {
 	noStrict: false,
 };
 
-const errorMatrix: ErrorMatix = {
+const errorMatrix: ErrorMatrix = {
 	"var.spec.ts": {
 		message: "should not allow var keyword",
 		instance: TranspilerError,
