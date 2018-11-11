@@ -122,24 +122,6 @@ function isRbxClassType(type: ts.Type) {
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
-function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
-	if (wrap) {
-		rhsStr = `(${rhsStr})`;
-	}
-	const leftType = node.getLeft().getType();
-	const rightType = node.getRight().getType();
-	if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
-		return `${lhsStr} .. ${rhsStr}`;
-	} else if (
-		(leftType.isNumber() || leftType.isNumberLiteral()) &&
-		(rightType.isNumber() || rightType.isNumberLiteral())
-	) {
-		return `${lhsStr} + ${rhsStr}`;
-	} else {
-		return `TS.add(${lhsStr}, ${rhsStr})`;
-	}
-}
-
 function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
@@ -219,11 +201,12 @@ function isUsedAsType(node: ts.Identifier) {
 
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
-	private exportStack = new Array<Array<string>>();
+	private exportStack = new Array<Array<[string, string]>>();
 	private namespaceStack = new Array<string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
+	private usesRuntimeLib = false;
 	private indent = "";
 	private scriptContext = ScriptContext.None;
 
@@ -271,20 +254,34 @@ export class Transpiler {
 		this.indent = this.indent.substr(1);
 	}
 
-	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.isExported()) {
+	private pushExport(node: ts.Node & ts.ExportableNode, name: string, alias = name) {
+		if (!node.hasExportKeyword()) {
 			return;
 		}
-
-		let ancestorName: string;
-		if (this.namespaceStack.length > 0) {
-			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-		} else {
-			this.isModule = true;
-			ancestorName = "_exports";
+		this.isModule = true;
+		if (node.isDefaultExport()) {
+			alias = "_default";
 		}
-		const alias = node.isDefaultExport() ? "_default" : name;
-		this.exportStack[this.exportStack.length - 1].push(`${ancestorName}.${alias} = ${name};\n`);
+		this.exportStack[this.exportStack.length - 1].push([alias, name]);
+	}
+
+	private getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
+		if (wrap) {
+			rhsStr = `(${rhsStr})`;
+		}
+		const leftType = node.getLeft().getType();
+		const rightType = node.getRight().getType();
+		if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
+			return `${lhsStr} .. ${rhsStr}`;
+		} else if (
+			(leftType.isNumber() || leftType.isNumberLiteral()) &&
+			(rightType.isNumber() || rightType.isNumberLiteral())
+		) {
+			return `${lhsStr} + ${rhsStr}`;
+		} else {
+			this.usesRuntimeLib = true;
+			return `TS.add(${lhsStr}, ${rhsStr})`;
+		}
 	}
 
 	private getBindingData(
@@ -454,6 +451,9 @@ export class Transpiler {
 
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
+
+		this.exportStack.push(new Array<[string, string]>());
+
 		let result = "";
 		this.hoistStack.push(new Array<string>());
 		for (const statement of node.getStatements()) {
@@ -471,7 +471,19 @@ export class Transpiler {
 
 		const scopeExports = this.exportStack.pop();
 		if (scopeExports && scopeExports.length > 0) {
-			scopeExports.forEach(scopeExport => (result += this.indent + scopeExport));
+			let prefix: string;
+			if (this.namespaceStack.length > 0) {
+				const id = this.namespaceStack[this.namespaceStack.length - 1];
+				prefix = `${id} =`;
+			} else {
+				prefix = "return";
+			}
+
+			result += this.indent + `${prefix} {\n`;
+			this.pushIndent();
+			result += scopeExports.map(v => this.indent + `${v[0]} = ${v[1]};\n`).join("");
+			this.popIndent();
+			result += this.indent + "};\n";
 		}
 
 		this.popIdStack();
@@ -504,6 +516,7 @@ export class Transpiler {
 		let name = node.getText();
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+			this.usesRuntimeLib = true;
 			name = `TS.${name}`;
 		}
 		return name;
@@ -669,50 +682,43 @@ export class Transpiler {
 	private transpileExportDeclaration(node: ts.ExportDeclaration) {
 		let luaPath: string = "";
 		const moduleSpecifier = node.getModuleSpecifier();
-		if (!moduleSpecifier) {
-			return "";
-		}
-
-		if (node.isModuleSpecifierRelative()) {
-			luaPath = this.compiler.getRelativeImportPath(
-				node.getSourceFile(),
-				node.getModuleSpecifierSourceFile(),
-				moduleSpecifier.getLiteralText(),
-			);
-		} else {
-			const moduleFile = node.getModuleSpecifierSourceFile();
-			if (moduleFile) {
-				luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
-			} else {
-				const specifierText = moduleSpecifier.getLiteralText();
-				throw new TranspilerError(
-					`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
-					node,
-					TranspilerErrorType.MissingModuleFile,
+		if (moduleSpecifier) {
+			if (node.isModuleSpecifierRelative()) {
+				luaPath = this.compiler.getRelativeImportPath(
+					node.getSourceFile(),
+					node.getModuleSpecifierSourceFile(),
+					moduleSpecifier.getLiteralText(),
 				);
+			} else {
+				const moduleFile = node.getModuleSpecifierSourceFile();
+				if (moduleFile) {
+					luaPath = this.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
+				} else {
+					const specifierText = moduleSpecifier.getLiteralText();
+					throw new TranspilerError(
+						`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
+						node,
+						TranspilerErrorType.MissingModuleFile,
+					);
+				}
 			}
 		}
 
-		const ancestor =
-			node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration) ||
-			node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
 
-		if (!ancestor) {
-			throw new TranspilerError("Could not find export ancestor!", node, TranspilerErrorType.BadAncestor);
-		}
 
-		let ancestorName: string;
-		if (this.namespaceStack.length > 0) {
-			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-		} else {
-			this.isModule = true;
-			ancestorName = "_exports";
-		}
 
 		const lhs = new Array<string>();
 		const rhs = new Array<string>();
 
 		if (node.isNamespaceExport()) {
+			let ancestorName: string;
+			if (this.namespaceStack.length > 0) {
+				ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
+			} else {
+				this.isModule = true;
+				ancestorName = "_exports";
+			}
+
 			if (!moduleSpecifier) {
 				throw new TranspilerError(
 					"Namespace exports require a module specifier!",
@@ -720,6 +726,7 @@ export class Transpiler {
 					TranspilerErrorType.BadSpecifier,
 				);
 			}
+			this.usesRuntimeLib = true;
 			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 		} else {
 			node.getNamedExports().forEach(namedExport => {
@@ -746,9 +753,7 @@ export class Transpiler {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
 			}
-			const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
-			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-			result += `${lhsStr} = ${rhsStr};\n`;
+
 			return result;
 		}
 	}
@@ -1125,6 +1130,11 @@ export class Transpiler {
 			values.pop();
 		}
 
+		const parent = node.getParentIfKind(ts.SyntaxKind.VariableStatement);
+		if (parent) {
+			names.forEach(name => this.pushExport(parent, name));
+		}
+
 		let result = "";
 		preStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
 		const namesStr = names.join(", ");
@@ -1156,7 +1166,7 @@ export class Transpiler {
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
-		this.pushExport(name, node);
+		this.pushExport(node, name);
 		const body = node.getBody();
 		if (!body) {
 			return "";
@@ -1169,6 +1179,7 @@ export class Transpiler {
 		const paramStr = paramNames.join(", ");
 		let result = "";
 		if (node.isAsync()) {
+			this.usesRuntimeLib = true;
 			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
 		} else {
 			result += this.indent + `${name} = function(${paramStr})\n`;
@@ -1194,7 +1205,7 @@ export class Transpiler {
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
 		}
-		this.pushExport(name, node);
+		this.pushExport(node, name);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
@@ -1511,6 +1522,7 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
+			this.usesRuntimeLib = true;
 			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
 		} else {
 			result += this.indent + `${name} = function(${paramStr})\n`;
@@ -1549,7 +1561,7 @@ export class Transpiler {
 		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
-		this.pushExport(name, node);
+		this.pushExport(node, name);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1571,7 +1583,7 @@ export class Transpiler {
 		}
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
-		this.pushExport(name, node);
+		this.pushExport(node, name);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
@@ -1771,6 +1783,7 @@ export class Transpiler {
 
 		const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 		if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
+			this.usesRuntimeLib = true;
 			return `TS.array_concat(${params})`;
 		} else {
 			return params;
@@ -1838,6 +1851,7 @@ export class Transpiler {
 		}
 
 		if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
+			this.usesRuntimeLib = true;
 			const params = parts.join(", ");
 			if (!firstIsObj) {
 				return `TS.Object_assign({}, ${params})`;
@@ -1878,6 +1892,7 @@ export class Transpiler {
 			throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
 		}
 		if (node.isAsync()) {
+			this.usesRuntimeLib = true;
 			result = `TS.async(${result})`;
 		}
 		this.popIdStack();
@@ -1927,6 +1942,7 @@ export class Transpiler {
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
+			this.usesRuntimeLib = true;
 			return `TS.array_${property}(${paramStr})`;
 		}
 
@@ -1938,6 +1954,7 @@ export class Transpiler {
 			if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 				return `string.${property}(${paramStr})`;
 			}
+			this.usesRuntimeLib = true;
 			return `TS.string_${property}(${paramStr})`;
 		}
 
@@ -1957,6 +1974,7 @@ export class Transpiler {
 				if (params.length > 0) {
 					paramStr += ", " + params;
 				}
+				this.usesRuntimeLib = true;
 				return `TS.map_${property}(${paramStr})`;
 			}
 
@@ -1965,10 +1983,12 @@ export class Transpiler {
 				if (params.length > 0) {
 					paramStr += ", " + params;
 				}
+				this.usesRuntimeLib = true;
 				return `TS.set_${property}(${paramStr})`;
 			}
 
 			if (subExpTypeName === "ObjectConstructor") {
+				this.usesRuntimeLib = true;
 				return `TS.Object_${property}(${params})`;
 			}
 
@@ -2051,12 +2071,12 @@ export class Transpiler {
 		const rhsStr = this.transpileExpression(rhs);
 		const statements = new Array<string>();
 
-		function getOperandStr() {
+		const getOperandStr = () => {
 			switch (opKind) {
 				case ts.SyntaxKind.EqualsToken:
 					return `${lhsStr} = ${rhsStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
-					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
+					const addExpStr = this.getLuaAddExpression(node, lhsStr, rhsStr, true);
 					return `${lhsStr} = ${addExpStr}`;
 				case ts.SyntaxKind.MinusEqualsToken:
 					return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
@@ -2070,7 +2090,7 @@ export class Transpiler {
 					return `${lhsStr} = ${lhsStr} % (${rhsStr})`;
 			}
 			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
-		}
+		};
 
 		if (
 			opKind === ts.SyntaxKind.EqualsToken ||
@@ -2121,7 +2141,7 @@ export class Transpiler {
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
 			case ts.SyntaxKind.PlusToken:
-				return getLuaAddExpression(node, lhsStr, rhsStr);
+				return this.getLuaAddExpression(node, lhsStr, rhsStr);
 			case ts.SyntaxKind.MinusToken:
 				return `${lhsStr} - ${rhsStr}`;
 			case ts.SyntaxKind.AsteriskToken:
@@ -2147,6 +2167,7 @@ export class Transpiler {
 			case ts.SyntaxKind.PercentToken:
 				return `${lhsStr} % ${rhsStr}`;
 			case ts.SyntaxKind.InstanceOfKeyword:
+				this.usesRuntimeLib = true;
 				if (inheritsFrom(node.getRight().getType(), "Rbx_Instance")) {
 					return `TS.isA(${lhsStr}, "${rhsStr}")`;
 				} else if (isRbxClassType(node.getRight().getType())) {
@@ -2187,7 +2208,7 @@ export class Transpiler {
 			expStr = this.transpileExpression(operand);
 		}
 
-		function getOperandStr() {
+		const getOperandStr = () => {
 			switch (opKind) {
 				case ts.SyntaxKind.PlusPlusToken:
 					return `${expStr} = ${expStr} + 1`;
@@ -2195,7 +2216,7 @@ export class Transpiler {
 					return `${expStr} = ${expStr} - 1`;
 			}
 			throw new TranspilerError("Unrecognized operation! #2", node, TranspilerErrorType.UnrecognizedOperation2);
-		}
+		};
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 			statements.push(getOperandStr());
@@ -2293,6 +2314,7 @@ export class Transpiler {
 		const params = this.transpileArguments(args);
 
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+			this.usesRuntimeLib = true;
 			name = `TS.${name}`;
 		}
 
@@ -2308,6 +2330,7 @@ export class Transpiler {
 
 			if (inheritsFrom(expressionType, "MapConstructor")) {
 				if (args.length > 0) {
+					this.usesRuntimeLib = true;
 					return `TS.map_new(${params})`;
 				} else {
 					return "{}";
@@ -2316,6 +2339,7 @@ export class Transpiler {
 
 			if (inheritsFrom(expressionType, "SetConstructor")) {
 				if (args.length > 0) {
+					this.usesRuntimeLib = true;
 					return `TS.set_new(${params})`;
 				} else {
 					return "{}";
@@ -2524,6 +2548,7 @@ export class Transpiler {
 
 	private transpileAwaitExpression(node: ts.AwaitExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
+		this.usesRuntimeLib = true;
 		return `TS.await(${expStr})`;
 	}
 
@@ -2536,6 +2561,7 @@ export class Transpiler {
 
 	private transpileTypeOfExpression(node: ts.TypeOfExpression) {
 		const expStr = this.transpileExpression(node.getExpression());
+		this.usesRuntimeLib = true;
 		return `TS.typeof(${expStr})`;
 	}
 
@@ -2551,8 +2577,10 @@ export class Transpiler {
 		const transpiledCode = this.transpileStatementedNode(node);
 
 		let result = "";
-		result += "-- luacheck: ignore\n";
-		result += `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
+		// result += "-- luacheck: ignore\n";
+		if (this.usesRuntimeLib) {
+			result += `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
+		}
 		result += transpiledCode;
 
 		if (this.isModule) {
