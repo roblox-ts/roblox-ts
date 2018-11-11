@@ -219,6 +219,7 @@ function isUsedAsType(node: ts.Identifier) {
 
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
+	private exportStack = new Array<Array<string>>();
 	private namespaceStack = new Array<string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
@@ -268,6 +269,22 @@ export class Transpiler {
 
 	private popIndent() {
 		this.indent = this.indent.substr(1);
+	}
+
+	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
+		if (!node.isExported()) {
+			return;
+		}
+
+		let ancestorName: string;
+		if (this.namespaceStack.length > 0) {
+			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
+		} else {
+			this.isModule = true;
+			ancestorName = "_exports";
+		}
+		const alias = node.isDefaultExport() ? "_default" : name;
+		this.exportStack[this.exportStack.length - 1].push(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
 	private getBindingData(
@@ -452,6 +469,11 @@ export class Transpiler {
 			result = this.indent + `local ${hoistsStr};\n` + result;
 		}
 
+		const scopeExports = this.exportStack.pop();
+		if (scopeExports && scopeExports.length > 0) {
+			scopeExports.forEach(scopeExport => (result += this.indent + scopeExport));
+		}
+
 		this.popIdStack();
 		return result;
 	}
@@ -471,7 +493,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileArguments(args: Array<ts.Expression>, context?: ts.Expression) {
+	private transpileArguments(args: Array<ts.Expression>) {
 		return args.map(arg => this.transpileExpression(arg)).join(", ");
 	}
 
@@ -1103,11 +1125,6 @@ export class Transpiler {
 			values.pop();
 		}
 
-		const parent = node.getParent();
-		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			// names.forEach(name => this.pushExport(name, parent));
-		}
-
 		let result = "";
 		preStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
 		const namesStr = names.join(", ");
@@ -1122,8 +1139,7 @@ export class Transpiler {
 	}
 
 	private transpileVariableStatement(node: ts.VariableStatement) {
-		const list = node.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
-		return this.transpileVariableDeclarationList(list);
+		return this.transpileVariableDeclarationList(node.getDeclarationList());
 	}
 
 	private transpileWhileStatement(node: ts.WhileStatement) {
@@ -1140,7 +1156,7 @@ export class Transpiler {
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
 		const name = node.getNameOrThrow();
 		this.checkReserved(name, node);
-		// this.pushExport(name, node);
+		this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
 			return "";
@@ -1178,7 +1194,7 @@ export class Transpiler {
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
 		}
-		// this.pushExport(name, node);
+		this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
@@ -1533,7 +1549,7 @@ export class Transpiler {
 		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
-		// this.pushExport(name, node);
+		this.pushExport(name, node);
 		let result = "";
 		result += this.indent + `local ${name} = {} do\n`;
 		this.pushIndent();
@@ -1555,7 +1571,7 @@ export class Transpiler {
 		}
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
-		// this.pushExport(name, node);
+		this.pushExport(name, node);
 		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
 		if (hoistStack.indexOf(name) === -1) {
 			hoistStack.push(name);
@@ -2532,29 +2548,25 @@ export class Transpiler {
 		this.scriptContext = getScriptContext(node);
 		const scriptType = getScriptType(node);
 
-		let result = "";
 		const transpiledCode = this.transpileStatementedNode(node);
+
+		let result = "";
 		result += "-- luacheck: ignore\n";
 		result += `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
 		result += transpiledCode;
 
 		if (this.isModule) {
-			if (!this.compiler.noHeuristics && scriptType !== ScriptType.Module) {
+			if (scriptType !== ScriptType.Module && !this.compiler.noHeuristics) {
 				throw new TranspilerError(
 					"Attempted to export in a non-ModuleScript!",
 					node,
 					TranspilerErrorType.ExportInNonModuleScript,
 				);
 			}
-
-			if (node.getExportAssignments().length > 0) {
-				result = this.indent + `local _exports;\n` + result;
-			} else {
-				result = this.indent + `local _exports = {};\n` + result;
+		} else {
+			if (scriptType === ScriptType.Module) {
+				result += this.indent + "return nil;\n";
 			}
-			result += this.indent + "return _exports;\n";
-		} else if (scriptType === ScriptType.Module) {
-			result += this.indent + "return nil;\n";
 		}
 		return result;
 	}
