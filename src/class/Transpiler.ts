@@ -452,24 +452,6 @@ export class Transpiler {
 			result = this.indent + `local ${hoistsStr};\n` + result;
 		}
 
-		if (ts.TypeGuards.isSourceFile(node) || ts.TypeGuards.isNamespaceDeclaration(node)) {
-			for (const expSym of node.getExportSymbols()) {
-				const name = expSym.getName();
-				const valDec = expSym.getValueDeclaration();
-				if (valDec) {
-					let ancestorName: string;
-					if (this.namespaceStack.length > 0) {
-						ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-					} else {
-						this.isModule = true;
-						ancestorName = "_exports";
-					}
-
-					result += this.indent + `${ancestorName}.${name} = ${name};\n`;
-				}
-			}
-		}
-
 		this.popIdStack();
 		return result;
 	}
@@ -2546,12 +2528,16 @@ export class Transpiler {
 		return `unpack(${expStr})`;
 	}
 
-	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
+	public transpileSourceFile(node: ts.SourceFile) {
 		this.scriptContext = getScriptContext(node);
 		const scriptType = getScriptType(node);
 
 		let result = "";
-		result += this.transpileStatementedNode(node);
+		const transpiledCode = this.transpileStatementedNode(node);
+		result += "-- luacheck: ignore\n";
+		result += `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
+		result += transpiledCode;
+
 		if (this.isModule) {
 			if (!this.compiler.noHeuristics && scriptType !== ScriptType.Module) {
 				throw new TranspilerError(
@@ -2570,13 +2556,6 @@ export class Transpiler {
 		} else if (scriptType === ScriptType.Module) {
 			result += this.indent + "return nil;\n";
 		}
-		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
-		if (noHeader) {
-			runtimeLibImport = "-- " + runtimeLibImport;
-		}
-		result = this.indent + runtimeLibImport + result;
-		result = this.indent + "-- luacheck: ignore\n" + result;
-
 		return result;
 	}
 }

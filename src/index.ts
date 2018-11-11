@@ -72,12 +72,6 @@ const argv = yargs
 		describe: "disables api restriction heuristics",
 	})
 
-	// noHeader
-	.option("noHeader", {
-		boolean: true,
-		hidden: true,
-	})
-
 	// parse
 	.parse();
 

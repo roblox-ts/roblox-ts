@@ -123,7 +123,6 @@ export class Compiler {
 	private readonly syncInfo = new Array<Partition>();
 
 	public readonly noStrict: boolean;
-	public readonly noHeader: boolean;
 	public readonly noHeuristics: boolean;
 	public readonly ci: boolean;
 
@@ -136,7 +135,6 @@ export class Compiler {
 		this.includePath = path.resolve(this.projectPath, args.includePath);
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.noStrict = args.noStrict;
-		this.noHeader = args.noHeader;
 		this.noHeuristics = args.noHeuristics;
 		this.ci = args.ci;
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -394,7 +392,7 @@ export class Compiler {
 					const transpiler = new Transpiler(this);
 					return [
 						this.transformPathToLua(sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile, this.noHeader),
+						transpiler.transpileSourceFile(sourceFile),
 					];
 				});
 
