@@ -127,7 +127,7 @@ function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 		rhsStr = `(${rhsStr})`;
 	}
 	if (rhsStr === "0" || rhsStr === "(0)") {
-		return `math.floor(${lhsStr})`;
+		return `TS.round(${lhsStr})`;
 	} else {
 		return `TS.bor(${lhsStr}, ${rhsStr})`;
 	}

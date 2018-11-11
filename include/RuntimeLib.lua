@@ -140,6 +140,14 @@ function TS.add(a, b)
 	end
 end
 
+function TS.round(a)
+	if a < 0 then
+		return math.ceil(a)
+	else
+		return math.floor(a)
+	end
+end
+
 -- bitwise operations
 
 local function bitop(a, b, oper)
@@ -152,33 +160,33 @@ local function bitop(a, b, oper)
 end
 
 function TS.bor(a, b)
-	a = math.floor(tonumber(a))
-	b = math.floor(tonumber(b))
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
 	return bitop(a, b, 1)
 end
 
 function TS.band(a, b)
-	a = math.floor(tonumber(a))
-	b = math.floor(tonumber(b))
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
 	return bitop(a, b, 4)
 end
 
 function TS.bxor(a, b)
-	a = math.floor(tonumber(a))
-	b = math.floor(tonumber(b))
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
 	return bitop(a, b, 3)
 end
 
 function TS.blsh(a, b)
-	a = math.floor(tonumber(a))
-	b = math.floor(tonumber(b))
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
 	return a * 2 ^ b
 end
 
 function TS.brsh(a, b)
-	a = math.floor(tonumber(a))
-	b = math.floor(tonumber(b))
-	return math.floor(a / 2 ^ b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return TS.round(a / 2 ^ b)
 end
 
 -- array macro functions
