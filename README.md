@@ -7,6 +7,7 @@
 	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
 </div>
 <div>&nbsp;</div>
+<p style="text-align: center;"><b>DISCLAIMER: ROBLOX-TS IS NOT CONSIDERED "PRODUCTION READY" UNTIL V1.0.0</b></p>
 
 ## Why?
 As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
