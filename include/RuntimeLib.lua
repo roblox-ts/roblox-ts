@@ -306,8 +306,9 @@ end
 
 function TS.array_reverse(list)
 	local result = {}
-	for i = 1, #list do
-		result[i] = list[#list - i + 1]
+	local length = #list
+	for i = 1, length do
+		result[i] = list[length - i + 1]
 	end
 	return result
 end
@@ -344,10 +345,11 @@ end
 
 function TS.array_unshift(list, ...)
 	local args = { ... }
+	local argsLength = #args
 	for i = #list, 1, -1 do
-		list[i + #args] = list[i]
+		list[i + argsLength] = list[i]
 	end
-	for i = 1, #args do
+	for i = 1, argsLength do
 		list[i] = args[i]
 	end
 	return #list
@@ -376,7 +378,7 @@ function TS.array_push(list, ...)
 end
 
 function TS.array_pop(list)
-	local length = #list;
+	local length = #list
 	local lastValue = list[length]
 	list[length] = nil
 	return lastValue
