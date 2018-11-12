@@ -704,9 +704,6 @@ export class Transpiler {
 			}
 		}
 
-
-
-
 		const lhs = new Array<string>();
 		const rhs = new Array<string>();
 
@@ -746,7 +743,7 @@ export class Transpiler {
 
 			let result = "";
 			let rhsPrefix: string;
-			const lhsPrefix = ancestorName + ".";
+			const lhsPrefix = ".";
 			if (rhs.length === 1) {
 				rhsPrefix = `require(${luaPath})`;
 			} else {
