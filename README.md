@@ -5,6 +5,7 @@
 <div align="center">
 	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
 	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
+	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
 </div>
 <div>&nbsp;</div>
 <p style="text-align: center;">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</p>
