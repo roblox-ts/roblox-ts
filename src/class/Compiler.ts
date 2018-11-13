@@ -392,7 +392,7 @@ export class Compiler {
 					const transpiler = new Transpiler(this);
 					return [
 						this.transformPathToLua(sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile),
+            transpiler.transpileSourceFile(sourceFile),
 					];
 				});
 
