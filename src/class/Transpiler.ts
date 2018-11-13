@@ -743,7 +743,6 @@ export class Transpiler {
 
 			let result = "";
 			let rhsPrefix: string;
-			const lhsPrefix = ".";
 			if (rhs.length === 1) {
 				rhsPrefix = `require(${luaPath})`;
 			} else {
