@@ -155,9 +155,7 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 
 function getConstructor(node: ts.ClassDeclaration) {
 	for (const constructor of node.getConstructors()) {
-		if (constructor.getBody() !== undefined) {
-			return constructor;
-		}
+		return constructor;
 	}
 }
 

@@ -1,1 +1,3 @@
-let owo = null
+const owo = null;
+
+export {};

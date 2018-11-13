@@ -6,11 +6,9 @@ namespace n2 {
 	export namespace n3 { export const a = "a"; }
 }
 
-/* tslint:disable */
 namespace foo {
 	export namespace foo { export namespace foo { export const bar = "bar"; } }
 }
-/* tslint:enable */
 
 export = () => {
 	it("should support namespaces", () => {

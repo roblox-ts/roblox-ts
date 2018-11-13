@@ -1,1 +1,3 @@
-let or = 55;
+const or = 55;
+
+export {};

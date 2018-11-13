@@ -59,6 +59,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoNull,
 	},
+	"reservedMetamethod.spec.ts": {
+		message: "should not allow usage of reserved metamethod names",
+		instance: TranspilerError,
+		type: TranspilerErrorType.ReservedMethodName,
+	},
+	"spreadDestructure.spec.ts": {
+		message: "should not allow usage of spread in destructure statements",
+		instance: TranspilerError,
+		type: TranspilerErrorType.SpreadDestructuring,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
@@ -97,7 +107,7 @@ describe("compile error unit tests", () => {
 						} else if (errorMatrix[file].type === e.type) {
 							done();
 						} else {
-							done("Unexpected TranspilerErrorType");
+							done(`Unexpected TranspilerErrorType: ${TranspilerErrorType[e.type]}`);
 						}
 					} else {
 						done("Unexpected error");

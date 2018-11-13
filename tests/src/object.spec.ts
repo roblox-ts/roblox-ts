@@ -99,4 +99,69 @@ export = () => {
 		expect(a.some(v => v === 2)).to.equal(true);
 		expect(a.some(v => v === 3)).to.equal(true);
 	});
+
+	describe("it should support Object methods", () => {
+		it("should support Object.entries()", () => {
+			const obj = {
+				a: 1,
+				b: 2,
+				c: 3,
+			};
+			let hitA = 0;
+			let hitB = 0;
+			let hitC = 0;
+			const entries = Object.entries(obj);
+			for (const [i, v] of entries) {
+				if (i === "a" && v === 1) {
+					hitA++;
+				} else if (i === "b" && v === 2) {
+					hitB++;
+				} else if (i === "c" && v === 3) {
+					hitC++;
+				}
+			}
+			expect(hitA).to.equal(1);
+			expect(hitB).to.equal(1);
+			expect(hitC).to.equal(1);
+		});
+
+		it("should support Object.keys()", () => {
+			const obj = {
+				a: 1,
+				b: 2,
+				c: 3,
+			};
+			const keys = Object.keys(obj);
+			expect(keys.length).to.equal(3);
+			expect(keys.some(v => v === "a")).to.equal(true);
+			expect(keys.some(v => v === "b")).to.equal(true);
+			expect(keys.some(v => v === "c")).to.equal(true);
+		});
+
+		it("should support Object.values()", () => {
+			const obj = {
+				a: 1,
+				b: 2,
+				c: 3,
+			};
+			const values = Object.values(obj);
+			expect(values.length).to.equal(3);
+			expect(values.some(v => v === 1)).to.equal(true);
+			expect(values.some(v => v === 2)).to.equal(true);
+			expect(values.some(v => v === 3)).to.equal(true);
+		});
+
+		it("should support Object.assign()", () => {
+			const object1 = {
+				a: 1,
+				b: 2,
+				c: 3,
+			};
+			const object2 = Object.assign({ c: 4, d: 5 }, object1);
+			expect(object2.a).to.equal(1);
+			expect(object2.b).to.equal(2);
+			expect(object2.c).to.equal(3);
+			expect(object2.d).to.equal(5);
+		});
+	});
 };

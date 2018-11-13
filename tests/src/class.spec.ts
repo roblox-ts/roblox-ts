@@ -124,4 +124,31 @@ export = () => {
 		class Bar extends Foo {}
 		expect(tostring(new Bar())).to.equal("Foo");
 	});
+
+	it("should support multiple constructors", () => {
+		class Foo {
+			public name: string | undefined;
+			constructor();
+			constructor(name: string);
+			constructor(name?: string) {
+				if (name) {
+					this.name = name;
+				}
+			}
+		}
+		const foo1 = new Foo();
+		expect(foo1.name).never.to.be.ok();
+		const foo2 = new Foo("bar");
+		expect(foo2.name).to.equal("bar");
+	});
+
+	it("should support constructor parameter destructuring", () => {
+		class Foo {
+			bar: number;
+			constructor({ a }: { a: number }) {
+				this.bar = a;
+			}
+		}
+		expect(new Foo({ a: 123 }).bar).to.equal(123);
+	});
 };

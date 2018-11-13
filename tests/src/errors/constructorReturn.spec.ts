@@ -1,5 +1,7 @@
 class Foo {
 	constructor(x: number) {
-		return x
+		return x;
 	}
 }
+
+export {};
