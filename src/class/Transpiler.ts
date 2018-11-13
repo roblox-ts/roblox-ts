@@ -469,10 +469,10 @@ export class Transpiler {
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
-		if (node.getType().isUndefined()) {
+		let name = node.getText();
+		if (name === "undefined") {
 			return "nil";
 		}
-		let name = node.getText();
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
