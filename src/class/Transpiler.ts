@@ -1166,10 +1166,58 @@ export class Transpiler {
 		this.pushIndent();
 
 		const id = name;
+		let hasStaticMembers = false;
+		let hasStaticInheritance = false;
+		let hasInstanceInheritance = false;
+		let currentBaseClass = node.getBaseClass();
 
-		result += this.indent + `${id} = {};\n`;
+		while (currentBaseClass) {
+			if (
+				currentBaseClass.getStaticMembers().length > 0 ||
+				currentBaseClass.getStaticProperties().length > 0 ||
+				currentBaseClass.getStaticMethods().length > 0
+			) {
+				hasStaticInheritance = true;
+			}
 
-		if (baseClassName) {
+			if (
+				currentBaseClass.getInstanceMembers().length > 0 ||
+				currentBaseClass.getInstanceProperties().length > 0 ||
+				currentBaseClass.getInstanceMethods().length > 0
+			) {
+				hasInstanceInheritance = true;
+			}
+
+			currentBaseClass = currentBaseClass.getBaseClass();
+		}
+
+		if (hasStaticInheritance) {
+			result += this.indent + `${id} = setmetatable({`;
+		} else {
+			result += this.indent + `${id} = {`;
+		}
+
+		this.pushIndent();
+
+		node.getStaticMethods()
+			.filter(method => method.getBody() !== undefined)
+			.forEach(method => {
+				if (!hasStaticMembers) {
+					hasStaticMembers = true;
+					result += "\n";
+				}
+				result += this.transpileMethodDeclaration(method);
+			});
+
+		this.popIndent();
+
+		if (hasStaticInheritance) {
+			result += `${hasStaticMembers ? this.indent : ""}}, {__index = ${baseClassName}});\n`;
+		} else {
+			result += `${hasStaticMembers ? this.indent : ""}};\n`;
+		}
+
+		if (hasInstanceInheritance) {
 			result += this.indent + `${id}.__index = setmetatable({`;
 		} else {
 			result += this.indent + `${id}.__index = {`;
@@ -1198,7 +1246,7 @@ export class Transpiler {
 			}
 		}
 
-		node.getMethods()
+		node.getInstanceMethods()
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => {
 				if (!hasIndexMembers) {
@@ -1210,7 +1258,7 @@ export class Transpiler {
 
 		this.popIndent();
 
-		if (baseClassName) {
+		if (hasInstanceInheritance) {
 			result += `${hasIndexMembers ? this.indent : ""}}, ${baseClassName});\n`;
 		} else {
 			result += `${hasIndexMembers ? this.indent : ""}};\n`;
