@@ -27,7 +27,7 @@ export = () => {
 		expect(v1.z).to.equal(0);
 	});
 
-	it("should expose a public function", () => {
+	it("should expose a public method", () => {
 		class Greeter {
 			public greeting: string;
 
@@ -45,7 +45,7 @@ export = () => {
 		expect(artemis.greet()).to.equal("Hello, artemis");
 	});
 
-	it("should inhereit functions", () => {
+	it("should inhereit methods", () => {
 		class Animal {
 			public move(distanceInMeters: number = 0) {
 				return `Animal moved ${distanceInMeters}m.`;
@@ -69,6 +69,26 @@ export = () => {
 		expect(apollo.move()).to.equal("Animal moved 0m.");
 		expect(apollo.move(5)).to.equal("Animal moved 5m.");
 		expect(apollo.bark()).to.equal("apollo barks");
+	});
+
+	it("should support static methods", () => {
+		class Foo {
+			static bar() {
+				return "bar";
+			}
+		}
+		expect(Foo.bar()).to.equal("bar");
+	});
+
+	it("should inherit static methods", () => {
+		class Foo {
+			static bar() {
+				return "bar";
+			}
+		}
+
+		class Bar extends Foo {}
+		expect(Bar.bar()).to.equal("bar");
 	});
 
 	it("should support parameter initializers", () => {
