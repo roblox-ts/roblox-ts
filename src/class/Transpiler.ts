@@ -1763,8 +1763,6 @@ export class Transpiler {
 					lhs = stripQuotes[1];
 				}
 
-				console.log("lhs", lhs);
-
 				if (/^\d+$/.test(lhs)) {
 					if (!stripQuotes) {
 						lhs = `[${lhs}]`;
