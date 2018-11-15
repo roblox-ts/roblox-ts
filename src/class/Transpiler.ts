@@ -1753,8 +1753,24 @@ export class Transpiler {
 					firstIsObj = true;
 				}
 				let lhs = prop.getName();
+				const stripBrackets = lhs.match(/^\[([^\]]+)\]$/);
+				if (stripBrackets) {
+					lhs = stripBrackets[1];
+				}
+
+				const stripQuotes = lhs.match(/^["']([^"']+)["']$/);
+				if (stripQuotes) {
+					lhs = stripQuotes[1];
+				}
+
+				console.log("lhs", lhs);
+
 				if (/^\d+$/.test(lhs)) {
-					lhs = `[${lhs}]`;
+					if (!stripQuotes) {
+						lhs = `[${lhs}]`;
+					} else {
+						lhs = `["${lhs}"]`;
+					}
 				} else if (!isValidLuaIdentifier(lhs)) {
 					lhs = `["${lhs}"]`;
 				} else {
