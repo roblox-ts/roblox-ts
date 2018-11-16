@@ -1974,6 +1974,13 @@ export class Transpiler {
 				}
 			}
 
+			// for is a reserved word in Lua
+			if (subExpTypeName === "SymbolConstructor") {
+				if (property === "for") {
+					return `${accessPath}.getFor(${params})`;
+				}
+			}
+
 			if (subExpTypeName === "Map" || subExpTypeName === "ReadonlyMap" || subExpTypeName === "WeakMap") {
 				let paramStr = accessPath;
 				if (params.length > 0) {
