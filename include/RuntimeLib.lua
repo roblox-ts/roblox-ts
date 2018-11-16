@@ -9,43 +9,60 @@ local TS = {}
 TS.Promise = Promise
 
 local Symbol do
-	Symbol = {}
-	Symbol.__index = Symbol
-	setmetatable(Symbol, {
+	local symbolRegistry = {}
+
+	Symbol = setmetatable({
+		["for"] = function(key)
+			return symbolRegistry[key]
+		end;
+
+		["keyFor"] = function(goalSymbol)
+			for key, symbol in pairs(symbolRegistry) do
+				if symbol == goalSymbol then
+					return key
+				end
+			end
+		end
+	}, {
 		__call = function(_, description)
-			local self = setmetatable({}, Symbol)
-			self.description = description or ""
-			return self
+			return setmetatable({description = description == nil and "" or tostring(description)}, Symbol)
 		end
 	})
 
-	local symbolRegistry = setmetatable({}, {
-		__index = function(self, k)
-			self[k] = Symbol(k)
-			return self[k]
-		end
-	})
+	Symbol.__index = {
+		length = 0;
+
+		toString = function(self)
+			return tostring(self)
+		end;
+	}
 
 	function Symbol:__tostring()
 		return "Symbol(" .. self.description .. ")"
 	end
 
-	function Symbol:toString()
-		return tostring(self)
-	end
+	-- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol
 
-	-- Symbol.for
-	function Symbol.getFor(key)
-		return symbolRegistry[key]
-	end
+	Symbol.hasInstance = Symbol("Symbol.hasInstance")
+	Symbol.isConcatSpreadable = Symbol("Symbol.isConcatSpreadable")
+	Symbol.iterator = Symbol("Symbol.iterator")
+	Symbol.asyncIterator = Symbol("Symbol.asyncIterator")
+	Symbol.match = Symbol("Symbol.match")
+	Symbol.replace = Symbol("Symbol.replace")
+	Symbol.search = Symbol("Symbol.search")
+	Symbol.species = Symbol("Symbol.species")
+	Symbol.split = Symbol("Symbol.split")
+	Symbol.toPrimitive = Symbol("Symbol.toPrimitive")
+	Symbol.toStringTag = Symbol("Symbol.toStringTag")
+	Symbol.unscopables = Symbol("Symbol.unscopables")
 
-	function Symbol.keyFor(goalSymbol)
-		for key, symbol in pairs(symbolRegistry) do
-			if symbol == goalSymbol then
-				return key
-			end
+	setmetatable(symbolRegistry, {
+		__index = function(self, k)
+			local s = Symbol(k)
+			self[k] = s
+			return s
 		end
-	end
+	})
 end
 TS.Symbol = Symbol
 
