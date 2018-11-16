@@ -1167,8 +1167,8 @@ export class Transpiler {
 
 		const id = name;
 		let hasStaticMembers = false;
+		const hasInstanceInheritance = baseClass && true || false;
 		let hasStaticInheritance = false;
-		let hasInstanceInheritance = false;
 		let currentBaseClass = node.getBaseClass();
 
 		while (currentBaseClass) {
@@ -1178,14 +1178,6 @@ export class Transpiler {
 				currentBaseClass.getStaticMethods().length > 0
 			) {
 				hasStaticInheritance = true;
-			}
-
-			if (
-				currentBaseClass.getInstanceMembers().length > 0 ||
-				currentBaseClass.getInstanceProperties().length > 0 ||
-				currentBaseClass.getInstanceMethods().length > 0
-			) {
-				hasInstanceInheritance = true;
 			}
 
 			currentBaseClass = currentBaseClass.getBaseClass();
