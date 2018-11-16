@@ -110,13 +110,18 @@ function TS.typeof(value)
 end
 
 function TS.instanceof(obj, class)
-    while obj ~= nil do
-        if obj == class then
-            return true
-        end
-        obj = getmetatable(obj)
-    end
-    return false
+	if type(obj) == "table" then
+		obj = getmetatable(obj)
+	end
+	
+	while obj do
+		if obj == class then
+			return true
+		end
+		obj = getmetatable(obj.__index)
+	end
+
+	return false
 end
 
 function TS.isA(instance, className)
