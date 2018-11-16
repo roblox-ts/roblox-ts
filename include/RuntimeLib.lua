@@ -112,13 +112,13 @@ end
 function TS.instanceof(obj, class)
 	if type(obj) == "table" then
 		obj = getmetatable(obj)
-	end
 	
-	while obj do
-		if obj == class then
-			return true
+		while obj do
+			if obj == class then
+				return true
+			end
+			obj = getmetatable(obj.__index)
 		end
-		obj = getmetatable(obj.__index)
 	end
 
 	return false
