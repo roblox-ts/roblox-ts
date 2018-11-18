@@ -1753,7 +1753,7 @@ export class Transpiler {
 		return node.getLiteralValue() === true ? "true" : "false";
 	}
 
-	private transpileArrayLiteralExpression(node: ts.ArrayLiteralExpression) {
+	private transpileArrayLiteralExpression(node: ts.ArrayLiteralExpression, useBrackets: boolean = true) {
 		const elements = node.getElements();
 		if (elements.length === 0) {
 			return "{}";
@@ -1777,7 +1777,10 @@ export class Transpiler {
 			}
 		});
 
-		const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
+		const leftBrkt = useBrackets ? "{ " : "";
+		const rightBrkt = useBrackets ? " }" : "";
+
+		const params = parts.map(v => (typeof v === "string" ? v : `${leftBrkt}${v.join(", ")}${rightBrkt}`)).join(", ");
 		if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
 			return `TS.array_concat(${params})`;
 		} else {
@@ -2076,8 +2079,21 @@ export class Transpiler {
 
 		const lhs = node.getLeft();
 		const rhs = node.getRight();
+
 		let lhsStr: string;
-		const rhsStr = this.transpileExpression(rhs);
+		let rhsStr: string;
+
+		if (
+			ts.SyntaxKind.EqualsToken === opKind &&
+			ts.TypeGuards.isArrayLiteralExpression(lhs) &&
+			ts.TypeGuards.isArrayLiteralExpression(rhs)
+		) {
+			lhsStr = this.transpileArrayLiteralExpression(lhs, false);
+			rhsStr = this.transpileArrayLiteralExpression(rhs, false);
+			return `${lhsStr} = ${rhsStr}`;
+		}
+
+		rhsStr = this.transpileExpression(rhs);
 		const statements = new Array<string>();
 
 		function getOperandStr() {
