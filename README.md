@@ -99,6 +99,8 @@ _**(warning: do not change these values unless you know what you are doing!)**_
 5. Create a file for syncing your compiled .lua files to Roblox Studio. If you're using Rojo, this should be a `rojo.json` file and look like:
 ```JSON
 {
+	"name": "my-project-name",
+	"servePort": 8000,
 	"partitions": {
 		"include": {
 			"path": "include",
