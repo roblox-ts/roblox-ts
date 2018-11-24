@@ -357,9 +357,8 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
+		let errors = 0;
 		if (!this.noStrict) {
-			let errors = 0;
-
 			files.forEach(file => {
 				const diagnostics = file
 					.getPreEmitDiagnostics()
@@ -381,13 +380,14 @@ export class Compiler {
 					errors++;
 				}
 			});
+		}
+
+		try {
 			if (errors > 0) {
 				process.exitCode = 1;
 				throw new DiagnosticError(errors);
 			}
-		}
 
-		try {
 			const sources = files
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => {
