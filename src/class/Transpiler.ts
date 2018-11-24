@@ -1698,6 +1698,20 @@ export class Transpiler {
 			return this.transpileConditionalExpression(node);
 		} else if (ts.TypeGuards.isTypeOfExpression(node)) {
 			return this.transpileTypeOfExpression(node);
+
+		} else if (ts.TypeGuards.isJsxExpression(node)) {
+
+			return this.transpileExpression(node.getNodeProperty("expression"));
+
+		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)){
+			return this.transpileJsxSelfClosingElement(node);
+
+		} else if (ts.TypeGuards.isJsxElement(node)){
+			return this.transpileJsxElement(node);		
+			
+		} else if (ts.TypeGuards.isJsxText(node)){
+			return this.transpileJsxText(node);					
+			
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
@@ -1729,6 +1743,97 @@ export class Transpiler {
 			const kindName = node.getKindName();
 			throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
 		}
+	}
+	
+	private transpileJsxText(node: ts.Expression<ts.ts.Expression> & ts.JsxText): string {
+		
+	}
+
+	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]) : string {
+		let str = `Roact.createElement(`;
+		let isRbxType = false;
+		let attributeCollection: string[] = [];
+		let childCollection: string[] = [];
+
+		if (name.startsWith("rbx"))
+		{
+			name = name.substr(3);
+			isRbxType = true;
+		}
+		
+		if (isRbxType)
+			str += `"${name}"`;
+		else
+			str += name;
+		
+		if (attributes.length > 0)
+		{
+			str+= ", {\n";
+			this.pushIndent();
+
+			for (let attribute of attributes)
+			{
+				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
+				let name = attribute.getNodeProperty("name").getText();
+	
+				attributeCollection.push(`${this.indent}${name} = ${value}`);
+			}
+
+			this.popIndent();
+			str +=attributeCollection.join(",\n") + ` \n${this.indent}}`
+		}
+		else
+			str += ", {}";
+
+
+		if (children.length > 0)
+		{
+			str+= ", {\n";
+			this.pushIndent();
+
+			for (let child of children)
+			{
+				if (child instanceof ts.JsxElement)
+				{
+					let value = this.transpileJsxElement(child);
+					childCollection.push(
+						`${this.indent}${value}`
+					);
+				}
+				else if (child instanceof ts.JsxSelfClosingElement)
+				{
+					let value = this.transpileJsxSelfClosingElement(child);
+					childCollection.push(
+						`${this.indent}${value}`
+					);					
+				}
+			}
+
+			this.popIndent();
+			str += childCollection.join(",\n") + `\n${this.indent}})`;
+			
+		}
+		else 
+			str += ")";
+
+		return str;
+	}
+
+	private transpileJsxElement(node: ts.JsxElement): string {
+		
+		let open = node.getNodeProperty("openingElement") as ts.JsxOpeningElement;
+		const tagNameNode = open.getTagNameNode();
+		let tagName = tagNameNode.getText();
+		let children = node.getJsxChildren();
+
+		return this.generateRoactElement(tagName, open.getAttributes(), children);
+	}
+	
+	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
+		const tagNameNode = node.getTagNameNode();
+		let tagName = tagNameNode.getText();
+
+		return this.generateRoactElement(tagName, node.getAttributes(), []);
 	}
 
 	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
