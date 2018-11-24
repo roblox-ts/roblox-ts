@@ -207,8 +207,8 @@ export class Compiler {
 		}
 	}
 
-	private transformPathToLua(rootDir: string, outDir: string, filePath: string) {
-		const relativeToRoot = path.dirname(path.relative(rootDir, filePath));
+	private transformPathToLua(filePath: string) {
+		const relativeToRoot = path.dirname(path.relative(this.rootDir, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
 		const exts = new Array<string>();
 		while (true) {
@@ -227,16 +227,16 @@ export class Compiler {
 			name = "init";
 		}
 		const luaName = name + exts.join("") + ".lua";
-		return path.join(outDir, relativeToRoot, luaName);
+		return path.join(this.outDir, relativeToRoot, luaName);
 	}
 
-	private transformPath(rootDir: string, outDir: string, filePath: string) {
-		const relativeToOut = path.dirname(path.relative(outDir, filePath));
+	private transformPathFromLua(filePath: string) {
+		const relativeToOut = path.dirname(path.relative(this.outDir, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
 		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && name === "init") {
 			name = "index";
 		}
-		return path.join(rootDir, relativeToOut, name);
+		return path.join(this.rootDir, relativeToOut, name);
 	}
 
 	public addFile(filePath: string) {
@@ -267,7 +267,7 @@ export class Compiler {
 				} else {
 					const ext = path.extname(filePath);
 					if (ext === ".lua") {
-						const rootPath = this.transformPath(this.rootDir, this.outDir, filePath);
+						const rootPath = this.transformPathFromLua(filePath);
 						if (
 							!(await fs.pathExists(rootPath + ".ts")) &&
 							!(await fs.pathExists(rootPath + ".lua")) &&
@@ -388,13 +388,15 @@ export class Compiler {
 		}
 
 		try {
-			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
-				const transpiler = new Transpiler(this);
-				return [
-					this.transformPathToLua(this.rootDir, this.outDir, sourceFile.getFilePath()),
-					transpiler.transpileSourceFile(sourceFile, this.noHeader),
-				];
-			});
+			const sources = files
+				.filter(sourceFile => !sourceFile.isDeclarationFile())
+				.map(sourceFile => {
+					const transpiler = new Transpiler(this);
+					return [
+						this.transformPathToLua(sourceFile.getFilePath()),
+						transpiler.transpileSourceFile(sourceFile, this.noHeader),
+					];
+				});
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {
@@ -407,6 +409,7 @@ export class Compiler {
 				await fs.writeFile(filePath, contents);
 			}
 		} catch (e) {
+			// do not silence errors for CI tests
 			if (this.ci) {
 				throw e;
 			}
@@ -417,9 +420,9 @@ export class Compiler {
 					e.node.getStartLineNumber(),
 					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
 				);
-				console.log(`${red("Transpiler Error:")} ${e.message}`);
+				console.log(red("Transpiler Error:"), e.message);
 			} else if (e instanceof CompilerError) {
-				console.log(`${red("Compiler Error:")} ${e.message}`);
+				console.log(red("Compiler Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
 				// log above
 			} else {

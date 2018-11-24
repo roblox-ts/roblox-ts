@@ -27,7 +27,7 @@ export = () => {
 		expect(v1.z).to.equal(0);
 	});
 
-	it("should expose a public function", () => {
+	it("should expose a public method", () => {
 		class Greeter {
 			public greeting: string;
 
@@ -45,7 +45,7 @@ export = () => {
 		expect(artemis.greet()).to.equal("Hello, artemis");
 	});
 
-	it("should inhereit functions", () => {
+	it("should inhereit methods", () => {
 		class Animal {
 			public move(distanceInMeters: number = 0) {
 				return `Animal moved ${distanceInMeters}m.`;
@@ -69,6 +69,26 @@ export = () => {
 		expect(apollo.move()).to.equal("Animal moved 0m.");
 		expect(apollo.move(5)).to.equal("Animal moved 5m.");
 		expect(apollo.bark()).to.equal("apollo barks");
+	});
+
+	it("should support static methods", () => {
+		class Foo {
+			static bar() {
+				return "bar";
+			}
+		}
+		expect(Foo.bar()).to.equal("bar");
+	});
+
+	it("should inherit static methods", () => {
+		class Foo {
+			static bar() {
+				return "bar";
+			}
+		}
+
+		class Bar extends Foo {}
+		expect(Bar.bar()).to.equal("bar");
 	});
 
 	it("should support parameter initializers", () => {
@@ -123,5 +143,32 @@ export = () => {
 
 		class Bar extends Foo {}
 		expect(tostring(new Bar())).to.equal("Foo");
+	});
+
+	it("should support multiple constructors", () => {
+		class Foo {
+			public name: string | undefined;
+			constructor();
+			constructor(name: string);
+			constructor(name?: string) {
+				if (name) {
+					this.name = name;
+				}
+			}
+		}
+		const foo1 = new Foo();
+		expect(foo1.name).never.to.be.ok();
+		const foo2 = new Foo("bar");
+		expect(foo2.name).to.equal("bar");
+	});
+
+	it("should support constructor parameter destructuring", () => {
+		class Foo {
+			bar: number;
+			constructor({ a }: { a: number }) {
+				this.bar = a;
+			}
+		}
+		expect(new Foo({ a: 123 }).bar).to.equal(123);
 	});
 };

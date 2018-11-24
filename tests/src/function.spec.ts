@@ -61,13 +61,11 @@ export = () => {
 	});
 
 	it("should support function expressions", () => {
-		/* tslint:disable */
 		expect(
 			(function() {
 				return 123;
 			})(),
 		).to.equal(123);
-		/* tslint:enable */
 	});
 
 	it("should support arrow functions", () => {

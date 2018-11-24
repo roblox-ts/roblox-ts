@@ -46,5 +46,10 @@
 				"public-instance-method"
 			]
 		}]
+	},
+	"linterOptions": {
+		"exclude": [
+			"tests/**/*.spec.ts"
+		]
 	}
 }

@@ -173,9 +173,7 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 
 function getConstructor(node: ts.ClassDeclaration) {
 	for (const constructor of node.getConstructors()) {
-		if (constructor.getBody() !== undefined) {
-			return constructor;
-		}
+		return constructor;
 	}
 }
 
@@ -489,10 +487,10 @@ export class Transpiler {
 	}
 
 	private transpileIdentifier(node: ts.Identifier) {
-		if (node.getType().isUndefined()) {
+		let name = node.getText();
+		if (name === "undefined") {
 			return "nil";
 		}
-		let name = node.getText();
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
@@ -1198,10 +1196,58 @@ export class Transpiler {
 		this.pushIndent();
 
 		const id = name;
+		let hasStaticMembers = false;
+		let hasStaticInheritance = false;
+		let hasInstanceInheritance = false;
+		let currentBaseClass = node.getBaseClass();
 
-		result += this.indent + `${id} = {};\n`;
+		while (currentBaseClass) {
+			if (
+				currentBaseClass.getStaticMembers().length > 0 ||
+				currentBaseClass.getStaticProperties().length > 0 ||
+				currentBaseClass.getStaticMethods().length > 0
+			) {
+				hasStaticInheritance = true;
+			}
 
-		if (baseClassName) {
+			if (
+				currentBaseClass.getInstanceMembers().length > 0 ||
+				currentBaseClass.getInstanceProperties().length > 0 ||
+				currentBaseClass.getInstanceMethods().length > 0
+			) {
+				hasInstanceInheritance = true;
+			}
+
+			currentBaseClass = currentBaseClass.getBaseClass();
+		}
+
+		if (hasStaticInheritance) {
+			result += this.indent + `${id} = setmetatable({`;
+		} else {
+			result += this.indent + `${id} = {`;
+		}
+
+		this.pushIndent();
+
+		node.getStaticMethods()
+			.filter(method => method.getBody() !== undefined)
+			.forEach(method => {
+				if (!hasStaticMembers) {
+					hasStaticMembers = true;
+					result += "\n";
+				}
+				result += this.transpileMethodDeclaration(method);
+			});
+
+		this.popIndent();
+
+		if (hasStaticInheritance) {
+			result += `${hasStaticMembers ? this.indent : ""}}, {__index = ${baseClassName}});\n`;
+		} else {
+			result += `${hasStaticMembers ? this.indent : ""}};\n`;
+		}
+
+		if (hasInstanceInheritance) {
 			result += this.indent + `${id}.__index = setmetatable({`;
 		} else {
 			result += this.indent + `${id}.__index = {`;
@@ -1230,7 +1276,7 @@ export class Transpiler {
 			}
 		}
 
-		node.getMethods()
+		node.getInstanceMethods()
 			.filter(method => method.getBody() !== undefined)
 			.forEach(method => {
 				if (!hasIndexMembers) {
@@ -1242,7 +1288,7 @@ export class Transpiler {
 
 		this.popIndent();
 
-		if (baseClassName) {
+		if (hasInstanceInheritance) {
 			result += `${hasIndexMembers ? this.indent : ""}}, ${baseClassName});\n`;
 		} else {
 			result += `${hasIndexMembers ? this.indent : ""}};\n`;
@@ -1808,8 +1854,22 @@ export class Transpiler {
 					firstIsObj = true;
 				}
 				let lhs = prop.getName();
+				const stripBrackets = lhs.match(/^\[([^\]]+)\]$/);
+				if (stripBrackets) {
+					lhs = stripBrackets[1];
+				}
+
+				const stripQuotes = lhs.match(/^["']([^"']+)["']$/);
+				if (stripQuotes) {
+					lhs = stripQuotes[1];
+				}
+
 				if (/^\d+$/.test(lhs)) {
-					lhs = `[${lhs}]`;
+					if (!stripQuotes) {
+						lhs = `[${lhs}]`;
+					} else {
+						lhs = `["${lhs}"]`;
+					}
 				} else if (!isValidLuaIdentifier(lhs)) {
 					lhs = `["${lhs}"]`;
 				} else {
@@ -1964,6 +2024,13 @@ export class Transpiler {
 			if (subExpTypeName === "Promise") {
 				if (property === "then") {
 					return `${accessPath}:andThen(${params})`;
+				}
+			}
+
+			// for is a reserved word in Lua
+			if (subExpTypeName === "SymbolConstructor") {
+				if (property === "for") {
+					return `${accessPath}.getFor(${params})`;
 				}
 			}
 

@@ -5,8 +5,10 @@
 <div align="center">
 	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
 	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
+	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
 </div>
 <div>&nbsp;</div>
+<div align="center">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</div>
 
 ## Why?
 As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
@@ -97,6 +99,8 @@ _**(warning: do not change these values unless you know what you are doing!)**_
 5. Create a file for syncing your compiled .lua files to Roblox Studio. If you're using Rojo, this should be a `rojo.json` file and look like:
 ```JSON
 {
+	"name": "my-project-name",
+	"servePort": 8000,
 	"partitions": {
 		"include": {
 			"path": "include",
@@ -127,3 +131,6 @@ https://discord.gg/f6Rn6RY
 
 # Credits
 roblox-ts is powered by [ts-simple-ast](https://github.com/dsherret/ts-simple-ast) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
+
+# Games that use roblox-ts
+<a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>

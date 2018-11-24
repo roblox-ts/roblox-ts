@@ -19,12 +19,32 @@ local Symbol do
 		end
 	})
 
+	local symbolRegistry = setmetatable({}, {
+		__index = function(self, k)
+			self[k] = Symbol(k)
+			return self[k]
+		end
+	})
+
 	function Symbol:__tostring()
 		return "Symbol(" .. self.description .. ")"
 	end
 
 	function Symbol:toString()
 		return tostring(self)
+	end
+
+	-- Symbol.for
+	function Symbol.getFor(key)
+		return symbolRegistry[key]
+	end
+
+	function Symbol.keyFor(goalSymbol)
+		for key, symbol in pairs(symbolRegistry) do
+			if symbol == goalSymbol then
+				return key
+			end
+		end
 	end
 end
 TS.Symbol = Symbol
