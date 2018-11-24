@@ -717,20 +717,24 @@ export class Transpiler {
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
 				lhs.push(alias);
-				rhs.push(`.${name}`);
+				rhs.push(`${name}`);
 			});
 
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
 			if (rhs.length <= 1) {
-				rhsPrefix = `require(${luaPath})`;
+				if (luaPath === "") {
+					rhsPrefix = ``;
+				} else {
+					rhsPrefix = `require(${luaPath})`;
+				}
 			} else {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
 			}
 			const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
-			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+			const rhsStr = rhs.map(v => (rhsPrefix === "" ? "" : rhsPrefix + ".") + v).join(", ");
 			result += `${lhsStr} = ${rhsStr};\n`;
 			return result;
 		}
