@@ -1897,6 +1897,8 @@ export class Transpiler {
 					}
 				}
 			}
+			else
+				throw new TranspilerError(`Roact symbol ${roactSymbol} does not support (${expr.getKindName()})`, node, TranspilerErrorType.BadExpression);
 		}
 	}
 
