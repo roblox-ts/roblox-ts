@@ -1149,6 +1149,69 @@ export class Transpiler {
 		return result;
 	}
 
+	private transpileRoactClassDeclaration(className: string, node: ts.ClassDeclaration) {
+		let declaration = `local ${className} = Roact.Component:extend("${className}");\n`;
+
+
+
+		let constructor = getConstructor(node);
+		if (constructor) {
+			const paramNames = new Array<string>();
+			const initializers = new Array<string>();
+			const defaults = new Array<string>();
+
+			this.getParameterData(paramNames, initializers, constructor, defaults);
+
+			declaration += `function ${className}:init(${paramNames.join(", ")})\n`;
+
+			this.pushIndent();
+
+			const body = constructor.getBodyOrThrow();
+			if (ts.TypeGuards.isBlock(body))
+			{
+				// we can ignore super() as it's not required.
+				if (ts.TypeGuards.isBlock(body)) {
+					defaults.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+	
+					const bodyStatements = body.getStatements();
+					let k = 0;
+	
+					initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+	
+					for (; k < bodyStatements.length; ++k) {
+						let bodyStatement = bodyStatements[k];
+
+
+						// Because we want to ignore super. I will figure out a better way to do this eventually.
+						// isSuperExpression doesn't seem to work.
+						if (!bodyStatement.getText().startsWith("super"))
+							declaration += this.transpileStatement(bodyStatement);
+					}
+	
+					const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
+	
+					if (returnStatement) {
+						throw new TranspilerError(
+							`Cannot use return statement in constructor for ${className}`,
+							returnStatement,
+							TranspilerErrorType.NoConstructorReturn,
+						);
+					}
+				}
+			}
+
+			declaration += this.indent + "self.props.children = self.props[Roact.Children];\n";
+
+			this.popIndent();
+
+			declaration += "end;\n";
+		}
+
+
+
+		return declaration;
+	}
+
 	private transpileClassDeclaration(node: ts.ClassDeclaration) {
 		const name = node.getName() || this.getNewId();
 		const nameNode = node.getNameNode();
@@ -1158,6 +1221,11 @@ export class Transpiler {
 		this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
+
+		// Handle the special case where we have a roact class
+		if (baseClassName == "Component") {
+			return this.transpileRoactClassDeclaration(name, node);
+		}
 
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 
@@ -1783,7 +1851,7 @@ export class Transpiler {
 				{
 					key = value;
 				}
-				else {	
+				else {
 					attributeCollection.push(`${this.indent}${name} = ${value}`);
 				}
 
