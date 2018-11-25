@@ -1155,6 +1155,39 @@ export class Transpiler {
 		let declaration = `local ${className} = Roact.Component:extend("${className}");\n`;
 
 
+		const instanceProps = node
+			.getInstanceProperties()
+			.filter(prop => prop.getParent() === node)
+			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
+			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
+
+
+		if (instanceProps.length > 0) {
+			declaration += `${className}.defaultProps = {\n`;
+			this.pushIndent();
+			const extraInitializers = new Array<string>();
+
+			for (const prop of instanceProps) {
+
+				const propName = prop.getName();
+
+				if (propName) {
+					this.checkMethodReserved(propName, prop);
+
+					if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+						const initializer = prop.getInitializer();
+						if (initializer) {
+							extraInitializers.push(`${this.indent}${propName} = ${this.transpileExpression(initializer)}`);
+						}
+					}
+				}
+
+			}
+			this.popIndent();
+			declaration += extraInitializers.join(",\n");
+
+			declaration += "\n};\n";
+		}
 
 		let constructor = getConstructor(node);
 		if (constructor) {
@@ -1169,17 +1202,16 @@ export class Transpiler {
 			this.pushIndent();
 
 			const body = constructor.getBodyOrThrow();
-			if (ts.TypeGuards.isBlock(body))
-			{
+			if (ts.TypeGuards.isBlock(body)) {
 				// we can ignore super() as it's not required.
 				if (ts.TypeGuards.isBlock(body)) {
 					defaults.forEach(initializer => (declaration += this.indent + initializer + "\n"));
-	
+
 					const bodyStatements = body.getStatements();
 					let k = 0;
-	
+
 					initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
-	
+
 					for (; k < bodyStatements.length; ++k) {
 						let bodyStatement = bodyStatements[k];
 
@@ -1189,9 +1221,9 @@ export class Transpiler {
 						if (!bodyStatement.getText().startsWith("super"))
 							declaration += this.transpileStatement(bodyStatement);
 					}
-	
+
 					const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
-	
+
 					if (returnStatement) {
 						throw new TranspilerError(
 							`Cannot use return statement in constructor for ${className}`,
@@ -1213,8 +1245,7 @@ export class Transpiler {
 		const methods = node.getInstanceMethods()
 			.filter(method => method.getBody() !== undefined);
 
-		for (const method of methods)
-		{
+		for (const method of methods) {
 			const name = method.getName();
 			this.checkReserved(name, method);
 			const body = method.getBodyOrThrow();
@@ -1233,7 +1264,7 @@ export class Transpiler {
 				initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
 				declaration += this.transpileBlock(body);
 			}
-			this.popIndent();			
+			this.popIndent();
 
 			declaration += "end;\n";
 		}
@@ -1848,19 +1879,14 @@ export class Transpiler {
 		return "";
 	}
 
-	private generateRoactSymbolProperty(roactSymbol: "Event" | "Change", node: ts.JsxAttributeLike, attributeCollection: string[])
-	{
+	private generateRoactSymbolProperty(roactSymbol: "Event" | "Change", node: ts.JsxAttributeLike, attributeCollection: string[]) {
 		let expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
-		for (const e of expr)
-		{
+		for (const e of expr) {
 			let expr = e.getExpressionOrThrow();
-			if (ts.TypeGuards.isObjectLiteralExpression(expr))
-			{
+			if (ts.TypeGuards.isObjectLiteralExpression(expr)) {
 				let properties = expr.getProperties();
-				for (const property of properties)
-				{
-					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property))
-					{
+				for (const property of properties) {
+					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property)) {
 						let propName = property.getName();
 						let rhs = property.getInitializerOrThrow();
 
@@ -1868,7 +1894,7 @@ export class Transpiler {
 					}
 				}
 			}
-		}		
+		}
 	}
 
 	private roactIndent: number = 0;
@@ -1943,22 +1969,20 @@ export class Transpiler {
 						`${this.indent}${value}`
 					);
 				}
-				else if (child instanceof ts.JsxExpression)
-				{
+				else if (child instanceof ts.JsxExpression) {
 					let expression = child.getExpressionOrThrow();
-					if (ts.TypeGuards.isCallExpression(expression))
-					{
+					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
 						let returnType = expression.getReturnType().getText();
 						if (returnType != ROACT_ELEMENT_TYPE)
-							throw new TranspilerError(`Function call must return Roact.Element -> {${expression.getText()}}`, 
-								expression, 
+							throw new TranspilerError(`Function call must return Roact.Element -> {${expression.getText()}}`,
+								expression,
 								TranspilerErrorType.BadExpressionStatement);
 
 						let value = this.transpileExpression(child);
 						childCollection.push(
 							`${this.indent}${value}`
-						);				
+						);
 					}
 					else
 						throw new TranspilerError(`Roact does not support this type of expression {${expression.getText()}} (${expression.getKindName()})`, expression, TranspilerErrorType.BadExpression);
