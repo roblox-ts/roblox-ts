@@ -144,12 +144,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-				symbol.getDeclarations().some(declaration =>
-					declaration
-						.getType()
-						.getBaseTypes()
-						.some(baseType => inheritsFrom(baseType, className)),
-				)
+		symbol.getDeclarations().some(declaration =>
+			declaration
+				.getType()
+				.getBaseTypes()
+				.some(baseType => inheritsFrom(baseType, className)),
+		)
 		: false;
 }
 
@@ -199,7 +199,7 @@ export class Transpiler {
 	private indent = "";
 	private scriptContext = ScriptContext.None;
 
-	constructor(private compiler: Compiler) {}
+	constructor(private compiler: Compiler) { }
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1703,15 +1703,15 @@ export class Transpiler {
 
 			return this.transpileExpression(node.getNodeProperty("expression"));
 
-		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)){
+		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
 			return this.transpileJsxSelfClosingElement(node);
 
-		} else if (ts.TypeGuards.isJsxElement(node)){
-			return this.transpileJsxElement(node);		
-			
-		} else if (ts.TypeGuards.isJsxText(node)){
-			return this.transpileJsxText(node);					
-			
+		} else if (ts.TypeGuards.isJsxElement(node)) {
+			return this.transpileJsxElement(node);
+
+		} else if (ts.TypeGuards.isJsxText(node)) {
+			return this.transpileJsxText(node);
+
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
@@ -1744,83 +1744,93 @@ export class Transpiler {
 			throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
 		}
 	}
-	
+
 	private transpileJsxText(node: ts.Expression<ts.ts.Expression> & ts.JsxText): string {
-		
+		throw new TranspilerError(`Roact does not support JsxText`, node, TranspilerErrorType.BadExpression);
+		return "";
 	}
 
-	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]) : string {
+	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]): string {
 		let str = `Roact.createElement(`;
 		let isRbxType = false;
 		let attributeCollection: string[] = [];
 		let childCollection: string[] = [];
+		let key: string | undefined;
 
-		if (name.startsWith("rbx"))
-		{
+		if (name.startsWith("rbx")) {
 			name = name.substr(3);
 			isRbxType = true;
 		}
-		
+
 		if (isRbxType)
 			str += `"${name}"`;
 		else
 			str += name;
-		
-		if (attributes.length > 0)
-		{
-			str+= ", {\n";
+
+		if (attributes.length > 0) {
+			str += ", {\n";
 			this.pushIndent();
 
-			for (let attribute of attributes)
-			{
-				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
+			for (let attribute of attributes) {
+
 				let name = attribute.getNodeProperty("name").getText();
-	
-				attributeCollection.push(`${this.indent}${name} = ${value}`);
+				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
+
+				if (name == "Key") // if key
+				{
+					key = value;
+				}
+				else {	
+					attributeCollection.push(`${this.indent}${name} = ${value}`);
+				}
+
+
 			}
 
 			this.popIndent();
-			str +=attributeCollection.join(",\n") + ` \n${this.indent}}`
+			str += attributeCollection.join(",\n") + ` \n${this.indent}}`
 		}
 		else
 			str += ", {}";
 
 
-		if (children.length > 0)
-		{
-			str+= ", {\n";
+		if (children.length > 0) {
+			str += ", {\n";
 			this.pushIndent();
 
-			for (let child of children)
-			{
-				if (child instanceof ts.JsxElement)
-				{
+			for (let child of children) {
+				if (child instanceof ts.JsxElement) {
 					let value = this.transpileJsxElement(child);
 					childCollection.push(
 						`${this.indent}${value}`
 					);
 				}
-				else if (child instanceof ts.JsxSelfClosingElement)
-				{
+				else if (child instanceof ts.JsxSelfClosingElement) {
 					let value = this.transpileJsxSelfClosingElement(child);
 					childCollection.push(
 						`${this.indent}${value}`
-					);					
+					);
 				}
 			}
 
 			this.popIndent();
 			str += childCollection.join(",\n") + `\n${this.indent}})`;
-			
+
 		}
-		else 
+		else
 			str += ")";
 
-		return str;
+		if (key) {
+			return `[${key}] = ${str}`;
+		}
+		else {
+			return str;
+		}
+
 	}
 
 	private transpileJsxElement(node: ts.JsxElement): string {
-		
+
 		let open = node.getNodeProperty("openingElement") as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
 		let tagName = tagNameNode.getText();
@@ -1828,7 +1838,7 @@ export class Transpiler {
 
 		return this.generateRoactElement(tagName, open.getAttributes(), children);
 	}
-	
+
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
 		const tagNameNode = node.getTagNameNode();
 		let tagName = tagNameNode.getText();
