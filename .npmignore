@@ -1,0 +1,9 @@
+coverage.lcov
+.nyc_output
+coverage
+node_modules
+src
+.DS_Store
+.vscode
+tests
+.editorconfig
