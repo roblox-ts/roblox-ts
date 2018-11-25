@@ -115,6 +115,8 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
+const ROACT_ELEMENT_TYPE = "Roact.Element";
+
 const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
 function isRbxClassType(type: ts.Type) {
@@ -1909,6 +1911,26 @@ export class Transpiler {
 					childCollection.push(
 						`${this.indent}${value}`
 					);
+				}
+				else if (child instanceof ts.JsxExpression)
+				{
+					let expression = child.getExpressionOrThrow();
+					if (ts.TypeGuards.isCallExpression(expression))
+					{
+						// Must return Roact.Element :(
+						let returnType = expression.getReturnType().getText();
+						if (returnType != ROACT_ELEMENT_TYPE)
+							throw new TranspilerError(`Function call must return Roact.Element -> {${expression.getText()}}`, 
+								expression, 
+								TranspilerErrorType.BadExpressionStatement);
+
+						let value = this.transpileExpression(child);
+						childCollection.push(
+							`${this.indent}${value}`
+						);				
+					}
+					else
+						throw new TranspilerError(`Roact does not support this type of expression {${expression.getText()}} (${expression.getKindName()})`, expression, TranspilerErrorType.BadExpression);
 				}
 			}
 
