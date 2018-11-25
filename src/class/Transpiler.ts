@@ -1848,6 +1848,29 @@ export class Transpiler {
 		return "";
 	}
 
+	private generateRoactSymbolProperty(roactSymbol: "Event" | "Change", node: ts.JsxAttributeLike, attributeCollection: string[])
+	{
+		let expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
+		for (const e of expr)
+		{
+			let expr = e.getExpressionOrThrow();
+			if (ts.TypeGuards.isObjectLiteralExpression(expr))
+			{
+				let properties = expr.getProperties();
+				for (const property of properties)
+				{
+					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property))
+					{
+						let propName = property.getName();
+						let rhs = property.getInitializerOrThrow();
+
+						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${this.transpileExpression(rhs)}`);
+					}
+				}
+			}
+		}		
+	}
+
 	private roactIndent: number = 0;
 	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]): string {
 		let str = `Roact.createElement(`;
@@ -1877,9 +1900,17 @@ export class Transpiler {
 				let name = attribute.getNodeProperty("name").getText();
 				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
 
-				if (name == "Key") // if key
+				if (name == "key") // handle setting a key for this element
 				{
 					key = value;
+				}
+				else if (name == "event") // handle [Roact.Event]
+				{
+					this.generateRoactSymbolProperty("Event", attribute, attributeCollection);
+				}
+				else if (name == "change") // handle [Roact.Change]
+				{
+					this.generateRoactSymbolProperty("Change", attribute, attributeCollection);
 				}
 				else {
 					attributeCollection.push(`${this.indent}${name} = ${value}`);
