@@ -1207,6 +1207,34 @@ export class Transpiler {
 			declaration += "end;\n";
 		}
 
+		// Now we'll get the methods, and make them into the special roact format
+		const methods = node.getInstanceMethods()
+			.filter(method => method.getBody() !== undefined);
+
+		for (const method of methods)
+		{
+			const name = method.getName();
+			this.checkReserved(name, method);
+			const body = method.getBodyOrThrow();
+
+			const paramNames = new Array<string>();
+			//paramNames.push("self");
+			const initializers = new Array<string>();
+			this.pushIdStack();
+			this.getParameterData(paramNames, initializers, method);
+			const paramStr = paramNames.join(", ");
+
+			declaration += `function ${className}:${name}(${paramStr})\n`;
+
+			this.pushIndent();
+			if (ts.TypeGuards.isBlock(body)) {
+				initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+				declaration += this.transpileBlock(body);
+			}
+			this.popIndent();			
+
+			declaration += "end;\n";
+		}
 
 
 		return declaration;
