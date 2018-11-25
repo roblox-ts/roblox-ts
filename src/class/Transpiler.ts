@@ -1152,7 +1152,7 @@ export class Transpiler {
 	}
 
 	private transpileRoactClassDeclaration(className: string, node: ts.ClassDeclaration) {
-		let declaration = `local ${className} = Roact.Component:extend("${className}");\n`;
+		let declaration = `${this.indent}local ${className} = Roact.Component:extend("${className}");\n`;
 
 
 		const instanceProps = node
@@ -1163,7 +1163,7 @@ export class Transpiler {
 
 
 		if (instanceProps.length > 0) {
-			declaration += `${className}.defaultProps = {\n`;
+
 			this.pushIndent();
 			const extraInitializers = new Array<string>();
 
@@ -1184,9 +1184,12 @@ export class Transpiler {
 
 			}
 			this.popIndent();
-			declaration += extraInitializers.join(",\n");
 
-			declaration += "\n};\n";
+			if (extraInitializers.length > 0) {
+				declaration += `${className}.defaultProps = {\n`;
+				declaration += extraInitializers.join(",\n");
+				declaration += "\n};\n";
+			}
 		}
 
 		let constructor = getConstructor(node);
@@ -1197,7 +1200,7 @@ export class Transpiler {
 
 			this.getParameterData(paramNames, initializers, constructor, defaults);
 
-			declaration += `function ${className}:init(${paramNames.join(", ")})\n`;
+			declaration += `${this.indent}function ${className}:init(${paramNames.join(", ")})\n`;
 
 			this.pushIndent();
 
@@ -1238,7 +1241,7 @@ export class Transpiler {
 
 			this.popIndent();
 
-			declaration += "end;\n";
+			declaration += `${this.indent}end;\n`;
 		}
 
 		// Now we'll get the methods, and make them into the special roact format
@@ -1257,7 +1260,7 @@ export class Transpiler {
 			this.getParameterData(paramNames, initializers, method);
 			const paramStr = paramNames.join(", ");
 
-			declaration += `function ${className}:${name}(${paramStr})\n`;
+			declaration += `${this.indent}function ${className}:${name}(${paramStr})\n`;
 
 			this.pushIndent();
 			if (ts.TypeGuards.isBlock(body)) {
@@ -1266,7 +1269,7 @@ export class Transpiler {
 			}
 			this.popIndent();
 
-			declaration += "end;\n";
+			declaration += `${this.indent}end;\n`;
 		}
 
 
