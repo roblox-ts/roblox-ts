@@ -1750,12 +1750,15 @@ export class Transpiler {
 		return "";
 	}
 
+	private roactIndent: number = 0;
 	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]): string {
 		let str = `Roact.createElement(`;
 		let isRbxType = false;
 		let attributeCollection: string[] = [];
 		let childCollection: string[] = [];
 		let key: string | undefined;
+
+		this.roactIndent++;
 
 		if (name.startsWith("rbx")) {
 			name = name.substr(3);
@@ -1820,7 +1823,9 @@ export class Transpiler {
 		else
 			str += ")";
 
-		if (key) {
+		this.roactIndent--;
+
+		if (key && this.roactIndent > 0) {
 			return `[${key}] = ${str}`;
 		}
 		else {
