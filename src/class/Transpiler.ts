@@ -2631,7 +2631,7 @@ export class Transpiler {
 		const conditionStr = this.transpileExpression(node.getCondition());
 		const trueStr = this.transpileExpression(node.getWhenTrue());
 		const falseStr = this.transpileExpression(node.getWhenFalse());
-		if (node.getWhenTrue().getType().isNullable()) {
+		if (node.getWhenTrue().getType().isNullable() || node.getWhenTrue().getType().isBoolean()) {
 			return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
 		} else {
 			return `(${conditionStr} and ${trueStr} or ${falseStr})`;
