@@ -1892,8 +1892,28 @@ export class Transpiler {
 					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property)) {
 						let propName = property.getName();
 						let rhs = property.getInitializerOrThrow();
+						let value: string;
 
-						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${this.transpileExpression(rhs)}`);
+						if (ts.TypeGuards.isPropertyAccessExpression(rhs))
+						{
+							const expr = rhs.getExpression();
+							if (ts.TypeGuards.isThisExpression(expr))
+							{
+								value = `function(...)\n`; //`function(...) ${this.transpileExpression(rhs)}(self, ...) end`;
+								this.pushIndent();
+								value += `${this.indent}${this.transpileExpression(rhs)}(self, ...);\n`;
+								this.popIndent();
+								value += this.indent + "end";
+							}
+							else 
+								value = this.transpileExpression(rhs);
+						}
+						else
+						{
+							value = this.transpileExpression(rhs);
+						}
+
+						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${value}`);
 					}
 				}
 			}
