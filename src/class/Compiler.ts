@@ -223,7 +223,7 @@ export class Compiler {
 		if (exts[exts.length - 1] === ".d") {
 			exts.pop();
 		}
-		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && name === "index") {
+		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && name === "index") {
 			name = "init";
 		}
 		const luaName = name + exts.join("") + ".lua";
@@ -233,7 +233,7 @@ export class Compiler {
 	private transformPathFromLua(filePath: string) {
 		const relativeToOut = path.dirname(path.relative(this.outDir, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
-		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && name === "init") {
+		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && name === "init") {
 			name = "index";
 		}
 		return path.join(this.rootDir, relativeToOut, name);
@@ -505,12 +505,12 @@ export class Compiler {
 			.split("/")
 			.filter(part => part !== ".")
 			.map(part => (part === ".." ? ".Parent" : part));
-		if (this.compilerOptions.module === ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
+		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
 			parts.pop();
 		}
 		let prefix = "script";
 		if (
-			this.compilerOptions.module !== ts.ModuleKind.CommonJS ||
+			this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS ||
 			stripExts(sourceFile.getBaseName()) !== "index"
 		) {
 			prefix += ".Parent";
@@ -551,7 +551,7 @@ export class Compiler {
 				throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
 			}
 			last = stripExts(last);
-			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "init") {
+			if (this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS || last !== "init") {
 				parts.push(last);
 			}
 
@@ -580,7 +580,7 @@ export class Compiler {
 				throw new CompilerError("Compiler.getImportPath() failed! #3", CompilerErrorType.GetImportPathFail3);
 			}
 
-			if (this.compilerOptions.module !== ts.ModuleKind.CommonJS || last !== "index") {
+			if (this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS || last !== "index") {
 				parts.push(last);
 			}
 

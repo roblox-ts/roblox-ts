@@ -122,10 +122,7 @@ function isRbxClassType(type: ts.Type) {
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
-function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
-	if (wrap) {
-		rhsStr = `(${rhsStr})`;
-	}
+function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	if (rhsStr === "0" || rhsStr === "(0)") {
 		return `TS.round(${lhsStr})`;
 	} else {
@@ -133,10 +130,7 @@ function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	}
 }
 
-function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string, wrap = false) {
-	if (wrap) {
-		rhsStr = `(${rhsStr})`;
-	}
+function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
 
@@ -715,24 +709,20 @@ export class Transpiler {
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
 				lhs.push(alias);
-				rhs.push(`${name}`);
+				rhs.push(`.${name}`);
 			});
 
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
 			if (rhs.length <= 1) {
-				if (luaPath === "") {
-					rhsPrefix = ``;
-				} else {
-					rhsPrefix = `require(${luaPath})`;
-				}
+				rhsPrefix = `require(${luaPath})`;
 			} else {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
 			}
 			const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
-			const rhsStr = rhs.map(v => (rhsPrefix === "" ? "" : rhsPrefix + ".") + v).join(", ");
+			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
 			result += `${lhsStr} = ${rhsStr};\n`;
 			return result;
 		}
@@ -2125,19 +2115,19 @@ export class Transpiler {
 					return `${lhsStr} = ${rhsStr}`;
 				/* Bitwise Operations */
 				case ts.SyntaxKind.BarEqualsToken:
-					const barExpStr = getLuaBarExpression(node, lhsStr, rhsStr, true);
+					const barExpStr = getLuaBarExpression(node, lhsStr, rhsStr);
 					return `${lhsStr} = ${barExpStr}`;
 				case ts.SyntaxKind.AmpersandEqualsToken:
-					const ampersandExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "and", true);
+					const ampersandExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "and");
 					return `${lhsStr} = ${ampersandExpStr}`;
 				case ts.SyntaxKind.CaretEqualsToken:
-					const caretExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "xor", true);
+					const caretExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "xor");
 					return `${lhsStr} = ${caretExpStr}`;
 				case ts.SyntaxKind.LessThanLessThanEqualsToken:
-					const lshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "lsh", true);
+					const lshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "lsh");
 					return `${lhsStr} = ${lshExpStr}`;
 				case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-					const rshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "rsh", true);
+					const rshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "rsh");
 					return `${lhsStr} = ${rshExpStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
 					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);

@@ -1,1 +1,0 @@
-node "..\roblox-ts\out\index.js" %*
