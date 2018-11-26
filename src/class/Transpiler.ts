@@ -1273,6 +1273,16 @@ export class Transpiler {
 			declaration += `${this.indent}end;\n`;
 		}
 
+		const staticFields = node.getStaticProperties();
+		for (const staticField of staticFields) {
+			if (ts.TypeGuards.isInitializerExpressionableNode(staticField)) {
+				const initializer = staticField.getInitializer();
+				if (initializer) {
+					declaration += `${this.indent}${className}.${staticField.getName()} = ${this.transpileExpression(initializer)};\n`;
+				}
+			}
+		}
+
 		const staticMethods = node.getStaticMethods()
 			.filter(method => method.getBody() !== undefined);
 		for (const staticMethod of staticMethods) {

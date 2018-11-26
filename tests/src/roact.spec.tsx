@@ -24,6 +24,23 @@ interface PrimitiveHandleElementKind extends AnyHandleElementKind {
 
 export = () => {
 	describe("should support Roact.Component", () => {
+		it("should construct default props", () => {
+			interface RoactProps {
+				value: number;
+			}
+			class RoactClass extends Roact.Component {
+				public static defaultProps: RoactProps = {
+					value: 10,
+				};
+
+				public render(): Roact.Element {
+					return <frame />;
+				}
+			}
+
+			expect(RoactClass.defaultProps).to.be.a("table");
+		});
+
 		it("should construct a roact class", () => {
 			class RoactClass extends Roact.Component {
 				/* tslint:disable */
