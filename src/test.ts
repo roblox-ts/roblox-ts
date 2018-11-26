@@ -69,6 +69,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.SpreadDestructuring,
 	},
+	"roactSubClass.spec.tsx": {
+		message: "should not allow subclasses of roact components",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactSubClassesNotSupported,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

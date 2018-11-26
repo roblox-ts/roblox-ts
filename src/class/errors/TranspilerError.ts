@@ -40,6 +40,7 @@ export enum TranspilerErrorType {
 	NoClassPrototype,
 	ExportInNonModuleScript,
 	ModuleScriptContainsNoExports,
+	RoactSubClassesNotSupported,
 }
 
 export class TranspilerError extends Error {

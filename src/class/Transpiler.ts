@@ -118,6 +118,7 @@ const LUA_RESERVED_METAMETHODS = [
 const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
+const ROACT_COMPONENT_TYPE = "Roact.Component";
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -1345,9 +1346,22 @@ export class Transpiler {
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
-		// Handle the special case where we have a roact class
-		if (baseClassName === "Component") {
-			return this.transpileRoactClassDeclaration(name, node);
+		const baseTypes = node.getBaseTypes();
+		for (const baseType of baseTypes) {
+			// Handle the special case where we have a roact class
+			if (baseType.getText().startsWith(ROACT_COMPONENT_TYPE)) {
+				return this.transpileRoactClassDeclaration(name, node);
+			}
+
+			// Handle erroring on subclasses with roact
+			const isRoactSubType = baseType.getBaseTypes()
+				.filter(bc => bc.getText().startsWith(ROACT_COMPONENT_TYPE));
+
+			if (isRoactSubType.length > 0) {
+				throw new TranspilerError("Derived Classes are not supported in Roact!",
+					node, TranspilerErrorType.RoactSubClassesNotSupported);
+			}
+
 		}
 
 		this.hoistStack[this.hoistStack.length - 1].push(name);
