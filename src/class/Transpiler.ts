@@ -1280,6 +1280,31 @@ export class Transpiler {
 			declaration += `${this.indent}end;\n`;
 		}
 
+		const staticMethods = node.getStaticMethods()
+			.filter(method => method.getBody() !== undefined);
+		for (const staticMethod of staticMethods) {
+			const name = staticMethod.getName();
+			this.checkReserved(name, staticMethod);
+			const body = staticMethod.getBodyOrThrow();
+
+			const paramNames = new Array<string>();
+			const initializers = new Array<string>();
+			this.pushIdStack();
+			this.getParameterData(paramNames, initializers, staticMethod);
+			const paramStr = paramNames.join(", ");
+
+			declaration += `${this.indent}function ${className}.${name}(${paramStr})\n`;
+
+			this.pushIndent();
+			if (ts.TypeGuards.isBlock(body)) {
+				initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+				declaration += this.transpileBlock(body);
+			}
+			this.popIndent();
+
+			declaration += `${this.indent}end;\n`;
+		}
+
 		// Now we'll get the methods, and make them into the special roact format
 		const methods = node.getInstanceMethods()
 			.filter(method => method.getBody() !== undefined);
@@ -1913,7 +1938,6 @@ export class Transpiler {
 
 	private transpileJsxText(node: ts.Expression<ts.ts.Expression> & ts.JsxText): string {
 		throw new TranspilerError(`Roact does not support JsxText`, node, TranspilerErrorType.BadExpression);
-		return "";
 	}
 
 	private generateRoactSymbolProperty(
@@ -1974,8 +1998,6 @@ export class Transpiler {
 			const rbxName = INTRINSIC_MAPPINGS[name];
 			if (rbxName) {
 				str += `"${rbxName}"`;
-			} else {
-				throw new TranspilerError(`Roact does not yet support ${name}`, children[0], TranspilerErrorType.BadExpression);
 			}
 
 		} else {

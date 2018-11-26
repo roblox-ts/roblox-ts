@@ -39,6 +39,28 @@ export = () => {
 			expect(RoactClass._new).to.be.a("function");
 		});
 
+		it("should support static getDerivedStateFromProps", () => {
+			interface TestState {
+				someValue: number;
+			}
+
+			interface TestProps {
+				someValue: number;
+			}
+
+			class RoactClass extends Roact.Component<TestState, TestProps> {
+				public static getDerivedStateFromProps(nextProps: TestProps, lastState: TestState): TestState {
+					return {someValue: nextProps.someValue};
+				}
+
+				public render(): Roact.Element {
+					return <frame/>;
+				}
+			}
+
+			expect(RoactClass.getDerivedStateFromProps).to.be.a("function");
+		});
+
 		it("should mount a roact object", () => {
 			class RoactClass extends Roact.Component {
 				public render(): Roact.Element {
