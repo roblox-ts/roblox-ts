@@ -1951,15 +1951,15 @@ export class Transpiler {
 				let name = attribute.getNodeProperty("name").getText();
 				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
 
-				if (name == "key") // handle setting a key for this element
+				if (name == "Key") // handle setting a key for this element
 				{
 					key = value;
 				}
-				else if (name == "event") // handle [Roact.Event]
+				else if (name == "Event") // handle [Roact.Event]
 				{
 					this.generateRoactSymbolProperty("Event", attribute, attributeCollection);
 				}
-				else if (name == "change") // handle [Roact.Change]
+				else if (name == "Change") // handle [Roact.Change]
 				{
 					this.generateRoactSymbolProperty("Change", attribute, attributeCollection);
 				}
