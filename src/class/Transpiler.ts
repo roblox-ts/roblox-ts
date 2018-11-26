@@ -1333,6 +1333,18 @@ export class Transpiler {
 			declaration += `${this.indent}end;\n`;
 		}
 
+		const getters = node.getInstanceProperties()
+			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
+		if (getters.length > 0) {
+			throw new TranspilerError("Roact does not support getters", node, TranspilerErrorType.RoactGettersNotAllowed);
+		}
+
+		const setters = node.getInstanceProperties()
+			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
+		if (setters.length > 0) {
+			throw new TranspilerError("Roact does not support setters", node, TranspilerErrorType.RoactSettersNotAllowed);
+		}
+
 		return declaration;
 	}
 
