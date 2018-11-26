@@ -64,7 +64,7 @@ export = () => {
         expect(RoactIntrinsic.component).to.equal(RoactIntrinsicManual.component);
     });
 
-    describe("should support all roact child types", () => {
+    describe("should support all roact property types", () => {
 
         it("should be able to have keyed children", () => {
             const KEY = "key1";
