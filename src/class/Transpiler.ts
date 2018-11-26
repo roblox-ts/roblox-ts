@@ -200,6 +200,7 @@ export class Transpiler {
 	private isModule = false;
 	private indent = "";
 	private scriptContext = ScriptContext.None;
+	private roactIndent: number = 0;
 
 	constructor(private compiler: Compiler) { }
 
@@ -1154,13 +1155,11 @@ export class Transpiler {
 	private transpileRoactClassDeclaration(className: string, node: ts.ClassDeclaration) {
 		let declaration = `${this.indent}local ${className} = Roact.Component:extend("${className}");\n`;
 
-
 		const instanceProps = node
 			.getInstanceProperties()
 			.filter(prop => prop.getParent() === node)
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
-
 
 		if (instanceProps.length > 0) {
 
@@ -1192,7 +1191,7 @@ export class Transpiler {
 			}
 		}
 
-		let constructor = getConstructor(node);
+		const constructor = getConstructor(node);
 		if (constructor) {
 			const paramNames = new Array<string>();
 			const initializers = new Array<string>();
@@ -1216,13 +1215,13 @@ export class Transpiler {
 					initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
 
 					for (; k < bodyStatements.length; ++k) {
-						let bodyStatement = bodyStatements[k];
-
+						const bodyStatement = bodyStatements[k];
 
 						// Because we want to ignore super. I will figure out a better way to do this eventually.
 						// isSuperExpression doesn't seem to work.
-						if (!bodyStatement.getText().startsWith("super"))
+						if (!bodyStatement.getText().startsWith("super")) {
 							declaration += this.transpileStatement(bodyStatement);
+						}
 					}
 
 					const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
@@ -1254,7 +1253,6 @@ export class Transpiler {
 			const body = method.getBodyOrThrow();
 
 			const paramNames = new Array<string>();
-			//paramNames.push("self");
 			const initializers = new Array<string>();
 			this.pushIdStack();
 			this.getParameterData(paramNames, initializers, method);
@@ -1272,7 +1270,6 @@ export class Transpiler {
 			declaration += `${this.indent}end;\n`;
 		}
 
-
 		return declaration;
 	}
 
@@ -1287,7 +1284,7 @@ export class Transpiler {
 		const baseClassName = baseClass ? baseClass.getName() : "";
 
 		// Handle the special case where we have a roact class
-		if (baseClassName == "Component") {
+		if (baseClassName === "Component") {
 			return this.transpileRoactClassDeclaration(name, node);
 		}
 
@@ -1882,52 +1879,55 @@ export class Transpiler {
 		return "";
 	}
 
-	private generateRoactSymbolProperty(roactSymbol: "Event" | "Change", node: ts.JsxAttributeLike, attributeCollection: string[]) {
-		let expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
-		for (const e of expr) {
-			let expr = e.getExpressionOrThrow();
-			if (ts.TypeGuards.isObjectLiteralExpression(expr)) {
-				let properties = expr.getProperties();
+	private generateRoactSymbolProperty(
+		roactSymbol: "Event" | "Change",
+		node: ts.JsxAttributeLike,
+		attributeCollection: Array<string>) {
+		const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
+		for (const expression of expr) {
+			const innerExpression = expression.getExpressionOrThrow();
+			if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
+				const properties = innerExpression.getProperties();
 				for (const property of properties) {
 					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property)) {
-						let propName = property.getName();
-						let rhs = property.getInitializerOrThrow();
+						const propName = property.getName();
+						const rhs = property.getInitializerOrThrow();
 						let value: string;
 
-						if (ts.TypeGuards.isPropertyAccessExpression(rhs))
-						{
-							const expr = rhs.getExpression();
-							if (ts.TypeGuards.isThisExpression(expr))
-							{
-								value = `function(...)\n`; //`function(...) ${this.transpileExpression(rhs)}(self, ...) end`;
+						if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
+							const getAccessExpression = rhs.getExpression();
+							if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
+								value = `function(...)\n`;
 								this.pushIndent();
 								value += `${this.indent}${this.transpileExpression(rhs)}(self, ...);\n`;
 								this.popIndent();
 								value += this.indent + "end";
-							}
-							else 
+							} else {
 								value = this.transpileExpression(rhs);
-						}
-						else
-						{
+							}
+						} else {
 							value = this.transpileExpression(rhs);
 						}
 
 						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${value}`);
 					}
 				}
+			} else {
+				throw new TranspilerError(`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
+					node, TranspilerErrorType.BadExpression);
 			}
-			else
-				throw new TranspilerError(`Roact symbol ${roactSymbol} does not support (${expr.getKindName()})`, node, TranspilerErrorType.BadExpression);
 		}
 	}
 
-	private roactIndent: number = 0;
-	private generateRoactElement(name: string, attributes: ts.JsxAttributeLike[], children: ts.JsxChild[]): string {
+	private generateRoactElement(
+		name: string,
+		attributes: Array<ts.JsxAttributeLike>, children: Array<ts.JsxChild>,
+	): string {
+
 		let str = `Roact.createElement(`;
 		let isRbxType = false;
-		let attributeCollection: string[] = [];
-		let childCollection: string[] = [];
+		const attributeCollection: Array<string> = [];
+		const childCollection: Array<string> = [];
 		let key: string | undefined;
 
 		this.roactIndent++;
@@ -1937,96 +1937,89 @@ export class Transpiler {
 			isRbxType = true;
 		}
 
-		if (isRbxType)
+		if (isRbxType) {
 			str += `"${name}"`;
-		else
+		} else {
 			str += name;
+		}
 
 		if (attributes.length > 0) {
 			str += ", {\n";
 			this.pushIndent();
 
-			for (let attribute of attributes) {
+			for (const attribute of attributes) {
 
-				let name = attribute.getNodeProperty("name").getText();
-				let value = this.transpileExpression(attribute.getNodeProperty("initializer"));
+				const attributeName = attribute.getNodeProperty("name").getText();
+				const value = this.transpileExpression(attribute.getNodeProperty("initializer"));
 
-				if (name == "Key") // handle setting a key for this element
-				{
+				if (attributeName === "Key") { // handle setting a key for this element
 					key = value;
-				}
-				else if (name == "Event") // handle [Roact.Event]
-				{
+				} else if (attributeName === "Event") { // handle [Roact.Event]
 					this.generateRoactSymbolProperty("Event", attribute, attributeCollection);
-				}
-				else if (name == "Change") // handle [Roact.Change]
-				{
+				} else if (attributeName === "Change") { // handle [Roact.Change]
 					this.generateRoactSymbolProperty("Change", attribute, attributeCollection);
+				} else {
+					attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
 				}
-				else {
-					attributeCollection.push(`${this.indent}${name} = ${value}`);
-				}
-
 
 			}
 
 			this.popIndent();
-			str += attributeCollection.join(",\n") + ` \n${this.indent}}`
-		}
-		else
+			str += attributeCollection.join(",\n") + ` \n${this.indent}}`;
+		} else {
 			str += ", {}";
-
+		}
 
 		if (children.length > 0) {
 			str += ", {\n";
 			this.pushIndent();
 
-			for (let child of children) {
+			for (const child of children) {
 				if (child instanceof ts.JsxElement) {
-					let value = this.transpileJsxElement(child);
+					const value = this.transpileJsxElement(child);
 					childCollection.push(
-						`${this.indent}${value}`
+						`${this.indent}${value}`,
 					);
-				}
-				else if (child instanceof ts.JsxSelfClosingElement) {
-					let value = this.transpileJsxSelfClosingElement(child);
+				} else if (child instanceof ts.JsxSelfClosingElement) {
+					const value = this.transpileJsxSelfClosingElement(child);
 					childCollection.push(
-						`${this.indent}${value}`
+						`${this.indent}${value}`,
 					);
-				}
-				else if (child instanceof ts.JsxExpression) {
-					let expression = child.getExpressionOrThrow();
+				} else if (child instanceof ts.JsxExpression) {
+					const expression = child.getExpressionOrThrow();
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
-						let returnType = expression.getReturnType().getText();
-						if (returnType != ROACT_ELEMENT_TYPE)
+						const returnType = expression.getReturnType().getText();
+						if (returnType !== ROACT_ELEMENT_TYPE) {
 							throw new TranspilerError(`Function call must return Roact.Element -> {${expression.getText()}}`,
 								expression,
 								TranspilerErrorType.BadExpressionStatement);
+						}
 
-						let value = this.transpileExpression(child);
+						const value = this.transpileExpression(child);
 						childCollection.push(
-							`${this.indent}${value}`
+							`${this.indent}${value}`,
 						);
+					} else {
+						throw new TranspilerError(`Roact does not support this type of expression ` +
+							`{${expression.getText()}} (${expression.getKindName()})`,
+							expression, TranspilerErrorType.BadExpression);
 					}
-					else
-						throw new TranspilerError(`Roact does not support this type of expression {${expression.getText()}} (${expression.getKindName()})`, expression, TranspilerErrorType.BadExpression);
 				}
 			}
 
 			this.popIndent();
 			str += childCollection.join(",\n") + `\n${this.indent}})`;
 
-		}
-		else
+		} else {
 			str += ")";
+		}
 
 		this.roactIndent--;
 
 		if (key && this.roactIndent > 0) {
 			return `[${key}] = ${str}`;
-		}
-		else {
+		} else {
 			return str;
 		}
 
@@ -2034,17 +2027,17 @@ export class Transpiler {
 
 	private transpileJsxElement(node: ts.JsxElement): string {
 
-		let open = node.getNodeProperty("openingElement") as ts.JsxOpeningElement;
+		const open = node.getNodeProperty("openingElement") as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
-		let tagName = tagNameNode.getText();
-		let children = node.getJsxChildren();
+		const tagName = tagNameNode.getText();
+		const children = node.getJsxChildren();
 
 		return this.generateRoactElement(tagName, open.getAttributes(), children);
 	}
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
 		const tagNameNode = node.getTagNameNode();
-		let tagName = tagNameNode.getText();
+		const tagName = tagNameNode.getText();
 
 		return this.generateRoactElement(tagName, node.getAttributes(), []);
 	}
