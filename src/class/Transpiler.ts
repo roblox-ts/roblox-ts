@@ -1918,7 +1918,7 @@ export class Transpiler {
 
 		} else if (ts.TypeGuards.isJsxExpression(node)) {
 
-			return this.transpileExpression(node.getNodeProperty("expression"));
+			return this.transpileExpression(node.getExpressionOrThrow());
 
 		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
 			return this.transpileJsxSelfClosingElement(node);
@@ -2034,17 +2034,17 @@ export class Transpiler {
 			str += ", {\n";
 			this.pushIndent();
 
-			for (const attribute of attributes) {
-
-				const attributeName = attribute.getNodeProperty("name").getText();
-				const value = this.transpileExpression(attribute.getNodeProperty("initializer"));
+			for (const attributeLike of attributes) {
+				const attribute = attributeLike as ts.JsxAttribute;
+				const attributeName = attribute.getName();
+				const value = this.transpileExpression(attribute.getInitializerOrThrow());
 
 				if (attributeName === "Key") { // handle setting a key for this element
 					key = value;
 				} else if (attributeName === "Event") { // handle [Roact.Event]
-					this.generateRoactSymbolProperty("Event", attribute, attributeCollection);
+					this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
 				} else if (attributeName === "Change") { // handle [Roact.Change]
-					this.generateRoactSymbolProperty("Change", attribute, attributeCollection);
+					this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
 				} else {
 					attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
 				}
@@ -2114,7 +2114,7 @@ export class Transpiler {
 
 	private transpileJsxElement(node: ts.JsxElement): string {
 
-		const open = node.getNodeProperty("openingElement") as ts.JsxOpeningElement;
+		const open = node.getOpeningElement() as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
 		const children = node.getJsxChildren();
