@@ -1934,7 +1934,6 @@ export class Transpiler {
 
 		} else if (ts.TypeGuards.isJsxElement(node)) {
 			return this.transpileJsxElement(node);
-
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
