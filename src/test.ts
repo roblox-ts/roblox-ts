@@ -84,6 +84,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.RoactSubClassesNotSupported,
 	},
+	"roactJsxText.spec.tsx": {
+		message: "should not allow text between jsx elements",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactJsxTextNotSupported,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

@@ -123,38 +123,38 @@ const ROACT_COMPONENT_TYPE = "Roact.Component";
 /**
  * A list of lowercase names that map to Roblox elements for JSX
  */
-const INTRINSIC_MAPPINGS: {[name: string]: string} = {
+const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 	// aspectratio: 	"UIAspectRatioConstraint",
 
-	billboardgui: 	"BillboardGui",
+	billboardgui: "BillboardGui",
 
-	frame: 			"Frame",
+	frame: "Frame",
 
-	imagebutton: 	"ImageButton",
-	imagelabel: 	"ImageLabel",
+	imagebutton: "ImageButton",
+	imagelabel: "ImageLabel",
 
-	screengui: 		"ScreenGui",
+	screengui: "ScreenGui",
 	scrollingframe: "ScrollingFrame",
-	surfacegui: 	"SurfaceGui",
+	surfacegui: "SurfaceGui",
 
-	textbox: 		"TextBox",
-	textbutton: 	"TextButton",
-	textlabel: 		"TextLabel",
+	textbox: "TextBox",
+	textbutton: "TextButton",
+	textlabel: "TextLabel",
 
-	uigridlayout: 	"UIGridLayout",
-	uilistlayout: 	"UIListLayout",
-	uipagelayout: 	"UIPageLayout",
-	uitablelayout: 	"UITableLayout",
+	uigridlayout: "UIGridLayout",
+	uilistlayout: "UIListLayout",
+	uipagelayout: "UIPageLayout",
+	uitablelayout: "UITableLayout",
 
-	uipadding: 		"UIPadding",
-	uiscale: 		"UIScale",
+	uipadding: "UIPadding",
+	uiscale: "UIScale",
 
-	uiaspectratioconstraint: 	"UIAspectRatioConstraint",
+	uiaspectratioconstraint: "UIAspectRatioConstraint",
 
-	uisizeconstraint: 			"UISizeConstraint",
-	uitextsizeconstraint: 		"UITextSizeConstraint",
+	uisizeconstraint: "UISizeConstraint",
+	uitextsizeconstraint: "UITextSizeConstraint",
 
-	viewportframe: 	"ViewportFrame",
+	viewportframe: "ViewportFrame",
 };
 
 function isRbxClassType(type: ts.Type) {
@@ -2054,17 +2054,18 @@ export class Transpiler {
 			this.pushIndent();
 
 			for (const child of children) {
-				if (child instanceof ts.JsxElement) {
-					const value = this.transpileJsxElement(child);
+				if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
+					const value = this.transpileExpression(child);
 					childCollection.push(
 						`${this.indent}${value}`,
 					);
-				} else if (child instanceof ts.JsxSelfClosingElement) {
-					const value = this.transpileJsxSelfClosingElement(child);
-					childCollection.push(
-						`${this.indent}${value}`,
-					);
-				} else if (child instanceof ts.JsxExpression) {
+				} else if (ts.TypeGuards.isJsxText(child)) {
+					// If the inner text isn't just indentation/spaces
+					if (child.getText().match(/[^\t\s]+/)) {
+						throw new TranspilerError("Roact does not support text!",
+							child, TranspilerErrorType.RoactJsxTextNotSupported);
+					}
+				} else if (ts.TypeGuards.isJsxExpression(child)) {
 					const expression = child.getExpressionOrThrow();
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
@@ -2110,6 +2111,13 @@ export class Transpiler {
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
 		const children = node.getJsxChildren();
+
+		// node.getJsxChildren().forEach(child => {
+		// 	console.log(tagName, child.getKindName());
+		// 	if (ts.TypeGuards.isJsxText(child)) {
+		// 		console.log("`", child.getText(), "`", child.getText().match(/[^\t\s]+/));
+		// 	}
+		// });
 
 		return this.generateRoactElement(tagName, open.getAttributes(), children);
 	}
