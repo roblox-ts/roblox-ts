@@ -1199,11 +1199,9 @@ export class Transpiler {
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
 
+		const extraInitializers = new Array<string>();
+
 		if (instanceProps.length > 0) {
-
-			this.pushIndent();
-			const extraInitializers = new Array<string>();
-
 			for (const prop of instanceProps) {
 
 				const propName = prop.getName();
@@ -1214,18 +1212,11 @@ export class Transpiler {
 					if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 						const initializer = prop.getInitializer();
 						if (initializer) {
-							extraInitializers.push(`${this.indent}${propName} = ${this.transpileExpression(initializer)}`);
+							extraInitializers.push(`self.${propName} = ${this.transpileExpression(initializer)};`);
 						}
 					}
 				}
 
-			}
-			this.popIndent();
-
-			if (extraInitializers.length > 0) {
-				declaration += `${className}.defaultProps = {\n`;
-				declaration += extraInitializers.join(",\n");
-				declaration += "\n};\n";
 			}
 		}
 
@@ -1251,6 +1242,7 @@ export class Transpiler {
 					let k = 0;
 
 					initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+					extraInitializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
 
 					for (; k < bodyStatements.length; ++k) {
 						const bodyStatement = bodyStatements[k];
