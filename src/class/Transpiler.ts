@@ -125,7 +125,6 @@ const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
  * A list of lowercase names that map to Roblox elements for JSX
  */
 const INTRINSIC_MAPPINGS: { [name: string]: string } = {
-	// aspectratio: 	"UIAspectRatioConstraint",
 
 	billboardgui: "BillboardGui",
 
