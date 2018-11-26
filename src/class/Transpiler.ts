@@ -1928,9 +1928,6 @@ export class Transpiler {
 		} else if (ts.TypeGuards.isJsxElement(node)) {
 			return this.transpileJsxElement(node);
 
-		} else if (ts.TypeGuards.isJsxText(node)) {
-			return this.transpileJsxText(node);
-
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
@@ -2071,7 +2068,7 @@ export class Transpiler {
 					);
 				} else if (ts.TypeGuards.isJsxText(child)) {
 					// If the inner text isn't just indentation/spaces
-					if (child.getText().match(/[^\t\s]+/)) {
+					if (child.getText().match(/[^\s]/)) {
 						throw new TranspilerError("Roact does not support text!",
 							child, TranspilerErrorType.RoactJsxTextNotSupported);
 					}
@@ -2121,13 +2118,6 @@ export class Transpiler {
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
 		const children = node.getJsxChildren();
-
-		// node.getJsxChildren().forEach(child => {
-		// 	console.log(tagName, child.getKindName());
-		// 	if (ts.TypeGuards.isJsxText(child)) {
-		// 		console.log("`", child.getText(), "`", child.getText().match(/[^\t\s]+/));
-		// 	}
-		// });
 
 		return this.generateRoactElement(tagName, open.getAttributes(), children);
 	}
