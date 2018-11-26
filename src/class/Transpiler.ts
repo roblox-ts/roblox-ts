@@ -1928,7 +1928,6 @@ export class Transpiler {
 		} else if (ts.TypeGuards.isJsxExpression(node)) {
 
 			return this.transpileExpression(node.getExpressionOrThrow());
-
 		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
 			return this.transpileJsxSelfClosingElement(node);
 
