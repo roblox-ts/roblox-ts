@@ -1686,16 +1686,20 @@ export class Transpiler {
 		result += this.transpileStatementedNode(node.getTryBlock());
 		this.popIndent();
 		result += this.indent + "end);\n";
-		let catchClause = node.getCatchClause();
+		const catchClause = node.getCatchClause();
 		if (catchClause !== undefined) {
 			result += this.indent + "if not TS_success then\n";
 			this.pushIndent();
-			result += this.indent + "local " + catchClause.getVariableDeclarationOrThrow().getName() + " = TS.decodeError(TS_error)\n";
+			result +=
+				this.indent +
+				"local " +
+				catchClause.getVariableDeclarationOrThrow().getName() +
+				" = TS.decodeError(TS_error)\n";
 			result += this.transpileStatementedNode(catchClause.getBlock());
 			this.popIndent();
 			result += this.indent + "end\n";
 		}
-		let finallyBlock = node.getFinallyBlock();
+		const finallyBlock = node.getFinallyBlock();
 		if (finallyBlock !== undefined) {
 			result += this.transpileStatementedNode(finallyBlock);
 		}
@@ -2622,7 +2626,7 @@ export class Transpiler {
 		const trueStr = this.transpileExpression(node.getWhenTrue());
 		const falseStr = this.transpileExpression(node.getWhenFalse());
 		const trueType = node.getWhenTrue().getType();
-		if (trueType.isNullable() || trueType.isBoolean()) {
+		if (trueType.isNullable() || trueType.isBoolean() || trueType.isBooleanLiteral()) {
 			return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
 		} else {
 			return `(${conditionStr} and ${trueStr} or ${falseStr})`;
