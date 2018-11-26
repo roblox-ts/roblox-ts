@@ -1924,7 +1924,6 @@ export class Transpiler {
 			return this.transpileConditionalExpression(node);
 		} else if (ts.TypeGuards.isTypeOfExpression(node)) {
 			return this.transpileTypeOfExpression(node);
-
 		} else if (ts.TypeGuards.isJsxExpression(node)) {
 			return this.transpileExpression(node.getExpressionOrThrow());
 		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
