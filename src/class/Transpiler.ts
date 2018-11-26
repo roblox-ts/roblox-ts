@@ -119,6 +119,7 @@ const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 const ROACT_COMPONENT_TYPE = "Roact.Component";
+const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -1190,8 +1191,10 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileRoactClassDeclaration(className: string, node: ts.ClassDeclaration) {
-		let declaration = `${this.indent}local ${className} = Roact.Component:extend("${className}");\n`;
+	private transpileRoactClassDeclaration(
+		type: "Component" | "PureComponent", className: string, node: ts.ClassDeclaration) {
+
+		let declaration = `${this.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
 
 		const instanceProps = node
 			.getInstanceProperties()
@@ -1362,9 +1365,13 @@ export class Transpiler {
 
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
+			const baseTypeText = baseType.getText();
+
 			// Handle the special case where we have a roact class
-			if (baseType.getText().startsWith(ROACT_COMPONENT_TYPE)) {
-				return this.transpileRoactClassDeclaration(name, node);
+			if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
+				return this.transpileRoactClassDeclaration("Component", name, node);
+			} else if (baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+				return this.transpileRoactClassDeclaration("PureComponent", name, node);
 			}
 
 			// Handle erroring on subclasses with roact

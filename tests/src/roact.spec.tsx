@@ -24,6 +24,36 @@ interface PrimitiveHandleElementKind extends AnyHandleElementKind {
 
 export = () => {
 	describe("should support Roact.Component", () => {
+		it("should construct a roact class", () => {
+			class RoactClass extends Roact.Component {
+				/* tslint:disable */
+				public static _new: any;
+				/* tslint:enable */
+
+				public render(): Roact.Element {
+					return <frame />;
+				}
+			}
+
+			expect(typeof RoactClass).to.equal("object");
+			expect(RoactClass._new).to.be.a("function");
+		});
+
+		it("should construct a roact pure component class", () => {
+			class RoactPureClass extends Roact.PureComponent {
+				/* tslint:disable */
+				public static _new: any;
+				/* tslint:enable */
+
+				public render(): Roact.Element {
+					return <frame />;
+				}
+			}
+
+			expect(typeof RoactPureClass).to.equal("object");
+			expect(RoactPureClass._new).to.be.a("function");
+		});
+
 		it("should construct default props", () => {
 			interface RoactProps {
 				value: number;
@@ -39,21 +69,6 @@ export = () => {
 			}
 
 			expect(RoactClass.defaultProps).to.be.a("table");
-		});
-
-		it("should construct a roact class", () => {
-			class RoactClass extends Roact.Component {
-				/* tslint:disable */
-				public static _new: any;
-				/* tslint:enable */
-
-				public render(): Roact.Element {
-					return <frame />;
-				}
-			}
-
-			expect(typeof RoactClass).to.equal("object");
-			expect(RoactClass._new).to.be.a("function");
 		});
 
 		it("should support static getDerivedStateFromProps", () => {
