@@ -31,7 +31,7 @@ export = () => {
 				/* tslint:enable */
 
 				public render(): Roact.Element {
-					return <rbxFrame />;
+					return <frame />;
 				}
 			}
 
@@ -42,7 +42,7 @@ export = () => {
 		it("should mount a roact object", () => {
 			class RoactClass extends Roact.Component {
 				public render(): Roact.Element {
-					return <rbxFrame />;
+					return <frame />;
 				}
 			}
 
@@ -51,10 +51,8 @@ export = () => {
 		});
 	});
 
-
-
 	it("should create roact intrinsics", () => {
-		const RoactIntrinsic = <rbxFrame />;
+		const RoactIntrinsic = <frame />;
 		const RoactIntrinsicManual = Roact.createElement("Frame");
 
 		// Both should be a Frame
@@ -67,10 +65,10 @@ export = () => {
 			const KEY = "key1";
 			const KEY2 = "key2";
 
-			const element = <rbxScreenGui>
-				<rbxFrame Key={KEY} />
-				<rbxFrame Key={KEY2} />
-			</rbxScreenGui>;
+			const element = <screengui>
+				<frame Key={KEY} />
+				<frame Key={KEY2} />
+			</screengui>;
 
 			const handle: any = Roact.mount(element);
 
@@ -83,13 +81,13 @@ export = () => {
 
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
-			const propElement = <rbxTextButton Text={TEXT} />;
+			const propElement = <textbutton Text={TEXT} />;
 
 			expect(propElement.props.Text).to.equal(TEXT);
 		});
 
 		it("should support [Roact.Event]", () => {
-			const eventElement = <rbxTextButton Event={{
+			const eventElement = <textbutton Event={{
 				MouseButton1Click: () => { },
 			}} />;
 
@@ -97,7 +95,7 @@ export = () => {
 		});
 
 		it("should support [Roact.Change]", () => {
-			const eventElement = <rbxTextButton Change={{
+			const eventElement = <textbutton Change={{
 				AbsoluteSize: () => { },
 			}} />;
 
@@ -107,7 +105,7 @@ export = () => {
 	});
 
 	it("should be able to mount roact intrinsics", () => {
-		const handle: PrimitiveHandleElementKind = Roact.mount(<rbxScreenGui />);
+		const handle: PrimitiveHandleElementKind = Roact.mount(<screengui />);
 		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
 	});
 };

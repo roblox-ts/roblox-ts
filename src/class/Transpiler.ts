@@ -115,9 +115,46 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
+const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
+
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 
-const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
+/**
+ * A list of lowercase names that map to Roblox elements for JSX
+ */
+const INTRINSIC_MAPPINGS: {[name: string]: string} = {
+	// aspectratio: 	"UIAspectRatioConstraint",
+
+	billboardgui: 	"BillboardGui",
+
+	frame: 			"Frame",
+
+	imagebutton: 	"ImageButton",
+	imagelabel: 	"ImageLabel",
+
+	screengui: 		"ScreenGui",
+	scrollingframe: "ScrollingFrame",
+	surfacegui: 	"SurfaceGui",
+
+	textbox: 		"TextBox",
+	textbutton: 	"TextButton",
+	textlabel: 		"TextLabel",
+
+	uigridlayout: 	"UIGridLayout",
+	uilistlayout: 	"UIListLayout",
+	uipagelayout: 	"UIPageLayout",
+	uitablelayout: 	"UITableLayout",
+
+	uipadding: 		"UIPadding",
+	uiscale: 		"UIScale",
+
+	uiaspectratioconstraint: 	"UIAspectRatioConstraint",
+
+	uisizeconstraint: 			"UISizeConstraint",
+	uitextsizeconstraint: 		"UITextSizeConstraint",
+
+	viewportframe: 	"ViewportFrame",
+};
 
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
@@ -1925,20 +1962,22 @@ export class Transpiler {
 	): string {
 
 		let str = `Roact.createElement(`;
-		let isRbxType = false;
 		const attributeCollection: Array<string> = [];
 		const childCollection: Array<string> = [];
 		let key: string | undefined;
 
 		this.roactIndent++;
 
-		if (name.startsWith("rbx")) {
-			name = name.substr(3);
-			isRbxType = true;
-		}
+		if (name.match(/^[a-z]+$/)) { // if lowercase
 
-		if (isRbxType) {
-			str += `"${name}"`;
+			// Check if defined as a intrinsic mapping
+			const rbxName = INTRINSIC_MAPPINGS[name];
+			if (rbxName) {
+				str += `"${rbxName}"`;
+			} else {
+				throw new TranspilerError(`Roact does not yet support ${name}`, children[0], TranspilerErrorType.BadExpression);
+			}
+
 		} else {
 			str += name;
 		}
