@@ -18,7 +18,8 @@
 	},
 	"nyc": {
 		"extension": [
-			".ts"
+			".ts",
+			".tsx"
 		],
 		"include": [
 			"src/class/Transpiler.ts"
