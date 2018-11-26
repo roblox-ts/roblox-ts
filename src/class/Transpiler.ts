@@ -1968,10 +1968,6 @@ export class Transpiler {
 		}
 	}
 
-	private transpileJsxText(node: ts.Expression<ts.ts.Expression> & ts.JsxText): string {
-		throw new TranspilerError(`Roact does not support JsxText`, node, TranspilerErrorType.BadExpression);
-	}
-
 	private generateRoactSymbolProperty(
 		roactSymbol: "Event" | "Change",
 		node: ts.JsxAttributeLike,
