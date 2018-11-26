@@ -122,6 +122,18 @@ function isRbxClassType(type: ts.Type) {
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
+function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
+	if (rhsStr === "0" || rhsStr === "(0)") {
+		return `TS.round(${lhsStr})`;
+	} else {
+		return `TS.bor(${lhsStr}, ${rhsStr})`;
+	}
+}
+
+function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
+	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
+}
+
 function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
@@ -129,7 +141,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
 	if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
-		return `${lhsStr} .. ${rhsStr}`;
+		return `(${lhsStr}) .. ${rhsStr}`;
 	} else if (
 		(leftType.isNumber() || leftType.isNumberLiteral()) &&
 		(rightType.isNumber() || rightType.isNumberLiteral())
@@ -530,6 +542,14 @@ export class Transpiler {
 			return this.transpileExportAssignment(node);
 		} else if (ts.TypeGuards.isSwitchStatement(node)) {
 			return this.transpileSwitchStatement(node);
+		} else if (ts.TypeGuards.isTryStatement(node)) {
+			return this.transpileTryStatement(node);
+		} else if (
+			ts.TypeGuards.isEmptyStatement(node) ||
+			ts.TypeGuards.isTypeAliasDeclaration(node) ||
+			ts.TypeGuards.isInterfaceDeclaration(node)
+		) {
+			return "";
 		} else if (ts.TypeGuards.isLabeledStatement(node)) {
 			throw new TranspilerError(
 				"Labeled statements are not supported!",
@@ -990,7 +1010,7 @@ export class Transpiler {
 
 	private transpileThrowStatement(node: ts.ThrowStatement) {
 		const expStr = this.transpileExpression(node.getExpressionOrThrow());
-		return this.indent + `error(${expStr});\n`;
+		return this.indent + `TS.error(${expStr});\n`;
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
@@ -1659,6 +1679,29 @@ export class Transpiler {
 		return result;
 	}
 
+	private transpileTryStatement(node: ts.TryStatement) {
+		let result = "";
+		result += this.indent + "local TS_success, TS_error = pcall(function()\n";
+		this.pushIndent();
+		result += this.transpileStatementedNode(node.getTryBlock());
+		this.popIndent();
+		result += this.indent + "end);\n";
+		let catchClause = node.getCatchClause();
+		if (catchClause !== undefined) {
+			result += this.indent + "if not TS_success then\n";
+			this.pushIndent();
+			result += this.indent + "local " + catchClause.getVariableDeclarationOrThrow().getName() + " = TS.decodeError(TS_error)\n";
+			result += this.transpileStatementedNode(catchClause.getBlock());
+			this.popIndent();
+			result += this.indent + "end\n";
+		}
+		let finallyBlock = node.getFinallyBlock();
+		if (finallyBlock !== undefined) {
+			result += this.transpileStatementedNode(finallyBlock);
+		}
+		return result;
+	}
+
 	private transpileExpression(node: ts.Expression): string {
 		if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 			return this.transpileStringLiteral(node);
@@ -2060,20 +2103,6 @@ export class Transpiler {
 		const opToken = node.getOperatorToken();
 		const opKind = opToken.getKind();
 
-		if (opKind === ts.SyntaxKind.CaretToken) {
-			throw new TranspilerError(
-				"Binary XOR operator ( `^` ) is not supported! Did you mean to use `**`?",
-				node,
-				TranspilerErrorType.NoXOROperator,
-			);
-		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
-			throw new TranspilerError(
-				"Binary XOR operator ( `^` ) is not supported! Did you mean to use `**=`?",
-				node,
-				TranspilerErrorType.NoXOROperator,
-			);
-		}
-
 		const lhs = node.getLeft();
 		const rhs = node.getRight();
 		let lhsStr: string;
@@ -2084,6 +2113,22 @@ export class Transpiler {
 			switch (opKind) {
 				case ts.SyntaxKind.EqualsToken:
 					return `${lhsStr} = ${rhsStr}`;
+				/* Bitwise Operations */
+				case ts.SyntaxKind.BarEqualsToken:
+					const barExpStr = getLuaBarExpression(node, lhsStr, rhsStr);
+					return `${lhsStr} = ${barExpStr}`;
+				case ts.SyntaxKind.AmpersandEqualsToken:
+					const ampersandExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "and");
+					return `${lhsStr} = ${ampersandExpStr}`;
+				case ts.SyntaxKind.CaretEqualsToken:
+					const caretExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "xor");
+					return `${lhsStr} = ${caretExpStr}`;
+				case ts.SyntaxKind.LessThanLessThanEqualsToken:
+					const lshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "lsh");
+					return `${lhsStr} = ${lshExpStr}`;
+				case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
+					const rshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "rsh");
+					return `${lhsStr} = ${rshExpStr}`;
 				case ts.SyntaxKind.PlusEqualsToken:
 					const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
 					return `${lhsStr} = ${addExpStr}`;
@@ -2103,6 +2148,11 @@ export class Transpiler {
 
 		if (
 			opKind === ts.SyntaxKind.EqualsToken ||
+			opKind === ts.SyntaxKind.BarEqualsToken ||
+			opKind === ts.SyntaxKind.AmpersandEqualsToken ||
+			opKind === ts.SyntaxKind.CaretEqualsToken ||
+			opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
+			opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
 			opKind === ts.SyntaxKind.PlusEqualsToken ||
 			opKind === ts.SyntaxKind.MinusEqualsToken ||
 			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
@@ -2149,6 +2199,17 @@ export class Transpiler {
 				);
 			case ts.SyntaxKind.ExclamationEqualsEqualsToken:
 				return `${lhsStr} ~= ${rhsStr}`;
+			/* Bitwise Operations */
+			case ts.SyntaxKind.BarToken:
+				return getLuaBarExpression(node, lhsStr, rhsStr);
+			case ts.SyntaxKind.AmpersandToken:
+				return getLuaBitExpression(node, lhsStr, rhsStr, "and");
+			case ts.SyntaxKind.CaretToken:
+				return getLuaBitExpression(node, lhsStr, rhsStr, "xor");
+			case ts.SyntaxKind.LessThanLessThanToken:
+				return getLuaBitExpression(node, lhsStr, rhsStr, "lsh");
+			case ts.SyntaxKind.GreaterThanGreaterThanToken:
+				return getLuaBitExpression(node, lhsStr, rhsStr, "rsh");
 			case ts.SyntaxKind.PlusToken:
 				return getLuaAddExpression(node, lhsStr, rhsStr);
 			case ts.SyntaxKind.MinusToken:
@@ -2560,7 +2621,12 @@ export class Transpiler {
 		const conditionStr = this.transpileExpression(node.getCondition());
 		const trueStr = this.transpileExpression(node.getWhenTrue());
 		const falseStr = this.transpileExpression(node.getWhenFalse());
-		return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
+		const trueType = node.getWhenTrue().getType();
+		if (trueType.isNullable() || trueType.isBoolean()) {
+			return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;
+		} else {
+			return `(${conditionStr} and ${trueStr} or ${falseStr})`;
+		}
 	}
 
 	private transpileTypeOfExpression(node: ts.TypeOfExpression) {

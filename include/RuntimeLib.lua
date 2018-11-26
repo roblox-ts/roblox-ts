@@ -148,7 +148,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		error(ok == nil and "The awaited Promise was cancelled" or result, 2)
+		TS.error(ok == nil and "The awaited Promise was cancelled" or result)
 	end
 end
 
@@ -158,6 +158,55 @@ function TS.add(a, b)
 	else
 		return a + b
 	end
+end
+
+function TS.round(a)
+	if a < 0 then
+		return math.ceil(a)
+	else
+		return math.floor(a)
+	end
+end
+
+-- bitwise operations
+
+local function bitop(a, b, oper)
+	local r, m, s = 0, 2^52
+	repeat
+		s, a, b = a + b + m, a % m, b % m
+		r, m = r + m * oper % (s - a - b), m / 2
+	until m < 1
+	return r
+end
+
+function TS.bor(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 1)
+end
+
+function TS.band(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 4)
+end
+
+function TS.bxor(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 3)
+end
+
+function TS.blsh(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return a * 2 ^ b
+end
+
+function TS.brsh(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return TS.round(a / 2 ^ b)
 end
 
 -- array macro functions
@@ -590,6 +639,33 @@ function TS.Object_assign(toObj, ...)
 		end
 	end
 	return toObj
+end
+
+-- Error objects
+local errors = setmetatable({}, {__mode = "v"})
+
+function TS.error(object, level)
+	if level ~= 0 then
+		level = (level or 1) + 1
+	end
+	local id = ""
+	for i = 1, 16 do
+		id = id .. string.char(math.random(65, 90))
+	end
+	if type(object) == "table" and object.message ~= nil then
+		id = id .. "; message: " .. object.message
+	end
+	errors[id] = object
+	error("error: [<[" .. id .. "]>]", level)
+end
+
+function TS.decodeError(errorMessage)
+	local result
+	local key = errorMessage:match("error%: %[%<%[(.-)%]%>%]")
+	if key ~= nil then
+		result = errors[key]
+	end
+	return result or errorMessage
 end
 
 return TS
