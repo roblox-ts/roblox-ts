@@ -1930,7 +1930,6 @@ export class Transpiler {
 			return this.transpileExpression(node.getExpressionOrThrow());
 		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
 			return this.transpileJsxSelfClosingElement(node);
-
 		} else if (ts.TypeGuards.isJsxElement(node)) {
 			return this.transpileJsxElement(node);
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
