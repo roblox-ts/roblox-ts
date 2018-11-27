@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.15",
+	"version": "0.0.16",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
