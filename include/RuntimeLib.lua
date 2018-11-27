@@ -49,6 +49,18 @@ local Symbol do
 end
 TS.Symbol = Symbol
 
+-- Instance class values
+TS.Instance = setmetatable({}, {
+	__index = function(self, className)
+		self[className] = {
+			new = function(parent)
+				return Instance.new(className, parent)
+			end
+		}
+		return self[className]
+	end
+})
+
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
 

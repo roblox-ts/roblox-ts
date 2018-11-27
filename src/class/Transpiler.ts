@@ -20,7 +20,7 @@ type HasParameters =
 	| ts.SetAccessorDeclaration;
 
 // used for the typeof operator
-const RBX_CLASSES = [
+const RBX_DATA_CLASSES = [
 	"Axes",
 	"BrickColor",
 	"CFrame",
@@ -157,9 +157,9 @@ const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 	viewportframe: "ViewportFrame",
 };
 
-function isRbxClassType(type: ts.Type) {
+function isRbxDataClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
-	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
+	return symbol !== undefined && RBX_DATA_CLASSES.indexOf(symbol.getName()) !== -1;
 }
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
@@ -203,6 +203,10 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 				.some(baseType => inheritsFrom(baseType, className)),
 		)
 		: false;
+}
+
+function isRbxInstance(node: ts.Node): boolean {
+	return inheritsFrom(node.getType(), "Rbx_Instance");
 }
 
 function getConstructor(node: ts.ClassDeclaration) {
@@ -529,6 +533,17 @@ export class Transpiler {
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
+		} else if (isRbxInstance(node)) {
+			const parent = node.getParent();
+			if (
+				!ts.TypeGuards.isNewExpression(parent) &&
+				!(
+					ts.TypeGuards.isBinaryExpression(parent) &&
+					parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
+				)
+			) {
+				name = `TS.Instance.${name}`;
+			}
 		}
 		return name;
 	}
@@ -2662,7 +2677,7 @@ export class Transpiler {
 			case ts.SyntaxKind.InstanceOfKeyword:
 				if (inheritsFrom(node.getRight().getType(), "Rbx_Instance")) {
 					return `TS.isA(${lhsStr}, "${rhsStr}")`;
-				} else if (isRbxClassType(node.getRight().getType())) {
+				} else if (isRbxDataClassType(node.getRight().getType())) {
 					return `(TS.typeof(${lhsStr}) == "${rhsStr}")`;
 				} else {
 					return `TS.instanceof(${lhsStr}, ${rhsStr})`;
@@ -2810,9 +2825,14 @@ export class Transpiler {
 		}
 
 		if (expressionType.isObject()) {
-			if (inheritsFrom(expressionType, "Rbx_Instance")) {
-				const paramStr = params.length > 0 ? `, ${params}` : "";
-				return `Instance.new("${name}"${paramStr})`;
+			const symbol = expressionType.getSymbol();
+
+			if (symbol && inheritsFrom(expressionType, "Rbx_Instance")) {
+				const valueDec = symbol.getValueDeclaration();
+				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
+					const paramStr = params.length > 0 ? `, ${params}` : "";
+					return `Instance.new("${name}"${paramStr})`;
+				}
 			}
 
 			if (inheritsFrom(expressionType, "ArrayConstructor")) {
