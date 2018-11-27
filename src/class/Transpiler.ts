@@ -532,16 +532,24 @@ export class Transpiler {
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
-		} else if (isRbxInstance(node)) {
-			const parent = node.getParent();
-			if (
-				!ts.TypeGuards.isNewExpression(parent) &&
-				!(
-					ts.TypeGuards.isBinaryExpression(parent) &&
-					parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
-				)
-			) {
-				name = `TS.Instance.${name}`;
+		} else {
+			if (isRbxInstance(node)) {
+				const parent = node.getParent();
+				if (
+					!ts.TypeGuards.isNewExpression(parent) &&
+					!(
+						ts.TypeGuards.isBinaryExpression(parent) &&
+						parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
+					)
+				) {
+					const symbol = node.getType().getSymbol();
+					if (symbol) {
+						const valueDec = symbol.getValueDeclaration();
+						if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
+							name = `TS.Instance.${name}`;
+						}
+					}
+				}
 			}
 		}
 		return name;
@@ -830,8 +838,12 @@ export class Transpiler {
 	private transpileExpressionStatement(node: ts.ExpressionStatement) {
 		// big set of rules for expression statements
 		const expression = node.getExpression();
+
+		if (ts.TypeGuards.isCallExpression(expression)) {
+			return this.indent + this.transpileCallExpression(expression, true) + ";\n";
+		}
+
 		if (
-			!ts.TypeGuards.isCallExpression(expression) &&
 			!ts.TypeGuards.isNewExpression(expression) &&
 			!ts.TypeGuards.isAwaitExpression(expression) &&
 			!ts.TypeGuards.isPostfixUnaryExpression(expression) &&
@@ -2407,7 +2419,7 @@ export class Transpiler {
 	private transpileCallExpression(node: ts.CallExpression, doNotWrapTupleReturn = false) {
 		const exp = node.getExpression();
 		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-			return this.transpilePropertyCallExpression(node);
+			return this.transpilePropertyCallExpression(node, doNotWrapTupleReturn);
 		} else if (ts.TypeGuards.isSuperExpression(exp)) {
 			let params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 			if (params.length > 0) {
@@ -2430,7 +2442,7 @@ export class Transpiler {
 		}
 	}
 
-	private transpilePropertyCallExpression(node: ts.CallExpression) {
+	private transpilePropertyCallExpression(node: ts.CallExpression, doNotWrapTupleReturn = false) {
 		const expression = node.getExpression();
 		if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 			throw new TranspilerError(
@@ -2555,7 +2567,11 @@ export class Transpiler {
 			}
 		}
 
-		return `${accessPath}${sep}${property}(${params})`;
+		let result = `${accessPath}${sep}${property}(${params})`;
+		if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
+			result = `{${result}}`;
+		}
+		return result;
 	}
 
 	private transpileBinaryExpression(node: ts.BinaryExpression) {
@@ -2835,9 +2851,9 @@ export class Transpiler {
 			);
 		}
 
-		const expStr = node.getExpression();
-		const expressionType = expStr.getType();
-		let name = this.transpileExpression(expStr);
+		const expNode = node.getExpression();
+		const expressionType = expNode.getType();
+		let name = this.transpileExpression(expNode);
 		const args = node.getArguments() as Array<ts.Expression>;
 		const params = this.transpileArguments(args);
 
@@ -2848,7 +2864,7 @@ export class Transpiler {
 		if (expressionType.isObject()) {
 			const symbol = expressionType.getSymbol();
 
-			if (symbol && inheritsFrom(expressionType, "Rbx_Instance")) {
+			if (symbol && isRbxInstance(expNode)) {
 				const valueDec = symbol.getValueDeclaration();
 				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
 					const paramStr = params.length > 0 ? `, ${params}` : "";
