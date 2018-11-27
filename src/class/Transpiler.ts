@@ -533,8 +533,17 @@ export class Transpiler {
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
-		} else if (isRbxInstance(node) && !ts.TypeGuards.isNewExpression(node.getParent())) {
-			name = `TS.Instance.${name}`;
+		} else if (isRbxInstance(node)) {
+			const parent = node.getParent();
+			if (
+				!ts.TypeGuards.isNewExpression(parent) &&
+				!(
+					ts.TypeGuards.isBinaryExpression(parent) &&
+					parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
+				)
+			) {
+				name = `TS.Instance.${name}`;
+			}
 		}
 		return name;
 	}
