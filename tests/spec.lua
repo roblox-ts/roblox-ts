@@ -26,6 +26,12 @@ end
 local robloxTsFolder = newFolder("RobloxTS", ReplicatedStorage)
 newFolder("Include", robloxTsFolder, "include")
 
+-- Modules
+local modulesFolder = newFolder("Modules", robloxTsFolder)
+
+-- Roact
+newFolder("rbx-roact", modulesFolder, "tests/node_modules/rbx-roact");
+
 -- TestEZ
 local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "tests/submodules/testez/lib")
 

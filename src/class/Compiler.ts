@@ -321,7 +321,7 @@ export class Compiler {
 
 	public async compileFileByPath(filePath: string) {
 		const ext = path.extname(filePath);
-		if (ext === ".ts") {
+		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new CompilerError(
@@ -357,9 +357,8 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
+		let errors = 0;
 		if (!this.noStrict) {
-			let errors = 0;
-
 			files.forEach(file => {
 				const diagnostics = file
 					.getPreEmitDiagnostics()
@@ -369,25 +368,27 @@ export class Compiler {
 					const diagnosticFile = diagnostic.getSourceFile();
 					const line = diagnostic.getLineNumber();
 					if (!this.ci) {
+						let prefix = "";
 						if (diagnosticFile) {
+							prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
 							if (line) {
-								console.log("%s:%d", diagnosticFile.getFilePath(), line);
-							} else {
-								console.log("%s", diagnosticFile.getFilePath());
+								prefix += ":" + line;
 							}
+							prefix += " - ";
 						}
-						console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
+						console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
 					}
 					errors++;
 				}
 			});
+		}
+
+		try {
 			if (errors > 0) {
 				process.exitCode = 1;
 				throw new DiagnosticError(errors);
 			}
-		}
 
-		try {
 			const sources = files
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => {
@@ -415,12 +416,13 @@ export class Compiler {
 			}
 			if (e instanceof TranspilerError) {
 				console.log(
-					"%s:%d:%d",
-					e.node.getSourceFile().getFilePath(),
+					"%s:%d:%d - %s %s",
+					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
 					e.node.getStartLineNumber(),
 					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+					red("Transpiler Error:"),
+					e.message,
 				);
-				console.log(red("Transpiler Error:"), e.message);
 			} else if (e instanceof CompilerError) {
 				console.log(red("Compiler Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {

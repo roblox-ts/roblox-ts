@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.11",
+	"version": "0.0.13",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -18,7 +18,8 @@
 	},
 	"nyc": {
 		"extension": [
-			".ts"
+			".ts",
+			".tsx"
 		],
 		"include": [
 			"src/class/Transpiler.ts"
