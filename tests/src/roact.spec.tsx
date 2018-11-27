@@ -155,7 +155,6 @@ export = () => {
 
 			expect(eventElement.props[Roact.Change.AbsoluteSize]).to.be.a("function");
 		});
-
 		describe("should support [Roact.Ref]", () => {
 			/*
 				These are based basically off the Roact tests.
@@ -217,7 +216,6 @@ export = () => {
 				expect(worked).to.be.ok();
 			});
 		});
-
 	});
 
 	it("should be able to mount roact intrinsics", () => {
