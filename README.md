@@ -3,6 +3,7 @@
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <br>
 <div align="center">
+	<a href="https://discord.gg/f6Rn6RY"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
 	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
 	<a href='https://coveralls.io/github/roblox-ts/roblox-ts?branch=master'><img src='https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master' alt='Coverage Status' /></a>
 	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
