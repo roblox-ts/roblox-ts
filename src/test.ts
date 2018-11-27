@@ -69,6 +69,26 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.SpreadDestructuring,
 	},
+	"roactClassGet.spec.tsx": {
+		message: "should not allow getters in roact classes",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactGettersNotAllowed,
+	},
+	"roactClassSet.spec.tsx": {
+		message: "should not allow setters in roact classes",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactSettersNotAllowed,
+	},
+	"roactSubClass.spec.tsx": {
+		message: "should not allow subclasses of roact components",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactSubClassesNotSupported,
+	},
+	"roactJsxText.spec.tsx": {
+		message: "should not allow text between jsx elements",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactJsxTextNotSupported,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

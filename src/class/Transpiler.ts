@@ -117,6 +117,46 @@ const LUA_RESERVED_METAMETHODS = [
 
 const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 
+const ROACT_ELEMENT_TYPE = "Roact.Element";
+const ROACT_COMPONENT_TYPE = "Roact.Component";
+const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
+
+/**
+ * A list of lowercase names that map to Roblox elements for JSX
+ */
+const INTRINSIC_MAPPINGS: { [name: string]: string } = {
+
+	billboardgui: "BillboardGui",
+
+	frame: "Frame",
+
+	imagebutton: "ImageButton",
+	imagelabel: "ImageLabel",
+
+	screengui: "ScreenGui",
+	scrollingframe: "ScrollingFrame",
+	surfacegui: "SurfaceGui",
+
+	textbox: "TextBox",
+	textbutton: "TextButton",
+	textlabel: "TextLabel",
+
+	uigridlayout: "UIGridLayout",
+	uilistlayout: "UIListLayout",
+	uipagelayout: "UIPageLayout",
+	uitablelayout: "UITableLayout",
+
+	uipadding: "UIPadding",
+	uiscale: "UIScale",
+
+	uiaspectratioconstraint: "UIAspectRatioConstraint",
+
+	uisizeconstraint: "UISizeConstraint",
+	uitextsizeconstraint: "UITextSizeConstraint",
+
+	viewportframe: "ViewportFrame",
+};
+
 function isRbxClassType(type: ts.Type) {
 	const symbol = type.getSymbol();
 	return symbol !== undefined && RBX_CLASSES.indexOf(symbol.getName()) !== -1;
@@ -156,12 +196,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-				symbol.getDeclarations().some(declaration =>
-					declaration
-						.getType()
-						.getBaseTypes()
-						.some(baseType => inheritsFrom(baseType, className)),
-				)
+		symbol.getDeclarations().some(declaration =>
+			declaration
+				.getType()
+				.getBaseTypes()
+				.some(baseType => inheritsFrom(baseType, className)),
+		)
 		: false;
 }
 
@@ -210,8 +250,9 @@ export class Transpiler {
 	private isModule = false;
 	private indent = "";
 	private scriptContext = ScriptContext.None;
+	private roactIndent: number = 0;
 
-	constructor(private compiler: Compiler) {}
+	constructor(private compiler: Compiler) { }
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1169,6 +1210,168 @@ export class Transpiler {
 		return result;
 	}
 
+	private transpileRoactClassDeclaration(
+		type: "Component" | "PureComponent", className: string, node: ts.ClassDeclaration) {
+
+		let declaration = `${this.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
+
+		const instanceProps = node
+			.getInstanceProperties()
+			.filter(prop => prop.getParent() === node)
+			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
+			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
+
+		const extraInitializers = new Array<string>();
+
+		if (instanceProps.length > 0) {
+			for (const prop of instanceProps) {
+
+				const propName = prop.getName();
+
+				if (propName) {
+					this.checkMethodReserved(propName, prop);
+
+					if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+						const initializer = prop.getInitializer();
+						if (initializer) {
+							extraInitializers.push(`self.${propName} = ${this.transpileExpression(initializer)};`);
+						}
+					}
+				}
+
+			}
+		}
+
+		const constructor = getConstructor(node);
+		if (constructor) {
+			const paramNames = new Array<string>();
+			const initializers = new Array<string>();
+			const defaults = new Array<string>();
+
+			this.getParameterData(paramNames, initializers, constructor, defaults);
+
+			declaration += `${this.indent}function ${className}:init(${paramNames.join(", ")})\n`;
+
+			this.pushIndent();
+
+			const body = constructor.getBodyOrThrow();
+			if (ts.TypeGuards.isBlock(body)) {
+				// we can ignore super() as it's not required.
+				if (ts.TypeGuards.isBlock(body)) {
+					defaults.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+
+					const bodyStatements = body.getStatements();
+					let k = 0;
+
+					initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+					extraInitializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+
+					for (; k < bodyStatements.length; ++k) {
+						const bodyStatement = bodyStatements[k];
+
+						// Because we want to ignore super. I will figure out a better way to do this eventually.
+						// isSuperExpression doesn't seem to work.
+						if (!bodyStatement.getText().startsWith("super")) {
+							declaration += this.transpileStatement(bodyStatement);
+						}
+					}
+
+					const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
+
+					if (returnStatement) {
+						throw new TranspilerError(
+							`Cannot use return statement in constructor for ${className}`,
+							returnStatement,
+							TranspilerErrorType.NoConstructorReturn,
+						);
+					}
+				}
+			}
+
+			declaration += this.indent + "self.props.children = self.props[Roact.Children];\n";
+
+			this.popIndent();
+
+			declaration += `${this.indent}end;\n`;
+		}
+
+		const staticFields = node.getStaticProperties();
+		for (const staticField of staticFields) {
+			if (ts.TypeGuards.isInitializerExpressionableNode(staticField)) {
+				const initializer = staticField.getInitializer();
+				if (initializer) {
+					declaration += `${this.indent}${className}.${staticField.getName()} = ${this.transpileExpression(initializer)};\n`;
+				}
+			}
+		}
+
+		const staticMethods = node.getStaticMethods()
+			.filter(method => method.getBody() !== undefined);
+		for (const staticMethod of staticMethods) {
+			const name = staticMethod.getName();
+			this.checkReserved(name, staticMethod);
+			const body = staticMethod.getBodyOrThrow();
+
+			const paramNames = new Array<string>();
+			const initializers = new Array<string>();
+			this.pushIdStack();
+			this.getParameterData(paramNames, initializers, staticMethod);
+			const paramStr = paramNames.join(", ");
+
+			declaration += `${this.indent}function ${className}.${name}(${paramStr})\n`;
+
+			this.pushIndent();
+			if (ts.TypeGuards.isBlock(body)) {
+				initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+				declaration += this.transpileBlock(body);
+			}
+			this.popIndent();
+
+			declaration += `${this.indent}end;\n`;
+		}
+
+		// Now we'll get the methods, and make them into the special roact format
+		const methods = node.getInstanceMethods()
+			.filter(method => method.getBody() !== undefined);
+
+		for (const method of methods) {
+			const name = method.getName();
+			this.checkReserved(name, method);
+			const body = method.getBodyOrThrow();
+
+			const paramNames = new Array<string>();
+			const initializers = new Array<string>();
+			this.pushIdStack();
+			this.getParameterData(paramNames, initializers, method);
+			const paramStr = paramNames.join(", ");
+
+			declaration += `${this.indent}function ${className}:${name}(${paramStr})\n`;
+
+			this.pushIndent();
+			if (ts.TypeGuards.isBlock(body)) {
+				initializers.forEach(initializer => (declaration += this.indent + initializer + "\n"));
+				declaration += this.transpileBlock(body);
+			}
+			this.popIndent();
+
+			declaration += `${this.indent}end;\n`;
+		}
+
+		const getters = node.getInstanceProperties()
+			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
+		if (getters.length > 0) {
+			throw new TranspilerError("Roact does not support getters", node, TranspilerErrorType.RoactGettersNotAllowed);
+		}
+
+		const setters = node.getInstanceProperties()
+			.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
+		if (setters.length > 0) {
+			throw new TranspilerError("Roact does not support setters", node, TranspilerErrorType.RoactSettersNotAllowed);
+		}
+
+		return declaration;
+	}
+
 	private transpileClassDeclaration(node: ts.ClassDeclaration) {
 		const name = node.getName() || this.getNewId();
 		const nameNode = node.getNameNode();
@@ -1178,6 +1381,28 @@ export class Transpiler {
 		this.pushExport(name, node);
 		const baseClass = node.getBaseClass();
 		const baseClassName = baseClass ? baseClass.getName() : "";
+
+		const baseTypes = node.getBaseTypes();
+		for (const baseType of baseTypes) {
+			const baseTypeText = baseType.getText();
+
+			// Handle the special case where we have a roact class
+			if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
+				return this.transpileRoactClassDeclaration("Component", name, node);
+			} else if (baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+				return this.transpileRoactClassDeclaration("PureComponent", name, node);
+			}
+
+			// Handle erroring on subclasses with roact
+			const isRoactSubType = baseType.getBaseTypes()
+				.filter(bc => bc.getText().startsWith(ROACT_COMPONENT_TYPE));
+
+			if (isRoactSubType.length > 0) {
+				throw new TranspilerError("Derived Classes are not supported in Roact!",
+					node, TranspilerErrorType.RoactSubClassesNotSupported);
+			}
+
+		}
 
 		this.hoistStack[this.hoistStack.length - 1].push(name);
 
@@ -1745,6 +1970,12 @@ export class Transpiler {
 			return this.transpileConditionalExpression(node);
 		} else if (ts.TypeGuards.isTypeOfExpression(node)) {
 			return this.transpileTypeOfExpression(node);
+		} else if (ts.TypeGuards.isJsxExpression(node)) {
+			return this.transpileExpression(node.getExpressionOrThrow());
+		} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
+			return this.transpileJsxSelfClosingElement(node);
+		} else if (ts.TypeGuards.isJsxElement(node)) {
+			return this.transpileJsxElement(node);
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
@@ -1776,6 +2007,170 @@ export class Transpiler {
 			const kindName = node.getKindName();
 			throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
 		}
+	}
+
+	private generateRoactSymbolProperty(
+		roactSymbol: "Event" | "Change",
+		node: ts.JsxAttributeLike,
+		attributeCollection: Array<string>) {
+		const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
+		for (const expression of expr) {
+			const innerExpression = expression.getExpressionOrThrow();
+			if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
+				const properties = innerExpression.getProperties();
+				for (const property of properties) {
+					if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+						const propName = property.getName();
+						const rhs = property.getInitializerOrThrow();
+						let value: string;
+
+						if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
+							const getAccessExpression = rhs.getExpression();
+							if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
+								value = `function(...)\n`;
+								this.pushIndent();
+								value += `${this.indent}${this.transpileExpression(rhs)}(self, ...);\n`;
+								this.popIndent();
+								value += this.indent + "end";
+							} else {
+								value = this.transpileExpression(rhs);
+							}
+						} else {
+							value = this.transpileExpression(rhs);
+						}
+
+						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${value}`);
+					}
+				}
+			} else {
+				throw new TranspilerError(`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
+					node, TranspilerErrorType.BadExpression);
+			}
+		}
+	}
+
+	private generateRoactElement(
+		name: string,
+		attributes: Array<ts.JsxAttributeLike>, children: Array<ts.JsxChild>,
+	): string {
+
+		let str = `Roact.createElement(`;
+		const attributeCollection: Array<string> = [];
+		const childCollection: Array<string> = [];
+		let key: string | undefined;
+
+		this.roactIndent++;
+
+		if (name.match(/^[a-z]+$/)) { // if lowercase
+
+			// Check if defined as a intrinsic mapping
+			const rbxName = INTRINSIC_MAPPINGS[name];
+			if (rbxName) {
+				str += `"${rbxName}"`;
+			}
+
+		} else {
+			str += name;
+		}
+
+		if (attributes.length > 0) {
+			str += ", {\n";
+			this.pushIndent();
+
+			for (const attributeLike of attributes) {
+				const attribute = attributeLike as ts.JsxAttribute;
+				const attributeName = attribute.getName();
+				const value = this.transpileExpression(attribute.getInitializerOrThrow());
+
+				if (attributeName === "Key") { // handle setting a key for this element
+					key = value;
+				} else if (attributeName === "Event") { // handle [Roact.Event]
+					this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
+				} else if (attributeName === "Change") { // handle [Roact.Change]
+					this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
+				} else {
+					attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
+				}
+
+			}
+
+			this.popIndent();
+			str += attributeCollection.join(",\n") + ` \n${this.indent}}`;
+		} else {
+			str += ", {}";
+		}
+
+		if (children.length > 0) {
+			str += ", {\n";
+			this.pushIndent();
+
+			for (const child of children) {
+				if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
+					const value = this.transpileExpression(child);
+					childCollection.push(
+						`${this.indent}${value}`,
+					);
+				} else if (ts.TypeGuards.isJsxText(child)) {
+					// If the inner text isn't just indentation/spaces
+					if (child.getText().match(/[^\s]/)) {
+						throw new TranspilerError("Roact does not support text!",
+							child, TranspilerErrorType.RoactJsxTextNotSupported);
+					}
+				} else if (ts.TypeGuards.isJsxExpression(child)) {
+					const expression = child.getExpressionOrThrow();
+					if (ts.TypeGuards.isCallExpression(expression)) {
+						// Must return Roact.Element :(
+						const returnType = expression.getReturnType().getText();
+						if (returnType !== ROACT_ELEMENT_TYPE) {
+							throw new TranspilerError(`Function call must return Roact.Element -> {${expression.getText()}}`,
+								expression,
+								TranspilerErrorType.BadExpressionStatement);
+						}
+
+						const value = this.transpileExpression(child);
+						childCollection.push(
+							`${this.indent}${value}`,
+						);
+					} else {
+						throw new TranspilerError(`Roact does not support this type of expression ` +
+							`{${expression.getText()}} (${expression.getKindName()})`,
+							expression, TranspilerErrorType.BadExpression);
+					}
+				}
+			}
+
+			this.popIndent();
+			str += childCollection.join(",\n") + `\n${this.indent}})`;
+
+		} else {
+			str += ")";
+		}
+
+		this.roactIndent--;
+
+		if (key && this.roactIndent > 0) {
+			return `[${key}] = ${str}`;
+		} else {
+			return str;
+		}
+
+	}
+
+	private transpileJsxElement(node: ts.JsxElement): string {
+
+		const open = node.getOpeningElement() as ts.JsxOpeningElement;
+		const tagNameNode = open.getTagNameNode();
+		const tagName = tagNameNode.getText();
+		const children = node.getJsxChildren();
+
+		return this.generateRoactElement(tagName, open.getAttributes(), children);
+	}
+
+	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
+		const tagNameNode = node.getTagNameNode();
+		const tagName = tagNameNode.getText();
+
+		return this.generateRoactElement(tagName, node.getAttributes(), []);
 	}
 
 	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {

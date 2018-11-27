@@ -321,7 +321,7 @@ export class Compiler {
 
 	public async compileFileByPath(filePath: string) {
 		const ext = path.extname(filePath);
-		if (ext === ".ts") {
+		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new CompilerError(
