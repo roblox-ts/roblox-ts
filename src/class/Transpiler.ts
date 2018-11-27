@@ -195,12 +195,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-				symbol.getDeclarations().some(declaration =>
-					declaration
-						.getType()
-						.getBaseTypes()
-						.some(baseType => inheritsFrom(baseType, className)),
-				)
+		symbol.getDeclarations().some(declaration =>
+			declaration
+				.getType()
+				.getBaseTypes()
+				.some(baseType => inheritsFrom(baseType, className)),
+		)
 		: false;
 }
 
@@ -255,7 +255,7 @@ export class Transpiler {
 	private scriptContext = ScriptContext.None;
 	private roactIndent: number = 0;
 
-	constructor(private compiler: Compiler) {}
+	constructor(private compiler: Compiler) { }
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1061,8 +1061,7 @@ export class Transpiler {
 					}
 				}
 			}
-			const expStr = this.transpileExpression(exp);
-			return this.indent + `return ${expStr};\n`;
+			return this.indent + `return ${this.transpileExpression(exp)};\n`;
 		} else {
 			return this.indent + `return;\n`;
 		}
@@ -2191,7 +2190,7 @@ export class Transpiler {
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
-								`{${expression.getText()}} (${expression.getKindName()})`,
+							`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
 							TranspilerErrorType.BadExpression,
 						);
