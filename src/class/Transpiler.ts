@@ -542,10 +542,11 @@ export class Transpiler {
 						parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
 					)
 				) {
-					const symbol = node.getType().getSymbol();
-					if (symbol) {
-						const valueDec = symbol.getValueDeclaration();
-						if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
+					const nodeSymbol = node.getSymbol();
+					const typeSymbol = node.getType().getSymbol();
+					if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
+						const valueDec = nodeSymbol.getValueDeclaration();
+						if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
 							name = `TS.Instance.${name}`;
 						}
 					}
@@ -2862,11 +2863,11 @@ export class Transpiler {
 		}
 
 		if (expressionType.isObject()) {
-			const symbol = expressionType.getSymbol();
-
-			if (symbol && isRbxInstance(expNode)) {
-				const valueDec = symbol.getValueDeclaration();
-				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
+			const nodeSymbol = expNode.getSymbol();
+			const typeSymbol = expressionType.getSymbol();
+			if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
+				const valueDec = nodeSymbol.getValueDeclaration();
+				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
 					const paramStr = params.length > 0 ? `, ${params}` : "";
 					return `Instance.new("${name}"${paramStr})`;
 				}

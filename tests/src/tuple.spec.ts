@@ -52,4 +52,14 @@ export = () => {
 		expect(b).to.equal("2");
 		expect(c).to.equal(true);
 	});
+
+	it("should support function calls with tuple returns as expression statements", () => {
+		let itWorked = false;
+		function foo(): [number, string] {
+			itWorked = true;
+			return [1, "2"];
+		}
+		foo();
+		expect(itWorked).to.equal(true);
+	})
 };
