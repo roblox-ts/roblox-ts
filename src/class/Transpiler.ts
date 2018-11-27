@@ -2863,13 +2863,15 @@ export class Transpiler {
 		}
 
 		if (expressionType.isObject()) {
-			const nodeSymbol = expNode.getSymbol();
-			const typeSymbol = expressionType.getSymbol();
-			if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
-				const valueDec = nodeSymbol.getValueDeclaration();
-				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
-					const paramStr = params.length > 0 ? `, ${params}` : "";
-					return `Instance.new("${name}"${paramStr})`;
+			if (isRbxInstance(expNode)) {
+				const nodeSymbol = expNode.getSymbol();
+				const typeSymbol = expressionType.getSymbol();
+				if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
+					const valueDec = nodeSymbol.getValueDeclaration();
+					if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
+						const paramStr = params.length > 0 ? `, ${params}` : "";
+						return `Instance.new("${name}"${paramStr})`;
+					}
 				}
 			}
 
