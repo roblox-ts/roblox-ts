@@ -1963,7 +1963,7 @@ export class Transpiler {
 	}
 
 	private generateRoactSymbolProperty(
-		roactSymbol: "Event" | "Change",
+		roactSymbol: "Event" | "Change" | "Ref",
 		node: ts.JsxAttributeLike,
 		attributeCollection: Array<string>) {
 		const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
@@ -1995,6 +1995,28 @@ export class Transpiler {
 						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${value}`);
 					}
 				}
+			} else if (roactSymbol === "Ref") {
+				let value: string;
+
+				if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
+					const getAccessExpression = innerExpression.getExpression();
+					if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
+						// hacky typeof until I can figure out how to tell the difference between this.method and this.property
+						const expressionValue = this.transpileExpression(innerExpression);
+						value = `typeof(${expressionValue}) == 'function' and function(...)\n`;
+						this.pushIndent();
+						value += `${this.indent}${expressionValue}(self, ...);\n`;
+						this.popIndent();
+						value += this.indent + `end or ${expressionValue}`;
+					} else {
+						value = this.transpileExpression(getAccessExpression);
+					}
+
+				} else {
+					value = this.transpileExpression(innerExpression);
+				}
+
+				attributeCollection.push(`${this.indent}[Roact.Ref] = ${value}`);
 			} else {
 				throw new TranspilerError(`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
 					node, TranspilerErrorType.BadExpression);
@@ -2041,6 +2063,8 @@ export class Transpiler {
 					this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
 				} else if (attributeName === "Change") { // handle [Roact.Change]
 					this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
+				} else if (attributeName === "Ref") { // handle [Roact.Ref]
+					this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection);
 				} else {
 					attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
 				}

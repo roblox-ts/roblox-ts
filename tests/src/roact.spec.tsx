@@ -156,6 +156,68 @@ export = () => {
 			expect(eventElement.props[Roact.Change.AbsoluteSize]).to.be.a("function");
 		});
 
+		describe("should support [Roact.Ref]", () => {
+			/*
+				These are based basically off the Roact tests.
+			*/
+
+			it("should handle object references properly", () => {
+				const frameRef: Roact.Ref<Frame> = Roact.createRef<Frame>();
+
+				Roact.mount(<frame Ref={frameRef}/>);
+
+				expect(frameRef.current).to.be.ok();
+			});
+
+			it("should handle function references properly", () => {
+				let currentRbx: Rbx_Frame;
+
+				function ref(rbx: Rbx_Frame) {
+					currentRbx = rbx;
+				}
+
+				const element = <frame Ref={ref}/>;
+				const handle = Roact.mount(element);
+				expect(currentRbx!).to.be.ok();
+			});
+
+			it("should handle class references properly", () => {
+				class RoactRefTest extends Roact.Component {
+					public ref: Roact.Ref<Rbx_ScreenGui>;
+
+					constructor(p: {}) {
+						super(p);
+						this.ref = Roact.createRef<ScreenGui>();
+					}
+
+					public render(): Roact.Element {
+						return <screengui Ref={this.ref}/>;
+					}
+
+					public didUpdate() {
+						expect(this.ref.current).to.be.ok();
+					}
+				}
+
+				Roact.mount(<RoactRefTest/>);
+			});
+
+			it("should handle class function references properly", () => {
+				let worked = false;
+				class RoactRefTest extends Roact.Component {
+					public onScreenGuiRender(rbx: Rbx_ScreenGui) {
+						worked = true;
+					}
+					public render(): Roact.Element {
+						return <screengui Ref={this.onScreenGuiRender}/>;
+					}
+				}
+
+				Roact.mount(<RoactRefTest/>);
+				expect(worked).to.be.ok();
+			});
+		});
+
 	});
 
 	it("should be able to mount roact intrinsics", () => {
