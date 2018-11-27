@@ -1046,18 +1046,23 @@ export class Transpiler {
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
-			let expStr = this.transpileExpression(exp);
 			const ancestor = this.getFirstFunctionLikeAncestor(node);
 			if (ancestor) {
 				if (ancestor.getReturnType().isTuple()) {
 					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+						let expStr = this.transpileExpression(exp);
 						expStr = expStr.substr(2, expStr.length - 4);
 						return this.indent + `return ${expStr};\n`;
+					} else if (ts.TypeGuards.isCallExpression(exp) && exp.getReturnType().isTuple()) {
+						const expStr = this.transpileCallExpression(exp, true);
+						return this.indent + `return ${expStr};\n`;
 					} else {
+						const expStr = this.transpileExpression(exp);
 						return this.indent + `return unpack(${expStr});\n`;
 					}
 				}
 			}
+			const expStr = this.transpileExpression(exp);
 			return this.indent + `return ${expStr};\n`;
 		} else {
 			return this.indent + `return;\n`;
@@ -1102,7 +1107,7 @@ export class Transpiler {
 					});
 				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
 					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
-					values.push(this.transpileExpression(rhs as ts.Expression));
+					values.push(this.transpileCallExpression(rhs, true));
 					const flatNamesStr = names.join(", ");
 					const flatValuesStr = values.join(", ");
 					return this.indent + `local ${flatNamesStr} = ${flatValuesStr};\n`;
@@ -1125,11 +1130,7 @@ export class Transpiler {
 				names.push(name);
 				if (rhs) {
 					const rhsStr = this.transpileExpression(rhs as ts.Expression);
-					if (ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
-						values.push(`{ ${rhsStr} }`);
-					} else {
-						values.push(rhsStr);
-					}
+					values.push(rhsStr);
 				} else {
 					values.push("nil");
 				}
@@ -1140,10 +1141,7 @@ export class Transpiler {
 				} else {
 					const rootId = this.getNewId();
 					if (rhs) {
-						let rhsStr = this.transpileExpression(rhs as ts.Expression);
-						if (ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
-							rhsStr = `{ ${rhsStr} }`;
-						}
+						const rhsStr = this.transpileExpression(rhs as ts.Expression);
 						preStatements.push(`local ${rootId} = ${rhsStr};`);
 					} else {
 						preStatements.push(`local ${rootId};`); // ???
@@ -2387,7 +2385,7 @@ export class Transpiler {
 		return result;
 	}
 
-	private transpileCallExpression(node: ts.CallExpression) {
+	private transpileCallExpression(node: ts.CallExpression, doNotWrapTupleReturn = false) {
 		const exp = node.getExpression();
 		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 			return this.transpilePropertyCallExpression(node);
@@ -2405,7 +2403,11 @@ export class Transpiler {
 		} else {
 			const callPath = this.transpileExpression(exp);
 			const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
-			return `${callPath}(${params})`;
+			let result = `${callPath}(${params})`;
+			if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
+				result = `{${result}}`;
+			}
+			return result;
 		}
 	}
 
@@ -3021,7 +3023,6 @@ export class Transpiler {
 	private transpileElementAccessExpression(node: ts.ElementAccessExpression) {
 		const expNode = node.getExpression();
 		const expType = expNode.getType();
-		const expStr = this.transpileExpression(expNode);
 
 		let offset = "";
 		if (
@@ -3035,8 +3036,10 @@ export class Transpiler {
 
 		const argExpStr = this.transpileExpression(node.getArgumentExpressionOrThrow()) + offset;
 		if (ts.TypeGuards.isCallExpression(expNode) && expNode.getReturnType().isTuple()) {
+			const expStr = this.transpileCallExpression(expNode, true);
 			return `(select(${argExpStr}, ${expStr}))`;
 		} else {
+			const expStr = this.transpileExpression(expNode);
 			let isArrayLiteral = false;
 			if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
 				isArrayLiteral = true;
