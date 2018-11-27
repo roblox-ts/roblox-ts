@@ -368,14 +368,15 @@ export class Compiler {
 					const diagnosticFile = diagnostic.getSourceFile();
 					const line = diagnostic.getLineNumber();
 					if (!this.ci) {
+						let prefix = "";
 						if (diagnosticFile) {
+							prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
 							if (line) {
-								console.log("%s:%d", diagnosticFile.getFilePath(), line);
-							} else {
-								console.log("%s", diagnosticFile.getFilePath());
+								prefix += ":" + line;
 							}
+							prefix += " - ";
 						}
-						console.log(`${red("Diagnostic Error:")} ${diagnostic.getMessageText()}`);
+						console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
 					}
 					errors++;
 				}
@@ -415,12 +416,13 @@ export class Compiler {
 			}
 			if (e instanceof TranspilerError) {
 				console.log(
-					"%s:%d:%d",
-					e.node.getSourceFile().getFilePath(),
+					"%s:%d:%d - %s %s",
+					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
 					e.node.getStartLineNumber(),
 					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+					red("Transpiler Error:"),
+					e.message,
 				);
-				console.log(red("Transpiler Error:"), e.message);
 			} else if (e instanceof CompilerError) {
 				console.log(red("Compiler Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
