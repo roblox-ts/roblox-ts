@@ -533,6 +533,8 @@ export class Transpiler {
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
+		} else if (isRbxInstance(node) && !ts.TypeGuards.isNewExpression(node.getParent())) {
+			name = `TS.Instance.${name}`;
 		}
 		return name;
 	}
@@ -2790,9 +2792,14 @@ export class Transpiler {
 		}
 
 		if (expressionType.isObject()) {
-			if (inheritsFrom(expressionType, "Rbx_Instance")) {
-				const paramStr = params.length > 0 ? `, ${params}` : "";
-				return `Instance.new("${name}"${paramStr})`;
+			const symbol = expressionType.getSymbol();
+
+			if (symbol && inheritsFrom(expressionType, "Rbx_Instance")) {
+				const valueDec = symbol.getValueDeclaration();
+				if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec) && valueDec.getName() === name) {
+					const paramStr = params.length > 0 ? `, ${params}` : "";
+					return `Instance.new("${name}"${paramStr})`;
+				}
 			}
 
 			if (inheritsFrom(expressionType, "ArrayConstructor")) {
