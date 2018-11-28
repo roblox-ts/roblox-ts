@@ -120,6 +120,7 @@ const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 const ROACT_COMPONENT_TYPE = "Roact.Component";
 const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
+const ROACT_COMPONENT_CLASSES = ["Roact.Component", "Roact.PureComponent"];
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -190,6 +191,31 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	} else {
 		return `TS.add(${lhsStr}, ${rhsStr})`;
 	}
+}
+
+function getFullTypeList(type: ts.Type): Array<string> {
+	const symbol = type.getSymbol();
+	const typeArray: Array<string> = [];
+	if (symbol) {
+		symbol.getDeclarations()
+			.forEach(declaration => {
+				typeArray.push(declaration.getType().getText());
+				declaration.getType()
+					.getBaseTypes()
+					.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
+			});
+	}
+
+	return typeArray;
+}
+
+function inheritsFromRoact(type: ts.Type): boolean {
+	const fullName = getFullTypeList(type);
+	if (fullName.length >= 2) {
+		// return ROACT_COMPONENT_CLASSES.indexOf(fullName[1]) !== -1;
+		return ROACT_COMPONENT_CLASSES.findIndex(value => fullName[1].startsWith(value)) !== -1;
+	}
+	return false;
 }
 
 function inheritsFrom(type: ts.Type, className: string): boolean {
@@ -1387,6 +1413,15 @@ export class Transpiler {
 		return declaration;
 	}
 
+	private isRoactType(type: ts.Type<ts.ts.Type>) {
+		const isRoactType = type.getBaseTypes()
+			.filter(bc => {
+				const text = bc.getText();
+				return text.startsWith(ROACT_COMPONENT_TYPE) || text.startsWith(ROACT_PURE_COMPONENT_TYPE);
+			});
+		return isRoactType.length > 0;
+	}
+
 	private transpileClassDeclaration(node: ts.ClassDeclaration) {
 		const name = node.getName() || this.getNewId();
 		const nameNode = node.getNameNode();
@@ -1409,10 +1444,9 @@ export class Transpiler {
 			}
 
 			// Handle erroring on subclasses with roact
-			const isRoactSubType = baseType.getBaseTypes()
-				.filter(bc => bc.getText().startsWith(ROACT_COMPONENT_TYPE));
+			const isRoactSubType = this.isRoactType(baseType);
 
-			if (isRoactSubType.length > 0) {
+			if (isRoactSubType) {
 				throw new TranspilerError("Derived Classes are not supported in Roact!",
 					node, TranspilerErrorType.RoactSubClassesNotSupported);
 			}
@@ -2819,6 +2853,11 @@ export class Transpiler {
 		let name = this.transpileExpression(expStr);
 		const args = node.getArguments() as Array<ts.Expression>;
 		const params = this.transpileArguments(args);
+
+		if (inheritsFromRoact(expressionType)) {
+			throw new TranspilerError("Roact components cannot be created using new",
+				node, TranspilerErrorType.RoactNoNewComponentAllowed);
+		}
 
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
