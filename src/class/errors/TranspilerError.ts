@@ -44,6 +44,7 @@ export enum TranspilerErrorType {
 	RoactSettersNotAllowed,
 	RoactSubClassesNotSupported,
 	RoactJsxTextNotSupported,
+	RoactNoNewComponentAllowed,
 }
 
 export class TranspilerError extends Error {

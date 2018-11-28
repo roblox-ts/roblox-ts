@@ -89,6 +89,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.RoactJsxTextNotSupported,
 	},
+	"roactNew.spec.tsx": {
+		message: "should not allow roact components to be created with new keyword",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactNoNewComponentAllowed,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
