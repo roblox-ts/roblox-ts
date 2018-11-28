@@ -376,7 +376,13 @@ export class Compiler {
 							}
 							prefix += " - ";
 						}
-						console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
+
+						const messageText = diagnostic.getMessageText();
+						if (messageText instanceof ts.DiagnosticMessageChain) {
+							console.log("%s%s %s", prefix, red("Diagnostic Error:"), messageText.getMessageText());
+						} else {
+							console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
+						}
 					}
 					errors++;
 				}
