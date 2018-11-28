@@ -211,10 +211,15 @@ function getFullTypeList(type: ts.Type): Array<string> {
 
 function inheritsFromRoact(type: ts.Type): boolean {
 	const fullName = getFullTypeList(type);
-	if (fullName.length >= 2) {
-		return ROACT_COMPONENT_CLASSES.findIndex(value => fullName[1].startsWith(value)) !== -1;
+	let isRoactClass = false;
+	for (const name of fullName) {
+		if (ROACT_COMPONENT_CLASSES.findIndex(value => name.startsWith(value)) !== -1) {
+			isRoactClass = true;
+			break;
+		}
 	}
-	return false;
+
+	return isRoactClass;
 }
 
 function inheritsFrom(type: ts.Type, className: string): boolean {
@@ -2842,7 +2847,9 @@ export class Transpiler {
 		const params = this.transpileArguments(args);
 
 		if (inheritsFromRoact(expressionType)) {
-			throw new TranspilerError("Roact components cannot be created using new",
+			throw new TranspilerError(
+				`Roact components cannot be created using new\n` +
+				`\x1b[33mRecommendation: Roact.createElement(${name}), <${name}></${name}> or </${name}>\x1b[0m`,
 				node, TranspilerErrorType.RoactNoNewComponentAllowed);
 		}
 
