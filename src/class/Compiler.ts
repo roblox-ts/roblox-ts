@@ -116,8 +116,8 @@ export class Compiler {
 	private readonly includePath: string;
 	private readonly modulesPath: string;
 	private readonly baseUrl: string | undefined;
-	private readonly rootDir: string;
-	private readonly outDir: string;
+	private readonly rootDirPath: string;
+	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
@@ -143,17 +143,27 @@ export class Compiler {
 
 		this.baseUrl = this.compilerOptions.baseUrl;
 
-		const rootDir = this.compilerOptions.rootDir;
-		if (!rootDir) {
+		const rootDirPath = this.compilerOptions.rootDir;
+		if (!rootDirPath) {
 			throw new CompilerError("Expected 'rootDir' option in tsconfig.json!", CompilerErrorType.MissingRootDir);
 		}
-		this.rootDir = rootDir;
+		this.rootDirPath = rootDirPath;
 
-		const outDir = this.compilerOptions.outDir;
-		if (!outDir) {
+		const outDirPath = this.compilerOptions.outDir;
+		if (!outDirPath) {
 			throw new CompilerError("Expected 'outDir' option in tsconfig.json!", CompilerErrorType.MissingOutDir);
 		}
-		this.outDir = outDir;
+		this.outDirPath = outDirPath;
+
+		// filter out outDir .d.ts files
+		const outDir = this.project.getDirectory(outDirPath);
+		if (outDir) {
+			this.project.getSourceFiles().forEach(sourceFile => {
+				if (outDir.isAncestorOf(sourceFile)) {
+					this.project.removeSourceFile(sourceFile);
+				}
+			});
+		}
 
 		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
@@ -163,9 +173,9 @@ export class Compiler {
 			for (const key in rojoJson.partitions) {
 				const part = rojoJson.partitions[key];
 				const partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
-				if (partPath.startsWith(this.outDir)) {
+				if (partPath.startsWith(this.outDirPath)) {
 					const directory = this.project.getDirectory(
-						path.resolve(this.rootDir, path.relative(this.outDir, partPath)),
+						path.resolve(this.rootDirPath, path.relative(this.outDirPath, partPath)),
 					);
 					if (directory) {
 						this.syncInfo.push({
@@ -208,7 +218,7 @@ export class Compiler {
 	}
 
 	private transformPathToLua(filePath: string) {
-		const relativeToRoot = path.dirname(path.relative(this.rootDir, filePath));
+		const relativeToRoot = path.dirname(path.relative(this.rootDirPath, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
 		const exts = new Array<string>();
 		while (true) {
@@ -227,16 +237,16 @@ export class Compiler {
 			name = "init";
 		}
 		const luaName = name + exts.join("") + ".lua";
-		return path.join(this.outDir, relativeToRoot, luaName);
+		return path.join(this.outDirPath, relativeToRoot, luaName);
 	}
 
 	private transformPathFromLua(filePath: string) {
-		const relativeToOut = path.dirname(path.relative(this.outDir, filePath));
+		const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
 		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && name === "init") {
 			name = "index";
 		}
-		return path.join(this.rootDir, relativeToOut, name);
+		return path.join(this.rootDirPath, relativeToOut, name);
 	}
 
 	public addFile(filePath: string) {
@@ -282,10 +292,10 @@ export class Compiler {
 	}
 
 	public getRootDirOrThrow() {
-		if (!this.rootDir) {
+		if (!this.rootDirPath) {
 			throw new CompilerError("Could not find rootDir!", CompilerErrorType.MissingRootDir);
 		}
-		return this.rootDir;
+		return this.rootDirPath;
 	}
 
 	public async copyModuleFiles() {
@@ -309,7 +319,7 @@ export class Compiler {
 	}
 
 	public async copyLuaSourceFiles() {
-		await copyLuaFiles(this.rootDir, this.outDir);
+		await copyLuaFiles(this.rootDirPath, this.outDirPath);
 	}
 
 	public async compileAll(noInclude: boolean) {
@@ -352,7 +362,7 @@ export class Compiler {
 	}
 
 	public async compileFiles(files: Array<ts.SourceFile>) {
-		await this.cleanDirRecursive(this.outDir);
+		await this.cleanDirRecursive(this.outDirPath);
 		if (this.compilerOptions.declaration === true) {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
