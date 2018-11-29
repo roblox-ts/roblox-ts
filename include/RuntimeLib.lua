@@ -52,11 +52,16 @@ TS.Symbol = Symbol
 -- Instance class values
 TS.Instance = setmetatable({}, {
 	__index = function(self, className)
-		self[className] = {
+		local object = setmetatable({
 			new = function(parent)
 				return Instance.new(className, parent)
 			end
-		}
+		}, {
+			__tostring = function()
+				return className
+			end
+		})
+		self[className] = object
 		return self[className]
 	end
 })
