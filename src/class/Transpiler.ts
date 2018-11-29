@@ -2330,7 +2330,7 @@ export class Transpiler {
 		let first = true;
 		let firstIsObj = false;
 		const parts = new Array<string>();
-		properties.forEach(prop => {
+		for (const prop of properties) {
 			if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
 				if (first) {
 					firstIsObj = true;
@@ -2358,16 +2358,16 @@ export class Transpiler {
 					this.checkReserved(lhs, prop);
 				}
 
+				if (!isInObject) {
+					parts.push("{\n");
+					this.pushIndent();
+				}
+
 				let rhs: string;
 				if (ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
 					rhs = prop.getName();
 				} else {
 					rhs = this.transpileExpression(prop.getInitializerOrThrow());
-				}
-
-				if (!isInObject) {
-					parts.push("{\n");
-					this.pushIndent();
 				}
 
 				parts[parts.length - 1] += this.indent + `${lhs} = ${rhs};\n`;
@@ -2387,7 +2387,7 @@ export class Transpiler {
 			if (first) {
 				first = false;
 			}
-		});
+		}
 
 		if (isInObject) {
 			this.popIndent();
