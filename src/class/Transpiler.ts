@@ -2072,6 +2072,7 @@ export class Transpiler {
 		roactSymbol: "Event" | "Change" | "Ref",
 		node: ts.JsxAttributeLike,
 		attributeCollection: Array<string>,
+		hasExtraAttributes: boolean = false,
 	) {
 		const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
 		for (const expression of expr) {
@@ -2090,19 +2091,27 @@ export class Transpiler {
 						if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
 							const getAccessExpression = rhs.getExpression();
 							if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-								value = `function(...)\n`;
-								this.pushIndent();
-								value += `${this.indent}${this.transpileExpression(rhs)}(self, ...);\n`;
-								this.popIndent();
-								value += this.indent + "end";
+								value = `function(...)`;
+								value += ` ${this.transpileExpression(rhs)}(self, ...); `;
+								value += "end";
 							} else {
+								if (hasExtraAttributes) {
+									this.pushIndent(); // fix indentation with extra props
+								}
 								value = this.transpileExpression(rhs);
 							}
 						} else {
+							if (hasExtraAttributes) {
+								this.pushIndent(); // fix indentation with extra props
+							}
 							value = this.transpileExpression(rhs);
 						}
 
-						attributeCollection.push(`${this.indent}[Roact.${roactSymbol}.${propName}] = ${value}`);
+						if (hasExtraAttributes) {
+							this.popIndent(); // fix indentation with extra props
+						}
+
+						attributeCollection.push(`[Roact.${roactSymbol}.${propName}] = ${value}`);
 					}
 				}
 			} else if (roactSymbol === "Ref") {
@@ -2113,19 +2122,28 @@ export class Transpiler {
 					if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
 						// hacky typeof until I can figure out how to tell the difference between this.method and this.property
 						const expressionValue = this.transpileExpression(innerExpression);
-						value = `typeof(${expressionValue}) == 'function' and function(...)\n`;
+						value = `typeof(${expressionValue}) == 'function' and function(...)`;
 						this.pushIndent();
-						value += `${this.indent}${expressionValue}(self, ...);\n`;
-						this.popIndent();
-						value += this.indent + `end or ${expressionValue}`;
+						value += ` ${expressionValue}(self, ...); `;
+						value += `end or ${expressionValue}`;
 					} else {
+						if (hasExtraAttributes) {
+							this.pushIndent(); // fix indentation with extra props
+						}
 						value = this.transpileExpression(getAccessExpression);
 					}
 				} else {
+					if (hasExtraAttributes) {
+						this.pushIndent(); // fix indentation with extra props
+					}
 					value = this.transpileExpression(innerExpression);
 				}
 
-				attributeCollection.push(`${this.indent}[Roact.Ref] = ${value}`);
+				if (hasExtraAttributes) {
+					this.popIndent();
+				}
+
+				attributeCollection.push(`[Roact.Ref] = ${value}`);
 			} else {
 				throw new TranspilerError(
 					`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
@@ -2165,6 +2183,8 @@ export class Transpiler {
 
 			this.pushIndent();
 
+			const extraAttributes = attributes.filter(attr => ts.TypeGuards.isJsxSpreadAttribute(attr));
+
 			for (const attributeLike of attributes) {
 				if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
 					const expression = attributeLike.getExpression();
@@ -2179,13 +2199,16 @@ export class Transpiler {
 						key = value;
 					} else if (attributeName === "Event") {
 						// handle [Roact.Event]
-						this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
+						this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection,
+							extraAttributes.length > 0);
 					} else if (attributeName === "Change") {
 						// handle [Roact.Change]
-						this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
+						this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection,
+							extraAttributes.length > 0);
 					} else if (attributeName === "Ref") {
 						// handle [Roact.Ref]
-						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection);
+						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection,
+							extraAttributes.length > 0);
 					} else {
 						attributeCollection.push(`${attributeName} = ${value}`);
 					}
@@ -2220,7 +2243,7 @@ export class Transpiler {
 			} else {
 				str += ", {\n";
 				this.pushIndent();
-				str += this.indent + attributeCollection.join(",\n");
+				str += this.indent + attributeCollection.join(",\n" + this.indent);
 				this.popIndent();
 				str += ` \n${this.indent}}`;
 			}
