@@ -2143,6 +2143,7 @@ export class Transpiler {
 	): string {
 		let str = `Roact.createElement(`;
 		const attributeCollection: Array<string> = [];
+		const extraAttributeCollections: Array<string> = [];
 		const childCollection: Array<string> = [];
 		let key: string | undefined;
 
@@ -2161,13 +2162,13 @@ export class Transpiler {
 		}
 
 		if (attributes.length > 0) {
-			str += ", {\n";
+
 			this.pushIndent();
 
 			for (const attributeLike of attributes) {
 				if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
-					throw new TranspilerError("JsxSpreadAttribute not yet supported.",
-						attributeLike, TranspilerErrorType.BadExpression);
+					const expression = attributeLike.getExpression();
+					extraAttributeCollections.push(this.transpileExpression(expression));
 				} else {
 					const attribute = attributeLike as ts.JsxAttribute;
 					const attributeName = attribute.getName();
@@ -2186,19 +2187,50 @@ export class Transpiler {
 						// handle [Roact.Ref]
 						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection);
 					} else {
-						attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
+						attributeCollection.push(`${attributeName} = ${value}`);
 					}
 				}
 			}
 
 			this.popIndent();
-			str += attributeCollection.join(",\n") + ` \n${this.indent}}`;
+
+			// use Object.assign if we have extra attributes
+			if (extraAttributeCollections.length > 0) {
+				str += ", \n";
+				this.pushIndent();
+
+				str += this.indent + "TS.Object_assign(";
+
+				// If it has other attributes
+				if (attributeCollection.length > 0) {
+					str += "{\n";
+
+					this.pushIndent();
+					str += this.indent + attributeCollection.join(",\n" + this.indent);
+					this.popIndent();
+					str += ` \n${this.indent}},\n${this.indent}`;
+				} else {
+					str += `{}, `;
+				}
+
+				str += extraAttributeCollections.join(",\n" + this.indent);
+				str += ")\n";
+
+				this.popIndent();
+			} else {
+				str += ", {\n";
+				this.pushIndent();
+				str += this.indent + attributeCollection.join(",\n");
+				this.popIndent();
+				str += ` \n${this.indent}}`;
+			}
+
 		} else {
 			str += ", {}";
 		}
 
 		if (children.length > 0) {
-			str += ", {\n";
+			str += this.indent + ", {\n";
 			this.pushIndent();
 
 			for (const child of children) {
@@ -2243,7 +2275,11 @@ export class Transpiler {
 			this.popIndent();
 			str += childCollection.join(",\n") + `\n${this.indent}})`;
 		} else {
-			str += ")";
+			if (extraAttributeCollections.length > 0) {
+				str += this.indent + ")";
+			} else {
+				str += ")";
+			}
 		}
 
 		this.roactIndent--;
