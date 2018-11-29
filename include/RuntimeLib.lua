@@ -165,7 +165,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.error(ok == nil and "The awaited Promise was cancelled" or result)
+		TS.error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
