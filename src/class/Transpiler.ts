@@ -2165,24 +2165,29 @@ export class Transpiler {
 			this.pushIndent();
 
 			for (const attributeLike of attributes) {
-				const attribute = attributeLike as ts.JsxAttribute;
-				const attributeName = attribute.getName();
-				const value = this.transpileExpression(attribute.getInitializerOrThrow());
-
-				if (attributeName === "Key") {
-					// handle setting a key for this element
-					key = value;
-				} else if (attributeName === "Event") {
-					// handle [Roact.Event]
-					this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
-				} else if (attributeName === "Change") {
-					// handle [Roact.Change]
-					this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
-				} else if (attributeName === "Ref") {
-					// handle [Roact.Ref]
-					this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection);
+				if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+					throw new TranspilerError("JsxSpreadAttribute not yet supported.",
+						attributeLike, TranspilerErrorType.BadExpression);
 				} else {
-					attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
+					const attribute = attributeLike as ts.JsxAttribute;
+					const attributeName = attribute.getName();
+					const value = this.transpileExpression(attribute.getInitializerOrThrow());
+
+					if (attributeName === "Key") {
+						// handle setting a key for this element
+						key = value;
+					} else if (attributeName === "Event") {
+						// handle [Roact.Event]
+						this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection);
+					} else if (attributeName === "Change") {
+						// handle [Roact.Change]
+						this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection);
+					} else if (attributeName === "Ref") {
+						// handle [Roact.Ref]
+						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection);
+					} else {
+						attributeCollection.push(`${this.indent}${attributeName} = ${value}`);
+					}
 				}
 			}
 
