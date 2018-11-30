@@ -1458,8 +1458,15 @@ export class Transpiler {
 			this.checkReserved(name, nameNode);
 		}
 		this.pushExport(name, node);
-		const baseClass = node.getBaseClass();
-		const baseClassName = baseClass ? baseClass.getName() : "";
+
+		let baseClassName = "";
+		const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
+		if (extendsClause) {
+			const typeNode = extendsClause.getTypeNodes()[0];
+			if (typeNode) {
+				baseClassName = this.transpileExpression(typeNode.getExpression());
+			}
+		}
 
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
