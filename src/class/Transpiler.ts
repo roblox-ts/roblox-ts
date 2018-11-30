@@ -170,6 +170,10 @@ function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	}
 }
 
+function suggest(text: string) {
+	return `...\t\x1b[33m${text}\x1b[0m`;
+}
+
 function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
@@ -284,6 +288,7 @@ export class Transpiler {
 	private indent = "";
 	private scriptContext = ScriptContext.None;
 	private roactIndent: number = 0;
+	private hasRoactImport: boolean = false;
 
 	constructor(private compiler: Compiler) { }
 
@@ -711,6 +716,11 @@ export class Transpiler {
 		}
 		const lhsStr = lhs.join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+
+		if (lhsStr === "Roact") {
+			this.hasRoactImport = true;
+		}
+
 		result += `local ${lhsStr} = ${rhsStr};\n`;
 		return result;
 	}
@@ -738,6 +748,11 @@ export class Transpiler {
 		}
 
 		const name = node.getName();
+
+		if (name === "Roact") {
+			this.hasRoactImport = true;
+		}
+
 		return this.indent + `local ${name} = ${luaPath};\n`;
 	}
 
@@ -2315,6 +2330,12 @@ export class Transpiler {
 	}
 
 	private transpileJsxElement(node: ts.JsxElement): string {
+		if (!this.hasRoactImport) {
+			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
+				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
+				node, TranspilerErrorType.RoactJsxWithoutImport);
+		}
+
 		const open = node.getOpeningElement() as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
@@ -2324,6 +2345,12 @@ export class Transpiler {
 	}
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
+		if (!this.hasRoactImport) {
+			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
+				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
+				node, TranspilerErrorType.RoactJsxWithoutImport);
+		}
+
 		const tagNameNode = node.getTagNameNode();
 		const tagName = tagNameNode.getText();
 
@@ -2949,7 +2976,7 @@ export class Transpiler {
 		if (inheritsFromRoact(expressionType)) {
 			throw new TranspilerError(
 				`Roact components cannot be created using new\n` +
-				`\x1b[33mRecommendation: Roact.createElement(${name}), <${name}></${name}> or </${name}>\x1b[0m`,
+				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
 				node, TranspilerErrorType.RoactNoNewComponentAllowed);
 		}
 
