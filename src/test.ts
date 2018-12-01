@@ -112,7 +112,19 @@ describe("compile integration tests", () => {
 		if (name !== "errors") {
 			it(name, async () => {
 				process.exitCode = 0;
-				await compile(name);
+				try {
+					await compile(name);
+				} catch (e) {
+					if (e instanceof TranspilerError) {
+						console.log(`Unexpected TranspilerError: ${TranspilerErrorType[e.type]}`);
+					} else if (e instanceof CompilerError) {
+						console.log(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+					} else if (e instanceof DiagnosticError) {
+						console.log(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
+					} else {
+						console.log(`Unexpected error: ${String(e)}`);
+					}
+				}
 				if (process.exitCode !== 0) {
 					throw new Error("non-zero exit code");
 				}
@@ -136,7 +148,7 @@ describe("compile error unit tests", () => {
 					} else if (e instanceof CompilerError) {
 						done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
 					} else if (e instanceof DiagnosticError) {
-						done(`Unexpected DiagnosticError: ${String(e)}`);
+						done(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
 						done(`Unexpected error: ${String(e)}`);
 					}

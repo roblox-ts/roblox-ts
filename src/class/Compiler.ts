@@ -368,6 +368,7 @@ export class Compiler {
 		}
 
 		let amtErrors = 0;
+		const errors = new Array<string>();
 		if (!this.noStrict) {
 			for (const file of files) {
 				const diagnostics = file
@@ -377,28 +378,30 @@ export class Compiler {
 				for (const diagnostic of diagnostics) {
 					const diagnosticFile = diagnostic.getSourceFile();
 					const line = diagnostic.getLineNumber();
-					if (!this.ci) {
-						let prefix = "";
-						if (diagnosticFile) {
-							prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
-							if (line) {
-								prefix += ":" + line;
-							}
-							prefix += " - ";
+					let prefix = "";
+					if (diagnosticFile) {
+						prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
+						if (line) {
+							prefix += ":" + line;
 						}
-
-						let messageText = diagnostic.getMessageText();
-						if (messageText instanceof ts.DiagnosticMessageChain) {
-							const textSegments = new Array<string>();
-							let chain: ts.DiagnosticMessageChain | undefined = messageText;
-							while (chain !== undefined) {
-								textSegments.push(chain.getMessageText());
-								chain = chain.getNext();
-							}
-							messageText = textSegments.join("\n");
-						}
-						console.log(prefix + red("Diagnostic Error: ") + messageText);
+						prefix += " - ";
 					}
+
+					let messageText = diagnostic.getMessageText();
+					if (messageText instanceof ts.DiagnosticMessageChain) {
+						const textSegments = new Array<string>();
+						let chain: ts.DiagnosticMessageChain | undefined = messageText;
+						while (chain !== undefined) {
+							textSegments.push(chain.getMessageText());
+							chain = chain.getNext();
+						}
+						messageText = textSegments.join("\n");
+					}
+					const str = prefix + red("Diagnostic Error: ") + messageText;
+					if (!this.ci) {
+						console.log(str);
+					}
+					errors.push(str);
 					amtErrors++;
 				}
 			}
@@ -407,7 +410,7 @@ export class Compiler {
 		try {
 			if (amtErrors > 0) {
 				process.exitCode = 1;
-				throw new DiagnosticError();
+				throw new DiagnosticError(errors);
 			}
 
 			const sources = files
