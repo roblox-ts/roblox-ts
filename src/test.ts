@@ -16,7 +16,7 @@ interface ErrorMatrix {
 }
 
 const compilerArgs = {
-	// ci: true,
+	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
 	noHeader: false,
