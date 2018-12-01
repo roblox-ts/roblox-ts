@@ -1,6 +1,7 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import { Compiler } from "./class/Compiler";
+import { CompilerError, CompilerErrorType } from "./class/errors/CompilerError";
 import { DiagnosticError } from "./class/errors/DiagnosticError";
 import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerError";
 
@@ -18,7 +19,6 @@ const compilerArgs = {
 	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
-	noHeader: false,
 	noHeuristics: true,
 	noStrict: false,
 };
@@ -111,7 +111,19 @@ describe("compile integration tests", () => {
 		if (name !== "errors") {
 			it(name, async () => {
 				process.exitCode = 0;
-				await compile(name);
+				try {
+					await compile(name);
+				} catch (e) {
+					if (e instanceof TranspilerError) {
+						console.log(`Unexpected TranspilerError: ${TranspilerErrorType[e.type]}`);
+					} else if (e instanceof CompilerError) {
+						console.log(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+					} else if (e instanceof DiagnosticError) {
+						console.log(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
+					} else {
+						console.log(`Unexpected error: ${String(e)}`);
+					}
+				}
 				if (process.exitCode !== 0) {
 					throw new Error("non-zero exit code");
 				}
@@ -126,16 +138,18 @@ describe("compile error unit tests", () => {
 			compile("errors/" + file)
 				.then(() => done("Did not throw!"))
 				.catch(e => {
-					if (e instanceof errorMatrix[file].instance) {
-						if (errorMatrix[file].type === undefined) {
-							done();
-						} else if (errorMatrix[file].type === e.type) {
-							done();
-						} else {
-							done(`Unexpected TranspilerErrorType: ${TranspilerErrorType[e.type]}`);
-						}
+					if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === undefined) {
+						done();
+					} else if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === e.type) {
+						done();
+					} else if (e instanceof TranspilerError) {
+						done(`Unexpected TranspilerError: ${TranspilerErrorType[e.type]}`);
+					} else if (e instanceof CompilerError) {
+						done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+					} else if (e instanceof DiagnosticError) {
+						done(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
-						done("Unexpected error");
+						done(`Unexpected error: ${String(e)}`);
 					}
 				});
 		});

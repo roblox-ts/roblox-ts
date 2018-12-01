@@ -123,7 +123,6 @@ export class Compiler {
 	private readonly syncInfo = new Array<Partition>();
 
 	public readonly noStrict: boolean;
-	public readonly noHeader: boolean;
 	public readonly noHeuristics: boolean;
 	public readonly ci: boolean;
 
@@ -136,7 +135,6 @@ export class Compiler {
 		this.includePath = path.resolve(this.projectPath, args.includePath);
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
 		this.noStrict = args.noStrict;
-		this.noHeader = args.noHeader;
 		this.noHeuristics = args.noHeuristics;
 		this.ci = args.ci;
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -367,9 +365,10 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
-		let errors = 0;
+		let amtErrors = 0;
+		const errors = new Array<string>();
 		if (!this.noStrict) {
-			files.forEach(file => {
+			for (const file of files) {
 				const diagnostics = file
 					.getPreEmitDiagnostics()
 					.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
@@ -377,30 +376,37 @@ export class Compiler {
 				for (const diagnostic of diagnostics) {
 					const diagnosticFile = diagnostic.getSourceFile();
 					const line = diagnostic.getLineNumber();
-					if (!this.ci) {
-						let prefix = "";
-						if (diagnosticFile) {
-							prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
-							if (line) {
-								prefix += ":" + line;
-							}
-							prefix += " - ";
+					let prefix = "";
+					if (diagnosticFile) {
+						prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
+						if (line) {
+							prefix += ":" + line;
 						}
-
-						const messageText = diagnostic.getMessageText();
-						if (messageText instanceof ts.DiagnosticMessageChain) {
-							console.log("%s%s %s", prefix, red("Diagnostic Error:"), messageText.getMessageText());
-						} else {
-							console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
-						}
+						prefix += " - ";
 					}
-					errors++;
+
+					let messageText = diagnostic.getMessageText();
+					if (messageText instanceof ts.DiagnosticMessageChain) {
+						const textSegments = new Array<string>();
+						let chain: ts.DiagnosticMessageChain | undefined = messageText;
+						while (chain !== undefined) {
+							textSegments.push(chain.getMessageText());
+							chain = chain.getNext();
+						}
+						messageText = textSegments.join("\n");
+					}
+					const str = prefix + red("Diagnostic Error: ") + messageText;
+					if (!this.ci) {
+						console.log(str);
+					}
+					errors.push(str);
+					amtErrors++;
 				}
-			});
+			}
 		}
 
 		try {
-			if (errors > 0) {
+			if (amtErrors > 0) {
 				process.exitCode = 1;
 				throw new DiagnosticError(errors);
 			}
@@ -411,7 +417,7 @@ export class Compiler {
 					const transpiler = new Transpiler(this);
 					return [
 						this.transformPathToLua(sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile, this.noHeader),
+						transpiler.transpileSourceFile(sourceFile),
 					];
 				});
 

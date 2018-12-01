@@ -31,3 +31,9 @@ Usually, it's inconvenient to continuously sync code to Roblox Studio when worki
 For faster development and testing, it's recommended to use roblox-ts with [LPGHatGuy's lemur](https://github.com/LPGhatguy/lemur).
 
 [You can find a guide for that here.](https://github.com/roblox-ts/roblox-ts/wiki/Usage-with-Lemur)
+
+### Code Quality and Formatting
+To ensure code quality, we use **[tslint](https://palantir.github.io/tslint/)** and **[Prettier](https://prettier.io/)**. These rules are enforced by our Travis CI build step.\
+If you prefer to not install these globally or use extensions, you can simply run:\
+`npm run tslint` to check linting and\
+`npm run prettier` to clean up code formatting

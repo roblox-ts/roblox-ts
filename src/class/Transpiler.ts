@@ -200,13 +200,13 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	const symbol = type.getSymbol();
 	const typeArray: Array<string> = [];
 	if (symbol) {
-		symbol.getDeclarations()
-			.forEach(declaration => {
-				typeArray.push(declaration.getType().getText());
-				declaration.getType()
-					.getBaseTypes()
-					.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
-			});
+		symbol.getDeclarations().forEach(declaration => {
+			typeArray.push(declaration.getType().getText());
+			declaration
+				.getType()
+				.getBaseTypes()
+				.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
+		});
 	}
 
 	return typeArray;
@@ -229,12 +229,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-		symbol.getDeclarations().some(declaration =>
-			declaration
-				.getType()
-				.getBaseTypes()
-				.some(baseType => inheritsFrom(baseType, className)),
-		)
+				symbol.getDeclarations().some(declaration =>
+					declaration
+						.getType()
+						.getBaseTypes()
+						.some(baseType => inheritsFrom(baseType, className)),
+				)
 		: false;
 }
 
@@ -278,6 +278,10 @@ function isType(node: ts.Node) {
 	);
 }
 
+function isTupleLike(type: ts.Type) {
+	return type.isTuple() || (type.isUnion() && type.getUnionTypes().every(t => t.isTuple()));
+}
+
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
@@ -290,7 +294,7 @@ export class Transpiler {
 	private roactIndent: number = 0;
 	private hasRoactImport: boolean = false;
 
-	constructor(private compiler: Compiler) { }
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1105,12 +1109,12 @@ export class Transpiler {
 		if (exp) {
 			const ancestor = this.getFirstFunctionLikeAncestor(node);
 			if (ancestor) {
-				if (ancestor.getReturnType().isTuple()) {
+				if (isTupleLike(ancestor.getReturnType())) {
 					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 						let expStr = this.transpileExpression(exp);
 						expStr = expStr.substr(2, expStr.length - 4);
 						return this.indent + `return ${expStr};\n`;
-					} else if (ts.TypeGuards.isCallExpression(exp) && exp.getReturnType().isTuple()) {
+					} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
 						const expStr = this.transpileCallExpression(exp, true);
 						return this.indent + `return ${expStr};\n`;
 					} else {
@@ -1161,7 +1165,7 @@ export class Transpiler {
 					.every(bindingElement => {
 						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
 					});
-				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
+				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleLike(rhs.getReturnType())) {
 					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
 					values.push(this.transpileCallExpression(rhs, true));
 					const flatNamesStr = names.join(", ");
@@ -1458,8 +1462,15 @@ export class Transpiler {
 			this.checkReserved(name, nameNode);
 		}
 		this.pushExport(name, node);
-		const baseClass = node.getBaseClass();
-		const baseClassName = baseClass ? baseClass.getName() : "";
+
+		let baseClassName = "";
+		const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
+		if (extendsClause) {
+			const typeNode = extendsClause.getTypeNodes()[0];
+			if (typeNode) {
+				baseClassName = this.transpileExpression(typeNode.getExpression());
+			}
+		}
 
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
@@ -1473,8 +1484,11 @@ export class Transpiler {
 			}
 
 			if (inheritsFromRoact(baseType)) {
-				throw new TranspilerError("Derived Classes are not supported in Roact!",
-					node, TranspilerErrorType.RoactSubClassesNotSupported);
+				throw new TranspilerError(
+					"Derived Classes are not supported in Roact!",
+					node,
+					TranspilerErrorType.RoactSubClassesNotSupported,
+				);
 			}
 		}
 
@@ -2195,7 +2209,6 @@ export class Transpiler {
 		}
 
 		if (attributes.length > 0) {
-
 			this.pushIndent();
 
 			const extraAttributes = attributes.filter(attr => ts.TypeGuards.isJsxSpreadAttribute(attr));
@@ -2214,16 +2227,28 @@ export class Transpiler {
 						key = value;
 					} else if (attributeName === "Event") {
 						// handle [Roact.Event]
-						this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Event",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else if (attributeName === "Change") {
 						// handle [Roact.Change]
-						this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Change",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else if (attributeName === "Ref") {
 						// handle [Roact.Ref]
-						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Ref",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else {
 						attributeCollection.push(`${attributeName} = ${value}`);
 					}
@@ -2262,7 +2287,6 @@ export class Transpiler {
 				this.popIndent();
 				str += ` \n${this.indent}}`;
 			}
-
 		} else {
 			str += ", {}";
 		}
@@ -2302,7 +2326,7 @@ export class Transpiler {
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
-							`{${expression.getText()}} (${expression.getKindName()})`,
+								`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
 							TranspilerErrorType.BadExpression,
 						);
@@ -2331,9 +2355,12 @@ export class Transpiler {
 
 	private transpileJsxElement(node: ts.JsxElement): string {
 		if (!this.hasRoactImport) {
-			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
-				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
-				node, TranspilerErrorType.RoactJsxWithoutImport);
+			throw new TranspilerError(
+				"Cannot use JSX without importing Roact first!\n" +
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				node,
+				TranspilerErrorType.RoactJsxWithoutImport,
+			);
 		}
 
 		const open = node.getOpeningElement() as ts.JsxOpeningElement;
@@ -2346,9 +2373,12 @@ export class Transpiler {
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
 		if (!this.hasRoactImport) {
-			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
-				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
-				node, TranspilerErrorType.RoactJsxWithoutImport);
+			throw new TranspilerError(
+				"Cannot use JSX without importing Roact first!\n" +
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				node,
+				TranspilerErrorType.RoactJsxWithoutImport,
+			);
 		}
 
 		const tagNameNode = node.getTagNameNode();
@@ -2432,6 +2462,7 @@ export class Transpiler {
 					lhs = stripBrackets[1];
 				}
 
+				lhs = lhs.trim();
 				const stripQuotes = lhs.match(/^["']([^"']+)["']$/);
 				if (stripQuotes) {
 					lhs = stripQuotes[1];
@@ -2551,8 +2582,8 @@ export class Transpiler {
 			const callPath = this.transpileExpression(exp);
 			const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 			let result = `${callPath}(${params})`;
-			if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
-				result = `{${result}}`;
+			if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+				result = `{ ${result} }`;
 			}
 			return result;
 		}
@@ -2684,8 +2715,8 @@ export class Transpiler {
 		}
 
 		let result = `${accessPath}${sep}${property}(${params})`;
-		if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
-			result = `{${result}}`;
+		if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+			result = `{ ${result} }`;
 		}
 		return result;
 	}
@@ -2976,8 +3007,10 @@ export class Transpiler {
 		if (inheritsFromRoact(expressionType)) {
 			throw new TranspilerError(
 				`Roact components cannot be created using new\n` +
-				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
-				node, TranspilerErrorType.RoactNoNewComponentAllowed);
+					suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
+				node,
+				TranspilerErrorType.RoactNoNewComponentAllowed,
+			);
 		}
 
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
@@ -3187,10 +3220,10 @@ export class Transpiler {
 
 		let addOne = false;
 		if (
-			expType.isTuple() ||
+			isTupleLike(expType) ||
 			expType.isArray() ||
 			(ts.TypeGuards.isCallExpression(expNode) &&
-				(expNode.getReturnType().isArray() || expNode.getReturnType().isTuple()))
+				(expNode.getReturnType().isArray() || isTupleLike(expNode.getReturnType())))
 		) {
 			addOne = true;
 		}
@@ -3210,7 +3243,7 @@ export class Transpiler {
 			argExpStr = this.transpileExpression(argExp) + offset;
 		}
 
-		if (ts.TypeGuards.isCallExpression(expNode) && expNode.getReturnType().isTuple()) {
+		if (ts.TypeGuards.isCallExpression(expNode) && isTupleLike(expNode.getReturnType())) {
 			const expStr = this.transpileCallExpression(expNode, true);
 			return `(select(${argExpStr}, ${expStr}))`;
 		} else {
@@ -3260,7 +3293,7 @@ export class Transpiler {
 		return `unpack(${expStr})`;
 	}
 
-	public transpileSourceFile(node: ts.SourceFile, noHeader = false) {
+	public transpileSourceFile(node: ts.SourceFile) {
 		this.scriptContext = getScriptContext(node);
 		const scriptType = getScriptType(node);
 
@@ -3290,12 +3323,10 @@ export class Transpiler {
 				);
 			}
 		}
-		let runtimeLibImport = `local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n`;
-		if (noHeader) {
-			runtimeLibImport = "-- " + runtimeLibImport;
-		}
-		result = this.indent + runtimeLibImport + result;
-		result = this.indent + "-- luacheck: ignore\n" + result;
+		result =
+			this.indent +
+			`local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n` +
+			result;
 		return result;
 	}
 }

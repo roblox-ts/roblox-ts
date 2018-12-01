@@ -10,6 +10,16 @@ export = () => {
 		expect(obj[1]).to.equal(3);
 	});
 
+	it("should support bracket index definitions", () => {
+		const a = { [1]: "foo", [2]: "bar" };
+		// prettier-ignore
+		const b = { [ 1 ]: "baz", [ 2 ]: "boo" };
+		expect(a[1]).to.equal("foo");
+		expect(a[2]).to.equal("bar");
+		expect(b[1]).to.equal("baz");
+		expect(b[2]).to.equal("boo");
+	});
+
 	it("should support object spread", () => {
 		const foo = {
 			a: 1,

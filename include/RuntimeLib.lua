@@ -165,7 +165,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.error(ok == nil and "The awaited Promise was cancelled" or result)
+		TS.error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
@@ -659,30 +659,31 @@ function TS.Object_assign(toObj, ...)
 end
 
 -- Error objects
-local errors = setmetatable({}, {__mode = "v"})
+do
+	local errors = setmetatable({}, {__mode = "v"})
+	local nextErrorId = 0
 
-function TS.error(object, level)
-	if level ~= 0 then
-		level = (level or 1) + 1
-	end
-	local id = ""
-	for i = 1, 16 do
-		id = id .. string.char(math.random(65, 90))
-	end
-	if type(object) == "table" and object.message ~= nil then
-		id = id .. "; message: " .. object.message
-	end
-	errors[id] = object
-	error("error: [<[" .. id .. "]>]", level)
-end
+	function TS.error(thrown, level)
+		if level ~= 0 then
+			level = (level or 1) + 1
+		end
 
-function TS.decodeError(errorMessage)
-	local result
-	local key = errorMessage:match("error%: %[%<%[(.-)%]%>%]")
-	if key ~= nil then
-		result = errors[key]
+		nextErrorId = nextErrorId + 1
+
+		local id = nextErrorId
+
+		errors[id] = thrown
+		error("[<[" .. id .. "]>] " .. tostring(thrown), level)
 	end
-	return result or errorMessage
+
+	function TS.decodeError(errorMessage)
+		local result
+		local key = errorMessage:match("%[%<%[(.-)%]%>%]")
+		if key ~= nil then
+			result = errors[tonumber(key)]
+		end
+		return result or errorMessage
+	end
 end
 
 return TS

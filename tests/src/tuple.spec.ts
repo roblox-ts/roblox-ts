@@ -61,5 +61,5 @@ export = () => {
 		}
 		foo();
 		expect(itWorked).to.equal(true);
-	})
+	});
 };
