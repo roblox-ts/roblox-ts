@@ -278,6 +278,10 @@ function isType(node: ts.Node) {
 	);
 }
 
+function isTupleLike(type: ts.Type) {
+	return type.isTuple() || (type.isUnion() && type.getUnionTypes().every(t => t.isTuple()));
+}
+
 export class Transpiler {
 	private hoistStack = new Array<Array<string>>();
 	private exportStack = new Array<Array<string>>();
@@ -1105,12 +1109,12 @@ export class Transpiler {
 		if (exp) {
 			const ancestor = this.getFirstFunctionLikeAncestor(node);
 			if (ancestor) {
-				if (ancestor.getReturnType().isTuple()) {
+				if (isTupleLike(ancestor.getReturnType())) {
 					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 						let expStr = this.transpileExpression(exp);
 						expStr = expStr.substr(2, expStr.length - 4);
 						return this.indent + `return ${expStr};\n`;
-					} else if (ts.TypeGuards.isCallExpression(exp) && exp.getReturnType().isTuple()) {
+					} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
 						const expStr = this.transpileCallExpression(exp, true);
 						return this.indent + `return ${expStr};\n`;
 					} else {
@@ -1161,7 +1165,7 @@ export class Transpiler {
 					.every(bindingElement => {
 						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
 					});
-				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && rhs.getReturnType().isTuple()) {
+				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleLike(rhs.getReturnType())) {
 					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
 					values.push(this.transpileCallExpression(rhs, true));
 					const flatNamesStr = names.join(", ");
@@ -2558,8 +2562,8 @@ export class Transpiler {
 			const callPath = this.transpileExpression(exp);
 			const params = this.transpileArguments(node.getArguments() as Array<ts.Expression>);
 			let result = `${callPath}(${params})`;
-			if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
-				result = `{${result}}`;
+			if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+				result = `{ ${result} }`;
 			}
 			return result;
 		}
@@ -2691,8 +2695,8 @@ export class Transpiler {
 		}
 
 		let result = `${accessPath}${sep}${property}(${params})`;
-		if (!doNotWrapTupleReturn && node.getReturnType().isTuple()) {
-			result = `{${result}}`;
+		if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+			result = `{ ${result} }`;
 		}
 		return result;
 	}
@@ -3194,10 +3198,10 @@ export class Transpiler {
 
 		let addOne = false;
 		if (
-			expType.isTuple() ||
+			isTupleLike(expType) ||
 			expType.isArray() ||
 			(ts.TypeGuards.isCallExpression(expNode) &&
-				(expNode.getReturnType().isArray() || expNode.getReturnType().isTuple()))
+				(expNode.getReturnType().isArray() || isTupleLike(expNode.getReturnType())))
 		) {
 			addOne = true;
 		}
@@ -3217,7 +3221,7 @@ export class Transpiler {
 			argExpStr = this.transpileExpression(argExp) + offset;
 		}
 
-		if (ts.TypeGuards.isCallExpression(expNode) && expNode.getReturnType().isTuple()) {
+		if (ts.TypeGuards.isCallExpression(expNode) && isTupleLike(expNode.getReturnType())) {
 			const expStr = this.transpileCallExpression(expNode, true);
 			return `(select(${argExpStr}, ${expStr}))`;
 		} else {
