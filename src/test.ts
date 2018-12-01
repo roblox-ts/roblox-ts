@@ -19,7 +19,6 @@ const compilerArgs = {
 	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
-	noHeader: false,
 	noHeuristics: true,
 	noStrict: false,
 };
