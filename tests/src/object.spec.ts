@@ -12,7 +12,8 @@ export = () => {
 
 	it("should support bracket index definitions", () => {
 		const a = { [1]: "foo", [2]: "bar" };
-		const b = { [1]: "baz", [2]: "boo" };
+		// prettier-ignore
+		const b = { [ 1 ]: "baz", [ 2 ]: "boo" };
 		expect(a[1]).to.equal("foo");
 		expect(a[2]).to.equal("bar");
 		expect(b[1]).to.equal("baz");
