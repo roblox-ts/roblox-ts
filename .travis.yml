@@ -25,7 +25,8 @@ install:
   - pushd tests && npm install && popd
 
 script:
-  - npm run lint
+  - npm run ci-tslint
+  - npm run ci-prettier
   - npm test
 
 after_success:
