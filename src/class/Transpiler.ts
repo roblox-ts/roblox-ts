@@ -2462,6 +2462,7 @@ export class Transpiler {
 					lhs = stripBrackets[1];
 				}
 
+				lhs = lhs.trim();
 				const stripQuotes = lhs.match(/^["']([^"']+)["']$/);
 				if (stripQuotes) {
 					lhs = stripQuotes[1];
