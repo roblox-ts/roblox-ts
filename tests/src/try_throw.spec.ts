@@ -4,11 +4,14 @@ export = () => {
 	}
 
 	function objectThrow(): void {
-		throw setmetatable({
-			id: "baz"
-		}, {
-			__tostring: () => "bar"
-		});
+		throw setmetatable(
+			{
+				id: "baz",
+			},
+			{
+				__tostring: () => "bar",
+			},
+		);
 	}
 
 	it("should throw", () => {
@@ -43,7 +46,7 @@ export = () => {
 	it("should display the error message in output", () => {
 		const [ok, errorMessage] = pcall(objectThrow);
 
-		expect(ok).to.equal(false)
-		expect((errorMessage as string).find("bar")).to.be.ok()
-	})
+		expect(ok).to.equal(false);
+		expect((errorMessage as string).find("bar")).to.be.ok();
+	});
 };

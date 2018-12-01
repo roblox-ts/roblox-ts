@@ -14,7 +14,7 @@
 		"lint": "tslint -p tsconfig.json",
 		"test": "nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts && lua tests/spec.lua",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
-		"prettier": "prettier --config ./.prettierrc.json --write src/*.ts src/**/*.ts src/**/**/*.ts"
+		"prettier": "prettier --config ./.prettierrc.json --write '**/*.ts'"
 	},
 	"nyc": {
 		"extension": [
