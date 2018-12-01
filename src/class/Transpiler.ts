@@ -200,13 +200,13 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	const symbol = type.getSymbol();
 	const typeArray: Array<string> = [];
 	if (symbol) {
-		symbol.getDeclarations()
-			.forEach(declaration => {
-				typeArray.push(declaration.getType().getText());
-				declaration.getType()
-					.getBaseTypes()
-					.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
-			});
+		symbol.getDeclarations().forEach(declaration => {
+			typeArray.push(declaration.getType().getText());
+			declaration
+				.getType()
+				.getBaseTypes()
+				.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
+		});
 	}
 
 	return typeArray;
@@ -229,12 +229,12 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	return symbol !== undefined
 		? symbol.getName() === className ||
-		symbol.getDeclarations().some(declaration =>
-			declaration
-				.getType()
-				.getBaseTypes()
-				.some(baseType => inheritsFrom(baseType, className)),
-		)
+				symbol.getDeclarations().some(declaration =>
+					declaration
+						.getType()
+						.getBaseTypes()
+						.some(baseType => inheritsFrom(baseType, className)),
+				)
 		: false;
 }
 
@@ -294,7 +294,7 @@ export class Transpiler {
 	private roactIndent: number = 0;
 	private hasRoactImport: boolean = false;
 
-	constructor(private compiler: Compiler) { }
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1484,8 +1484,11 @@ export class Transpiler {
 			}
 
 			if (inheritsFromRoact(baseType)) {
-				throw new TranspilerError("Derived Classes are not supported in Roact!",
-					node, TranspilerErrorType.RoactSubClassesNotSupported);
+				throw new TranspilerError(
+					"Derived Classes are not supported in Roact!",
+					node,
+					TranspilerErrorType.RoactSubClassesNotSupported,
+				);
 			}
 		}
 
@@ -2206,7 +2209,6 @@ export class Transpiler {
 		}
 
 		if (attributes.length > 0) {
-
 			this.pushIndent();
 
 			const extraAttributes = attributes.filter(attr => ts.TypeGuards.isJsxSpreadAttribute(attr));
@@ -2225,16 +2227,28 @@ export class Transpiler {
 						key = value;
 					} else if (attributeName === "Event") {
 						// handle [Roact.Event]
-						this.generateRoactSymbolProperty("Event", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Event",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else if (attributeName === "Change") {
 						// handle [Roact.Change]
-						this.generateRoactSymbolProperty("Change", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Change",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else if (attributeName === "Ref") {
 						// handle [Roact.Ref]
-						this.generateRoactSymbolProperty("Ref", attributeLike, attributeCollection,
-							extraAttributes.length > 0);
+						this.generateRoactSymbolProperty(
+							"Ref",
+							attributeLike,
+							attributeCollection,
+							extraAttributes.length > 0,
+						);
 					} else {
 						attributeCollection.push(`${attributeName} = ${value}`);
 					}
@@ -2273,7 +2287,6 @@ export class Transpiler {
 				this.popIndent();
 				str += ` \n${this.indent}}`;
 			}
-
 		} else {
 			str += ", {}";
 		}
@@ -2313,7 +2326,7 @@ export class Transpiler {
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
-							`{${expression.getText()}} (${expression.getKindName()})`,
+								`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
 							TranspilerErrorType.BadExpression,
 						);
@@ -2342,9 +2355,12 @@ export class Transpiler {
 
 	private transpileJsxElement(node: ts.JsxElement): string {
 		if (!this.hasRoactImport) {
-			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
-				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
-				node, TranspilerErrorType.RoactJsxWithoutImport);
+			throw new TranspilerError(
+				"Cannot use JSX without importing Roact first!\n" +
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				node,
+				TranspilerErrorType.RoactJsxWithoutImport,
+			);
 		}
 
 		const open = node.getOpeningElement() as ts.JsxOpeningElement;
@@ -2357,9 +2373,12 @@ export class Transpiler {
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
 		if (!this.hasRoactImport) {
-			throw new TranspilerError("Cannot use JSX without importing Roact first!\n" +
-				suggest("To fix this, put `import * as Roact from \"rbx-roact\"` at the top of this file."),
-				node, TranspilerErrorType.RoactJsxWithoutImport);
+			throw new TranspilerError(
+				"Cannot use JSX without importing Roact first!\n" +
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				node,
+				TranspilerErrorType.RoactJsxWithoutImport,
+			);
 		}
 
 		const tagNameNode = node.getTagNameNode();
@@ -2987,8 +3006,10 @@ export class Transpiler {
 		if (inheritsFromRoact(expressionType)) {
 			throw new TranspilerError(
 				`Roact components cannot be created using new\n` +
-				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
-				node, TranspilerErrorType.RoactNoNewComponentAllowed);
+					suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
+				node,
+				TranspilerErrorType.RoactNoNewComponentAllowed,
+			);
 		}
 
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
