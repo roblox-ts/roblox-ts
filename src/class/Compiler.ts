@@ -367,9 +367,9 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
-		let errors = 0;
+		let amtErrors = 0;
 		if (!this.noStrict) {
-			files.forEach(file => {
+			for (const file of files) {
 				const diagnostics = file
 					.getPreEmitDiagnostics()
 					.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
@@ -387,22 +387,27 @@ export class Compiler {
 							prefix += " - ";
 						}
 
-						const messageText = diagnostic.getMessageText();
+						let messageText = diagnostic.getMessageText();
 						if (messageText instanceof ts.DiagnosticMessageChain) {
-							console.log("%s%s %s", prefix, red("Diagnostic Error:"), messageText.getMessageText());
-						} else {
-							console.log("%s%s %s", prefix, red("Diagnostic Error:"), diagnostic.getMessageText());
+							const textSegments = new Array<string>();
+							let chain: ts.DiagnosticMessageChain | undefined = messageText;
+							while (chain !== undefined) {
+								textSegments.push(chain.getMessageText());
+								chain = chain.getNext();
+							}
+							messageText = textSegments.join("\n");
 						}
+						console.log(prefix + red("Diagnostic Error: ") + messageText);
 					}
-					errors++;
+					amtErrors++;
 				}
-			});
+			}
 		}
 
 		try {
-			if (errors > 0) {
+			if (amtErrors > 0) {
 				process.exitCode = 1;
-				throw new DiagnosticError(errors);
+				throw new DiagnosticError();
 			}
 
 			const sources = files
