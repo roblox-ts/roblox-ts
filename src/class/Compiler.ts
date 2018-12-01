@@ -368,7 +368,7 @@ export class Compiler {
 		}
 
 		let amtErrors = 0;
-		const errors = new Array<string>();
+		const allDiagnostics = new Array<ts.Diagnostic>();
 		if (!this.noStrict) {
 			files.forEach(file => {
 				const diagnostics = file
@@ -405,7 +405,7 @@ export class Compiler {
 								diagnostic.getMessageText(),
 							);
 						}
-						errors.push(errorStr);
+						allDiagnostics.push(diagnostic);
 						console.log(errorStr);
 					}
 					amtErrors++;
@@ -416,7 +416,7 @@ export class Compiler {
 		try {
 			if (amtErrors > 0) {
 				process.exitCode = 1;
-				throw new DiagnosticError(errors);
+				throw new DiagnosticError(allDiagnostics);
 			}
 
 			const sources = files

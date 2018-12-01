@@ -136,9 +136,9 @@ describe("compile error unit tests", () => {
 					} else if (e instanceof CompilerError) {
 						done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
 					} else if (e instanceof DiagnosticError) {
-						done(`Unexpected DiagnosticError: ${e.errors.join(", ")}`);
+						done(`Unexpected DiagnosticError: ${String(e.diagnostics)}`);
 					} else {
-						done("Unexpected error: " + String(e));
+						done(`Unexpected error: ${String(e)}`);
 					}
 				});
 		});
