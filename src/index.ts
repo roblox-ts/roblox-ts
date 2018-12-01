@@ -117,7 +117,12 @@ if (argv.watch === true) {
 		await compiler.refresh();
 		clearContextCache();
 		await time(async () => {
-			await compiler.compileFileByPath(filePath);
+			try {
+				await compiler.compileFileByPath(filePath);
+			} catch (e) {
+				console.log(e);
+				process.exit();
+			}
 		});
 	};
 
@@ -168,15 +173,14 @@ if (argv.watch === true) {
 
 	console.log("Running in watch mode..");
 	console.log("Starting initial compile..");
-	time(() => {
-		compiler.compileAll(noInclude);
-	});
-} else {
-	(async () => {
+	time(async () => {
 		try {
 			await compiler.compileAll(noInclude);
 		} catch (e) {
-			process.exit(1);
+			console.log(e);
+			process.exit();
 		}
-	})();
+	});
+} else {
+	compiler.compileAll(noInclude);
 }
