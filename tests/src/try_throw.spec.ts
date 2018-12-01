@@ -41,9 +41,9 @@ export = () => {
 	});
 
 	it("should display the error message in output", () => {
-		const [ok, errorMessage] = pcall<[], any>(objectThrow);
+		const [ok, errorMessage] = pcall(objectThrow);
 
 		expect(ok).to.equal(false)
-		expect(errorMessage.find("bar")).to.be.ok()
+		expect((errorMessage as string).find("bar")).to.be.ok()
 	})
 };
