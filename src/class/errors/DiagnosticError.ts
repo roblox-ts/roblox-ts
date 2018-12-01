@@ -1,5 +1,5 @@
 export class DiagnosticError extends Error {
-	constructor(public readonly amount: number) {
+	constructor(public readonly errors: Array<string>) {
 		super();
 	}
 }
