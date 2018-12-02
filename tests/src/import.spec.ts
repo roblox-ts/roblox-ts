@@ -1,5 +1,6 @@
 import Vector, { a, b, c, foo } from "./export";
 import export_equals = require("./export_equals");
+import export_dec = require("./export_dec");
 
 export = () => {
 	it("should support import/export equals", () => {
@@ -19,4 +20,8 @@ export = () => {
 		expect(v.y).to.equal(2);
 		expect(v.z).to.equal(3);
 	});
+
+	it("should support export declarations", () => {
+		expect(export_dec()).to.equal("returnstr");
+	})
 };
