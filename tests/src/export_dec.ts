@@ -1,3 +1,1 @@
-export = () => {
-	"returnstr";
-};
+export = () => "returnstr";
