@@ -1463,15 +1463,6 @@ export class Transpiler {
 		}
 		this.pushExport(name, node);
 
-		let baseClassName = "";
-		const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
-		if (extendsClause) {
-			const typeNode = extendsClause.getTypeNodes()[0];
-			if (typeNode) {
-				baseClassName = this.transpileExpression(typeNode.getExpression());
-			}
-		}
-
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
 			const baseTypeText = baseType.getText();
@@ -1497,6 +1488,15 @@ export class Transpiler {
 		let result = "";
 		result += this.indent + `do\n`;
 		this.pushIndent();
+
+		let baseClassName = "";
+		const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
+		if (extendsClause) {
+			const typeNode = extendsClause.getTypeNodes()[0];
+			if (typeNode) {
+				baseClassName = this.transpileExpression(typeNode.getExpression());
+			}
+		}
 
 		const id = name;
 		let hasStaticMembers = false;
@@ -1524,6 +1524,10 @@ export class Transpiler {
 			currentBaseClass = currentBaseClass.getBaseClass();
 		}
 
+		if (hasStaticInheritance || hasInstanceInheritance) {
+			result += this.indent + `local super = ${baseClassName};\n`;
+		}
+
 		if (hasStaticInheritance) {
 			result += this.indent + `${id} = setmetatable({`;
 		} else {
@@ -1545,7 +1549,7 @@ export class Transpiler {
 		this.popIndent();
 
 		if (hasStaticInheritance) {
-			result += `${hasStaticMembers ? this.indent : ""}}, {__index = ${baseClassName}});\n`;
+			result += `${hasStaticMembers ? this.indent : ""}}, {__index = super});\n`;
 		} else {
 			result += `${hasStaticMembers ? this.indent : ""}};\n`;
 		}
@@ -1592,7 +1596,7 @@ export class Transpiler {
 		this.popIndent();
 
 		if (hasInstanceInheritance) {
-			result += `${hasIndexMembers ? this.indent : ""}}, ${baseClassName});\n`;
+			result += `${hasIndexMembers ? this.indent : ""}}, super);\n`;
 		} else {
 			result += `${hasIndexMembers ? this.indent : ""}};\n`;
 		}
@@ -1619,7 +1623,12 @@ export class Transpiler {
 			result += this.indent + `end;\n`;
 		}
 
-		result += this.transpileConstructorDeclaration(id, getConstructor(node), extraInitializers, baseClassName);
+		result += this.transpileConstructorDeclaration(
+			id,
+			getConstructor(node),
+			extraInitializers,
+			hasInstanceInheritance,
+		);
 
 		for (const prop of node.getStaticProperties()) {
 			const propName = prop.getName();
@@ -1664,12 +1673,12 @@ export class Transpiler {
 				if (ancestorHasGetters) {
 					result +=
 						this.indent +
-						`${id}._getters = setmetatable({${getterContent}}, { __index = ${baseClassName}._getters });\n`;
+						`${id}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`;
 				} else {
 					result += this.indent + `${id}._getters = {${getterContent}};\n`;
 				}
 			} else {
-				result += this.indent + `${id}._getters = ${baseClassName}._getters;\n`;
+				result += this.indent + `${id}._getters = super._getters;\n`;
 			}
 			result += this.indent + `local __index = ${id}.__index;\n`;
 			result += this.indent + `${id}.__index = function(self, index)\n`;
@@ -1716,12 +1725,12 @@ export class Transpiler {
 				if (ancestorHasSetters) {
 					result +=
 						this.indent +
-						`${id}._setters = setmetatable({${setterContent}}, { __index = ${baseClassName}._setters });\n`;
+						`${id}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`;
 				} else {
 					result += this.indent + `${id}._setters = {${setterContent}};\n`;
 				}
 			} else {
-				result += this.indent + `${id}._setters = ${baseClassName}._setters;\n`;
+				result += this.indent + `${id}._setters = super._setters;\n`;
 			}
 			result += this.indent + `${id}.__newindex = function(self, index, value)\n`;
 			this.pushIndent();
@@ -1749,7 +1758,7 @@ export class Transpiler {
 		className: string,
 		node?: ts.ConstructorDeclaration,
 		extraInitializers?: Array<string>,
-		baseClassName?: string,
+		hasInstanceInheritance?: boolean,
 	) {
 		const paramNames = new Array<string>();
 		paramNames.push("self");
@@ -1801,8 +1810,8 @@ export class Transpiler {
 				}
 			}
 		} else {
-			if (baseClassName) {
-				result += this.indent + `${baseClassName}.constructor(self, ...);\n`;
+			if (hasInstanceInheritance) {
+				result += this.indent + `super.constructor(self, ...);\n`;
 			}
 			if (extraInitializers) {
 				extraInitializers.forEach(initializer => (result += this.indent + initializer));
