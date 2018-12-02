@@ -392,8 +392,9 @@ end
 
 function TS.array_reverse(list)
 	local result = {}
-	for i = 1, #list do
-		result[i] = list[#list - i + 1]
+	local length = #list
+	for i = 1, length do
+		result[i] = list[length - i + 1]
 	end
 	return result
 end
