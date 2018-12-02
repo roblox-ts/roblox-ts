@@ -463,7 +463,7 @@ function TS.array_push(list, ...)
 end
 
 function TS.array_pop(list)
-	local length = #list;
+	local length = #list
 	local lastValue = list[length]
 	list[length] = nil
 	return lastValue
