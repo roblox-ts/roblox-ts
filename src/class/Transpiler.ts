@@ -1,11 +1,5 @@
 import * as ts from "ts-simple-ast";
-import {
-	getScriptContext,
-	getScriptType,
-	safeLuaIndex,
-	ScriptContext,
-	ScriptType,
-} from "../utility";
+import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 
@@ -241,7 +235,6 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 					}
 				}
 			}
-
 		}
 	}
 	return false;
