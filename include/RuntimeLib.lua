@@ -431,10 +431,11 @@ end
 
 function TS.array_unshift(list, ...)
 	local args = { ... }
+	local argsLength = #args
 	for i = #list, 1, -1 do
-		list[i + #args] = list[i]
+		list[i + argsLength] = list[i]
 	end
-	for i = 1, #args do
+	for i = 1, argsLength do
 		list[i] = args[i]
 	end
 	return #list
