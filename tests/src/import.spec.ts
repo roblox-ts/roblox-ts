@@ -23,5 +23,5 @@ export = () => {
 
 	it("should support export declarations", () => {
 		expect(export_dec()).to.equal("returnstr");
-	})
+	});
 };
