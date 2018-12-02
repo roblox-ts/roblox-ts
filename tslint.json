@@ -17,7 +17,6 @@
 		"no-var-requires": false,
 		"no-string-literal": true,
 		"no-unnecessary-qualifier": true,
-		"no-unused-variable": true,
 		"no-var-keyword": true,
 		"prefer-const": true,
 		"quotemark": [true, "double", "avoid-escape" ],
