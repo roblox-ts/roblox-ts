@@ -227,15 +227,25 @@ function inheritsFromRoact(type: ts.Type): boolean {
 
 function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
-	return symbol !== undefined
-		? symbol.getName() === className ||
-				symbol.getDeclarations().some(declaration =>
-					declaration
-						.getType()
-						.getBaseTypes()
-						.some(baseType => inheritsFrom(baseType, className)),
-				)
-		: false;
+	if (symbol) {
+		if (symbol.getName() === className) {
+			return true;
+		}
+		const declarations = symbol.getDeclarations();
+		for (const declaration of declarations) {
+			if (!ts.TypeGuards.isSourceFile(declaration)) {
+				const decType = declaration.getType();
+				const decBaseTypes = decType.getBaseTypes();
+				for (const baseType of decBaseTypes) {
+					if (inheritsFrom(baseType, className)) {
+						return true;
+					}
+				}
+			}
+
+		}
+	}
+	return false;
 }
 
 function isRbxInstance(node: ts.Node): boolean {
