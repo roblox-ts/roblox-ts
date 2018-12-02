@@ -2,7 +2,6 @@ import * as ts from "ts-simple-ast";
 import {
 	getScriptContext,
 	getScriptType,
-	isValidLuaIdentifier,
 	safeLuaIndex,
 	ScriptContext,
 	ScriptType,
