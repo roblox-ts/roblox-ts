@@ -2456,28 +2456,24 @@ export class Transpiler {
 				if (first) {
 					firstIsObj = true;
 				}
-				let lhs = prop.getName();
-				const stripBrackets = lhs.match(/^\[([^\]]+)\]$/);
-				if (stripBrackets) {
-					lhs = stripBrackets[1];
-				}
 
-				lhs = lhs.trim();
-				const stripQuotes = lhs.match(/^["']([^"']+)["']$/);
-				if (stripQuotes) {
-					lhs = stripQuotes[1];
-				}
-
-				if (/^\d+$/.test(lhs)) {
-					if (!stripQuotes) {
-						lhs = `[${lhs}]`;
-					} else {
-						lhs = `["${lhs}"]`;
-					}
-				} else if (!isValidLuaIdentifier(lhs)) {
-					lhs = `["${lhs}"]`;
+				let lhs: string;
+				const child = prop.getChildAtIndex(0);
+				if (ts.TypeGuards.isComputedPropertyName(child)) {
+					const expStr = this.transpileExpression(child.getExpression());
+					lhs = `[${expStr}]`;
+				} else if (ts.TypeGuards.isStringLiteral(child)) {
+					const expStr = this.transpileStringLiteral(child);
+					lhs = `[${expStr}]`;
+				} else if (ts.TypeGuards.isIdentifier(child)) {
+					lhs = this.transpileIdentifier(child);
+					this.checkReserved(lhs, child);
 				} else {
-					this.checkReserved(lhs, prop);
+					throw new TranspilerError(
+						`Unexpected type of object index! (${child.getKindName()})`,
+						child,
+						TranspilerErrorType.UnexpectedObjectIndex,
+					);
 				}
 
 				if (!isInObject) {
