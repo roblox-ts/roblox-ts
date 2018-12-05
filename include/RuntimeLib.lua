@@ -660,6 +660,20 @@ function TS.Object_assign(toObj, ...)
 	return toObj
 end
 
+function TS.Roact_assign(toObj, ...)
+	local args = {...};
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
+			if (type(key) == 'number') then
+				table.insert(toObj, value);
+			else
+				toObj[key] = value;
+			end
+		end
+	end
+	return toObj;
+end
+
 -- Error objects
 do
 	local errors = setmetatable({}, {__mode = "v"})
