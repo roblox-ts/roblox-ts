@@ -664,7 +664,7 @@ function TS.Roact_assign(toObj, ...)
 	local args = {...};
 	for i = 1, #args do
 		for key, value in pairs(args[i]) do
-			if (type(key) == 'number') then
+			if (type(key) == "number") then
 				table.insert(toObj, value);
 			else
 				toObj[key] = value;
