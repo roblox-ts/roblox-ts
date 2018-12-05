@@ -2341,7 +2341,7 @@ export class Transpiler {
 						for (const definitionNode of definitionNodes) {
 							const typeText = definitionNode.getType().getText();
 							if (typeText === `${ROACT_ELEMENT_TYPE}[]`) {
-								extraChildrenCollection.push(this.indent + expression.getText());
+								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
 							} else {
 								throw new TranspilerError(
 									`Roact does not support this type of expression ` +
@@ -2355,7 +2355,7 @@ export class Transpiler {
 						const propertyType = expression.getType().getText();
 
 						if (propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` || `${ROACT_ELEMENT_TYPE}[]`) {
-							extraChildrenCollection.push(expression.getText());
+							extraChildrenCollection.push(this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
 								`Roact does not support this type of expression ` +
