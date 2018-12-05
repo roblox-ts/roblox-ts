@@ -2354,7 +2354,10 @@ export class Transpiler {
 					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
 						const propertyType = expression.getType().getText();
 
-						if (propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` || `${ROACT_ELEMENT_TYPE}[]`) {
+						if (
+							propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` ||
+							propertyType === `${ROACT_ELEMENT_TYPE}[]`
+						) {
 							extraChildrenCollection.push(this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
