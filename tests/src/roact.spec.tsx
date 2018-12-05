@@ -82,11 +82,11 @@ export = () => {
 
 			class RoactClass extends Roact.Component<TestState, TestProps> {
 				public static getDerivedStateFromProps(nextProps: TestProps, lastState: TestState): TestState {
-					return {someValue: nextProps.someValue};
+					return { someValue: nextProps.someValue };
 				}
 
 				public render(): Roact.Element {
-					return <frame/>;
+					return <frame />;
 				}
 			}
 
@@ -114,15 +114,16 @@ export = () => {
 	});
 
 	describe("should support all roact property types", () => {
-
 		it("should be able to have keyed children", () => {
 			const KEY = "key1";
 			const KEY2 = "key2";
 
-			const element = <screengui>
-				<frame Key={KEY} />
-				<frame Key={KEY2} />
-			</screengui>;
+			const element = (
+				<screengui>
+					<frame Key={KEY} />
+					<frame Key={KEY2} />
+				</screengui>
+			);
 
 			const handle: any = Roact.mount(element);
 
@@ -141,17 +142,25 @@ export = () => {
 		});
 
 		it("should support [Roact.Event]", () => {
-			const eventElement = <textbutton Event={{
-				MouseButton1Click: () => { },
-			}} />;
+			const eventElement = (
+				<textbutton
+					Event={{
+						MouseButton1Click: () => {},
+					}}
+				/>
+			);
 
 			expect(eventElement.props[Roact.Event.MouseButton1Click]).to.be.a("function");
 		});
 
 		it("should support [Roact.Change]", () => {
-			const eventElement = <textbutton Change={{
-				AbsoluteSize: () => { },
-			}} />;
+			const eventElement = (
+				<textbutton
+					Change={{
+						AbsoluteSize: () => {},
+					}}
+				/>
+			);
 
 			expect(eventElement.props[Roact.Change.AbsoluteSize]).to.be.a("function");
 		});
@@ -163,7 +172,7 @@ export = () => {
 			it("should handle object references properly", () => {
 				const frameRef: Roact.Ref<Frame> = Roact.createRef<Frame>();
 
-				Roact.mount(<frame Ref={frameRef}/>);
+				Roact.mount(<frame Ref={frameRef} />);
 
 				expect(frameRef.current).to.be.ok();
 			});
@@ -175,7 +184,7 @@ export = () => {
 					currentRbx = rbx;
 				}
 
-				const element = <frame Ref={ref}/>;
+				const element = <frame Ref={ref} />;
 				const handle = Roact.mount(element);
 				expect(currentRbx!).to.be.ok();
 			});
@@ -190,7 +199,7 @@ export = () => {
 					}
 
 					public render(): Roact.Element {
-						return <screengui Ref={this.ref}/>;
+						return <screengui Ref={this.ref} />;
 					}
 
 					public didUpdate() {
@@ -198,7 +207,7 @@ export = () => {
 					}
 				}
 
-				Roact.mount(<RoactRefTest/>);
+				Roact.mount(<RoactRefTest />);
 			});
 
 			it("should handle class function references properly", () => {
@@ -208,11 +217,11 @@ export = () => {
 						worked = true;
 					}
 					public render(): Roact.Element {
-						return <screengui Ref={this.onScreenGuiRender}/>;
+						return <screengui Ref={this.onScreenGuiRender} />;
 					}
 				}
 
-				Roact.mount(<RoactRefTest/>);
+				Roact.mount(<RoactRefTest />);
 				expect(worked).to.be.ok();
 			});
 		});
@@ -221,5 +230,82 @@ export = () => {
 	it("should be able to mount roact intrinsics", () => {
 		const handle: PrimitiveHandleElementKind = Roact.mount(<screengui />);
 		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
+	});
+
+	it("should be able to have Roact.Element[] expressions", () => {
+		const test = [<frame Key="One" />, <frame Key="Two" />];
+
+		const test2 = (
+			<screengui>
+				{test}
+				<frame Key="Three" />
+			</screengui>
+		);
+
+		const handle: PrimitiveHandleElementKind = Roact.mount(test2);
+		expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
+		expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
+		expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
+	});
+
+	it("should be able to use Roact.Element[] expressions inside classes", () => {
+		class TestComponent extends Roact.Component {
+			public render(): Roact.Element {
+				const innerFrames = [<frame Key="Frame1" />, <frame Key="Frame2" />];
+
+				return <frame>{innerFrames}</frame>;
+			}
+		}
+
+		const test = <TestComponent />;
+
+		const handle: StatefulHandleElementKind = Roact.mount(test);
+		const returned: PrimitiveHandleElementKind = handle._child;
+
+		// expect the returned child to be a frame
+		expect(returned._rbx!.IsA("Frame")).to.be.ok();
+		expect(returned._rbx!.FindFirstChild("Frame1")).to.be.ok();
+		expect(returned._rbx!.FindFirstChild("Frame2")).to.be.ok();
+	});
+
+	it("should allow using results from functions in expressions", () => {
+		function multipleElements(): Array<Roact.Element> {
+			return [<frame Key="Frame57" />, <frame Key="Frame103" />];
+		}
+
+		const test = <screengui>{multipleElements()}</screengui>;
+
+		const handle: PrimitiveHandleElementKind = Roact.mount(test);
+		expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
+		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
+	});
+
+	it("should be able to use this.props.children expressions", () => {
+		class TestComponent extends Roact.Component {
+			constructor() {
+				super({});
+			}
+			public render(): Roact.Element {
+				return <frame>{this.props.children}</frame>;
+			}
+		}
+
+		const test = (
+			<TestComponent>
+				<textlabel Key="TextLabel20" />
+			</TestComponent>
+		);
+
+		const handle: StatefulHandleElementKind = Roact.mount(test);
+		const returned: PrimitiveHandleElementKind = handle._child;
+
+		// expect the returned child to be a frame
+		expect(returned._rbx!.IsA("Frame")).to.be.ok();
+
+		print(returned._rbx!.GetChildren().length);
+
+		// expect there to be a textlabel called "Hello"
+		expect(returned._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
+		expect(returned._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
 	});
 };

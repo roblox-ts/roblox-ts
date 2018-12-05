@@ -2326,16 +2326,21 @@ export class Transpiler {
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
 						const returnType = expression.getReturnType().getText();
-						if (returnType !== ROACT_ELEMENT_TYPE) {
+						if (
+							returnType === `${ROACT_ELEMENT_TYPE}[]` ||
+							returnType === `${ROACT_ELEMENT_TYPE}[] | undefined`
+						) {
+							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+						} else if (returnType !== ROACT_ELEMENT_TYPE) {
 							throw new TranspilerError(
 								`Function call must return Roact.Element -> {${expression.getText()}}`,
 								expression,
 								TranspilerErrorType.BadExpressionStatement,
 							);
+						} else {
+							const value = this.transpileExpression(child);
+							childCollection.push(`${this.indent}${value}`);
 						}
-
-						const value = this.transpileExpression(child);
-						childCollection.push(`${this.indent}${value}`);
 					} else if (ts.TypeGuards.isIdentifier(expression)) {
 						const definitionNodes = expression.getDefinitionNodes();
 						for (const definitionNode of definitionNodes) {
