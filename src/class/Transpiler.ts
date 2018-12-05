@@ -1294,6 +1294,7 @@ export class Transpiler {
 
 		const instanceProps = node
 			.getInstanceProperties()
+			// @ts-ignore
 			.filter(prop => prop.getParent() === node)
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
@@ -1568,6 +1569,7 @@ export class Transpiler {
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
 			.getInstanceProperties()
+			// @ts-ignore
 			.filter(prop => prop.getParent() === node)
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
@@ -2419,13 +2421,23 @@ export class Transpiler {
 				TranspilerErrorType.RoactJsxWithoutImport,
 			);
 		}
-
 		const open = node.getOpeningElement() as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
 		const children = node.getJsxChildren();
+		const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
-		return this.generateRoactElement(tagName, open.getAttributes(), children);
+		if (isArrayExpressionParent) {
+			this.roactIndent++;
+		}
+
+		const element = this.generateRoactElement(tagName, open.getAttributes(), children);
+
+		if (isArrayExpressionParent) {
+			this.roactIndent--;
+		}
+
+		return element;
 	}
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
@@ -2440,8 +2452,19 @@ export class Transpiler {
 
 		const tagNameNode = node.getTagNameNode();
 		const tagName = tagNameNode.getText();
+		const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
-		return this.generateRoactElement(tagName, node.getAttributes(), []);
+		if (isArrayExpressionParent) {
+			this.roactIndent++;
+		}
+
+		const element = this.generateRoactElement(tagName, node.getAttributes(), []);
+
+		if (isArrayExpressionParent) {
+			this.roactIndent--;
+		}
+
+		return element;
 	}
 
 	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
