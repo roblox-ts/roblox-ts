@@ -2202,6 +2202,7 @@ export class Transpiler {
 		let str = `Roact.createElement(`;
 		const attributeCollection: Array<string> = [];
 		const extraAttributeCollections: Array<string> = [];
+		const extraChildrenCollection: Array<string> = [];
 		const childCollection: Array<string> = [];
 		let key: string | undefined;
 
@@ -2303,7 +2304,6 @@ export class Transpiler {
 		}
 
 		if (children.length > 0) {
-			str += this.indent + ", {\n";
 			this.pushIndent();
 
 			for (const child of children) {
@@ -2334,6 +2334,34 @@ export class Transpiler {
 
 						const value = this.transpileExpression(child);
 						childCollection.push(`${this.indent}${value}`);
+					} else if (ts.TypeGuards.isIdentifier(expression)) {
+						const definitionNodes = expression.getDefinitionNodes();
+						for (const definitionNode of definitionNodes) {
+							const typeText = definitionNode.getType().getText();
+							if (typeText === `${ROACT_ELEMENT_TYPE}[]`) {
+								extraChildrenCollection.push(this.indent + expression.getText());
+							} else {
+								throw new TranspilerError(
+									`Roact does not support this type of expression ` +
+										`{${expression.getText()}} (${expression.getKindName()})`,
+									expression,
+									TranspilerErrorType.BadExpression,
+								);
+							}
+						}
+					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
+						const propertyType = expression.getType().getText();
+
+						if (propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` || `${ROACT_ELEMENT_TYPE}[]`) {
+							extraChildrenCollection.push(expression.getText());
+						} else {
+							throw new TranspilerError(
+								`Roact does not support this type of expression ` +
+									`{${expression.getText()}} (${expression.getKindName()})`,
+								expression,
+								TranspilerErrorType.BadExpression,
+							);
+						}
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
@@ -2346,7 +2374,25 @@ export class Transpiler {
 			}
 
 			this.popIndent();
-			str += childCollection.join(",\n") + `\n${this.indent}})`;
+
+			if (extraChildrenCollection.length > 0) {
+				str += `, TS.Object_assign(`;
+
+				if (childCollection.length > 0) {
+					str += "{\n" + this.indent;
+					str += childCollection.join(",\n") + `\n${this.indent}}, `;
+				}
+
+				str += "\n";
+				str += extraChildrenCollection.join(",\n") + `\n`;
+
+				str += this.indent + ")";
+				str += ")";
+			} else {
+				// this.pushIndent();
+				str += this.indent + ", {\n";
+				str += childCollection.join(",\n") + `\n${this.indent}})`;
+			}
 		} else {
 			if (extraAttributeCollections.length > 0) {
 				str += this.indent + ")";
