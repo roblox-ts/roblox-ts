@@ -191,7 +191,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 
 function getFullTypeList(type: ts.Type): Array<string> {
 	const symbol = type.getSymbol();
-	const typeArray: Array<string> = [];
+	const typeArray = new Array<string>();
 	if (symbol) {
 		symbol.getDeclarations().forEach(declaration => {
 			typeArray.push(declaration.getType().getText());
@@ -1294,6 +1294,7 @@ export class Transpiler {
 
 		const instanceProps = node
 			.getInstanceProperties()
+			// @ts-ignore
 			.filter(prop => prop.getParent() === node)
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
@@ -1568,6 +1569,7 @@ export class Transpiler {
 		const extraInitializers = new Array<string>();
 		const instanceProps = node
 			.getInstanceProperties()
+			// @ts-ignore
 			.filter(prop => prop.getParent() === node)
 			.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 			.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
@@ -2200,9 +2202,10 @@ export class Transpiler {
 		children: Array<ts.JsxChild>,
 	): string {
 		let str = `Roact.createElement(`;
-		const attributeCollection: Array<string> = [];
-		const extraAttributeCollections: Array<string> = [];
-		const childCollection: Array<string> = [];
+		const attributeCollection = new Array<string>();
+		const extraAttributeCollections = new Array<string>();
+		const extraChildrenCollection = new Array<string>();
+		const childCollection = new Array<string>();
 		let key: string | undefined;
 
 		this.roactIndent++;
@@ -2273,7 +2276,7 @@ export class Transpiler {
 				str += ", \n";
 				this.pushIndent();
 
-				str += this.indent + "TS.Object_assign(";
+				str += this.indent + "TS.Roact_combine(";
 
 				// If it has other attributes
 				if (attributeCollection.length > 0) {
@@ -2303,7 +2306,6 @@ export class Transpiler {
 		}
 
 		if (children.length > 0) {
-			str += this.indent + ", {\n";
 			this.pushIndent();
 
 			for (const child of children) {
@@ -2324,16 +2326,52 @@ export class Transpiler {
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
 						const returnType = expression.getReturnType().getText();
-						if (returnType !== ROACT_ELEMENT_TYPE) {
+						if (
+							returnType === `${ROACT_ELEMENT_TYPE}[]` ||
+							returnType === `${ROACT_ELEMENT_TYPE}[] | undefined`
+						) {
+							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+						} else if (returnType !== ROACT_ELEMENT_TYPE) {
 							throw new TranspilerError(
 								`Function call must return Roact.Element -> {${expression.getText()}}`,
 								expression,
 								TranspilerErrorType.BadExpressionStatement,
 							);
+						} else {
+							const value = this.transpileExpression(child);
+							childCollection.push(`${this.indent}${value}`);
 						}
+					} else if (ts.TypeGuards.isIdentifier(expression)) {
+						const definitionNodes = expression.getDefinitionNodes();
+						for (const definitionNode of definitionNodes) {
+							const typeText = definitionNode.getType().getText();
+							if (typeText === `${ROACT_ELEMENT_TYPE}[]`) {
+								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+							} else {
+								throw new TranspilerError(
+									`Roact does not support this type of expression ` +
+										`{${expression.getText()}} (${expression.getKindName()})`,
+									expression,
+									TranspilerErrorType.BadExpression,
+								);
+							}
+						}
+					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
+						const propertyType = expression.getType().getText();
 
-						const value = this.transpileExpression(child);
-						childCollection.push(`${this.indent}${value}`);
+						if (
+							propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` ||
+							propertyType === `${ROACT_ELEMENT_TYPE}[]`
+						) {
+							extraChildrenCollection.push(this.transpileExpression(expression));
+						} else {
+							throw new TranspilerError(
+								`Roact does not support this type of expression ` +
+									`{${expression.getText()}} (${expression.getKindName()})`,
+								expression,
+								TranspilerErrorType.BadExpression,
+							);
+						}
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
@@ -2346,7 +2384,25 @@ export class Transpiler {
 			}
 
 			this.popIndent();
-			str += childCollection.join(",\n") + `\n${this.indent}})`;
+
+			if (extraChildrenCollection.length > 0) {
+				str += `, TS.Roact_combine(`;
+
+				if (childCollection.length > 0) {
+					str += "{\n" + this.indent;
+					str += childCollection.join(",\n") + `\n${this.indent}}, `;
+				}
+
+				str += "\n";
+				str += extraChildrenCollection.join(",\n") + `\n`;
+
+				str += this.indent + ")";
+				str += ")";
+			} else {
+				// this.pushIndent();
+				str += this.indent + ", {\n";
+				str += childCollection.join(",\n") + `\n${this.indent}})`;
+			}
 		} else {
 			if (extraAttributeCollections.length > 0) {
 				str += this.indent + ")";
@@ -2373,13 +2429,23 @@ export class Transpiler {
 				TranspilerErrorType.RoactJsxWithoutImport,
 			);
 		}
-
 		const open = node.getOpeningElement() as ts.JsxOpeningElement;
 		const tagNameNode = open.getTagNameNode();
 		const tagName = tagNameNode.getText();
 		const children = node.getJsxChildren();
+		const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
-		return this.generateRoactElement(tagName, open.getAttributes(), children);
+		if (isArrayExpressionParent) {
+			this.roactIndent++;
+		}
+
+		const element = this.generateRoactElement(tagName, open.getAttributes(), children);
+
+		if (isArrayExpressionParent) {
+			this.roactIndent--;
+		}
+
+		return element;
 	}
 
 	private transpileJsxSelfClosingElement(node: ts.JsxSelfClosingElement): string {
@@ -2394,8 +2460,19 @@ export class Transpiler {
 
 		const tagNameNode = node.getTagNameNode();
 		const tagName = tagNameNode.getText();
+		const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
-		return this.generateRoactElement(tagName, node.getAttributes(), []);
+		if (isArrayExpressionParent) {
+			this.roactIndent++;
+		}
+
+		const element = this.generateRoactElement(tagName, node.getAttributes(), []);
+
+		if (isArrayExpressionParent) {
+			this.roactIndent--;
+		}
+
+		return element;
 	}
 
 	private transpileStringLiteral(node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
