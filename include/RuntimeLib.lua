@@ -660,18 +660,19 @@ function TS.Object_assign(toObj, ...)
 	return toObj
 end
 
-function TS.Roact_assign(toObj, ...)
-	local args = {...};
-	for i = 1, #args do
-		for key, value in pairs(args[i]) do
-			if (type(key) == "number") then
-				table.insert(toObj, value);
-			else
-				toObj[key] = value;
-			end
-		end
-	end
-	return toObj;
+function TS.Roact_combine(...)
+    local args = {...}
+    local result = {}
+    for i = 1, #args do
+        for key, value in pairs(args[i]) do
+            if (type(key) == "number") then
+                table.insert(result, value)
+            else
+                result[key] = value
+            end
+        end
+    end
+    return result
 end
 
 -- Error objects

@@ -2276,7 +2276,7 @@ export class Transpiler {
 				str += ", \n";
 				this.pushIndent();
 
-				str += this.indent + "TS.Roact_assign(";
+				str += this.indent + "TS.Roact_combine(";
 
 				// If it has other attributes
 				if (attributeCollection.length > 0) {
@@ -2386,7 +2386,7 @@ export class Transpiler {
 			this.popIndent();
 
 			if (extraChildrenCollection.length > 0) {
-				str += `, TS.Roact_assign(`;
+				str += `, TS.Roact_combine(`;
 
 				if (childCollection.length > 0) {
 					str += "{\n" + this.indent;
