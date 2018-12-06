@@ -191,7 +191,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 
 function getFullTypeList(type: ts.Type): Array<string> {
 	const symbol = type.getSymbol();
-	const typeArray: Array<string> = [];
+	const typeArray = new Array<string>();
 	if (symbol) {
 		symbol.getDeclarations().forEach(declaration => {
 			typeArray.push(declaration.getType().getText());
@@ -2202,10 +2202,10 @@ export class Transpiler {
 		children: Array<ts.JsxChild>,
 	): string {
 		let str = `Roact.createElement(`;
-		const attributeCollection: Array<string> = [];
-		const extraAttributeCollections: Array<string> = [];
-		const extraChildrenCollection: Array<string> = [];
-		const childCollection: Array<string> = [];
+		const attributeCollection = new Array<string>();
+		const extraAttributeCollections = new Array<string>();
+		const extraChildrenCollection = new Array<string>();
+		const childCollection = new Array<string>();
 		let key: string | undefined;
 
 		this.roactIndent++;
