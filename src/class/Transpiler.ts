@@ -208,22 +208,17 @@ function getFullTypeList(type: ts.Type): Array<string> {
 function isRoactElementType(type: ts.Type) {
 	const allowed = [ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`];
 	const types = type.getUnionTypes();
-	// let isValidType = false;
 
 	if (types.length > 0) {
 		for (const unionType of types) {
 			const unionTypeName = unionType.getText();
-			console.log("check", unionTypeName);
 			if (allowed.indexOf(unionTypeName) === -1 && unionTypeName !== "undefined") {
-				console.log("return false on ", unionTypeName);
 				return false;
 			}
 		}
+	} else {
+		return false;
 	}
-
-	// if (allowed.indexOf(type.getText()) !== -1) {
-	// 	return true;
-	// }
 
 	return true;
 }
@@ -2349,21 +2344,15 @@ export class Transpiler {
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
 						const returnType = expression.getReturnType();
-						if (
-							isRoactElementType(returnType)
-						) {
+						if (isRoactElementType(returnType)) {
 							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
-								`Function call must return Roact.Element -> {${expression.getText()}}`,
+								`Function call in an expression must return Roact.Element or Roact.Element[]`,
 								expression,
 								TranspilerErrorType.RoactInvalidCallExpression,
 							);
 						}
-						// } else {
-						// 	const value = this.transpileExpression(child);
-						// 	childCollection.push(`${this.indent}${value}`);
-						// }
 					} else if (ts.TypeGuards.isIdentifier(expression)) {
 						const definitionNodes = expression.getDefinitionNodes();
 						for (const definitionNode of definitionNodes) {
@@ -2372,8 +2361,7 @@ export class Transpiler {
 								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
 							} else {
 								throw new TranspilerError(
-									`Roact does not support identifiers that have the return type` +
-										`${type.getText()}`,
+									`Roact does not support identifiers that have the return type ` + type.getText(),
 									expression,
 									TranspilerErrorType.RoactInvalidIdentifierExpression,
 								);
@@ -2386,8 +2374,7 @@ export class Transpiler {
 							extraChildrenCollection.push(this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
-								`Roact does not support the property type ` +
-									`${propertyType.getText()}`,
+								`Roact does not support the property type ` + propertyType.getText(),
 								expression,
 								TranspilerErrorType.RoactInvalidPropertyExpression,
 							);
