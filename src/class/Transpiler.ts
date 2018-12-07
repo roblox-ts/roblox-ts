@@ -217,7 +217,7 @@ function isRoactElementType(type: ts.Type) {
 			}
 		}
 	} else {
-		return false;
+		return allowed.indexOf(type.getText()) !== -1;
 	}
 
 	return true;
@@ -2367,7 +2367,8 @@ export class Transpiler {
 								);
 							}
 						}
-					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
+					} else if (ts.TypeGuards.isPropertyAccessExpression(expression) ||
+						ts.TypeGuards.isElementAccessExpression(expression)) {
 						const propertyType = expression.getType();
 
 						if (isRoactElementType(propertyType)) {
