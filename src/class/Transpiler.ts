@@ -205,6 +205,25 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	return typeArray;
 }
 
+function isRoactElementType(type: ts.Type) {
+	const allowed = [ROACT_ELEMENT_TYPE, "undefined"];
+	const types = type.getUnionTypes();
+	let isValidType = false;
+
+	for (const unionType of types) {
+		const unionTypeName = unionType.getText();
+		if (allowed.indexOf(unionTypeName) === -1) {
+			if (unionTypeName === ROACT_ELEMENT_TYPE) {
+				isValidType = true;
+			}
+
+			return false;
+		}
+	}
+
+	return isValidType;
+}
+
 function inheritsFromRoact(type: ts.Type): boolean {
 	const fullName = getFullTypeList(type);
 	let isRoactClass = false;
