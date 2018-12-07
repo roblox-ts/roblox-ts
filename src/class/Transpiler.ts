@@ -1382,8 +1382,6 @@ export class Transpiler {
 				}
 			}
 
-			declaration += this.indent + "self.props.children = self.props[Roact.Children];\n";
-
 			this.popIndent();
 
 			declaration += `${this.indent}end;\n`;
