@@ -2343,7 +2343,15 @@ export class Transpiler {
 						// Must return Roact.Element :(
 						const returnType = expression.getReturnType();
 						if (isRoactElementType(returnType)) {
-							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+							if (returnType.isArray()) {
+								// Roact.Element[]
+								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+							} else {
+								// Roact.Element
+								extraChildrenCollection.push(
+									this.indent + `{ ${this.transpileExpression(expression)} }`,
+								);
+							}
 						} else {
 							throw new TranspilerError(
 								`Function call in an expression must return Roact.Element or Roact.Element[]`,
@@ -2365,8 +2373,10 @@ export class Transpiler {
 								);
 							}
 						}
-					} else if (ts.TypeGuards.isPropertyAccessExpression(expression) ||
-						ts.TypeGuards.isElementAccessExpression(expression)) {
+					} else if (
+						ts.TypeGuards.isPropertyAccessExpression(expression) ||
+						ts.TypeGuards.isElementAccessExpression(expression)
+					) {
 						const propertyType = expression.getType();
 
 						if (isRoactElementType(propertyType)) {
