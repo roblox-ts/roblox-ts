@@ -20,6 +20,16 @@ export = () => {
 		expect(b[2]).to.equal("boo");
 	});
 
+	it("should support object methods", () => {
+		const foo = {
+			baz: "baz",
+			bar() {
+				return this.baz;
+			}
+		};
+		expect(foo.bar()).to.equal(foo.baz);
+	});
+
 	it("should support object spread", () => {
 		const foo = {
 			a: 1,

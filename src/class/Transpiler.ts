@@ -1546,7 +1546,7 @@ export class Transpiler {
 					hasStaticMembers = true;
 					result += "\n";
 				}
-				result += this.transpileMethodDeclaration(method);
+				result += this.indent + this.transpileMethodDeclaration(method);
 			});
 
 		this.popIndent();
@@ -1594,7 +1594,7 @@ export class Transpiler {
 					hasIndexMembers = true;
 					result += "\n";
 				}
-				result += this.transpileMethodDeclaration(method);
+				result += this.indent + this.transpileMethodDeclaration(method);
 			});
 
 		this.popIndent();
@@ -1866,9 +1866,9 @@ export class Transpiler {
 
 		let result = "";
 		if (node.isAsync()) {
-			result += this.indent + `${name} = TS.async(function(${paramStr})\n`;
+			result += `${name} = TS.async(function(${paramStr})\n`;
 		} else {
-			result += this.indent + `${name} = function(${paramStr})\n`;
+			result += `${name} = function(${paramStr})\n`;
 		}
 		this.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
@@ -2577,6 +2577,16 @@ export class Transpiler {
 				}
 
 				parts[parts.length - 1] += this.indent + `${lhs} = ${rhs};\n`;
+				isInObject = true;
+			} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
+				if (first) {
+					firstIsObj = true;
+				}
+				if (!isInObject) {
+					parts.push("{\n");
+					this.pushIndent();
+				}
+				parts[parts.length - 1] += this.indent + this.transpileMethodDeclaration(prop);
 				isInObject = true;
 			} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
 				if (first) {
