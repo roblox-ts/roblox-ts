@@ -25,7 +25,7 @@ export = () => {
 			baz: "baz",
 			bar() {
 				return this.baz;
-			}
+			},
 		};
 		expect(foo.bar()).to.equal(foo.baz);
 	});
