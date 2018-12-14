@@ -205,6 +205,24 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	return typeArray;
 }
 
+function isRoactElementType(type: ts.Type) {
+	const allowed = [ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`];
+	const types = type.getUnionTypes();
+
+	if (types.length > 0) {
+		for (const unionType of types) {
+			const unionTypeName = unionType.getText();
+			if (allowed.indexOf(unionTypeName) === -1 && unionTypeName !== "undefined") {
+				return false;
+			}
+		}
+	} else {
+		return allowed.indexOf(type.getText()) !== -1;
+	}
+
+	return true;
+}
+
 function inheritsFromRoact(type: ts.Type): boolean {
 	const fullName = getFullTypeList(type);
 	let isRoactClass = false;
@@ -1364,8 +1382,6 @@ export class Transpiler {
 				}
 			}
 
-			declaration += this.indent + "self.props.children = self.props[Roact.Children];\n";
-
 			this.popIndent();
 
 			declaration += `${this.indent}end;\n`;
@@ -2190,7 +2206,7 @@ export class Transpiler {
 				throw new TranspilerError(
 					`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
 					node,
-					TranspilerErrorType.BadExpression,
+					TranspilerErrorType.RoactInvalidSymbol,
 				);
 			}
 		}
@@ -2325,51 +2341,51 @@ export class Transpiler {
 					const expression = child.getExpressionOrThrow();
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
-						const returnType = expression.getReturnType().getText();
-						if (
-							returnType === `${ROACT_ELEMENT_TYPE}[]` ||
-							returnType === `${ROACT_ELEMENT_TYPE}[] | undefined`
-						) {
-							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
-						} else if (returnType !== ROACT_ELEMENT_TYPE) {
-							throw new TranspilerError(
-								`Function call must return Roact.Element -> {${expression.getText()}}`,
-								expression,
-								TranspilerErrorType.BadExpressionStatement,
-							);
+						const returnType = expression.getReturnType();
+						if (isRoactElementType(returnType)) {
+							if (returnType.isArray()) {
+								// Roact.Element[]
+								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+							} else {
+								// Roact.Element
+								extraChildrenCollection.push(
+									this.indent + `{ ${this.transpileExpression(expression)} }`,
+								);
+							}
 						} else {
-							const value = this.transpileExpression(child);
-							childCollection.push(`${this.indent}${value}`);
+							throw new TranspilerError(
+								`Function call in an expression must return Roact.Element or Roact.Element[]`,
+								expression,
+								TranspilerErrorType.RoactInvalidCallExpression,
+							);
 						}
 					} else if (ts.TypeGuards.isIdentifier(expression)) {
 						const definitionNodes = expression.getDefinitionNodes();
 						for (const definitionNode of definitionNodes) {
-							const typeText = definitionNode.getType().getText();
-							if (typeText === `${ROACT_ELEMENT_TYPE}[]`) {
+							const type = definitionNode.getType();
+							if (isRoactElementType(type)) {
 								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
 							} else {
 								throw new TranspilerError(
-									`Roact does not support this type of expression ` +
-										`{${expression.getText()}} (${expression.getKindName()})`,
+									`Roact does not support identifiers that have the return type ` + type.getText(),
 									expression,
-									TranspilerErrorType.BadExpression,
+									TranspilerErrorType.RoactInvalidIdentifierExpression,
 								);
 							}
 						}
-					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
-						const propertyType = expression.getType().getText();
+					} else if (
+						ts.TypeGuards.isPropertyAccessExpression(expression) ||
+						ts.TypeGuards.isElementAccessExpression(expression)
+					) {
+						const propertyType = expression.getType();
 
-						if (
-							propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` ||
-							propertyType === `${ROACT_ELEMENT_TYPE}[]`
-						) {
+						if (isRoactElementType(propertyType)) {
 							extraChildrenCollection.push(this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
-								`Roact does not support this type of expression ` +
-									`{${expression.getText()}} (${expression.getKindName()})`,
+								`Roact does not support the property type ` + propertyType.getText(),
 								expression,
-								TranspilerErrorType.BadExpression,
+								TranspilerErrorType.RoactInvalidPropertyExpression,
 							);
 						}
 					} else {
@@ -2377,7 +2393,7 @@ export class Transpiler {
 							`Roact does not support this type of expression ` +
 								`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
-							TranspilerErrorType.BadExpression,
+							TranspilerErrorType.RoactInvalidExpression,
 						);
 					}
 				}

@@ -46,6 +46,13 @@ export enum TranspilerErrorType {
 	RoactJsxTextNotSupported,
 	RoactNoNewComponentAllowed,
 	RoactJsxWithoutImport,
+	RoactInvalidSymbol,
+
+	RoactInvalidExpression,
+	RoactInvalidCallExpression,
+	RoactInvalidIdentifierExpression,
+	RoactInvalidPropertyExpression,
+
 	UnexpectedObjectIndex,
 }
 
