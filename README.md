@@ -12,19 +12,19 @@
 <div align="center">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</div>
 
 ## Why?
-As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for. Roblox Studio attempts to provide things like intellisense and autocomplete, but it's mostly just guessing.
+As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for.
 
 **roblox-ts** is designed to solve these problems by compiling TypeScript code directly into Lua, tuned for use in Roblox specifically.
 
 ## Quick start & Documentation
 Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/introduction)
 
-# Join the Community!
+## Join the Community!
 
 https://discord.gg/f6Rn6RY
 
-# Credits
+## Credits
 roblox-ts is powered by [ts-simple-ast](https://github.com/dsherret/ts-simple-ast) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
 
-# Games that use roblox-ts
+## Games that use roblox-ts
 <a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>
