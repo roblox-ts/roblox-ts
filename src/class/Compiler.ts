@@ -473,10 +473,15 @@ export class Compiler {
 				throw new DiagnosticError(errors);
 			}
 
-			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
-				const transpiler = new Transpiler(this);
-				return [this.transformPathToLua(sourceFile.getFilePath()), transpiler.transpileSourceFile(sourceFile)];
-			});
+			const sources = files
+				.filter(sourceFile => !sourceFile.isDeclarationFile())
+				.map(sourceFile => {
+					const transpiler = new Transpiler(this);
+					return [
+						this.transformPathToLua(sourceFile.getFilePath()),
+						transpiler.transpileSourceFile(sourceFile),
+					];
+				});
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

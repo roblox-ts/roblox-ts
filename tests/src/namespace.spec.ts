@@ -3,11 +3,17 @@ namespace n1 {
 }
 
 namespace n2 {
-	export namespace n3 { export const a = "a"; }
+	export namespace n3 {
+		export const a = "a";
+	}
 }
 
 namespace foo {
-	export namespace foo { export namespace foo { export const bar = "bar"; } }
+	export namespace foo {
+		export namespace foo {
+			export const bar = "bar";
+		}
+	}
 }
 
 export = () => {
