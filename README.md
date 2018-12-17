@@ -20,7 +20,7 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 **roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree (aided by the TypeScript compiler) and emit functionally similar structures in Lua so that the code behaves the same (minus the type information).
 
 ## Quick start & Documentation
-Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/introduction)
+Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/)
 
 ## Join the Community!
 https://discord.gg/f6Rn6RY
