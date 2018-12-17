@@ -80,7 +80,7 @@ export = () => {
 				someValue: number;
 			}
 
-			class RoactClass extends Roact.Component<TestState, TestProps> {
+			class RoactClass extends Roact.Component<TestProps, TestState> {
 				public static getDerivedStateFromProps(nextProps: TestProps, lastState: TestState): TestState {
 					return { someValue: nextProps.someValue };
 				}

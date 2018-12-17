@@ -46,7 +46,7 @@ export = () => {
 				TextColor3: Color3;
 			}
 
-			class RoactClass extends Roact.Component<{}, Props> {
+			class RoactClass extends Roact.Component<Props, {}> {
 				public render(): Roact.Element {
 					return <textlabel Text={this.props.Text} TextColor3={this.props.TextColor3}/>;
 				}
@@ -95,7 +95,7 @@ export = () => {
 
 			const buttonRef: Roact.Ref<TextButton> = Roact.createRef<TextButton>();
 
-			class MyButton extends Roact.Component<{}, MyButtonProps> {
+			class MyButton extends Roact.Component<MyButtonProps, {}> {
 				public render(): Roact.Element {
 					const {Size, Text} = this.props;
 
