@@ -1155,13 +1155,26 @@ export class Transpiler {
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
-		if (node.getDeclarationKind() === ts.VariableDeclarationKind.Var) {
+		const declarationKind = node.getDeclarationKind();
+		if (declarationKind === ts.VariableDeclarationKind.Var) {
 			throw new TranspilerError(
 				"'var' keyword is not supported! Use 'let' or 'const' instead.",
 				node,
 				TranspilerErrorType.NoVarKeyword,
 			);
 		}
+
+		const parent = node.getParent();
+		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
+			if (parent.hasExportKeyword() && declarationKind === ts.VariableDeclarationKind.Let) {
+				throw new TranspilerError(
+					"'export let' is not supported! Use 'export const' instead.",
+					node,
+					TranspilerErrorType.NoExportLetKeyword,
+				);
+			}
+		}
+
 		const names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
@@ -1234,7 +1247,6 @@ export class Transpiler {
 			values.pop();
 		}
 
-		const parent = node.getParent();
 		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
 			names.forEach(name => this.pushExport(name, parent));
 		}

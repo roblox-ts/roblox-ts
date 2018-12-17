@@ -47,13 +47,12 @@ export enum TranspilerErrorType {
 	RoactNoNewComponentAllowed,
 	RoactJsxWithoutImport,
 	RoactInvalidSymbol,
-
 	RoactInvalidExpression,
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,
 	RoactInvalidPropertyExpression,
-
 	UnexpectedObjectIndex,
+	NoExportLetKeyword,
 }
 
 export class TranspilerError extends Error {
