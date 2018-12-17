@@ -156,7 +156,11 @@ function isRbxDataClassType(type: ts.Type) {
 }
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
-	if (rhsStr === "0" || rhsStr === "(0)") {
+	let rhs = node.getRight();
+	if (ts.TypeGuards.isParenthesizedExpression(rhs)) {
+		rhs = rhs.getExpression();
+	}
+	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
 		return `TS.round(${lhsStr})`;
 	} else {
 		return `TS.bor(${lhsStr}, ${rhsStr})`;
@@ -1243,6 +1247,7 @@ export class Transpiler {
 				}
 			}
 		}
+
 		while (values[values.length - 1] === "nil") {
 			values.pop();
 		}
@@ -1252,7 +1257,7 @@ export class Transpiler {
 		}
 
 		let result = "";
-		preStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
+		preStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
 		const namesStr = names.join(", ");
 		if (values.length > 0) {
 			const valuesStr = values.join(", ");
@@ -1260,7 +1265,7 @@ export class Transpiler {
 		} else {
 			result += this.indent + `local ${namesStr};\n`;
 		}
-		postStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
+		postStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
 		return result;
 	}
 
