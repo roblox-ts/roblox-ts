@@ -23,7 +23,6 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/introduction)
 
 ## Join the Community!
-
 https://discord.gg/f6Rn6RY
 
 ## Credits
