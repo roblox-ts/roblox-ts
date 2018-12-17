@@ -6,9 +6,11 @@ import {
 	getScriptContext,
 	getScriptType,
 	isValidLuaIdentifier,
+	red,
 	ScriptContext,
 	ScriptType,
 	stripExts,
+	yellow,
 } from "../utility";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
@@ -31,10 +33,6 @@ interface RojoJson {
 interface Partition {
 	dir: ts.Directory;
 	target: string;
-}
-
-function red(s: string) {
-	return `\x1b[31m${s}\x1b[0m`;
 }
 
 const LUA_EXT = ".lua";
@@ -137,7 +135,18 @@ export class Compiler {
 		this.noStrict = args.noStrict;
 		this.noHeuristics = args.noHeuristics;
 		this.ci = args.ci;
+
 		this.compilerOptions = this.project.getCompilerOptions();
+		try {
+			this.validateCompilerOptions();
+		} catch (e) {
+			if (e instanceof CompilerError) {
+				console.log(red("Compiler Error:"), e.message);
+				process.exit(1);
+			} else {
+				throw e;
+			}
+		}
 
 		this.baseUrl = this.compilerOptions.baseUrl;
 
@@ -203,6 +212,59 @@ export class Compiler {
 					}
 				}
 			}
+		}
+	}
+
+	private validateCompilerOptions() {
+		const opts = this.compilerOptions;
+
+		const errors = new Array<string>();
+
+		// required compiler options
+		if (opts.downlevelIteration !== true) {
+			errors.push(`${yellow(`"downlevelIteration"`)} must be ${yellow(`true`)}`);
+		}
+		if (opts.module !== ts.ts.ModuleKind.CommonJS) {
+			errors.push(`${yellow(`"module"`)} must be ${yellow(`"commonjs"`)}`);
+		}
+		if (opts.noLib !== true) {
+			errors.push(`${yellow(`"noLib"`)} must be ${yellow(`true`)}`);
+		}
+		if (opts.strict !== true) {
+			errors.push(`${yellow(`"strict"`)} must be ${yellow(`true`)}`);
+		}
+		if (opts.target !== ts.ts.ScriptTarget.ES2015) {
+			errors.push(`${yellow(`"target"`)} must be ${yellow(`"es6"`)}`);
+		}
+		if (opts.types === undefined || opts.types.indexOf("rbx-types") === -1) {
+			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
+		}
+
+		// configurable compiler options
+		if (opts.rootDir === undefined) {
+			errors.push(`${yellow(`"rootDir"`)} must be defined`);
+		}
+		if (opts.outDir === undefined) {
+			errors.push(`${yellow(`"outDir"`)} must be defined`);
+		}
+
+		// roact compiler options
+		if (opts.jsx !== undefined && opts.jsx !== ts.ts.JsxEmit.React) {
+			errors.push(`${yellow(`"jsx"`)} must be ${yellow(`"react"`)} or not defined`);
+		}
+		if (opts.jsxFactory !== undefined && opts.jsxFactory !== "Roact.createElement") {
+			errors.push(`${yellow(`"jsxFactory"`)} must be ${yellow(`"Roact.createElement"`)} or not defined`);
+		}
+
+		// throw if errors
+		if (errors.length > 0) {
+			throw new CompilerError(
+				`Invalid "tsconfig.json" configuration!\n` +
+					"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
+					"\n" +
+					errors.map(e => "- " + e).join("\n"),
+				CompilerErrorType.BadTsConfig,
+			);
 		}
 	}
 
@@ -411,15 +473,10 @@ export class Compiler {
 				throw new DiagnosticError(errors);
 			}
 
-			const sources = files
-				.filter(sourceFile => !sourceFile.isDeclarationFile())
-				.map(sourceFile => {
-					const transpiler = new Transpiler(this);
-					return [
-						this.transformPathToLua(sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile),
-					];
-				});
+			const sources = files.filter(sourceFile => !sourceFile.isDeclarationFile()).map(sourceFile => {
+				const transpiler = new Transpiler(this);
+				return [this.transformPathToLua(sourceFile.getFilePath()), transpiler.transpileSourceFile(sourceFile)];
+			});
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

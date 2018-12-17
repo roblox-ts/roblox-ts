@@ -1,5 +1,5 @@
 import * as ts from "ts-simple-ast";
-import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType } from "../utility";
+import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType, suggest } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 
@@ -165,10 +165,6 @@ function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	} else {
 		return `TS.bor(${lhsStr}, ${rhsStr})`;
 	}
-}
-
-function suggest(text: string) {
-	return `...\t\x1b[33m${text}\x1b[0m`;
 }
 
 function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
