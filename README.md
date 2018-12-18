@@ -1,12 +1,12 @@
 <div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
-<h1 align="center"><a href="https://roblox-ts.github.io/" target="_blank">roblox-ts</a></h1>
+<h1 align="center"><a href="https://roblox-ts.github.io/">roblox-ts</a></h1>
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <br>
 <div align="center">
-	<a href="https://discord.gg/f6Rn6RY" target="_blank"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
-	<a href="https://travis-ci.org/roblox-ts/roblox-ts" target="_blank"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
+	<a href="https://discord.gg/f6Rn6RY"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
+	<a href="https://travis-ci.org/roblox-ts/roblox-ts"><img src="https://travis-ci.org/roblox-ts/roblox-ts.svg?branch=master"></a>
 	<a href="https://coveralls.io/github/roblox-ts/roblox-ts?branch=master"><img src="https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master" alt="Coverage Status" /></a>
-	<a href="https://www.npmjs.com/package/roblox-ts" target="_blank"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
+	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
 </div>
 <div>&nbsp;</div>
 <div align="center">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</div>
@@ -29,4 +29,4 @@ https://discord.gg/f6Rn6RY
 **roblox-ts** is powered by [ts-simple-ast](https://github.com/dsherret/ts-simple-ast) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
 
 ## Games that use roblox-ts
-<a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha" target="_blank"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>
+<a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>
