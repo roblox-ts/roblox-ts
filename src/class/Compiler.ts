@@ -427,7 +427,6 @@ export class Compiler {
 			this.project.emit({ emitOnlyDtsFiles: true });
 		}
 
-		let amtErrors = 0;
 		const errors = new Array<string>();
 		if (!this.noStrict) {
 			for (const file of files) {
@@ -462,13 +461,12 @@ export class Compiler {
 						console.log(str);
 					}
 					errors.push(str);
-					amtErrors++;
 				}
 			}
 		}
 
 		try {
-			if (amtErrors > 0) {
+			if (errors.length > 0) {
 				process.exitCode = 1;
 				throw new DiagnosticError(errors);
 			}
