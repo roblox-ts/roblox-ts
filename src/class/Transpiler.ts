@@ -3342,13 +3342,20 @@ export class Transpiler {
 		const argExp = node.getArgumentExpressionOrThrow();
 
 		let addOne = false;
-		if (
-			isTupleLike(expType) ||
-			expType.isArray() ||
-			(ts.TypeGuards.isCallExpression(expNode) &&
-				(expNode.getReturnType().isArray() || isTupleLike(expNode.getReturnType())))
-		) {
+		if (isTupleLike(expType) || expType.isArray()) {
 			addOne = true;
+		} else if (ts.TypeGuards.isCallExpression(expNode)) {
+			const returnType = expNode.getReturnType();
+			if (returnType.isArray() || isTupleLike(returnType)) {
+				addOne = true;
+			}
+		} else if (expType.isIntersection()) {
+			for (const intersectionType of expType.getIntersectionTypes()) {
+				if (intersectionType.isArray()) {
+					addOne = true;
+					break;
+				}
+			}
 		}
 
 		let offset = "";
