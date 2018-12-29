@@ -1195,11 +1195,15 @@ export class Transpiler {
 				const isFlatBinding = lhs
 					.getElements()
 					.filter(v => ts.TypeGuards.isBindingElement(v))
-					.every(bindingElement => {
-						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
-					});
+					.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
 				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleLike(rhs.getReturnType())) {
-					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
+					for (const element of lhs.getElements()) {
+						if (ts.TypeGuards.isBindingElement(element)) {
+							names.push(element.getChildAtIndex(0).getText());
+						} else if (ts.TypeGuards.isOmittedExpression(element)) {
+							names.push("_");
+						}
+					}
 					values.push(this.transpileCallExpression(rhs, true));
 					const flatNamesStr = names.join(", ");
 					const flatValuesStr = values.join(", ");
