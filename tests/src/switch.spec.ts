@@ -9,6 +9,9 @@ function foo(s: string) {
 			if (true) {
 				break;
 			}
+		case "e": {
+			return 4;
+		}
 		default:
 			return -1;
 	}
@@ -21,6 +24,7 @@ export = () => {
 		expect(foo("b")).to.equal(1);
 		expect(foo("c")).to.equal(2);
 		expect(foo("d")).to.equal(3);
-		expect(foo("e")).to.equal(-1);
+		expect(foo("e")).to.equal(4);
+		expect(foo("f")).to.equal(-1);
 	});
 };
