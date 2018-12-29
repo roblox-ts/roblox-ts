@@ -2141,9 +2141,12 @@ export class Transpiler {
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
 			return "nil";
 		} else if (ts.TypeGuards.isThisExpression(node)) {
-			if (!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration)) {
+			if (
+				!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) &&
+				!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression)
+			) {
 				throw new TranspilerError(
-					"'this' may only be used inside a class definition",
+					"'this' may only be used inside a class definition or object literal",
 					node,
 					TranspilerErrorType.NoThisOutsideClass,
 				);
