@@ -2002,21 +2002,51 @@ export class Transpiler {
 		this.pushIndent();
 		this.pushIdStack();
 		const fallThroughVar = this.getNewId();
-		result += this.indent + `local ${fallThroughVar} = false;\n`;
-		for (const clause of node.getCaseBlock().getClauses()) {
+
+		const clauses = node.getCaseBlock().getClauses();
+		let anyFallThrough = false;
+		for (const clause of clauses) {
+			const statements = clause.getStatements();
+
+			let lastStatement = statements[statements.length - 1];
+			while (ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
+			const endsInReturnOrBreakStatement =
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+			if (!endsInReturnOrBreakStatement) {
+				anyFallThrough = true;
+			}
+		}
+
+		if (anyFallThrough) {
+			result += this.indent + `local ${fallThroughVar} = false;\n`;
+		}
+
+		let lastFallThrough = false;
+
+		for (const clause of clauses) {
 			// add if statement if the clause is non-default
 			if (ts.TypeGuards.isCaseClause(clause)) {
 				const clauseExpStr = this.transpileExpression(clause.getExpression());
-				result += this.indent + `if ${fallThroughVar} or ${expStr} == ( ${clauseExpStr} ) then\n`;
+				const fallThroughVarOr = lastFallThrough ? `${fallThroughVar} or ` : "";
+				result += this.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 				this.pushIndent();
 			}
 
 			const statements = clause.getStatements();
-			const lastChild = statements[statements.length - 1];
+
+			let lastStatement = statements[statements.length - 1];
+			while (ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
 			const endsInReturnOrBreakStatement =
-				lastChild &&
-				(lastChild.getKind() === ts.SyntaxKind.ReturnStatement ||
-					lastChild.getKind() === ts.SyntaxKind.BreakStatement);
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+			lastFallThrough = !endsInReturnOrBreakStatement;
 
 			result += this.transpileStatementedNode(clause);
 
