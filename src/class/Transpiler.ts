@@ -1145,7 +1145,7 @@ export class Transpiler {
 			}
 			return this.indent + `return ${this.transpileExpression(exp)};\n`;
 		} else {
-			return this.indent + `return;\n`;
+			return this.indent + `return nil;\n`;
 		}
 	}
 
@@ -2071,9 +2071,10 @@ export class Transpiler {
 	private transpileTryStatement(node: ts.TryStatement) {
 		let result = "";
 
-		const hasReturn = node.getFirstDescendantByKind(ts.SyntaxKind.ReturnStatement) !== undefined;
+		this.pushIdStack();
 
-		result += this.indent + `TS.try(\n`;
+		const returnsId = this.getNewId();
+		result += this.indent + `local ${returnsId} = TS.try(\n`;
 
 		this.pushIndent();
 
@@ -2097,11 +2098,14 @@ export class Transpiler {
 
 		this.popIndent();
 		result += this.indent + ");\n";
+		result += this.indent + `if ${returnsId}.size > 0 then return unpack(${returnsId}); end;\n`;
 
 		const finallyBlock = node.getFinallyBlock();
 		if (finallyBlock !== undefined) {
 			result += this.transpileStatementedNode(finallyBlock);
 		}
+
+		this.popIdStack();
 
 		return result;
 	}

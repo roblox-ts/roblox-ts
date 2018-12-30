@@ -675,6 +675,14 @@ function TS.Roact_combine(...)
     return result
 end
 
+-- try catch utilities
+
+local function pack(...)
+	local result = { ... }
+	result.size = select("#", ...)
+	return result
+end
+
 local throwStack = {}
 
 function TS.throw(value)
@@ -688,7 +696,17 @@ end
 function TS.try(tryCallback, catchCallback)
 	local done = false
 	local yielded = false
+	local popped = false
 	local resumeThread = coroutine.running()
+
+	local returns
+
+	local function pop()
+		if not popped then
+			popped = true
+			throwStack[#throwStack] = nil
+		end
+	end
 
 	local function resume()
 		if yielded then
@@ -702,8 +720,9 @@ function TS.try(tryCallback, catchCallback)
 	end
 
 	local function throw(value)
+		pop()
 		if catchCallback then
-			catchCallback(value)
+			returns = pack(catchCallback(value))
 		end
 		resume()
 		coroutine.yield()
@@ -712,7 +731,7 @@ function TS.try(tryCallback, catchCallback)
 	throwStack[#throwStack + 1] = throw
 
 	coroutine.wrap(function()
-		tryCallback()
+		returns = pack(tryCallback())
 		resume()
 	end)()
 
@@ -721,7 +740,9 @@ function TS.try(tryCallback, catchCallback)
 		coroutine.yield()
 	end
 
-	throwStack[#throwStack] = nil
+	pop()
+
+	return returns
 end
 
 return TS
