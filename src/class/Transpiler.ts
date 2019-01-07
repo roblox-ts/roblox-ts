@@ -1061,10 +1061,20 @@ export class Transpiler {
 			throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
-		this.pushIndent();
+
+		if (exp.getType().isArray()) {
+			const myInt = this.getNewId();
+			result += this.indent + `for ${myInt} = 1, #${expStr} do\n`;
+			this.pushIndent();
+			result += this.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+		} else {
+			result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+			this.pushIndent();
+		}
+
 		initializers.forEach(initializer => (result += this.indent + initializer));
 		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
