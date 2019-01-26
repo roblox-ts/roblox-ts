@@ -3327,7 +3327,7 @@ export class Transpiler {
 
 		if (expType.isString() || expType.isStringLiteral() || expType.isArray()) {
 			if (propertyStr === "length") {
-				return `#${expStr}`;
+				return `(#${expStr})`;
 			}
 		}
 
