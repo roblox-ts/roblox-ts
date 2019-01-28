@@ -1166,7 +1166,11 @@ export class Transpiler {
 
 		const parent = node.getParent();
 		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			if (parent.hasExportKeyword() && declarationKind === ts.VariableDeclarationKind.Let) {
+			if (
+				parent.hasExportKeyword() &&
+				declarationKind === ts.VariableDeclarationKind.Let &&
+				parent.getParent().getKind() === ts.SyntaxKind.SourceFile
+			) {
 				throw new TranspilerError(
 					"'export let' is not supported! Use 'export const' instead.",
 					node,
