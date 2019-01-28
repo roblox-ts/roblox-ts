@@ -3537,7 +3537,7 @@ export class Transpiler {
 					throw new TranspilerError(
 						"ModuleScript contains multiple ExportEquals. You can only do `export = ` once.",
 						node,
-						TranspilerErrorType.ExportInNonModuleScript,
+						TranspilerErrorType.MultipleExportEquals,
 					);
 				}
 				if (Descendant.isExportEquals()) {
