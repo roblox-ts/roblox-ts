@@ -634,7 +634,6 @@ export class Transpiler {
 				}
 			}
 		}
-
 		for (const def of node.getDefinitions()) { // I have no idea why, but getDefinitionNodes() cannot replace this
 			const definition = def.getNode();
 			const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
@@ -885,7 +884,7 @@ export class Transpiler {
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
 			if (rhs.length <= 1) {
-				rhsPrefix = (luaPath !== "") ? `require(${luaPath})` : "";
+				rhsPrefix = luaPath !== "" ? `require(${luaPath})` : "";
 			} else {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
@@ -2042,7 +2041,6 @@ export class Transpiler {
 			}
 		} else {
 			const symbol = node.getSymbol();
-
 			if (symbol) {
 				if (symbol.getName() === "default") { // I couldn't find a better way to do this
 					this.isModule = true;
