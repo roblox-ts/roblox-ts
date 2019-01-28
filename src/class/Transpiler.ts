@@ -2622,6 +2622,9 @@ export class Transpiler {
 				} else if (ts.TypeGuards.isIdentifier(child)) {
 					lhs = this.transpileIdentifier(child);
 					this.checkReserved(lhs, child);
+				} else if (ts.TypeGuards.isNumericLiteral(child)) {
+					const expStr = this.transpileNumericLiteral(child);
+					lhs = `[${expStr}]`;
 				} else {
 					throw new TranspilerError(
 						`Unexpected type of object index! (${child.getKindName()})`,
