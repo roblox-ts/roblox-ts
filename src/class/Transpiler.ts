@@ -639,7 +639,7 @@ export class Transpiler {
 			const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
 
 			if (parent && parent.isExported()) {
-				return `${this.getExportContextName(parent)}.${name}`;
+				return this.getExportContextName(parent) + "." + name;
 			}
 		}
 
@@ -2690,9 +2690,11 @@ export class Transpiler {
 					this.pushIndent();
 				}
 
-				let rhs: string;
-				if (ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
-					rhs = prop.getName();
+				let rhs: string; // You may want to move this around
+				if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
+					lhs = prop.getName();
+					rhs = this.transpileIdentifier(child);
+					this.checkReserved(lhs, child);
 				} else {
 					rhs = this.transpileExpression(prop.getInitializerOrThrow());
 				}
