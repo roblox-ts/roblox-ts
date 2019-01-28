@@ -981,6 +981,17 @@ export class Transpiler {
 		return this.indent + `_continue_${this.continueId} = true; break;\n`;
 	}
 
+	private isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
+		if (ts.TypeGuards.isCallExpression(node)) {
+			const exp = node.getExpression();
+			if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+				const subExpType = exp.getExpression().getType();
+				return (subExpType.isString() || subExpType.isStringLiteral()) && exp.getName() === "gmatch";
+			}
+		}
+		return false;
+	}
+
 	private transpileForInStatement(node: ts.ForInStatement) {
 		this.pushIdStack();
 		const init = node.getInitializer();
@@ -1012,9 +1023,16 @@ export class Transpiler {
 			throw new TranspilerError(`ForIn Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+
+		if (this.isCallExpressionOverridable(exp)) {
+			result += this.indent + `for ${varName} in ${expStr} do\n`;
+		} else {
+			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+		}
+
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 		result += this.transpileLoopBody(node.getStatement());
