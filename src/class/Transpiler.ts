@@ -634,7 +634,8 @@ export class Transpiler {
 				}
 			}
 		}
-		for (const def of node.getDefinitions()) { // I have no idea why, but getDefinitionNodes() cannot replace this
+		// I have no idea why, but getDefinitionNodes() cannot replace this
+		for (const def of node.getDefinitions()) {
 			const definition = def.getNode();
 			const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
 
@@ -2042,7 +2043,8 @@ export class Transpiler {
 		} else {
 			const symbol = node.getSymbol();
 			if (symbol) {
-				if (symbol.getName() === "default") { // I couldn't find a better way to do this
+				// I couldn't find a better way to do this
+				if (symbol.getName() === "default") {
 					this.isModule = true;
 					result += "_exports._default = " + this.transpileExpression(node.getExpression()) + ";\n";
 				}
