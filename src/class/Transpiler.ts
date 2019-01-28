@@ -1172,7 +1172,7 @@ export class Transpiler {
 				parent.getParent().getKind() === ts.SyntaxKind.SourceFile
 			) {
 				throw new TranspilerError(
-					"'export let' is not supported! Use 'export const' instead.",
+					"'export let' is not supported in the main source! Please use 'export const' or wrap it in an object.",
 					node,
 					TranspilerErrorType.NoExportLetKeyword,
 				);
