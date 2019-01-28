@@ -1527,8 +1527,10 @@ export class Transpiler {
 		return declaration;
 	}
 
-	private transpileClassDeclaration(node: ts.ClassDeclaration | ts.ClassExpression) {
-		const name = node.getName() || this.getNewId();
+	private transpileClassDeclaration(
+		node: ts.ClassDeclaration | ts.ClassExpression,
+		name: string = node.getName() || this.getNewId(),
+	) {
 		const nameNode = node.getNameNode();
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
@@ -2030,10 +2032,10 @@ export class Transpiler {
 			this.isModule = true;
 			const exp = node.getExpression();
 			if (ts.TypeGuards.isClassExpression(exp)) {
-				const className = this.idStack[this.idStack.length - 1];
-				result += `${this.transpileClassDeclaration(exp)}`;
+				const className = exp.getName() || this.getNewId();
+				result += this.transpileClassDeclaration(exp, className);
 				result += this.indent;
-				result += `_exports = _${className};\n`;
+				result += `_exports = ${className};\n`;
 			} else {
 				const expStr = this.transpileExpression(exp);
 				result += `_exports = ${expStr};\n`;
