@@ -53,6 +53,7 @@ export enum TranspilerErrorType {
 	RoactInvalidPropertyExpression,
 	UnexpectedObjectIndex,
 	NoExportLetKeyword,
+	MultipleExportEquals,
 }
 
 export class TranspilerError extends Error {
