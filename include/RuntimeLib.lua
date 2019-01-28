@@ -62,7 +62,7 @@ TS.Instance = setmetatable({}, {
 			end
 		})
 		self[className] = object
-		return self[className]
+		return object
 	end
 })
 
