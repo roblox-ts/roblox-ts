@@ -634,13 +634,15 @@ export class Transpiler {
 				}
 			}
 		}
-		// I have no idea why, but getDefinitionNodes() cannot replace this
 		for (const def of node.getDefinitions()) {
-			const definition = def.getNode();
-			const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+			if (def.getSourceFile() === node.getSourceFile()) {
+				// I have no idea why, but getDefinitionNodes() cannot replace this
+				const definition = def.getNode();
+				const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
 
-			if (parent && parent.isExported()) {
-				return this.getExportContextName(parent) + "." + name;
+				if (parent && parent.hasExportKeyword()) {
+					return this.getExportContextName(parent) + "." + name;
+				}
 			}
 		}
 
@@ -764,20 +766,28 @@ export class Transpiler {
 
 		let result = "";
 		let rhsPrefix: string;
+		const hasVarNames = lhs.length > 0;
+
 		if (rhs.length === 1) {
 			rhsPrefix = luaPath;
 		} else {
-			rhsPrefix = this.getNewId();
-			result += `local ${rhsPrefix} = ${luaPath};\n`;
-		}
-		const lhsStr = lhs.join(", ");
-		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-
-		if (lhsStr === "Roact") {
-			this.hasRoactImport = true;
+			if (hasVarNames) {
+				rhsPrefix = this.getNewId();
+				result += `local ${rhsPrefix} = `;
+			}
+			result += `${luaPath};\n`;
 		}
 
-		result += `local ${lhsStr} = ${rhsStr};\n`;
+		if (hasVarNames) {
+			const lhsStr = lhs.join(", ");
+			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+
+			if (lhsStr === "Roact") {
+				this.hasRoactImport = true;
+			}
+			result += `local ${lhsStr} = ${rhsStr};\n`;
+		}
+
 		return result;
 	}
 
@@ -2043,7 +2053,6 @@ export class Transpiler {
 		} else {
 			const symbol = node.getSymbol();
 			if (symbol) {
-				// I couldn't find a better way to do this
 				if (symbol.getName() === "default") {
 					this.isModule = true;
 					result += "_exports._default = " + this.transpileExpression(node.getExpression()) + ";\n";
@@ -2227,6 +2236,8 @@ export class Transpiler {
 				node,
 				TranspilerErrorType.NoNull,
 			);
+		} else if (ts.TypeGuards.isImportExpression(node)) {
+			return "TS.import";
 		} else {
 			const kindName = node.getKindName();
 			throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
