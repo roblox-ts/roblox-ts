@@ -54,6 +54,7 @@ export enum TranspilerErrorType {
 	UnexpectedObjectIndex,
 	NoExportLetKeyword,
 	MultipleExportEquals,
+	NoDynamicImport,
 }
 
 export class TranspilerError extends Error {
