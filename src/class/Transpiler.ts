@@ -379,10 +379,17 @@ export class Transpiler {
 
 	private getExportContextName(node: ts.VariableStatement | ts.Node): string {
 		const myNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-		let name: string;
+		let name;
 
 		if (myNamespace) {
-			name = this.namespaceStack.get(myNamespace) as string;
+			name = this.namespaceStack.get(myNamespace);
+			if (!name) {
+				throw new TranspilerError(
+					`Failed to find context for ${node.getKindName()}`,
+					node,
+					TranspilerErrorType.BadContext,
+				);
+			}
 		} else {
 			name = "_exports";
 			this.isModule = true;
