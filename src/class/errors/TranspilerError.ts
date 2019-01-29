@@ -55,6 +55,8 @@ export enum TranspilerErrorType {
 	NoExportLetKeyword,
 	MultipleExportEquals,
 	NoDynamicImport,
+	InvalidIdentifier,
+	RobloxTSReservedIdentifier,
 }
 
 export class TranspilerError extends Error {
