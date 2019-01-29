@@ -53,6 +53,11 @@ export enum TranspilerErrorType {
 	RoactInvalidPropertyExpression,
 	UnexpectedObjectIndex,
 	NoExportLetKeyword,
+	MultipleExportEquals,
+	NoDynamicImport,
+	InvalidIdentifier,
+	RobloxTSReservedIdentifier,
+	BadContext,
 }
 
 export class TranspilerError extends Error {
