@@ -2778,7 +2778,14 @@ export class Transpiler {
 				}
 
 				let lhs: string;
-				const child = prop.getChildAtIndex(0);
+
+				let n = 0;
+				let child = prop.getChildAtIndex(n);
+				while (ts.TypeGuards.isJSDoc(child)) {
+					n++;
+					child = prop.getChildAtIndex(n);
+				}
+
 				if (ts.TypeGuards.isComputedPropertyName(child)) {
 					const expStr = this.transpileExpression(child.getExpression());
 					lhs = `[${expStr}]`;
