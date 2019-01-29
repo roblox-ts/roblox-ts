@@ -377,19 +377,24 @@ export class Transpiler {
 		this.indent = this.indent.substr(1);
 	}
 
+	private safeMapGet<T, R>(MapObj: Map<T, R>, Key: T, node: ts.Node) {
+		const Find = MapObj.get(Key);
+		if (!Find) {
+			throw new TranspilerError(
+				`Failed to find context for ${node.getKindName()}`,
+				node,
+				TranspilerErrorType.BadContext,
+			);
+		}
+		return Find;
+	}
+
 	private getExportContextName(node: ts.VariableStatement | ts.Node): string {
 		const myNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 		let name;
 
 		if (myNamespace) {
-			name = this.namespaceStack.get(myNamespace);
-			if (!name) {
-				throw new TranspilerError(
-					`Failed to find context for ${node.getKindName()}`,
-					node,
-					TranspilerErrorType.BadContext,
-				);
-			}
+			name = this.safeMapGet(this.namespaceStack, myNamespace, node);
 		} else {
 			name = "_exports";
 			this.isModule = true;
@@ -2074,7 +2079,8 @@ export class Transpiler {
 		let result = "";
 		const id = this.getNewId();
 		if (parentNamespace) {
-			result += this.indent + `${name} = ${this.namespaceStack.get(parentNamespace)}.${name} or {} do\n`;
+			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace, node);
+			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
 		} else {
 			result += this.indent + `${name} = ${name} or {} do\n`;
 		}
@@ -2087,39 +2093,6 @@ export class Transpiler {
 		this.popIdStack();
 		return result;
 	}
-
-	/*
-	private transpileNamespaceDeclaration(node: ts.NamespaceDeclaration) {
-		if (this.isTypeOnlyNamespace(node)) {
-			return "";
-		}
-		this.pushIdStack();
-		const originalName = node.getName();
-		let name = originalName;
-		this.checkReserved(name, node);
-		const currentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-
-		if (currentNamespace) {
-			name = currentNamespace.getName() + "." + name;
-		} else {
-			this.hoistStack[this.hoistStack.length - 1].add(name);
-			this.pushExport(name, node);
-		}
-
-		let result = "";
-		result += this.indent + `${name} = ${name} or {};\n`;
-		result += this.indent + "do\n";
-		this.pushIndent();
-		if (originalName !== name) {
-			result += this.indent + `local ${originalName} = ${name};\n`;
-		}
-		result += this.transpileStatementedNode(node);
-		this.popIndent();
-		result += this.indent + `end;\n`;
-		this.popIdStack();
-		return result;
-	}
-	*/
 
 	private transpileEnumDeclaration(node: ts.EnumDeclaration) {
 		let result = "";
