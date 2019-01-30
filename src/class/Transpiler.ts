@@ -341,7 +341,7 @@ export class Transpiler {
 				node,
 				TranspilerErrorType.InvalidIdentifier,
 			);
-		} else if (name.match(/^_[0-9]+$/)) {
+		} else if (name === "_exports" || name.match(/^_[0-9]+$/)) {
 			throw new TranspilerError(
 				`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 				node,
