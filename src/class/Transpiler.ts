@@ -3148,7 +3148,6 @@ export class Transpiler {
 					);
 			}
 
-
 			const parentKind = node.getParentOrThrow().getKind();
 			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
 				return statements.join("; ");
