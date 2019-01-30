@@ -1144,9 +1144,14 @@ export class Transpiler {
 			throw new TranspilerError(`ForIn Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+		if (exp.getType().isArray()) {
+			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
+		} else {
+			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+		}
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 		result += this.transpileLoopBody(node.getStatement());
