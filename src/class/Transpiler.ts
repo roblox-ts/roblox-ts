@@ -976,7 +976,11 @@ export class Transpiler {
 			}
 			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 		} else {
-			node.getNamedExports().forEach(namedExport => {
+			const namedExports = node.getNamedExports();
+			if (namedExports.length === 0) {
+				return "";
+			}
+			namedExports.forEach(namedExport => {
 				const aliasNode = namedExport.getAliasNode();
 				let name = namedExport.getNameNode().getText();
 				if (name === "default") {
