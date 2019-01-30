@@ -815,7 +815,22 @@ export class Transpiler {
 
 		const defaultImport = node.getDefaultImport();
 		if (defaultImport) {
-			lhs.push(this.transpileExpression(defaultImport));
+			const defintions = defaultImport.getDefinitions();
+			const exportAssignments =
+				defintions.length > 0 &&
+				defintions[0]
+					.getNode()
+					.getSourceFile()
+					.getExportAssignments();
+
+			const defaultImportExp = this.transpileExpression(defaultImport);
+
+			if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
+				// If the defaultImport is importing an `export = ` statement,
+				return `local ${defaultImportExp} = ${luaPath};\n`;
+			}
+
+			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
 		}
 
