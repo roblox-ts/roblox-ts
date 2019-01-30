@@ -2817,7 +2817,7 @@ export class Transpiler {
 					const expStr = this.transpileStringLiteral(child);
 					lhs = `[${expStr}]`;
 				} else if (ts.TypeGuards.isIdentifier(child)) {
-					lhs = this.transpileIdentifier(child);
+					lhs = child.getText();
 					this.checkReserved(lhs, child);
 				} else {
 					throw new TranspilerError(
