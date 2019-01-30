@@ -1257,7 +1257,7 @@ export class Transpiler {
 
 							// don't leak
 							const previous = this.unlocalizedVariables.get(name) || "";
-							cleanup = () => (this.unlocalizedVariables.set(name, previous));
+							cleanup = () => this.unlocalizedVariables.set(name, previous);
 							this.unlocalizedVariables.set(name, alias);
 						}
 					}
