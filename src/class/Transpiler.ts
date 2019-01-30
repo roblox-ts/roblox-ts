@@ -815,10 +815,10 @@ export class Transpiler {
 
 		const defaultImport = node.getDefaultImport();
 		if (defaultImport) {
-			const defintions = defaultImport.getDefinitions();
+			const definitions = defaultImport.getDefinitions();
 			const exportAssignments =
-				defintions.length > 0 &&
-				defintions[0]
+				definitions.length > 0 &&
+				definitions[0]
 					.getNode()
 					.getSourceFile()
 					.getExportAssignments();
