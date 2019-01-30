@@ -1256,13 +1256,27 @@ export class Transpiler {
 		return undefined;
 	}
 
+	private arrayLiteralHasNoJSX(exp: ts.ArrayLiteralExpression) {
+		for (const element of exp.getElements()) {
+			if (
+				ts.TypeGuards.isJsxExpression(element) ||
+				ts.TypeGuards.isJsxSelfClosingElement(element) ||
+				ts.TypeGuards.isJsxElement(element)
+			) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
 			const ancestor = this.getFirstFunctionLikeAncestor(node);
 			if (ancestor) {
-				if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
-					let expStr = this.transpileExpression(exp);
+				if (ts.TypeGuards.isArrayLiteralExpression(exp) && this.arrayLiteralHasNoJSX(exp)) {
+					let expStr = this.transpileArrayLiteralExpression(exp);
 					expStr = expStr.substr(2, expStr.length - 4);
 					return this.indent + `return ${expStr};\n`;
 				} else if (isTupleLike(ancestor.getReturnType())) {
