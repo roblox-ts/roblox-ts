@@ -158,7 +158,6 @@ if (argv.watch === true) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
-				await update(filePath);
 				isCompiling = false;
 			}
 		});

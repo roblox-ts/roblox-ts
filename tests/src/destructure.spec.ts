@@ -118,4 +118,13 @@ export = () => {
 		expect(e).to.equal(2);
 		expect(f).to.equal(3);
 	});
+
+	it("should optimize tuple destructuring with omitted expressions", () => {
+		function a(): [number, number, number, number] {
+			return [1, 2, 3, 4];
+		}
+		const [, b, , c] = a();
+		expect(b).to.equal(2);
+		expect(c).to.equal(4);
+	});
 };
