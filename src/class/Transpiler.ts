@@ -3012,16 +3012,16 @@ export class Transpiler {
 				switch (property) {
 					case "add":
 						validateMathCall();
-						return `(${accessPath} + ${params})`;
+						return `(${accessPath} + (${params}))`;
 					case "sub":
 						validateMathCall();
-						return `(${accessPath} - ${params})`;
+						return `(${accessPath} - (${params}))`;
 					case "mul":
 						validateMathCall();
-						return `(${accessPath} * ${params})`;
+						return `(${accessPath} * (${params}))`;
 					case "div":
 						validateMathCall();
-						return `(${accessPath} / ${params})`;
+						return `(${accessPath} / (${params}))`;
 				}
 			}
 		}
