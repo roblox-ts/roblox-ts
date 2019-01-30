@@ -1215,14 +1215,6 @@ export class Transpiler {
 		}
 	}
 
-	private statementContainsFunction(statement: ts.Statement<ts.ts.Statement>) {
-		return (
-			statement.getFirstDescendantByKind(ts.SyntaxKind.FunctionExpression) ||
-			statement.getFirstDescendantByKind(ts.SyntaxKind.ArrowFunction) ||
-			statement.getFirstDescendantByKind(ts.SyntaxKind.FunctionDeclaration)
-		);
-	}
-
 	private transpileForStatement(node: ts.ForStatement) {
 		this.pushIdStack();
 		const statement = node.getStatement();
@@ -1243,7 +1235,7 @@ export class Transpiler {
 			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
 				if (
 					initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let &&
-					this.statementContainsFunction(statement)
+					this.getFirstFunctionLikeAncestor(statement)
 				) {
 					const declarations = initializer.getDeclarations();
 					if (declarations.length > 0) {
