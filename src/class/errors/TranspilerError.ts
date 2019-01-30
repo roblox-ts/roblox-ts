@@ -58,6 +58,7 @@ export enum TranspilerErrorType {
 	InvalidIdentifier,
 	RobloxTSReservedIdentifier,
 	BadContext,
+	ClassyLoop,
 }
 
 export class TranspilerError extends Error {
