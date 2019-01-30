@@ -3697,11 +3697,7 @@ export class Transpiler {
 			result += this.indent + "return _exports;\n";
 		} else {
 			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
-				throw new TranspilerError(
-					"ModuleScript contains no exports!",
-					node,
-					TranspilerErrorType.ModuleScriptContainsNoExports,
-				);
+				result += this.indent + "return nil;\n";
 			}
 		}
 		result =
