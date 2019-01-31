@@ -1,5 +1,5 @@
 import * as ts from "ts-simple-ast";
-import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType } from "../utility";
+import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType, suggest } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 
@@ -156,15 +156,15 @@ function isRbxDataClassType(type: ts.Type) {
 }
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
-	if (rhsStr === "0" || rhsStr === "(0)") {
+	let rhs = node.getRight();
+	if (ts.TypeGuards.isParenthesizedExpression(rhs)) {
+		rhs = rhs.getExpression();
+	}
+	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
 		return `TS.round(${lhsStr})`;
 	} else {
 		return `TS.bor(${lhsStr}, ${rhsStr})`;
 	}
-}
-
-function suggest(text: string) {
-	return `...\t\x1b[33m${text}\x1b[0m`;
 }
 
 function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
@@ -203,6 +203,24 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	}
 
 	return typeArray;
+}
+
+function isRoactElementType(type: ts.Type) {
+	const allowed = [ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`];
+	const types = type.getUnionTypes();
+
+	if (types.length > 0) {
+		for (const unionType of types) {
+			const unionTypeName = unionType.getText();
+			if (allowed.indexOf(unionTypeName) === -1 && unionTypeName !== "undefined") {
+				return false;
+			}
+		}
+	} else {
+		return allowed.indexOf(type.getText()) !== -1;
+	}
+
+	return true;
 }
 
 function inheritsFromRoact(type: ts.Type): boolean {
@@ -244,7 +262,7 @@ function isRbxInstance(node: ts.Node): boolean {
 	return inheritsFrom(node.getType(), "Rbx_Instance");
 }
 
-function getConstructor(node: ts.ClassDeclaration) {
+function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
 	}
@@ -256,7 +274,10 @@ function isBindingPattern(node: ts.Node) {
 	);
 }
 
-function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.MethodDeclaration | undefined {
+function getClassMethod(
+	classDec: ts.ClassDeclaration | ts.ClassExpression,
+	methodName: string,
+): ts.MethodDeclaration | undefined {
 	const method = classDec.getMethod(methodName);
 	if (method) {
 		return method;
@@ -285,9 +306,12 @@ function isTupleLike(type: ts.Type) {
 }
 
 export class Transpiler {
-	private hoistStack = new Array<Array<string>>();
-	private exportStack = new Array<Array<string>>();
-	private namespaceStack = new Array<string>();
+	// in the form EXPORT_LET_VAR_NAME : NAMESPACE_LOCATION
+	private unlocalizedVariables = new Map<string, string>();
+
+	private hoistStack = new Array<Set<string>>();
+	private exportStack = new Array<Set<string>>();
+	private namespaceStack = new Map<ts.NamespaceDeclaration, string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
@@ -307,17 +331,30 @@ export class Transpiler {
 	private checkReserved(name: string, node: ts.Node) {
 		if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
 			throw new TranspilerError(
-				`Cannot use reserved Lua keyword as identifier '${name}'`,
+				`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 				node,
 				TranspilerErrorType.ReservedKeyword,
+			);
+		} else if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+			throw new TranspilerError(
+				`Cannot use '${name}' as identifier (doesn't match Lua's identifier rules)`,
+				node,
+				TranspilerErrorType.InvalidIdentifier,
+			);
+		} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
+			throw new TranspilerError(
+				`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
+				node,
+				TranspilerErrorType.RobloxTSReservedIdentifier,
 			);
 		}
 	}
 
 	private checkMethodReserved(name: string, node: ts.Node) {
+		this.checkReserved(name, node);
 		if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
 			throw new TranspilerError(
-				`Cannot use reserved Lua metamethod as identifier '${name}'`,
+				`Cannot use '${name}' as a method name (reserved Lua metamethod)`,
 				node,
 				TranspilerErrorType.ReservedMethodName,
 			);
@@ -340,20 +377,41 @@ export class Transpiler {
 		this.indent = this.indent.substr(1);
 	}
 
+	private safeMapGet<T, R>(MapObj: Map<T, R>, Key: T, node: ts.Node) {
+		const Find = MapObj.get(Key);
+		if (!Find) {
+			throw new TranspilerError(
+				`Failed to find context for ${node.getKindName()}`,
+				node,
+				TranspilerErrorType.BadContext,
+			);
+		}
+		return Find;
+	}
+
+	private getExportContextName(node: ts.VariableStatement | ts.Node): string {
+		const myNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+		let name;
+
+		if (myNamespace) {
+			name = this.safeMapGet(this.namespaceStack, myNamespace, node);
+		} else {
+			name = "_exports";
+			this.isModule = true;
+		}
+
+		return name;
+	}
+
 	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.isExported()) {
+		if (!node.hasExportKeyword()) {
 			return;
 		}
 
-		let ancestorName: string;
-		if (this.namespaceStack.length > 0) {
-			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-		} else {
-			this.isModule = true;
-			ancestorName = "_exports";
-		}
+		this.isModule = true;
+		const ancestorName = this.getExportContextName(node);
 		const alias = node.isDefaultExport() ? "_default" : name;
-		this.exportStack[this.exportStack.length - 1].push(`${ancestorName}.${alias} = ${name};\n`);
+		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
 	private getBindingData(
@@ -521,11 +579,19 @@ export class Transpiler {
 		return false;
 	}
 
+	private popHoistStack(result: string) {
+		const hoists = this.hoistStack.pop();
+		if (hoists && hoists.size > 0) {
+			result = this.indent + `local ${[...hoists].join(", ")};\n` + result;
+		}
+		return result;
+	}
+
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
-		this.exportStack.push(new Array<string>());
+		this.exportStack.push(new Set<string>());
 		let result = "";
-		this.hoistStack.push(new Array<string>());
+		this.hoistStack.push(new Set<string>());
 		for (const child of node.getStatements()) {
 			result += this.transpileStatement(child);
 			if (child.getKind() === ts.SyntaxKind.ReturnStatement) {
@@ -533,13 +599,10 @@ export class Transpiler {
 			}
 		}
 
-		const hoists = this.hoistStack.pop();
-		if (hoists && hoists.length > 0) {
-			const hoistsStr = hoists.join(", ");
-			result = this.indent + `local ${hoistsStr};\n` + result;
-		}
+		result = this.popHoistStack(result);
+
 		const scopeExports = this.exportStack.pop();
-		if (scopeExports && scopeExports.length > 0) {
+		if (scopeExports && scopeExports.size > 0) {
 			scopeExports.forEach(scopeExport => (result += this.indent + scopeExport));
 		}
 		this.popIdStack();
@@ -594,6 +657,41 @@ export class Transpiler {
 				}
 			}
 		}
+
+		for (const def of node.getDefinitions()) {
+			const definition = def.getNode();
+
+			if (def.getSourceFile() === node.getSourceFile()) {
+				// I have no idea why, but getDefinitionNodes() cannot replace this
+				const declaration = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+
+				if (declaration) {
+					if (declaration.hasExportKeyword()) {
+						return this.getExportContextName(declaration) + "." + name;
+					}
+				} else {
+					const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+
+					if (parent) {
+						const grandparent = parent.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+						if (grandparent) {
+							const parentName = this.namespaceStack.get(grandparent);
+							if (parentName) {
+								return parentName + "." + name;
+							}
+						}
+					}
+				}
+			} else {
+				if (this.isDefinitionALet(def)) {
+					const namespace = this.unlocalizedVariables.get(name);
+					if (namespace) {
+						return namespace;
+					}
+				}
+			}
+		}
+
 		return name;
 	}
 
@@ -667,6 +765,29 @@ export class Transpiler {
 		}
 	}
 
+	private isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
+		const parent = def.getNode().getParent();
+
+		if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
+			const grandparent = parent.getParent();
+			return (
+				ts.TypeGuards.isVariableDeclarationList(grandparent) &&
+				grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
+			);
+		}
+		return false;
+	}
+
+	private shouldLocalizeImport(namedImport: ts.Identifier) {
+		for (const def of namedImport.getDefinitions()) {
+			if (this.isDefinitionALet(def)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
@@ -694,7 +815,22 @@ export class Transpiler {
 
 		const defaultImport = node.getDefaultImport();
 		if (defaultImport) {
-			lhs.push(this.transpileExpression(defaultImport));
+			const definitions = defaultImport.getDefinitions();
+			const exportAssignments =
+				definitions.length > 0 &&
+				definitions[0]
+					.getNode()
+					.getSourceFile()
+					.getExportAssignments();
+
+			const defaultImportExp = this.transpileExpression(defaultImport);
+
+			if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
+				// If the defaultImport is importing an `export = ` statement,
+				return `local ${defaultImportExp} = ${luaPath};\n`;
+			}
+
+			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
 		}
 
@@ -704,30 +840,54 @@ export class Transpiler {
 			rhs.push("");
 		}
 
+		let result = "";
+		let rhsPrefix: string;
+		let hasVarNames = false;
+		const unlocalizedImports = new Array<string>();
+
 		node.getNamedImports().forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
+			const shouldLocalizeImport = this.shouldLocalizeImport(namedImport.getNameNode());
+
+			// Keep these here no matter what, so that exports can take from intinial state.
+			this.checkReserved(alias, node);
 			lhs.push(alias);
 			rhs.push(`.${name}`);
+
+			if (shouldLocalizeImport) {
+				unlocalizedImports.push("");
+			} else {
+				hasVarNames = true;
+				unlocalizedImports.push(alias);
+			}
 		});
 
-		let result = "";
-		let rhsPrefix: string;
-		if (rhs.length === 1) {
+		if (rhs.length === 1 && !hasVarNames) {
 			rhsPrefix = luaPath;
 		} else {
-			rhsPrefix = this.getNewId();
-			result += `local ${rhsPrefix} = ${luaPath};\n`;
-		}
-		const lhsStr = lhs.join(", ");
-		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-
-		if (lhsStr === "Roact") {
-			this.hasRoactImport = true;
+			if (hasVarNames || lhs.length > 0) {
+				rhsPrefix = this.getNewId();
+				result += `local ${rhsPrefix} = `;
+			}
+			result += `${luaPath};\n`;
 		}
 
-		result += `local ${lhsStr} = ${rhsStr};\n`;
+		unlocalizedImports
+			.filter(alias => alias !== "")
+			.forEach((alias, i) => this.unlocalizedVariables.set(alias, rhsPrefix + rhs[i]));
+
+		if (hasVarNames || lhs.length > 0) {
+			const lhsStr = lhs.join(", ");
+			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+
+			if (lhsStr === "Roact") {
+				this.hasRoactImport = true;
+			}
+			result += `local ${lhsStr} = ${rhsStr};\n`;
+		}
+
 		return result;
 	}
 
@@ -816,22 +976,31 @@ export class Transpiler {
 			}
 			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 		} else {
-			node.getNamedExports().forEach(namedExport => {
+			const namedExports = node.getNamedExports();
+			if (namedExports.length === 0) {
+				return "";
+			}
+			namedExports.forEach(namedExport => {
 				const aliasNode = namedExport.getAliasNode();
 				let name = namedExport.getNameNode().getText();
 				if (name === "default") {
 					name = "_" + name;
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
+				this.checkReserved(alias, node);
 				lhs.push(alias);
-				rhs.push(`.${name}`);
+				if (luaPath !== "") {
+					rhs.push(`.${name}`);
+				} else {
+					rhs.push(name);
+				}
 			});
 
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
 			if (rhs.length <= 1) {
-				rhsPrefix = `require(${luaPath})`;
+				rhsPrefix = luaPath !== "" ? `require(${luaPath})` : "";
 			} else {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
@@ -994,9 +1163,14 @@ export class Transpiler {
 			throw new TranspilerError(`ForIn Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+		if (exp.getType().isArray()) {
+			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
+		} else {
+			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
+		}
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 		result += this.transpileLoopBody(node.getStatement());
@@ -1106,26 +1280,27 @@ export class Transpiler {
 		return undefined;
 	}
 
+	private getReturnStrFromExpression(exp: ts.Expression, func?: ts.FunctionLikeDeclaration) {
+		if (func && isTupleLike(func.getReturnType())) {
+			if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+				let expStr = this.transpileExpression(exp);
+				expStr = expStr.substr(2, expStr.length - 4);
+				return this.indent + `return ${expStr};`;
+			} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
+				const expStr = this.transpileCallExpression(exp, true);
+				return this.indent + `return ${expStr};`;
+			} else {
+				const expStr = this.transpileExpression(exp);
+				return this.indent + `return unpack(${expStr});`;
+			}
+		}
+		return this.indent + `return ${this.transpileExpression(exp)};`;
+	}
+
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
-			const ancestor = this.getFirstFunctionLikeAncestor(node);
-			if (ancestor) {
-				if (isTupleLike(ancestor.getReturnType())) {
-					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
-						let expStr = this.transpileExpression(exp);
-						expStr = expStr.substr(2, expStr.length - 4);
-						return this.indent + `return ${expStr};\n`;
-					} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
-						const expStr = this.transpileCallExpression(exp, true);
-						return this.indent + `return ${expStr};\n`;
-					} else {
-						const expStr = this.transpileExpression(exp);
-						return this.indent + `return unpack(${expStr});\n`;
-					}
-				}
-			}
-			return this.indent + `return ${this.transpileExpression(exp)};\n`;
+			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
 		} else {
 			return this.indent + `return;\n`;
 		}
@@ -1137,18 +1312,27 @@ export class Transpiler {
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
-		if (node.getDeclarationKind() === ts.VariableDeclarationKind.Var) {
+		const declarationKind = node.getDeclarationKind();
+		if (declarationKind === ts.VariableDeclarationKind.Var) {
 			throw new TranspilerError(
 				"'var' keyword is not supported! Use 'let' or 'const' instead.",
 				node,
 				TranspilerErrorType.NoVarKeyword,
 			);
 		}
+
+		const parent = node.getParent();
 		const names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 		const declarations = node.getDeclarations();
+		const isExported = parent && ts.TypeGuards.isVariableStatement(parent) && parent.isExported();
+		let parentName: string | undefined;
+
+		if (isExported) {
+			parentName = this.getExportContextName(parent);
+		}
 
 		if (declarations.length === 1) {
 			const declaration = declarations[0];
@@ -1164,11 +1348,15 @@ export class Transpiler {
 				const isFlatBinding = lhs
 					.getElements()
 					.filter(v => ts.TypeGuards.isBindingElement(v))
-					.every(bindingElement => {
-						return bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier;
-					});
+					.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
 				if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleLike(rhs.getReturnType())) {
-					lhs.getElements().forEach(v => names.push(v.getChildAtIndex(0).getText()));
+					for (const element of lhs.getElements()) {
+						if (ts.TypeGuards.isBindingElement(element)) {
+							names.push(element.getChildAtIndex(0).getText());
+						} else if (ts.TypeGuards.isOmittedExpression(element)) {
+							names.push("_");
+						}
+					}
 					values.push(this.transpileCallExpression(rhs, true));
 					const flatNamesStr = names.join(", ");
 					const flatValuesStr = values.join(", ");
@@ -1212,25 +1400,29 @@ export class Transpiler {
 				}
 			}
 		}
+
 		while (values[values.length - 1] === "nil") {
 			values.pop();
 		}
 
-		const parent = node.getParent();
-		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			names.forEach(name => this.pushExport(name, parent));
-		}
-
 		let result = "";
-		preStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
-		const namesStr = names.join(", ");
+		preStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
+
 		if (values.length > 0) {
 			const valuesStr = values.join(", ");
-			result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
+
+			if (isExported) {
+				const namesStr = names.join(`, ${parentName}.`);
+				result += this.indent + `${parentName}.${namesStr} = ${valuesStr};\n`;
+			} else {
+				const namesStr = names.join(", ");
+				result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
+			}
 		} else {
-			result += this.indent + `local ${namesStr};\n`;
+			result += this.indent + `local ${names.join(", ")};\n`;
 		}
-		postStatements.forEach(structStatement => (result += this.indent + structStatement + "\n"));
+
+		postStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
 		return result;
 	}
 
@@ -1251,14 +1443,14 @@ export class Transpiler {
 	}
 
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
-		const name = node.getNameOrThrow();
+		const name = node.getName() || this.getNewId();
 		this.checkReserved(name, node);
 		this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
 			return "";
 		}
-		this.hoistStack[this.hoistStack.length - 1].push(name);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		const paramNames = new Array<string>();
 		const initializers = new Array<string>();
 		this.pushIdStack();
@@ -1288,7 +1480,7 @@ export class Transpiler {
 	private transpileRoactClassDeclaration(
 		type: "Component" | "PureComponent",
 		className: string,
-		node: ts.ClassDeclaration,
+		node: ts.ClassDeclaration | ts.ClassExpression,
 	) {
 		let declaration = `${this.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
 
@@ -1363,8 +1555,6 @@ export class Transpiler {
 					}
 				}
 			}
-
-			declaration += this.indent + "self.props.children = self.props[Roact.Children];\n";
 
 			this.popIndent();
 
@@ -1458,13 +1648,18 @@ export class Transpiler {
 		return declaration;
 	}
 
-	private transpileClassDeclaration(node: ts.ClassDeclaration) {
-		const name = node.getName() || this.getNewId();
+	private transpileClassDeclaration(
+		node: ts.ClassDeclaration | ts.ClassExpression,
+		name: string = node.getName() || this.getNewId(),
+	) {
 		const nameNode = node.getNameNode();
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
 		}
-		this.pushExport(name, node);
+
+		if (ts.TypeGuards.isClassDeclaration(node)) {
+			this.pushExport(name, node);
+		}
 
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
@@ -1486,7 +1681,7 @@ export class Transpiler {
 			}
 		}
 
-		this.hoistStack[this.hoistStack.length - 1].push(name);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 
 		let result = "";
 		result += this.indent + `do\n`;
@@ -1652,7 +1847,7 @@ export class Transpiler {
 			.getInstanceProperties()
 			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 		let ancestorHasGetters = false;
-		let ancestorClass: ts.ClassDeclaration | undefined = node;
+		let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
 		while (!ancestorHasGetters && ancestorClass !== undefined) {
 			ancestorClass = ancestorClass.getBaseClass();
 			if (ancestorClass !== undefined) {
@@ -1903,15 +2098,21 @@ export class Transpiler {
 		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
+		const parentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 		this.pushExport(name, node);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		let result = "";
-		result += this.indent + `local ${name} = {} do\n`;
-		this.pushIndent();
 		const id = this.getNewId();
+		if (parentNamespace) {
+			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace, node);
+			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
+		} else {
+			result += this.indent + `${name} = ${name} or {} do\n`;
+		}
+		this.pushIndent();
 		result += this.indent + `local ${id} = ${name};\n`;
-		this.namespaceStack.push(id);
+		this.namespaceStack.set(node, id);
 		result += this.transpileStatementedNode(node);
-		this.namespaceStack.pop();
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
@@ -1926,10 +2127,7 @@ export class Transpiler {
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
 		this.pushExport(name, node);
-		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
-		if (hoistStack.indexOf(name) === -1) {
-			hoistStack.push(name);
-		}
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		result += this.indent + `${name} = ${name} or {};\n`;
 		result += this.indent + `do\n`;
 		this.pushIndent();
@@ -1957,12 +2155,30 @@ export class Transpiler {
 	}
 
 	private transpileExportAssignment(node: ts.ExportAssignment) {
-		let result = "";
+		let result = this.indent;
+
 		if (node.isExportEquals()) {
 			this.isModule = true;
-			const expStr = this.transpileExpression(node.getExpression());
-			result = this.indent + `_exports = ${expStr};\n`;
+			const exp = node.getExpression();
+			if (ts.TypeGuards.isClassExpression(exp)) {
+				const className = exp.getName() || this.getNewId();
+				result += this.transpileClassDeclaration(exp, className);
+				result += this.indent;
+				result += `_exports = ${className};\n`;
+			} else {
+				const expStr = this.transpileExpression(exp);
+				result += `_exports = ${expStr};\n`;
+			}
+		} else {
+			const symbol = node.getSymbol();
+			if (symbol) {
+				if (symbol.getName() === "default") {
+					this.isModule = true;
+					result += "_exports._default = " + this.transpileExpression(node.getExpression()) + ";\n";
+				}
+			}
 		}
+
 		return result;
 	}
 
@@ -1973,21 +2189,51 @@ export class Transpiler {
 		this.pushIndent();
 		this.pushIdStack();
 		const fallThroughVar = this.getNewId();
-		result += this.indent + `local ${fallThroughVar} = false;\n`;
-		for (const clause of node.getCaseBlock().getClauses()) {
+
+		const clauses = node.getCaseBlock().getClauses();
+		let anyFallThrough = false;
+		for (const clause of clauses) {
+			const statements = clause.getStatements();
+
+			let lastStatement = statements[statements.length - 1];
+			while (ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
+			const endsInReturnOrBreakStatement =
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+			if (!endsInReturnOrBreakStatement) {
+				anyFallThrough = true;
+			}
+		}
+
+		if (anyFallThrough) {
+			result += this.indent + `local ${fallThroughVar} = false;\n`;
+		}
+
+		let lastFallThrough = false;
+
+		for (const clause of clauses) {
 			// add if statement if the clause is non-default
 			if (ts.TypeGuards.isCaseClause(clause)) {
 				const clauseExpStr = this.transpileExpression(clause.getExpression());
-				result += this.indent + `if ${fallThroughVar} or ${expStr} == ( ${clauseExpStr} ) then\n`;
+				const fallThroughVarOr = lastFallThrough ? `${fallThroughVar} or ` : "";
+				result += this.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 				this.pushIndent();
 			}
 
 			const statements = clause.getStatements();
-			const lastChild = statements[statements.length - 1];
+
+			let lastStatement = statements[statements.length - 1];
+			while (ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
 			const endsInReturnOrBreakStatement =
-				lastChild &&
-				(lastChild.getKind() === ts.SyntaxKind.ReturnStatement ||
-					lastChild.getKind() === ts.SyntaxKind.BreakStatement);
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+			lastFallThrough = !endsInReturnOrBreakStatement;
 
 			result += this.transpileStatementedNode(clause);
 
@@ -2079,12 +2325,17 @@ export class Transpiler {
 			return this.transpileJsxElement(node);
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
+		} else if (ts.TypeGuards.isClassExpression(node)) {
+			return this.transpileClassDeclaration(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
 			return "nil";
 		} else if (ts.TypeGuards.isThisExpression(node)) {
-			if (!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration)) {
+			if (
+				!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) &&
+				!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression)
+			) {
 				throw new TranspilerError(
-					"'this' may only be used inside a class definition",
+					"'this' may only be used inside a class definition or object literal",
 					node,
 					TranspilerErrorType.NoThisOutsideClass,
 				);
@@ -2103,6 +2354,12 @@ export class Transpiler {
 				"'null' is not supported! Use 'undefined' instead.",
 				node,
 				TranspilerErrorType.NoNull,
+			);
+		} else if (ts.TypeGuards.isImportExpression(node)) {
+			throw new TranspilerError(
+				"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
+				node,
+				TranspilerErrorType.NoDynamicImport,
 			);
 		} else {
 			const kindName = node.getKindName();
@@ -2190,7 +2447,7 @@ export class Transpiler {
 				throw new TranspilerError(
 					`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
 					node,
-					TranspilerErrorType.BadExpression,
+					TranspilerErrorType.RoactInvalidSymbol,
 				);
 			}
 		}
@@ -2325,51 +2582,51 @@ export class Transpiler {
 					const expression = child.getExpressionOrThrow();
 					if (ts.TypeGuards.isCallExpression(expression)) {
 						// Must return Roact.Element :(
-						const returnType = expression.getReturnType().getText();
-						if (
-							returnType === `${ROACT_ELEMENT_TYPE}[]` ||
-							returnType === `${ROACT_ELEMENT_TYPE}[] | undefined`
-						) {
-							extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
-						} else if (returnType !== ROACT_ELEMENT_TYPE) {
-							throw new TranspilerError(
-								`Function call must return Roact.Element -> {${expression.getText()}}`,
-								expression,
-								TranspilerErrorType.BadExpressionStatement,
-							);
+						const returnType = expression.getReturnType();
+						if (isRoactElementType(returnType)) {
+							if (returnType.isArray()) {
+								// Roact.Element[]
+								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
+							} else {
+								// Roact.Element
+								extraChildrenCollection.push(
+									this.indent + `{ ${this.transpileExpression(expression)} }`,
+								);
+							}
 						} else {
-							const value = this.transpileExpression(child);
-							childCollection.push(`${this.indent}${value}`);
+							throw new TranspilerError(
+								`Function call in an expression must return Roact.Element or Roact.Element[]`,
+								expression,
+								TranspilerErrorType.RoactInvalidCallExpression,
+							);
 						}
 					} else if (ts.TypeGuards.isIdentifier(expression)) {
 						const definitionNodes = expression.getDefinitionNodes();
 						for (const definitionNode of definitionNodes) {
-							const typeText = definitionNode.getType().getText();
-							if (typeText === `${ROACT_ELEMENT_TYPE}[]`) {
+							const type = definitionNode.getType();
+							if (isRoactElementType(type)) {
 								extraChildrenCollection.push(this.indent + this.transpileExpression(expression));
 							} else {
 								throw new TranspilerError(
-									`Roact does not support this type of expression ` +
-										`{${expression.getText()}} (${expression.getKindName()})`,
+									`Roact does not support identifiers that have the return type ` + type.getText(),
 									expression,
-									TranspilerErrorType.BadExpression,
+									TranspilerErrorType.RoactInvalidIdentifierExpression,
 								);
 							}
 						}
-					} else if (ts.TypeGuards.isPropertyAccessExpression(expression)) {
-						const propertyType = expression.getType().getText();
+					} else if (
+						ts.TypeGuards.isPropertyAccessExpression(expression) ||
+						ts.TypeGuards.isElementAccessExpression(expression)
+					) {
+						const propertyType = expression.getType();
 
-						if (
-							propertyType === `${ROACT_ELEMENT_TYPE}[] | undefined` ||
-							propertyType === `${ROACT_ELEMENT_TYPE}[]`
-						) {
+						if (isRoactElementType(propertyType)) {
 							extraChildrenCollection.push(this.transpileExpression(expression));
 						} else {
 							throw new TranspilerError(
-								`Roact does not support this type of expression ` +
-									`{${expression.getText()}} (${expression.getKindName()})`,
+								`Roact does not support the property type ` + propertyType.getText(),
 								expression,
-								TranspilerErrorType.BadExpression,
+								TranspilerErrorType.RoactInvalidPropertyExpression,
 							);
 						}
 					} else {
@@ -2377,7 +2634,7 @@ export class Transpiler {
 							`Roact does not support this type of expression ` +
 								`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
-							TranspilerErrorType.BadExpression,
+							TranspilerErrorType.RoactInvalidExpression,
 						);
 					}
 				}
@@ -2546,7 +2803,14 @@ export class Transpiler {
 				}
 
 				let lhs: string;
-				const child = prop.getChildAtIndex(0);
+
+				let n = 0;
+				let child = prop.getChildAtIndex(n);
+				while (ts.TypeGuards.isJSDoc(child)) {
+					n++;
+					child = prop.getChildAtIndex(n);
+				}
+
 				if (ts.TypeGuards.isComputedPropertyName(child)) {
 					const expStr = this.transpileExpression(child.getExpression());
 					lhs = `[${expStr}]`;
@@ -2554,7 +2818,7 @@ export class Transpiler {
 					const expStr = this.transpileStringLiteral(child);
 					lhs = `[${expStr}]`;
 				} else if (ts.TypeGuards.isIdentifier(child)) {
-					lhs = this.transpileIdentifier(child);
+					lhs = child.getText();
 					this.checkReserved(lhs, child);
 				} else {
 					throw new TranspilerError(
@@ -2569,9 +2833,11 @@ export class Transpiler {
 					this.pushIndent();
 				}
 
-				let rhs: string;
-				if (ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
-					rhs = prop.getName();
+				let rhs: string; // You may want to move this around
+				if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
+					lhs = prop.getName();
+					rhs = this.transpileIdentifier(child);
+					this.checkReserved(lhs, child);
 				} else {
 					rhs = this.transpileExpression(prop.getInitializerOrThrow());
 				}
@@ -2642,8 +2908,7 @@ export class Transpiler {
 			if (initializers.length > 0) {
 				result += " ";
 			}
-			const expStr = this.transpileExpression(body);
-			initializers.push(`return ${expStr};`);
+			initializers.push(this.getReturnStrFromExpression(body, node));
 			const initializersStr = initializers.join(" ");
 			result += ` ${initializersStr} end`;
 		} else {
@@ -2771,16 +3036,16 @@ export class Transpiler {
 				switch (property) {
 					case "add":
 						validateMathCall();
-						return `(${accessPath} + ${params})`;
+						return `(${accessPath} + (${params}))`;
 					case "sub":
 						validateMathCall();
-						return `(${accessPath} - ${params})`;
+						return `(${accessPath} - (${params}))`;
 					case "mul":
 						validateMathCall();
-						return `(${accessPath} * ${params})`;
+						return `(${accessPath} * (${params}))`;
 					case "div":
 						validateMathCall();
-						return `(${accessPath} / ${params})`;
+						return `(${accessPath} / (${params}))`;
 				}
 			}
 		}
@@ -3261,7 +3526,7 @@ export class Transpiler {
 
 		if (expType.isString() || expType.isStringLiteral() || expType.isArray()) {
 			if (propertyStr === "length") {
-				return `#${expStr}`;
+				return `(#${expStr})`;
 			}
 		}
 
@@ -3313,13 +3578,20 @@ export class Transpiler {
 		const argExp = node.getArgumentExpressionOrThrow();
 
 		let addOne = false;
-		if (
-			isTupleLike(expType) ||
-			expType.isArray() ||
-			(ts.TypeGuards.isCallExpression(expNode) &&
-				(expNode.getReturnType().isArray() || isTupleLike(expNode.getReturnType())))
-		) {
+		if (isTupleLike(expType) || expType.isArray()) {
 			addOne = true;
+		} else if (ts.TypeGuards.isCallExpression(expNode)) {
+			const returnType = expNode.getReturnType();
+			if (returnType.isArray() || isTupleLike(returnType)) {
+				addOne = true;
+			}
+		} else if (expType.isIntersection()) {
+			for (const intersectionType of expType.getIntersectionTypes()) {
+				if (intersectionType.isArray()) {
+					addOne = true;
+					break;
+				}
+			}
 		}
 
 		let offset = "";
@@ -3402,7 +3674,22 @@ export class Transpiler {
 				);
 			}
 
-			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
+			let HasExportEquals = false;
+
+			for (const Descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
+				if (HasExportEquals) {
+					throw new TranspilerError(
+						"ModuleScript contains multiple ExportEquals. You can only do `export = ` once.",
+						node,
+						TranspilerErrorType.MultipleExportEquals,
+					);
+				}
+				if (Descendant.isExportEquals()) {
+					HasExportEquals = true;
+				}
+			}
+
+			if (HasExportEquals) {
 				result = this.indent + `local _exports;\n` + result;
 			} else {
 				result = this.indent + `local _exports = {};\n` + result;
@@ -3410,11 +3697,7 @@ export class Transpiler {
 			result += this.indent + "return _exports;\n";
 		} else {
 			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
-				throw new TranspilerError(
-					"ModuleScript contains no exports!",
-					node,
-					TranspilerErrorType.ModuleScriptContainsNoExports,
-				);
+				result += this.indent + "return nil;\n";
 			}
 		}
 		result =

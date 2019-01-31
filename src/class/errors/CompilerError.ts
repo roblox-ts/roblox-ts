@@ -10,6 +10,7 @@ export enum CompilerErrorType {
 	GetImportPathFail3,
 	NoRojoData,
 	UnexpectedExtensionType,
+	BadTsConfig,
 }
 
 export class CompilerError extends Error {
