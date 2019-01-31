@@ -62,7 +62,7 @@ TS.Instance = setmetatable({}, {
 			end
 		})
 		self[className] = object
-		return self[className]
+		return object
 	end
 })
 
@@ -95,16 +95,19 @@ end
 
 function TS.import(root, ...)
 	local currentInstance = typeof(root) == "Instance" and root or game:GetService(root)
-	local path = { ... }
-	if currentInstance then
-		for _, part in pairs(path) do
-			currentInstance = currentInstance and currentInstance:WaitForChild(part)
-		end
+
+	if not currentInstance then
+		error("Failed to find root in which to search for ModuleScripts, got " .. typeof(root) .. " " .. tostring(root), 2)
 	end
-	if currentInstance and currentInstance:IsA("ModuleScript") then
+
+	for i = 1, select("#", ...) do
+		currentInstance = currentInstance:WaitForChild((select(i, ...)))
+	end
+
+	if currentInstance.ClassName == "ModuleScript" then
 		return require(currentInstance)
 	else
-		error("Failed to import!", 2)
+		error("Failed to import! Expected ModuleScript, got " .. currentInstance.ClassName, 2)
 	end
 end
 

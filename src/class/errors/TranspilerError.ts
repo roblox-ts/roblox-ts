@@ -39,7 +39,6 @@ export enum TranspilerErrorType {
 	NoFunctionIndex,
 	NoClassPrototype,
 	ExportInNonModuleScript,
-	ModuleScriptContainsNoExports,
 	RoactGettersNotAllowed,
 	RoactSettersNotAllowed,
 	RoactSubClassesNotSupported,
@@ -53,6 +52,11 @@ export enum TranspilerErrorType {
 	RoactInvalidPropertyExpression,
 	UnexpectedObjectIndex,
 	NoExportLetKeyword,
+	MultipleExportEquals,
+	NoDynamicImport,
+	InvalidIdentifier,
+	RobloxTSReservedIdentifier,
+	BadContext,
 }
 
 export class TranspilerError extends Error {

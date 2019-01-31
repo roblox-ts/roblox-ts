@@ -262,7 +262,7 @@ function isRbxInstance(node: ts.Node): boolean {
 	return inheritsFrom(node.getType(), "Rbx_Instance");
 }
 
-function getConstructor(node: ts.ClassDeclaration) {
+function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
 	}
@@ -274,7 +274,10 @@ function isBindingPattern(node: ts.Node) {
 	);
 }
 
-function getClassMethod(classDec: ts.ClassDeclaration, methodName: string): ts.MethodDeclaration | undefined {
+function getClassMethod(
+	classDec: ts.ClassDeclaration | ts.ClassExpression,
+	methodName: string,
+): ts.MethodDeclaration | undefined {
 	const method = classDec.getMethod(methodName);
 	if (method) {
 		return method;
@@ -303,9 +306,12 @@ function isTupleLike(type: ts.Type) {
 }
 
 export class Transpiler {
-	private hoistStack = new Array<Array<string>>();
-	private exportStack = new Array<Array<string>>();
-	private namespaceStack = new Array<string>();
+	// in the form EXPORT_LET_VAR_NAME : NAMESPACE_LOCATION
+	private unlocalizedVariables = new Map<string, string>();
+
+	private hoistStack = new Array<Set<string>>();
+	private exportStack = new Array<Set<string>>();
+	private namespaceStack = new Map<ts.NamespaceDeclaration, string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
@@ -325,17 +331,30 @@ export class Transpiler {
 	private checkReserved(name: string, node: ts.Node) {
 		if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
 			throw new TranspilerError(
-				`Cannot use reserved Lua keyword as identifier '${name}'`,
+				`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 				node,
 				TranspilerErrorType.ReservedKeyword,
+			);
+		} else if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+			throw new TranspilerError(
+				`Cannot use '${name}' as identifier (doesn't match Lua's identifier rules)`,
+				node,
+				TranspilerErrorType.InvalidIdentifier,
+			);
+		} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
+			throw new TranspilerError(
+				`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
+				node,
+				TranspilerErrorType.RobloxTSReservedIdentifier,
 			);
 		}
 	}
 
 	private checkMethodReserved(name: string, node: ts.Node) {
+		this.checkReserved(name, node);
 		if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
 			throw new TranspilerError(
-				`Cannot use reserved Lua metamethod as identifier '${name}'`,
+				`Cannot use '${name}' as a method name (reserved Lua metamethod)`,
 				node,
 				TranspilerErrorType.ReservedMethodName,
 			);
@@ -358,20 +377,41 @@ export class Transpiler {
 		this.indent = this.indent.substr(1);
 	}
 
+	private safeMapGet<T, R>(MapObj: Map<T, R>, Key: T, node: ts.Node) {
+		const Find = MapObj.get(Key);
+		if (!Find) {
+			throw new TranspilerError(
+				`Failed to find context for ${node.getKindName()}`,
+				node,
+				TranspilerErrorType.BadContext,
+			);
+		}
+		return Find;
+	}
+
+	private getExportContextName(node: ts.VariableStatement | ts.Node): string {
+		const myNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+		let name;
+
+		if (myNamespace) {
+			name = this.safeMapGet(this.namespaceStack, myNamespace, node);
+		} else {
+			name = "_exports";
+			this.isModule = true;
+		}
+
+		return name;
+	}
+
 	private pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.isExported()) {
+		if (!node.hasExportKeyword()) {
 			return;
 		}
 
-		let ancestorName: string;
-		if (this.namespaceStack.length > 0) {
-			ancestorName = this.namespaceStack[this.namespaceStack.length - 1];
-		} else {
-			this.isModule = true;
-			ancestorName = "_exports";
-		}
+		this.isModule = true;
+		const ancestorName = this.getExportContextName(node);
 		const alias = node.isDefaultExport() ? "_default" : name;
-		this.exportStack[this.exportStack.length - 1].push(`${ancestorName}.${alias} = ${name};\n`);
+		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
 	private getBindingData(
@@ -539,11 +579,19 @@ export class Transpiler {
 		return false;
 	}
 
+	private popHoistStack(result: string) {
+		const hoists = this.hoistStack.pop();
+		if (hoists && hoists.size > 0) {
+			result = this.indent + `local ${[...hoists].join(", ")};\n` + result;
+		}
+		return result;
+	}
+
 	private transpileStatementedNode(node: ts.Node & ts.StatementedNode) {
 		this.pushIdStack();
-		this.exportStack.push(new Array<string>());
+		this.exportStack.push(new Set<string>());
 		let result = "";
-		this.hoistStack.push(new Array<string>());
+		this.hoistStack.push(new Set<string>());
 		for (const child of node.getStatements()) {
 			result += this.transpileStatement(child);
 			if (child.getKind() === ts.SyntaxKind.ReturnStatement) {
@@ -551,13 +599,10 @@ export class Transpiler {
 			}
 		}
 
-		const hoists = this.hoistStack.pop();
-		if (hoists && hoists.length > 0) {
-			const hoistsStr = hoists.join(", ");
-			result = this.indent + `local ${hoistsStr};\n` + result;
-		}
+		result = this.popHoistStack(result);
+
 		const scopeExports = this.exportStack.pop();
-		if (scopeExports && scopeExports.length > 0) {
+		if (scopeExports && scopeExports.size > 0) {
 			scopeExports.forEach(scopeExport => (result += this.indent + scopeExport));
 		}
 		this.popIdStack();
@@ -612,6 +657,41 @@ export class Transpiler {
 				}
 			}
 		}
+
+		for (const def of node.getDefinitions()) {
+			const definition = def.getNode();
+
+			if (def.getSourceFile() === node.getSourceFile()) {
+				// I have no idea why, but getDefinitionNodes() cannot replace this
+				const declaration = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+
+				if (declaration) {
+					if (declaration.hasExportKeyword()) {
+						return this.getExportContextName(declaration) + "." + name;
+					}
+				} else {
+					const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+
+					if (parent) {
+						const grandparent = parent.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+						if (grandparent) {
+							const parentName = this.namespaceStack.get(grandparent);
+							if (parentName) {
+								return parentName + "." + name;
+							}
+						}
+					}
+				}
+			} else {
+				if (this.isDefinitionALet(def)) {
+					const namespace = this.unlocalizedVariables.get(name);
+					if (namespace) {
+						return namespace;
+					}
+				}
+			}
+		}
+
 		return name;
 	}
 
@@ -685,6 +765,29 @@ export class Transpiler {
 		}
 	}
 
+	private isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
+		const parent = def.getNode().getParent();
+
+		if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
+			const grandparent = parent.getParent();
+			return (
+				ts.TypeGuards.isVariableDeclarationList(grandparent) &&
+				grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
+			);
+		}
+		return false;
+	}
+
+	private shouldLocalizeImport(namedImport: ts.Identifier) {
+		for (const def of namedImport.getDefinitions()) {
+			if (this.isDefinitionALet(def)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private transpileImportDeclaration(node: ts.ImportDeclaration) {
 		let luaPath: string;
 		if (node.isModuleSpecifierRelative()) {
@@ -712,7 +815,22 @@ export class Transpiler {
 
 		const defaultImport = node.getDefaultImport();
 		if (defaultImport) {
-			lhs.push(this.transpileExpression(defaultImport));
+			const definitions = defaultImport.getDefinitions();
+			const exportAssignments =
+				definitions.length > 0 &&
+				definitions[0]
+					.getNode()
+					.getSourceFile()
+					.getExportAssignments();
+
+			const defaultImportExp = this.transpileExpression(defaultImport);
+
+			if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
+				// If the defaultImport is importing an `export = ` statement,
+				return `local ${defaultImportExp} = ${luaPath};\n`;
+			}
+
+			lhs.push(defaultImportExp);
 			rhs.push(`._default`);
 		}
 
@@ -722,30 +840,54 @@ export class Transpiler {
 			rhs.push("");
 		}
 
+		let result = "";
+		let rhsPrefix: string;
+		let hasVarNames = false;
+		const unlocalizedImports = new Array<string>();
+
 		node.getNamedImports().forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
 			const alias = aliasNode ? aliasNode.getText() : name;
+			const shouldLocalizeImport = this.shouldLocalizeImport(namedImport.getNameNode());
+
+			// Keep these here no matter what, so that exports can take from intinial state.
+			this.checkReserved(alias, node);
 			lhs.push(alias);
 			rhs.push(`.${name}`);
+
+			if (shouldLocalizeImport) {
+				unlocalizedImports.push("");
+			} else {
+				hasVarNames = true;
+				unlocalizedImports.push(alias);
+			}
 		});
 
-		let result = "";
-		let rhsPrefix: string;
-		if (rhs.length === 1) {
+		if (rhs.length === 1 && !hasVarNames) {
 			rhsPrefix = luaPath;
 		} else {
-			rhsPrefix = this.getNewId();
-			result += `local ${rhsPrefix} = ${luaPath};\n`;
-		}
-		const lhsStr = lhs.join(", ");
-		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-
-		if (lhsStr === "Roact") {
-			this.hasRoactImport = true;
+			if (hasVarNames || lhs.length > 0) {
+				rhsPrefix = this.getNewId();
+				result += `local ${rhsPrefix} = `;
+			}
+			result += `${luaPath};\n`;
 		}
 
-		result += `local ${lhsStr} = ${rhsStr};\n`;
+		unlocalizedImports
+			.filter(alias => alias !== "")
+			.forEach((alias, i) => this.unlocalizedVariables.set(alias, rhsPrefix + rhs[i]));
+
+		if (hasVarNames || lhs.length > 0) {
+			const lhsStr = lhs.join(", ");
+			const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
+
+			if (lhsStr === "Roact") {
+				this.hasRoactImport = true;
+			}
+			result += `local ${lhsStr} = ${rhsStr};\n`;
+		}
+
 		return result;
 	}
 
@@ -834,22 +976,31 @@ export class Transpiler {
 			}
 			return this.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 		} else {
-			node.getNamedExports().forEach(namedExport => {
+			const namedExports = node.getNamedExports();
+			if (namedExports.length === 0) {
+				return "";
+			}
+			namedExports.forEach(namedExport => {
 				const aliasNode = namedExport.getAliasNode();
 				let name = namedExport.getNameNode().getText();
 				if (name === "default") {
 					name = "_" + name;
 				}
 				const alias = aliasNode ? aliasNode.getText() : name;
+				this.checkReserved(alias, node);
 				lhs.push(alias);
-				rhs.push(`.${name}`);
+				if (luaPath !== "") {
+					rhs.push(`.${name}`);
+				} else {
+					rhs.push(name);
+				}
 			});
 
 			let result = "";
 			let rhsPrefix: string;
 			const lhsPrefix = ancestorName + ".";
 			if (rhs.length <= 1) {
-				rhsPrefix = `require(${luaPath})`;
+				rhsPrefix = luaPath !== "" ? `require(${luaPath})` : "";
 			} else {
 				rhsPrefix = this.getNewId();
 				result += `${rhsPrefix} = require(${luaPath});\n`;
@@ -1029,6 +1180,8 @@ export class Transpiler {
 
 		if (this.isCallExpressionOverridable(exp)) {
 			result += this.indent + `for ${varName} in ${expStr} do\n`;
+		} else if (exp.getType().isArray()) {
+			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
 		} else {
 			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
 		}
@@ -1142,26 +1295,27 @@ export class Transpiler {
 		return undefined;
 	}
 
+	private getReturnStrFromExpression(exp: ts.Expression, func?: ts.FunctionLikeDeclaration) {
+		if (func && isTupleLike(func.getReturnType())) {
+			if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+				let expStr = this.transpileExpression(exp);
+				expStr = expStr.substr(2, expStr.length - 4);
+				return this.indent + `return ${expStr};`;
+			} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
+				const expStr = this.transpileCallExpression(exp, true);
+				return this.indent + `return ${expStr};`;
+			} else {
+				const expStr = this.transpileExpression(exp);
+				return this.indent + `return unpack(${expStr});`;
+			}
+		}
+		return this.indent + `return ${this.transpileExpression(exp)};`;
+	}
+
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
-			const ancestor = this.getFirstFunctionLikeAncestor(node);
-			if (ancestor) {
-				if (isTupleLike(ancestor.getReturnType())) {
-					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
-						let expStr = this.transpileExpression(exp);
-						expStr = expStr.substr(2, expStr.length - 4);
-						return this.indent + `return ${expStr};\n`;
-					} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
-						const expStr = this.transpileCallExpression(exp, true);
-						return this.indent + `return ${expStr};\n`;
-					} else {
-						const expStr = this.transpileExpression(exp);
-						return this.indent + `return unpack(${expStr});\n`;
-					}
-				}
-			}
-			return this.indent + `return ${this.transpileExpression(exp)};\n`;
+			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
 		} else {
 			return this.indent + `return;\n`;
 		}
@@ -1183,21 +1337,17 @@ export class Transpiler {
 		}
 
 		const parent = node.getParent();
-		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			if (parent.hasExportKeyword() && declarationKind === ts.VariableDeclarationKind.Let) {
-				throw new TranspilerError(
-					"'export let' is not supported! Use 'export const' instead.",
-					node,
-					TranspilerErrorType.NoExportLetKeyword,
-				);
-			}
-		}
-
 		const names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 		const declarations = node.getDeclarations();
+		const isExported = parent && ts.TypeGuards.isVariableStatement(parent) && parent.isExported();
+		let parentName: string | undefined;
+
+		if (isExported) {
+			parentName = this.getExportContextName(parent);
+		}
 
 		if (declarations.length === 1) {
 			const declaration = declarations[0];
@@ -1270,19 +1420,23 @@ export class Transpiler {
 			values.pop();
 		}
 
-		if (parent && ts.TypeGuards.isVariableStatement(parent)) {
-			names.forEach(name => this.pushExport(name, parent));
-		}
-
 		let result = "";
 		preStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
-		const namesStr = names.join(", ");
+
 		if (values.length > 0) {
 			const valuesStr = values.join(", ");
-			result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
+
+			if (isExported) {
+				const namesStr = names.join(`, ${parentName}.`);
+				result += this.indent + `${parentName}.${namesStr} = ${valuesStr};\n`;
+			} else {
+				const namesStr = names.join(", ");
+				result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
+			}
 		} else {
-			result += this.indent + `local ${namesStr};\n`;
+			result += this.indent + `local ${names.join(", ")};\n`;
 		}
+
 		postStatements.forEach(statementStr => (result += this.indent + statementStr + "\n"));
 		return result;
 	}
@@ -1304,14 +1458,14 @@ export class Transpiler {
 	}
 
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
-		const name = node.getNameOrThrow();
+		const name = node.getName() || this.getNewId();
 		this.checkReserved(name, node);
 		this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
 			return "";
 		}
-		this.hoistStack[this.hoistStack.length - 1].push(name);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		const paramNames = new Array<string>();
 		const initializers = new Array<string>();
 		this.pushIdStack();
@@ -1341,7 +1495,7 @@ export class Transpiler {
 	private transpileRoactClassDeclaration(
 		type: "Component" | "PureComponent",
 		className: string,
-		node: ts.ClassDeclaration,
+		node: ts.ClassDeclaration | ts.ClassExpression,
 	) {
 		let declaration = `${this.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
 
@@ -1509,13 +1663,18 @@ export class Transpiler {
 		return declaration;
 	}
 
-	private transpileClassDeclaration(node: ts.ClassDeclaration) {
-		const name = node.getName() || this.getNewId();
+	private transpileClassDeclaration(
+		node: ts.ClassDeclaration | ts.ClassExpression,
+		name: string = node.getName() || this.getNewId(),
+	) {
 		const nameNode = node.getNameNode();
 		if (nameNode) {
 			this.checkReserved(name, nameNode);
 		}
-		this.pushExport(name, node);
+
+		if (ts.TypeGuards.isClassDeclaration(node)) {
+			this.pushExport(name, node);
+		}
 
 		const baseTypes = node.getBaseTypes();
 		for (const baseType of baseTypes) {
@@ -1537,7 +1696,7 @@ export class Transpiler {
 			}
 		}
 
-		this.hoistStack[this.hoistStack.length - 1].push(name);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 
 		let result = "";
 		result += this.indent + `do\n`;
@@ -1703,7 +1862,7 @@ export class Transpiler {
 			.getInstanceProperties()
 			.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 		let ancestorHasGetters = false;
-		let ancestorClass: ts.ClassDeclaration | undefined = node;
+		let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
 		while (!ancestorHasGetters && ancestorClass !== undefined) {
 			ancestorClass = ancestorClass.getBaseClass();
 			if (ancestorClass !== undefined) {
@@ -1954,15 +2113,21 @@ export class Transpiler {
 		this.pushIdStack();
 		const name = node.getName();
 		this.checkReserved(name, node);
+		const parentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 		this.pushExport(name, node);
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		let result = "";
-		result += this.indent + `local ${name} = {} do\n`;
-		this.pushIndent();
 		const id = this.getNewId();
+		if (parentNamespace) {
+			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace, node);
+			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
+		} else {
+			result += this.indent + `${name} = ${name} or {} do\n`;
+		}
+		this.pushIndent();
 		result += this.indent + `local ${id} = ${name};\n`;
-		this.namespaceStack.push(id);
+		this.namespaceStack.set(node, id);
 		result += this.transpileStatementedNode(node);
-		this.namespaceStack.pop();
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
@@ -1977,10 +2142,7 @@ export class Transpiler {
 		const name = node.getName();
 		this.checkReserved(name, node.getNameNode());
 		this.pushExport(name, node);
-		const hoistStack = this.hoistStack[this.hoistStack.length - 1];
-		if (hoistStack.indexOf(name) === -1) {
-			hoistStack.push(name);
-		}
+		this.hoistStack[this.hoistStack.length - 1].add(name);
 		result += this.indent + `${name} = ${name} or {};\n`;
 		result += this.indent + `do\n`;
 		this.pushIndent();
@@ -2008,12 +2170,30 @@ export class Transpiler {
 	}
 
 	private transpileExportAssignment(node: ts.ExportAssignment) {
-		let result = "";
+		let result = this.indent;
+
 		if (node.isExportEquals()) {
 			this.isModule = true;
-			const expStr = this.transpileExpression(node.getExpression());
-			result = this.indent + `_exports = ${expStr};\n`;
+			const exp = node.getExpression();
+			if (ts.TypeGuards.isClassExpression(exp)) {
+				const className = exp.getName() || this.getNewId();
+				result += this.transpileClassDeclaration(exp, className);
+				result += this.indent;
+				result += `_exports = ${className};\n`;
+			} else {
+				const expStr = this.transpileExpression(exp);
+				result += `_exports = ${expStr};\n`;
+			}
+		} else {
+			const symbol = node.getSymbol();
+			if (symbol) {
+				if (symbol.getName() === "default") {
+					this.isModule = true;
+					result += "_exports._default = " + this.transpileExpression(node.getExpression()) + ";\n";
+				}
+			}
 		}
+
 		return result;
 	}
 
@@ -2160,6 +2340,8 @@ export class Transpiler {
 			return this.transpileJsxElement(node);
 		} else if (ts.TypeGuards.isSpreadElement(node)) {
 			return this.transpileSpreadElement(node);
+		} else if (ts.TypeGuards.isClassExpression(node)) {
+			return this.transpileClassDeclaration(node);
 		} else if (ts.TypeGuards.isOmittedExpression(node)) {
 			return "nil";
 		} else if (ts.TypeGuards.isThisExpression(node)) {
@@ -2187,6 +2369,12 @@ export class Transpiler {
 				"'null' is not supported! Use 'undefined' instead.",
 				node,
 				TranspilerErrorType.NoNull,
+			);
+		} else if (ts.TypeGuards.isImportExpression(node)) {
+			throw new TranspilerError(
+				"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
+				node,
+				TranspilerErrorType.NoDynamicImport,
 			);
 		} else {
 			const kindName = node.getKindName();
@@ -2630,7 +2818,14 @@ export class Transpiler {
 				}
 
 				let lhs: string;
-				const child = prop.getChildAtIndex(0);
+
+				let n = 0;
+				let child = prop.getChildAtIndex(n);
+				while (ts.TypeGuards.isJSDoc(child)) {
+					n++;
+					child = prop.getChildAtIndex(n);
+				}
+
 				if (ts.TypeGuards.isComputedPropertyName(child)) {
 					const expStr = this.transpileExpression(child.getExpression());
 					lhs = `[${expStr}]`;
@@ -2638,7 +2833,7 @@ export class Transpiler {
 					const expStr = this.transpileStringLiteral(child);
 					lhs = `[${expStr}]`;
 				} else if (ts.TypeGuards.isIdentifier(child)) {
-					lhs = this.transpileIdentifier(child);
+					lhs = child.getText();
 					this.checkReserved(lhs, child);
 				} else {
 					throw new TranspilerError(
@@ -2653,9 +2848,11 @@ export class Transpiler {
 					this.pushIndent();
 				}
 
-				let rhs: string;
-				if (ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
-					rhs = prop.getName();
+				let rhs: string; // You may want to move this around
+				if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
+					lhs = prop.getName();
+					rhs = this.transpileIdentifier(child);
+					this.checkReserved(lhs, child);
 				} else {
 					rhs = this.transpileExpression(prop.getInitializerOrThrow());
 				}
@@ -2726,8 +2923,7 @@ export class Transpiler {
 			if (initializers.length > 0) {
 				result += " ";
 			}
-			const expStr = this.transpileExpression(body);
-			initializers.push(`return ${expStr};`);
+			initializers.push(this.getReturnStrFromExpression(body, node));
 			const initializersStr = initializers.join(" ");
 			result += ` ${initializersStr} end`;
 		} else {
@@ -2855,16 +3051,16 @@ export class Transpiler {
 				switch (property) {
 					case "add":
 						validateMathCall();
-						return `(${accessPath} + ${params})`;
+						return `(${accessPath} + (${params}))`;
 					case "sub":
 						validateMathCall();
-						return `(${accessPath} - ${params})`;
+						return `(${accessPath} - (${params}))`;
 					case "mul":
 						validateMathCall();
-						return `(${accessPath} * ${params})`;
+						return `(${accessPath} * (${params}))`;
 					case "div":
 						validateMathCall();
-						return `(${accessPath} / ${params})`;
+						return `(${accessPath} / (${params}))`;
 				}
 			}
 		}
@@ -3493,7 +3689,22 @@ export class Transpiler {
 				);
 			}
 
-			if (node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment).length > 0) {
+			let HasExportEquals = false;
+
+			for (const Descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
+				if (HasExportEquals) {
+					throw new TranspilerError(
+						"ModuleScript contains multiple ExportEquals. You can only do `export = ` once.",
+						node,
+						TranspilerErrorType.MultipleExportEquals,
+					);
+				}
+				if (Descendant.isExportEquals()) {
+					HasExportEquals = true;
+				}
+			}
+
+			if (HasExportEquals) {
 				result = this.indent + `local _exports;\n` + result;
 			} else {
 				result = this.indent + `local _exports = {};\n` + result;
@@ -3501,11 +3712,7 @@ export class Transpiler {
 			result += this.indent + "return _exports;\n";
 		} else {
 			if (!this.compiler.noHeuristics && scriptType === ScriptType.Module) {
-				throw new TranspilerError(
-					"ModuleScript contains no exports!",
-					node,
-					TranspilerErrorType.ModuleScriptContainsNoExports,
-				);
+				result += this.indent + "return nil;\n";
 			}
 		}
 		result =
