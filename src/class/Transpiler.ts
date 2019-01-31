@@ -1280,26 +1280,27 @@ export class Transpiler {
 		return undefined;
 	}
 
+	private getReturnStrFromExpression(exp: ts.Expression, func?: ts.FunctionLikeDeclaration) {
+		if (func && isTupleLike(func.getReturnType())) {
+			if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+				let expStr = this.transpileExpression(exp);
+				expStr = expStr.substr(2, expStr.length - 4);
+				return this.indent + `return ${expStr};`;
+			} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
+				const expStr = this.transpileCallExpression(exp, true);
+				return this.indent + `return ${expStr};`;
+			} else {
+				const expStr = this.transpileExpression(exp);
+				return this.indent + `return unpack(${expStr});`;
+			}
+		}
+		return this.indent + `return ${this.transpileExpression(exp)};`;
+	}
+
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
-			const ancestor = this.getFirstFunctionLikeAncestor(node);
-			if (ancestor) {
-				if (isTupleLike(ancestor.getReturnType())) {
-					if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
-						let expStr = this.transpileExpression(exp);
-						expStr = expStr.substr(2, expStr.length - 4);
-						return this.indent + `return ${expStr};\n`;
-					} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
-						const expStr = this.transpileCallExpression(exp, true);
-						return this.indent + `return ${expStr};\n`;
-					} else {
-						const expStr = this.transpileExpression(exp);
-						return this.indent + `return unpack(${expStr});\n`;
-					}
-				}
-			}
-			return this.indent + `return ${this.transpileExpression(exp)};\n`;
+			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
 		} else {
 			return this.indent + `return;\n`;
 		}
@@ -2907,8 +2908,7 @@ export class Transpiler {
 			if (initializers.length > 0) {
 				result += " ";
 			}
-			const expStr = this.transpileExpression(body);
-			initializers.push(`return ${expStr};`);
+			initializers.push(this.getReturnStrFromExpression(body, node));
 			const initializersStr = initializers.join(" ");
 			result += ` ${initializersStr} end`;
 		} else {
