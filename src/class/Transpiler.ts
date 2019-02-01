@@ -1132,6 +1132,17 @@ export class Transpiler {
 		return this.indent + `_continue_${this.continueId} = true; break;\n`;
 	}
 
+	private isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
+		if (ts.TypeGuards.isCallExpression(node)) {
+			const exp = node.getExpression();
+			if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+				const subExpType = exp.getExpression().getType();
+				return (subExpType.isString() || subExpType.isStringLiteral()) && exp.getName() === "gmatch";
+			}
+		}
+		return false;
+	}
+
 	private transpileForInStatement(node: ts.ForInStatement) {
 		this.pushIdStack();
 		const init = node.getInitializer();
@@ -1166,11 +1177,15 @@ export class Transpiler {
 		const exp = node.getExpression();
 		const expStr = this.transpileExpression(exp);
 		let result = "";
-		if (exp.getType().isArray()) {
+
+		if (this.isCallExpressionOverridable(exp)) {
+			result += this.indent + `for ${varName} in ${expStr} do\n`;
+		} else if (exp.getType().isArray()) {
 			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
 		} else {
 			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
 		}
+
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 		result += this.transpileLoopBody(node.getStatement());
@@ -1302,13 +1317,13 @@ export class Transpiler {
 		if (exp) {
 			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
 		} else {
-			return this.indent + `return;\n`;
+			return this.indent + `return nil;\n`;
 		}
 	}
 
 	private transpileThrowStatement(node: ts.ThrowStatement) {
 		const expStr = this.transpileExpression(node.getExpressionOrThrow());
-		return this.indent + `TS.error(${expStr});\n`;
+		return this.indent + `TS.throw(${expStr});\n`;
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
@@ -2253,28 +2268,43 @@ export class Transpiler {
 
 	private transpileTryStatement(node: ts.TryStatement) {
 		let result = "";
-		result += this.indent + "local TS_success, TS_error = pcall(function()\n";
+
+		this.pushIdStack();
+
+		const returnsId = this.getNewId();
+		result += this.indent + `local ${returnsId} = TS.try(\n`;
+
+		this.pushIndent();
+
+		result += this.indent + "function()\n";
 		this.pushIndent();
 		result += this.transpileStatementedNode(node.getTryBlock());
 		this.popIndent();
-		result += this.indent + "end);\n";
+		result += this.indent + "end";
+
 		const catchClause = node.getCatchClause();
 		if (catchClause !== undefined) {
-			result += this.indent + "if not TS_success then\n";
+			result += ",\n";
+			const varName = catchClause.getVariableDeclarationOrThrow().getName();
+			result += this.indent + `function(${varName})\n`;
 			this.pushIndent();
-			result +=
-				this.indent +
-				"local " +
-				catchClause.getVariableDeclarationOrThrow().getName() +
-				" = TS.decodeError(TS_error)\n";
 			result += this.transpileStatementedNode(catchClause.getBlock());
 			this.popIndent();
-			result += this.indent + "end\n";
+			result += this.indent + "end";
 		}
+		result += "\n";
+
+		this.popIndent();
+		result += this.indent + ");\n";
+		result += this.indent + `if ${returnsId}.size > 0 then return unpack(${returnsId}); end;\n`;
+
 		const finallyBlock = node.getFinallyBlock();
 		if (finallyBlock !== undefined) {
 			result += this.transpileStatementedNode(finallyBlock);
 		}
+
+		this.popIdStack();
+
 		return result;
 	}
 

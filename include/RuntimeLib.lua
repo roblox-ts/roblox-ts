@@ -168,7 +168,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.error(ok == nil and "The awaited Promise was cancelled" or result, 2)
+		TS.throw(ok == nil and "The awaited Promise was cancelled" or result)
 	end
 end
 
@@ -678,32 +678,74 @@ function TS.Roact_combine(...)
     return result
 end
 
--- Error objects
-do
-	local errors = setmetatable({}, {__mode = "v"})
-	local nextErrorId = 0
+-- try catch utilities
 
-	function TS.error(thrown, level)
-		if level ~= 0 then
-			level = (level or 1) + 1
+local function pack(...)
+	local result = { ... }
+	result.size = select("#", ...)
+	return result
+end
+
+local throwStack = {}
+
+function TS.throw(value)
+	if #throwStack > 0 then
+		throwStack[#throwStack](value)
+	else
+		error("Uncaught " .. tostring(value), 2)
+	end
+end
+
+function TS.try(tryCallback, catchCallback)
+	local done = false
+	local yielded = false
+	local popped = false
+	local resumeThread = coroutine.running()
+
+	local returns
+
+	local function pop()
+		if not popped then
+			popped = true
+			throwStack[#throwStack] = nil
 		end
-
-		nextErrorId = nextErrorId + 1
-
-		local id = nextErrorId
-
-		errors[id] = thrown
-		error("[<[" .. id .. "]>] " .. tostring(thrown), level)
 	end
 
-	function TS.decodeError(errorMessage)
-		local result
-		local key = errorMessage:match("%[%<%[(.-)%]%>%]")
-		if key ~= nil then
-			result = errors[tonumber(key)]
+	local function resume()
+		if yielded then
+			local success, errorMsg = coroutine.resume(resumeThread)
+			if not success then
+				warn(errorMsg)
+			end
+		else
+			done = true
 		end
-		return result or errorMessage
 	end
+
+	local function throw(value)
+		pop()
+		if catchCallback then
+			returns = pack(catchCallback(value))
+		end
+		resume()
+		coroutine.yield()
+	end
+
+	throwStack[#throwStack + 1] = throw
+
+	coroutine.wrap(function()
+		returns = pack(tryCallback())
+		resume()
+	end)()
+
+	if not done then
+		yielded = true
+		coroutine.yield()
+	end
+
+	pop()
+
+	return returns
 end
 
 return TS
