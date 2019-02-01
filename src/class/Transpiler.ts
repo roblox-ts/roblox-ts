@@ -683,13 +683,10 @@ export class Transpiler {
 						}
 					}
 				}
-			} else {
-				if (this.isDefinitionALet(def)) {
-					const namespace = this.unlocalizedVariables.get(name);
-					if (namespace) {
-						return namespace;
-					}
-				}
+			}
+			const namespace = this.unlocalizedVariables.get(name);
+			if (namespace) {
+				return namespace;
 			}
 		}
 
@@ -1382,6 +1379,20 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
+			if (
+				parent &&
+				parent.getParent() === parent.getSourceFile() &&
+				!isExported &&
+				declarationKind === ts.VariableDeclarationKind.Const
+			) {
+				const declarationType = declaration.getType();
+				if (declarationType.isNumberLiteral()) {
+					this.unlocalizedVariables.set(declaration.getName(), declarationType.getText());
+					return "";
+				} else {
+					console.log(declaration.getName(), declarationType.getText());
+				}
+			}
 			const lhs = declaration.getChildAtIndex(0);
 			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
 
@@ -2036,6 +2047,7 @@ export class Transpiler {
 		this.popIndent();
 		this.popIdStack();
 		result += this.indent + "end;\n";
+		console.log(result, hasInstanceInheritance);
 		return result;
 	}
 
