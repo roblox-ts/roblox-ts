@@ -1,5 +1,8 @@
 local Promise = require(script.Parent.Promise)
 
+-- constants
+local TYPE_STRING = "string"
+
 local TS = {}
 
 -- runtime classes
@@ -16,6 +19,13 @@ local Symbol do
 		end
 	})
 
+	local symbolRegistry = setmetatable({}, {
+		__index = function(self, k)
+			self[k] = Symbol(k)
+			return self[k]
+		end
+	})
+
 	function Symbol:__tostring()
 		return "Symbol(" .. self.description .. ")"
 	end
@@ -23,8 +33,38 @@ local Symbol do
 	function Symbol:toString()
 		return tostring(self)
 	end
+
+	-- Symbol.for
+	function Symbol.getFor(key)
+		return symbolRegistry[key]
+	end
+
+	function Symbol.keyFor(goalSymbol)
+		for key, symbol in pairs(symbolRegistry) do
+			if symbol == goalSymbol then
+				return key
+			end
+		end
+	end
 end
 TS.Symbol = Symbol
+
+-- Instance class values
+TS.Instance = setmetatable({}, {
+	__index = function(self, className)
+		local object = setmetatable({
+			new = function(parent)
+				return Instance.new(className, parent)
+			end
+		}, {
+			__tostring = function()
+				return className
+			end
+		})
+		self[className] = object
+		return object
+	end
+})
 
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
@@ -55,16 +95,19 @@ end
 
 function TS.import(root, ...)
 	local currentInstance = typeof(root) == "Instance" and root or game:GetService(root)
-	local path = { ... }
-	if currentInstance then
-		for _, part in pairs(path) do
-			currentInstance = currentInstance and currentInstance:WaitForChild(part)
-		end
+
+	if not currentInstance then
+		error("Failed to find root in which to search for ModuleScripts, got " .. typeof(root) .. " " .. tostring(root), 2)
 	end
-	if currentInstance and currentInstance:IsA("ModuleScript") then
+
+	for i = 1, select("#", ...) do
+		currentInstance = currentInstance:WaitForChild((select(i, ...)))
+	end
+
+	if currentInstance.ClassName == "ModuleScript" then
 		return require(currentInstance)
 	else
-		error("Failed to import!", 2)
+		error("Failed to import! Expected ModuleScript, got " .. currentInstance.ClassName, 2)
 	end
 end
 
@@ -117,54 +160,126 @@ function TS.async(callback)
 end
 
 function TS.await(promise)
+	if not Promise.is(promise) then
+		return promise
+	end
+
 	local ok, result = promise:await()
 	if ok then
 		return result
 	else
-		error(result, 2)
+		TS.error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
+end
+
+function TS.add(a, b)
+	if typeof(a) == TYPE_STRING or typeof(b) == TYPE_STRING then
+		return a .. b
+	else
+		return a + b
+	end
+end
+
+function TS.round(a)
+	if a < 0 then
+		return math.ceil(a)
+	else
+		return math.floor(a)
+	end
+end
+
+-- bitwise operations
+
+local function bitop(a, b, oper)
+	local r, m, s = 0, 2^52
+	repeat
+		s, a, b = a + b + m, a % m, b % m
+		r, m = r + m * oper % (s - a - b), m / 2
+	until m < 1
+	return r
+end
+
+function TS.bor(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 1)
+end
+
+function TS.band(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 4)
+end
+
+function TS.bxor(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return bitop(a, b, 3)
+end
+
+function TS.blsh(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return a * 2 ^ b
+end
+
+function TS.brsh(a, b)
+	a = TS.round(tonumber(a))
+	b = TS.round(tonumber(b))
+	return TS.round(a / 2 ^ b)
 end
 
 -- array macro functions
-TS.array = {}
 
-function TS.array.forEach(list, func)
+function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		func(list[i], i, list)
+		callback(list[i], i - 1, list)
 	end
 end
 
-function TS.array.map(list, func)
-	local out = {}
+function TS.array_map(list, callback)
+	local result = {}
 	for i = 1, #list do
-		table.insert(out, func(list[i]))
+		result[i] = callback(list[i], i - 1, list)
 	end
-	return out
+	return result
 end
 
-function TS.array.filter(list, func)
-	local out = {}
+function TS.array_filter(list, callback)
+	local result = {}
 	for i = 1, #list do
-		if func(list[i]) then
-			table.insert(out, list[i])
+		local v = list[i]
+		if callback(v, i - 1, list) == true then
+			result[#result + 1] = v
 		end
 	end
-	return out
+	return result
 end
 
-function TS.array.slice(list, startI, endI)
-	if not endI or endI > #list then endI = #list end
-	if startI < 1 then startI = math.max(#list + startI, 1) end
-	if endI < 1 then endI = math.max(#list + endI, 1) end
-	local out = {}
-	for i = startI, endI do
-		table.insert(out, list[i])
+function TS.array_slice(list, startI, endI)
+	local length = #list
+	if not startI then
+		startI = 0
 	end
-	return out
+	if not endI then
+		endI = length
+	end
+	if startI < 0 then
+		startI = length + startI
+	end
+	if endI < 0 then
+		endI = length + endI
+	end
+	startI = startI + 1
+	endI = endI + 1
+	local result = {}
+	for i = startI, endI - 1 do
+		result[i - startI + 1] = list[i]
+	end
+	return result
 end
 
-
-function TS.array.splice(list, start, deleteCount, ...)
+function TS.array_splice(list, start, deleteCount, ...)
 	local len = #list
 	local actualStart
 	if start <  0 then
@@ -172,7 +287,7 @@ function TS.array.splice(list, start, deleteCount, ...)
 	else
 		actualStart = math.min(start, len)
 	end
-	local items = {...}
+	local items = { ... }
 	local itemCount = #items
 	local actualDeleteCount
 	if not start then
@@ -234,71 +349,102 @@ function TS.array.splice(list, start, deleteCount, ...)
 	return out
 end
 
-function TS.array.some(list, func)
-	return #TS.array.filter(list, func) > 0
-end
-
-function TS.array.every(list, func)
-	return #list == #TS.array.filter(list, func)
-end
-
-function TS.array.indexOf(list, object)
+function TS.array_some(list, callback)
 	for i = 1, #list do
-		if object == list[i] then
+		if callback(list[i], i - 1, list) == true then
+			return true
+		end
+	end
+	return false
+end
+
+function TS.array_every(list, callback)
+	for i = 1, #list do
+		if callback(list[i], i - 1, list) == false then
+			return false
+		end
+	end
+	return true
+end
+
+function TS.array_indexOf(list, value, fromIndex)
+	if fromIndex == nil then
+		fromIndex = 0
+	end
+	fromIndex = fromIndex + 1
+	for i = fromIndex, #list do
+		if value == list[i] then
 			return i - 1
 		end
 	end
 	return -1
 end
 
-function TS.array.reverse(list)
+function TS.array_lastIndexOf(list, value, fromIndex)
+	if fromIndex == nil then
+		fromIndex = #list - 1
+	end
+	fromIndex = fromIndex + 1
+	for i = fromIndex, 1, -1 do
+		if value == list[i] then
+			return i - 1
+		end
+	end
+	return -1
+end
+
+function TS.array_reverse(list)
 	local result = {}
-	for i = 1, #list do
-		result[i] = list[#list - i + 1]
+	local length = #list
+	for i = 1, length do
+		result[i] = list[length - i + 1]
 	end
 	return result
 end
 
-function TS.array.reduce(list, callback, initialValue)
+function TS.array_reduce(list, callback, initialValue)
 	local start = 1
 	if not initialValue then
-		initialValue = list[1]
-		start = 2
+		initialValue = list[start]
+		start = start + 1
 	end
 	local accumulator = initialValue
 	for i = start, #list do
-		callback(accumulator, list[i], i)
+		accumulator = callback(accumulator, list[i], i)
 	end
+	return accumulator
 end
 
-function TS.array.reduceRight(list, callback, initialValue)
-	local start = 1
+function TS.array_reduceRight(list, callback, initialValue)
+	local start = #list
 	if not initialValue then
-		initialValue = list[1]
-		start = 2
+		initialValue = list[start]
+		start = start - 1
 	end
 	local accumulator = initialValue
-	for i = #list, start do
-		callback(accumulator, list[i], i)
+	for i = start, 1, -1 do
+		accumulator = callback(accumulator, list[i], i)
 	end
+	return accumulator
 end
 
-function TS.array.shift(list)
+function TS.array_shift(list)
 	return table.remove(list, 1)
 end
 
-function TS.array.unshift(list, ...)
+function TS.array_unshift(list, ...)
 	local args = { ... }
-	for i = #list, 1 do
-		list[i + #args] = list[i]
+	local argsLength = #args
+	for i = #list, 1, -1 do
+		list[i + argsLength] = list[i]
 	end
-	for i = 1, #args do
+	for i = 1, argsLength do
 		list[i] = args[i]
 	end
 	return #list
 end
 
-function TS.array.concat(list, ...)
+function TS.array_concat(list, ...)
 	local args = { ... }
 	local result = {}
 	for i = 1, #list do
@@ -306,29 +452,28 @@ function TS.array.concat(list, ...)
 	end
 	for i = 1, #args do
 		local value = args[i]
-		if typeof(value) == "table" then
-			for j = 1, #value do
-				result[#result + 1] = value[j]
-			end
-		else
-			result[#result + 1] = value
+		for j = 1, #value do
+			result[#result + 1] = value[j]
 		end
 	end
 	return result
 end
 
-function TS.array.push(list, ...)
+function TS.array_push(list, ...)
 	local args = { ... }
 	for i = 1, #args do
 		list[#list + 1] = args[i]
 	end
 end
 
-function TS.array.pop(list)
-	return table.remove(list)
+function TS.array_pop(list)
+	local length = #list
+	local lastValue = list[length]
+	list[length] = nil
+	return lastValue
 end
 
-function TS.array.join(list, separator)
+function TS.array_join(list, separator)
 	if #list == 0 then
 		return ""
 	end
@@ -342,10 +487,17 @@ function TS.array.join(list, separator)
 	return result
 end
 
--- map macro functions
-TS.map = {}
+function TS.array_find(list, callback)
+	for i = 1, #list do
+		if callback(list[i], i - 1, list) == true then
+			return list[i]
+		end
+	end
+end
 
-function TS.map.new(value)
+-- map macro functions
+
+function TS.map_new(value)
 	local result = {}
 	for _, pair in pairs(value) do
 		result[pair[1]] = pair[2]
@@ -353,13 +505,21 @@ function TS.map.new(value)
 	return result
 end
 
-function TS.map.clear(map)
+function TS.map_clear(map)
 	for key in pairs(map) do
 		map[key] = nil
 	end
 end
 
-function TS.map.size(map)
+function TS.map_delete(map, key)
+	local has = TS.map_has(map, key)
+	if has then
+		map[key] = nil
+	end
+	return has
+end
+
+function TS.map_size(map)
 	local result = 0
 	for _ in pairs(map) do
 		result = result + 1
@@ -367,29 +527,29 @@ function TS.map.size(map)
 	return result
 end
 
-function TS.map.entries(map)
+function TS.map_entries(map)
 	local result = {}
-	for key in pairs(map) do
-		table.insert(result, {key, map[key]})
+	for key, value in pairs(map) do
+		table.insert(result, {key, value})
 	end
 	return result
 end
 
-function TS.map.forEach(map, callback)
+function TS.map_forEach(map, callback)
 	for key, value in pairs(map) do
 		callback(value, key, map)
 	end
 end
 
-function TS.map.get(map, key)
+function TS.map_get(map, key)
 	return map[key]
 end
 
-function TS.map.has(map, key)
+function TS.map_has(map, key)
 	return map[key] ~= nil
 end
 
-function TS.map.keys(map)
+function TS.map_keys(map)
 	local result = {}
 	for key in pairs(map) do
 		table.insert(result, key)
@@ -397,12 +557,12 @@ function TS.map.keys(map)
 	return result
 end
 
-function TS.map.set(map, key, value)
+function TS.map_set(map, key, value)
 	map[key] = value
 	return map
 end
 
-function TS.map.values(map)
+function TS.map_values(map)
 	local result = {}
 	for _, value in pairs(map) do
 		table.insert(result, value)
@@ -411,9 +571,8 @@ function TS.map.values(map)
 end
 
 -- set macro functions
-TS.set = {}
 
-function TS.set.new(value)
+function TS.set_new(value)
 	local result = {}
 	for _, v in pairs(value) do
 		result[v] = true
@@ -421,51 +580,130 @@ function TS.set.new(value)
 	return result
 end
 
-function TS.set.add(set, value)
+function TS.set_add(set, value)
 	set[value] = true
 	return set
 end
 
-TS.set.clear = TS.map.clear
+TS.set_clear = TS.map_clear
 
-function TS.set.delete(set, value)
-	local result = TS.set.has(set, value)
+function TS.set_delete(set, value)
+	local result = TS.set_has(set, value)
 	set[value] = nil
 	return result
 end
 
-function TS.set.forEach(set, callback)
+function TS.set_forEach(set, callback)
 	for key in pairs(set) do
 		callback(key, key, set)
 	end
 end
 
-TS.set.has = TS.map.has
+TS.set_has = TS.map_has
 
-TS.set.entries = TS.map.entries
-
-TS.set.values = TS.map.keys
-
-TS.set.keys = TS.map.keys
-
-TS.set.size = TS.map.size
-
--- string macro functions
-TS.string = {}
-
-function TS.string.replace(source, searchVal, newVal)
-	return string.gsub(source, searchVal, newVal)
-end
-
-function TS.string.split(input, sep)
-	if sep == nil then
-		sep = "%s"
-	end
+function TS.set_entries(map)
 	local result = {}
-	for str in string.gmatch(input, "[^" .. sep .. "]+") do
-		table.insert(result, str)
+	for key in pairs(map) do
+		table.insert(result, {key, key})
 	end
 	return result
+end
+
+TS.set_values = TS.map_keys
+
+TS.set_keys = TS.map_keys
+
+TS.set_size = TS.map_size
+
+-- string macro functions
+
+function TS.string_split(input, sep)
+	local result = {}
+	local count = 0
+	for str in input:gmatch(sep == "" and "." or "[^" .. sep .. "]+") do
+		count = count + 1
+		result[count] = str
+	end
+	return result
+end
+
+-- Object static functions
+
+function TS.Object_keys(object)
+	local result = {}
+	for key in pairs(object) do
+		result[#result + 1] = key
+	end
+	return result
+end
+
+function TS.Object_values(object)
+	local result = {}
+	for _, value in pairs(object) do
+		result[#result + 1] = value
+	end
+	return result
+end
+
+function TS.Object_entries(object)
+	local result = {}
+	for key, value in pairs(object) do
+		result[#result + 1] = {key, value}
+	end
+	return result
+end
+
+function TS.Object_assign(toObj, ...)
+	local args = { ... }
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
+			toObj[key] = value
+		end
+	end
+	return toObj
+end
+
+function TS.Roact_combine(...)
+    local args = {...}
+    local result = {}
+    for i = 1, #args do
+        for key, value in pairs(args[i]) do
+            if (type(key) == "number") then
+                table.insert(result, value)
+            else
+                result[key] = value
+            end
+        end
+    end
+    return result
+end
+
+-- Error objects
+do
+	local errors = setmetatable({}, {__mode = "v"})
+	local nextErrorId = 0
+
+	function TS.error(thrown, level)
+		if level ~= 0 then
+			level = (level or 1) + 1
+		end
+
+		nextErrorId = nextErrorId + 1
+
+		local id = nextErrorId
+
+		errors[id] = thrown
+		error("[<[" .. id .. "]>] " .. tostring(thrown), level)
+	end
+
+	function TS.decodeError(errorMessage)
+		local result
+		local key = errorMessage:match("%[%<%[(.-)%]%>%]")
+		if key ~= nil then
+			result = errors[tonumber(key)]
+		end
+		return result or errorMessage
+	end
 end
 
 return TS

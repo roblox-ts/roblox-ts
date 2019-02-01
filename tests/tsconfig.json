@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"outDir": "out",
+		"rootDir": "src",
+		"baseUrl": "src",
+		"module": "commonjs",
+		"strict": true,
+		"noLib": true,
+		"downlevelIteration": true,
+		"declaration": false,
+		"target": "es6",
+		"strictNullChecks": true,
+		"types": [
+			"rbx-types",
+			"rbx-roact"
+		],
+		"jsx": "react",
+		"jsxFactory": "Roact.createElement"
+	},
+	"typeAcquisition": {
+		"enable": true
+	}
+}

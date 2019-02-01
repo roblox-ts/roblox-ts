@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.9",
+	"version": "0.0.20",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -11,20 +11,46 @@
 		"rbxtsc": "out/index.js"
 	},
 	"scripts": {
-		"lint": "tslint -p tsconfig.json"
+		"tslint": "tslint -p tsconfig.json",
+		"prettylint": "prettylint --config ./.prettierrc.json '**/*.ts'",
+		"test": "nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts && lua tests/spec.lua",
+		"coverage": "nyc report --reporter=text-lcov | coveralls",
+		"prettier": "prettier --config ./.prettierrc.json --write '**/*.ts'"
+	},
+	"nyc": {
+		"extension": [
+			".ts",
+			".tsx"
+		],
+		"include": [
+			"src/class/Transpiler.ts"
+		],
+		"reporter": [
+			"text-lcov"
+		],
+		"all": true
 	},
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
 		"chokidar": "^2.0.4",
-		"fs-extra": "^7.0.0",
-		"ts-simple-ast": "^14.4.5",
-		"yargs": "^12.0.2"
+		"fs-extra": "^7.0.1",
+		"ts-simple-ast": "^19.1.0",
+		"yargs": "^12.0.5"
 	},
 	"devDependencies": {
 		"@types/chokidar": "^1.7.5",
 		"@types/fs-extra": "^5.0.4",
-		"@types/node": "^10.11.6",
-		"@types/yargs": "^11.1.2"
+		"@types/mocha": "^5.2.5",
+		"@types/node": "^10.12.12",
+		"@types/yargs": "^11.1.2",
+		"coveralls": "^3.0.2",
+		"mocha": "^5.2.0",
+		"nyc": "^13.1.0",
+		"prettier": "^1.15.3",
+		"prettylint": "^1.0.0",
+		"source-map-support": "^0.5.9",
+		"ts-node": "^7.0.1",
+		"tslint": "^5.11.0"
 	}
 }

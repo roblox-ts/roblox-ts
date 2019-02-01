@@ -7,6 +7,7 @@ import * as yargs from "yargs";
 import { Compiler } from "./class/Compiler";
 import { CompilerError } from "./class/errors/CompilerError";
 import { TranspilerError } from "./class/errors/TranspilerError";
+import { clearContextCache } from "./utility";
 
 /* tslint:disable */
 const versionStr = require("../package.json").version as string;
@@ -45,19 +46,30 @@ const argv = yargs
 	.option("i", {
 		alias: "includePath",
 		default: "include",
-		describe: "folder to copy runtime .lua files to",
+		describe: "folder to copy runtime files to",
+	})
+
+	// noStrict
+	.option("noStrict", {
+		boolean: true,
+		describe: "disable diagnostic checks (faster, unsafe)",
 	})
 
 	// noInclude
 	.option("noInclude", {
 		default: false,
-		describe: "do not copy runtime .lua files",
+		describe: "do not copy runtime files",
 	})
 
 	// modulesPath
 	.option("modulesPath", {
 		default: "modules",
-		describe: "folder to copy .lua files from node_modules to",
+		describe: "folder to copy modules to",
+	})
+
+	.option("noHeuristics", {
+		boolean: true,
+		describe: "disables api restriction heuristics",
 	})
 
 	// parse
@@ -65,7 +77,9 @@ const argv = yargs
 
 let configFilePath = path.resolve(argv.project as string);
 
-if (!fs.existsSync(configFilePath)) {
+try {
+	fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
+} catch (e) {
 	throw new Error("Project path does not exist!");
 }
 
@@ -77,14 +91,9 @@ if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
 	throw new Error("Cannot find tsconfig.json!");
 }
 
-function isTSFile(filePath: string) {
-	const ext = path.extname(filePath);
-	return ext === ".ts" || ext === ".tsx";
-}
-
 const noInclude = argv.noInclude === true;
 
-const compiler = new Compiler(configFilePath, argv.includePath, argv.modulesPath);
+const compiler = new Compiler(configFilePath, argv);
 if (argv.watch === true) {
 	const rootDir = compiler.getRootDirOrThrow();
 	let isCompiling = false;
@@ -106,8 +115,14 @@ if (argv.watch === true) {
 	const update = async (filePath: string) => {
 		console.log("Change detected, compiling..");
 		await compiler.refresh();
+		clearContextCache();
 		await time(async () => {
-			await compiler.compileFileByPath(filePath, noInclude);
+			try {
+				await compiler.compileFileByPath(filePath);
+			} catch (e) {
+				console.log(e);
+				process.exit();
+			}
 		});
 	};
 
@@ -123,14 +138,14 @@ if (argv.watch === true) {
 			usePolling: true,
 		})
 		.on("change", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				await update(filePath);
 				isCompiling = false;
 			}
 		})
 		.on("add", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Add", filePath);
 				compiler.addFile(filePath);
@@ -139,11 +154,10 @@ if (argv.watch === true) {
 			}
 		})
 		.on("unlink", async (filePath: string) => {
-			if (!isCompiling && isTSFile(filePath)) {
+			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
-				await update(filePath);
 				isCompiling = false;
 			}
 		});
@@ -152,22 +166,20 @@ if (argv.watch === true) {
 	if (fs.existsSync(pkgLockJsonPath)) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
-			await compiler.copyIncludes(noInclude);
-			await compiler.copyModules();
+			await compiler.copyModuleFiles();
 		});
 	}
 
 	console.log("Running in watch mode..");
 	console.log("Starting initial compile..");
-	time(() => {
-		compiler.compileAll(noInclude);
-	});
-} else {
-	(async () => {
+	time(async () => {
 		try {
 			await compiler.compileAll(noInclude);
 		} catch (e) {
-			process.exit(1);
+			console.log(e);
+			process.exit();
 		}
-	})();
+	});
+} else {
+	compiler.compileAll(noInclude);
 }

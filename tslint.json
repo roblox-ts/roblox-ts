@@ -7,14 +7,16 @@
 		"curly": true,
 		"forin": false,
 		"indent": [true, "tabs", 4],
+		"no-namespace": false,
 		"interface-name": false,
 		"max-classes-per-file": false,
+		"no-bitwise": false,
 		"no-console": false,
 		"no-empty-interface": false,
 		"no-empty": false,
+		"no-var-requires": false,
 		"no-string-literal": true,
 		"no-unnecessary-qualifier": true,
-		"no-unused-variable": true,
 		"no-var-keyword": true,
 		"prefer-const": true,
 		"quotemark": [true, "double", "avoid-escape" ],
@@ -43,5 +45,10 @@
 				"public-instance-method"
 			]
 		}]
+	},
+	"linterOptions": {
+		"exclude": [
+			"tests/**/*.spec.ts"
+		]
 	}
 }

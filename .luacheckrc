@@ -69,6 +69,15 @@ stds.roblox = {
     }
 }
 
+stds.testez = {
+	read_globals = {
+		"describe",
+		"it", "itFOCUS", "itSKIP",
+		"FOCUS", "SKIP", "HACK_NO_XPCALL",
+		"expect",
+	}
+}
+
 ignore = {
     "212", -- Unused argument.
     "213", -- Unused loop variable.
@@ -79,6 +88,10 @@ ignore = {
 }
 
 std = "lua51+roblox"
+
+files["**/*.spec.lua"] = {
+	std = "+testez",
+}
 
 -- prevent max line lengths
 max_code_line_length = false
