@@ -1,4 +1,3 @@
-// Transpiler Code
 import * as ts from "ts-simple-ast";
 import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType, suggest } from "../utility";
 import { Compiler } from "./Compiler";
