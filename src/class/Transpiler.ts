@@ -2129,13 +2129,13 @@ export class Transpiler {
 		let result = "";
 		const id = this.getNewId();
 		const previousName = this.namespaceStack.get(name);
-		this.namespaceStack.set(name, id);
 		if (parentNamespace) {
 			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace.getName(), node);
 			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
 		} else {
 			result += this.indent + `${name} = ${name} or {} do\n`;
 		}
+		this.namespaceStack.set(name, id);
 		this.pushIndent();
 		result += this.indent + `local ${id} = ${name};\n`;
 		result += this.transpileStatementedNode(node);
