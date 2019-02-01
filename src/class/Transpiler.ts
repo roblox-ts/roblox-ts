@@ -659,35 +659,39 @@ export class Transpiler {
 		}
 
 		for (const def of node.getDefinitions()) {
+			// I have no idea why, but getDefinitionNodes() cannot replace this
 			const definition = def.getNode();
 
 			if (def.getSourceFile() === node.getSourceFile()) {
-				// I have no idea why, but getDefinitionNodes() cannot replace this
-				const declaration = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+				let parent = definition;
 
-				if (declaration) {
-					if (declaration.hasExportKeyword()) {
-						return this.getExportContextName(declaration) + "." + name;
-					}
-				} else {
-					const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-
-					if (parent) {
-						const grandparent = parent.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-						if (grandparent) {
-							const parentName = this.namespaceStack.get(grandparent);
-							if (parentName) {
-								return parentName + "." + name;
-							}
+				while (parent) {
+					if (ts.TypeGuards.isVariableStatement(parent)) {
+						if (parent.hasExportKeyword()) {
+							return this.getExportContextName(parent) + "." + name;
 						}
+						break;
+					} else if (ts.TypeGuards.isNamespaceDeclaration(parent)) {
+						const parentName = this.namespaceStack.get(parent);
+						if (parentName) {
+							return parentName + "." + name;
+						}
+						break;
+					} else if (
+						!ts.TypeGuards.isVariableDeclaration(parent) &&
+						!ts.TypeGuards.isVariableDeclarationList(parent) &&
+						!ts.TypeGuards.isIdentifier(parent)
+					) {
+						break;
 					}
+					parent = parent.getParent();
 				}
-			} else {
-				if (this.isDefinitionALet(def)) {
-					const namespace = this.unlocalizedVariables.get(name);
-					if (namespace) {
-						return namespace;
-					}
+			}
+
+			if (this.isDefinitionALet(def)) {
+				const namespace = this.unlocalizedVariables.get(name);
+				if (namespace) {
+					return namespace;
 				}
 			}
 		}
@@ -2128,6 +2132,7 @@ export class Transpiler {
 		result += this.indent + `local ${id} = ${name};\n`;
 		this.namespaceStack.set(node, id);
 		result += this.transpileStatementedNode(node);
+		this.namespaceStack.delete(node);
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
