@@ -311,7 +311,7 @@ export class Transpiler {
 
 	private hoistStack = new Array<Set<string>>();
 	private exportStack = new Array<Set<string>>();
-	private namespaceStack = new Map<ts.NamespaceDeclaration, string>();
+	private namespaceStack = new Map<string, string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
@@ -381,7 +381,7 @@ export class Transpiler {
 		const Find = MapObj.get(Key);
 		if (!Find) {
 			throw new TranspilerError(
-				`Failed to find context for ${node.getKindName()}`,
+				`Failed to find context for ${node.getKindName()} ${node.getText()}`,
 				node,
 				TranspilerErrorType.BadContext,
 			);
@@ -394,7 +394,8 @@ export class Transpiler {
 		let name;
 
 		if (myNamespace) {
-			name = this.safeMapGet(this.namespaceStack, myNamespace, node);
+			name = myNamespace.getName();
+			name = this.namespaceStack.get(name) || name;
 		} else {
 			name = "_exports";
 			this.isModule = true;
@@ -672,9 +673,12 @@ export class Transpiler {
 						}
 						break;
 					} else if (ts.TypeGuards.isNamespaceDeclaration(parent)) {
-						const parentName = this.namespaceStack.get(parent);
-						if (parentName) {
-							return parentName + "." + name;
+						// If within a namespace, scope it. If it is a namespace, don't
+						if (parent !== definition.getParent()) {
+							const parentName = this.namespaceStack.get(parent.getName());
+							if (parentName) {
+								return parentName + "." + name;
+							}
 						}
 						break;
 					} else if (
@@ -1393,15 +1397,17 @@ export class Transpiler {
 				rhs = equalsToken.getNextSibling();
 			}
 
-			if (lhs.getKind() === ts.SyntaxKind.Identifier) {
-				const name = lhs.getText();
-				this.checkReserved(name, lhs);
-				names.push(name);
-				if (rhs) {
-					const rhsStr = this.transpileExpression(rhs as ts.Expression);
-					values.push(rhsStr);
-				} else {
-					values.push("nil");
+			if (ts.TypeGuards.isIdentifier(lhs)) {
+				if (rhs || !isExported) {
+					const name = lhs.getText();
+					this.checkReserved(name, lhs);
+					names.push(name);
+					if (rhs) {
+						const rhsStr = this.transpileExpression(rhs as ts.Expression);
+						values.push(rhsStr);
+					} else {
+						values.push("nil");
+					}
 				}
 			} else if (isBindingPattern(lhs)) {
 				if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
@@ -1437,7 +1443,7 @@ export class Transpiler {
 				const namesStr = names.join(", ");
 				result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
 			}
-		} else {
+		} else if (names.length > 0) {
 			result += this.indent + `local ${names.join(", ")};\n`;
 		}
 
@@ -2122,17 +2128,22 @@ export class Transpiler {
 		this.hoistStack[this.hoistStack.length - 1].add(name);
 		let result = "";
 		const id = this.getNewId();
+		const previousName = this.namespaceStack.get(name);
+		this.namespaceStack.set(name, id);
 		if (parentNamespace) {
-			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace, node);
+			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace.getName(), node);
 			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
 		} else {
 			result += this.indent + `${name} = ${name} or {} do\n`;
 		}
 		this.pushIndent();
 		result += this.indent + `local ${id} = ${name};\n`;
-		this.namespaceStack.set(node, id);
 		result += this.transpileStatementedNode(node);
-		this.namespaceStack.delete(node);
+		if (previousName) {
+			this.namespaceStack.set(name, previousName);
+		} else {
+			this.namespaceStack.delete(name);
+		}
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
