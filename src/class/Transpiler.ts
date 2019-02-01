@@ -1132,6 +1132,17 @@ export class Transpiler {
 		return this.indent + `_continue_${this.continueId} = true; break;\n`;
 	}
 
+	private isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
+		if (ts.TypeGuards.isCallExpression(node)) {
+			const exp = node.getExpression();
+			if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+				const subExpType = exp.getExpression().getType();
+				return (subExpType.isString() || subExpType.isStringLiteral()) && exp.getName() === "gmatch";
+			}
+		}
+		return false;
+	}
+
 	private transpileForInStatement(node: ts.ForInStatement) {
 		this.pushIdStack();
 		const init = node.getInitializer();
@@ -1166,11 +1177,15 @@ export class Transpiler {
 		const exp = node.getExpression();
 		const expStr = this.transpileExpression(exp);
 		let result = "";
-		if (exp.getType().isArray()) {
+
+		if (this.isCallExpressionOverridable(exp)) {
+			result += this.indent + `for ${varName} in ${expStr} do\n`;
+		} else if (exp.getType().isArray()) {
 			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
 		} else {
 			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
 		}
+
 		this.pushIndent();
 		initializers.forEach(initializer => (result += this.indent + initializer + "\n"));
 		result += this.transpileLoopBody(node.getStatement());
