@@ -1317,13 +1317,13 @@ export class Transpiler {
 		if (exp) {
 			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
 		} else {
-			return this.indent + `return;\n`;
+			return this.indent + `return nil;\n`;
 		}
 	}
 
 	private transpileThrowStatement(node: ts.ThrowStatement) {
 		const expStr = this.transpileExpression(node.getExpressionOrThrow());
-		return this.indent + `TS.error(${expStr});\n`;
+		return this.indent + `TS.throw(${expStr});\n`;
 	}
 
 	private transpileVariableDeclarationList(node: ts.VariableDeclarationList) {
@@ -2268,28 +2268,43 @@ export class Transpiler {
 
 	private transpileTryStatement(node: ts.TryStatement) {
 		let result = "";
-		result += this.indent + "local TS_success, TS_error = pcall(function()\n";
+
+		this.pushIdStack();
+
+		const returnsId = this.getNewId();
+		result += this.indent + `local ${returnsId} = TS.try(\n`;
+
+		this.pushIndent();
+
+		result += this.indent + "function()\n";
 		this.pushIndent();
 		result += this.transpileStatementedNode(node.getTryBlock());
 		this.popIndent();
-		result += this.indent + "end);\n";
+		result += this.indent + "end";
+
 		const catchClause = node.getCatchClause();
 		if (catchClause !== undefined) {
-			result += this.indent + "if not TS_success then\n";
+			result += ",\n";
+			const varName = catchClause.getVariableDeclarationOrThrow().getName();
+			result += this.indent + `function(${varName})\n`;
 			this.pushIndent();
-			result +=
-				this.indent +
-				"local " +
-				catchClause.getVariableDeclarationOrThrow().getName() +
-				" = TS.decodeError(TS_error)\n";
 			result += this.transpileStatementedNode(catchClause.getBlock());
 			this.popIndent();
-			result += this.indent + "end\n";
+			result += this.indent + "end";
 		}
+		result += "\n";
+
+		this.popIndent();
+		result += this.indent + ");\n";
+		result += this.indent + `if ${returnsId}.size > 0 then return unpack(${returnsId}); end;\n`;
+
 		const finallyBlock = node.getFinallyBlock();
 		if (finallyBlock !== undefined) {
 			result += this.transpileStatementedNode(finallyBlock);
 		}
+
+		this.popIdStack();
+
 		return result;
 	}
 
