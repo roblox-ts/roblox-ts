@@ -496,6 +496,7 @@ export class Transpiler {
 			let name: string;
 			if (ts.TypeGuards.isIdentifier(child)) {
 				name = child.getText();
+				this.checkReserved(name, node);
 			} else if (isBindingPattern(child)) {
 				name = this.getNewId();
 			} else {
@@ -506,8 +507,6 @@ export class Transpiler {
 					TranspilerErrorType.UnexpectedParameterType,
 				);
 			}
-
-			this.checkReserved(name, node);
 
 			if (param.isRestParameter()) {
 				paramNames.push("...");
@@ -1468,8 +1467,12 @@ export class Transpiler {
 	}
 
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
-		const name = node.getName() || this.getNewId();
-		this.checkReserved(name, node);
+		let name = node.getName();
+		if (name) {
+			this.checkReserved(name, node);
+		} else {
+			name = this.getNewId();
+		}
 		this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
