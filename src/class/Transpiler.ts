@@ -1389,8 +1389,6 @@ export class Transpiler {
 				if (declarationType.isNumberLiteral()) {
 					this.unlocalizedVariables.set(declaration.getName(), declarationType.getText());
 					return "";
-				} else {
-					console.log(declaration.getName(), declarationType.getText());
 				}
 			}
 			const lhs = declaration.getChildAtIndex(0);
@@ -2047,7 +2045,6 @@ export class Transpiler {
 		this.popIndent();
 		this.popIdStack();
 		result += this.indent + "end;\n";
-		console.log(result, hasInstanceInheritance);
 		return result;
 	}
 
