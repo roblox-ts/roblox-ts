@@ -1266,7 +1266,7 @@ export class Transpiler {
 	private checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 		if (node && ts.TypeGuards.isClassExpression(node)) {
 			throw new TranspilerError(
-				"Loops cannot contain class expressions as their condition/init/incrementor! Seriously, what's wrong with you?",
+				"Loops cannot contain class expressions as their condition/init/incrementor!",
 				node,
 				TranspilerErrorType.ClassyLoop,
 			);
