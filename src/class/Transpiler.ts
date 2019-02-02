@@ -320,7 +320,7 @@ export class Transpiler {
 	private roactIndent: number = 0;
 	private hasRoactImport: boolean = false;
 
-	constructor(private compiler: Compiler) { }
+	constructor(private compiler: Compiler) {}
 
 	private getNewId() {
 		const sum = this.idStack.reduce((accum, value) => accum + value);
@@ -1273,7 +1273,7 @@ export class Transpiler {
 
 		let result = "";
 		let localizations = "";
-		let cleanup = () => { };
+		let cleanup = () => {};
 		result += this.indent + "do\n";
 		this.pushIndent();
 		const initializer = node.getInitializer();
@@ -2737,7 +2737,7 @@ export class Transpiler {
 					} else {
 						throw new TranspilerError(
 							`Roact does not support this type of expression ` +
-							`{${expression.getText()}} (${expression.getKindName()})`,
+								`{${expression.getText()}} (${expression.getKindName()})`,
 							expression,
 							TranspilerErrorType.RoactInvalidExpression,
 						);
@@ -2786,7 +2786,7 @@ export class Transpiler {
 		if (!this.hasRoactImport) {
 			throw new TranspilerError(
 				"Cannot use JSX without importing Roact first!\n" +
-				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
 				node,
 				TranspilerErrorType.RoactJsxWithoutImport,
 			);
@@ -2814,7 +2814,7 @@ export class Transpiler {
 		if (!this.hasRoactImport) {
 			throw new TranspilerError(
 				"Cannot use JSX without importing Roact first!\n" +
-				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+					suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
 				node,
 				TranspilerErrorType.RoactJsxWithoutImport,
 			);
@@ -3483,7 +3483,7 @@ export class Transpiler {
 		if (inheritsFromRoact(expressionType)) {
 			throw new TranspilerError(
 				`Roact components cannot be created using new\n` +
-				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
+					suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
 				node,
 				TranspilerErrorType.RoactNoNewComponentAllowed,
 			);
