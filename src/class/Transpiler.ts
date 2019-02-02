@@ -311,7 +311,7 @@ export class Transpiler {
 	// and exported/namespace values which should be represented
 	// differently in Lua than they can be represented in TS
 	private variableAliases = new Map<string, string>();
-
+	private canOptimizeParameterTuple = new Map<HasParameters, string>();
 	private hoistStack = new Array<Set<string>>();
 	private exportStack = new Array<Set<string>>();
 	private namespaceStack = new Map<string, string>();
@@ -513,7 +513,43 @@ export class Transpiler {
 
 			if (param.isRestParameter()) {
 				paramNames.push("...");
-				initializers.push(`local ${name} = { ... };`);
+				let needsNameDeclaration = false;
+				const replaceWithSelect = new Array<ts.PropertyAccessExpression<ts.ts.PropertyAccessExpression>>();
+
+				const body = node.getBody();
+				if (body) {
+					for (const value of body.getDescendantsOfKind(ts.SyntaxKind.Identifier)) {
+						if (value.getText() === name) {
+							const parent = value.getParent();
+							if (
+								(ts.TypeGuards.isSpreadElement(parent) &&
+									!ts.TypeGuards.isArrayLiteralExpression(parent.getParent())) ||
+								(ts.TypeGuards.isForOfStatement(parent) || ts.TypeGuards.isForInStatement(parent))
+							) {
+							} else if (
+								ts.TypeGuards.isPropertyAccessExpression(parent) &&
+								parent.getName() === "length"
+							) {
+								replaceWithSelect.push(parent);
+							} else {
+								needsNameDeclaration = true;
+								break;
+							}
+						}
+					}
+
+					if (!needsNameDeclaration) {
+						this.canOptimizeParameterTuple.set(node, name);
+
+						if (replaceWithSelect) {
+							replaceWithSelect.forEach(parent => parent.replaceWithText(`select("#", ...${name})`));
+						}
+					}
+				}
+
+				if (needsNameDeclaration) {
+					initializers.push(`local ${name} = { ... };`);
+				}
 			} else {
 				paramNames.push(name);
 			}
@@ -1190,7 +1226,13 @@ export class Transpiler {
 		if (this.isCallExpressionOverridable(exp)) {
 			result += this.indent + `for ${varName} in ${expStr} do\n`;
 		} else if (exp.getType().isArray()) {
-			result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
+			const parentFunction = this.getFirstMemberWithParameters(node.getAncestors());
+
+			if (parentFunction && this.canOptimizeParameterTuple.get(parentFunction) === expStr) {
+				result += this.indent + `for ${varName} = 0, select("#", ...) - 1 do\n`;
+			} else {
+				result += this.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
+			}
 		} else {
 			result += this.indent + `for ${varName} in pairs(${expStr}) do\n`;
 		}
@@ -1247,9 +1289,17 @@ export class Transpiler {
 
 		if (exp.getType().isArray()) {
 			const myInt = this.getNewId();
-			result += this.indent + `for ${myInt} = 1, #${expStr} do\n`;
-			this.pushIndent();
-			result += this.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+			const parentFunction = this.getFirstMemberWithParameters(node.getAncestors());
+
+			if (parentFunction && this.canOptimizeParameterTuple.get(parentFunction) === expStr) {
+				result += this.indent + `for ${myInt} = 1, select("#", ...) do\n`;
+				this.pushIndent();
+				result += this.indent + `local ${varName} = select(${myInt}, ...)\n`;
+			} else {
+				result += this.indent + `for ${myInt} = 1, #${expStr} do\n`;
+				this.pushIndent();
+				result += this.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+			}
 		} else {
 			result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
 			this.pushIndent();
@@ -1273,6 +1323,170 @@ export class Transpiler {
 		}
 	}
 
+	private isIdentifierWhoseDefinitionMatchesNode(
+		node: ts.Node<ts.ts.Node>,
+		potentialDefinition: ts.Identifier,
+	): node is ts.Identifier {
+		if (ts.TypeGuards.isIdentifier(node)) {
+			for (const def of node.getDefinitions()) {
+				if (def.getNode() === potentialDefinition) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private expressionModifiesVariable(
+		node: ts.Node<ts.ts.Node>,
+		lhs?: ts.Identifier,
+	): node is ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression {
+		if (
+			ts.TypeGuards.isPostfixUnaryExpression(node) ||
+			(ts.TypeGuards.isPrefixUnaryExpression(node) &&
+				(node.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+					node.getOperatorToken() === ts.SyntaxKind.MinusMinusToken))
+		) {
+			if (lhs) {
+				return this.isIdentifierWhoseDefinitionMatchesNode(node.getOperand(), lhs);
+			} else {
+				return true;
+			}
+		} else if (ts.TypeGuards.isBinaryExpression(node) && this.isSetToken(node.getOperatorToken().getKind())) {
+			if (lhs) {
+				return this.isIdentifierWhoseDefinitionMatchesNode(node.getLeft(), lhs);
+			} else {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private getSignAndValueInForStatement(
+		incrementor: ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
+	) {
+		let forIntervalStr = "";
+		let sign = "";
+
+		if (ts.TypeGuards.isBinaryExpression(incrementor)) {
+			const sibling = incrementor.getChildAtIndex(0).getNextSibling();
+			if (sibling) {
+				let rhsIncr = sibling.getNextSibling();
+
+				if (rhsIncr) {
+					if (rhsIncr.getType().isNumber()) {
+						if (
+							sibling.getKind() === ts.SyntaxKind.EqualsToken &&
+							ts.TypeGuards.isBinaryExpression(rhsIncr)
+						) {
+							// incrementor is something like i = i + 1
+							const sib1 = rhsIncr.getChildAtIndex(0).getNextSibling();
+
+							if (sib1) {
+								if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
+									sign = "-";
+								} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
+									sign = "+";
+								}
+								rhsIncr = sib1.getNextSibling();
+								if (rhsIncr && rhsIncr.getNextSibling()) {
+									rhsIncr = undefined;
+								}
+							}
+						}
+					} else {
+						switch (sibling.getKind()) {
+							case ts.SyntaxKind.PlusEqualsToken:
+								sign = "+";
+								break;
+							case ts.SyntaxKind.MinusEqualsToken:
+								sign = "-";
+								break;
+							default:
+								break;
+						}
+					}
+
+					if (rhsIncr && rhsIncr.getType().isNumberLiteral()) {
+						forIntervalStr = rhsIncr.getText();
+					}
+				}
+			}
+		} else if (incrementor.getOperatorToken() === ts.SyntaxKind.MinusMinusToken) {
+			forIntervalStr = "1";
+			sign = "-";
+		} else {
+			forIntervalStr = "1";
+			sign = "+";
+		}
+		return [sign, forIntervalStr];
+	}
+
+	private getLimitInForStatement(
+		condition: ts.Expression<ts.ts.Expression>,
+		lhs: ts.Identifier,
+	): [string, ts.Node<ts.ts.Node> | undefined] {
+		if (ts.TypeGuards.isBinaryExpression(condition)) {
+			const lhsCond = condition.getChildAtIndex(0);
+			const sibling = lhsCond.getNextSibling();
+			if (sibling) {
+				const rhsCond = sibling.getNextSibling();
+
+				if (rhsCond) {
+					let other: ts.Node<ts.ts.Node>;
+
+					if (this.isIdentifierWhoseDefinitionMatchesNode(lhsCond, lhs)) {
+						other = rhsCond;
+						switch (sibling.getKind()) {
+							case ts.SyntaxKind.GreaterThanEqualsToken: // >=
+								return [">=", other];
+							case ts.SyntaxKind.LessThanEqualsToken: // <=
+								return ["<=", other];
+						}
+					} else {
+						other = lhsCond;
+						switch (sibling.getKind()) {
+							case ts.SyntaxKind.GreaterThanEqualsToken: // >=
+								return ["<=", other];
+							case ts.SyntaxKind.LessThanEqualsToken: // <=
+								return [">=", other];
+						}
+					}
+				}
+			}
+		}
+		return ["", undefined];
+	}
+
+	private safelyHandleExpressionsInForStatement(
+		incrementor: ts.Expression<ts.ts.Expression>,
+		incrementorStr: string,
+	) {
+		if (ts.TypeGuards.isExpression(incrementor)) {
+			this.checkLoopClassExp(incrementor);
+
+			if (
+				!ts.TypeGuards.isCallExpression(incrementor) &&
+				!this.expressionModifiesVariable(incrementor) &&
+				!ts.TypeGuards.isVariableDeclarationList(incrementor)
+			) {
+				incrementorStr = `local _ = ` + incrementorStr;
+			}
+		}
+		return this.indent + incrementorStr;
+	}
+
+	private getSimpleForLoopString(first: string, forLoopVars: string, statement: ts.Statement<ts.ts.Statement>) {
+		let result = "";
+		this.popIndent();
+		result = this.indent + `for ${first}, ${forLoopVars} do\n`;
+		this.pushIndent();
+		result += this.transpileLoopBody(statement);
+		this.popIndent();
+		result += this.indent + `end;\n`;
+		return result;
+	}
+
 	private transpileForStatement(node: ts.ForStatement) {
 		this.pushIdStack();
 		const statement = node.getStatement();
@@ -1289,17 +1503,79 @@ export class Transpiler {
 		result += this.indent + "do\n";
 		this.pushIndent();
 		const initializer = node.getInitializer();
+
 		if (initializer) {
-			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
-				if (
-					initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let &&
-					this.getFirstFunctionLikeAncestor(statement)
-				) {
-					const declarations = initializer.getDeclarations();
-					if (declarations.length > 0) {
-						const lhs = declarations[0].getChildAtIndex(0);
-						if (ts.TypeGuards.isIdentifier(lhs)) {
-							const name = lhs.getText();
+			if (
+				ts.TypeGuards.isVariableDeclarationList(initializer) &&
+				initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let
+			) {
+				const declarations = initializer.getDeclarations();
+				const statementDescendants = statement.getDescendants();
+
+				if (declarations.length > 0) {
+					const lhs = declarations[0].getChildAtIndex(0);
+					if (ts.TypeGuards.isIdentifier(lhs)) {
+						const name = lhs.getText();
+						let isLoopVarModified = false;
+						for (const statementDescendant of statementDescendants) {
+							if (this.expressionModifiesVariable(statementDescendant, lhs)) {
+								isLoopVarModified = true;
+								break;
+							}
+						}
+
+						const nextSibling = lhs.getNextSibling();
+
+						if (
+							declarations.length === 1 &&
+							!isLoopVarModified &&
+							incrementor &&
+							incrementorStr &&
+							nextSibling &&
+							condition
+						) {
+							// check if we can convert to a simple for loop
+							// IF there aren't any in-loop modifications to the let variable
+							// AND the let variable is a single numeric variable
+							// AND the incrementor is a simple +/- expression of the let var
+							// AND the conditional expression is a binary expression
+							// with one of these operators: <= >= < >
+							// AND the conditional expression compares the let var to a numeric literal
+							// OR the conditional expression compares the let var to an unchanging number
+
+							const rhs = nextSibling.getNextSibling();
+							if (rhs) {
+								const rhsType = rhs.getType();
+								if (rhsType.isNumber() || rhsType.isNumberLiteral()) {
+									let first = this.transpileVariableDeclarationList(initializer);
+									first = first.substr(7, first.length - 9);
+
+									if (this.expressionModifiesVariable(incrementor, lhs)) {
+										let [incrSign, incrValue] = this.getSignAndValueInForStatement(incrementor);
+										if (incrSign) {
+											const [condSign, condValue] = this.getLimitInForStatement(condition, lhs);
+											if (condValue && condValue.getType().isNumberLiteral()) {
+												if (incrSign === "+" && condSign === "<=") {
+													const forLoopVars =
+														condValue.getText() +
+														(incrValue === "1" ? "" : ", " + incrValue);
+													return this.getSimpleForLoopString(first, forLoopVars, statement);
+												} else if (incrSign === "-" && condSign === ">=") {
+													incrValue = (incrSign + incrValue).replace("--", "");
+													incrSign = "";
+													const forLoopVars = condValue.getText() + ", " + incrValue;
+													return this.getSimpleForLoopString(first, forLoopVars, statement);
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+
+						// if we can't convert to a simple for loop:
+						// if it has any internal function declarataions, make sure to locally scope variables
+						if (this.getFirstMemberWithParameters(statementDescendants)) {
 							const alias = this.getNewId();
 							this.pushIndent();
 							localizations = this.indent + `local ${alias} = ${name};\n`;
@@ -1308,11 +1584,17 @@ export class Transpiler {
 							// don't leak
 							const previous = this.variableAliases.get(name);
 
-							if (previous) {
-								cleanup = () => this.variableAliases.set(name, previous);
-							} else {
-								cleanup = () => this.variableAliases.delete(name);
-							}
+							cleanup = () => {
+								if (previous) {
+									this.variableAliases.set(name, previous);
+								} else {
+									this.variableAliases.delete(name);
+								}
+
+								if (isLoopVarModified) {
+									result += this.indent + `${name} = ${alias};\n`;
+								}
+							};
 
 							this.variableAliases.set(name, alias);
 						}
@@ -1321,26 +1603,8 @@ export class Transpiler {
 
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
-				this.checkLoopClassExp(initializer);
-				let expStr = this.transpileExpression(initializer);
-
-				if (
-					!ts.TypeGuards.isVariableDeclarationList(initializer) &&
-					!ts.TypeGuards.isCallExpression(initializer) &&
-					!ts.TypeGuards.isPostfixUnaryExpression(initializer) &&
-					!(
-						ts.TypeGuards.isPrefixUnaryExpression(initializer) &&
-						(initializer.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
-							initializer.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
-					) &&
-					!(
-						ts.TypeGuards.isBinaryExpression(initializer) &&
-						this.isSetToken(initializer.getOperatorToken().getKind())
-					)
-				) {
-					expStr = `local _ = ` + expStr;
-				}
-				result += this.indent + expStr + ";\n";
+				const expStr = this.transpileExpression(initializer);
+				result += this.safelyHandleExpressionsInForStatement(initializer, expStr) + ";\n";
 			}
 		}
 
@@ -1348,33 +1612,19 @@ export class Transpiler {
 		result += localizations;
 		this.pushIndent();
 		result += this.transpileLoopBody(statement);
-		if (incrementorStr) {
-			result += this.indent + incrementorStr;
+		cleanup();
+		if (incrementor && incrementorStr) {
+			result += this.safelyHandleExpressionsInForStatement(incrementor, incrementorStr);
 		}
 		this.popIndent();
 		result += this.indent + "end;\n";
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
-		cleanup();
 		return result;
 	}
 
-	private getFirstFunctionLikeAncestor(node: ts.Node): ts.FunctionLikeDeclaration | undefined {
-		for (const ancestor of node.getAncestors()) {
-			if (
-				ts.TypeGuards.isFunctionDeclaration(ancestor) ||
-				ts.TypeGuards.isMethodDeclaration(ancestor) ||
-				ts.TypeGuards.isFunctionExpression(ancestor) ||
-				ts.TypeGuards.isArrowFunction(ancestor)
-			) {
-				return ancestor;
-			}
-		}
-		return undefined;
-	}
-
-	private getReturnStrFromExpression(exp: ts.Expression, func?: ts.FunctionLikeDeclaration) {
+	private getReturnStrFromExpression(exp: ts.Expression, func?: HasParameters) {
 		if (func && isTupleLike(func.getReturnType())) {
 			if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 				let expStr = this.transpileExpression(exp);
@@ -1394,7 +1644,7 @@ export class Transpiler {
 	private transpileReturnStatement(node: ts.ReturnStatement) {
 		const exp = node.getExpression();
 		if (exp) {
-			return this.getReturnStrFromExpression(exp, this.getFirstFunctionLikeAncestor(node)) + "\n";
+			return this.getReturnStrFromExpression(exp, this.getFirstMemberWithParameters(node.getAncestors())) + "\n";
 		} else {
 			return this.indent + `return nil;\n`;
 		}
@@ -1460,25 +1710,27 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
-			if (
-				parent &&
-				parent.getParent() === parent.getSourceFile() &&
-				!isExported &&
-				declarationKind === ts.VariableDeclarationKind.Const
-			) {
-				if (ts.TypeGuards.isNumericLiteral(declaration)) {
-					const declarationName = declaration.getName();
-					this.checkReserved(declarationName, node);
-					this.variableAliases.set(declarationName, declaration.getType().getText());
-					return "";
-				}
-			}
 			const lhs = declaration.getChildAtIndex(0);
 			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
 
 			let rhs: ts.Node | undefined;
 			if (equalsToken) {
 				rhs = equalsToken.getNextSibling();
+			}
+
+			if (
+				rhs &&
+				parent &&
+				parent.getParent() === parent.getSourceFile() &&
+				!isExported &&
+				declarationKind === ts.VariableDeclarationKind.Const
+			) {
+				if (ts.TypeGuards.isNumericLiteral(rhs)) {
+					const declarationName = declaration.getName();
+					this.checkReserved(declarationName, node);
+					this.variableAliases.set(declarationName, declaration.getType().getText());
+					return "";
+				}
 			}
 
 			if (ts.TypeGuards.isIdentifier(lhs)) {
@@ -3805,9 +4057,32 @@ export class Transpiler {
 		return `TS.typeof(${expStr})`;
 	}
 
+	private getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
+		for (const node of nodes) {
+			if (
+				ts.TypeGuards.isFunctionExpression(node) ||
+				ts.TypeGuards.isArrowFunction(node) ||
+				ts.TypeGuards.isFunctionDeclaration(node) ||
+				ts.TypeGuards.isConstructorDeclaration(node) ||
+				ts.TypeGuards.isMethodDeclaration(node) ||
+				ts.TypeGuards.isGetAccessorDeclaration(node) ||
+				ts.TypeGuards.isSetAccessorDeclaration(node)
+			) {
+				return node;
+			}
+		}
+		return undefined;
+	}
+
 	private transpileSpreadElement(node: ts.SpreadElement) {
 		const expStr = this.transpileExpression(node.getExpression());
-		return `unpack(${expStr})`;
+		const parentFunction = this.getFirstMemberWithParameters(node.getAncestors());
+
+		if (parentFunction && this.canOptimizeParameterTuple.get(parentFunction) === expStr) {
+			return "...";
+		} else {
+			return `unpack(${expStr})`;
+		}
 	}
 
 	public transpileSourceFile(node: ts.SourceFile) {
