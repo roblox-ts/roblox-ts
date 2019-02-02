@@ -306,8 +306,11 @@ function isTupleLike(type: ts.Type) {
 }
 
 export class Transpiler {
-	// in the form EXPORT_LET_VAR_NAME : NAMESPACE_LOCATION
-	private unlocalizedVariables = new Map<string, string>();
+	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
+	// For example, this is used for numeric literal constants
+	// and exported/namespace values which should be represented
+	// differently in Lua than they can be represented in TS
+	private variableAliases = new Map<string, string>();
 
 	private hoistStack = new Array<Set<string>>();
 	private exportStack = new Array<Set<string>>();
@@ -690,12 +693,10 @@ export class Transpiler {
 					parent = parent.getParent();
 				}
 			}
+			const namespace = this.variableAliases.get(name);
 
-			if (this.isDefinitionALet(def)) {
-				const namespace = this.unlocalizedVariables.get(name);
-				if (namespace) {
-					return namespace;
-				}
+			if (namespace) {
+				return namespace;
 			}
 		}
 
@@ -777,6 +778,7 @@ export class Transpiler {
 
 		if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
 			const grandparent = parent.getParent();
+
 			return (
 				ts.TypeGuards.isVariableDeclarationList(grandparent) &&
 				grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
@@ -883,7 +885,7 @@ export class Transpiler {
 
 		unlocalizedImports
 			.filter(alias => alias !== "")
-			.forEach((alias, i) => this.unlocalizedVariables.set(alias, rhsPrefix + rhs[i]));
+			.forEach((alias, i) => this.variableAliases.set(alias, rhsPrefix + rhs[i]));
 
 		if (hasVarNames || lhs.length > 0) {
 			const lhsStr = lhs.join(", ");
@@ -1304,9 +1306,15 @@ export class Transpiler {
 							this.popIndent();
 
 							// don't leak
-							const previous = this.unlocalizedVariables.get(name) || "";
-							cleanup = () => this.unlocalizedVariables.set(name, previous);
-							this.unlocalizedVariables.set(name, alias);
+							const previous = this.variableAliases.get(name);
+
+							if (previous) {
+								cleanup = () => this.variableAliases.set(name, previous);
+							} else {
+								cleanup = () => this.variableAliases.delete(name);
+							}
+
+							this.variableAliases.set(name, alias);
 						}
 					}
 				}
@@ -1452,6 +1460,19 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
+			if (
+				parent &&
+				parent.getParent() === parent.getSourceFile() &&
+				!isExported &&
+				declarationKind === ts.VariableDeclarationKind.Const
+			) {
+				if (ts.TypeGuards.isNumericLiteral(declaration)) {
+					const declarationName = declaration.getName();
+					this.checkReserved(declarationName, node);
+					this.variableAliases.set(declarationName, declaration.getType().getText());
+					return "";
+				}
+			}
 			const lhs = declaration.getChildAtIndex(0);
 			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
 
