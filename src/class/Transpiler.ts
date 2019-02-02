@@ -697,7 +697,7 @@ export class Transpiler {
 
 			if (namespace) {
 				return namespace;
-      		}
+			}
 		}
 
 		return name;
