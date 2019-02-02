@@ -1460,7 +1460,6 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
-			console.log("[0] CHECKING");
 			if (
 				parent &&
 				parent.getParent() === parent.getSourceFile() &&
