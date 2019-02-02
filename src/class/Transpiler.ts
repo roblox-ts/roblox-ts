@@ -1241,10 +1241,20 @@ export class Transpiler {
 			throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
-		this.pushIndent();
+
+		if (exp.getType().isArray()) {
+			const myInt = this.getNewId();
+			result += this.indent + `for ${myInt} = 1, #${expStr} do\n`;
+			this.pushIndent();
+			result += this.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+		} else {
+			result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+			this.pushIndent();
+		}
+
 		initializers.forEach(initializer => (result += this.indent + initializer));
 		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
@@ -1253,33 +1263,85 @@ export class Transpiler {
 		return result;
 	}
 
+	private checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
+		if (node && ts.TypeGuards.isClassExpression(node)) {
+			throw new TranspilerError(
+				"Loops cannot contain class expressions as their condition/init/incrementor! Seriously, what's wrong with you?",
+				node,
+				TranspilerErrorType.ClassyLoop,
+			);
+		}
+	}
+
 	private transpileForStatement(node: ts.ForStatement) {
+		this.pushIdStack();
+		const statement = node.getStatement();
 		const condition = node.getCondition();
+		this.checkLoopClassExp(condition);
 		const conditionStr = condition ? this.transpileExpression(condition) : "true";
 		const incrementor = node.getIncrementor();
+		this.checkLoopClassExp(incrementor);
 		const incrementorStr = incrementor ? this.transpileExpression(incrementor) + ";\n" : undefined;
 
 		let result = "";
+		let localizations = "";
+		let cleanup = () => {};
 		result += this.indent + "do\n";
 		this.pushIndent();
 		const initializer = node.getInitializer();
 		if (initializer) {
 			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
+				if (
+					initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let &&
+					this.getFirstFunctionLikeAncestor(statement)
+				) {
+					const declarations = initializer.getDeclarations();
+					if (declarations.length > 0) {
+						const lhs = declarations[0].getChildAtIndex(0);
+						if (ts.TypeGuards.isIdentifier(lhs)) {
+							const name = lhs.getText();
+							const alias = this.getNewId();
+							this.pushIndent();
+							localizations = this.indent + `local ${alias} = ${name};\n`;
+							this.popIndent();
+
+							// don't leak
+							const previous = this.unlocalizedVariables.get(name) || "";
+							cleanup = () => this.unlocalizedVariables.set(name, previous);
+							this.unlocalizedVariables.set(name, alias);
+						}
+					}
+				}
+
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
+				this.checkLoopClassExp(initializer);
 				let expStr = this.transpileExpression(initializer);
+
 				if (
 					!ts.TypeGuards.isVariableDeclarationList(initializer) &&
-					!ts.TypeGuards.isCallExpression(initializer)
+					!ts.TypeGuards.isCallExpression(initializer) &&
+					!ts.TypeGuards.isPostfixUnaryExpression(initializer) &&
+					!(
+						ts.TypeGuards.isPrefixUnaryExpression(initializer) &&
+						(initializer.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+							initializer.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
+					) &&
+					!(
+						ts.TypeGuards.isBinaryExpression(initializer) &&
+						this.isSetToken(initializer.getOperatorToken().getKind())
+					)
 				) {
 					expStr = `local _ = ` + expStr;
 				}
 				result += this.indent + expStr + ";\n";
 			}
 		}
+
 		result += this.indent + `while ${conditionStr} do\n`;
+		result += localizations;
 		this.pushIndent();
-		result += this.transpileLoopBody(node.getStatement());
+		result += this.transpileLoopBody(statement);
 		if (incrementorStr) {
 			result += this.indent + incrementorStr;
 		}
@@ -1287,6 +1349,8 @@ export class Transpiler {
 		result += this.indent + "end;\n";
 		this.popIndent();
 		result += this.indent + `end;\n`;
+		this.popIdStack();
+		cleanup();
 		return result;
 	}
 
@@ -1470,7 +1534,9 @@ export class Transpiler {
 	}
 
 	private transpileWhileStatement(node: ts.WhileStatement) {
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		this.checkLoopClassExp(exp);
+		const expStr = this.transpileExpression(exp);
 		let result = "";
 		result += this.indent + `while ${expStr} do\n`;
 		this.pushIndent();
@@ -2883,6 +2949,9 @@ export class Transpiler {
 				} else if (ts.TypeGuards.isIdentifier(child)) {
 					lhs = child.getText();
 					this.checkReserved(lhs, child);
+				} else if (ts.TypeGuards.isNumericLiteral(child)) {
+					const expStr = this.transpileNumericLiteral(child);
+					lhs = `[${expStr}]`;
 				} else {
 					throw new TranspilerError(
 						`Unexpected type of object index! (${child.getKindName()})`,
@@ -3143,6 +3212,23 @@ export class Transpiler {
 		return result;
 	}
 
+	private isSetToken(opKind: ts.ts.SyntaxKind) {
+		return (
+			opKind === ts.SyntaxKind.EqualsToken ||
+			opKind === ts.SyntaxKind.BarEqualsToken ||
+			opKind === ts.SyntaxKind.AmpersandEqualsToken ||
+			opKind === ts.SyntaxKind.CaretEqualsToken ||
+			opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
+			opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
+			opKind === ts.SyntaxKind.PlusEqualsToken ||
+			opKind === ts.SyntaxKind.MinusEqualsToken ||
+			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
+			opKind === ts.SyntaxKind.SlashEqualsToken ||
+			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
+			opKind === ts.SyntaxKind.PercentEqualsToken
+		);
+	}
+
 	private transpileBinaryExpression(node: ts.BinaryExpression) {
 		const opToken = node.getOperatorToken();
 		const opKind = opToken.getKind();
@@ -3190,20 +3276,7 @@ export class Transpiler {
 			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
 		}
 
-		if (
-			opKind === ts.SyntaxKind.EqualsToken ||
-			opKind === ts.SyntaxKind.BarEqualsToken ||
-			opKind === ts.SyntaxKind.AmpersandEqualsToken ||
-			opKind === ts.SyntaxKind.CaretEqualsToken ||
-			opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
-			opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
-			opKind === ts.SyntaxKind.PlusEqualsToken ||
-			opKind === ts.SyntaxKind.MinusEqualsToken ||
-			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
-			opKind === ts.SyntaxKind.SlashEqualsToken ||
-			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
-			opKind === ts.SyntaxKind.PercentEqualsToken
-		) {
+		if (this.isSetToken(opKind)) {
 			if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 				const expression = lhs.getExpression();
 				const opExpStr = this.transpileExpression(expression);
@@ -3298,6 +3371,16 @@ export class Transpiler {
 		}
 	}
 
+	private useIIFEforUnaryExpression(
+		parent: ts.Node<ts.ts.Node>,
+		node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
+	) {
+		return !(
+			ts.TypeGuards.isExpressionStatement(parent) ||
+			(ts.TypeGuards.isForStatement(parent) && parent.getCondition() !== node)
+		);
+	}
+
 	private transpilePrefixUnaryExpression(node: ts.PrefixUnaryExpression) {
 		const parent = node.getParentOrThrow();
 		const operand = node.getOperand();
@@ -3333,13 +3416,12 @@ export class Transpiler {
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 			statements.push(getOperandStr());
-			const parentKind = parent.getKind();
-			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-				return statements.join("; ");
-			} else {
+			if (this.useIIFEforUnaryExpression(parent, node)) {
 				this.popIdStack();
 				const statementsStr = statements.join("; ");
 				return `(function() ${statementsStr}; return ${expStr}; end)()`;
+			} else {
+				return statements.join("; ");
 			}
 		}
 
@@ -3391,17 +3473,16 @@ export class Transpiler {
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
-			const parentKind = parent.getKind();
-			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-				statements.push(getOperandStr());
-				return statements.join("; ");
-			} else {
+			if (this.useIIFEforUnaryExpression(parent, node)) {
 				const id = this.getNewId();
 				this.popIdStack();
 				statements.push(`local ${id} = ${expStr}`);
 				statements.push(getOperandStr());
 				const statementsStr = statements.join("; ");
 				return `(function() ${statementsStr}; return ${id}; end)()`;
+			} else {
+				statements.push(getOperandStr());
+				return statements.join("; ");
 			}
 		}
 		throw new TranspilerError(
