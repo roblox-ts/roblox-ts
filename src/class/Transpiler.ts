@@ -1306,7 +1306,7 @@ export class Transpiler {
 							this.popIndent();
 
 							// don't leak
-							const previous = this.variableAliases.get(name)
+							const previous = this.variableAliases.get(name);
 
 							if (previous) {
 								cleanup = () => this.variableAliases.set(name, previous);
