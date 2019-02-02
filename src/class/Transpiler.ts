@@ -684,6 +684,7 @@ export class Transpiler {
 				}
 			}
 			const namespace = this.unlocalizedVariables.get(name);
+
 			if (namespace) {
 				return namespace;
 			}
