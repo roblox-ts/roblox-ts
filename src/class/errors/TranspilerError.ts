@@ -39,7 +39,6 @@ export enum TranspilerErrorType {
 	NoFunctionIndex,
 	NoClassPrototype,
 	ExportInNonModuleScript,
-	ModuleScriptContainsNoExports,
 	RoactGettersNotAllowed,
 	RoactSettersNotAllowed,
 	RoactSubClassesNotSupported,
