@@ -778,6 +778,7 @@ export class Transpiler {
 
 		if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
 			const grandparent = parent.getParent();
+
 			return (
 				ts.TypeGuards.isVariableDeclarationList(grandparent) &&
 				grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
