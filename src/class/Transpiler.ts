@@ -1460,17 +1460,17 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
+			console.log("[0] CHECKING");
 			if (
 				parent &&
 				parent.getParent() === parent.getSourceFile() &&
 				!isExported &&
 				declarationKind === ts.VariableDeclarationKind.Const
 			) {
-				const declarationType = declaration.getType();
-				if (declarationType.isNumberLiteral()) {
+				if (ts.TypeGuards.isNumericLiteral(declaration)) {
 					const declarationName = declaration.getName();
 					this.checkReserved(declarationName, node);
-					this.variableAliases.set(declarationName, declarationType.getText());
+					this.variableAliases.set(declarationName, declaration.getType().getText());
 					return "";
 				}
 			}
