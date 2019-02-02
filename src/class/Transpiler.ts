@@ -1460,7 +1460,7 @@ export class Transpiler {
 						values.push(rhsStr);
 					} else {
 						values.push("nil");
-          }
+          			}
 				}
 			} else if (isBindingPattern(lhs)) {
 				if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
