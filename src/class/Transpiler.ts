@@ -306,8 +306,11 @@ function isTupleLike(type: ts.Type) {
 }
 
 export class Transpiler {
-	// in the form EXPORT_LET_VAR_NAME : NAMESPACE_LOCATION
-	private unlocalizedVariables = new Map<string, string>();
+	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
+	// For example, this is used for numeric literal constants
+	// and exported/namespace values which should be represented
+	// differently in Lua than they can be represented in TS
+	private variableAliases = new Map<string, string>();
 
 	private hoistStack = new Array<Set<string>>();
 	private exportStack = new Array<Set<string>>();
@@ -690,11 +693,11 @@ export class Transpiler {
 					parent = parent.getParent();
 				}
 			}
-			const namespace = this.unlocalizedVariables.get(name);
+			const namespace = this.variableAliases.get(name);
 
 			if (namespace) {
 				return namespace;
-      }
+      		}
 		}
 
 		return name;
@@ -881,7 +884,7 @@ export class Transpiler {
 
 		unlocalizedImports
 			.filter(alias => alias !== "")
-			.forEach((alias, i) => this.unlocalizedVariables.set(alias, rhsPrefix + rhs[i]));
+			.forEach((alias, i) => this.variableAliases.set(alias, rhsPrefix + rhs[i]));
 
 		if (hasVarNames || lhs.length > 0) {
 			const lhsStr = lhs.join(", ");
@@ -1394,7 +1397,7 @@ export class Transpiler {
 			) {
 				const declarationType = declaration.getType();
 				if (declarationType.isNumberLiteral()) {
-					this.unlocalizedVariables.set(declaration.getName(), declarationType.getText());
+					this.variableAliases.set(declaration.getName(), declarationType.getText());
 					return "";
 				}
 			}
