@@ -1306,9 +1306,15 @@ export class Transpiler {
 							this.popIndent();
 
 							// don't leak
-							const previous = this.unlocalizedVariables.get(name) || "";
-							cleanup = () => this.unlocalizedVariables.set(name, previous);
-							this.unlocalizedVariables.set(name, alias);
+							const previous = this.variableAliases.get(name)
+
+							if (previous) {
+								cleanup = () => this.variableAliases.set(name, previous);
+							} else {
+								cleanup = () => this.variableAliases.delete(name);
+							}
+
+							this.variableAliases.set(name, alias);
 						}
 					}
 				}
