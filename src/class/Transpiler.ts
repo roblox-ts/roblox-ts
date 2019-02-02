@@ -1468,7 +1468,9 @@ export class Transpiler {
 			) {
 				const declarationType = declaration.getType();
 				if (declarationType.isNumberLiteral()) {
-					this.variableAliases.set(declaration.getName(), declarationType.getText());
+					const declarationName = declaration.getName();
+					this.checkReserved(declarationName, node);
+					this.variableAliases.set(declarationName, declarationType.getText());
 					return "";
 				}
 			}
