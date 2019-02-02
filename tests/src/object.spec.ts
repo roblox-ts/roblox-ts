@@ -194,5 +194,14 @@ export = () => {
 			expect(object2.c).to.equal(3);
 			expect(object2.d).to.equal(5);
 		});
+
+		it("should support numeric literals", () => {
+			const object1 = {
+				[1]: 1,
+				2: 1,
+			};
+			expect(object1[1]).to.equal(1);
+			expect(object1[2]).to.equal(1);
+		});
 	});
 };
