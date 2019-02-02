@@ -1,4 +1,3 @@
-// Transpiler Code
 import * as ts from "ts-simple-ast";
 import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType, suggest } from "../utility";
 import { Compiler } from "./Compiler";
@@ -307,12 +306,15 @@ function isTupleLike(type: ts.Type) {
 }
 
 export class Transpiler {
-	// in the form EXPORT_LET_VAR_NAME : NAMESPACE_LOCATION
-	private unlocalizedVariables = new Map<string, string>();
+	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
+	// For example, this is used for numeric literal constants
+	// and exported/namespace values which should be represented
+	// differently in Lua than they can be represented in TS
+	private variableAliases = new Map<string, string>();
 
 	private hoistStack = new Array<Set<string>>();
 	private exportStack = new Array<Set<string>>();
-	private namespaceStack = new Map<ts.NamespaceDeclaration, string>();
+	private namespaceStack = new Map<string, string>();
 	private idStack = new Array<number>();
 	private continueId = -1;
 	private isModule = false;
@@ -382,7 +384,7 @@ export class Transpiler {
 		const Find = MapObj.get(Key);
 		if (!Find) {
 			throw new TranspilerError(
-				`Failed to find context for ${node.getKindName()}`,
+				`Failed to find context for ${node.getKindName()} ${node.getText()}`,
 				node,
 				TranspilerErrorType.BadContext,
 			);
@@ -395,7 +397,8 @@ export class Transpiler {
 		let name;
 
 		if (myNamespace) {
-			name = this.safeMapGet(this.namespaceStack, myNamespace, node);
+			name = myNamespace.getName();
+			name = this.namespaceStack.get(name) || name;
 		} else {
 			name = "_exports";
 			this.isModule = true;
@@ -496,6 +499,7 @@ export class Transpiler {
 			let name: string;
 			if (ts.TypeGuards.isIdentifier(child)) {
 				name = child.getText();
+				this.checkReserved(name, node);
 			} else if (isBindingPattern(child)) {
 				name = this.getNewId();
 			} else {
@@ -506,8 +510,6 @@ export class Transpiler {
 					TranspilerErrorType.UnexpectedParameterType,
 				);
 			}
-
-			this.checkReserved(name, node);
 
 			if (param.isRestParameter()) {
 				paramNames.push("...");
@@ -660,36 +662,41 @@ export class Transpiler {
 		}
 
 		for (const def of node.getDefinitions()) {
+			// I have no idea why, but getDefinitionNodes() cannot replace this
 			const definition = def.getNode();
 
 			if (def.getSourceFile() === node.getSourceFile()) {
-				// I have no idea why, but getDefinitionNodes() cannot replace this
-				const declaration = definition.getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+				let parent = definition;
 
-				if (declaration) {
-					if (declaration.hasExportKeyword()) {
-						return this.getExportContextName(declaration) + "." + name;
-					}
-				} else {
-					const parent = definition.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-
-					if (parent) {
-						const grandparent = parent.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
-						if (grandparent) {
-							const parentName = this.namespaceStack.get(grandparent);
+				while (parent) {
+					if (ts.TypeGuards.isVariableStatement(parent)) {
+						if (parent.hasExportKeyword()) {
+							return this.getExportContextName(parent) + "." + name;
+						}
+						break;
+					} else if (ts.TypeGuards.isNamespaceDeclaration(parent)) {
+						// If within a namespace, scope it. If it is a namespace, don't
+						if (parent !== definition.getParent()) {
+							const parentName = this.namespaceStack.get(parent.getName());
 							if (parentName) {
 								return parentName + "." + name;
 							}
 						}
+						break;
+					} else if (
+						!ts.TypeGuards.isVariableDeclaration(parent) &&
+						!ts.TypeGuards.isVariableDeclarationList(parent) &&
+						!ts.TypeGuards.isIdentifier(parent)
+					) {
+						break;
 					}
+					parent = parent.getParent();
 				}
-			} else {
-				if (this.isDefinitionALet(def)) {
-					const namespace = this.unlocalizedVariables.get(name);
-					if (namespace) {
-						return namespace;
-					}
-				}
+			}
+			const namespace = this.variableAliases.get(name);
+
+			if (namespace) {
+				return namespace;
 			}
 		}
 
@@ -771,6 +778,7 @@ export class Transpiler {
 
 		if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
 			const grandparent = parent.getParent();
+
 			return (
 				ts.TypeGuards.isVariableDeclarationList(grandparent) &&
 				grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
@@ -877,7 +885,7 @@ export class Transpiler {
 
 		unlocalizedImports
 			.filter(alias => alias !== "")
-			.forEach((alias, i) => this.unlocalizedVariables.set(alias, rhsPrefix + rhs[i]));
+			.forEach((alias, i) => this.variableAliases.set(alias, rhsPrefix + rhs[i]));
 
 		if (hasVarNames || lhs.length > 0) {
 			const lhsStr = lhs.join(", ");
@@ -1233,10 +1241,20 @@ export class Transpiler {
 			throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 		}
 
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		const expStr = this.transpileExpression(exp);
 		let result = "";
-		result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
-		this.pushIndent();
+
+		if (exp.getType().isArray()) {
+			const myInt = this.getNewId();
+			result += this.indent + `for ${myInt} = 1, #${expStr} do\n`;
+			this.pushIndent();
+			result += this.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+		} else {
+			result += this.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+			this.pushIndent();
+		}
+
 		initializers.forEach(initializer => (result += this.indent + initializer));
 		result += this.transpileLoopBody(node.getStatement());
 		this.popIndent();
@@ -1245,33 +1263,91 @@ export class Transpiler {
 		return result;
 	}
 
+	private checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
+		if (node && ts.TypeGuards.isClassExpression(node)) {
+			throw new TranspilerError(
+				"Loops cannot contain class expressions as their condition/init/incrementor! Seriously, what's wrong with you?",
+				node,
+				TranspilerErrorType.ClassyLoop,
+			);
+		}
+	}
+
 	private transpileForStatement(node: ts.ForStatement) {
+		this.pushIdStack();
+		const statement = node.getStatement();
 		const condition = node.getCondition();
+		this.checkLoopClassExp(condition);
 		const conditionStr = condition ? this.transpileExpression(condition) : "true";
 		const incrementor = node.getIncrementor();
+		this.checkLoopClassExp(incrementor);
 		const incrementorStr = incrementor ? this.transpileExpression(incrementor) + ";\n" : undefined;
 
 		let result = "";
+		let localizations = "";
+		let cleanup = () => {};
 		result += this.indent + "do\n";
 		this.pushIndent();
 		const initializer = node.getInitializer();
 		if (initializer) {
 			if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
+				if (
+					initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let &&
+					this.getFirstFunctionLikeAncestor(statement)
+				) {
+					const declarations = initializer.getDeclarations();
+					if (declarations.length > 0) {
+						const lhs = declarations[0].getChildAtIndex(0);
+						if (ts.TypeGuards.isIdentifier(lhs)) {
+							const name = lhs.getText();
+							const alias = this.getNewId();
+							this.pushIndent();
+							localizations = this.indent + `local ${alias} = ${name};\n`;
+							this.popIndent();
+
+							// don't leak
+							const previous = this.variableAliases.get(name);
+
+							if (previous) {
+								cleanup = () => this.variableAliases.set(name, previous);
+							} else {
+								cleanup = () => this.variableAliases.delete(name);
+							}
+
+							this.variableAliases.set(name, alias);
+						}
+					}
+				}
+
 				result += this.transpileVariableDeclarationList(initializer);
 			} else if (ts.TypeGuards.isExpression(initializer)) {
+				this.checkLoopClassExp(initializer);
 				let expStr = this.transpileExpression(initializer);
+
 				if (
 					!ts.TypeGuards.isVariableDeclarationList(initializer) &&
-					!ts.TypeGuards.isCallExpression(initializer)
+					!ts.TypeGuards.isCallExpression(initializer) &&
+					!ts.TypeGuards.isPostfixUnaryExpression(initializer) &&
+					!(
+						ts.TypeGuards.isPrefixUnaryExpression(initializer) &&
+						(initializer.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+							initializer.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
+					) &&
+					!(
+						ts.TypeGuards.isBinaryExpression(initializer) &&
+						this.isSetToken(initializer.getOperatorToken().getKind())
+					)
 				) {
 					expStr = `local _ = ` + expStr;
 				}
 				result += this.indent + expStr + ";\n";
 			}
 		}
+
 		result += this.indent + `while ${conditionStr} do\n`;
+		result += localizations;
 		this.pushIndent();
-		result += this.transpileLoopBody(node.getStatement());
+		result += this.transpileLoopBody(statement);
 		if (incrementorStr) {
 			result += this.indent + incrementorStr;
 		}
@@ -1279,6 +1355,8 @@ export class Transpiler {
 		result += this.indent + "end;\n";
 		this.popIndent();
 		result += this.indent + `end;\n`;
+		this.popIdStack();
+		cleanup();
 		return result;
 	}
 
@@ -1382,6 +1460,19 @@ export class Transpiler {
 		}
 
 		for (const declaration of declarations) {
+			if (
+				parent &&
+				parent.getParent() === parent.getSourceFile() &&
+				!isExported &&
+				declarationKind === ts.VariableDeclarationKind.Const
+			) {
+				if (ts.TypeGuards.isNumericLiteral(declaration)) {
+					const declarationName = declaration.getName();
+					this.checkReserved(declarationName, node);
+					this.variableAliases.set(declarationName, declaration.getType().getText());
+					return "";
+				}
+			}
 			const lhs = declaration.getChildAtIndex(0);
 			const equalsToken = declaration.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
 
@@ -1390,15 +1481,17 @@ export class Transpiler {
 				rhs = equalsToken.getNextSibling();
 			}
 
-			if (lhs.getKind() === ts.SyntaxKind.Identifier) {
-				const name = lhs.getText();
-				this.checkReserved(name, lhs);
-				names.push(name);
-				if (rhs) {
-					const rhsStr = this.transpileExpression(rhs as ts.Expression);
-					values.push(rhsStr);
-				} else {
-					values.push("nil");
+			if (ts.TypeGuards.isIdentifier(lhs)) {
+				if (rhs || !isExported) {
+					const name = lhs.getText();
+					this.checkReserved(name, lhs);
+					names.push(name);
+					if (rhs) {
+						const rhsStr = this.transpileExpression(rhs as ts.Expression);
+						values.push(rhsStr);
+					} else {
+						values.push("nil");
+					}
 				}
 			} else if (isBindingPattern(lhs)) {
 				if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
@@ -1434,7 +1527,7 @@ export class Transpiler {
 				const namesStr = names.join(", ");
 				result += this.indent + `local ${namesStr} = ${valuesStr};\n`;
 			}
-		} else {
+		} else if (names.length > 0) {
 			result += this.indent + `local ${names.join(", ")};\n`;
 		}
 
@@ -1448,7 +1541,9 @@ export class Transpiler {
 	}
 
 	private transpileWhileStatement(node: ts.WhileStatement) {
-		const expStr = this.transpileExpression(node.getExpression());
+		const exp = node.getExpression();
+		this.checkLoopClassExp(exp);
+		const expStr = this.transpileExpression(exp);
 		let result = "";
 		result += this.indent + `while ${expStr} do\n`;
 		this.pushIndent();
@@ -1459,8 +1554,12 @@ export class Transpiler {
 	}
 
 	private transpileFunctionDeclaration(node: ts.FunctionDeclaration) {
-		const name = node.getName() || this.getNewId();
-		this.checkReserved(name, node);
+		let name = node.getName();
+		if (name) {
+			this.checkReserved(name, node);
+		} else {
+			name = this.getNewId();
+		}
 		this.pushExport(name, node);
 		const body = node.getBody();
 		if (!body) {
@@ -2119,16 +2218,22 @@ export class Transpiler {
 		this.hoistStack[this.hoistStack.length - 1].add(name);
 		let result = "";
 		const id = this.getNewId();
+		const previousName = this.namespaceStack.get(name);
 		if (parentNamespace) {
-			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace, node);
+			const parentName = this.safeMapGet(this.namespaceStack, parentNamespace.getName(), node);
 			result += this.indent + `${name} = ${parentName}.${name} or {} do\n`;
 		} else {
 			result += this.indent + `${name} = ${name} or {} do\n`;
 		}
+		this.namespaceStack.set(name, id);
 		this.pushIndent();
 		result += this.indent + `local ${id} = ${name};\n`;
-		this.namespaceStack.set(node, id);
 		result += this.transpileStatementedNode(node);
+		if (previousName) {
+			this.namespaceStack.set(name, previousName);
+		} else {
+			this.namespaceStack.delete(name);
+		}
 		this.popIndent();
 		result += this.indent + `end;\n`;
 		this.popIdStack();
@@ -2851,6 +2956,9 @@ export class Transpiler {
 				} else if (ts.TypeGuards.isIdentifier(child)) {
 					lhs = child.getText();
 					this.checkReserved(lhs, child);
+				} else if (ts.TypeGuards.isNumericLiteral(child)) {
+					const expStr = this.transpileNumericLiteral(child);
+					lhs = `[${expStr}]`;
 				} else {
 					throw new TranspilerError(
 						`Unexpected type of object index! (${child.getKindName()})`,
@@ -3111,6 +3219,23 @@ export class Transpiler {
 		return result;
 	}
 
+	private isSetToken(opKind: ts.ts.SyntaxKind) {
+		return (
+			opKind === ts.SyntaxKind.EqualsToken ||
+			opKind === ts.SyntaxKind.BarEqualsToken ||
+			opKind === ts.SyntaxKind.AmpersandEqualsToken ||
+			opKind === ts.SyntaxKind.CaretEqualsToken ||
+			opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
+			opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
+			opKind === ts.SyntaxKind.PlusEqualsToken ||
+			opKind === ts.SyntaxKind.MinusEqualsToken ||
+			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
+			opKind === ts.SyntaxKind.SlashEqualsToken ||
+			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
+			opKind === ts.SyntaxKind.PercentEqualsToken
+		);
+	}
+
 	private transpileBinaryExpression(node: ts.BinaryExpression) {
 		const opToken = node.getOperatorToken();
 		const opKind = opToken.getKind();
@@ -3158,20 +3283,7 @@ export class Transpiler {
 			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
 		}
 
-		if (
-			opKind === ts.SyntaxKind.EqualsToken ||
-			opKind === ts.SyntaxKind.BarEqualsToken ||
-			opKind === ts.SyntaxKind.AmpersandEqualsToken ||
-			opKind === ts.SyntaxKind.CaretEqualsToken ||
-			opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
-			opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
-			opKind === ts.SyntaxKind.PlusEqualsToken ||
-			opKind === ts.SyntaxKind.MinusEqualsToken ||
-			opKind === ts.SyntaxKind.AsteriskEqualsToken ||
-			opKind === ts.SyntaxKind.SlashEqualsToken ||
-			opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
-			opKind === ts.SyntaxKind.PercentEqualsToken
-		) {
+		if (this.isSetToken(opKind)) {
 			if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 				const expression = lhs.getExpression();
 				const opExpStr = this.transpileExpression(expression);
@@ -3266,6 +3378,16 @@ export class Transpiler {
 		}
 	}
 
+	private useIIFEforUnaryExpression(
+		parent: ts.Node<ts.ts.Node>,
+		node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
+	) {
+		return !(
+			ts.TypeGuards.isExpressionStatement(parent) ||
+			(ts.TypeGuards.isForStatement(parent) && parent.getCondition() !== node)
+		);
+	}
+
 	private transpilePrefixUnaryExpression(node: ts.PrefixUnaryExpression) {
 		const parent = node.getParentOrThrow();
 		const operand = node.getOperand();
@@ -3301,13 +3423,12 @@ export class Transpiler {
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 			statements.push(getOperandStr());
-			const parentKind = parent.getKind();
-			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-				return statements.join("; ");
-			} else {
+			if (this.useIIFEforUnaryExpression(parent, node)) {
 				this.popIdStack();
 				const statementsStr = statements.join("; ");
 				return `(function() ${statementsStr}; return ${expStr}; end)()`;
+			} else {
+				return statements.join("; ");
 			}
 		}
 
@@ -3359,17 +3480,16 @@ export class Transpiler {
 		}
 
 		if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
-			const parentKind = parent.getKind();
-			if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-				statements.push(getOperandStr());
-				return statements.join("; ");
-			} else {
+			if (this.useIIFEforUnaryExpression(parent, node)) {
 				const id = this.getNewId();
 				this.popIdStack();
 				statements.push(`local ${id} = ${expStr}`);
 				statements.push(getOperandStr());
 				const statementsStr = statements.join("; ");
 				return `(function() ${statementsStr}; return ${id}; end)()`;
+			} else {
+				statements.push(getOperandStr());
+				return statements.join("; ");
 			}
 		}
 		throw new TranspilerError(
