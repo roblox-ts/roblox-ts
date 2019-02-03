@@ -5,7 +5,5 @@ export = () => {
 		}
 		expect(new Vector(1, 2, 3) instanceof Vector).to.equal(true);
 		expect({} instanceof Vector).to.equal(false);
-		expect(new Vector2(20, 30) instanceof Vector2).to.equal(true);
-		expect({} instanceof Vector2).to.equal(false);
 	});
 };
