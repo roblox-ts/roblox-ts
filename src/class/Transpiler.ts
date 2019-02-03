@@ -1,4 +1,4 @@
-import * as ts from "ts-simple-ast";
+import * as ts from "ts-morph";
 import { getScriptContext, getScriptType, safeLuaIndex, ScriptContext, ScriptType, suggest } from "../utility";
 import { Compiler } from "./Compiler";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";

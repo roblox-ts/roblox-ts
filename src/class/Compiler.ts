@@ -1,6 +1,6 @@
 import * as fs from "fs-extra";
 import * as path from "path";
-import Project, * as ts from "ts-simple-ast";
+import Project, * as ts from "ts-morph";
 import * as util from "util";
 import {
 	getScriptContext,
