@@ -17,7 +17,7 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { Transpiler } from "./Transpiler";
 
-const LIB_PATH = path.resolve(__dirname, "..", "lib");
+const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
 
@@ -374,7 +374,7 @@ export class Compiler {
 
 	public async copyIncludeFiles(noInclude: boolean) {
 		if (!noInclude) {
-			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
+			await copyAndCleanDeadLuaFiles(INCLUDE_SRC_PATH, this.includePath);
 		}
 	}
 
