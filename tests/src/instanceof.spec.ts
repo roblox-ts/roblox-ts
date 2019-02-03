@@ -7,7 +7,5 @@ export = () => {
 		expect({} instanceof Vector).to.equal(false);
 		expect(new Vector2(20, 30) instanceof Vector2).to.equal(true);
 		expect({} instanceof Vector2).to.equal(false);
-		expect(new Frame() instanceof Frame).to.equal(true);
-		expect({} instanceof Frame).to.equal(false);
 	});
 };
