@@ -258,10 +258,6 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 	return false;
 }
 
-function isRbxInstance(node: ts.Node): boolean {
-	return inheritsFrom(node.getType(), "Rbx_Instance");
-}
-
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
@@ -675,26 +671,6 @@ export class Transpiler {
 		this.checkReserved(name, node);
 		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
 			name = `TS.${name}`;
-		} else {
-			if (isRbxInstance(node)) {
-				const parent = node.getParent();
-				if (
-					!ts.TypeGuards.isNewExpression(parent) &&
-					!(
-						ts.TypeGuards.isBinaryExpression(parent) &&
-						parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
-					)
-				) {
-					const nodeSymbol = node.getSymbol();
-					const typeSymbol = node.getType().getSymbol();
-					if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
-						const valueDec = nodeSymbol.getValueDeclaration();
-						if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
-							name = `TS.Instance.${name}`;
-						}
-					}
-				}
-			}
 		}
 
 		for (const def of node.getDefinitions()) {
@@ -3780,18 +3756,6 @@ export class Transpiler {
 		}
 
 		if (expressionType.isObject()) {
-			if (isRbxInstance(expNode)) {
-				const nodeSymbol = expNode.getSymbol();
-				const typeSymbol = expressionType.getSymbol();
-				if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
-					const valueDec = nodeSymbol.getValueDeclaration();
-					if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
-						const paramStr = params.length > 0 ? `, ${params}` : "";
-						return `Instance.new("${name}"${paramStr})`;
-					}
-				}
-			}
-
 			if (inheritsFrom(expressionType, "ArrayConstructor")) {
 				return "{}";
 			}
