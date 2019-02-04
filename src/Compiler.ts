@@ -1,22 +1,12 @@
 import * as fs from "fs-extra";
 import * as path from "path";
 import Project, * as ts from "ts-morph";
-import * as util from "util";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { transpileSourceFile } from "./transpiler";
 import { TranspilerState } from "./TranspilerState";
-import {
-	getScriptContext,
-	getScriptType,
-	isValidLuaIdentifier,
-	red,
-	ScriptContext,
-	ScriptType,
-	stripExts,
-	yellow,
-} from "./utility";
+import { red, yellow } from "./utility";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -107,8 +97,6 @@ async function copyAndCleanDeadLuaFiles(sourceFolder: string, destinationFolder:
 	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
-const moduleCache = new Map<string, string>();
-
 export class Compiler {
 	private readonly project: Project;
 	private readonly projectPath: string;
@@ -120,8 +108,7 @@ export class Compiler {
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
-
-	public readonly ci: boolean;
+	private readonly ci: boolean;
 
 	constructor(configFilePath: string, args: { [argName: string]: any }) {
 		this.projectPath = path.resolve(configFilePath, "..");
@@ -290,7 +277,7 @@ export class Compiler {
 		if (exts[exts.length - 1] === ".d") {
 			exts.pop();
 		}
-		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && name === "index") {
+		if (name === "index") {
 			name = "init";
 		}
 		const luaName = name + exts.join("") + ".lua";
@@ -300,7 +287,7 @@ export class Compiler {
 	private transformPathFromLua(filePath: string) {
 		const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 		let name = path.basename(filePath, path.extname(filePath));
-		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && name === "init") {
+		if (name === "init") {
 			name = "index";
 		}
 		return path.join(this.rootDirPath, relativeToOut, name);
@@ -470,7 +457,7 @@ export class Compiler {
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => [
 					this.transformPathToLua(sourceFile.getFilePath()),
-					transpileSourceFile(new TranspilerState(this), sourceFile),
+					transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile),
 				]);
 
 			for (const [filePath, contents] of sources) {
@@ -505,165 +492,6 @@ export class Compiler {
 				throw e;
 			}
 			process.exitCode = 1;
-		}
-	}
-
-	public getRobloxPathString(rbxPath: Array<string>) {
-		rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
-		return "game" + rbxPath.join("");
-	}
-
-	public getRbxPath(sourceFile: ts.SourceFile) {
-		const partition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-		if (partition) {
-			const rbxPath = partition.dir
-				.getRelativePathTo(sourceFile)
-				.split("/")
-				.filter(part => part !== ".");
-
-			let last = rbxPath.pop()!;
-			let ext = path.extname(last);
-			while (ext !== "") {
-				last = path.basename(last, ext);
-				ext = path.extname(last);
-			}
-			rbxPath.push(last);
-
-			return rbxPath;
-		}
-	}
-
-	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-		const sourceContext = getScriptContext(sourceFile);
-		const sourceRbxPath = this.getRbxPath(sourceFile);
-		const moduleRbxPath = this.getRbxPath(moduleFile);
-		if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
-			if (getScriptType(moduleFile) !== ScriptType.Module) {
-				throw new CompilerError(
-					util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
-					CompilerErrorType.ImportNonModuleScript,
-				);
-			}
-
-			if (sourceContext === ScriptContext.Client) {
-				if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
-					throw new CompilerError(
-						util.format(
-							"%s is not allowed to import %s",
-							this.getRobloxPathString(sourceRbxPath),
-							this.getRobloxPathString(moduleRbxPath),
-						),
-						CompilerErrorType.InvalidImportAccess,
-					);
-				}
-			}
-		}
-	}
-
-	public getRelativeImportPath(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile | undefined, specifier: string) {
-		if (moduleFile) {
-			this.validateImport(sourceFile, moduleFile);
-		}
-
-		const currentPartition = this.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-		const modulePartition = moduleFile && this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
-
-		if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
-			return this.getImportPathFromFile(sourceFile, moduleFile);
-		}
-
-		const parts = path.posix
-			.normalize(specifier)
-			.split("/")
-			.filter(part => part !== ".")
-			.map(part => (part === ".." ? ".Parent" : part));
-		if (this.compilerOptions.module === ts.ts.ModuleKind.CommonJS && parts[parts.length - 1] === ".index") {
-			parts.pop();
-		}
-		let prefix = "script";
-		if (
-			this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS ||
-			stripExts(sourceFile.getBaseName()) !== "index"
-		) {
-			prefix += ".Parent";
-		}
-
-		const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
-		const importParts = parts.filter(p => p !== ".Parent");
-		const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
-
-		return `TS.import(${params})`;
-	}
-
-	public getImportPathFromFile(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-		this.validateImport(sourceFile, moduleFile);
-		if (this.modulesDir && this.modulesDir.isAncestorOf(moduleFile)) {
-			let parts = this.modulesDir
-				.getRelativePathTo(moduleFile)
-				.split("/")
-				.filter(part => part !== ".");
-
-			const moduleName = parts.shift();
-			if (!moduleName) {
-				throw new CompilerError("Compiler.getImportPath() failed! #1", CompilerErrorType.GetImportPathFail1);
-			}
-
-			let mainPath: string;
-			if (moduleCache.has(moduleName)) {
-				mainPath = moduleCache.get(moduleName)!;
-			} else {
-				const pkgJson = require(path.join(this.modulesDir.getPath(), moduleName, "package.json"));
-				mainPath = pkgJson.main as string;
-				moduleCache.set(moduleName, mainPath);
-			}
-
-			parts = mainPath.split(/[\\/]/g);
-			let last = parts.pop();
-			if (!last) {
-				throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
-			}
-			last = stripExts(last);
-			if (this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS || last !== "init") {
-				parts.push(last);
-			}
-
-			parts = parts
-				.filter(part => part !== ".")
-				.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
-			const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
-			return `require(${params})`;
-		} else {
-			const partition = this.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
-			if (!partition) {
-				throw new CompilerError(
-					"Could not compile non-relative import, no data from rojo.json",
-					CompilerErrorType.NoRojoData,
-				);
-			}
-
-			const parts = partition.dir
-				.getRelativePathAsModuleSpecifierTo(moduleFile)
-				.split("/")
-				.filter(part => part !== ".");
-
-			const last = parts.pop();
-			if (!last) {
-				throw new CompilerError("Compiler.getImportPath() failed! #3", CompilerErrorType.GetImportPathFail3);
-			}
-
-			if (this.compilerOptions.module !== ts.ts.ModuleKind.CommonJS || last !== "index") {
-				parts.push(last);
-			}
-
-			const params = partition.target
-				.split(".")
-				.concat(parts)
-				.filter(v => v.length > 0)
-				.map(v => `"${v}"`)
-				.join(", ");
-
-			return `TS.import(${params})`;
 		}
 	}
 }

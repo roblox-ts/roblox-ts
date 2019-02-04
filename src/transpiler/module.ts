@@ -1,7 +1,18 @@
+import * as path from "path";
 import * as ts from "ts-morph";
+import * as util from "util";
 import { checkReserved, transpileClassDeclaration, transpileExpression } from ".";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import {
+	getScriptContext,
+	getScriptType,
+	isValidLuaIdentifier,
+	ScriptContext,
+	ScriptType,
+	stripExts,
+} from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
@@ -24,10 +35,174 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 	return true;
 }
 
+function getRobloxPathString(rbxPath: Array<string>) {
+	rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
+	return "game" + rbxPath.join("");
+}
+
+function getRbxPath(state: TranspilerState, sourceFile: ts.SourceFile) {
+	const partition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+	if (partition) {
+		const rbxPath = partition.dir
+			.getRelativePathTo(sourceFile)
+			.split("/")
+			.filter(part => part !== ".");
+
+		let last = rbxPath.pop()!;
+		let ext = path.extname(last);
+		while (ext !== "") {
+			last = path.basename(last, ext);
+			ext = path.extname(last);
+		}
+		rbxPath.push(last);
+
+		return rbxPath;
+	}
+}
+
+function validateImport(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+	const sourceContext = getScriptContext(sourceFile);
+	const sourceRbxPath = getRbxPath(state, sourceFile);
+	const moduleRbxPath = getRbxPath(state, moduleFile);
+	if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
+		if (getScriptType(moduleFile) !== ScriptType.Module) {
+			throw new CompilerError(
+				util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
+				CompilerErrorType.ImportNonModuleScript,
+			);
+		}
+
+		if (sourceContext === ScriptContext.Client) {
+			if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
+				throw new CompilerError(
+					util.format(
+						"%s is not allowed to import %s",
+						getRobloxPathString(sourceRbxPath),
+						getRobloxPathString(moduleRbxPath),
+					),
+					CompilerErrorType.InvalidImportAccess,
+				);
+			}
+		}
+	}
+}
+
+function getRelativeImportPath(
+	state: TranspilerState,
+	sourceFile: ts.SourceFile,
+	moduleFile: ts.SourceFile | undefined,
+	specifier: string,
+) {
+	if (moduleFile) {
+		validateImport(state, sourceFile, moduleFile);
+	}
+
+	const currentPartition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
+	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
+
+	if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
+		return getImportPathFromFile(state, sourceFile, moduleFile);
+	}
+
+	const parts = path.posix
+		.normalize(specifier)
+		.split("/")
+		.filter(part => part !== ".")
+		.map(part => (part === ".." ? ".Parent" : part));
+	if (parts[parts.length - 1] === ".index") {
+		parts.pop();
+	}
+	let prefix = "script";
+	if (stripExts(sourceFile.getBaseName()) !== "index") {
+		prefix += ".Parent";
+	}
+
+	const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
+	const importParts = parts.filter(p => p !== ".Parent");
+	const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
+
+	return `TS.import(${params})`;
+}
+
+const moduleCache = new Map<string, string>();
+
+function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+	validateImport(state, sourceFile, moduleFile);
+	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
+		let parts = state.modulesDir
+			.getRelativePathTo(moduleFile)
+			.split("/")
+			.filter(part => part !== ".");
+
+		const moduleName = parts.shift();
+		if (!moduleName) {
+			throw new CompilerError("Compiler.getImportPath() failed! #1", CompilerErrorType.GetImportPathFail1);
+		}
+
+		let mainPath: string;
+		if (moduleCache.has(moduleName)) {
+			mainPath = moduleCache.get(moduleName)!;
+		} else {
+			const pkgJson = require(path.join(state.modulesDir.getPath(), moduleName, "package.json"));
+			mainPath = pkgJson.main as string;
+			moduleCache.set(moduleName, mainPath);
+		}
+
+		parts = mainPath.split(/[\\/]/g);
+		let last = parts.pop();
+		if (!last) {
+			throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
+		}
+		last = stripExts(last);
+		if (last !== "init") {
+			parts.push(last);
+		}
+
+		parts = parts
+			.filter(part => part !== ".")
+			.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
+
+		const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+		return `require(${params})`;
+	} else {
+		const partition = state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
+		if (!partition) {
+			throw new CompilerError(
+				"Could not compile non-relative import, no data from rojo.json",
+				CompilerErrorType.NoRojoData,
+			);
+		}
+
+		const parts = partition.dir
+			.getRelativePathAsModuleSpecifierTo(moduleFile)
+			.split("/")
+			.filter(part => part !== ".");
+
+		const last = parts.pop();
+		if (!last) {
+			throw new CompilerError("Compiler.getImportPath() failed! #3", CompilerErrorType.GetImportPathFail3);
+		}
+
+		if (last !== "index") {
+			parts.push(last);
+		}
+
+		const params = partition.target
+			.split(".")
+			.concat(parts)
+			.filter(v => v.length > 0)
+			.map(v => `"${v}"`)
+			.join(", ");
+
+		return `TS.import(${params})`;
+	}
+}
+
 export function transpileImportDeclaration(state: TranspilerState, node: ts.ImportDeclaration) {
 	let luaPath: string;
 	if (node.isModuleSpecifierRelative()) {
-		luaPath = state.compiler.getRelativeImportPath(
+		luaPath = getRelativeImportPath(
+			state,
 			node.getSourceFile(),
 			node.getModuleSpecifierSourceFile(),
 			node.getModuleSpecifier().getLiteralText(),
@@ -35,7 +210,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	} else {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (moduleFile) {
-			luaPath = state.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
+			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
 		} else {
 			const specifierText = node.getModuleSpecifier().getLiteralText();
 			throw new TranspilerError(
@@ -140,9 +315,9 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 			} else {
 				throw new TranspilerError("Bad specifier", node, TranspilerErrorType.BadSpecifier);
 			}
-			luaPath = state.compiler.getRelativeImportPath(node.getSourceFile(), moduleFile, specifier);
+			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier);
 		} else {
-			luaPath = state.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
+			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
 		}
 	} else {
 		const text = node.getModuleReference().getText();
@@ -163,7 +338,8 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 	const moduleSpecifier = node.getModuleSpecifier();
 	if (moduleSpecifier) {
 		if (node.isModuleSpecifierRelative()) {
-			luaPath = state.compiler.getRelativeImportPath(
+			luaPath = getRelativeImportPath(
+				state,
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
 				moduleSpecifier.getLiteralText(),
@@ -171,7 +347,7 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaPath = state.compiler.getImportPathFromFile(node.getSourceFile(), moduleFile);
+				luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
 			} else {
 				const specifierText = moduleSpecifier.getLiteralText();
 				throw new TranspilerError(

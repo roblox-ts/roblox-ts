@@ -1,10 +1,14 @@
 import * as ts from "ts-morph";
-import { Compiler } from "./Compiler";
 import { HasParameters } from "./types";
 import { ScriptContext } from "./utility";
 
+interface Partition {
+	dir: ts.Directory;
+	target: string;
+}
+
 export class TranspilerState {
-	constructor(public compiler: Compiler) {}
+	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 
 	// indent
 	public indent = "";
