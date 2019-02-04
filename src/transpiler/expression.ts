@@ -24,8 +24,8 @@ import {
 	transpileTemplateExpression,
 	transpileTypeOfExpression,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {

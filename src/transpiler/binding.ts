@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkReserved, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 
 export function isBindingPattern(node: ts.Node) {

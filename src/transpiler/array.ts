@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileArrayLiteralExpression(state: TranspilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();

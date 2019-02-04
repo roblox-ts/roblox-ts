@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileBooleanLiteral(state: TranspilerState, node: ts.BooleanLiteral) {
 	return node.getLiteralValue() === true ? "true" : "false";

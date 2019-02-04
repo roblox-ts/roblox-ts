@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileConditionalExpression(state: TranspilerState, node: ts.ConditionalExpression) {
 	const conditionStr = transpileExpression(state, node.getCondition());

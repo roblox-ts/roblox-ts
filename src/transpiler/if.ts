@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileExpression, transpileStatement } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileIfStatement(state: TranspilerState, node: ts.IfStatement) {
 	let result = "";

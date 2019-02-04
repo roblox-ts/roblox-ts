@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkReserved, getBindingData, isBindingPattern, transpileCallExpression, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { isTupleLike } from "../typeUtilities";
 
 export function transpileVariableDeclarationList(state: TranspilerState, node: ts.VariableDeclarationList) {

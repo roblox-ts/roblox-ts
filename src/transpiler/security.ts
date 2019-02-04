@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { ScriptContext } from "../utility";
 
 function getJSDocs(node: ts.Node) {

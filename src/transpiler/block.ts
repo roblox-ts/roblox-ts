@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileBlock(state: TranspilerState, node: ts.Block) {
 	if (node.getStatements().length === 0) {

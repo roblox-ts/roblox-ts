@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { getFirstMemberWithParameters, transpileExpression } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileSpreadElement(state: TranspilerState, node: ts.SpreadElement) {
 	const expStr = transpileExpression(state, node.getExpression());

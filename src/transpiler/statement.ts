@@ -24,8 +24,8 @@ import {
 	transpileVariableStatement,
 	transpileWhileStatement,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { isType } from "../typeUtilities";
 
 export function transpileStatement(state: TranspilerState, node: ts.Statement): string {

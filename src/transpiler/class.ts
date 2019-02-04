@@ -11,8 +11,8 @@ import {
 	transpileMethodDeclaration,
 	transpileRoactClassDeclaration,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",

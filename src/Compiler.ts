@@ -2,7 +2,11 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import Project, * as ts from "ts-morph";
 import * as util from "util";
-import { transpileSourceFile } from "../transpiler";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { DiagnosticError } from "./errors/DiagnosticError";
+import { TranspilerError } from "./errors/TranspilerError";
+import { transpileSourceFile } from "./transpiler";
+import { TranspilerState } from "./TranspilerState";
 import {
 	getScriptContext,
 	getScriptType,
@@ -12,11 +16,7 @@ import {
 	ScriptType,
 	stripExts,
 	yellow,
-} from "../utility";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
-import { DiagnosticError } from "./errors/DiagnosticError";
-import { TranspilerError } from "./errors/TranspilerError";
-import { TranspilerState } from "./TranspilerState";
+} from "./utility";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];

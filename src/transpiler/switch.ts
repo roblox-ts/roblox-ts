@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { transpileExpression, transpileStatementedNode } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileSwitchStatement(state: TranspilerState, node: ts.SwitchStatement) {
 	const expStr = transpileExpression(state, node.getExpression());

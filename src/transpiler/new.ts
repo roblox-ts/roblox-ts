@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { BUILT_INS, inheritsFromRoact, transpileArguments, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
 

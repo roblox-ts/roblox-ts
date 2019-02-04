@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
 

@@ -7,8 +7,8 @@ import {
 	transpileExpression,
 	transpileStatement,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isTupleLike } from "../typeUtilities";
 

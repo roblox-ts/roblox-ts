@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileCallExpression, transpileExpression, validateApiAccess } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom, isTupleLike } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 

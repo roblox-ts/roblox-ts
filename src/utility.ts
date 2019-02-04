@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as ts from "ts-morph";
-import { CompilerError, CompilerErrorType } from "./class/errors/CompilerError";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function isValidLuaIdentifier(id: string) {

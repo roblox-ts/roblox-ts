@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { isSetToken, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	let rhs = node.getRight();

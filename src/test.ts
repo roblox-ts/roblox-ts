@@ -1,9 +1,9 @@
 import * as fs from "fs-extra";
 import * as path from "path";
-import { Compiler } from "./class/Compiler";
-import { CompilerError, CompilerErrorType } from "./class/errors/CompilerError";
-import { DiagnosticError } from "./class/errors/DiagnosticError";
-import { TranspilerError, TranspilerErrorType } from "./class/errors/TranspilerError";
+import { Compiler } from "./Compiler";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { DiagnosticError } from "./errors/DiagnosticError";
+import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 
 require("mocha");
 

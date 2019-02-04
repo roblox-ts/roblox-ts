@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",

@@ -7,8 +7,8 @@ import {
 	transpileStatement,
 	transpileVariableDeclarationList,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 
 function hasContinueDescendant(node: ts.Node) {

@@ -7,8 +7,8 @@ import {
 	transpileNumericLiteral,
 	transpileStringLiteral,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 
 export function transpileObjectLiteralExpression(state: TranspilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();

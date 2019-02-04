@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
-import { HasParameters } from "../types";
-import { ScriptContext } from "../utility";
 import { Compiler } from "./Compiler";
+import { HasParameters } from "./types";
+import { ScriptContext } from "./utility";
 
 export class TranspilerState {
 	constructor(public compiler: Compiler) {}

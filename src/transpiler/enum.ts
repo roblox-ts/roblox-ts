@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerState } from "../TranspilerState";
 import { safeLuaIndex } from "../utility";
 
 export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDeclaration) {

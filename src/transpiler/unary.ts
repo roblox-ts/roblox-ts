@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../class/errors/TranspilerError";
-import { TranspilerState } from "../class/TranspilerState";
+import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
+import { TranspilerState } from "../TranspilerState";
 
 function useIIFEforUnaryExpression(
 	parent: ts.Node<ts.ts.Node>,
