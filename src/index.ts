@@ -49,12 +49,6 @@ const argv = yargs
 		describe: "folder to copy runtime files to",
 	})
 
-	// noStrict
-	.option("noStrict", {
-		boolean: true,
-		describe: "disable diagnostic checks (faster, unsafe)",
-	})
-
 	// noInclude
 	.option("noInclude", {
 		default: false,
@@ -65,11 +59,6 @@ const argv = yargs
 	.option("modulesPath", {
 		default: "modules",
 		describe: "folder to copy modules to",
-	})
-
-	.option("noHeuristics", {
-		boolean: true,
-		describe: "disables api restriction heuristics",
 	})
 
 	// parse

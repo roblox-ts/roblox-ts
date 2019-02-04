@@ -121,8 +121,6 @@ export class Compiler {
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
 
-	public readonly noStrict: boolean;
-	public readonly noHeuristics: boolean;
 	public readonly ci: boolean;
 
 	constructor(configFilePath: string, args: { [argName: string]: any }) {
@@ -133,8 +131,6 @@ export class Compiler {
 		this.project.addExistingSourceFiles(path.join(this.projectPath, "**/*.d.ts"));
 		this.includePath = path.resolve(this.projectPath, args.includePath);
 		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
-		this.noStrict = args.noStrict;
-		this.noHeuristics = args.noHeuristics;
 		this.ci = args.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -429,40 +425,38 @@ export class Compiler {
 		}
 
 		const errors = new Array<string>();
-		if (!this.noStrict) {
-			for (const file of files) {
-				const diagnostics = file
-					.getPreEmitDiagnostics()
-					.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-					.filter(diagnostic => diagnostic.getCode() !== 2688);
-				for (const diagnostic of diagnostics) {
-					const diagnosticFile = diagnostic.getSourceFile();
-					const line = diagnostic.getLineNumber();
-					let prefix = "";
-					if (diagnosticFile) {
-						prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
-						if (line) {
-							prefix += ":" + line;
-						}
-						prefix += " - ";
+		for (const file of files) {
+			const diagnostics = file
+				.getPreEmitDiagnostics()
+				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
+				.filter(diagnostic => diagnostic.getCode() !== 2688);
+			for (const diagnostic of diagnostics) {
+				const diagnosticFile = diagnostic.getSourceFile();
+				const line = diagnostic.getLineNumber();
+				let prefix = "";
+				if (diagnosticFile) {
+					prefix += path.relative(this.projectPath, diagnosticFile.getFilePath());
+					if (line) {
+						prefix += ":" + line;
 					}
-
-					let messageText = diagnostic.getMessageText();
-					if (messageText instanceof ts.DiagnosticMessageChain) {
-						const textSegments = new Array<string>();
-						let chain: ts.DiagnosticMessageChain | undefined = messageText;
-						while (chain !== undefined) {
-							textSegments.push(chain.getMessageText());
-							chain = chain.getNext();
-						}
-						messageText = textSegments.join("\n");
-					}
-					const str = prefix + red("Diagnostic Error: ") + messageText;
-					if (!this.ci) {
-						console.log(str);
-					}
-					errors.push(str);
+					prefix += " - ";
 				}
+
+				let messageText = diagnostic.getMessageText();
+				if (messageText instanceof ts.DiagnosticMessageChain) {
+					const textSegments = new Array<string>();
+					let chain: ts.DiagnosticMessageChain | undefined = messageText;
+					while (chain !== undefined) {
+						textSegments.push(chain.getMessageText());
+						chain = chain.getNext();
+					}
+					messageText = textSegments.join("\n");
+				}
+				const str = prefix + red("Diagnostic Error: ") + messageText;
+				if (!this.ci) {
+					console.log(str);
+				}
+				errors.push(str);
 			}
 		}
 
@@ -540,10 +534,6 @@ export class Compiler {
 	}
 
 	public validateImport(sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-		if (this.noHeuristics) {
-			return;
-		}
-
 		const sourceContext = getScriptContext(sourceFile);
 		const sourceRbxPath = this.getRbxPath(sourceFile);
 		const moduleRbxPath = this.getRbxPath(moduleFile);

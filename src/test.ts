@@ -19,8 +19,6 @@ const compilerArgs = {
 	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
-	noHeuristics: true,
-	noStrict: false,
 };
 
 /* tslint:disable:object-literal-sort-keys */

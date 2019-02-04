@@ -109,9 +109,6 @@ function hasDirective(node: ts.Node, directive: string) {
 }
 
 export function validateApiAccess(state: TranspilerState, node: ts.Node) {
-	if (state.compiler.noHeuristics) {
-		return;
-	}
 	if (state.scriptContext === ScriptContext.Server) {
 		if (hasDirective(node, "@rbx-client")) {
 			throw new TranspilerError(
