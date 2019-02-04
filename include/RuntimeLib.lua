@@ -4,6 +4,7 @@ local Promise = require(script.Parent.Promise)
 local TYPE_NIL = "nil"
 local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
+local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
 local TYPE_INSTANCE = "Instance"
 
@@ -52,23 +53,6 @@ local Symbol do
 	end
 end
 TS.Symbol = Symbol
-
--- Instance class values
-TS.Instance = setmetatable({}, {
-	__index = function(self, className)
-		local object = setmetatable({
-			new = function(parent)
-				return Instance.new(className, parent)
-			end
-		}, {
-			__tostring = function()
-				return className
-			end
-		})
-		self[className] = object
-		return object
-	end
-})
 
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
@@ -124,7 +108,7 @@ end
 -- general utility functions
 function TS.typeof(value)
 	local type = typeof(value)
-	if type == TYPE_TABLE then
+	if type == TYPE_TABLE or type == TYPE_USERDATA then
 		return "object"
 	elseif type == TYPE_NIL then
 		return "undefined"
@@ -153,11 +137,6 @@ function TS.instanceof(obj, class)
 	end
 
 	return false
-end
-
--- TODO: remove
-function TS.isA(instance, className)
-	return typeof(instance) == TYPE_INSTANCE and instance:IsA(className)
 end
 
 function TS.async(callback)
