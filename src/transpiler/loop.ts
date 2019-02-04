@@ -217,15 +217,14 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	if (isArrayType(exp.getType())) {
 		const myInt = state.getNewId();
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
-
 		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
 			result += state.indent + `for ${myInt} = 1, select("#", ...) do\n`;
 			state.pushIndent();
-			result += state.indent + `local ${varName} = select(${myInt}, ...)\n`;
+			result += state.indent + `local ${varName} = select(${myInt}, ...);\n`;
 		} else {
 			result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
 			state.pushIndent();
-			result += state.indent + `local ${varName} = ${expStr}[${myInt}]\n`;
+			result += state.indent + `local ${varName} = ${expStr}[${myInt}];\n`;
 		}
 	} else {
 		result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
