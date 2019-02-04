@@ -9,17 +9,13 @@ import { CompilerError } from "./errors/CompilerError";
 import { TranspilerError } from "./errors/TranspilerError";
 import { clearContextCache } from "./utility";
 
-/* tslint:disable */
-const versionStr = require("../package.json").version as string;
-/* tslint:enable */
-
 // cli interface
 const argv = yargs
 	.usage("Usage: rbxtsc [options]")
 
 	// version
 	.alias("v", "version")
-	.version(versionStr)
+	.version(require("../package.json").version as string)
 	.describe("version", "show version information")
 
 	// help
