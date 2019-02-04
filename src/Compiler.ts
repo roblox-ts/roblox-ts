@@ -8,7 +8,7 @@ import { transpileSourceFile } from "./transpiler";
 import { TranspilerState } from "./TranspilerState";
 import { red, yellow } from "./utility";
 
-const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
+const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
 
@@ -358,7 +358,7 @@ export class Compiler {
 
 	public async copyIncludeFiles(noInclude: boolean) {
 		if (!noInclude) {
-			await copyAndCleanDeadLuaFiles(INCLUDE_SRC_PATH, this.includePath);
+			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
 		}
 	}
 
