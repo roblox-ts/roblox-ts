@@ -130,15 +130,24 @@ function TS.typeof(value)
 end
 
 function TS.instanceof(obj, class)
+
+	-- custom Class.instanceof() check
+	if typeof(class) == "table" and typeof(class.instanceof) == "function" then
+		return class.instanceof(obj)
+	end
+
+	-- metatable check
     while obj ~= nil do
         if obj == class then
             return true
         end
         obj = getmetatable(obj)
-    end
+	end
+
     return false
 end
 
+-- TODO: remove
 function TS.isA(instance, className)
 	return typeof(instance) == "Instance" and instance:IsA(className)
 end
