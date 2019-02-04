@@ -9,10 +9,6 @@ export function isType(node: ts.Node) {
 	);
 }
 
-export function isTupleLike(type: ts.Type) {
-	return type.isTuple() || (type.isUnion() && type.getUnionTypes().every(t => t.isTuple()));
-}
-
 export function inheritsFrom(type: ts.Type, className: string): boolean {
 	const symbol = type.getSymbol();
 	if (symbol) {
@@ -76,6 +72,20 @@ export function isStringType(type: ts.Type) {
 	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
 }
 
+export function isEnumType(type: ts.Type) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol !== undefined && symbol.getDeclarations().some(d => ts.TypeGuards.isEnumDeclaration(d));
+	});
+}
+
 export function isArrayType(type: ts.Type) {
-	return typeConstraint(type, t => t.getNumberIndexType() !== undefined);
+	return typeConstraint(
+		type,
+		t => t.getArrayType() !== undefined || (t.getNumberIndexType() !== undefined && !isEnumType(t)),
+	);
+}
+
+export function isTupleType(type: ts.Type) {
+	return typeConstraint(type, t => t.isTuple());
 }

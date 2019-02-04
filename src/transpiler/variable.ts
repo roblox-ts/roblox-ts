@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved, getBindingData, isBindingPattern, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isTupleLike } from "../typeUtilities";
+import { isTupleType } from "../typeUtilities";
 
 export function transpileVariableDeclarationList(state: TranspilerState, node: ts.VariableDeclarationList) {
 	const declarationKind = node.getDeclarationKind();
@@ -42,7 +42,7 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 				.getElements()
 				.filter(v => ts.TypeGuards.isBindingElement(v))
 				.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
-			if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleLike(rhs.getReturnType())) {
+			if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(rhs.getReturnType())) {
 				for (const element of lhs.getElements()) {
 					if (ts.TypeGuards.isBindingElement(element)) {
 						names.push(element.getChildAtIndex(0).getText());

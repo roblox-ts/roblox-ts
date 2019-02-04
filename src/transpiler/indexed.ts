@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { transpileCallExpression, transpileExpression, validateApiAccess } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isStringType, isTupleLike } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isStringType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
@@ -70,11 +70,11 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const argExp = node.getArgumentExpressionOrThrow();
 
 	let addOne = false;
-	if (isTupleLike(expType) || isArrayType(expType)) {
+	if (isTupleType(expType) || isArrayType(expType)) {
 		addOne = true;
 	} else if (ts.TypeGuards.isCallExpression(expNode)) {
 		const returnType = expNode.getReturnType();
-		if (isArrayType(returnType) || isTupleLike(returnType)) {
+		if (isArrayType(returnType) || isTupleType(returnType)) {
 			addOne = true;
 		}
 	}
@@ -94,7 +94,7 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 		argExpStr = transpileExpression(state, argExp) + offset;
 	}
 
-	if (ts.TypeGuards.isCallExpression(expNode) && isTupleLike(expNode.getReturnType())) {
+	if (ts.TypeGuards.isCallExpression(expNode) && isTupleType(expNode.getReturnType())) {
 		const expStr = transpileCallExpression(state, expNode, true);
 		return `(select(${argExpStr}, ${expStr}))`;
 	} else {

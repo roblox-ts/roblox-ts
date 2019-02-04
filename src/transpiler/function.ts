@@ -10,7 +10,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isTupleLike } from "../typeUtilities";
+import { isTupleType } from "../typeUtilities";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -30,12 +30,12 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, func?: HasParameters) {
-	if (func && isTupleLike(func.getReturnType())) {
+	if (func && isTupleType(func.getReturnType())) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = transpileExpression(state, exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return state.indent + `return ${expStr};`;
-		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleLike(exp.getReturnType())) {
+		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleType(exp.getReturnType())) {
 			const expStr = transpileCallExpression(state, exp, true);
 			return state.indent + `return ${expStr};`;
 		} else {

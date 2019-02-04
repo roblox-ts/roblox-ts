@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { transpileArguments, transpileExpression, validateApiAccess } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isTupleLike } from "../typeUtilities";
+import { isArrayType, isTupleType } from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -40,7 +40,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		const callPath = transpileExpression(state, exp);
 		const params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
 		let result = `${callPath}(${params})`;
-		if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+		if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
 			result = `{ ${result} }`;
 		}
 		return result;
@@ -177,7 +177,7 @@ export function transpilePropertyCallExpression(
 	}
 
 	let result = `${accessPath}${sep}${property}(${params})`;
-	if (!doNotWrapTupleReturn && isTupleLike(node.getReturnType())) {
+	if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
 		result = `{ ${result} }`;
 	}
 	return result;
