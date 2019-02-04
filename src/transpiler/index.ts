@@ -19,7 +19,6 @@ export * from "./namespace";
 export * from "./new";
 export * from "./object";
 export * from "./parenthesized";
-export * from "./reserved";
 export * from "./roact";
 export * from "./security";
 export * from "./sourceFile";
