@@ -460,6 +460,7 @@ function TS.array_push(list, ...)
 	for i = 1, #args do
 		list[#list + 1] = args[i]
 	end
+	return #list
 end
 
 function TS.array_pop(list)
