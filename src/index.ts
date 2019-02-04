@@ -42,6 +42,12 @@ const argv = yargs
 		describe: "project path",
 	})
 
+	// noInclude
+	.option("noInclude", {
+		default: false,
+		describe: "do not copy runtime files",
+	})
+
 	// includePath
 	.option("i", {
 		alias: "includePath",
@@ -49,14 +55,9 @@ const argv = yargs
 		describe: "folder to copy runtime files to",
 	})
 
-	// noInclude
-	.option("noInclude", {
-		default: false,
-		describe: "do not copy runtime files",
-	})
-
 	// modulesPath
-	.option("modulesPath", {
+	.option("m", {
+		alias: "modulesPath",
 		default: "modules",
 		describe: "folder to copy modules to",
 	})
