@@ -133,6 +133,10 @@ function TS.typeof(value)
 	end
 end
 
+function TS.typeIs(value, typeName)
+	return typeof(value) == typeName
+end
+
 function TS.instanceof(obj, class)
 
 	-- custom Class.instanceof() check
