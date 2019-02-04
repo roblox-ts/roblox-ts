@@ -21,7 +21,7 @@ const argv = yargs
 	// help
 	.alias("h", "help")
 	.help("help")
-	.describe("help", "show help")
+	.describe("help", "show help information")
 	.showHelpOnFail(false, "specify --help for available options")
 
 	// watch
