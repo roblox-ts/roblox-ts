@@ -2,6 +2,7 @@ import * as ts from "ts-morph";
 import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isNumberType, isStringType } from "../typeUtilities";
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	let rhs = node.getRight();
@@ -25,12 +26,9 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	}
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
-	if (leftType.isString() || rightType.isString() || leftType.isStringLiteral() || rightType.isStringLiteral()) {
+	if (isStringType(leftType) || isStringType(rightType)) {
 		return `(${lhsStr}) .. ${rhsStr}`;
-	} else if (
-		(leftType.isNumber() || leftType.isNumberLiteral()) &&
-		(rightType.isNumber() || rightType.isNumberLiteral())
-	) {
+	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
 		return `TS.add(${lhsStr}, ${rhsStr})`;

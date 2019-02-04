@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { transpileCallExpression, transpileExpression, validateApiAccess } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isTupleLike } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isStringType, isTupleLike } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
@@ -55,7 +55,7 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 		}
 	}
 
-	if (expType.isString() || expType.isStringLiteral() || expType.isArray()) {
+	if (isStringType(expType) || isArrayType(expType)) {
 		if (propertyStr === "length") {
 			return `(#${expStr})`;
 		}
@@ -70,19 +70,12 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const argExp = node.getArgumentExpressionOrThrow();
 
 	let addOne = false;
-	if (isTupleLike(expType) || expType.isArray()) {
+	if (isTupleLike(expType) || isArrayType(expType)) {
 		addOne = true;
 	} else if (ts.TypeGuards.isCallExpression(expNode)) {
 		const returnType = expNode.getReturnType();
-		if (returnType.isArray() || isTupleLike(returnType)) {
+		if (isArrayType(returnType) || isTupleLike(returnType)) {
 			addOne = true;
-		}
-	} else if (expType.isIntersection()) {
-		for (const intersectionType of expType.getIntersectionTypes()) {
-			if (intersectionType.isArray()) {
-				addOne = true;
-				break;
-			}
 		}
 	}
 

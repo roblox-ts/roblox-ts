@@ -35,22 +35,6 @@ export function inheritsFrom(type: ts.Type, className: string): boolean {
 	return false;
 }
 
-export function getFullTypeList(type: ts.Type): Array<string> {
-	const symbol = type.getSymbol();
-	const typeArray = new Array<string>();
-	if (symbol) {
-		symbol.getDeclarations().forEach(declaration => {
-			typeArray.push(declaration.getType().getText());
-			declaration
-				.getType()
-				.getBaseTypes()
-				.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
-		});
-	}
-
-	return typeArray;
-}
-
 export function isTypeOnlyNamespace(node: ts.NamespaceDeclaration) {
 	const statements = node.getStatements();
 	for (const statement of statements) {
@@ -64,4 +48,34 @@ export function isTypeOnlyNamespace(node: ts.NamespaceDeclaration) {
 		}
 	}
 	return true;
+}
+
+export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.getUnionTypes().every(t => typeConstraint(t, cb));
+	} else if (type.isIntersection()) {
+		return type.getIntersectionTypes().some(t => typeConstraint(t, cb));
+	} else {
+		return cb(type);
+	}
+}
+
+export function isNullableType(type: ts.Type) {
+	return typeConstraint(type, t => t.isNullable());
+}
+
+export function isBooleanType(type: ts.Type) {
+	return typeConstraint(type, t => t.isBoolean() || t.isBooleanLiteral());
+}
+
+export function isNumberType(type: ts.Type) {
+	return typeConstraint(type, t => t.isNumber() || t.isNumberLiteral());
+}
+
+export function isStringType(type: ts.Type) {
+	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
+}
+
+export function isArrayType(type: ts.Type) {
+	return typeConstraint(type, t => t.getNumberIndexType() !== undefined);
 }

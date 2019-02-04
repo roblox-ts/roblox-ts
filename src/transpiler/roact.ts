@@ -9,7 +9,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { getFullTypeList } from "../typeUtilities";
+import { isArrayType } from "../typeUtilities";
 import { suggest } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
@@ -68,6 +68,22 @@ function isRoactElementType(type: ts.Type) {
 	}
 
 	return true;
+}
+
+function getFullTypeList(type: ts.Type): Array<string> {
+	const symbol = type.getSymbol();
+	const typeArray = new Array<string>();
+	if (symbol) {
+		symbol.getDeclarations().forEach(declaration => {
+			typeArray.push(declaration.getType().getText());
+			declaration
+				.getType()
+				.getBaseTypes()
+				.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
+		});
+	}
+
+	return typeArray;
 }
 
 export function inheritsFromRoact(type: ts.Type): boolean {
@@ -476,7 +492,7 @@ export function generateRoactElement(
 					// Must return Roact.Element :(
 					const returnType = expression.getReturnType();
 					if (isRoactElementType(returnType)) {
-						if (returnType.isArray()) {
+						if (isArrayType(returnType)) {
 							// Roact.Element[]
 							extraChildrenCollection.push(state.indent + transpileExpression(state, expression));
 						} else {

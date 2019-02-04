@@ -9,6 +9,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
+import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isSetToken } from "./binary";
 
 function hasContinueDescendant(node: ts.Node) {
@@ -91,7 +92,7 @@ function isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
 		const exp = node.getExpression();
 		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 			const subExpType = exp.getExpression().getType();
-			return (subExpType.isString() || subExpType.isStringLiteral()) && exp.getName() === "gmatch";
+			return isStringType(subExpType) && exp.getName() === "gmatch";
 		}
 	}
 	return false;
@@ -151,7 +152,7 @@ export function transpileForInStatement(state: TranspilerState, node: ts.ForInSt
 
 	if (isCallExpressionOverridable(exp)) {
 		result += state.indent + `for ${varName} in ${expStr} do\n`;
-	} else if (exp.getType().isArray()) {
+	} else if (isArrayType(exp.getType())) {
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
 
 		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
@@ -213,7 +214,7 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	const expStr = transpileExpression(state, exp);
 	let result = "";
 
-	if (exp.getType().isArray()) {
+	if (isArrayType(exp.getType())) {
 		const myInt = state.getNewId();
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
 
@@ -299,7 +300,7 @@ function getSignAndValueInForStatement(
 			let rhsIncr = sibling.getNextSibling();
 
 			if (rhsIncr) {
-				if (rhsIncr.getType().isNumber()) {
+				if (isNumberType(rhsIncr.getType())) {
 					if (sibling.getKind() === ts.SyntaxKind.EqualsToken && ts.TypeGuards.isBinaryExpression(rhsIncr)) {
 						// incrementor is something like i = i + 1
 						const sib1 = rhsIncr.getChildAtIndex(0).getNextSibling();
@@ -475,7 +476,7 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 						const rhs = nextSibling.getNextSibling();
 						if (rhs) {
 							const rhsType = rhs.getType();
-							if (rhsType.isNumber() || rhsType.isNumberLiteral()) {
+							if (isNumberType(rhsType)) {
 								let first = transpileVariableDeclarationList(state, initializer);
 								first = first.substr(7, first.length - 9);
 
