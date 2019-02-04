@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { isSetToken, transpileExpression } from ".";
+import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 
@@ -35,6 +35,23 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	} else {
 		return `TS.add(${lhsStr}, ${rhsStr})`;
 	}
+}
+
+export function isSetToken(opKind: ts.ts.SyntaxKind) {
+	return (
+		opKind === ts.SyntaxKind.EqualsToken ||
+		opKind === ts.SyntaxKind.BarEqualsToken ||
+		opKind === ts.SyntaxKind.AmpersandEqualsToken ||
+		opKind === ts.SyntaxKind.CaretEqualsToken ||
+		opKind === ts.SyntaxKind.LessThanLessThanEqualsToken ||
+		opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken ||
+		opKind === ts.SyntaxKind.PlusEqualsToken ||
+		opKind === ts.SyntaxKind.MinusEqualsToken ||
+		opKind === ts.SyntaxKind.AsteriskEqualsToken ||
+		opKind === ts.SyntaxKind.SlashEqualsToken ||
+		opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
+		opKind === ts.SyntaxKind.PercentEqualsToken
+	);
 }
 
 export function transpileBinaryExpression(state: TranspilerState, node: ts.BinaryExpression) {

@@ -2,7 +2,6 @@ import * as ts from "ts-morph";
 import {
 	getBindingData,
 	isBindingPattern,
-	isSetToken,
 	transpileExpression,
 	transpileStatement,
 	transpileVariableDeclarationList,
@@ -10,6 +9,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
+import { isSetToken } from "./binary";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
