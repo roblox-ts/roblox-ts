@@ -26,7 +26,6 @@ export * from "./sourceFile";
 export * from "./spread";
 export * from "./statement";
 export * from "./switch";
-export * from "./todo";
 export * from "./try";
 export * from "./typeof";
 export * from "./unary";
