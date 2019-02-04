@@ -12,38 +12,6 @@ type HasParameters =
 	| ts.GetAccessorDeclaration
 	| ts.SetAccessorDeclaration;
 
-// used for the typeof operator
-const RBX_DATA_CLASSES = [
-	"Axes",
-	"BrickColor",
-	"CFrame",
-	"Color3",
-	"ColorSequence",
-	"ColorSequenceKeypoint",
-	"DockWidgetPluginGuiInfo",
-	"Faces",
-	"NumberRange",
-	"NumberSequence",
-	"NumberSequenceKeypoint",
-	"PathWaypoint",
-	"PhysicalProperties",
-	"Random",
-	"Ray",
-	"Rect",
-	"Region3",
-	"Region3int16",
-	"TweenInfo",
-	"UDim",
-	"UDim2",
-	"Vector2",
-	"Vector2int16",
-	"Vector3",
-	"Vector3int16",
-
-	"RBXScriptConnection",
-	"RBXScriptSignal",
-];
-
 const STRING_MACRO_METHODS = [
 	"byte",
 	"find",
@@ -61,7 +29,7 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-const RUNTIME_CLASSES = ["Promise", "Symbol"];
+const BUILT_INS = ["Promise", "Symbol", "typeIs"];
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
@@ -149,11 +117,6 @@ const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 
 	viewportframe: "ViewportFrame",
 };
-
-function isRbxDataClassType(type: ts.Type) {
-	const symbol = type.getSymbol();
-	return symbol !== undefined && RBX_DATA_CLASSES.indexOf(symbol.getName()) !== -1;
-}
 
 function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	let rhs = node.getRight();
@@ -256,10 +219,6 @@ function inheritsFrom(type: ts.Type, className: string): boolean {
 		}
 	}
 	return false;
-}
-
-function isRbxInstance(node: ts.Node): boolean {
-	return inheritsFrom(node.getType(), "Rbx_Instance");
 }
 
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
@@ -673,28 +632,8 @@ export class Transpiler {
 			return "nil";
 		}
 		this.checkReserved(name, node);
-		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+		if (BUILT_INS.indexOf(name) !== -1) {
 			name = `TS.${name}`;
-		} else {
-			if (isRbxInstance(node)) {
-				const parent = node.getParent();
-				if (
-					!ts.TypeGuards.isNewExpression(parent) &&
-					!(
-						ts.TypeGuards.isBinaryExpression(parent) &&
-						parent.getOperatorToken().getKind() === ts.SyntaxKind.InstanceOfKeyword
-					)
-				) {
-					const nodeSymbol = node.getSymbol();
-					const typeSymbol = node.getType().getSymbol();
-					if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
-						const valueDec = nodeSymbol.getValueDeclaration();
-						if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
-							name = `TS.Instance.${name}`;
-						}
-					}
-				}
-			}
 		}
 
 		for (const def of node.getDefinitions()) {
@@ -3613,13 +3552,7 @@ export class Transpiler {
 			case ts.SyntaxKind.PercentToken:
 				return `${lhsStr} % ${rhsStr}`;
 			case ts.SyntaxKind.InstanceOfKeyword:
-				if (inheritsFrom(node.getRight().getType(), "Rbx_Instance")) {
-					return `TS.isA(${lhsStr}, "${rhsStr}")`;
-				} else if (isRbxDataClassType(node.getRight().getType())) {
-					return `(TS.typeof(${lhsStr}) == "${rhsStr}")`;
-				} else {
-					return `TS.instanceof(${lhsStr}, ${rhsStr})`;
-				}
+				return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 			default:
 				const opKindName = node.getOperatorToken().getKindName();
 				throw new TranspilerError(
@@ -3775,23 +3708,11 @@ export class Transpiler {
 			);
 		}
 
-		if (RUNTIME_CLASSES.indexOf(name) !== -1) {
+		if (BUILT_INS.indexOf(name) !== -1) {
 			name = `TS.${name}`;
 		}
 
 		if (expressionType.isObject()) {
-			if (isRbxInstance(expNode)) {
-				const nodeSymbol = expNode.getSymbol();
-				const typeSymbol = expressionType.getSymbol();
-				if (nodeSymbol && typeSymbol && nodeSymbol === typeSymbol) {
-					const valueDec = nodeSymbol.getValueDeclaration();
-					if (valueDec && ts.TypeGuards.isClassDeclaration(valueDec)) {
-						const paramStr = params.length > 0 ? `, ${params}` : "";
-						return `Instance.new("${name}"${paramStr})`;
-					}
-				}
-			}
-
 			if (inheritsFrom(expressionType, "ArrayConstructor")) {
 				return "{}";
 			}
