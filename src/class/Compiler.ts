@@ -2,6 +2,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 import Project, * as ts from "ts-morph";
 import * as util from "util";
+import { transpileSourceFile } from "../transpiler";
 import {
 	getScriptContext,
 	getScriptType,
@@ -15,7 +16,7 @@ import {
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError } from "./errors/TranspilerError";
-import { Transpiler } from "./Transpiler";
+import { TranspilerState } from "./TranspilerState";
 
 const INCLUDE_SRC_PATH = path.resolve(__dirname, "..", "..", "include");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
@@ -473,13 +474,10 @@ export class Compiler {
 
 			const sources = files
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
-				.map(sourceFile => {
-					const transpiler = new Transpiler(this);
-					return [
-						this.transformPathToLua(sourceFile.getFilePath()),
-						transpiler.transpileSourceFile(sourceFile),
-					];
-				});
+				.map(sourceFile => [
+					this.transformPathToLua(sourceFile.getFilePath()),
+					transpileSourceFile(new TranspilerState(this), sourceFile),
+				]);
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

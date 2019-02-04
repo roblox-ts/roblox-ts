@@ -7,44 +7,22 @@
 		"curly": true,
 		"forin": false,
 		"indent": [true, "tabs", 4],
-		"no-namespace": false,
 		"interface-name": false,
 		"max-classes-per-file": false,
+		"member-ordering": false,
 		"no-bitwise": false,
 		"no-console": false,
 		"no-empty-interface": false,
 		"no-empty": false,
-		"no-var-requires": false,
+		"no-namespace": false,
 		"no-string-literal": true,
 		"no-unnecessary-qualifier": true,
 		"no-var-keyword": true,
+		"no-var-requires": false,
 		"prefer-const": true,
 		"quotemark": [true, "double", "avoid-escape" ],
 		"semicolon": [true, "always", "ignore-bound-class-methods"],
-		"triple-equals": true,
-		"member-ordering": [true, {
-			"order": [
-				"private-static-field",
-				"protected-static-field",
-				"public-static-field",
-
-				"private-instance-field",
-				"protected-instance-field",
-				"public-instance-field",
-
-				"private-constructor",
-				"protected-constructor",
-				"public-constructor",
-
-				"private-static-method",
-				"protected-static-method",
-				"public-static-method",
-
-				"private-instance-method",
-				"protected-instance-method",
-				"public-instance-method"
-			]
-		}]
+		"triple-equals": true
 	},
 	"linterOptions": {
 		"exclude": [
