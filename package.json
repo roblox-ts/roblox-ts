@@ -11,11 +11,11 @@
 		"rbxtsc": "out/index.js"
 	},
 	"scripts": {
-		"tslint": "tslint -p tsconfig.json",
-		"prettylint": "prettylint --config ./.prettierrc.json '**/*.ts'",
-		"test": "nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts && lua tests/spec.lua",
-		"coverage": "nyc report --reporter=text-lcov | coveralls",
-		"prettier": "prettier --config ./.prettierrc.json --write '**/*.ts'"
+		"tslint": "npx tslint -p tsconfig.json",
+		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
+		"test": "npx nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts && lua tests/spec.lua",
+		"coverage": "npx nyc report --reporter=text-lcov | coveralls",
+		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\""
 	},
 	"nyc": {
 		"extension": [
