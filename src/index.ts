@@ -4,9 +4,9 @@ import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
-import { Compiler } from "./class/Compiler";
-import { CompilerError } from "./class/errors/CompilerError";
-import { TranspilerError } from "./class/errors/TranspilerError";
+import { Compiler } from "./Compiler";
+import { CompilerError } from "./errors/CompilerError";
+import { TranspilerError } from "./errors/TranspilerError";
 import { clearContextCache } from "./utility";
 
 /* tslint:disable */
