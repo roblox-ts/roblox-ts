@@ -59,6 +59,20 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
+function getWrap(
+	node: ts.FunctionDeclaration | ts.MethodDeclaration | ts.FunctionExpression | ts.ArrowFunction,
+): [string, string] {
+	let front = "";
+	let numClosers = 0;
+
+	if (node.isAsync()) {
+		++numClosers;
+		front += "TS.async(";
+	}
+
+	return [front, ")".repeat(numClosers)];
+}
+
 export function transpileFunctionDeclaration(state: TranspilerState, node: ts.FunctionDeclaration) {
 	let name = node.getName();
 	if (name) {
@@ -78,11 +92,8 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 	getParameterData(state, paramNames, initializers, node);
 	const paramStr = paramNames.join(", ");
 	let result = "";
-	if (node.isAsync()) {
-		result += state.indent + `${name} = TS.async(function(${paramStr})\n`;
-	} else {
-		result += state.indent + `${name} = function(${paramStr})\n`;
-	}
+	const [frontWrap, backWrap] = getWrap(node);
+	result += state.indent + `${name} = ${frontWrap}function(${paramStr})\n`;
 	state.pushIndent();
 	if (ts.TypeGuards.isBlock(body)) {
 		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
@@ -90,11 +101,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 	}
 	state.popIndent();
 	state.popIdStack();
-	if (node.isAsync()) {
-		result += state.indent + "end);\n";
-	} else {
-		result += state.indent + "end;\n";
-	}
+	result += state.indent + `end${backWrap};\n`;
 	return result;
 }
 
@@ -111,11 +118,8 @@ export function transpileMethodDeclaration(state: TranspilerState, node: ts.Meth
 	const paramStr = paramNames.join(", ");
 
 	let result = "";
-	if (node.isAsync()) {
-		result += `${name} = TS.async(function(${paramStr})\n`;
-	} else {
-		result += `${name} = function(${paramStr})\n`;
-	}
+	const [frontWrap, backWrap] = getWrap(node);
+	result += `${name} = ${frontWrap}function(${paramStr})\n`;
 	state.pushIndent();
 	if (ts.TypeGuards.isBlock(body)) {
 		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
@@ -123,7 +127,7 @@ export function transpileMethodDeclaration(state: TranspilerState, node: ts.Meth
 	}
 	state.popIndent();
 	state.popIdStack();
-	result += state.indent + "end" + (node.isAsync() ? ")" : "") + ";\n";
+	result += state.indent + "end" + backWrap + ";\n";
 	return result;
 }
 
@@ -266,9 +270,7 @@ export function transpileFunctionExpression(state: TranspilerState, node: ts.Fun
 		const bodyKindName = body.getKindName();
 		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
 	}
-	if (node.isAsync()) {
-		result = `TS.async(${result})`;
-	}
+	const [frontWrap, backWrap] = getWrap(node);
 	state.popIdStack();
-	return result;
+	return frontWrap + result + backWrap;
 }

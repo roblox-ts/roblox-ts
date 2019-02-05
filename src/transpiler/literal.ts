@@ -42,7 +42,10 @@ export function transpileTemplateExpression(state: TranspilerState, node: ts.Tem
 
 	for (const span of node.getLastChildIfKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
 		if (ts.TypeGuards.isTemplateSpan(span)) {
-			const expStr = transpileExpression(state, span.getExpression());
+			const exp = span.getExpression();
+			const expType = exp.getType();
+			const expIsString = expType.isString() || expType.isStringLiteral();
+			const expStr = transpileExpression(state, exp);
 			const trim = span.getNextSibling() ? -2 : -1;
 			const literal = span
 				.getLiteral()
@@ -50,7 +53,8 @@ export function transpileTemplateExpression(state: TranspilerState, node: ts.Tem
 				.replace(/\\"/g, '"')
 				.replace(/"/g, '\\"')
 				.slice(1, trim);
-			bin.push(`tostring(${expStr})`);
+
+			bin.push(expIsString ? expStr : `tostring(${expStr})`);
 			if (literal.length > 0) {
 				bin.push(`"${literal}"`);
 			}
