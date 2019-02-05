@@ -80,8 +80,6 @@ function transpileClass(
 	for (const baseType of baseTypes) {
 		const baseTypeText = baseType.getText();
 
-		console.log("baseTypeText", baseTypeText);
-
 		// Handle the special case where we have a roact class
 		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
 			return transpileRoactClassDeclaration(state, "Component", name, node);
