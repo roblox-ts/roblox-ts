@@ -34,16 +34,16 @@ function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, 
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = transpileExpression(state, exp);
 			expStr = expStr.substr(2, expStr.length - 4);
-			return state.indent + `return ${expStr};`;
+			return `return ${expStr};`;
 		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleType(exp.getReturnType())) {
 			const expStr = transpileCallExpression(state, exp, true);
-			return state.indent + `return ${expStr};`;
+			return `return ${expStr};`;
 		} else {
 			const expStr = transpileExpression(state, exp);
-			return state.indent + `return unpack(${expStr});`;
+			return `return unpack(${expStr});`;
 		}
 	}
-	return state.indent + `return ${transpileExpression(state, exp)};`;
+	return `return ${transpileExpression(state, exp)};`;
 }
 
 export function transpileArguments(state: TranspilerState, args: Array<ts.Expression>, context?: ts.Expression) {
@@ -53,7 +53,11 @@ export function transpileArguments(state: TranspilerState, args: Array<ts.Expres
 export function transpileReturnStatement(state: TranspilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
-		return getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors())) + "\n";
+		return (
+			state.indent +
+			getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors())) +
+			"\n"
+		);
 	} else {
 		return state.indent + `return nil;\n`;
 	}
@@ -96,6 +100,7 @@ function transpileFunctionHelper(
 		!ts.TypeGuards.isConstructorDeclaration(node) &&
 		node.isAsync()
 	) {
+		state.usesTSLibrary = true;
 		result += "TS.async(";
 		backWrap = ")" + backWrap;
 	}
@@ -111,6 +116,7 @@ function transpileFunctionHelper(
 		result += state.indent;
 	} else if (ts.TypeGuards.isExpression(body)) {
 		initializers.push(getReturnStrFromExpression(state, body, node));
+		initializers.forEach(str => console.log(`"${str}"`));
 		result += " " + initializers.join(" ") + " ";
 	} else {
 		const bodyKindName = body.getKindName();

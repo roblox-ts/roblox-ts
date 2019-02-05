@@ -441,6 +441,7 @@ export function generateRoactElement(
 			str += ", \n";
 			state.pushIndent();
 
+			state.usesTSLibrary = true;
 			str += state.indent + "TS.Roact_combine(";
 
 			// If it has other attributes
@@ -551,6 +552,7 @@ export function generateRoactElement(
 		state.popIndent();
 
 		if (extraChildrenCollection.length > 0) {
+			state.usesTSLibrary = true;
 			str += `, TS.Roact_combine(`;
 
 			if (childCollection.length > 0) {

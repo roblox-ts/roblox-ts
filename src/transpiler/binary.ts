@@ -4,7 +4,8 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { isNumberType, isStringType } from "../typeUtilities";
 
-function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
+function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
+	state.usesTSLibrary = true;
 	let rhs = node.getRight();
 	if (ts.TypeGuards.isParenthesizedExpression(rhs)) {
 		rhs = rhs.getExpression();
@@ -16,11 +17,24 @@ function getLuaBarExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	}
 }
 
-function getLuaBitExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, name: string) {
+function getLuaBitExpression(
+	state: TranspilerState,
+	node: ts.BinaryExpression,
+	lhsStr: string,
+	rhsStr: string,
+	name: string,
+) {
+	state.usesTSLibrary = true;
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
 
-function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
+function getLuaAddExpression(
+	state: TranspilerState,
+	node: ts.BinaryExpression,
+	lhsStr: string,
+	rhsStr: string,
+	wrap = false,
+) {
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
@@ -31,6 +45,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
+		state.usesTSLibrary = true;
 		return `TS.add(${lhsStr}, ${rhsStr})`;
 	}
 }
@@ -68,22 +83,22 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 				return `${lhsStr} = ${rhsStr}`;
 			/* Bitwise Operations */
 			case ts.SyntaxKind.BarEqualsToken:
-				const barExpStr = getLuaBarExpression(node, lhsStr, rhsStr);
+				const barExpStr = getLuaBarExpression(state, node, lhsStr, rhsStr);
 				return `${lhsStr} = ${barExpStr}`;
 			case ts.SyntaxKind.AmpersandEqualsToken:
-				const ampersandExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "and");
+				const ampersandExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "and");
 				return `${lhsStr} = ${ampersandExpStr}`;
 			case ts.SyntaxKind.CaretEqualsToken:
-				const caretExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "xor");
+				const caretExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "xor");
 				return `${lhsStr} = ${caretExpStr}`;
 			case ts.SyntaxKind.LessThanLessThanEqualsToken:
-				const lshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "lsh");
+				const lshExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "lsh");
 				return `${lhsStr} = ${lshExpStr}`;
 			case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-				const rshExpStr = getLuaBitExpression(node, lhsStr, rhsStr, "rsh");
+				const rshExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "rsh");
 				return `${lhsStr} = ${rshExpStr}`;
 			case ts.SyntaxKind.PlusEqualsToken:
-				const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
+				const addExpStr = getLuaAddExpression(state, node, lhsStr, rhsStr, true);
 				return `${lhsStr} = ${addExpStr}`;
 			case ts.SyntaxKind.MinusEqualsToken:
 				return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
@@ -141,17 +156,17 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			return `${lhsStr} ~= ${rhsStr}`;
 		/* Bitwise Operations */
 		case ts.SyntaxKind.BarToken:
-			return getLuaBarExpression(node, lhsStr, rhsStr);
+			return getLuaBarExpression(state, node, lhsStr, rhsStr);
 		case ts.SyntaxKind.AmpersandToken:
-			return getLuaBitExpression(node, lhsStr, rhsStr, "and");
+			return getLuaBitExpression(state, node, lhsStr, rhsStr, "and");
 		case ts.SyntaxKind.CaretToken:
-			return getLuaBitExpression(node, lhsStr, rhsStr, "xor");
+			return getLuaBitExpression(state, node, lhsStr, rhsStr, "xor");
 		case ts.SyntaxKind.LessThanLessThanToken:
-			return getLuaBitExpression(node, lhsStr, rhsStr, "lsh");
+			return getLuaBitExpression(state, node, lhsStr, rhsStr, "lsh");
 		case ts.SyntaxKind.GreaterThanGreaterThanToken:
-			return getLuaBitExpression(node, lhsStr, rhsStr, "rsh");
+			return getLuaBitExpression(state, node, lhsStr, rhsStr, "rsh");
 		case ts.SyntaxKind.PlusToken:
-			return getLuaAddExpression(node, lhsStr, rhsStr);
+			return getLuaAddExpression(state, node, lhsStr, rhsStr);
 		case ts.SyntaxKind.MinusToken:
 			return `${lhsStr} - ${rhsStr}`;
 		case ts.SyntaxKind.AsteriskToken:
@@ -177,6 +192,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		case ts.SyntaxKind.PercentToken:
 			return `${lhsStr} % ${rhsStr}`;
 		case ts.SyntaxKind.InstanceOfKeyword:
+			state.usesTSLibrary = true;
 			return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 		default:
 			const opKindName = node.getOperatorToken().getKindName();

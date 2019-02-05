@@ -4,6 +4,13 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
+const IMP_STR = `local TS = require(
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("RobloxTS")
+		:WaitForChild("Include")
+		:WaitForChild("RuntimeLib")
+);\n`;
+
 export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
@@ -44,9 +51,8 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 			result += state.indent + "return nil;\n";
 		}
 	}
-	result =
-		state.indent +
-		`local TS = require(game:GetService("ReplicatedStorage").RobloxTS.Include.RuntimeLib);\n` +
-		result;
+	if (state.usesTSLibrary) {
+		result = state.indent + IMP_STR + result;
+	}
 	return result;
 }

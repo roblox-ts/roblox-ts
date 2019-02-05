@@ -28,6 +28,7 @@ export function transpileArrayLiteralExpression(state: TranspilerState, node: ts
 
 	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 	if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
+		state.usesTSLibrary = true;
 		return `TS.array_concat(${params})`;
 	} else {
 		return params;

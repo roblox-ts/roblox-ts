@@ -91,4 +91,5 @@ export class TranspilerState {
 	public scriptContext = ScriptContext.None;
 	public roactIndent: number = 0;
 	public hasRoactImport: boolean = false;
+	public usesTSLibrary = false;
 }
