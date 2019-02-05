@@ -176,11 +176,12 @@ export function transpileForInStatement(state: TranspilerState, node: ts.ForInSt
 export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfStatement) {
 	state.pushIdStack();
 	const init = node.getInitializer();
+	let lhs: ts.Node<ts.ts.Node> | undefined;
 	let varName = "";
 	const initializers = new Array<string>();
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		for (const declaration of init.getDeclarations()) {
-			const lhs = declaration.getChildAtIndex(0);
+			lhs = declaration.getChildAtIndex(0);
 			if (isBindingPattern(lhs)) {
 				varName = state.getNewId();
 				const names = new Array<string>();
@@ -188,11 +189,11 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 				const preStatements = new Array<string>();
 				const postStatements = new Array<string>();
 				getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
-				preStatements.forEach(statement => initializers.push(statement));
+				preStatements.forEach(myStatement => initializers.push(myStatement));
 				const namesStr = names.join(", ");
 				const valuesStr = values.join(", ");
 				initializers.push(`local ${namesStr} = ${valuesStr};\n`);
-				postStatements.forEach(statement => initializers.push(statement));
+				postStatements.forEach(myStatement => initializers.push(myStatement));
 			} else if (ts.TypeGuards.isIdentifier(lhs)) {
 				varName = lhs.getText();
 			}
@@ -210,21 +211,56 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 	}
 
+	const statement = node.getStatement();
 	const exp = node.getExpression();
 	const expStr = transpileExpression(state, exp);
 	let result = "";
+	let wasSet = false;
+	let previous: string | undefined;
 
 	if (isArrayType(exp.getType())) {
-		const myInt = state.getNewId();
+		let myInt: string;
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
+		// If we are uncertain for some reason, fallback on old behavior
+		let count = 2;
+
+		// If identifier only shows up once, don't localize
+		if (lhs && ts.TypeGuards.isIdentifier(lhs)) {
+			count = 0;
+			statement.getDescendantsOfKind(ts.SyntaxKind.Identifier).forEach(identifier => {
+				if (isIdentifierWhoseDefinitionMatchesNode(identifier, lhs as ts.Identifier)) {
+					++count;
+				}
+			});
+		}
+
+		if (count === 0) {
+			myInt = "_";
+		} else {
+			myInt = state.getNewId();
+		}
+
+		let varValue: string;
+
 		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
 			result += state.indent + `for ${myInt} = 1, select("#", ...) do\n`;
 			state.pushIndent();
-			result += state.indent + `local ${varName} = select(${myInt}, ...);\n`;
+			varValue = `select(${myInt}, ...)`;
+			if (count === 1) {
+				varValue = `(${varValue})`;
+			}
 		} else {
 			result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
 			state.pushIndent();
-			result += state.indent + `local ${varName} = ${expStr}[${myInt}];\n`;
+			varValue = `${expStr}[${myInt}]`;
+		}
+
+		if (count > 1) {
+			result += state.indent + `local ${varName} = ${varValue};\n`;
+		} else if (count === 1) {
+			wasSet = true;
+			previous = state.variableAliases.get(varName);
+			state.variableAliases.set(varName, varValue);
 		}
 	} else {
 		result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
@@ -232,10 +268,19 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	}
 
 	initializers.forEach(initializer => (result += state.indent + initializer));
-	result += transpileLoopBody(state, node.getStatement());
+	result += transpileLoopBody(state, statement);
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	state.popIdStack();
+
+	if (wasSet) {
+		if (previous) {
+			state.variableAliases.set(varName, previous);
+		} else {
+			state.variableAliases.delete(varName);
+		}
+	}
+
 	return result;
 }
 
