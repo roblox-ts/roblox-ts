@@ -98,15 +98,12 @@ function transpileClass(
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
-	if (!isExpression) {
-		state.hoistStack[state.hoistStack.length - 1].add(name);
-	}
-
 	let result = "";
 	if (isExpression) {
 		result += `(function()\n`;
 	} else {
 		result += state.indent + `do\n`;
+		state.hoistStack[state.hoistStack.length - 1].add(name);
 	}
 	state.pushIndent();
 
