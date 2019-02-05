@@ -62,7 +62,7 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
-export function transpileClassDeclaration(
+function transpileClass(
 	state: TranspilerState,
 	node: ts.ClassDeclaration | ts.ClassExpression,
 	name: string = node.getName() || state.getNewId(),
@@ -79,6 +79,8 @@ export function transpileClassDeclaration(
 	const baseTypes = node.getBaseTypes();
 	for (const baseType of baseTypes) {
 		const baseTypeText = baseType.getText();
+
+		console.log("baseTypeText", baseTypeText);
 
 		// Handle the special case where we have a roact class
 		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
@@ -381,4 +383,12 @@ export function transpileClassDeclaration(
 	}
 
 	return result;
+}
+
+export function transpileClassDeclaration(state: TranspilerState, node: ts.ClassDeclaration) {
+	return transpileClass(state, node);
+}
+
+export function transpileClassExpression(state: TranspilerState, node: ts.ClassExpression) {
+	return transpileClass(state, node);
 }

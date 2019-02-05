@@ -5,7 +5,7 @@ import {
 	transpileBinaryExpression,
 	transpileBooleanLiteral,
 	transpileCallExpression,
-	transpileClassDeclaration,
+	transpileClassExpression,
 	transpileConditionalExpression,
 	transpileElementAccessExpression,
 	transpileFunctionExpression,
@@ -75,7 +75,7 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 	} else if (ts.TypeGuards.isSpreadElement(node)) {
 		return transpileSpreadElement(state, node);
 	} else if (ts.TypeGuards.isClassExpression(node)) {
-		return transpileClassDeclaration(state, node);
+		return transpileClassExpression(state, node);
 	} else if (ts.TypeGuards.isOmittedExpression(node)) {
 		return "nil";
 	} else if (ts.TypeGuards.isThisExpression(node)) {
