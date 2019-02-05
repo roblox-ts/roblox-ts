@@ -67,6 +67,7 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 			rhs = equalsToken.getNextSibling();
 		}
 
+		// If it is a foldable constant
 		if (
 			rhs &&
 			parent &&
@@ -89,6 +90,13 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 				names.push(name);
 				if (rhs) {
 					const rhsStr = transpileExpression(state, rhs as ts.Expression);
+					if (ts.TypeGuards.isArrowFunction(rhs) && declarationKind === ts.VariableDeclarationKind.Const) {
+						if (isExported && ts.TypeGuards.isExportableNode(parent)) {
+							state.pushExport(name, parent);
+						}
+						state.hoistStack[state.hoistStack.length - 1].add(name);
+						return state.indent + name + " = " + rhsStr + ";\n";
+					}
 					values.push(rhsStr);
 				} else {
 					values.push("nil");

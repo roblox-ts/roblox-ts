@@ -79,7 +79,7 @@ export function transpileObjectLiteralExpression(state: TranspilerState, node: t
 				parts.push("{\n");
 				state.pushIndent();
 			}
-			parts[parts.length - 1] += state.indent + transpileMethodDeclaration(state, prop);
+			parts[parts.length - 1] += transpileMethodDeclaration(state, prop);
 			isInObject = true;
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
 			if (first) {
