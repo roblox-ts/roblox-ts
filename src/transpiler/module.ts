@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as ts from "ts-morph";
 import * as util from "util";
-import { checkReserved, transpileClassDeclaration, transpileExpression } from ".";
+import { checkReserved, transpileExpression } from ".";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
@@ -428,16 +428,8 @@ export function transpileExportAssignment(state: TranspilerState, node: ts.Expor
 	let result = state.indent;
 	if (node.isExportEquals()) {
 		state.isModule = true;
-		const exp = node.getExpression();
-		if (ts.TypeGuards.isClassExpression(exp)) {
-			const className = exp.getName() || state.getNewId();
-			result += transpileClassDeclaration(state, exp, className);
-			result += state.indent;
-			result += `_exports = ${className};\n`;
-		} else {
-			const expStr = transpileExpression(state, exp);
-			result += `_exports = ${expStr};\n`;
-		}
+		const expStr = transpileExpression(state, node.getExpression());
+		result += `_exports = ${expStr};\n`;
 	} else {
 		const symbol = node.getSymbol();
 		if (symbol) {

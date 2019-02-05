@@ -96,10 +96,18 @@ export function transpileClassDeclaration(
 		}
 	}
 
-	state.hoistStack[state.hoistStack.length - 1].add(name);
+	const isExpression = ts.TypeGuards.isClassExpression(node);
+
+	if (!isExpression) {
+		state.hoistStack[state.hoistStack.length - 1].add(name);
+	}
 
 	let result = "";
-	result += state.indent + `do\n`;
+	if (isExpression) {
+		result += `(function()\n`;
+	} else {
+		result += state.indent + `do\n`;
+	}
 	state.pushIndent();
 
 	let baseClassName = "";
@@ -141,10 +149,15 @@ export function transpileClassDeclaration(
 		result += state.indent + `local super = ${baseClassName};\n`;
 	}
 
+	let prefix = "";
+	if (isExpression) {
+		prefix = `local `;
+	}
+
 	if (hasStaticInheritance) {
-		result += state.indent + `${id} = setmetatable({`;
+		result += state.indent + prefix + `${id} = setmetatable({`;
 	} else {
-		result += state.indent + `${id} = {`;
+		result += state.indent + prefix + `${id} = {`;
 	}
 
 	state.pushIndent();
@@ -361,7 +374,11 @@ export function transpileClassDeclaration(
 	}
 
 	state.popIndent();
-	result += state.indent + `end;\n`;
+	if (isExpression) {
+		result += state.indent + `end)()`;
+	} else {
+		result += state.indent + `end;\n`;
+	}
 
 	return result;
 }
