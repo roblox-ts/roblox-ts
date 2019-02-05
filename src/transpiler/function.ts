@@ -59,63 +59,72 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
-function getWrap(
-	node: ts.FunctionDeclaration | ts.MethodDeclaration | ts.FunctionExpression | ts.ArrowFunction,
-): [string, string] {
-	let front = "";
-	let numClosers = 0;
-
-	if (node.isAsync()) {
-		++numClosers;
-		front += "TS.async(";
-	}
-
-	return [front, ")".repeat(numClosers)];
-}
-
-export function transpileFunctionDeclaration(state: TranspilerState, node: ts.FunctionDeclaration) {
-	let name = node.getName();
-	if (name) {
-		checkReserved(name, node);
-	} else {
-		name = state.getNewId();
-	}
-	state.pushExport(name, node);
-	const body = node.getBody();
-	if (!body) {
-		return "";
-	}
-	state.hoistStack[state.hoistStack.length - 1].add(name);
+function transpileFunctionHelper(
+	state: TranspilerState,
+	node: HasParameters,
+	name: string,
+	body: ts.Node<ts.ts.Node>,
+	extraInitializers?: Array<string>,
+) {
+	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
-	state.pushIdStack();
+
 	getParameterData(state, paramNames, initializers, node);
-	const paramStr = paramNames.join(", ");
-	let result = "";
-	const [frontWrap, backWrap] = getWrap(node);
-	result += state.indent + `${name} = ${frontWrap}function(${paramStr})\n`;
-	state.pushIndent();
+
+	if (
+		ts.TypeGuards.isMethodDeclaration(node) ||
+		ts.TypeGuards.isGetAccessorDeclaration(node) ||
+		ts.TypeGuards.isSetAccessorDeclaration(node)
+	) {
+		giveInitialSelfParameter(node, paramNames);
+	}
+
+	let result: string;
+	let backWrap = "";
+
+	if (name) {
+		result = state.indent + name + " = ";
+		backWrap = ";\n";
+	} else {
+		result = "";
+	}
+
+	if (
+		!ts.TypeGuards.isGetAccessorDeclaration(node) &&
+		!ts.TypeGuards.isSetAccessorDeclaration(node) &&
+		!ts.TypeGuards.isConstructorDeclaration(node) &&
+		node.isAsync()
+	) {
+		result += "TS.async(";
+		backWrap = ")" + backWrap;
+	}
+
+	result += "function(" + paramNames.join(", ") + ")";
+
 	if (ts.TypeGuards.isBlock(body)) {
+		result += "\n";
+		state.pushIndent();
 		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
 		result += transpileBlock(state, body);
+		state.popIndent();
+		result += state.indent;
+	} else if (ts.TypeGuards.isExpression(body)) {
+		initializers.push(getReturnStrFromExpression(state, body, node));
+		result += " " + initializers.join(" ") + " ";
+	} else {
+		const bodyKindName = body.getKindName();
+		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
 	}
-	state.popIndent();
+
 	state.popIdStack();
-	result += state.indent + `end${backWrap};\n`;
-	return result;
+	return result + "end" + backWrap;
 }
 
-export function transpileMethodDeclaration(state: TranspilerState, node: ts.MethodDeclaration) {
-	const name = node.getName();
-	checkReserved(name, node);
-	const body = node.getBodyOrThrow();
-
-	const paramNames = new Array<string>();
-	const initializers = new Array<string>();
-	state.pushIdStack();
-
-	getParameterData(state, paramNames, initializers, node);
-
+function giveInitialSelfParameter(
+	node: ts.MethodDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
+	paramNames: Array<string>,
+) {
 	const parameters = node.getParameters();
 	let replacedThis = false;
 
@@ -138,21 +147,31 @@ export function transpileMethodDeclaration(state: TranspilerState, node: ts.Meth
 	if (!replacedThis) {
 		paramNames.unshift("self");
 	}
+}
 
-	const paramStr = paramNames.join(", ");
+export function transpileFunctionDeclaration(state: TranspilerState, node: ts.FunctionDeclaration) {
+	const body = node.getBody();
+	let name = node.getName();
 
-	let result = "";
-	const [frontWrap, backWrap] = getWrap(node);
-	result += `${name} = ${frontWrap}function(${paramStr})\n`;
-	state.pushIndent();
-	if (ts.TypeGuards.isBlock(body)) {
-		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
-		result += transpileBlock(state, body);
+	if (name) {
+		checkReserved(name, node);
+	} else {
+		name = state.getNewId();
 	}
-	state.popIndent();
-	state.popIdStack();
-	result += state.indent + "end" + backWrap + ";\n";
-	return result;
+
+	if (body) {
+		state.pushExport(name, node);
+		state.hoistStack[state.hoistStack.length - 1].add(name);
+		return transpileFunctionHelper(state, node, name, body);
+	} else {
+		return "";
+	}
+}
+
+export function transpileMethodDeclaration(state: TranspilerState, node: ts.MethodDeclaration) {
+	const name = node.getName();
+	checkReserved(name, node);
+	return transpileFunctionHelper(state, node, name, node.getBodyOrThrow());
 }
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
@@ -245,56 +264,9 @@ export function transpileAccessorDeclaration(
 	name: string,
 ) {
 	const body = node.getBody();
-	if (!body) {
-		return "";
-	}
-	const paramNames = new Array<string>();
-	paramNames.push("self");
-	const initializers = new Array<string>();
-	state.pushIdStack();
-	getParameterData(state, paramNames, initializers, node);
-	const paramStr = paramNames.join(", ");
-	let result = "";
-	result += state.indent + `${name} = function(${paramStr})\n`;
-	state.pushIndent();
-	if (ts.TypeGuards.isBlock(body)) {
-		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
-		result += transpileBlock(state, body);
-	}
-	state.popIndent();
-	state.popIdStack();
-	result += state.indent + "end;\n";
-	return result;
+	return body ? transpileFunctionHelper(state, node, name, body) : "";
 }
 
 export function transpileFunctionExpression(state: TranspilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	const body = node.getBody();
-	const paramNames = new Array<string>();
-	const initializers = new Array<string>();
-	state.pushIdStack();
-	getParameterData(state, paramNames, initializers, node);
-	const paramStr = paramNames.join(", ");
-	let result = "";
-	result += `function(${paramStr})`;
-	if (ts.TypeGuards.isBlock(body)) {
-		result += "\n";
-		state.pushIndent();
-		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
-		result += transpileBlock(state, body);
-		state.popIndent();
-		result += state.indent + "end";
-	} else if (ts.TypeGuards.isExpression(body)) {
-		if (initializers.length > 0) {
-			result += " ";
-		}
-		initializers.push(getReturnStrFromExpression(state, body, node));
-		const initializersStr = initializers.join(" ");
-		result += ` ${initializersStr} end`;
-	} else {
-		const bodyKindName = body.getKindName();
-		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
-	}
-	const [frontWrap, backWrap] = getWrap(node);
-	state.popIdStack();
-	return frontWrap + result + backWrap;
+	return transpileFunctionHelper(state, node, "", node.getBody());
 }

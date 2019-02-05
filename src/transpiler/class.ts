@@ -204,7 +204,7 @@ export function transpileClassDeclaration(
 				hasIndexMembers = true;
 				result += "\n";
 			}
-			result += state.indent + transpileMethodDeclaration(state, method);
+			result += transpileMethodDeclaration(state, method);
 		});
 
 	state.popIndent();
