@@ -1,7 +1,12 @@
 local Promise = require(script.Parent.Promise)
 
 -- constants
+local TYPE_NIL = "nil"
 local TYPE_STRING = "string"
+local TYPE_TABLE = "table"
+local TYPE_USERDATA = "userdata"
+local TYPE_FUNCTION = "function"
+local TYPE_INSTANCE = "Instance"
 
 local TS = {}
 
@@ -49,23 +54,6 @@ local Symbol do
 end
 TS.Symbol = Symbol
 
--- Instance class values
-TS.Instance = setmetatable({}, {
-	__index = function(self, className)
-		local object = setmetatable({
-			new = function(parent)
-				return Instance.new(className, parent)
-			end
-		}, {
-			__tostring = function()
-				return className
-			end
-		})
-		self[className] = object
-		return object
-	end
-})
-
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
 
@@ -94,7 +82,7 @@ function TS.getModule(moduleName, object)
 end
 
 function TS.import(root, ...)
-	local currentInstance = typeof(root) == "Instance" and root or game:GetService(root)
+	local currentInstance = typeof(root) == TYPE_INSTANCE and root or game:GetService(root)
 
 	if not currentInstance then
 		error("Failed to find root in which to search for ModuleScripts, got " .. typeof(root) .. " " .. tostring(root), 2)
@@ -120,27 +108,35 @@ end
 -- general utility functions
 function TS.typeof(value)
 	local type = typeof(value)
-	if type == "table" then
+	if type == TYPE_TABLE or type == TYPE_USERDATA then
 		return "object"
-	elseif type == "nil" then
+	elseif type == TYPE_NIL then
 		return "undefined"
 	else
 		return type
 	end
 end
 
-function TS.instanceof(obj, class)
-    while obj ~= nil do
-        if obj == class then
-            return true
-        end
-        obj = getmetatable(obj)
-    end
-    return false
+function TS.typeIs(value, typeName)
+	return typeof(value) == typeName
 end
 
-function TS.isA(instance, className)
-	return typeof(instance) == "Instance" and instance:IsA(className)
+function TS.instanceof(obj, class)
+
+	-- custom Class.instanceof() check
+	if typeof(class) == TYPE_TABLE and typeof(class.instanceof) == TYPE_FUNCTION then
+		return class.instanceof(obj)
+	end
+
+	-- metatable check
+	while obj ~= nil do
+		if obj == class then
+			return true
+		end
+		obj = getmetatable(obj)
+	end
+
+	return false
 end
 
 function TS.async(callback)
@@ -464,6 +460,7 @@ function TS.array_push(list, ...)
 	for i = 1, #args do
 		list[#list + 1] = args[i]
 	end
+	return #list
 end
 
 function TS.array_pop(list)
@@ -664,18 +661,18 @@ function TS.Object_assign(toObj, ...)
 end
 
 function TS.Roact_combine(...)
-    local args = {...}
-    local result = {}
-    for i = 1, #args do
-        for key, value in pairs(args[i]) do
-            if (type(key) == "number") then
-                table.insert(result, value)
-            else
-                result[key] = value
-            end
-        end
-    end
-    return result
+	local args = {...}
+	local result = {}
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
+			if (type(key) == "number") then
+				table.insert(result, value)
+			else
+				result[key] = value
+			end
+		end
+	end
+	return result
 end
 
 -- try catch utilities

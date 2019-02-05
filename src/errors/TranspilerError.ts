@@ -1,4 +1,4 @@
-import * as ts from "ts-simple-ast";
+import * as ts from "ts-morph";
 
 export enum TranspilerErrorType {
 	ReservedKeyword,
