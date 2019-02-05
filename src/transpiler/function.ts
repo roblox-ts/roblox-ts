@@ -111,10 +111,34 @@ export function transpileMethodDeclaration(state: TranspilerState, node: ts.Meth
 	const body = node.getBodyOrThrow();
 
 	const paramNames = new Array<string>();
-	paramNames.push("self");
 	const initializers = new Array<string>();
 	state.pushIdStack();
+
 	getParameterData(state, paramNames, initializers, node);
+
+	const parameters = node.getParameters();
+	let replacedThis = false;
+
+	if (parameters.length > 0) {
+		const child = parameters[0].getFirstChildByKind(ts.SyntaxKind.Identifier);
+		const classParent =
+			node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) ||
+			node.getFirstAncestorByKind(ts.SyntaxKind.ClassExpression);
+		if (
+			classParent &&
+			child &&
+			child.getText() === "this" &&
+			(child.getType().getText() === "this" || child.getType() === classParent.getType())
+		) {
+			paramNames[0] = "self";
+			replacedThis = true;
+		}
+	}
+
+	if (!replacedThis) {
+		paramNames.unshift("self");
+	}
+
 	const paramStr = paramNames.join(", ");
 
 	let result = "";
