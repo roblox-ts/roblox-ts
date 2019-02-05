@@ -121,6 +121,7 @@ function getRelativeImportPath(
 	const importParts = parts.filter(p => p !== ".Parent");
 	const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
 
+	state.usesTSLibrary = true;
 	return `TS.import(${params})`;
 }
 
@@ -162,6 +163,7 @@ function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile
 			.filter(part => part !== ".")
 			.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
+		state.usesTSLibrary = true;
 		const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
 		return `require(${params})`;
 	} else {
@@ -194,6 +196,7 @@ function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile
 			.map(v => `"${v}"`)
 			.join(", ");
 
+		state.usesTSLibrary = true;
 		return `TS.import(${params})`;
 	}
 }
@@ -386,6 +389,7 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 				TranspilerErrorType.BadSpecifier,
 			);
 		}
+		state.usesTSLibrary = true;
 		return state.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
 	} else {
 		const namedExports = node.getNamedExports();
