@@ -1,5 +1,4 @@
 export = () => {
-	// prettier-ignore
 	it("should understand number literals", () => {
 		expect(1).to.equal(1);
 		expect(6).to.equal(6);
@@ -21,6 +20,7 @@ export = () => {
 		expect(a + b).to.equal(2);
 	});
 
+	// prettier-ignore
 	it("should understand string literals", () => {
 		expect("foo").to.equal("foo");
 		expect('foo').to.equal("foo");
