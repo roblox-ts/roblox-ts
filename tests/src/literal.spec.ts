@@ -25,6 +25,9 @@ export = () => {
 		expect("foo").to.equal("foo");
 		expect('foo').to.equal("foo");
 		expect(`foo`).to.equal("foo");
+		expect("foo".length).to.equal(3);
+		expect('foo'.length).to.equal(3);
+		expect(`foo`.length).to.equal(3);
 		expect("\"").to.equal("\"");
 		expect(`\"`).to.equal("\"");
 		expect('\"').to.equal("\"");
