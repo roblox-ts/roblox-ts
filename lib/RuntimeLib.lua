@@ -95,7 +95,7 @@ function TS.import(module, ...)
 
 		if data == nil then
 			-- If called from command bar, use table as a reference (this is never concatenated)
-			local caller = getfenv(0).script or {Name = "Command bar"}
+			local caller = getfenv(0).script or { Name = "Command bar" }
 			currentlyLoading[caller] = module
 
 			-- Check to see if a case like this occurs:
