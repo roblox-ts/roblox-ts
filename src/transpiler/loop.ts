@@ -218,7 +218,10 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	let wasSet = false;
 	let previous: string | undefined;
 
-	if (isArrayType(exp.getType())) {
+	if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
+		result += state.indent + `for _, ${varName} in ipairs ${expStr} do\n`;
+		state.pushIndent();
+	} else if (isArrayType(exp.getType())) {
 		let myInt: string;
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
 		// If we are uncertain for some reason, fallback on old behavior
