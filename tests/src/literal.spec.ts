@@ -1,10 +1,16 @@
 export = () => {
-	it("should understand number literals", () => {
+	itFOCUS("should understand number literals", () => {
 		expect(1).to.equal(1);
 		expect(6).to.equal(6);
 		expect(0xf00d).to.equal(61453);
 		expect(0b1010).to.equal(10);
 		expect(0o744).to.equal(484);
+
+		// issue #213
+		expect(0.0000000000001).never.to.equal(1);
+		expect(100000000000000).never.to.equal(1);
+		expect(tostring(0.0000000000001)).to.equal("1e-13");
+		expect(tostring(100000000000000)).to.equal("1e+14");
 	});
 
 	it("should add numbers", () => {
