@@ -31,6 +31,8 @@ export = () => {
 		expect("\"").to.equal("\"");
 		expect(`\"`).to.equal("\"");
 		expect('\"').to.equal("\"");
+		expect(`"`).to.equal("\"");
+		expect('"').to.equal("\"");
 	});
 
 	it("should add strings", () => {
