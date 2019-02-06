@@ -117,7 +117,7 @@ function TS.import(module, ...)
 
 					for _ = 1, depth do
 						currentModule = currentlyLoading[currentModule]
-						String = String .. " -> " .. currentModule.Name
+						str = str .. " -> " .. currentModule.Name
 					end
 
 					error("Failed to import! Detected a circular dependency chain: " .. String, 2)
