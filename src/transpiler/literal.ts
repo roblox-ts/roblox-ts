@@ -24,7 +24,7 @@ function isSpecialNumberPrefix(numText: string) {
 export function transpileNumericLiteral(state: TranspilerState, node: ts.NumericLiteral) {
 	const text = node.getText();
 	if (isSpecialNumberPrefix(text)) {
-		return node.getLiteralValue().toString();
+		return node.getLiteralText();
 	}
 	return text;
 }
