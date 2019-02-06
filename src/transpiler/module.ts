@@ -193,11 +193,12 @@ function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile
 			.split(".")
 			.concat(parts)
 			.filter(v => v.length > 0)
-			.map(v => `"${v}"`)
-			.join(", ");
+			.map(v => `"${v}"`);
 
+		// We could probably check this is a valid service at compile-time
+		params[0] = "game:GetService(" + params[0] + ")";
 		state.usesTSLibrary = true;
-		return `TS.import(${params})`;
+		return `TS.import(${params.join(", ")})`;
 	}
 }
 
