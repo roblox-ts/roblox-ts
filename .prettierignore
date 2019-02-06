@@ -1,4 +1,7 @@
 *.json
+**/lib/**
+./lib/**
+*.lua
 **/node_modules/**
 ./node_modules/**
 **/.{git,svn,hg}/**

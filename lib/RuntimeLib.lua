@@ -81,21 +81,61 @@ function TS.getModule(moduleName, object)
 	error("Could not find module: " .. moduleName, 2)
 end
 
-function TS.import(root, ...)
-	local currentInstance = typeof(root) == TYPE_INSTANCE and root or game:GetService(root)
+-- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
+local loadedLibraries = {}
+local currentlyLoading = {}
 
-	if not currentInstance then
-		error("Failed to find root in which to search for ModuleScripts, got " .. typeof(root) .. " " .. tostring(root), 2)
-	end
-
+function TS.import(module, ...)
 	for i = 1, select("#", ...) do
-		currentInstance = currentInstance:WaitForChild((select(i, ...)))
+		module = module:WaitForChild((select(i, ...)))
 	end
 
-	if currentInstance.ClassName == "ModuleScript" then
-		return require(currentInstance)
+	if module.ClassName == "ModuleScript" then
+		local data = loadedLibraries[module]
+
+		if data == nil then
+			-- If called from command bar, use table as a reference (this is never concatenated)
+			local caller = getfenv(0).script or {Name = "Command bar"}
+			currentlyLoading[caller] = module
+
+			-- Check to see if a case like this occurs:
+			-- module -> Module1 -> Module2 -> module
+
+			-- WHERE currentlyLoading[module] is Module1
+			-- and currentlyLoading[Module1] is Module2
+			-- and currentlyLoading[Module2] is module
+
+			local currentModule = module
+			local depth = 0
+
+			while currentModule do
+				depth = depth + 1
+				currentModule = currentlyLoading[currentModule]
+
+				if currentModule == module then
+					local String = currentModule.Name -- Get the string traceback
+
+					for _ = 1, depth do
+						currentModule = currentlyLoading[currentModule]
+						String = String .. " -> " .. currentModule.Name
+					end
+
+					error("Failed to import! Detected a circular dependency chain: " .. String, 2)
+				end
+			end
+
+			data = require(module)
+
+			if currentlyLoading[caller] == module then -- Thread-safe cleanup!
+				currentlyLoading[caller] = nil
+			end
+
+			loadedLibraries[module] = data -- Cache for subsequent calls
+		end
+
+		return data
 	else
-		error("Failed to import! Expected ModuleScript, got " .. currentInstance.ClassName, 2)
+		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 end
 
