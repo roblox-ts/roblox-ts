@@ -1,9 +1,38 @@
 export = () => {
+	it("should understand number literals", () => {
+		expect(1).to.equal(1);
+		expect(6).to.equal(6);
+		expect(0xf00d).to.equal(61453);
+		expect(0b1010).to.equal(10);
+		expect(0o744).to.equal(484);
+
+		// issue #213
+		expect(0.0000000000001).never.to.equal(1);
+		expect(100000000000000).never.to.equal(1);
+		expect(tostring(0.0000000000001)).to.equal("1e-13");
+		expect(tostring(100000000000000)).to.equal("1e+14");
+	});
+
 	it("should add numbers", () => {
 		expect(1 + 1).to.equal(2);
 		const a = 1;
 		const b = 1;
 		expect(a + b).to.equal(2);
+	});
+
+	// prettier-ignore
+	it("should understand string literals", () => {
+		expect("foo").to.equal("foo");
+		expect('foo').to.equal("foo");
+		expect(`foo`).to.equal("foo");
+		expect("foo".length).to.equal(3);
+		expect('foo'.length).to.equal(3);
+		expect(`foo`.length).to.equal(3);
+		expect("\"").to.equal("\"");
+		expect(`\"`).to.equal("\"");
+		expect('\"').to.equal("\"");
+		expect(`"`).to.equal("\"");
+		expect('"').to.equal("\"");
 	});
 
 	it("should add strings", () => {
