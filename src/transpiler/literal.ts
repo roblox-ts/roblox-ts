@@ -35,7 +35,7 @@ export function transpileStringLiteral(
 ) {
 	let text = node.getText();
 	if (text.startsWith("`") && text.endsWith("`")) {
-		text = text.slice(1, -1).replace(/[^\\]"/g, '\\"');
+		text = text.slice(1, -1).replace(/(^|[^\\])"/g, '\\"');
 		text = `"${text}"`;
 	}
 	return text;
@@ -47,8 +47,7 @@ export function transpileTemplateExpression(state: TranspilerState, node: ts.Tem
 	const headText = node
 		.getHead()
 		.getText()
-		.replace(/\\"/g, '"')
-		.replace(/"/g, '\\"')
+		.replace(/(^|[^\\])"/g, '\\"')
 		.slice(1, -2);
 
 	if (headText.length > 0) {
@@ -65,8 +64,7 @@ export function transpileTemplateExpression(state: TranspilerState, node: ts.Tem
 			const literal = span
 				.getLiteral()
 				.getText()
-				.replace(/\\"/g, '"')
-				.replace(/"/g, '\\"')
+				.replace(/(^|[^\\])"/g, '\\"')
 				.slice(1, trim);
 
 			bin.push(expIsString ? expStr : `tostring(${expStr})`);
