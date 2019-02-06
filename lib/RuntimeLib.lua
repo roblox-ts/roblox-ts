@@ -120,7 +120,7 @@ function TS.import(module, ...)
 						str = str .. " -> " .. currentModule.Name
 					end
 
-					error("Failed to import! Detected a circular dependency chain: " .. String, 2)
+					error("Failed to import! Detected a circular dependency chain: " .. str, 2)
 				end
 			end
 
