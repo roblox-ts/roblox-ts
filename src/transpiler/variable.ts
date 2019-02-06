@@ -78,7 +78,7 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 			if (ts.TypeGuards.isNumericLiteral(rhs)) {
 				const declarationName = declaration.getName();
 				checkReserved(declarationName, node);
-				state.variableAliases.set(declarationName, declaration.getType().getText());
+				state.variableAliases.set(declarationName, transpileExpression(state, rhs));
 				return "";
 			}
 		}

@@ -6,12 +6,27 @@ export function transpileBooleanLiteral(state: TranspilerState, node: ts.Boolean
 	return node.getLiteralValue() === true ? "true" : "false";
 }
 
+const SPECIAL_NUMBER_PREFIXES = [
+	"b", // binary
+	"o", // octal
+	"x", // hex
+];
+
+function isSpecialNumberPrefix(numText: string) {
+	for (const prefix of SPECIAL_NUMBER_PREFIXES) {
+		if (numText.startsWith(`0${prefix}`)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function transpileNumericLiteral(state: TranspilerState, node: ts.NumericLiteral) {
 	const text = node.getText();
-	if (text.indexOf("e") !== -1) {
-		return text;
+	if (isSpecialNumberPrefix(text)) {
+		return node.getLiteralValue().toString();
 	}
-	return node.getLiteralValue().toString();
+	return text;
 }
 
 export function transpileStringLiteral(
@@ -20,7 +35,7 @@ export function transpileStringLiteral(
 ) {
 	let text = node.getText();
 	if (text.startsWith("`") && text.endsWith("`")) {
-		text = text.slice(1, -1).replace(/"/g, '\\"');
+		text = text.slice(1, -1).replace(/[^\\]"/g, '\\"');
 		text = `"${text}"`;
 	}
 	return text;
