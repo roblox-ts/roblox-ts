@@ -113,7 +113,7 @@ function TS.import(module, ...)
 				currentModule = currentlyLoading[currentModule]
 
 				if currentModule == module then
-					local String = currentModule.Name -- Get the string traceback
+					local str = currentModule.Name -- Get the string traceback
 
 					for _ = 1, depth do
 						currentModule = currentlyLoading[currentModule]
