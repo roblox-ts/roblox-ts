@@ -105,6 +105,7 @@ export function transpileObjectLiteralExpression(state: TranspilerState, node: t
 
 	if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
 		const params = parts.join(", ");
+		state.usesTSLibrary = true;
 		if (!firstIsObj) {
 			return `TS.Object_assign({}, ${params})`;
 		} else {

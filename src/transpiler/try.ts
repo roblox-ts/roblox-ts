@@ -4,6 +4,7 @@ import { TranspilerState } from "../TranspilerState";
 
 export function transpileThrowStatement(state: TranspilerState, node: ts.ThrowStatement) {
 	const expStr = transpileExpression(state, node.getExpressionOrThrow());
+	state.usesTSLibrary = true;
 	return state.indent + `TS.throw(${expStr});\n`;
 }
 
@@ -13,6 +14,7 @@ export function transpileTryStatement(state: TranspilerState, node: ts.TryStatem
 	state.pushIdStack();
 
 	const returnsId = state.getNewId();
+	state.usesTSLibrary = true;
 	result += state.indent + `local ${returnsId} = TS.try(\n`;
 
 	state.pushIndent();

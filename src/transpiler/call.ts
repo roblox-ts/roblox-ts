@@ -72,6 +72,7 @@ export function transpilePropertyCallExpression(
 		if (params.length > 0) {
 			paramStr += ", " + params;
 		}
+		state.usesTSLibrary = true;
 		return `TS.array_${property}(${paramStr})`;
 	}
 
@@ -83,6 +84,7 @@ export function transpilePropertyCallExpression(
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return `string.${property}(${paramStr})`;
 		}
+		state.usesTSLibrary = true;
 		return `TS.string_${property}(${paramStr})`;
 	}
 
@@ -109,6 +111,7 @@ export function transpilePropertyCallExpression(
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
+			state.usesTSLibrary = true;
 			return `TS.map_${property}(${paramStr})`;
 		}
 
@@ -117,10 +120,12 @@ export function transpilePropertyCallExpression(
 			if (params.length > 0) {
 				paramStr += ", " + params;
 			}
+			state.usesTSLibrary = true;
 			return `TS.set_${property}(${paramStr})`;
 		}
 
 		if (subExpTypeName === "ObjectConstructor") {
+			state.usesTSLibrary = true;
 			return `TS.Object_${property}(${params})`;
 		}
 

@@ -30,6 +30,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 	}
 
 	if (BUILT_INS.indexOf(name) !== -1) {
+		state.usesTSLibrary = true;
 		name = `TS.${name}`;
 	}
 
@@ -40,6 +41,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 
 		if (inheritsFrom(expressionType, "MapConstructor")) {
 			if (args.length > 0) {
+				state.usesTSLibrary = true;
 				return `TS.map_new(${params})`;
 			} else {
 				return "{}";
@@ -48,6 +50,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 
 		if (inheritsFrom(expressionType, "SetConstructor")) {
 			if (args.length > 0) {
+				state.usesTSLibrary = true;
 				return `TS.set_new(${params})`;
 			} else {
 				return "{}";

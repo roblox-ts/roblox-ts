@@ -11,6 +11,7 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 	}
 	checkReserved(name, node);
 	if (BUILT_INS.indexOf(name) !== -1) {
+		state.usesTSLibrary = true;
 		name = `TS.${name}`;
 	}
 

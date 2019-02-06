@@ -62,11 +62,8 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
-function transpileClass(
-	state: TranspilerState,
-	node: ts.ClassDeclaration | ts.ClassExpression,
-	name: string = node.getName() || state.getNewId(),
-) {
+function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
+	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	if (nameNode) {
 		checkReserved(name, nameNode);
