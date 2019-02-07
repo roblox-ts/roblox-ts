@@ -594,16 +594,47 @@ function TS.array_fill(list, value, from, to)
 		from = from + length
 	end
 
-	if to == nil then
+	if to == nil or to > length then
 		to = length
 	elseif to < 0 then
 		to = to + length
-	elseif to > length then
-		to = length
 	end
 
 	for i = from + 1, to do
 		list[i] = value
+	end
+
+	return list
+end
+
+function TS.array_copyWithin(list, target, from, to)
+	local length = #list
+
+	if target < 0 then
+		target = target + length
+	end
+
+	if from == nil then
+		from = 0
+	elseif from < 0 then
+		from = from + length
+	end
+
+	if to == nil or to > length then
+		to = length
+	elseif to < 0 then
+		to = to + length
+	end
+
+	local tf = target - from
+	local overshoot = to + tf - length
+
+	if overshoot > 0 then
+		to = from + length - target
+	end
+
+	for i = to, from + 1, -1 do
+		list[i + tf] = list[i]
 	end
 
 	return list
