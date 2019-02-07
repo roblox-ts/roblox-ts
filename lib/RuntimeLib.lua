@@ -292,6 +292,22 @@ function TS.array_filter(list, callback)
 	return result
 end
 
+local quicksort = table.sort
+local function sortFallback(a, b)
+	return tostring(a) < tostring(b)
+end
+
+function TS.array_sort(list, callback)
+	if callback then
+		quicksort(list, function(a, b)
+			return 0 < callback(a, b)
+		end)
+	else
+		quicksort(list, sortFallback)
+	end
+	return list
+end
+
 function TS.array_slice(list, startI, endI)
 	local length = #list
 	if not startI then
@@ -530,6 +546,66 @@ function TS.array_find(list, callback)
 			return list[i]
 		end
 	end
+end
+
+function TS.array_findIndex(list, callback)
+	for i = 1, #list do
+		if callback(list[i], i - 1, list) == true then
+			return i
+		end
+	end
+	return -1
+end
+
+local function array_flat_helper(list, depth, count, result)
+	for i = 1, #list do
+		local v = list[i]
+
+		if v ~= nil then
+			if type(v) == "table" then
+				if depth ~= 0 then
+					count = array_flat_helper(v, depth - 1, count, result)
+				else
+					count = count + 1
+					result[count] = v
+				end
+			else
+				count = count + 1
+				result[count] = v
+			end
+		end
+	end
+
+	return count
+end
+
+function TS.array_flat(list, depth)
+	local result = {}
+	array_flat_helper(list, depth or 1, 0, result)
+	return result
+end
+
+function TS.array_fill(list, value, from, to)
+	local length = #list
+
+	from = from or 0
+	to = to or length
+
+	if from < 0 then
+		from = from + length
+	end
+
+	if to < 0 then
+		to = to + length
+	elseif to > length then
+		to = length
+	end
+
+	for i = from + 1, to do
+		list[i] = value
+	end
+
+	return list
 end
 
 -- map macro functions
