@@ -588,14 +588,15 @@ end
 function TS.array_fill(list, value, from, to)
 	local length = #list
 
-	from = from or 0
-	to = to or length
-
-	if from < 0 then
+	if from == nil then
+		from = 0
+	elseif from < 0 then
 		from = from + length
 	end
 
-	if to < 0 then
+	if to == nil then
+		to = length
+	elseif to < 0 then
 		to = to + length
 	elseif to > length then
 		to = length
