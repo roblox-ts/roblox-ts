@@ -116,7 +116,6 @@ function transpileFunctionHelper(
 		result += state.indent;
 	} else if (ts.TypeGuards.isExpression(body)) {
 		initializers.push(getReturnStrFromExpression(state, body, node));
-		initializers.forEach(str => console.log(`"${str}"`));
 		result += " " + initializers.join(" ") + " ";
 	} else {
 		const bodyKindName = body.getKindName();
