@@ -549,8 +549,8 @@ function TS.array_find(list, callback)
 end
 
 function TS.array_findIndex(list, callback)
-	for i = 1, #list do
-		if callback(list[i], i - 1, list) == true then
+	for i = 0, #list - 1 do
+		if callback(list[i + 1], i, list) == true then
 			return i
 		end
 	end
