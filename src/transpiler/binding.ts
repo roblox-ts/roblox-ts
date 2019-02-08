@@ -48,40 +48,7 @@ export function getParameterData(
 
 		if (param.isRestParameter()) {
 			paramNames.push("...");
-			let needsNameDeclaration = false;
-			const replaceWithSelect = new Array<ts.PropertyAccessExpression<ts.ts.PropertyAccessExpression>>();
-
-			const body = node.getBody();
-			if (body) {
-				for (const value of body.getDescendantsOfKind(ts.SyntaxKind.Identifier)) {
-					if (value.getText() === name) {
-						const parent = value.getParent();
-						if (
-							(ts.TypeGuards.isSpreadElement(parent) &&
-								!ts.TypeGuards.isArrayLiteralExpression(parent.getParent())) ||
-							(ts.TypeGuards.isForOfStatement(parent) || ts.TypeGuards.isForInStatement(parent))
-						) {
-						} else if (ts.TypeGuards.isPropertyAccessExpression(parent) && parent.getName() === "length") {
-							replaceWithSelect.push(parent);
-						} else {
-							needsNameDeclaration = true;
-							break;
-						}
-					}
-				}
-
-				if (!needsNameDeclaration) {
-					state.canOptimizeParameterTuple.set(node, name);
-
-					if (replaceWithSelect) {
-						replaceWithSelect.forEach(parent => parent.replaceWithText(`select("#", ...${name})`));
-					}
-				}
-			}
-
-			if (needsNameDeclaration) {
-				initializers.push(`local ${name} = { ... };`);
-			}
+			initializers.push(`local ${name} = { ... };`);
 		} else {
 			paramNames.push(name);
 		}
