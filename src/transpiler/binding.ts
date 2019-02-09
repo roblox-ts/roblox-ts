@@ -3,6 +3,7 @@ import { checkReserved, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
+import { getFirstMemberWithParameters } from "./function";
 
 export function isBindingPattern(node: ts.Node) {
 	return (
@@ -55,6 +56,12 @@ export function getParameterData(
 			if (body) {
 				for (const value of body.getDescendantsOfKind(ts.SyntaxKind.Identifier)) {
 					if (value.getText() === name) {
+						// if the identifier exists within a function other than the top function, localize
+						if (node !== getFirstMemberWithParameters(value.getAncestors())) {
+							needsNameDeclaration = true;
+							break;
+						}
+
 						const parent = value.getParent();
 						if (
 							(ts.TypeGuards.isSpreadElement(parent) &&
