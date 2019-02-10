@@ -130,7 +130,8 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 }
 
 export function checkNonAny(node: ts.Node) {
-	if (isAnyType(node.getType())) {
+	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
+	if (!isInCatch && isAnyType(node.getType())) {
 		throw new TranspilerError(
 			"Variables of type `any` are not supported! Use `unknown` instead.",
 			node,
