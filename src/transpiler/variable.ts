@@ -66,7 +66,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		checkReserved(name, lhs);
 
 		if (rhs) {
-			const value = transpileExpression(state, rhs as ts.Expression);
+			const value = transpileExpression(state, rhs);
 			if (isExported) {
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
@@ -89,7 +89,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		} else {
 			const rootId = state.getNewId();
 			if (rhs) {
-				const rhsStr = transpileExpression(state, rhs as ts.Expression);
+				const rhsStr = transpileExpression(state, rhs);
 				preStatements.push(`local ${rootId} = ${rhsStr};`);
 			} else {
 				preStatements.push(`local ${rootId};`); // ???
