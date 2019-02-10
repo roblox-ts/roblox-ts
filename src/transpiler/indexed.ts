@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isStringType, isTupleType, isNumberType } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isNumberType, isStringType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 import { checkNonAny } from "./security";
 
@@ -90,7 +90,7 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	let argExpStr: string;
 	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
 		let value = argExp.getLiteralValue();
-		if (addOne) {
+		if (addOne) {``
 			value++;
 		}
 		argExpStr = value.toString();
