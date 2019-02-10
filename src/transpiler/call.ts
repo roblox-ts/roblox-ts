@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { transpileExpression, checkApiAccess } from ".";
+import { checkApiAccess, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isTupleType } from "../typeUtilities";
