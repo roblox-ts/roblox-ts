@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isStringType, isTupleType } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isStringType, isTupleType, isNumberType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 import { checkNonAny } from "./security";
 
@@ -75,12 +75,14 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	checkNonAny(node);
 
 	let addOne = false;
-	if (isTupleType(expType) || isArrayType(expType)) {
-		addOne = true;
-	} else if (ts.TypeGuards.isCallExpression(expNode)) {
-		const returnType = expNode.getReturnType();
-		if (isArrayType(returnType) || isTupleType(returnType)) {
+	if (isNumberType(argExp.getType())) {
+		if (isTupleType(expType) || isArrayType(expType)) {
 			addOne = true;
+		} else if (ts.TypeGuards.isCallExpression(expNode)) {
+			const returnType = expNode.getReturnType();
+			if (isArrayType(returnType) || isTupleType(returnType)) {
+				addOne = true;
+			}
 		}
 	}
 
