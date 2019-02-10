@@ -1,26 +1,5 @@
 import * as Roact from "rbx-roact";
 
-interface AnyHandleElementKind extends Roact.ComponentInstanceHandle {
-	_key?: string;
-	_parent?: Instance;
-}
-
-interface StatefulHandleElementKind extends AnyHandleElementKind {
-	_element?: any;
-	_child?: any;
-}
-
-interface FunctionalHandleElementKind extends AnyHandleElementKind {
-	_element: any;
-	_context: any;
-}
-
-interface PrimitiveHandleElementKind extends AnyHandleElementKind {
-	_rbx?: Instance;
-	_element?: any;
-	_context?: any;
-}
-
 export = () => {
 	describe("should support Roact.Component", () => {
 		it("should construct a roact class", () => {
@@ -244,7 +223,7 @@ export = () => {
 	});
 
 	it("should be able to mount roact intrinsics", () => {
-		const handle: PrimitiveHandleElementKind = Roact.mount(<screengui />);
+		const handle = Roact.mount(<screengui />);
 		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
 	});
 
@@ -258,7 +237,7 @@ export = () => {
 			</screengui>
 		);
 
-		const handle: PrimitiveHandleElementKind = Roact.mount(test2);
+		const handle = Roact.mount(test2);
 		expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
@@ -275,13 +254,13 @@ export = () => {
 
 		const test = <TestComponent />;
 
-		const handle: StatefulHandleElementKind = Roact.mount(test);
-		const returned: PrimitiveHandleElementKind = handle._child;
+		const handle = Roact.mount(test);
+		const returned = handle._child;
 
 		// expect the returned child to be a frame
-		expect(returned._rbx!.IsA("Frame")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("Frame1")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("Frame2")).to.be.ok();
+		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("Frame1")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("Frame2")).to.be.ok();
 	});
 
 	it("should allow using results from functions in expressions", () => {
@@ -291,7 +270,7 @@ export = () => {
 
 		const test = <screengui>{multipleElements()}</screengui>;
 
-		const handle: PrimitiveHandleElementKind = Roact.mount(test);
+		const handle = Roact.mount(test);
 		expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
 	});
@@ -312,14 +291,14 @@ export = () => {
 			</TestComponent>
 		);
 
-		const handle: StatefulHandleElementKind = Roact.mount(test);
-		const returned: PrimitiveHandleElementKind = handle._child;
+		const handle = Roact.mount(test);
+		const returned = handle._child;
 
 		// expect the returned child to be a frame
-		expect(returned._rbx!.IsA("Frame")).to.be.ok();
+		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
 
 		// expect there to be a textlabel called "Hello"
-		expect(returned._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
 	});
 };
