@@ -1,7 +1,6 @@
 import * as ts from "ts-morph";
 import {
 	getBindingData,
-	isBindingPattern,
 	transpileExpression,
 	transpileStatement,
 	transpileVariableDeclarationList,
@@ -123,7 +122,7 @@ export function transpileForInStatement(state: TranspilerState, node: ts.ForInSt
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		for (const declaration of init.getDeclarations()) {
 			const lhs = declaration.getChildAtIndex(0);
-			if (isBindingPattern(lhs)) {
+			if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 				throw new TranspilerError(
 					`ForIn Loop did not expect binding pattern!`,
 					init,
@@ -182,7 +181,7 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		for (const declaration of init.getDeclarations()) {
 			lhs = declaration.getChildAtIndex(0);
-			if (isBindingPattern(lhs)) {
+			if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 				varName = state.getNewId();
 				const names = new Array<string>();
 				const values = new Array<string>();

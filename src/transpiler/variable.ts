@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, getBindingData, isBindingPattern, transpileCallExpression, transpileExpression } from ".";
+import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isTupleType } from "../typeUtilities";
@@ -78,7 +78,8 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		} else if (!isExported) {
 			result += state.indent + `local ${name};\n`;
 		}
-	} else if (isBindingPattern(lhs) && rhs) { // binding patterns MUST have rhs
+	} else if ((ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) && rhs) {
+		// binding patterns MUST have rhs
 		let names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
