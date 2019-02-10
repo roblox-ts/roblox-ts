@@ -67,5 +67,5 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 		}
 	}
 
-	return state.variableAliases.get(name) || name;
+	return state.getAlias(name);
 }

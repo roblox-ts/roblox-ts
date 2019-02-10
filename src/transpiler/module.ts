@@ -338,11 +338,11 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 }
 
 export function transpileExportDeclaration(state: TranspilerState, node: ts.ExportDeclaration) {
-	let luaPath: string = "";
+	let luaImportStr = "";
 	const moduleSpecifier = node.getModuleSpecifier();
 	if (moduleSpecifier) {
 		if (node.isModuleSpecifierRelative()) {
-			luaPath = getRelativeImportPath(
+			luaImportStr = getRelativeImportPath(
 				state,
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
@@ -351,7 +351,7 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
+				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
 			} else {
 				const specifierText = moduleSpecifier.getLiteralText();
 				throw new TranspilerError(
@@ -383,15 +383,8 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 	const rhs = new Array<string>();
 
 	if (node.isNamespaceExport()) {
-		if (!moduleSpecifier) {
-			throw new TranspilerError(
-				"Namespace exports require a module specifier!",
-				node,
-				TranspilerErrorType.BadSpecifier,
-			);
-		}
 		state.usesTSLibrary = true;
-		return state.indent + `TS.exportNamespace(require(${luaPath}), ${ancestorName});\n`;
+		return state.indent + `TS.exportNamespace(${luaImportStr}, ${ancestorName});\n`;
 	} else {
 		const namedExports = node.getNamedExports();
 		if (namedExports.length === 0) {
@@ -401,26 +394,28 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 			const aliasNode = namedExport.getAliasNode();
 			let name = namedExport.getNameNode().getText();
 			if (name === "default") {
-				name = "_" + name;
+				name = "_default";
 			}
 			const alias = aliasNode ? aliasNode.getText() : name;
 			checkReserved(alias, node);
 			lhs.push(alias);
-			if (luaPath !== "") {
+			if (luaImportStr !== "") {
 				rhs.push(`.${name}`);
 			} else {
-				rhs.push(name);
+				rhs.push(state.getAlias(name));
 			}
 		});
 
 		let result = "";
-		let rhsPrefix: string;
+		let rhsPrefix = "";
 		const lhsPrefix = ancestorName + ".";
-		if (rhs.length <= 1) {
-			rhsPrefix = luaPath !== "" ? `require(${luaPath})` : "";
-		} else {
-			rhsPrefix = state.getNewId();
-			result += `${rhsPrefix} = require(${luaPath});\n`;
+		if (luaImportStr !== "") {
+			if (rhs.length <= 1) {
+				rhsPrefix = `${luaImportStr}`;
+			} else {
+				rhsPrefix = state.getNewId();
+				result += state.indent + `local ${rhsPrefix} = ${luaImportStr};\n`;
+			}
 		}
 		const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
