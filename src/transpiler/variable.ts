@@ -80,7 +80,7 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 				const declarationName = declaration.getName();
 				checkReserved(declarationName, node);
 				state.variableAliases.set(declarationName, transpileExpression(state, rhs));
-				return "";
+				continue;
 			}
 		}
 
