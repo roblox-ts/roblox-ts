@@ -187,9 +187,8 @@ export function transpilePropertyCallExpression(
 	);
 
 	let sep: string;
-	const isSuper = ts.TypeGuards.isSuperExpression(subExp);
 	if (allMethods && !allCallbacks) {
-		if (isSuper) {
+		if (ts.TypeGuards.isSuperExpression(subExp)) {
 			const className = subExp
 				.getType()
 				.getSymbolOrThrow()
