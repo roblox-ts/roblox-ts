@@ -58,10 +58,10 @@ export = () => {
 	});
 
 	it("should add unknown types", () => {
-		const a: any = "a";
-		const b: any = "b";
-		const one: any = 1;
-		const two: any = 2;
+		const a: number | string = "a";
+		const b: number | string = "b";
+		const one: number | string = 1;
+		const two: number | string = 2;
 
 		expect(a + a).to.equal("aa");
 		expect(a + b).to.equal("ab");
