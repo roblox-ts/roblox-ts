@@ -22,9 +22,10 @@ export = () => {
 			const TextColor = Color3.fromRGB(220, 220, 220);
 
 			const element = <textlabel TextColor3={TextColor} {...props} />;
+			const elementProps = element.props as Roact.Properties<TextLabel>;
 
-			expect(element.props.BackgroundColor3).to.equal(props.BackgroundColor3);
-			expect(element.props.TextColor3).to.equal(TextColor);
+			expect(elementProps.BackgroundColor3).to.equal(props.BackgroundColor3);
+			expect(elementProps.TextColor3).to.equal(TextColor);
 		});
 
 		it("should support multiple spreads", () => {
@@ -37,9 +38,10 @@ export = () => {
 			};
 
 			const element = <textlabel {...props} {...props2} />;
+			const elementProps = element.props as Roact.Properties<TextLabel>;
 
-			expect(element.props.TextColor3).to.equal(props2.TextColor3);
-			expect(element.props.BackgroundColor3).to.equal(props.BackgroundColor3);
+			expect(elementProps.TextColor3).to.equal(props2.TextColor3);
+			expect(elementProps.BackgroundColor3).to.equal(props.BackgroundColor3);
 		});
 
 		it("should support spreading for custom objects", () => {
@@ -58,9 +60,10 @@ export = () => {
 				Text: "The text here",
 			};
 			const element = <RoactClass TextColor3={new Color3(1, 0, 0)} {...setValues} />;
+			const elementProps = element.props as Props;
 
-			expect(element.props.Text).to.equal(setValues.Text);
-			expect(element.props.TextColor3).to.equal(new Color3(1, 0, 0));
+			expect(elementProps.Text).to.equal(setValues.Text);
+			expect(elementProps.TextColor3).to.equal(new Color3(1, 0, 0));
 		});
 
 		it("should support making templated objects", () => {
@@ -122,9 +125,9 @@ export = () => {
 			const normalButton = <MyButton Size={ButtonSize.Normal} Text="Normal Button" />;
 			const smallButton = <MyButton Size={ButtonSize.Small} Text="Small Button" />;
 
-			expect(largeButton.props.Size).to.equal(ButtonSize.Large);
-			expect(normalButton.props.Size).to.equal(ButtonSize.Normal);
-			expect(smallButton.props.Size).to.equal(ButtonSize.Small);
+			expect((largeButton.props as MyButtonProps).Size).to.equal(ButtonSize.Large);
+			expect((normalButton.props as MyButtonProps).Size).to.equal(ButtonSize.Normal);
+			expect((smallButton.props as MyButtonProps).Size).to.equal(ButtonSize.Small);
 
 			const buttons = [
 				{ button: largeButton, template: largeButtonProps },
