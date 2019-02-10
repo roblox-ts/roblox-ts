@@ -78,21 +78,17 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		} else if (!isExported) {
 			result += state.indent + `local ${name};\n`;
 		}
-	} else if (isBindingPattern(lhs)) {
+	} else if (isBindingPattern(lhs) && rhs) { // binding patterns MUST have rhs
 		let names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
-		if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
+		if (ts.TypeGuards.isIdentifier(rhs)) {
 			getBindingData(state, names, values, preStatements, postStatements, lhs, transpileExpression(state, rhs));
 		} else {
 			const rootId = state.getNewId();
-			if (rhs) {
-				const rhsStr = transpileExpression(state, rhs);
-				preStatements.push(`local ${rootId} = ${rhsStr};`);
-			} else {
-				preStatements.push(`local ${rootId};`); // ???
-			}
+			const rhsStr = transpileExpression(state, rhs);
+			preStatements.push(`local ${rootId} = ${rhsStr};`);
 			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
 		}
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
