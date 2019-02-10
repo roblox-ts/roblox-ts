@@ -84,6 +84,15 @@ export class TranspilerState {
 	// differently in Lua than they can be represented in TS
 	public variableAliases = new Map<string, string>();
 
+	public getAlias(name: string) {
+		const alias = this.variableAliases.get(name);
+		if (alias !== undefined) {
+			return alias;
+		} else {
+			return name;
+		}
+	}
+
 	public canOptimizeParameterTuple = new Map<HasParameters, string>();
 	public namespaceStack = new Map<string, string>();
 	public continueId = -1;
