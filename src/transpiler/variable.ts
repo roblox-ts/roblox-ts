@@ -64,7 +64,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		checkNonAny(lhs);
 		const name = lhs.getText();
 		checkReserved(name, lhs);
-
 		if (rhs) {
 			const value = transpileExpression(state, rhs);
 			if (isExported) {
@@ -96,9 +95,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			}
 			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
 		}
-
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-
 		if (values.length > 0) {
 			if (isExported) {
 				names = names.map(name => `${parentName}.${name}`);
@@ -109,7 +106,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		} else if (!isExported) {
 			result += state.indent + `local ${names.join(", ")};\n`;
 		}
-
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 	}
 
