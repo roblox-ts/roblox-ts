@@ -16,7 +16,7 @@ export function transpileSwitchStatement(state: TranspilerState, node: ts.Switch
 		const statements = clause.getStatements();
 
 		let lastStatement = statements[statements.length - 1];
-		while (ts.TypeGuards.isBlock(lastStatement)) {
+		while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
 			const blockStatements = lastStatement.getStatements();
 			lastStatement = blockStatements[blockStatements.length - 1];
 		}
@@ -46,7 +46,7 @@ export function transpileSwitchStatement(state: TranspilerState, node: ts.Switch
 		const statements = clause.getStatements();
 
 		let lastStatement = statements[statements.length - 1];
-		while (ts.TypeGuards.isBlock(lastStatement)) {
+		while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
 			const blockStatements = lastStatement.getStatements();
 			lastStatement = blockStatements[blockStatements.length - 1];
 		}
