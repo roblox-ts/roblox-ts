@@ -186,9 +186,9 @@ export function transpilePropertyCallExpression(
 			),
 	);
 
-	let sep = ".";
+	let sep: string;
 	const isSuper = ts.TypeGuards.isSuperExpression(subExp);
-	if (allMethods) {
+	if (allMethods && !allCallbacks) {
 		if (isSuper) {
 			const className = subExp
 				.getType()
@@ -196,10 +196,11 @@ export function transpilePropertyCallExpression(
 				.getName();
 			accessPath = className + ".__index";
 			params = "self" + (params.length > 0 ? ", " : "") + params;
+			sep = ".";
 		} else {
 			sep = ":";
 		}
-	} else if (allCallbacks) {
+	} else if (!allMethods && allCallbacks) {
 		sep = ".";
 	} else {
 		// mixed methods and callbacks
