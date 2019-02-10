@@ -41,6 +41,10 @@ export class TranspilerState {
 	// hoist stack
 	public hoistStack = new Array<Set<string>>();
 
+	public pushHoistStack(name: string) {
+		this.hoistStack[this.hoistStack.length - 1].add(name);
+	}
+
 	public popHoistStack(result: string) {
 		const hoists = this.hoistStack.pop();
 		if (hoists && hoists.size > 0) {

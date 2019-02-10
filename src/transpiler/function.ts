@@ -164,7 +164,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 
 	if (body) {
 		state.pushExport(name, node);
-		state.hoistStack[state.hoistStack.length - 1].add(name);
+		state.pushHoistStack(name);
 		return transpileFunction(state, node, name, body);
 	} else {
 		return "";

@@ -70,7 +70,8 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
 				if (ts.TypeGuards.isFunctionExpression(rhs) || ts.TypeGuards.isArrowFunction(rhs)) {
-					result += state.indent + `local ${name}; ${name} = ${value};\n`;
+					state.pushHoistStack(name);
+					result += state.indent + `${name} = ${value};\n`;
 				} else {
 					result += state.indent + `local ${name} = ${value};\n`;
 				}

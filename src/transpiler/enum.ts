@@ -11,7 +11,7 @@ export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDe
 	const name = node.getName();
 	checkReserved(name, node.getNameNode());
 	state.pushExport(name, node);
-	state.hoistStack[state.hoistStack.length - 1].add(name);
+	state.pushHoistStack(name);
 	result += state.indent + `${name} = ${name} or {};\n`;
 	result += state.indent + `do\n`;
 	state.pushIndent();

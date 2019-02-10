@@ -100,7 +100,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		result += `(function()\n`;
 	} else {
 		result += state.indent + `do\n`;
-		state.hoistStack[state.hoistStack.length - 1].add(name);
+		state.pushHoistStack(name);
 	}
 	state.pushIndent();
 
