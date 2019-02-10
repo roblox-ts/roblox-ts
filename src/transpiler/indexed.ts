@@ -90,7 +90,7 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	let argExpStr: string;
 	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
 		let value = argExp.getLiteralValue();
-		if (addOne) {``
+		if (addOne) {
 			value++;
 		}
 		argExpStr = value.toString();
