@@ -4,14 +4,10 @@ import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
-import { Compiler } from "./class/Compiler";
-import { CompilerError } from "./class/errors/CompilerError";
-import { TranspilerError } from "./class/errors/TranspilerError";
+import { Compiler } from "./Compiler";
+import { CompilerError } from "./errors/CompilerError";
+import { TranspilerError } from "./errors/TranspilerError";
 import { clearContextCache } from "./utility";
-
-/* tslint:disable */
-const versionStr = require("../package.json").version as string;
-/* tslint:enable */
 
 // cli interface
 const argv = yargs
@@ -19,13 +15,13 @@ const argv = yargs
 
 	// version
 	.alias("v", "version")
-	.version(versionStr)
+	.version(require("../package.json").version as string)
 	.describe("version", "show version information")
 
 	// help
 	.alias("h", "help")
 	.help("help")
-	.describe("help", "show help")
+	.describe("help", "show help information")
 	.showHelpOnFail(false, "specify --help for available options")
 
 	// watch
@@ -42,6 +38,12 @@ const argv = yargs
 		describe: "project path",
 	})
 
+	// noInclude
+	.option("noInclude", {
+		default: false,
+		describe: "do not copy runtime files",
+	})
+
 	// includePath
 	.option("i", {
 		alias: "includePath",
@@ -49,27 +51,11 @@ const argv = yargs
 		describe: "folder to copy runtime files to",
 	})
 
-	// noStrict
-	.option("noStrict", {
-		boolean: true,
-		describe: "disable diagnostic checks (faster, unsafe)",
-	})
-
-	// noInclude
-	.option("noInclude", {
-		default: false,
-		describe: "do not copy runtime files",
-	})
-
 	// modulesPath
-	.option("modulesPath", {
+	.option("m", {
+		alias: "modulesPath",
 		default: "modules",
 		describe: "folder to copy modules to",
-	})
-
-	.option("noHeuristics", {
-		boolean: true,
-		describe: "disables api restriction heuristics",
 	})
 
 	// parse
@@ -158,7 +144,6 @@ if (argv.watch === true) {
 				isCompiling = true;
 				console.log("Remove", filePath);
 				compiler.removeFile(filePath);
-				await update(filePath);
 				isCompiling = false;
 			}
 		});

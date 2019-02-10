@@ -7,9 +7,11 @@ export = () => {
 				BackgroundColor3: Color3.fromRGB(50, 50, 50),
 			};
 
-			const element = <frame {...props}/>;
+			const element = <frame {...props} />;
 
-			expect(element.props.BackgroundColor3).to.equal(props.BackgroundColor3);
+			expect((element as { props: { BackgroundColor3: Color3 } }).props.BackgroundColor3).to.equal(
+				props.BackgroundColor3,
+			);
 		});
 
 		it("should support spread as well as regular properties", () => {
@@ -19,7 +21,7 @@ export = () => {
 
 			const TextColor = Color3.fromRGB(220, 220, 220);
 
-			const element = <textlabel TextColor3={TextColor} {...props}/>;
+			const element = <textlabel TextColor3={TextColor} {...props} />;
 
 			expect(element.props.BackgroundColor3).to.equal(props.BackgroundColor3);
 			expect(element.props.TextColor3).to.equal(TextColor);
@@ -34,7 +36,7 @@ export = () => {
 				TextColor3: Color3.fromRGB(220, 220, 220),
 			};
 
-			const element = <textlabel {...props} {...props2}/>;
+			const element = <textlabel {...props} {...props2} />;
 
 			expect(element.props.TextColor3).to.equal(props2.TextColor3);
 			expect(element.props.BackgroundColor3).to.equal(props.BackgroundColor3);
@@ -46,16 +48,16 @@ export = () => {
 				TextColor3: Color3;
 			}
 
-			class RoactClass extends Roact.Component<{}, Props> {
+			class RoactClass extends Roact.Component<Props, {}> {
 				public render(): Roact.Element {
-					return <textlabel Text={this.props.Text} TextColor3={this.props.TextColor3}/>;
+					return <textlabel Text={this.props.Text} TextColor3={this.props.TextColor3} />;
 				}
 			}
 
 			const setValues = {
 				Text: "The text here",
 			};
-			const element = <RoactClass TextColor3={new Color3(1, 0, 0)} {...setValues}/>;
+			const element = <RoactClass TextColor3={new Color3(1, 0, 0)} {...setValues} />;
 
 			expect(element.props.Text).to.equal(setValues.Text);
 			expect(element.props.TextColor3).to.equal(new Color3(1, 0, 0));
@@ -95,39 +97,39 @@ export = () => {
 
 			const buttonRef: Roact.Ref<TextButton> = Roact.createRef<TextButton>();
 
-			class MyButton extends Roact.Component<{}, MyButtonProps> {
+			class MyButton extends Roact.Component<MyButtonProps, {}> {
 				public render(): Roact.Element {
-					const {Size, Text} = this.props;
+					const { Size, Text } = this.props;
 
 					const overloadProps = {
 						Text,
 					};
 
 					if (Size === ButtonSize.Normal) {
-						return <textbutton Ref={buttonRef} {...normalButtonProps} {...overloadProps}/>;
+						return <textbutton Ref={buttonRef} {...normalButtonProps} {...overloadProps} />;
 					} else if (Size === ButtonSize.Large) {
-						return <textbutton Ref={buttonRef} {...largeButtonProps} {...overloadProps}/>;
+						return <textbutton Ref={buttonRef} {...largeButtonProps} {...overloadProps} />;
 					} else if (Size === ButtonSize.Small) {
-						return <textbutton Ref={buttonRef} {...smallButtonProps} {...overloadProps}/>;
+						return <textbutton Ref={buttonRef} {...smallButtonProps} {...overloadProps} />;
 					} else {
 						error("Size specified not supported.");
-						return <textbutton/>; // just to shut tslint up.
+						return <textbutton />; // just to shut tslint up.
 					}
 				}
 			}
 
-			const largeButton = <MyButton Size={ButtonSize.Large} Text="Large Button"/>;
-			const normalButton = <MyButton Size={ButtonSize.Normal} Text="Normal Button"/>;
-			const smallButton = <MyButton Size={ButtonSize.Small} Text="Small Button"/>;
+			const largeButton = <MyButton Size={ButtonSize.Large} Text="Large Button" />;
+			const normalButton = <MyButton Size={ButtonSize.Normal} Text="Normal Button" />;
+			const smallButton = <MyButton Size={ButtonSize.Small} Text="Small Button" />;
 
 			expect(largeButton.props.Size).to.equal(ButtonSize.Large);
 			expect(normalButton.props.Size).to.equal(ButtonSize.Normal);
 			expect(smallButton.props.Size).to.equal(ButtonSize.Small);
 
 			const buttons = [
-				{button: largeButton, template: largeButtonProps},
-				{button: normalButton, template: normalButtonProps},
-				{button: smallButton, template: smallButtonProps},
+				{ button: largeButton, template: largeButtonProps },
+				{ button: normalButton, template: normalButtonProps },
+				{ button: smallButton, template: smallButtonProps },
 			];
 			for (const button of buttons) {
 				Roact.mount(button.button);

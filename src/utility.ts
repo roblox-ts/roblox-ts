@@ -1,6 +1,6 @@
 import * as path from "path";
-import * as ts from "ts-simple-ast";
-import { CompilerError, CompilerErrorType } from "./class/errors/CompilerError";
+import * as ts from "ts-morph";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function isValidLuaIdentifier(id: string) {
@@ -102,4 +102,16 @@ export function getScriptContext(file: ts.SourceFile, seen = new Set<string>()):
 			return ScriptContext.None;
 		}
 	}
+}
+
+export function red(text: string) {
+	return `\x1b[31m${text}\x1b[0m`;
+}
+
+export function yellow(text: string) {
+	return `\x1b[33m${text}\x1b[0m`;
+}
+
+export function suggest(text: string) {
+	return `...\t${yellow(text)}`;
 }

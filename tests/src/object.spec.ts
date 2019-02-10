@@ -20,6 +20,16 @@ export = () => {
 		expect(b[2]).to.equal("boo");
 	});
 
+	it("should support object methods", () => {
+		const foo = {
+			baz: "baz",
+			bar() {
+				return "baz";
+			},
+		};
+		expect(foo.bar()).to.equal(foo.baz);
+	});
+
 	it("should support object spread", () => {
 		const foo = {
 			a: 1,
@@ -183,6 +193,15 @@ export = () => {
 			expect(object2.b).to.equal(2);
 			expect(object2.c).to.equal(3);
 			expect(object2.d).to.equal(5);
+		});
+
+		it("should support numeric literals", () => {
+			const object1 = {
+				[1]: 1,
+				2: 1,
+			};
+			expect(object1[1]).to.equal(1);
+			expect(object1[2]).to.equal(1);
 		});
 	});
 };

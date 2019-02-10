@@ -84,4 +84,10 @@ export = () => {
 			expect(c).to.equal(3);
 		}
 	});
+
+	it("should work with gmatch", () => {
+		for (const a in "H".gmatch(".")) {
+			expect(a).to.equal("H");
+		}
+	});
 };

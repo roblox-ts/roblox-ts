@@ -27,7 +27,7 @@ export = () => {
 		it("should construct a roact class", () => {
 			class RoactClass extends Roact.Component {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -42,7 +42,7 @@ export = () => {
 		it("should construct a roact pure component class", () => {
 			class RoactPureClass extends Roact.PureComponent {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -80,7 +80,7 @@ export = () => {
 				someValue: number;
 			}
 
-			class RoactClass extends Roact.Component<TestState, TestProps> {
+			class RoactClass extends Roact.Component<TestProps, TestState> {
 				public static getDerivedStateFromProps(nextProps: TestProps, lastState: TestState): TestState {
 					return { someValue: nextProps.someValue };
 				}
@@ -125,7 +125,7 @@ export = () => {
 				</screengui>
 			);
 
-			const handle: any = Roact.mount(element);
+			const handle = Roact.mount(element);
 
 			const frameKey = handle._children[KEY];
 			const frame2Key = handle._children[KEY2];
@@ -280,13 +280,13 @@ export = () => {
 		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
 	});
 
-	it("should be able to use this.props.children expressions", () => {
+	it("should be able to use this.props[Roact.Children] expressions", () => {
 		class TestComponent extends Roact.Component {
 			constructor() {
 				super({});
 			}
 			public render(): Roact.Element {
-				return <frame>{this.props.children}</frame>;
+				return <frame>{this.props[Roact.Children]}</frame>;
 			}
 		}
 
@@ -301,8 +301,6 @@ export = () => {
 
 		// expect the returned child to be a frame
 		expect(returned._rbx!.IsA("Frame")).to.be.ok();
-
-		print(returned._rbx!.GetChildren().length);
 
 		// expect there to be a textlabel called "Hello"
 		expect(returned._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();

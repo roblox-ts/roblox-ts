@@ -1,6 +1,7 @@
-import * as ts from "ts-simple-ast";
+import * as ts from "ts-morph";
 
 export enum TranspilerErrorType {
+	NoAny,
 	ReservedKeyword,
 	ReservedMethodName,
 	SpreadDestructuring,
@@ -39,14 +40,26 @@ export enum TranspilerErrorType {
 	NoFunctionIndex,
 	NoClassPrototype,
 	ExportInNonModuleScript,
-	ModuleScriptContainsNoExports,
 	RoactGettersNotAllowed,
 	RoactSettersNotAllowed,
 	RoactSubClassesNotSupported,
 	RoactJsxTextNotSupported,
 	RoactNoNewComponentAllowed,
 	RoactJsxWithoutImport,
+	RoactInvalidSymbol,
+	RoactInvalidExpression,
+	RoactInvalidCallExpression,
+	RoactInvalidIdentifierExpression,
+	RoactInvalidPropertyExpression,
 	UnexpectedObjectIndex,
+	NoExportLetKeyword,
+	MultipleExportEquals,
+	NoDynamicImport,
+	InvalidIdentifier,
+	RobloxTSReservedIdentifier,
+	BadContext,
+	ClassyLoop,
+	MixedMethodCall,
 }
 
 export class TranspilerError extends Error {
