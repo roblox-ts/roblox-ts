@@ -1,10 +1,5 @@
 import * as ts from "ts-morph";
-import {
-	getBindingData,
-	transpileExpression,
-	transpileStatement,
-	transpileVariableDeclarationList,
-} from ".";
+import { getBindingData, transpileExpression, transpileStatement, transpileVariableDeclarationList } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";

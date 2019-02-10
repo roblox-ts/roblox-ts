@@ -102,7 +102,10 @@ export function getBindingData(
 				);
 			}
 
-			if (pattern && (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child))) {
+			if (
+				pattern &&
+				(ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child))
+			) {
 				const childId = state.getNewId();
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
