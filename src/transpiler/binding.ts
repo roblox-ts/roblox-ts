@@ -124,9 +124,11 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() === ts.SyntaxKind.Identifier) {
-				let id = transpileExpression(state, child as ts.Expression);
+				let id: string;
 				if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
-					id = pattern.getText();
+					id = transpileExpression(state, pattern as ts.Expression);
+				} else {
+					id = transpileExpression(state, child as ts.Expression);
 				}
 				checkReserved(id, bindingPatern);
 				names.push(id);
