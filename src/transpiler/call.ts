@@ -181,7 +181,8 @@ export function transpilePropertyCallExpression(
 				dec =>
 					ts.TypeGuards.isFunctionTypeNode(dec) ||
 					ts.TypeGuards.isFunctionExpression(dec) ||
-					ts.TypeGuards.isArrowFunction(dec),
+					ts.TypeGuards.isArrowFunction(dec) ||
+					ts.TypeGuards.isFunctionDeclaration(dec),
 			),
 	);
 
