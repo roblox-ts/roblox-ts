@@ -23,7 +23,7 @@ The compiler is split into three primary files currently.
 To summarize,\
 `src/index.ts` creates a `Compiler`, and `src/class/Compiler.ts` creates a `Transpiler` for each file in your project.
 
-Most of the code for the project exists inside of the `Transpiler` class. The dependancy [`ts-simple-ast`](https://github.com/dsherret/ts-simple-ast) provides the TypeScript node classes. [You can find some documentation on those classes here.](https://dsherret.github.io/ts-simple-ast/) The nodes are converted to strings of Lua source code that is functionally identical to their TypeScript equivalents.
+Most of the code for the project exists inside of the `Transpiler` class. The dependancy [`ts-morph`](https://github.com/dsherret/ts-morph) provides the TypeScript node classes. [You can find some documentation on those classes here.](https://dsherret.github.io/ts-morph/) The nodes are converted to strings of Lua source code that is functionally identical to their TypeScript equivalents.
 
 ### Local Testing
 Usually, it's inconvenient to continuously sync code to Roblox Studio when working on the compiler.

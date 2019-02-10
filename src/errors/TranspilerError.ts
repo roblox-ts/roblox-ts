@@ -1,6 +1,7 @@
-import * as ts from "ts-simple-ast";
+import * as ts from "ts-morph";
 
 export enum TranspilerErrorType {
+	NoAny,
 	ReservedKeyword,
 	ReservedMethodName,
 	SpreadDestructuring,
@@ -57,6 +58,8 @@ export enum TranspilerErrorType {
 	InvalidIdentifier,
 	RobloxTSReservedIdentifier,
 	BadContext,
+	ClassyLoop,
+	MixedMethodCall,
 }
 
 export class TranspilerError extends Error {

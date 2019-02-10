@@ -27,7 +27,7 @@ export = () => {
 		it("should construct a roact class", () => {
 			class RoactClass extends Roact.Component {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -42,7 +42,7 @@ export = () => {
 		it("should construct a roact pure component class", () => {
 			class RoactPureClass extends Roact.PureComponent {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -125,7 +125,7 @@ export = () => {
 				</screengui>
 			);
 
-			const handle: any = Roact.mount(element);
+			const handle = Roact.mount(element);
 
 			const frameKey = handle._children[KEY];
 			const frame2Key = handle._children[KEY2];
