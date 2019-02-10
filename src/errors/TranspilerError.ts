@@ -1,7 +1,6 @@
 import * as ts from "ts-morph";
 
 export enum TranspilerErrorType {
-	NoAny,
 	ReservedKeyword,
 	ReservedMethodName,
 	SpreadDestructuring,

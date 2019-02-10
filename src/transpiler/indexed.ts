@@ -1,10 +1,9 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
+import { transpileCallExpression, transpileExpression, validateApiAccess } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom, isArrayType, isStringType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { checkNonAny } from "./security";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
@@ -12,9 +11,7 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 	const expStr = transpileExpression(state, exp);
 	const propertyStr = node.getName();
 
-	const nameNode = node.getNameNode();
-	checkApiAccess(state, nameNode);
-	checkNonAny(nameNode);
+	validateApiAccess(state, node.getNameNode());
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
 		const baseClassName = exp
@@ -71,8 +68,6 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
-
-	checkNonAny(node);
 
 	let addOne = false;
 	if (isTupleType(expType) || isArrayType(expType)) {

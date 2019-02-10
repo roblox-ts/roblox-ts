@@ -46,6 +46,10 @@ function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, 
 	return `return ${transpileExpression(state, exp)};`;
 }
 
+export function transpileArguments(state: TranspilerState, args: Array<ts.Expression>, context?: ts.Expression) {
+	return args.map(arg => transpileExpression(state, arg)).join(", ");
+}
+
 export function transpileReturnStatement(state: TranspilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
@@ -59,7 +63,13 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
-function transpileFunctionHelper(state: TranspilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
+function transpileFunctionHelper(
+	state: TranspilerState,
+	node: HasParameters,
+	name: string,
+	body: ts.Node<ts.ts.Node>,
+	extraInitializers?: Array<string>,
+) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
@@ -259,10 +269,7 @@ export function transpileAccessorDeclaration(
 	name: string,
 ) {
 	const body = node.getBody();
-	if (!body) {
-		return "";
-	}
-	return transpileFunctionHelper(state, node, name, body);
+	return body ? transpileFunctionHelper(state, node, name, body) : "";
 }
 
 export function transpileFunctionExpression(state: TranspilerState, node: ts.FunctionExpression | ts.ArrowFunction) {

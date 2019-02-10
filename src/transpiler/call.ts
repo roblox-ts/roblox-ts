@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { transpileExpression, checkApiAccess } from ".";
+import { transpileArguments, transpileExpression, validateApiAccess } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isTupleType } from "../typeUtilities";
@@ -21,16 +21,12 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-export function transpileArguments(state: TranspilerState, args: Array<ts.Node>) {
-	return args.map(arg => transpileExpression(state, arg as ts.Expression)).join(", ");
-}
-
 export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
 	const exp = node.getExpression();
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
 	} else if (ts.TypeGuards.isSuperExpression(exp)) {
-		let params = transpileArguments(state, node.getArguments());
+		let params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
 		if (params.length > 0) {
 			params = ", " + params;
 		}
@@ -42,7 +38,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		return `${className}.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
-		const params = transpileArguments(state, node.getArguments());
+		const params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
 		let result = `${callPath}(${params})`;
 		if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
 			result = `{ ${result} }`;
@@ -64,12 +60,12 @@ export function transpilePropertyCallExpression(
 			TranspilerErrorType.ExpectedPropertyAccessExpression,
 		);
 	}
-	checkApiAccess(state, expression.getNameNode());
+	validateApiAccess(state, expression.getNameNode());
 	const subExp = expression.getExpression();
 	const subExpType = subExp.getType();
 	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	let params = transpileArguments(state, node.getArguments());
+	let params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
 
 	if (isArrayType(subExpType)) {
 		let paramStr = accessPath;

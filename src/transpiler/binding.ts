@@ -33,7 +33,7 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
-			name = transpileExpression(state, child);
+			name = child.getText();
 			checkReserved(name, node);
 		} else if (isBindingPattern(child)) {
 			name = state.getNewId();
@@ -124,7 +124,7 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() === ts.SyntaxKind.Identifier) {
-				let id = transpileExpression(state, child as ts.Expression);
+				let id = child.getText();
 				if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
 					id = pattern.getText();
 				}
