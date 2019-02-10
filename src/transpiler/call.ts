@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
-import { transpileArguments, transpileExpression, validateApiAccess } from ".";
+import { checkApiAccess, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isTupleType } from "../typeUtilities";
+import { isArrayType, isTupleType, typeConstraint } from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -21,12 +21,16 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
+export function transpileArguments(state: TranspilerState, args: Array<ts.Node>) {
+	return args.map(arg => transpileExpression(state, arg as ts.Expression)).join(", ");
+}
+
 export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
 	const exp = node.getExpression();
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
 	} else if (ts.TypeGuards.isSuperExpression(exp)) {
-		let params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
+		let params = transpileArguments(state, node.getArguments());
 		if (params.length > 0) {
 			params = ", " + params;
 		}
@@ -38,7 +42,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		return `${className}.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
-		const params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
+		const params = transpileArguments(state, node.getArguments());
 		let result = `${callPath}(${params})`;
 		if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
 			result = `{ ${result} }`;
@@ -60,12 +64,14 @@ export function transpilePropertyCallExpression(
 			TranspilerErrorType.ExpectedPropertyAccessExpression,
 		);
 	}
-	validateApiAccess(state, expression.getNameNode());
+
+	checkApiAccess(state, expression.getNameNode());
+
 	const subExp = expression.getExpression();
 	const subExpType = subExp.getType();
 	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	let params = transpileArguments(state, node.getArguments() as Array<ts.Expression>);
+	let params = transpileArguments(state, node.getArguments());
 
 	if (isArrayType(subExpType)) {
 		let paramStr = accessPath;
@@ -158,27 +164,50 @@ export function transpilePropertyCallExpression(
 		}
 	}
 
-	const symbol = expression.getType().getSymbol();
+	const expType = expression.getType();
 
-	const isSuper = ts.TypeGuards.isSuperExpression(subExp);
-
-	let sep = ".";
-	if (
-		symbol &&
-		symbol
+	const allMethods = typeConstraint(expType, t =>
+		t
+			.getSymbolOrThrow()
 			.getDeclarations()
-			.some(dec => ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec))
-	) {
-		if (isSuper) {
+			.every(dec => ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)),
+	);
+
+	const allCallbacks = typeConstraint(expType, t =>
+		t
+			.getSymbolOrThrow()
+			.getDeclarations()
+			.every(
+				dec =>
+					ts.TypeGuards.isFunctionTypeNode(dec) ||
+					ts.TypeGuards.isFunctionExpression(dec) ||
+					ts.TypeGuards.isArrowFunction(dec) ||
+					ts.TypeGuards.isFunctionDeclaration(dec),
+			),
+	);
+
+	let sep: string;
+	if (allMethods && !allCallbacks) {
+		if (ts.TypeGuards.isSuperExpression(subExp)) {
 			const className = subExp
 				.getType()
 				.getSymbolOrThrow()
 				.getName();
 			accessPath = className + ".__index";
 			params = "self" + (params.length > 0 ? ", " : "") + params;
+			sep = ".";
 		} else {
 			sep = ":";
 		}
+	} else if (!allMethods && allCallbacks) {
+		sep = ".";
+	} else {
+		// mixed methods and callbacks
+		throw new TranspilerError(
+			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+			node,
+			TranspilerErrorType.MixedMethodCall,
+		);
 	}
 
 	let result = `${accessPath}${sep}${property}(${params})`;

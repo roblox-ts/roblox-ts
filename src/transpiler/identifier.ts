@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved } from ".";
+import { checkNonAny, checkReserved } from ".";
 import { TranspilerState } from "../TranspilerState";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
@@ -14,6 +14,8 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;
 	}
+
+	checkNonAny(node);
 
 	for (const def of node.getDefinitions()) {
 		// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -67,5 +69,5 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 		}
 	}
 
-	return state.variableAliases.get(name) || name;
+	return state.getAlias(name);
 }

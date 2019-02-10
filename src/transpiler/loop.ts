@@ -213,13 +213,12 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 
 	const statement = node.getStatement();
 	const exp = node.getExpression();
-	const expStr = transpileExpression(state, exp);
+	let expStr = transpileExpression(state, exp);
 	let result = "";
 	let wasSet = false;
 	let previous: string | undefined;
 
 	if (isArrayType(exp.getType())) {
-		let myInt: string;
 		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
 		// If we are uncertain for some reason, fallback on old behavior
 		let count = 2;
@@ -234,15 +233,10 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 			});
 		}
 
-		if (count === 0) {
-			myInt = "_";
-		} else {
-			myInt = state.getNewId();
-		}
-
 		let varValue: string;
 
 		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
+			const myInt = count === 0 ? "_" : state.getNewId();
 			result += state.indent + `for ${myInt} = 1, select("#", ...) do\n`;
 			state.pushIndent();
 			varValue = `select(${myInt}, ...)`;
@@ -250,6 +244,12 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 				varValue = `(${varValue})`;
 			}
 		} else {
+			if (!ts.TypeGuards.isIdentifier(exp)) {
+				const arrayName = state.getNewId();
+				result += state.indent + `local ${arrayName} = ${expStr};\n`;
+				expStr = arrayName;
+			}
+			const myInt = count === 0 ? "_" : state.getNewId();
 			result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
 			state.pushIndent();
 			varValue = `${expStr}[${myInt}]`;

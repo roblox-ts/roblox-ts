@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isAnyType } from "../typeUtilities";
 import { ScriptContext } from "../utility";
 
 const LUA_RESERVED_KEYWORDS = [
@@ -108,7 +109,7 @@ function hasDirective(node: ts.Node, directive: string) {
 	return false;
 }
 
-export function validateApiAccess(state: TranspilerState, node: ts.Node) {
+export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	if (state.scriptContext === ScriptContext.Server) {
 		if (hasDirective(node, "@rbx-client")) {
 			throw new TranspilerError(
@@ -125,5 +126,16 @@ export function validateApiAccess(state: TranspilerState, node: ts.Node) {
 				TranspilerErrorType.InvalidServerOnlyAPIAccess,
 			);
 		}
+	}
+}
+
+export function checkNonAny(node: ts.Node) {
+	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
+	if (!isInCatch && isAnyType(node.getType())) {
+		throw new TranspilerError(
+			"Variables of type `any` are not supported! Use `unknown` instead.",
+			node,
+			TranspilerErrorType.NoAny,
+		);
 	}
 }

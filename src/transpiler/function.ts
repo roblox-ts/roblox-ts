@@ -10,7 +10,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isTupleType } from "../typeUtilities";
+import { isAnyType, isTupleType } from "../typeUtilities";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -46,10 +46,6 @@ function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, 
 	return `return ${transpileExpression(state, exp)};`;
 }
 
-export function transpileArguments(state: TranspilerState, args: Array<ts.Expression>, context?: ts.Expression) {
-	return args.map(arg => transpileExpression(state, arg)).join(", ");
-}
-
 export function transpileReturnStatement(state: TranspilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
@@ -63,18 +59,20 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
-function transpileFunctionHelper(
-	state: TranspilerState,
-	node: HasParameters,
-	name: string,
-	body: ts.Node<ts.ts.Node>,
-	extraInitializers?: Array<string>,
-) {
+function transpileFunction(state: TranspilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
 
 	getParameterData(state, paramNames, initializers, node);
+
+	if (isAnyType(node.getReturnType())) {
+		throw new TranspilerError(
+			"Functions with a return type of `any` are unsupported! Use `unknown` instead!",
+			node,
+			TranspilerErrorType.NoAny,
+		);
+	}
 
 	if (
 		ts.TypeGuards.isMethodDeclaration(node) ||
@@ -167,7 +165,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 	if (body) {
 		state.pushExport(name, node);
 		state.hoistStack[state.hoistStack.length - 1].add(name);
-		return transpileFunctionHelper(state, node, name, body);
+		return transpileFunction(state, node, name, body);
 	} else {
 		return "";
 	}
@@ -176,7 +174,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 export function transpileMethodDeclaration(state: TranspilerState, node: ts.MethodDeclaration) {
 	const name = node.getName();
 	checkReserved(name, node);
-	return transpileFunctionHelper(state, node, name, node.getBodyOrThrow());
+	return transpileFunction(state, node, name, node.getBodyOrThrow());
 }
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
@@ -269,9 +267,12 @@ export function transpileAccessorDeclaration(
 	name: string,
 ) {
 	const body = node.getBody();
-	return body ? transpileFunctionHelper(state, node, name, body) : "";
+	if (!body) {
+		return "";
+	}
+	return transpileFunction(state, node, name, body);
 }
 
 export function transpileFunctionExpression(state: TranspilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	return transpileFunctionHelper(state, node, "", node.getBody());
+	return transpileFunction(state, node, "", node.getBody());
 }

@@ -19,20 +19,22 @@ export = () => {
 	});
 
 	it("should throw with strings", () => {
-		let message;
+		let message = "";
 		try {
 			stringThrow();
 		} catch (e) {
-			message = e;
+			if (typeIs(e, "string")) {
+				message = e;
+			}
 		}
 
-		expect(message).to.be.a("string");
+		expect(message).to.equal("foo");
 	});
 
 	it("should allow throwing objects", () => {
 		expect(objectThrow).to.throw();
 
-		let object;
+		let object: { id: string } | undefined;
 		try {
 			objectThrow();
 		} catch (e) {
@@ -40,7 +42,7 @@ export = () => {
 		}
 
 		expect(object).to.be.ok();
-		expect(object.id).to.equal("baz");
+		expect(object!.id).to.equal("baz");
 	});
 
 	it("should display the error message in output", () => {
