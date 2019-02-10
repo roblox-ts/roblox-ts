@@ -6,17 +6,17 @@ import { isTupleType } from "../typeUtilities";
 import { checkNonAny } from "./security";
 
 export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
-	const lhs = node.getChildAtIndex(0);
-	const equalsToken = node.getFirstChildByKind(ts.SyntaxKind.EqualsToken);
-
-	let rhs: ts.Node | undefined;
-	if (equalsToken) {
-		rhs = equalsToken.getNextSibling();
-	}
+	const lhs = node.getNameNode();
+	const rhs = node.getInitializer();
 
 	const parent = node.getParent();
 	const grandParent = parent.getParent();
 	const isExported = ts.TypeGuards.isVariableStatement(grandParent) && grandParent.isExported();
+
+	let parentName = "";
+	if (isExported) {
+		parentName = state.getExportContextName(grandParent);
+	}
 
 	// If it is a foldable constant
 	if (
@@ -40,7 +40,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(rhs.getReturnType())) {
-			const names = new Array<string>();
+			let names = new Array<string>();
 			const values = new Array<string>();
 			for (const element of lhs.getElements()) {
 				if (ts.TypeGuards.isBindingElement(element)) {
@@ -50,15 +50,13 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				}
 			}
 			values.push(transpileCallExpression(state, rhs, true));
-			const flatNamesStr = names.join(", ");
-			const flatValuesStr = values.join(", ");
-			return state.indent + `local ${flatNamesStr} = ${flatValuesStr};\n`;
+			if (isExported) {
+				names = names.map(name => `${parentName}.${name}`);
+				return state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
+			} else {
+				return state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+			}
 		}
-	}
-
-	let parentName = "";
-	if (isExported) {
-		parentName = state.getExportContextName(grandParent);
 	}
 
 	let result = "";
@@ -87,8 +85,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 		if (rhs && ts.TypeGuards.isIdentifier(rhs)) {
-			const rhsStr = transpileExpression(state, rhs);
-			getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);
+			getBindingData(state, names, values, preStatements, postStatements, lhs, transpileExpression(state, rhs));
 		} else {
 			const rootId = state.getNewId();
 			if (rhs) {
@@ -100,18 +97,17 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
 		}
 
-		if (isExported) {
-			names = names.map(name => `${parentName}.${name}`);
-		}
-
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 
-		const namesStr = names.join(", ");
 		if (values.length > 0) {
-			const valuesStr = values.join(", ");
-			result += state.indent + `local ${namesStr} = ${valuesStr};\n`;
-		} else {
-			result += state.indent + `local ${namesStr};\n`;
+			if (isExported) {
+				names = names.map(name => `${parentName}.${name}`);
+				result += state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
+			} else {
+				result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+			}
+		} else if (!isExported) {
+			result += state.indent + `local ${names.join(", ")};\n`;
 		}
 
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
