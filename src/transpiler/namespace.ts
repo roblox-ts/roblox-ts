@@ -25,7 +25,7 @@ export function transpileNamespaceDeclaration(state: TranspilerState, node: ts.N
 	checkReserved(name, node);
 	const parentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 	state.pushExport(name, node);
-	state.hoistStack[state.hoistStack.length - 1].add(name);
+	state.pushHoistStack(name);
 	let result = "";
 	const id = state.getNewId();
 	const previousName = state.namespaceStack.get(name);
