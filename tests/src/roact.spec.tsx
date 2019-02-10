@@ -19,7 +19,6 @@ interface PrimitiveHandleElementKind extends AnyHandleElementKind {
 	_rbx?: Instance;
 	_element?: any;
 	_context?: any;
-	_children?: Array<AnyHandleElementKind>;
 }
 
 export = () => {
@@ -127,8 +126,8 @@ export = () => {
 
 			const handle = Roact.mount(element);
 
-			const frameKey = handle._children[KEY];
-			const frame2Key = handle._children[KEY2];
+			const frameKey = handle._children![KEY];
+			const frame2Key = handle._children![KEY2];
 
 			expect(frameKey).to.be.ok();
 			expect(frame2Key).to.be.ok();
@@ -137,9 +136,24 @@ export = () => {
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
 			const propElement = <textbutton Text={TEXT} />;
+			const propElementProps = propElement.props as Roact.Properties<TextButton>;
 
-			expect(propElement.props.Text).to.equal(TEXT);
+			expect(propElementProps.Text).to.equal(TEXT);
 		});
+
+		interface UniqueSymbolsRequired {
+			readonly MouseButton1Click: unique symbol;
+			readonly AbsoluteSize: unique symbol;
+			[name: string]: symbol;
+		}
+
+		const EventHack = Roact.Event as UniqueSymbolsRequired;
+		const ChangeHack = Roact.Change as UniqueSymbolsRequired;
+
+		interface UniqueSymbolsForTests {
+			[EventHack.MouseButton1Click]: number;
+			[ChangeHack.AbsoluteSize]: number;
+		}
 
 		it("should support [Roact.Event]", () => {
 			const eventElement = (
@@ -150,7 +164,9 @@ export = () => {
 				/>
 			);
 
-			expect(eventElement.props[Roact.Event.MouseButton1Click]).to.be.a("function");
+			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
+
+			expect(eventElementProps[EventHack.MouseButton1Click]).to.be.a("function");
 		});
 
 		it("should support [Roact.Change]", () => {
@@ -161,8 +177,8 @@ export = () => {
 					}}
 				/>
 			);
-
-			expect(eventElement.props[Roact.Change.AbsoluteSize]).to.be.a("function");
+			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
+			expect(eventElementProps[ChangeHack.AbsoluteSize]).to.be.a("function");
 		});
 		describe("should support [Roact.Ref]", () => {
 			/*
