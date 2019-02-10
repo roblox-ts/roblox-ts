@@ -56,6 +56,10 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 	}
 }
 
+export function isAnyType(type: ts.Type) {
+	return type.getText() === "any";
+}
+
 export function isNullableType(type: ts.Type) {
 	return typeConstraint(type, t => t.isNullable());
 }
