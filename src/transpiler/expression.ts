@@ -144,11 +144,13 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 				expression.getOperatorToken().getKind() === ts.SyntaxKind.PercentEqualsToken)
 		)
 	) {
-		throw new TranspilerError(
-			"Expression statements must be variable assignments or function calls.",
-			expression,
-			TranspilerErrorType.BadExpressionStatement,
-		);
+		const expStr = transpileExpression(state, expression);
+		return state.indent + `local _ = ${expStr};\n`;
+		// throw new TranspilerError(
+		// 	"Expression statements must be variable assignments or function calls.",
+		// 	expression,
+		// 	TranspilerErrorType.BadExpressionStatement,
+		// );
 	}
 	return state.indent + transpileExpression(state, expression) + ";\n";
 }

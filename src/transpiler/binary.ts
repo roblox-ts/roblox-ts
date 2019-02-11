@@ -3,6 +3,7 @@ import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isNumberType, isStringType } from "../typeUtilities";
+import { checkNonAny } from "./security";
 
 function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -77,41 +78,9 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 	const rhsStr = transpileExpression(state, rhs);
 	const statements = new Array<string>();
 
-	function getOperandStr() {
-		switch (opKind) {
-			case ts.SyntaxKind.EqualsToken:
-				return `${lhsStr} = ${rhsStr}`;
-			/* Bitwise Operations */
-			case ts.SyntaxKind.BarEqualsToken:
-				const barExpStr = getLuaBarExpression(state, node, lhsStr, rhsStr);
-				return `${lhsStr} = ${barExpStr}`;
-			case ts.SyntaxKind.AmpersandEqualsToken:
-				const ampersandExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "and");
-				return `${lhsStr} = ${ampersandExpStr}`;
-			case ts.SyntaxKind.CaretEqualsToken:
-				const caretExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "xor");
-				return `${lhsStr} = ${caretExpStr}`;
-			case ts.SyntaxKind.LessThanLessThanEqualsToken:
-				const lshExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "lsh");
-				return `${lhsStr} = ${lshExpStr}`;
-			case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
-				const rshExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "rsh");
-				return `${lhsStr} = ${rshExpStr}`;
-			case ts.SyntaxKind.PlusEqualsToken:
-				const addExpStr = getLuaAddExpression(state, node, lhsStr, rhsStr, true);
-				return `${lhsStr} = ${addExpStr}`;
-			case ts.SyntaxKind.MinusEqualsToken:
-				return `${lhsStr} = ${lhsStr} - (${rhsStr})`;
-			case ts.SyntaxKind.AsteriskEqualsToken:
-				return `${lhsStr} = ${lhsStr} * (${rhsStr})`;
-			case ts.SyntaxKind.SlashEqualsToken:
-				return `${lhsStr} = ${lhsStr} / (${rhsStr})`;
-			case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
-				return `${lhsStr} = ${lhsStr} ^ (${rhsStr})`;
-			case ts.SyntaxKind.PercentEqualsToken:
-				return `${lhsStr} = ${lhsStr} % (${rhsStr})`;
-		}
-		throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
+	if (opKind !== ts.SyntaxKind.EqualsToken) {
+		checkNonAny(lhs);
+		checkNonAny(rhs);
 	}
 
 	if (isSetToken(opKind)) {
@@ -125,7 +94,55 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		} else {
 			lhsStr = transpileExpression(state, lhs);
 		}
-		statements.push(getOperandStr());
+
+		switch (opKind) {
+			case ts.SyntaxKind.EqualsToken:
+				statements.push(`${lhsStr} = ${rhsStr}`);
+				break;
+			/* Bitwise Operations */
+			case ts.SyntaxKind.BarEqualsToken:
+				const barExpStr = getLuaBarExpression(state, node, lhsStr, rhsStr);
+				statements.push(`${lhsStr} = ${barExpStr}`);
+				break;
+			case ts.SyntaxKind.AmpersandEqualsToken:
+				const ampersandExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "and");
+				statements.push(`${lhsStr} = ${ampersandExpStr}`);
+				break;
+			case ts.SyntaxKind.CaretEqualsToken:
+				const caretExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "xor");
+				statements.push(`${lhsStr} = ${caretExpStr}`);
+				break;
+			case ts.SyntaxKind.LessThanLessThanEqualsToken:
+				const lhsExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "lsh");
+				statements.push(`${lhsStr} = ${lhsExpStr}`);
+				break;
+			case ts.SyntaxKind.GreaterThanGreaterThanEqualsToken:
+				const rhsExpStr = getLuaBitExpression(state, node, lhsStr, rhsStr, "rsh");
+				statements.push(`${lhsStr} = ${rhsExpStr}`);
+				break;
+			case ts.SyntaxKind.PlusEqualsToken:
+				const addExpStr = getLuaAddExpression(state, node, lhsStr, rhsStr, true);
+				statements.push(`${lhsStr} = ${addExpStr}`);
+				break;
+			case ts.SyntaxKind.MinusEqualsToken:
+				statements.push(`${lhsStr} = ${lhsStr} - (${rhsStr})`);
+				break;
+			case ts.SyntaxKind.AsteriskEqualsToken:
+				statements.push(`${lhsStr} = ${lhsStr} * (${rhsStr})`);
+				break;
+			case ts.SyntaxKind.SlashEqualsToken:
+				statements.push(`${lhsStr} = ${lhsStr} / (${rhsStr})`);
+				break;
+			case ts.SyntaxKind.AsteriskAsteriskEqualsToken:
+				statements.push(`${lhsStr} = ${lhsStr} ^ (${rhsStr})`);
+				break;
+			case ts.SyntaxKind.PercentEqualsToken:
+				statements.push(`${lhsStr} = ${lhsStr} % (${rhsStr})`);
+				break;
+			default:
+				throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
+		}
+
 		const parentKind = node.getParentOrThrow().getKind();
 		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
 			return statements.join("; ");
