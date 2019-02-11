@@ -72,7 +72,8 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
 
-	checkNonAny(node);
+	checkNonAny(expNode);
+	checkNonAny(argExp);
 
 	let addOne = false;
 	if (isNumberType(argExp.getType())) {

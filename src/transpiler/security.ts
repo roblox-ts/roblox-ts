@@ -1,8 +1,9 @@
 import * as ts from "ts-morph";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { HasParameters } from "../types";
 import { isAnyType } from "../typeUtilities";
-import { ScriptContext } from "../utility";
+import { ScriptContext, yellow } from "../utility";
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
@@ -82,36 +83,56 @@ export function checkMethodReserved(name: string, node: ts.Node) {
 	}
 }
 
-function getJSDocs(node: ts.Node) {
-	const symbol = node.getSymbol();
-	if (symbol) {
-		const valDec = symbol.getValueDeclaration();
-		if (valDec) {
-			if (ts.TypeGuards.isPropertySignature(valDec) || ts.TypeGuards.isMethodSignature(valDec)) {
-				return valDec.getJsDocs();
+const COMPILER_DIRECTIVE_TAG = "rbxts";
+
+export const enum CompilerDirectives {
+	Client = "client",
+	Server = "server",
+}
+
+/**
+ * Searches `node` recursively for directives. Returns either the first directive from the given list that it finds.
+ * If it cannot find a directive from the list, it returns `undefined`.
+ * Search is:
+ *  - left -> right
+ *  - inner -> outer
+ * @param node JSDocable node to search
+ * @param directives list of directives to search for
+ */
+export function hasCompilerDirective(
+	node: ts.Node,
+	directives: Array<CompilerDirectives>,
+): CompilerDirectives | undefined {
+	if (ts.TypeGuards.isJSDocableNode(node)) {
+		for (const jsDoc of node.getJsDocs()) {
+			for (const jsTag of jsDoc.getTags()) {
+				if (jsTag.getTagName() === COMPILER_DIRECTIVE_TAG) {
+					const comment = jsTag.getComment();
+					if (comment) {
+						for (const word of comment.split(" ")) {
+							for (const directive of directives) {
+								if (word === directive) {
+									return directive;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		const parent = node.getParent();
+		if (parent) {
+			const result = hasCompilerDirective(parent, directives);
+			if (result !== undefined) {
+				return result;
 			}
 		}
 	}
-	return [];
-}
-
-function hasDirective(node: ts.Node, directive: string) {
-	for (const jsDoc of getJSDocs(node)) {
-		if (
-			jsDoc
-				.getText()
-				.split(" ")
-				.indexOf(directive) !== -1
-		) {
-			return true;
-		}
-	}
-	return false;
 }
 
 export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	if (state.scriptContext === ScriptContext.Server) {
-		if (hasDirective(node, "@rbx-client")) {
+		if (hasCompilerDirective(node, [CompilerDirectives.Client])) {
 			throw new TranspilerError(
 				"Server script attempted to access a client-only API!",
 				node,
@@ -119,7 +140,7 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 			);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
-		if (hasDirective(node, "@rbx-server")) {
+		if (hasCompilerDirective(node, [CompilerDirectives.Server])) {
 			throw new TranspilerError(
 				"Client script attempted to access a server-only API!",
 				node,
@@ -132,8 +153,28 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 export function checkNonAny(node: ts.Node) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	if (!isInCatch && isAnyType(node.getType())) {
+		const parent = node.getParent();
+		if (parent) {
+			throw new TranspilerError(
+				`${yellow(parent.getText())} is of type 'any' which is not supported! Use 'unknown' instead.`,
+				node,
+				TranspilerErrorType.NoAny,
+			);
+		} else {
+			throw new TranspilerError(
+				"Variables of type 'any' are not supported! Use 'unknown' instead.",
+				node,
+				TranspilerErrorType.NoAny,
+			);
+		}
+	}
+}
+
+export function checkReturnsNonAny(node: HasParameters) {
+	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
+	if (!isInCatch && isAnyType(node.getReturnType())) {
 		throw new TranspilerError(
-			"Variables of type `any` are not supported! Use `unknown` instead.",
+			"Functions with a return type of `any` are unsupported! Use `unknown` instead!",
 			node,
 			TranspilerErrorType.NoAny,
 		);

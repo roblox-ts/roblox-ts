@@ -12,7 +12,7 @@ interface Be {
 }
 
 interface To {
-	equal: (value: any) => void;
+	equal: (value: unknown) => void;
 	throw: () => void;
 	be: Be;
 }
@@ -22,7 +22,7 @@ interface Never {
 }
 
 declare function expect(
-	value: any,
+	value: unknown,
 ): {
 	to: To;
 	never: Never;

@@ -3,7 +3,6 @@ import { checkReserved, getBindingData, transpileCallExpression, transpileExpres
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isTupleType } from "../typeUtilities";
-import { checkNonAny } from "./security";
 
 export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
@@ -61,7 +60,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 
 	let result = "";
 	if (ts.TypeGuards.isIdentifier(lhs)) {
-		checkNonAny(lhs);
 		const name = lhs.getText();
 		checkReserved(name, lhs);
 		if (rhs) {

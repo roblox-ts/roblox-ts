@@ -21,7 +21,6 @@ export = () => {
 
 		// Type checking
 		expect(1).to.be.a("number");
-		expect(newproxy(true)).to.be.a("userdata");
 
 		// Function throwing
 		expect(() => {

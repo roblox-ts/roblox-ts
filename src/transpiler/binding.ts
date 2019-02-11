@@ -27,6 +27,9 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
+			if (param.getName() === "this") {
+				continue;
+			}
 			name = transpileExpression(state, child);
 			checkReserved(name, node);
 		} else {
