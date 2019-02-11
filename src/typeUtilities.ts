@@ -93,3 +93,14 @@ export function isArrayType(type: ts.Type) {
 export function isTupleType(type: ts.Type) {
 	return typeConstraint(type, t => t.isTuple());
 }
+
+export function isTupleReturnType(node: ts.CallExpression) {
+	if (node.getReturnType().getText().startsWith("LuaTuple<")) {
+		return true;
+	}
+
+	if (isTupleType(node.getReturnType())) {
+		return true;
+	}
+	return false;
+}

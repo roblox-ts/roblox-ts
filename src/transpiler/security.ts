@@ -99,7 +99,7 @@ export const enum CompilerDirectives {
  * @param node JSDocable node to search
  * @param directives list of directives to search for
  */
-export function hasCompilerDirective(
+export function getCompilerDirective(
 	node: ts.Node,
 	directives: Array<CompilerDirectives>,
 ): CompilerDirectives | undefined {
@@ -122,7 +122,7 @@ export function hasCompilerDirective(
 		}
 		const parent = node.getParent();
 		if (parent) {
-			const result = hasCompilerDirective(parent, directives);
+			const result = getCompilerDirective(parent, directives);
 			if (result !== undefined) {
 				return result;
 			}
@@ -132,7 +132,10 @@ export function hasCompilerDirective(
 
 export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	if (state.scriptContext === ScriptContext.Server) {
-		if (hasCompilerDirective(node, [CompilerDirectives.Client])) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Client
+		) {
 			throw new TranspilerError(
 				"Server script attempted to access a client-only API!",
 				node,
@@ -140,7 +143,10 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 			);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
-		if (hasCompilerDirective(node, [CompilerDirectives.Server])) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Server
+		) {
 			throw new TranspilerError(
 				"Client script attempted to access a server-only API!",
 				node,
