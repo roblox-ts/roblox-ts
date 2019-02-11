@@ -186,20 +186,20 @@ export function transpilePropertyCallExpression(
 			),
 	);
 
-	let sep = ".";
-	const isSuper = ts.TypeGuards.isSuperExpression(subExp);
-	if (allMethods) {
-		if (isSuper) {
+	let sep: string;
+	if (allMethods && !allCallbacks) {
+		if (ts.TypeGuards.isSuperExpression(subExp)) {
 			const className = subExp
 				.getType()
 				.getSymbolOrThrow()
 				.getName();
 			accessPath = className + ".__index";
 			params = "self" + (params.length > 0 ? ", " : "") + params;
+			sep = ".";
 		} else {
 			sep = ":";
 		}
-	} else if (allCallbacks) {
+	} else if (!allMethods && allCallbacks) {
 		sep = ".";
 	} else {
 		// mixed methods and callbacks
