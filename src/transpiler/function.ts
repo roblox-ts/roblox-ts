@@ -10,7 +10,8 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isAnyType, isTupleType } from "../typeUtilities";
+import { isTupleType } from "../typeUtilities";
+import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -66,13 +67,7 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 
 	getParameterData(state, paramNames, initializers, node);
 
-	if (isAnyType(node.getReturnType())) {
-		throw new TranspilerError(
-			"Functions with a return type of `any` are unsupported! Use `unknown` instead!",
-			node,
-			TranspilerErrorType.NoAny,
-		);
-	}
+	checkReturnsNonAny(node);
 
 	if (
 		ts.TypeGuards.isMethodDeclaration(node) ||
@@ -148,7 +143,10 @@ function giveInitialSelfParameter(
 	}
 
 	if (!replacedThis) {
-		paramNames.unshift("self");
+		const thisParam = node.getParameter("this");
+		if (!thisParam || thisParam.getType().getText() !== "void") {
+			paramNames.unshift("self");
+		}
 	}
 }
 
@@ -164,7 +162,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 
 	if (body) {
 		state.pushExport(name, node);
-		state.hoistStack[state.hoistStack.length - 1].add(name);
+		state.pushHoistStack(name);
 		return transpileFunction(state, node, name, body);
 	} else {
 		return "";

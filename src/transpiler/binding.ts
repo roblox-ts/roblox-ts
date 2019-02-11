@@ -4,12 +4,6 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 
-export function isBindingPattern(node: ts.Node) {
-	return (
-		node.getKind() === ts.SyntaxKind.ArrayBindingPattern || node.getKind() === ts.SyntaxKind.ObjectBindingPattern
-	);
-}
-
 export function getParameterData(
 	state: TranspilerState,
 	paramNames: Array<string>,
@@ -33,17 +27,13 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
+			if (param.getName() === "this") {
+				continue;
+			}
 			name = transpileExpression(state, child);
 			checkReserved(name, node);
-		} else if (isBindingPattern(child)) {
-			name = state.getNewId();
 		} else {
-			const kindName = child.getKindName();
-			throw new TranspilerError(
-				`Unexpected parameter type! (${kindName})`,
-				param,
-				TranspilerErrorType.UnexpectedParameterType,
-			);
+			name = state.getNewId();
 		}
 
 		if (param.isRestParameter()) {
@@ -68,7 +58,7 @@ export function getParameterData(
 			initializers.push(`self.${name} = ${name};`);
 		}
 
-		if (isBindingPattern(child)) {
+		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
 			const names = new Array<string>();
 			const values = new Array<string>();
 			const preStatements = new Array<string>();
@@ -115,15 +105,18 @@ export function getBindingData(
 				);
 			}
 
-			if (pattern && isBindingPattern(pattern)) {
+			if (
+				pattern &&
+				(ts.TypeGuards.isArrayBindingPattern(pattern) || ts.TypeGuards.isObjectBindingPattern(pattern))
+			) {
 				const childId = state.getNewId();
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
-			} else if (child.getKind() === ts.SyntaxKind.ArrayBindingPattern) {
+			} else if (ts.TypeGuards.isArrayBindingPattern(child)) {
 				const childId = state.getNewId();
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
-			} else if (child.getKind() === ts.SyntaxKind.Identifier) {
+			} else if (ts.TypeGuards.isIdentifier(child)) {
 				let id: string;
 				if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
 					id = transpileExpression(state, pattern as ts.Expression);
