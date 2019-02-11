@@ -12,10 +12,6 @@ export function getParameterData(
 	defaults?: Array<string>,
 ) {
 	for (const param of node.getParameters()) {
-		if (param.getName() === "this") {
-			continue;
-		}
-
 		const child =
 			param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
 			param.getFirstChildByKind(ts.SyntaxKind.ArrayBindingPattern) ||
@@ -31,6 +27,9 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
+			if (param.getName() === "this") {
+				continue;
+			}
 			name = transpileExpression(state, child);
 			checkReserved(name, node);
 		} else {
