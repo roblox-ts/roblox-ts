@@ -140,7 +140,11 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 				statements.push(`${lhsStr} = ${lhsStr} % (${rhsStr})`);
 				break;
 			default:
-				throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
+				throw new TranspilerError(
+					"Unrecognized operation! #1",
+					node,
+					TranspilerErrorType.UnrecognizedOperation1,
+				);
 		}
 
 		const parentKind = node.getParentOrThrow().getKind();
