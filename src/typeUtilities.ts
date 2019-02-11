@@ -95,7 +95,12 @@ export function isTupleType(type: ts.Type) {
 }
 
 export function isTupleReturnType(node: ts.CallExpression) {
-	if (node.getReturnType().getText().startsWith("LuaTuple<")) {
+	if (
+		node
+			.getReturnType()
+			.getText()
+			.startsWith("LuaTuple<")
+	) {
 		return true;
 	}
 
