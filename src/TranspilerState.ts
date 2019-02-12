@@ -97,7 +97,6 @@ export class TranspilerState {
 		}
 	}
 
-	public canOptimizeParameterTuple = new Map<HasParameters, string>();
 	public namespaceStack = new Map<string, string>();
 	public continueId = -1;
 	public isModule = false;
