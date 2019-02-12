@@ -45,11 +45,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 			params = ", " + params;
 		}
 		params = "self" + params;
-		const className = exp
-			.getType()
-			.getSymbolOrThrow()
-			.getName();
-		return `${className}.constructor(${params})`;
+		return `super.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
 		const params = transpileCallArguments(state, node.getArguments());
@@ -231,11 +227,7 @@ export function transpilePropertyCallExpression(
 	let sep: string;
 	if (allMethods && !allCallbacks) {
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
-			const className = subExp
-				.getType()
-				.getSymbolOrThrow()
-				.getName();
-			accessPath = className + ".__index";
+			accessPath = "super.__index";
 			params = "self" + (params.length > 0 ? ", " : "") + params;
 			sep = ".";
 		} else {

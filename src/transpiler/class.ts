@@ -109,12 +109,12 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	}
 	state.pushIndent();
 
-	let baseClassName = "";
 	const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
 	if (extendsClause) {
 		const typeNode = extendsClause.getTypeNodes()[0];
 		if (typeNode) {
-			baseClassName = transpileExpression(state, typeNode.getExpression());
+			const baseClassName = transpileExpression(state, typeNode.getExpression());
+			result += state.indent + `local super = ${baseClassName};\n`;
 		}
 	}
 
@@ -142,10 +142,6 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		}
 
 		currentBaseClass = currentBaseClass.getBaseClass();
-	}
-
-	if (hasStaticInheritance || hasInstanceInheritance) {
-		result += state.indent + `local super = ${baseClassName};\n`;
 	}
 
 	let prefix = "";
