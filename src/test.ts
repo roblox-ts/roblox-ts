@@ -1,9 +1,11 @@
 import * as fs from "fs-extra";
 import * as path from "path";
+import * as util from "util";
 import { Compiler } from "./Compiler";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
+import { red } from "./utility";
 
 require("mocha");
 
@@ -113,13 +115,22 @@ describe("compile integration tests", () => {
 					await compile(name);
 				} catch (e) {
 					if (e instanceof TranspilerError) {
-						console.log(`Unexpected TranspilerError: ${TranspilerErrorType[e.type]}`);
+						throw new Error(
+							util.format(
+								"%s:%d:%d - %s %s",
+								path.relative(srcFolder, e.node.getSourceFile().getFilePath()),
+								e.node.getStartLineNumber(),
+								e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+								red("Transpiler Error:"),
+								e.message,
+							),
+						);
 					} else if (e instanceof CompilerError) {
-						console.log(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+						throw new Error(util.format("%s %s", red("Compiler Error:"), e.message));
 					} else if (e instanceof DiagnosticError) {
-						console.log(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
+						throw new Error(`DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
-						console.log(`Unexpected error: ${String(e)}`);
+						throw new Error(`Unexpected Error: ${String(e)}`);
 					}
 				}
 				if (process.exitCode !== 0) {

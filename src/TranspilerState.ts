@@ -1,5 +1,4 @@
 import * as ts from "ts-morph";
-import { HasParameters } from "./types";
 import { ScriptContext } from "./utility";
 
 interface Partition {
@@ -41,6 +40,10 @@ export class TranspilerState {
 	// hoist stack
 	public hoistStack = new Array<Set<string>>();
 
+	public pushHoistStack(name: string) {
+		this.hoistStack[this.hoistStack.length - 1].add(name);
+	}
+
 	public popHoistStack(result: string) {
 		const hoists = this.hoistStack.pop();
 		if (hoists && hoists.size > 0) {
@@ -79,12 +82,20 @@ export class TranspilerState {
 	}
 
 	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
-	// For example, this is used for numeric literal constants
-	// and exported/namespace values which should be represented
-	// differently in Lua than they can be represented in TS
+	// For example, this is used for  exported/namespace values
+	// which should be represented differently in Lua than they
+	// can be represented in TS
 	public variableAliases = new Map<string, string>();
 
-	public canOptimizeParameterTuple = new Map<HasParameters, string>();
+	public getAlias(name: string) {
+		const alias = this.variableAliases.get(name);
+		if (alias !== undefined) {
+			return alias;
+		} else {
+			return name;
+		}
+	}
+
 	public namespaceStack = new Map<string, string>();
 	public continueId = -1;
 	public isModule = false;

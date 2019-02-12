@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
 import { TranspilerState } from "../TranspilerState";
+import { shouldHoist } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
 export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDeclaration) {
@@ -9,9 +10,12 @@ export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDe
 		return result;
 	}
 	const name = node.getName();
-	checkReserved(name, node.getNameNode());
+	const nameNode = node.getNameNode();
+	checkReserved(name, nameNode);
 	state.pushExport(name, node);
-	state.hoistStack[state.hoistStack.length - 1].add(name);
+	if (shouldHoist(node, nameNode)) {
+		state.pushHoistStack(name);
+	}
 	result += state.indent + `${name} = ${name} or {};\n`;
 	result += state.indent + `do\n`;
 	state.pushIndent();

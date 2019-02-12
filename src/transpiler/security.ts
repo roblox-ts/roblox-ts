@@ -1,7 +1,9 @@
 import * as ts from "ts-morph";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { ScriptContext } from "../utility";
+import { HasParameters } from "../types";
+import { isAnyType } from "../typeUtilities";
+import { bold, ScriptContext, yellow } from "../utility";
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
@@ -81,36 +83,60 @@ export function checkMethodReserved(name: string, node: ts.Node) {
 	}
 }
 
-function getJSDocs(node: ts.Node) {
-	const symbol = node.getSymbol();
-	if (symbol) {
-		const valDec = symbol.getValueDeclaration();
-		if (valDec) {
-			if (ts.TypeGuards.isPropertySignature(valDec) || ts.TypeGuards.isMethodSignature(valDec)) {
-				return valDec.getJsDocs();
+const COMPILER_DIRECTIVE_TAG = "rbxts";
+
+export const enum CompilerDirectives {
+	Client = "client",
+	Server = "server",
+	NotArray = "notarray",
+}
+
+/**
+ * Searches `node` recursively for directives. Returns either the first directive from the given list that it finds.
+ * If it cannot find a directive from the list, it returns `undefined`.
+ * Search is:
+ *  - left -> right
+ *  - inner -> outer
+ * @param node JSDocable node to search
+ * @param directives list of directives to search for
+ */
+export function getCompilerDirective(
+	node: ts.Node,
+	directives: Array<CompilerDirectives>,
+): CompilerDirectives | undefined {
+	if (ts.TypeGuards.isJSDocableNode(node)) {
+		for (const jsDoc of node.getJsDocs()) {
+			for (const jsTag of jsDoc.getTags()) {
+				if (jsTag.getTagName() === COMPILER_DIRECTIVE_TAG) {
+					const comment = jsTag.getComment();
+					if (comment) {
+						for (const word of comment.split(" ")) {
+							for (const directive of directives) {
+								if (word === directive) {
+									return directive;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		const parent = node.getParent();
+		if (parent) {
+			const result = getCompilerDirective(parent, directives);
+			if (result !== undefined) {
+				return result;
 			}
 		}
 	}
-	return [];
 }
 
-function hasDirective(node: ts.Node, directive: string) {
-	for (const jsDoc of getJSDocs(node)) {
-		if (
-			jsDoc
-				.getText()
-				.split(" ")
-				.indexOf(directive) !== -1
-		) {
-			return true;
-		}
-	}
-	return false;
-}
-
-export function validateApiAccess(state: TranspilerState, node: ts.Node) {
+export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	if (state.scriptContext === ScriptContext.Server) {
-		if (hasDirective(node, "@rbx-client")) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Client
+		) {
 			throw new TranspilerError(
 				"Server script attempted to access a client-only API!",
 				node,
@@ -118,12 +144,62 @@ export function validateApiAccess(state: TranspilerState, node: ts.Node) {
 			);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
-		if (hasDirective(node, "@rbx-server")) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Server
+		) {
 			throw new TranspilerError(
 				"Client script attempted to access a server-only API!",
 				node,
 				TranspilerErrorType.InvalidServerOnlyAPIAccess,
 			);
 		}
+	}
+}
+
+const debug = false;
+
+export function checkNonAny(node: ts.Node, checkArrayType = false) {
+	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
+	let type = node.getType();
+	if (type.isArray() && checkArrayType) {
+		const arrayType = type.getArrayType();
+		if (arrayType) {
+			type = arrayType;
+		}
+	}
+	if (!isInCatch && isAnyType(type)) {
+		if (debug) {
+			throw new Error();
+		}
+		const parent = node.getParent();
+		if (parent) {
+			throw new TranspilerError(
+				`${yellow(node.getText())} in ${yellow(parent.getText())} is of type ${bold(
+					"any",
+				)} which is not supported! Use type ${bold("unknown")} instead.`,
+				node,
+				TranspilerErrorType.NoAny,
+			);
+		} else {
+			throw new TranspilerError(
+				`${yellow(node.getText())} is of type ${bold("any")} which is not supported! Use type ${bold(
+					"unknown",
+				)} instead.`,
+				node,
+				TranspilerErrorType.NoAny,
+			);
+		}
+	}
+}
+
+export function checkReturnsNonAny(node: HasParameters) {
+	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
+	if (!isInCatch && isAnyType(node.getReturnType())) {
+		throw new TranspilerError(
+			`Functions with a return type of type ${bold("any")} are unsupported! Use type ${bold("unknown")} instead!`,
+			node,
+			TranspilerErrorType.NoAny,
+		);
 	}
 }

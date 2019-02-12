@@ -1,14 +1,8 @@
 import * as ts from "ts-morph";
-import { checkReserved, transpileExpression } from ".";
+import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-
-export function isBindingPattern(node: ts.Node) {
-	return (
-		node.getKind() === ts.SyntaxKind.ArrayBindingPattern || node.getKind() === ts.SyntaxKind.ObjectBindingPattern
-	);
-}
 
 export function getParameterData(
 	state: TranspilerState,
@@ -33,55 +27,17 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
-			name = child.getText();
-			checkReserved(name, node);
-		} else if (isBindingPattern(child)) {
-			name = state.getNewId();
+			if (param.getName() === "this") {
+				continue;
+			}
+			name = transpileExpression(state, child);
 		} else {
-			const kindName = child.getKindName();
-			throw new TranspilerError(
-				`Unexpected parameter type! (${kindName})`,
-				param,
-				TranspilerErrorType.UnexpectedParameterType,
-			);
+			name = state.getNewId();
 		}
 
 		if (param.isRestParameter()) {
 			paramNames.push("...");
-			let needsNameDeclaration = false;
-			const replaceWithSelect = new Array<ts.PropertyAccessExpression<ts.ts.PropertyAccessExpression>>();
-
-			const body = node.getBody();
-			if (body) {
-				for (const value of body.getDescendantsOfKind(ts.SyntaxKind.Identifier)) {
-					if (value.getText() === name) {
-						const parent = value.getParent();
-						if (
-							(ts.TypeGuards.isSpreadElement(parent) &&
-								!ts.TypeGuards.isArrayLiteralExpression(parent.getParent())) ||
-							(ts.TypeGuards.isForOfStatement(parent) || ts.TypeGuards.isForInStatement(parent))
-						) {
-						} else if (ts.TypeGuards.isPropertyAccessExpression(parent) && parent.getName() === "length") {
-							replaceWithSelect.push(parent);
-						} else {
-							needsNameDeclaration = true;
-							break;
-						}
-					}
-				}
-
-				if (!needsNameDeclaration) {
-					state.canOptimizeParameterTuple.set(node, name);
-
-					if (replaceWithSelect) {
-						replaceWithSelect.forEach(parent => parent.replaceWithText(`select("#", ...${name})`));
-					}
-				}
-			}
-
-			if (needsNameDeclaration) {
-				initializers.push(`local ${name} = { ... };`);
-			}
+			initializers.push(`local ${name} = { ... };`);
 		} else {
 			paramNames.push(name);
 		}
@@ -101,7 +57,7 @@ export function getParameterData(
 			initializers.push(`self.${name} = ${name};`);
 		}
 
-		if (isBindingPattern(child)) {
+		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
 			const names = new Array<string>();
 			const values = new Array<string>();
 			const preStatements = new Array<string>();
@@ -148,20 +104,24 @@ export function getBindingData(
 				);
 			}
 
-			if (pattern && isBindingPattern(pattern)) {
+			if (
+				pattern &&
+				(ts.TypeGuards.isArrayBindingPattern(pattern) || ts.TypeGuards.isObjectBindingPattern(pattern))
+			) {
 				const childId = state.getNewId();
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
-			} else if (child.getKind() === ts.SyntaxKind.ArrayBindingPattern) {
+			} else if (ts.TypeGuards.isArrayBindingPattern(child)) {
 				const childId = state.getNewId();
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
-			} else if (child.getKind() === ts.SyntaxKind.Identifier) {
-				let id = child.getText();
+			} else if (ts.TypeGuards.isIdentifier(child)) {
+				let id: string;
 				if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
-					id = pattern.getText();
+					id = transpileExpression(state, pattern as ts.Expression);
+				} else {
+					id = transpileExpression(state, child as ts.Expression);
 				}
-				checkReserved(id, bindingPatern);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					const value = transpileExpression(state, pattern as ts.Expression);

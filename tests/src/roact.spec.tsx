@@ -1,33 +1,11 @@
 import * as Roact from "rbx-roact";
 
-interface AnyHandleElementKind extends Roact.ComponentInstanceHandle {
-	_key?: string;
-	_parent?: Instance;
-}
-
-interface StatefulHandleElementKind extends AnyHandleElementKind {
-	_element?: any;
-	_child?: any;
-}
-
-interface FunctionalHandleElementKind extends AnyHandleElementKind {
-	_element: any;
-	_context: any;
-}
-
-interface PrimitiveHandleElementKind extends AnyHandleElementKind {
-	_rbx?: Instance;
-	_element?: any;
-	_context?: any;
-	_children?: Array<AnyHandleElementKind>;
-}
-
 export = () => {
 	describe("should support Roact.Component", () => {
 		it("should construct a roact class", () => {
 			class RoactClass extends Roact.Component {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -42,7 +20,7 @@ export = () => {
 		it("should construct a roact pure component class", () => {
 			class RoactPureClass extends Roact.PureComponent {
 				/* tslint:disable */
-				public static _new: any;
+				public static _new: unknown;
 				/* tslint:enable */
 
 				public render(): Roact.Element {
@@ -125,10 +103,10 @@ export = () => {
 				</screengui>
 			);
 
-			const handle: any = Roact.mount(element);
+			const handle = Roact.mount(element);
 
-			const frameKey = handle._children[KEY];
-			const frame2Key = handle._children[KEY2];
+			const frameKey = handle._children![KEY];
+			const frame2Key = handle._children![KEY2];
 
 			expect(frameKey).to.be.ok();
 			expect(frame2Key).to.be.ok();
@@ -137,9 +115,24 @@ export = () => {
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
 			const propElement = <textbutton Text={TEXT} />;
+			const propElementProps = propElement.props as Roact.Properties<TextButton>;
 
-			expect(propElement.props.Text).to.equal(TEXT);
+			expect(propElementProps.Text).to.equal(TEXT);
 		});
+
+		interface UniqueSymbolsRequired {
+			readonly MouseButton1Click: unique symbol;
+			readonly AbsoluteSize: unique symbol;
+			[name: string]: symbol;
+		}
+
+		const EventHack = Roact.Event as UniqueSymbolsRequired;
+		const ChangeHack = Roact.Change as UniqueSymbolsRequired;
+
+		interface UniqueSymbolsForTests {
+			[EventHack.MouseButton1Click]: number;
+			[ChangeHack.AbsoluteSize]: number;
+		}
 
 		it("should support [Roact.Event]", () => {
 			const eventElement = (
@@ -150,7 +143,9 @@ export = () => {
 				/>
 			);
 
-			expect(eventElement.props[Roact.Event.MouseButton1Click]).to.be.a("function");
+			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
+
+			expect(eventElementProps[EventHack.MouseButton1Click]).to.be.a("function");
 		});
 
 		it("should support [Roact.Change]", () => {
@@ -161,8 +156,8 @@ export = () => {
 					}}
 				/>
 			);
-
-			expect(eventElement.props[Roact.Change.AbsoluteSize]).to.be.a("function");
+			const eventElementProps = eventElement.props as UniqueSymbolsForTests;
+			expect(eventElementProps[ChangeHack.AbsoluteSize]).to.be.a("function");
 		});
 		describe("should support [Roact.Ref]", () => {
 			/*
@@ -228,7 +223,7 @@ export = () => {
 	});
 
 	it("should be able to mount roact intrinsics", () => {
-		const handle: PrimitiveHandleElementKind = Roact.mount(<screengui />);
+		const handle = Roact.mount(<screengui />);
 		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
 	});
 
@@ -242,7 +237,7 @@ export = () => {
 			</screengui>
 		);
 
-		const handle: PrimitiveHandleElementKind = Roact.mount(test2);
+		const handle = Roact.mount(test2);
 		expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
@@ -259,13 +254,13 @@ export = () => {
 
 		const test = <TestComponent />;
 
-		const handle: StatefulHandleElementKind = Roact.mount(test);
-		const returned: PrimitiveHandleElementKind = handle._child;
+		const handle = Roact.mount(test);
+		const returned = handle._child;
 
 		// expect the returned child to be a frame
-		expect(returned._rbx!.IsA("Frame")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("Frame1")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("Frame2")).to.be.ok();
+		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("Frame1")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("Frame2")).to.be.ok();
 	});
 
 	it("should allow using results from functions in expressions", () => {
@@ -275,7 +270,7 @@ export = () => {
 
 		const test = <screengui>{multipleElements()}</screengui>;
 
-		const handle: PrimitiveHandleElementKind = Roact.mount(test);
+		const handle = Roact.mount(test);
 		expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
 		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
 	});
@@ -296,14 +291,14 @@ export = () => {
 			</TestComponent>
 		);
 
-		const handle: StatefulHandleElementKind = Roact.mount(test);
-		const returned: PrimitiveHandleElementKind = handle._child;
+		const handle = Roact.mount(test);
+		const returned = handle._child;
 
 		// expect the returned child to be a frame
-		expect(returned._rbx!.IsA("Frame")).to.be.ok();
+		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
 
 		// expect there to be a textlabel called "Hello"
-		expect(returned._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
-		expect(returned._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
+		expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
 	});
 };

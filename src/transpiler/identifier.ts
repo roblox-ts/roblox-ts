@@ -18,7 +18,6 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 	for (const def of node.getDefinitions()) {
 		// I have no idea why, but getDefinitionNodes() cannot replace this
 		const definition = def.getNode();
-		let isArrowFunction = false;
 
 		if (def.getSourceFile() === node.getSourceFile()) {
 			let parent = definition;
@@ -27,7 +26,7 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 				if (ts.TypeGuards.isVariableStatement(parent)) {
 					if (parent.hasExportKeyword()) {
 						const declarationKind = parent.getDeclarationKind();
-						if (!isArrowFunction || declarationKind === ts.VariableDeclarationKind.Let) {
+						if (declarationKind === ts.VariableDeclarationKind.Let) {
 							return state.getExportContextName(parent) + "." + name;
 						}
 					}
@@ -46,20 +45,13 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 					if (!ts.TypeGuards.isArrowFunction(parent)) {
 						break;
 					}
-				} else if (ts.TypeGuards.isVariableDeclaration(parent)) {
-					const lhs = parent.getChildAtIndex(0);
-					if (lhs) {
-						const eq = lhs.getNextSibling();
-						if (eq) {
-							const rhs = eq.getNextSibling();
-							if (rhs) {
-								if (ts.TypeGuards.isArrowFunction(rhs)) {
-									isArrowFunction = true;
-								}
-							}
-						}
-					}
-				} else if (!ts.TypeGuards.isVariableDeclarationList(parent) && !ts.TypeGuards.isIdentifier(parent)) {
+				} else if (
+					!ts.TypeGuards.isVariableDeclarationList(parent) &&
+					!ts.TypeGuards.isIdentifier(parent) &&
+					!ts.TypeGuards.isBindingElement(parent) &&
+					!ts.TypeGuards.isArrayBindingPattern(parent) &&
+					!ts.TypeGuards.isVariableDeclaration(parent)
+				) {
 					break;
 				}
 				parent = parent.getParent();
@@ -67,5 +59,5 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 		}
 	}
 
-	return state.variableAliases.get(name) || name;
+	return state.getAlias(name);
 }

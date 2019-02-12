@@ -35,6 +35,14 @@ export = () => {
 		expect('"').to.equal("\"");
 	});
 
+	it("should understand string templates", () => {
+		const value = "hello";
+		expect(`"${value} world"`).to.equal('"hello world"');
+		expect(`"${value}" world`).to.equal('"hello" world');
+		expect(`${value} "world"`).to.equal('hello "world"');
+		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
+	});
+
 	it("should add strings", () => {
 		expect("a" + "b").to.equal("ab");
 		const a = "a";
@@ -50,10 +58,10 @@ export = () => {
 	});
 
 	it("should add unknown types", () => {
-		const a: any = "a";
-		const b: any = "b";
-		const one: any = 1;
-		const two: any = 2;
+		const a: number | string = "a";
+		const b: number | string = "b";
+		const one: number | string = 1;
+		const two: number | string = 2;
 
 		expect(a + a).to.equal("aa");
 		expect(a + b).to.equal("ab");

@@ -10,7 +10,7 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"rbx-roact": "^0.1.0",
-		"rbx-types": "^1.0.113"
+		"rbx-roact": "^0.1.11",
+		"rbx-types": "^1.0.122"
 	}
 }

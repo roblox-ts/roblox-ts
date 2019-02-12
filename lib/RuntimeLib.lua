@@ -6,7 +6,6 @@ local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
 local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
-local TYPE_INSTANCE = "Instance"
 
 local TS = {}
 
@@ -640,6 +639,8 @@ function TS.array_copyWithin(list, target, from, to)
 	return list
 end
 
+TS.array_isEmpty = TS.Object_isEmpty
+
 -- map macro functions
 
 function TS.map_new(value)
@@ -715,6 +716,8 @@ function TS.map_values(map)
 	return result
 end
 
+TS.map_isEmpty = TS.Object_isEmpty
+
 -- set macro functions
 
 function TS.set_new(value)
@@ -759,6 +762,8 @@ TS.set_values = TS.map_keys
 TS.set_keys = TS.map_keys
 
 TS.set_size = TS.map_size
+
+TS.set_isEmpty = TS.Object_isEmpty
 
 -- string macro functions
 
@@ -806,6 +811,10 @@ function TS.Object_assign(toObj, ...)
 		end
 	end
 	return toObj
+end
+
+function TS.Object_isEmpty(object)
+	return next(object) == nil
 end
 
 function TS.Roact_combine(...)

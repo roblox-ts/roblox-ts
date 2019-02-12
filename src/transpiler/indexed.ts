@@ -1,9 +1,10 @@
 import * as ts from "ts-morph";
-import { transpileCallExpression, transpileExpression, validateApiAccess } from ".";
+import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isStringType, isTupleType } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isNumberType, isStringType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
+import { checkNonAny } from "./security";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
@@ -11,7 +12,11 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 	const expStr = transpileExpression(state, exp);
 	const propertyStr = node.getName();
 
-	validateApiAccess(state, node.getNameNode());
+	const nameNode = node.getNameNode();
+	checkApiAccess(state, nameNode);
+
+	checkNonAny(exp);
+	checkNonAny(nameNode);
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
 		const baseClassName = exp
@@ -70,12 +75,14 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const argExp = node.getArgumentExpressionOrThrow();
 
 	let addOne = false;
-	if (isTupleType(expType) || isArrayType(expType)) {
-		addOne = true;
-	} else if (ts.TypeGuards.isCallExpression(expNode)) {
-		const returnType = expNode.getReturnType();
-		if (isArrayType(returnType) || isTupleType(returnType)) {
+	if (isNumberType(argExp.getType())) {
+		if (isTupleType(expType) || isArrayType(expType)) {
 			addOne = true;
+		} else if (ts.TypeGuards.isCallExpression(expNode)) {
+			const returnType = expNode.getReturnType();
+			if (isArrayType(returnType) || isTupleType(returnType)) {
+				addOne = true;
+			}
 		}
 	}
 
@@ -96,9 +103,13 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleType(expNode.getReturnType())) {
 		const expStr = transpileCallExpression(state, expNode, true);
+		checkNonAny(expNode);
+		checkNonAny(argExp);
 		return `(select(${argExpStr}, ${expStr}))`;
 	} else {
 		const expStr = transpileExpression(state, expNode);
+		checkNonAny(expNode);
+		checkNonAny(argExp);
 		let isArrayLiteral = false;
 		if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
 			isArrayLiteral = true;

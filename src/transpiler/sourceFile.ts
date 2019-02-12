@@ -27,7 +27,7 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 		}
 
 		let hasExportEquals = false;
-		for (const Descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
+		for (const descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
 			if (hasExportEquals) {
 				throw new TranspilerError(
 					"ModuleScript contains multiple ExportEquals. You can only do `export = ` once.",
@@ -35,7 +35,7 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 					TranspilerErrorType.MultipleExportEquals,
 				);
 			}
-			if (Descendant.isExportEquals()) {
+			if (descendant.isExportEquals()) {
 				hasExportEquals = true;
 			}
 		}
