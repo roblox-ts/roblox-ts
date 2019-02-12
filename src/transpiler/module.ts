@@ -5,6 +5,7 @@ import { checkReserved, transpileExpression } from ".";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isUsedAsType } from "../typeUtilities";
 import {
 	getScriptContext,
 	getScriptType,
@@ -203,6 +204,17 @@ function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile
 }
 
 export function transpileImportDeclaration(state: TranspilerState, node: ts.ImportDeclaration) {
+	const defaultImport = node.getDefaultImport();
+	const namespaceImport = node.getNamespaceImport();
+	const namedImports = node.getNamedImports();
+	if (
+		(!namespaceImport || isUsedAsType(namespaceImport)) &&
+		(!defaultImport || isUsedAsType(defaultImport)) &&
+		namedImports.every(namedImport => isUsedAsType(namedImport.getNameNode()))
+	) {
+		return "";
+	}
+
 	let luaPath: string;
 	if (node.isModuleSpecifierRelative()) {
 		luaPath = getRelativeImportPath(
@@ -228,8 +240,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	const lhs = new Array<string>();
 	const rhs = new Array<string>();
 
-	const defaultImport = node.getDefaultImport();
-	if (defaultImport) {
+	if (defaultImport && !isUsedAsType(defaultImport)) {
 		const definitions = defaultImport.getDefinitions();
 		const exportAssignments =
 			definitions.length > 0 &&
@@ -249,8 +260,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		rhs.push(`._default`);
 	}
 
-	const namespaceImport = node.getNamespaceImport();
-	if (namespaceImport) {
+	if (namespaceImport && !isUsedAsType(namespaceImport)) {
 		lhs.push(transpileExpression(state, namespaceImport));
 		rhs.push("");
 	}
@@ -260,24 +270,30 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	let hasVarNames = false;
 	const unlocalizedImports = new Array<string>();
 
-	node.getNamedImports().forEach(namedImport => {
-		const aliasNode = namedImport.getAliasNode();
-		const name = namedImport.getName();
-		const alias = aliasNode ? aliasNode.getText() : name;
-		const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
+	node.getNamedImports()
+		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
+		.forEach(namedImport => {
+			const aliasNode = namedImport.getAliasNode();
+			const name = namedImport.getName();
+			const alias = aliasNode ? aliasNode.getText() : name;
+			const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
 
-		// keep these here no matter what, so that exports can take from intinial state.
-		checkReserved(alias, node);
-		lhs.push(alias);
-		rhs.push(`.${name}`);
+			// keep these here no matter what, so that exports can take from intinial state.
+			checkReserved(alias, node);
+			lhs.push(alias);
+			rhs.push(`.${name}`);
 
-		if (shouldLocalize) {
-			unlocalizedImports.push("");
-		} else {
-			hasVarNames = true;
-			unlocalizedImports.push(alias);
-		}
-	});
+			if (shouldLocalize) {
+				unlocalizedImports.push("");
+			} else {
+				hasVarNames = true;
+				unlocalizedImports.push(alias);
+			}
+		});
+
+	if (lhs.length === 0) {
+		return "";
+	}
 
 	if (rhs.length === 1 && !hasVarNames) {
 		rhsPrefix = luaPath;
@@ -307,6 +323,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 }
 
 export function transpileImportEqualsDeclaration(state: TranspilerState, node: ts.ImportEqualsDeclaration) {
+	const nameNode = node.getNameNode();
+	if (isUsedAsType(nameNode)) {
+		return "";
+	}
+
 	let luaPath: string;
 	const moduleFile = node.getExternalModuleReferenceSourceFile();
 	if (moduleFile) {
@@ -371,25 +392,33 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 		throw new TranspilerError("Could not find export ancestor!", node, TranspilerErrorType.BadAncestor);
 	}
 
-	let ancestorName: string;
-	if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
-		ancestorName = ancestor.getName();
-	} else {
-		state.isModule = true;
-		ancestorName = "_exports";
-	}
-
 	const lhs = new Array<string>();
 	const rhs = new Array<string>();
 
 	if (node.isNamespaceExport()) {
 		state.usesTSLibrary = true;
+		let ancestorName: string;
+		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
+			ancestorName = ancestor.getName();
+		} else {
+			state.isModule = true;
+			ancestorName = "_exports";
+		}
 		return state.indent + `TS.exportNamespace(${luaImportStr}, ${ancestorName});\n`;
 	} else {
-		const namedExports = node.getNamedExports();
+		const namedExports = node.getNamedExports().filter(namedExport => !isUsedAsType(namedExport.getNameNode()));
 		if (namedExports.length === 0) {
 			return "";
 		}
+
+		let ancestorName: string;
+		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
+			ancestorName = ancestor.getName();
+		} else {
+			state.isModule = true;
+			ancestorName = "_exports";
+		}
+
 		namedExports.forEach(namedExport => {
 			const aliasNode = namedExport.getAliasNode();
 			let name = namedExport.getNameNode().getText();
@@ -426,16 +455,17 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 
 export function transpileExportAssignment(state: TranspilerState, node: ts.ExportAssignment) {
 	let result = state.indent;
-	if (node.isExportEquals()) {
+	const exp = node.getExpression();
+	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {
 		state.isModule = true;
-		const expStr = transpileExpression(state, node.getExpression());
+		const expStr = transpileExpression(state, exp);
 		result += `_exports = ${expStr};\n`;
 	} else {
 		const symbol = node.getSymbol();
 		if (symbol) {
 			if (symbol.getName() === "default") {
 				state.isModule = true;
-				result += "_exports._default = " + transpileExpression(state, node.getExpression()) + ";\n";
+				result += "_exports._default = " + transpileExpression(state, exp) + ";\n";
 			}
 		}
 	}
