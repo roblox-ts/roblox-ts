@@ -6,29 +6,22 @@ export function isType(node: ts.Node) {
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
+		ts.TypeGuards.isImportSpecifier(node) ||
+		ts.TypeGuards.isImportClause(node) ||
+		ts.TypeGuards.isImportEqualsDeclaration(node) ||
+		ts.TypeGuards.isExportAssignment(node) ||
+		ts.TypeGuards.isExportSpecifier(node) ||
 		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
 	);
 }
 
 export function isUsedAsType(node: ts.Identifier) {
-	for (const ref of node.findReferences()) {
-		for (const ref2 of ref.getReferences()) {
-			const parent = ref2.getNode().getParent() as ts.Node;
-			if (
-				ref2.getSourceFile() === node.getSourceFile() &&
-				!ts.TypeGuards.isImportSpecifier(parent) &&
-				!ts.TypeGuards.isImportClause(parent) &&
-				!ts.TypeGuards.isImportEqualsDeclaration(parent) &&
-				!ts.TypeGuards.isExportAssignment(parent) &&
-				!ts.TypeGuards.isExportSpecifier(parent)
-			) {
-				if (!isType(parent)) {
-					return false;
-				}
-			}
-		}
-	}
-	return true;
+	return node.findReferences().every(refSymbol =>
+		refSymbol
+			.getReferences()
+			.filter(refEntry => refEntry.getSourceFile() === node.getSourceFile())
+			.every(refEntry => isType(refEntry.getNode().getParent()!)),
+	);
 }
 
 export function inheritsFrom(type: ts.Type, className: string): boolean {
