@@ -1,5 +1,4 @@
 import * as ts from "ts-morph";
-import { HasParameters } from "./types";
 import { ScriptContext } from "./utility";
 
 interface Partition {
