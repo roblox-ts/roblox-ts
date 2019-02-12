@@ -219,6 +219,9 @@ export class Compiler {
 		if (opts.target !== ts.ts.ScriptTarget.ES2015) {
 			errors.push(`${yellow(`"target"`)} must be ${yellow(`"es6"`)}`);
 		}
+		if (opts.allowSyntheticDefaultImports !== true) {
+			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
+		}
 		if (opts.types === undefined || opts.types.indexOf("rbx-types") === -1) {
 			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
 		}
