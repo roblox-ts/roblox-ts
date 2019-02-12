@@ -302,11 +302,8 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	if (rhs.length === 1 && !hasVarNames) {
 		rhsPrefix = luaPath;
 	} else {
-		if (hasVarNames || lhs.length > 0) {
-			rhsPrefix = state.getNewId();
-			result += `local ${rhsPrefix} = `;
-		}
-		result += `${luaPath};\n`;
+		rhsPrefix = state.getNewId();
+		result += `local ${rhsPrefix} = ${luaPath};\n`;
 	}
 
 	unlocalizedImports
