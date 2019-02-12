@@ -147,13 +147,7 @@ export function transpileForInStatement(state: TranspilerState, node: ts.ForInSt
 	if (isCallExpressionOverridable(exp)) {
 		result += state.indent + `for ${varName} in ${expStr} do\n`;
 	} else if (isArrayType(exp.getType())) {
-		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
-
-		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
-			result += state.indent + `for ${varName} = 0, select("#", ...) - 1 do\n`;
-		} else {
-			result += state.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
-		}
+		result += state.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
 	} else {
 		result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 	}
@@ -213,7 +207,6 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	let previous: string | undefined;
 
 	if (isArrayType(exp.getType())) {
-		const parentFunction = getFirstMemberWithParameters(node.getAncestors());
 		// If we are uncertain for some reason, fallback on old behavior
 		let count = 2;
 
@@ -229,25 +222,15 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 
 		let varValue: string;
 
-		if (parentFunction && state.canOptimizeParameterTuple.get(parentFunction) === expStr) {
-			const myInt = count === 0 ? "_" : state.getNewId();
-			result += state.indent + `for ${myInt} = 1, select("#", ...) do\n`;
-			state.pushIndent();
-			varValue = `select(${myInt}, ...)`;
-			if (count === 1) {
-				varValue = `(${varValue})`;
-			}
-		} else {
-			if (!ts.TypeGuards.isIdentifier(exp)) {
-				const arrayName = state.getNewId();
-				result += state.indent + `local ${arrayName} = ${expStr};\n`;
-				expStr = arrayName;
-			}
-			const myInt = count === 0 ? "_" : state.getNewId();
-			result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
-			state.pushIndent();
-			varValue = `${expStr}[${myInt}]`;
+		if (!ts.TypeGuards.isIdentifier(exp)) {
+			const arrayName = state.getNewId();
+			result += state.indent + `local ${arrayName} = ${expStr};\n`;
+			expStr = arrayName;
 		}
+		const myInt = count === 0 ? "_" : state.getNewId();
+		result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
+		state.pushIndent();
+		varValue = `${expStr}[${myInt}]`;
 
 		if (count > 1) {
 			result += state.indent + `local ${varName} = ${varValue};\n`;

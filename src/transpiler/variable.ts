@@ -2,8 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isTupleType } from "../typeUtilities";
-import { checkNonAny } from "./security";
+import { isTupleReturnType } from "../typeUtilities";
 
 export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
@@ -12,6 +11,11 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	const parent = node.getParent();
 	const grandParent = parent.getParent();
 	const isExported = ts.TypeGuards.isVariableStatement(grandParent) && grandParent.isExported();
+
+	let decKind = ts.VariableDeclarationKind.Const;
+	if (ts.TypeGuards.isVariableDeclarationList(parent)) {
+		decKind = parent.getDeclarationKind();
+	}
 
 	let parentName = "";
 	if (isExported) {
@@ -22,10 +26,9 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	if (
 		rhs &&
 		ts.TypeGuards.isNumericLiteral(rhs) &&
-		ts.TypeGuards.isVariableDeclarationList(parent) &&
 		grandParent.getParent() === grandParent.getSourceFile() &&
 		!isExported &&
-		parent.getDeclarationKind() === ts.VariableDeclarationKind.Const
+		decKind === ts.VariableDeclarationKind.Const
 	) {
 		const declarationName = node.getName();
 		checkReserved(declarationName, node);
@@ -39,21 +42,26 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
-		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(rhs.getReturnType())) {
-			let names = new Array<string>();
+		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnType(rhs)) {
+			const names = new Array<string>();
 			const values = new Array<string>();
 			for (const element of lhs.getElements()) {
 				if (ts.TypeGuards.isBindingElement(element)) {
-					names.push(element.getChildAtIndex(0).getText());
+					const nameNode = element.getNameNode();
+					if (ts.TypeGuards.isIdentifier(nameNode)) {
+						names.push(transpileExpression(state, nameNode));
+					}
 				} else if (ts.TypeGuards.isOmittedExpression(element)) {
 					names.push("_");
 				}
 			}
 			values.push(transpileCallExpression(state, rhs, true));
-			if (isExported) {
-				names = names.map(name => `${parentName}.${name}`);
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				return state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					names.forEach(name => state.pushExport(name, grandParent));
+				}
 				return state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 			}
 		}
@@ -61,14 +69,16 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 
 	let result = "";
 	if (ts.TypeGuards.isIdentifier(lhs)) {
-		checkNonAny(lhs);
 		const name = lhs.getText();
 		checkReserved(name, lhs);
 		if (rhs) {
 			const value = transpileExpression(state, rhs);
-			if (isExported) {
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					state.pushExport(name, grandParent);
+				}
 				if (ts.TypeGuards.isFunctionExpression(rhs) || ts.TypeGuards.isArrowFunction(rhs)) {
 					state.pushHoistStack(name);
 					result += state.indent + `${name} = ${value};\n`;
@@ -81,7 +91,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		}
 	} else if ((ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) && rhs) {
 		// binding patterns MUST have rhs
-		let names = new Array<string>();
+		const names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
@@ -95,10 +105,12 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		}
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
-			if (isExported) {
-				names = names.map(name => `${parentName}.${name}`);
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				result += state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					names.forEach(name => state.pushExport(name, grandParent));
+				}
 				result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 			}
 		} else if (!isExported) {

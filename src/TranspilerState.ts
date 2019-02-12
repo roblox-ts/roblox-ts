@@ -1,5 +1,4 @@
 import * as ts from "ts-morph";
-import { HasParameters } from "./types";
 import { ScriptContext } from "./utility";
 
 interface Partition {
@@ -97,7 +96,6 @@ export class TranspilerState {
 		}
 	}
 
-	public canOptimizeParameterTuple = new Map<HasParameters, string>();
 	public namespaceStack = new Map<string, string>();
 	public continueId = -1;
 	public isModule = false;

@@ -132,7 +132,7 @@ export = () => {
 		function b(arg1?: number, arg2?: number): [number, number] {
 			return [arg1 || 1, arg2 || 1];
 		}
-		function a(...args: any[]): [number, number] {
+		function a(...args: number[]): [number, number] {
 			const x = () => {
 				return b(...args);
 			};

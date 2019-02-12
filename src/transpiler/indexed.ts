@@ -14,6 +14,8 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 
 	const nameNode = node.getNameNode();
 	checkApiAccess(state, nameNode);
+
+	checkNonAny(exp);
 	checkNonAny(nameNode);
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
@@ -72,8 +74,6 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
 
-	checkNonAny(node);
-
 	let addOne = false;
 	if (isNumberType(argExp.getType())) {
 		if (isTupleType(expType) || isArrayType(expType)) {
@@ -103,9 +103,13 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleType(expNode.getReturnType())) {
 		const expStr = transpileCallExpression(state, expNode, true);
+		checkNonAny(expNode);
+		checkNonAny(argExp);
 		return `(select(${argExpStr}, ${expStr}))`;
 	} else {
 		const expStr = transpileExpression(state, expNode);
+		checkNonAny(expNode);
+		checkNonAny(argExp);
 		let isArrayLiteral = false;
 		if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
 			isArrayLiteral = true;

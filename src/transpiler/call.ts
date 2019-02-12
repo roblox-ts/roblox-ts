@@ -2,7 +2,8 @@ import * as ts from "ts-morph";
 import { checkApiAccess, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isTupleType, typeConstraint } from "../typeUtilities";
+import { isArrayType, isTupleReturnType, typeConstraint } from "../typeUtilities";
+import { checkNonAny } from "./security";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -21,16 +22,25 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-export function transpileArguments(state: TranspilerState, args: Array<ts.Node>) {
-	return args.map(arg => transpileExpression(state, arg as ts.Expression)).join(", ");
+export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>) {
+	const argStrs = new Array<string>();
+	for (const arg of args) {
+		const expStr = transpileExpression(state, arg as ts.Expression);
+		if (!ts.TypeGuards.isSpreadElement(arg)) {
+			checkNonAny(arg);
+		}
+		argStrs.push(expStr);
+	}
+	return argStrs.join(", ");
 }
 
 export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
 	const exp = node.getExpression();
+	checkNonAny(exp);
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
 	} else if (ts.TypeGuards.isSuperExpression(exp)) {
-		let params = transpileArguments(state, node.getArguments());
+		let params = transpileCallArguments(state, node.getArguments());
 		if (params.length > 0) {
 			params = ", " + params;
 		}
@@ -42,9 +52,9 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		return `${className}.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
-		const params = transpileArguments(state, node.getArguments());
+		const params = transpileCallArguments(state, node.getArguments());
 		let result = `${callPath}(${params})`;
-		if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
+		if (!doNotWrapTupleReturn && isTupleReturnType(node)) {
 			result = `{ ${result} }`;
 		}
 		return result;
@@ -71,7 +81,7 @@ export function transpilePropertyCallExpression(
 	const subExpType = subExp.getType();
 	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	let params = transpileArguments(state, node.getArguments());
+	let params = transpileCallArguments(state, node.getArguments());
 
 	if (isArrayType(subExpType)) {
 		let paramStr = accessPath;
@@ -170,20 +180,52 @@ export function transpilePropertyCallExpression(
 		t
 			.getSymbolOrThrow()
 			.getDeclarations()
-			.every(dec => ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)),
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return false;
+						} else if (structure.type === "this") {
+							return true;
+						}
+					}
+				}
+				if (ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
+					return true;
+				}
+				return false;
+			}),
 	);
 
 	const allCallbacks = typeConstraint(expType, t =>
 		t
 			.getSymbolOrThrow()
 			.getDeclarations()
-			.every(
-				dec =>
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return true;
+						} else if (structure.type === "this") {
+							return false;
+						}
+					}
+				}
+				if (
 					ts.TypeGuards.isFunctionTypeNode(dec) ||
+					ts.TypeGuards.isPropertySignature(dec) ||
 					ts.TypeGuards.isFunctionExpression(dec) ||
 					ts.TypeGuards.isArrowFunction(dec) ||
-					ts.TypeGuards.isFunctionDeclaration(dec),
-			),
+					ts.TypeGuards.isFunctionDeclaration(dec)
+				) {
+					return true;
+				}
+				return false;
+			}),
 	);
 
 	let sep: string;
@@ -211,7 +253,7 @@ export function transpilePropertyCallExpression(
 	}
 
 	let result = `${accessPath}${sep}${property}(${params})`;
-	if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
+	if (!doNotWrapTupleReturn && isTupleReturnType(node)) {
 		result = `{ ${result} }`;
 	}
 	return result;

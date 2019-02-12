@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, transpileExpression } from ".";
+import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
@@ -27,8 +27,10 @@ export function getParameterData(
 
 		let name: string;
 		if (ts.TypeGuards.isIdentifier(child)) {
+			if (param.getName() === "this") {
+				continue;
+			}
 			name = transpileExpression(state, child);
-			checkReserved(name, node);
 		} else {
 			name = state.getNewId();
 		}
@@ -120,7 +122,6 @@ export function getBindingData(
 				} else {
 					id = transpileExpression(state, child as ts.Expression);
 				}
-				checkReserved(id, bindingPatern);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					const value = transpileExpression(state, pattern as ts.Expression);
