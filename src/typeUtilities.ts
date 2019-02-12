@@ -1,4 +1,5 @@
 import * as ts from "ts-morph";
+import { CompilerDirectives, getCompilerDirective } from "./transpiler";
 
 export function isType(node: ts.Node) {
 	return (
@@ -99,10 +100,18 @@ export function isEnumType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return typeConstraint(
-		type,
-		t => t.getArrayType() !== undefined || (t.getNumberIndexType() !== undefined && !isEnumType(t)),
-	);
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		if (symbol) {
+			for (const dec of symbol.getDeclarations()) {
+				console.log(dec.getText());
+				if (getCompilerDirective(dec, [CompilerDirectives.NotArray]) === CompilerDirectives.NotArray) {
+					return false;
+				}
+			}
+		}
+		return t.getArrayType() !== undefined || (t.getNumberIndexType() !== undefined && !isEnumType(t));
+	});
 }
 
 export function isTupleType(type: ts.Type) {
