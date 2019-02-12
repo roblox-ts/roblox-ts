@@ -207,7 +207,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	const defaultImport = node.getDefaultImport();
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
+
+	const isSideEffect = !defaultImport && !namespaceImport && namedImports.length === 0;
+
 	if (
+		!isSideEffect &&
 		(!namespaceImport || isUsedAsType(namespaceImport)) &&
 		(!defaultImport || isUsedAsType(defaultImport)) &&
 		namedImports.every(namedImport => isUsedAsType(namedImport.getNameNode()))
@@ -235,6 +239,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 				TranspilerErrorType.MissingModuleFile,
 			);
 		}
+	}
+
+	let result = "";
+	if (isSideEffect) {
+		return `${luaPath};\n`;
 	}
 
 	const lhs = new Array<string>();
@@ -265,12 +274,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		rhs.push("");
 	}
 
-	let result = "";
 	let rhsPrefix: string;
 	let hasVarNames = false;
 	const unlocalizedImports = new Array<string>();
 
-	node.getNamedImports()
+	namedImports
 		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
 		.forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
@@ -291,18 +299,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 			}
 		});
 
-	if (lhs.length === 0) {
-		return "";
-	}
-
 	if (rhs.length === 1 && !hasVarNames) {
 		rhsPrefix = luaPath;
 	} else {
-		if (hasVarNames || lhs.length > 0) {
-			rhsPrefix = state.getNewId();
-			result += `local ${rhsPrefix} = `;
-		}
-		result += `${luaPath};\n`;
+		rhsPrefix = state.getNewId();
+		result += `local ${rhsPrefix} = ${luaPath};\n`;
 	}
 
 	unlocalizedImports
