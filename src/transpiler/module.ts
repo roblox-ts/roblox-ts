@@ -207,9 +207,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	const defaultImport = node.getDefaultImport();
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
+
 	if (
 		(!namespaceImport || isUsedAsType(namespaceImport)) &&
 		(!defaultImport || isUsedAsType(defaultImport)) &&
+		namedImports.length > 0 &&
 		namedImports.every(namedImport => isUsedAsType(namedImport.getNameNode()))
 	) {
 		return "";
@@ -270,7 +272,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	let hasVarNames = false;
 	const unlocalizedImports = new Array<string>();
 
-	node.getNamedImports()
+	namedImports
 		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
 		.forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
@@ -290,10 +292,6 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 				unlocalizedImports.push(alias);
 			}
 		});
-
-	if (lhs.length === 0) {
-		return "";
-	}
 
 	if (rhs.length === 1 && !hasVarNames) {
 		rhsPrefix = luaPath;
