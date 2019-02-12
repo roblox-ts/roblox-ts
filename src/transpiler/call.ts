@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkApiAccess, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isTupleType, typeConstraint } from "../typeUtilities";
+import { isArrayType, isTupleReturnType, typeConstraint } from "../typeUtilities";
 import { checkNonAny } from "./security";
 
 const STRING_MACRO_METHODS = [
@@ -22,11 +22,14 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-export function transpileArguments(state: TranspilerState, args: Array<ts.Node>) {
+export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>) {
 	const argStrs = new Array<string>();
 	for (const arg of args) {
-		checkNonAny(arg);
-		argStrs.push(transpileExpression(state, arg as ts.Expression));
+		const expStr = transpileExpression(state, arg as ts.Expression);
+		if (!ts.TypeGuards.isSpreadElement(arg)) {
+			checkNonAny(arg);
+		}
+		argStrs.push(expStr);
 	}
 	return argStrs.join(", ");
 }
@@ -37,7 +40,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
 	} else if (ts.TypeGuards.isSuperExpression(exp)) {
-		let params = transpileArguments(state, node.getArguments());
+		let params = transpileCallArguments(state, node.getArguments());
 		if (params.length > 0) {
 			params = ", " + params;
 		}
@@ -49,9 +52,9 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		return `${className}.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
-		const params = transpileArguments(state, node.getArguments());
+		const params = transpileCallArguments(state, node.getArguments());
 		let result = `${callPath}(${params})`;
-		if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
+		if (!doNotWrapTupleReturn && isTupleReturnType(node)) {
 			result = `{ ${result} }`;
 		}
 		return result;
@@ -78,7 +81,7 @@ export function transpilePropertyCallExpression(
 	const subExpType = subExp.getType();
 	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	let params = transpileArguments(state, node.getArguments());
+	let params = transpileCallArguments(state, node.getArguments());
 
 	if (isArrayType(subExpType)) {
 		let paramStr = accessPath;
@@ -250,7 +253,7 @@ export function transpilePropertyCallExpression(
 	}
 
 	let result = `${accessPath}${sep}${property}(${params})`;
-	if (!doNotWrapTupleReturn && isTupleType(node.getReturnType())) {
+	if (!doNotWrapTupleReturn && isTupleReturnType(node)) {
 		result = `{ ${result} }`;
 	}
 	return result;

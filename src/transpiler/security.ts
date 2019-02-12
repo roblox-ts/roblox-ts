@@ -3,7 +3,7 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isAnyType } from "../typeUtilities";
-import { ScriptContext, yellow } from "../utility";
+import { bold, ScriptContext, yellow } from "../utility";
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
@@ -99,7 +99,7 @@ export const enum CompilerDirectives {
  * @param node JSDocable node to search
  * @param directives list of directives to search for
  */
-export function hasCompilerDirective(
+export function getCompilerDirective(
 	node: ts.Node,
 	directives: Array<CompilerDirectives>,
 ): CompilerDirectives | undefined {
@@ -122,7 +122,7 @@ export function hasCompilerDirective(
 		}
 		const parent = node.getParent();
 		if (parent) {
-			const result = hasCompilerDirective(parent, directives);
+			const result = getCompilerDirective(parent, directives);
 			if (result !== undefined) {
 				return result;
 			}
@@ -132,7 +132,10 @@ export function hasCompilerDirective(
 
 export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	if (state.scriptContext === ScriptContext.Server) {
-		if (hasCompilerDirective(node, [CompilerDirectives.Client])) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Client
+		) {
 			throw new TranspilerError(
 				"Server script attempted to access a client-only API!",
 				node,
@@ -140,7 +143,10 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 			);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
-		if (hasCompilerDirective(node, [CompilerDirectives.Server])) {
+		if (
+			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
+			CompilerDirectives.Server
+		) {
 			throw new TranspilerError(
 				"Client script attempted to access a server-only API!",
 				node,
@@ -150,19 +156,35 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	}
 }
 
-export function checkNonAny(node: ts.Node) {
+const debug = false;
+
+export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
-	if (!isInCatch && isAnyType(node.getType())) {
+	let type = node.getType();
+	if (type.isArray() && checkArrayType) {
+		const arrayType = type.getArrayType();
+		if (arrayType) {
+			type = arrayType;
+		}
+	}
+	if (!isInCatch && isAnyType(type)) {
+		if (debug) {
+			throw new Error();
+		}
 		const parent = node.getParent();
 		if (parent) {
 			throw new TranspilerError(
-				`${yellow(parent.getText())} is of type 'any' which is not supported! Use 'unknown' instead.`,
+				`${yellow(node.getText())} in ${yellow(parent.getText())} is of type ${bold(
+					"any",
+				)} which is not supported! Use type ${bold("unknown")} instead.`,
 				node,
 				TranspilerErrorType.NoAny,
 			);
 		} else {
 			throw new TranspilerError(
-				"Variables of type 'any' are not supported! Use 'unknown' instead.",
+				`${yellow(node.getText())} is of type ${bold("any")} which is not supported! Use type ${bold(
+					"unknown",
+				)} instead.`,
 				node,
 				TranspilerErrorType.NoAny,
 			);
@@ -174,7 +196,7 @@ export function checkReturnsNonAny(node: HasParameters) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	if (!isInCatch && isAnyType(node.getReturnType())) {
 		throw new TranspilerError(
-			"Functions with a return type of `any` are unsupported! Use `unknown` instead!",
+			`Functions with a return type of type ${bold("any")} are unsupported! Use type ${bold("unknown")} instead!`,
 			node,
 			TranspilerErrorType.NoAny,
 		);
