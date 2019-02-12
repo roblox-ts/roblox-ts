@@ -12,6 +12,11 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	const grandParent = parent.getParent();
 	const isExported = ts.TypeGuards.isVariableStatement(grandParent) && grandParent.isExported();
 
+	let decKind = ts.VariableDeclarationKind.Const;
+	if (ts.TypeGuards.isVariableDeclarationList(parent)) {
+		decKind = parent.getDeclarationKind();
+	}
+
 	let parentName = "";
 	if (isExported) {
 		parentName = state.getExportContextName(grandParent);
@@ -21,10 +26,9 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	if (
 		rhs &&
 		ts.TypeGuards.isNumericLiteral(rhs) &&
-		ts.TypeGuards.isVariableDeclarationList(parent) &&
 		grandParent.getParent() === grandParent.getSourceFile() &&
 		!isExported &&
-		parent.getDeclarationKind() === ts.VariableDeclarationKind.Const
+		decKind === ts.VariableDeclarationKind.Const
 	) {
 		const declarationName = node.getName();
 		checkReserved(declarationName, node);
@@ -64,9 +68,12 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		checkReserved(name, lhs);
 		if (rhs) {
 			const value = transpileExpression(state, rhs);
-			if (isExported) {
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					state.pushExport(name, grandParent);
+				}
 				if (ts.TypeGuards.isFunctionExpression(rhs) || ts.TypeGuards.isArrowFunction(rhs)) {
 					state.pushHoistStack(name);
 					result += state.indent + `${name} = ${value};\n`;
