@@ -22,20 +22,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		parentName = state.getExportContextName(grandParent);
 	}
 
-	// optimize foldable constant
-	if (
-		rhs &&
-		ts.TypeGuards.isNumericLiteral(rhs) &&
-		grandParent.getParent() === grandParent.getSourceFile() &&
-		!isExported &&
-		decKind === ts.VariableDeclarationKind.Const
-	) {
-		const declarationName = node.getName();
-		checkReserved(declarationName, node);
-		state.variableAliases.set(declarationName, transpileExpression(state, rhs));
-		return "";
-	}
-
 	// optimize tuple return
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 		const isFlatBinding = lhs
