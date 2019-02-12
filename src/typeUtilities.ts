@@ -104,7 +104,6 @@ export function isArrayType(type: ts.Type) {
 		const symbol = t.getSymbol();
 		if (symbol) {
 			for (const dec of symbol.getDeclarations()) {
-				console.log(dec.getText());
 				if (getCompilerDirective(dec, [CompilerDirectives.NotArray]) === CompilerDirectives.NotArray) {
 					return false;
 				}
@@ -131,5 +130,46 @@ export function isTupleReturnType(node: ts.CallExpression) {
 	if (isTupleType(node.getReturnType())) {
 		return true;
 	}
+	return false;
+}
+
+function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
+	while (descendant) {
+		if (ancestor === descendant) {
+			return true;
+		}
+		descendant = descendant.getParent();
+	}
+	return false;
+}
+
+export function isUsedBefore(ancestor: ts.Node, id: ts.Identifier) {
+	const refs = new Array<ts.Node>();
+	for (const refSymbol of id.findReferences()) {
+		for (const refEntry of refSymbol.getReferences()) {
+			if (refEntry.getSourceFile() === id.getSourceFile()) {
+				refs.push(refEntry.getNode());
+			}
+		}
+	}
+
+	const ancestorParent = ancestor.getParent();
+	const ancestorChildIndex = ancestor.getChildIndex();
+	for (const ref of refs) {
+		if (ref !== id) {
+			if (isAncestorOf(ancestor, ref)) {
+				return true;
+			} else {
+				let refAncestor: ts.Node | undefined = ref;
+				while (refAncestor && refAncestor.getParent() !== ancestorParent) {
+					refAncestor = refAncestor.getParent();
+				}
+				if (refAncestor && refAncestor.getChildIndex() < ancestorChildIndex) {
+					return true;
+				}
+			}
+		}
+	}
+
 	return false;
 }
