@@ -271,7 +271,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	const unlocalizedImports = new Array<string>();
 
 	node.getNamedImports()
-		.filter(namedImport => isUsedAsType(namedImport.getNameNode()))
+		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
 		.forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
 			const name = namedImport.getName();
