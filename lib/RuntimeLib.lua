@@ -6,7 +6,6 @@ local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
 local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
-local TYPE_INSTANCE = "Instance"
 
 local TS = {}
 
