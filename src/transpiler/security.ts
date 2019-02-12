@@ -156,9 +156,16 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	}
 }
 
-export function checkNonAny(node: ts.Node) {
+export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
-	if (!isInCatch && isAnyType(node.getType())) {
+	let type = node.getType();
+	if (type.isArray() && checkArrayType) {
+		const arrayType = type.getArrayType();
+		if (arrayType) {
+			type = arrayType;
+		}
+	}
+	if (!isInCatch && isAnyType(type)) {
 		const parent = node.getParent();
 		if (parent) {
 			throw new TranspilerError(
