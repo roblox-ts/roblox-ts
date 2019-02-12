@@ -25,10 +25,11 @@ const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", 
 export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>) {
 	const argStrs = new Array<string>();
 	for (const arg of args) {
+		const expStr = transpileExpression(state, arg as ts.Expression);
 		if (!ts.TypeGuards.isSpreadElement(arg)) {
 			checkNonAny(arg);
 		}
-		argStrs.push(transpileExpression(state, arg as ts.Expression));
+		argStrs.push(expStr);
 	}
 	return argStrs.join(", ");
 }
