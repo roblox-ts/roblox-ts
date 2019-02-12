@@ -13,7 +13,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { shouldHoist as shouldHoist } from "../typeUtilities";
+import { shouldHoist } from "../typeUtilities";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
