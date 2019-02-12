@@ -208,10 +208,12 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
 
+	const isSideEffect = !defaultImport && !namespaceImport && namedImports.length === 0;
+
 	if (
+		!isSideEffect &&
 		(!namespaceImport || isUsedAsType(namespaceImport)) &&
 		(!defaultImport || isUsedAsType(defaultImport)) &&
-		namedImports.length > 0 &&
 		namedImports.every(namedImport => isUsedAsType(namedImport.getNameNode()))
 	) {
 		return "";
@@ -237,6 +239,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 				TranspilerErrorType.MissingModuleFile,
 			);
 		}
+	}
+
+	let result = "";
+	if (isSideEffect) {
+		return `${luaPath};\n`;
 	}
 
 	const lhs = new Array<string>();
@@ -267,7 +274,6 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		rhs.push("");
 	}
 
-	let result = "";
 	let rhsPrefix: string;
 	let hasVarNames = false;
 	const unlocalizedImports = new Array<string>();
