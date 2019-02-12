@@ -53,10 +53,13 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				}
 			}
 			values.push(transpileCallExpression(state, rhs, true));
-			if (isExported) {
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				names = names.map(name => `${parentName}.${name}`);
 				return state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					names.forEach(name => state.pushExport(name, grandParent));
+				}
 				return state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 			}
 		}
@@ -100,10 +103,13 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		}
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
-			if (isExported) {
+			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				names = names.map(name => `${parentName}.${name}`);
 				result += state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
+				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
+					names.forEach(name => state.pushExport(name, grandParent));
+				}
 				result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 			}
 		} else if (!isExported) {
