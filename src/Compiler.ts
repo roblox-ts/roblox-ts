@@ -222,8 +222,10 @@ export class Compiler {
 		if (opts.allowSyntheticDefaultImports !== true) {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
-		if (opts.types === undefined || opts.types.indexOf("rbx-types") === -1) {
+		if (opts.types === undefined) {
 			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
+		} else if (opts.types.indexOf("rbx-types") === -1) {
+			errors.push(`${yellow(`"types"`)} must include ${yellow(`"rbx-types"`)}`);
 		}
 
 		// configurable compiler options
@@ -247,8 +249,8 @@ export class Compiler {
 			throw new CompilerError(
 				`Invalid "tsconfig.json" configuration!\n` +
 					"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
-					"\n" +
-					errors.map(e => "- " + e).join("\n"),
+					"\n- " +
+					errors.join("\n- "),
 				CompilerErrorType.BadTsConfig,
 			);
 		}
