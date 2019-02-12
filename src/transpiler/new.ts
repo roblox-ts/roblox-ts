@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { BUILT_INS, inheritsFromRoact, transpileArguments, transpileExpression } from ".";
+import { BUILT_INS, inheritsFromRoact, transpileCallArguments, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom } from "../typeUtilities";
@@ -18,7 +18,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 	const expressionType = expNode.getType();
 	let name = transpileExpression(state, expNode);
 	const args = node.getArguments() as Array<ts.Expression>;
-	const params = transpileArguments(state, args);
+	const params = transpileCallArguments(state, args);
 
 	if (inheritsFromRoact(expressionType)) {
 		throw new TranspilerError(

@@ -22,7 +22,7 @@ const STRING_MACRO_METHODS = [
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-export function transpileArguments(state: TranspilerState, args: Array<ts.Node>) {
+export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>) {
 	const argStrs = new Array<string>();
 	for (const arg of args) {
 		checkNonAny(arg);
@@ -37,7 +37,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
 	} else if (ts.TypeGuards.isSuperExpression(exp)) {
-		let params = transpileArguments(state, node.getArguments());
+		let params = transpileCallArguments(state, node.getArguments());
 		if (params.length > 0) {
 			params = ", " + params;
 		}
@@ -49,7 +49,7 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		return `${className}.constructor(${params})`;
 	} else {
 		const callPath = transpileExpression(state, exp);
-		const params = transpileArguments(state, node.getArguments());
+		const params = transpileCallArguments(state, node.getArguments());
 		let result = `${callPath}(${params})`;
 		if (!doNotWrapTupleReturn && isTupleReturnType(node)) {
 			result = `{ ${result} }`;
@@ -78,7 +78,7 @@ export function transpilePropertyCallExpression(
 	const subExpType = subExp.getType();
 	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	let params = transpileArguments(state, node.getArguments());
+	let params = transpileCallArguments(state, node.getArguments());
 
 	if (isArrayType(subExpType)) {
 		let paramStr = accessPath;

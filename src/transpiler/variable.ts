@@ -43,18 +43,20 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnType(rhs)) {
-			let names = new Array<string>();
+			const names = new Array<string>();
 			const values = new Array<string>();
 			for (const element of lhs.getElements()) {
 				if (ts.TypeGuards.isBindingElement(element)) {
-					names.push(element.getChildAtIndex(0).getText());
+					const nameNode = element.getNameNode();
+					if (ts.TypeGuards.isIdentifier(nameNode)) {
+						names.push(transpileExpression(state, nameNode));
+					}
 				} else if (ts.TypeGuards.isOmittedExpression(element)) {
 					names.push("_");
 				}
 			}
 			values.push(transpileCallExpression(state, rhs, true));
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				names = names.map(name => `${parentName}.${name}`);
 				return state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
@@ -89,7 +91,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		}
 	} else if ((ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) && rhs) {
 		// binding patterns MUST have rhs
-		let names = new Array<string>();
+		const names = new Array<string>();
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
@@ -104,7 +106,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				names = names.map(name => `${parentName}.${name}`);
 				result += state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {

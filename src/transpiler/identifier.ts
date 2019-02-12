@@ -45,7 +45,13 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 					if (!ts.TypeGuards.isArrowFunction(parent)) {
 						break;
 					}
-				} else if (!ts.TypeGuards.isVariableDeclarationList(parent) && !ts.TypeGuards.isIdentifier(parent)) {
+				} else if (
+					!ts.TypeGuards.isVariableDeclarationList(parent) &&
+					!ts.TypeGuards.isIdentifier(parent) &&
+					!ts.TypeGuards.isBindingElement(parent) &&
+					!ts.TypeGuards.isArrayBindingPattern(parent) &&
+					!ts.TypeGuards.isVariableDeclaration(parent)
+				) {
 					break;
 				}
 				parent = parent.getParent();
