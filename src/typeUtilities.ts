@@ -143,7 +143,7 @@ function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
 	return false;
 }
 
-export function isUsedBefore(ancestor: ts.Node, id: ts.Identifier) {
+export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 	const refs = new Array<ts.Node>();
 	for (const refSymbol of id.findReferences()) {
 		for (const refEntry of refSymbol.getReferences()) {

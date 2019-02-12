@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isTupleReturnType } from "../typeUtilities";
+import { isTupleReturnType, shouldHoist } from "../typeUtilities";
 
 export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
@@ -22,7 +22,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		parentName = state.getExportContextName(grandParent);
 	}
 
-	// If it is a foldable constant
+	// optimize foldable constant
 	if (
 		rhs &&
 		ts.TypeGuards.isNumericLiteral(rhs) &&
@@ -36,7 +36,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		return "";
 	}
 
-	// optimized tuple return
+	// optimize tuple return
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 		const isFlatBinding = lhs
 			.getElements()
@@ -79,7 +79,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					state.pushExport(name, grandParent);
 				}
-				if (ts.TypeGuards.isFunctionExpression(rhs) || ts.TypeGuards.isArrowFunction(rhs)) {
+				if (shouldHoist(grandParent, lhs)) {
 					state.pushHoistStack(name);
 					result += state.indent + `${name} = ${value};\n`;
 				} else {
@@ -87,7 +87,11 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				}
 			}
 		} else if (!isExported) {
-			result += state.indent + `local ${name};\n`;
+			if (shouldHoist(grandParent, lhs)) {
+				state.pushHoistStack(name);
+			} else {
+				result += state.indent + `local ${name};\n`;
+			}
 		}
 	} else if ((ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) && rhs) {
 		// binding patterns MUST have rhs
