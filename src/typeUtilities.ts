@@ -114,12 +114,12 @@ export function isArrayType(type: ts.Type) {
 		const symbol = t.getSymbol();
 		if (symbol) {
 			for (const dec of symbol.getDeclarations()) {
-				if (getCompilerDirective(dec, [CompilerDirectives.NotArray]) === CompilerDirectives.NotArray) {
-					return false;
+				if (getCompilerDirective(dec, [CompilerDirectives.Array]) === CompilerDirectives.Array) {
+					return true;
 				}
 			}
 		}
-		return t.getArrayType() !== undefined || (t.getNumberIndexType() !== undefined && !isEnumType(t));
+		return t.isArray();
 	});
 }
 
