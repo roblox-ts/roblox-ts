@@ -185,7 +185,8 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
 				const expStr = transpileExpression(state, propNameNode);
 				propStr = `[${expStr}]`;
-			} else { // ComputedPropertyName
+			} else {
+				// ComputedPropertyName
 				const computedExp = propNameNode.getExpression();
 				if (ts.TypeGuards.isStringLiteral(computedExp)) {
 					checkMethodReserved(computedExp.getLiteralText(), prop);
@@ -242,13 +243,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		result += state.indent + `end;\n`;
 	}
 
-	result += transpileConstructorDeclaration(
-		state,
-		id,
-		getConstructor(node),
-		extraInitializers,
-		hasSuper,
-	);
+	result += transpileConstructorDeclaration(state, id, getConstructor(node), extraInitializers, hasSuper);
 
 	for (const prop of node.getStaticProperties()) {
 		const propNameNode = prop.getNameNode();
@@ -265,7 +260,8 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
 				const expStr = transpileExpression(state, propNameNode);
 				propStr = `[${expStr}]`;
-			} else { // ComputedPropertyName
+			} else {
+				// ComputedPropertyName
 				const computedExp = propNameNode.getExpression();
 				if (ts.TypeGuards.isStringLiteral(computedExp)) {
 					checkMethodReserved(computedExp.getLiteralText(), prop);
