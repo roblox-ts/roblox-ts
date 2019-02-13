@@ -45,6 +45,6 @@ local TestEZ = habitat:require(testEZFolder)
 local results = TestEZ.TestBootstrap:run({ outFolder }, TestEZ.Reporters.TextReporter)
 
 -- Did something go wrong?
-if results.failureCount > 0 then
+if #results.errors > 0 or results.failureCount > 0 then
 	os.exit(1)
 end
