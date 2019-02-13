@@ -142,8 +142,8 @@ if (argv.watch === true) {
 		.on("unlink", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("Remove", filePath);
-				compiler.removeFile(filePath);
+				console.log("remove", filePath);
+				await compiler.removeFile(filePath);
 				isCompiling = false;
 			}
 		});
