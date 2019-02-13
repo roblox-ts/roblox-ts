@@ -1,6 +1,16 @@
 import * as ts from "ts-morph";
 import { CompilerDirectives, getCompilerDirective } from "./transpiler";
 
+export function isTypeStatement(node: ts.Node) {
+	return (
+		ts.TypeGuards.isEmptyStatement(node) ||
+		ts.TypeGuards.isTypeReferenceNode(node) ||
+		ts.TypeGuards.isTypeAliasDeclaration(node) ||
+		ts.TypeGuards.isInterfaceDeclaration(node) ||
+		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+	);
+}
+
 export function isType(node: ts.Node) {
 	return (
 		ts.TypeGuards.isEmptyStatement(node) ||
