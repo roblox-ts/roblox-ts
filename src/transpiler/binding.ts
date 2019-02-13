@@ -90,7 +90,8 @@ export function getBindingData(
 				ts.TypeGuards.isBindingElement(child) ||
 				ts.TypeGuards.isOmittedExpression(child) ||
 				ts.TypeGuards.isIdentifier(child) ||
-				ts.TypeGuards.isArrayLiteralExpression(child),
+				ts.TypeGuards.isArrayLiteralExpression(child) ||
+				ts.TypeGuards.isPropertyAccessExpression(child),
 		);
 	let childIndex = 1;
 	for (const item of listItems) {
@@ -133,6 +134,10 @@ export function getBindingData(
 				values.push(`${parentId}[${key}]`);
 			}
 		} else if (ts.TypeGuards.isIdentifier(item)) {
+			const id = transpileExpression(state, item as ts.Expression);
+			names.push(id);
+			values.push(`${parentId}[${childIndex}]`);
+		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
 			const id = transpileExpression(state, item as ts.Expression);
 			names.push(id);
 			values.push(`${parentId}[${childIndex}]`);
