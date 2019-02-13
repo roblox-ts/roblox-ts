@@ -202,7 +202,7 @@ export function transpileConstructorDeclaration(
 	className: string,
 	node?: ts.ConstructorDeclaration,
 	extraInitializers?: Array<string>,
-	hasInstanceInheritance?: boolean,
+	hasSuper?: boolean,
 ) {
 	const paramNames = new Array<string>();
 	paramNames.push("self");
@@ -254,7 +254,7 @@ export function transpileConstructorDeclaration(
 			}
 		}
 	} else {
-		if (hasInstanceInheritance) {
+		if (hasSuper) {
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {

@@ -109,10 +109,12 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	}
 	state.pushIndent();
 
+	let hasSuper = false;
 	const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
 	if (extendsClause) {
 		const typeNode = extendsClause.getTypeNodes()[0];
 		if (typeNode) {
+			hasSuper = true;
 			const baseClassName = transpileExpression(state, typeNode.getExpression());
 			result += state.indent + `local super = ${baseClassName};\n`;
 		}
@@ -120,36 +122,13 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 	const id = name;
 	let hasStaticMembers = false;
-	let hasStaticInheritance = false;
-	let hasInstanceInheritance = false;
-	let currentBaseClass = node.getBaseClass();
-
-	while (currentBaseClass) {
-		if (
-			currentBaseClass.getStaticMembers().length > 0 ||
-			currentBaseClass.getStaticProperties().length > 0 ||
-			currentBaseClass.getStaticMethods().length > 0
-		) {
-			hasStaticInheritance = true;
-		}
-
-		if (
-			currentBaseClass.getInstanceMembers().length > 0 ||
-			currentBaseClass.getInstanceProperties().length > 0 ||
-			currentBaseClass.getInstanceMethods().length > 0
-		) {
-			hasInstanceInheritance = true;
-		}
-
-		currentBaseClass = currentBaseClass.getBaseClass();
-	}
 
 	let prefix = "";
 	if (isExpression) {
 		prefix = `local `;
 	}
 
-	if (hasStaticInheritance) {
+	if (hasSuper) {
 		result += state.indent + prefix + `${id} = setmetatable({`;
 	} else {
 		result += state.indent + prefix + `${id} = {`;
@@ -169,13 +148,13 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 	state.popIndent();
 
-	if (hasStaticInheritance) {
-		result += `${hasStaticMembers ? state.indent : ""}}, {__index = super});\n`;
+	if (hasSuper) {
+		result += `${hasStaticMembers ? state.indent : ""}}, { __index = super });\n`;
 	} else {
 		result += `${hasStaticMembers ? state.indent : ""}};\n`;
 	}
 
-	if (hasInstanceInheritance) {
+	if (hasSuper) {
 		result += state.indent + `${id}.__index = setmetatable({`;
 	} else {
 		result += state.indent + `${id}.__index = {`;
@@ -217,7 +196,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 	state.popIndent();
 
-	if (hasInstanceInheritance) {
+	if (hasSuper) {
 		result += `${hasIndexMembers ? state.indent : ""}}, super);\n`;
 	} else {
 		result += `${hasIndexMembers ? state.indent : ""}};\n`;
@@ -249,7 +228,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		id,
 		getConstructor(node),
 		extraInitializers,
-		hasInstanceInheritance,
+		hasSuper,
 	);
 
 	for (const prop of node.getStaticProperties()) {
