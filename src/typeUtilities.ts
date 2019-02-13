@@ -152,7 +152,11 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 	for (const refSymbol of id.findReferences()) {
 		for (const refEntry of refSymbol.getReferences()) {
 			if (refEntry.getSourceFile() === id.getSourceFile()) {
-				refs.push(refEntry.getNode());
+				let refNode = refEntry.getNode();
+				if (ts.TypeGuards.isVariableDeclaration(refNode)) {
+					refNode = refNode.getNameNode();
+				}
+				refs.push(refNode);
 			}
 		}
 	}
