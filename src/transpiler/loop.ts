@@ -430,7 +430,7 @@ function getSimpleForLoopString(
 ) {
 	let result = "";
 	state.popIndent();
-	const first = transpileVariableDeclarationList(state, initializer, true)
+	const first = transpileVariableDeclarationList(state, initializer)
 		.trim()
 		.replace(/^local /, "")
 		.replace(/;$/, "");
