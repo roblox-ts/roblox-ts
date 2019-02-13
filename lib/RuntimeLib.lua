@@ -276,7 +276,9 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		callback(list[i], i - 1, list)
+		if list[i] ~= nil then
+			callback(list[i], i - 1, list)
+		end
 	end
 end
 
