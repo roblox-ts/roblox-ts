@@ -144,6 +144,10 @@ function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
 }
 
 export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
+	if (ts.TypeGuards.isForStatement(ancestor)) {
+		return false;
+	}
+
 	const refs = new Array<ts.Node>();
 	for (const refSymbol of id.findReferences()) {
 		for (const refEntry of refSymbol.getReferences()) {

@@ -366,7 +366,7 @@ function getSignAndValueInForStatement(
 	return [sign, forIntervalStr];
 }
 
-export function getLimitInForStatement(
+function getLimitInForStatement(
 	state: TranspilerState,
 	condition: ts.Expression<ts.ts.Expression>,
 	lhs: ts.Identifier,
@@ -403,7 +403,7 @@ export function getLimitInForStatement(
 	return ["", undefined];
 }
 
-export function safelyHandleExpressionsInForStatement(
+function safelyHandleExpressionsInForStatement(
 	state: TranspilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
@@ -422,14 +422,19 @@ export function safelyHandleExpressionsInForStatement(
 	return state.indent + incrementorStr;
 }
 
-export function getSimpleForLoopString(
+function getSimpleForLoopString(
 	state: TranspilerState,
-	first: string,
+	initializer: ts.VariableDeclarationList,
 	forLoopVars: string,
 	statement: ts.Statement<ts.ts.Statement>,
 ) {
 	let result = "";
 	state.popIndent();
+	const first = transpileVariableDeclarationList(state, initializer)
+		.trim()
+		.replace(/^local /, "")
+		.replace(/;$/, "");
+
 	result = state.indent + `for ${first}, ${forLoopVars} do\n`;
 	state.pushIndent();
 	result += transpileLoopBody(state, statement);
@@ -498,10 +503,6 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 						if (rhs) {
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
-								let first = transpileVariableDeclarationList(state, initializer).trim();
-								// skip ahead of local, and remove ending ;
-								first = first.substr(6, first.length - 7);
-
 								if (expressionModifiesVariable(incrementor, lhs)) {
 									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);
 									if (incrSign) {
@@ -510,12 +511,22 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 											if (incrSign === "+" && condSign === "<=") {
 												const forLoopVars =
 													condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
-												return getSimpleForLoopString(state, first, forLoopVars, statement);
+												return getSimpleForLoopString(
+													state,
+													initializer,
+													forLoopVars,
+													statement,
+												);
 											} else if (incrSign === "-" && condSign === ">=") {
 												incrValue = (incrSign + incrValue).replace("--", "");
 												incrSign = "";
 												const forLoopVars = condValue.getText() + ", " + incrValue;
-												return getSimpleForLoopString(state, first, forLoopVars, statement);
+												return getSimpleForLoopString(
+													state,
+													initializer,
+													forLoopVars,
+													statement,
+												);
 											}
 										}
 									}
