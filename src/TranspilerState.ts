@@ -82,9 +82,9 @@ export class TranspilerState {
 	}
 
 	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
-	// For example, this is used for numeric literal constants
-	// and exported/namespace values which should be represented
-	// differently in Lua than they can be represented in TS
+	// For example, this is used for  exported/namespace values
+	// which should be represented differently in Lua than they
+	// can be represented in TS
 	public variableAliases = new Map<string, string>();
 
 	public getAlias(name: string) {

@@ -498,8 +498,9 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 						if (rhs) {
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
-								let first = transpileVariableDeclarationList(state, initializer);
-								first = first.substr(7, first.length - 9);
+								let first = transpileVariableDeclarationList(state, initializer).trim();
+								// skip ahead of local, and remove ending ;
+								first = first.substr(6, first.length - 7);
 
 								if (expressionModifiesVariable(incrementor, lhs)) {
 									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);

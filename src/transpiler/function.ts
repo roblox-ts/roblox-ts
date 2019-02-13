@@ -10,7 +10,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isTupleType } from "../typeUtilities";
+import { isTupleType, shouldHoist } from "../typeUtilities";
 import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -80,8 +80,18 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 	let result: string;
 	let backWrap = "";
 
+	let prefix = "";
+	if (ts.TypeGuards.isFunctionDeclaration(node)) {
+		const nameNode = node.getNameNode();
+		if (nameNode && shouldHoist(node, nameNode)) {
+			state.pushHoistStack(name);
+		} else {
+			prefix = "local ";
+		}
+	}
+
 	if (name) {
-		result = state.indent + name + " = ";
+		result = state.indent + prefix + name + " = ";
 		backWrap = ";\n";
 	} else {
 		result = "";
@@ -162,7 +172,6 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 
 	if (body) {
 		state.pushExport(name, node);
-		state.pushHoistStack(name);
 		return transpileFunction(state, node, name, body);
 	} else {
 		return "";
