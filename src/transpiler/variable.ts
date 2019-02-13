@@ -4,7 +4,11 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { isTupleReturnType, shouldHoist } from "../typeUtilities";
 
-export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
+export function transpileVariableDeclaration(
+	state: TranspilerState,
+	node: ts.VariableDeclaration,
+	dontHoist: boolean = false,
+) {
 	const lhs = node.getNameNode();
 	const rhs = node.getInitializer();
 
@@ -65,7 +69,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					state.pushExport(name, grandParent);
 				}
-				if (shouldHoist(grandParent, lhs)) {
+				if (!dontHoist && shouldHoist(grandParent, lhs)) {
 					state.pushHoistStack(name);
 					result += state.indent + `${name} = ${value};\n`;
 				} else {
@@ -73,7 +77,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				}
 			}
 		} else if (!isExported) {
-			if (shouldHoist(grandParent, lhs)) {
+			if (!dontHoist && shouldHoist(grandParent, lhs)) {
 				state.pushHoistStack(name);
 			} else {
 				result += state.indent + `local ${name};\n`;
@@ -112,7 +116,11 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	return result;
 }
 
-export function transpileVariableDeclarationList(state: TranspilerState, node: ts.VariableDeclarationList) {
+export function transpileVariableDeclarationList(
+	state: TranspilerState,
+	node: ts.VariableDeclarationList,
+	dontHoist: boolean = false,
+) {
 	const declarationKind = node.getDeclarationKind();
 	if (declarationKind === ts.VariableDeclarationKind.Var) {
 		throw new TranspilerError(
@@ -124,12 +132,16 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 
 	let result = "";
 	for (const declaration of node.getDeclarations()) {
-		result += transpileVariableDeclaration(state, declaration);
+		result += transpileVariableDeclaration(state, declaration, dontHoist);
 	}
 	return result;
 }
 
-export function transpileVariableStatement(state: TranspilerState, node: ts.VariableStatement) {
+export function transpileVariableStatement(
+	state: TranspilerState,
+	node: ts.VariableStatement,
+	dontHoist: boolean = false,
+) {
 	const list = node.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
-	return transpileVariableDeclarationList(state, list);
+	return transpileVariableDeclarationList(state, list, dontHoist);
 }
