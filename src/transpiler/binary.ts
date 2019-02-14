@@ -24,10 +24,10 @@ function getLuaBitExpression(
 	node: ts.BinaryExpression,
 	lhsStr: string,
 	rhsStr: string,
-	name: string,
+	bitMethodName: string,
 ) {
 	state.usesTSLibrary = true;
-	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
+	return `TS.b${bitMethodName}(${lhsStr}, ${rhsStr})`;
 }
 
 function getLuaAddExpression(
