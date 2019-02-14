@@ -321,21 +321,102 @@ export = () => {
 		expect(array1[4]).to.equal(4);
 	});
 
-	it("should support flat", () => {
+	it("should support flat and tostring", () => {
 		const arr1 = [1, 2, [3, 4]];
-		arr1.flat();
-		// [1, 2, 3, 4]
+		const x = arr1.flat();
+		expect(x[0]).to.equal(1);
+		expect(x[1]).to.equal(2);
+		expect(x[2]).to.equal(3);
+		expect(x[3]).to.equal(4);
 
 		const arr2 = [1, 2, [3, 4, [5, 6]]];
-		arr2.flat(1);
+		const y = arr1.flat(1);
+		expect(y[0]).to.equal(1);
+		expect(y[1]).to.equal(2);
+		expect(y[2]).to.equal(3);
+		expect(y[3]).to.equal(4);
+		expect(y[4][0]).to.equal(5);
+		expect(y[4][1]).to.equal(6);
 		// [1, 2, 3, 4, [5, 6]]
 
 		const arr3 = [1, 2, [3, 4, [5, 6]]];
-		arr3.flat(2);
+		const z = arr3.flat(2);
+
+		expect(z[0]).to.equal(1);
+		expect(z[1]).to.equal(2);
+		expect(z[2]).to.equal(3);
+		expect(z[3]).to.equal(4);
+		expect(z[4]).to.equal(5);
+		expect(z[5]).to.equal(6);
 		// [1, 2, 3, 4, 5, 6]
 
 		const arr4 = [1, 2, , 4, 5];
-		arr4.flat();
+		const a = arr4.flat();
 		// [1, 2, 4, 5]
+		expect(z[0]).to.equal(1);
+		expect(z[1]).to.equal(2);
+		expect(z[2]).to.equal(4);
+		expect(z[3]).to.equal(5);
+	});
+
+	it("should support copyWithin", () => {
+		const array1 = ["a", "b", "c", "d", "e"];
+
+		// copy to index 0 the element at index 3
+		array1.copyWithin(0, 3, 4);
+		// expected output: Array ["d", "b", "c", "d", "e"]
+		expect(array1[0]).to.equal("d");
+		expect(array1[1]).to.equal("b");
+		expect(array1[2]).to.equal("c");
+		expect(array1[3]).to.equal("d");
+		expect(array1[4]).to.equal("e");
+
+		// copy to index 1 all elements from index 3 to the end
+		array1.copyWithin(1, 3);
+		// expected output: Array ["d", "d", "e", "d", "e"]
+
+		expect(array1[0]).to.equal("d");
+		expect(array1[1]).to.equal("d");
+		expect(array1[2]).to.equal("e");
+		expect(array1[3]).to.equal("d");
+		expect(array1[4]).to.equal("e");
+
+		const a = [1, 2, 3, 4, 5].copyWithin(-2);
+		// [1, 2, 3, 1, 2]
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(3);
+		expect(a[3]).to.equal(1);
+		expect(a[4]).to.equal(2);
+
+		const b = [1, 2, 3, 4, 5].copyWithin(0, 3);
+		// [4, 5, 3, 4, 5]
+		expect(b[0]).to.equal(4);
+		expect(b[1]).to.equal(5);
+		expect(b[2]).to.equal(3);
+		expect(b[3]).to.equal(4);
+		expect(b[4]).to.equal(5);
+
+		const c = [1, 2, 3, 4, 5].copyWithin(0, 3, 4);
+		// [4, 2, 3, 4, 5]
+		expect(c[0]).to.equal(4);
+		expect(c[1]).to.equal(2);
+		expect(c[2]).to.equal(3);
+		expect(c[3]).to.equal(4);
+		expect(c[4]).to.equal(5);
+
+		const d = [1, 2, 3, 4, 5].copyWithin(-2, -3, -1);
+		// [1, 2, 3, 3, 4]
+		expect(c[0]).to.equal(1);
+		expect(c[1]).to.equal(2);
+		expect(c[2]).to.equal(3);
+		expect(c[3]).to.equal(3);
+		expect(c[4]).to.equal(4);
+	});
+
+	it("should support toString", () => {
+		const x = [1, 2, 3];
+		expect([1, 2, 4].toString()).never.to.throw();
+		expect(typeof x.toString()).to.equal("string");
 	});
 };

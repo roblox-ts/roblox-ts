@@ -2,21 +2,45 @@ import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isRbxService } from "../typeUtilities";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
-const IMP_STR = `local TS = require(
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("RobloxTS")
-		:WaitForChild("Include")
-		:WaitForChild("RuntimeLib")
-);\n`;
-
+// import { yellow } from "../utility";
 export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
 
-	let result = "";
-	result += transpileStatementedNode(state, node);
+	const serviceImports = new Array<[ts.ImportDeclaration, number]>();
+	const nonServiceImports = new Array<[ts.ImportDeclaration, number]>();
+
+	const importDeclarations = node.getImportDeclarations();
+
+	for (let i = 0; i < importDeclarations.length; i++) {
+		const importDeclaration = importDeclarations[i];
+		if (importDeclaration.getNamedImports().some(namedImport => isRbxService(namedImport.getType().getText()))) {
+			serviceImports.push([importDeclaration, i]);
+		} else {
+			nonServiceImports.push([importDeclaration, i]);
+		}
+	}
+
+	// Switch imports with an RbxService type to the top
+	if (serviceImports.length > 0 && nonServiceImports.length > 0) {
+		serviceImports.sort((a, b) => a[1] - b[1]);
+		nonServiceImports.sort((a, b) => a[1] - b[1]);
+
+		const limit = Math.min(nonServiceImports.length, serviceImports.length);
+
+		for (let i = 0; i < limit; i++) {
+			const a = nonServiceImports[i][0].getText();
+			const b = serviceImports[i][0].getText();
+
+			nonServiceImports[i][0].replaceWithText(b);
+			serviceImports[i][0].replaceWithText(a);
+		}
+	}
+
+	let result = transpileStatementedNode(state, node);
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {
 			throw new TranspilerError(
@@ -52,7 +76,15 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 		}
 	}
 	if (state.usesTSLibrary) {
-		result = state.indent + IMP_STR + result;
+		result =
+			state.indent +
+			`local TS = require(
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("RobloxTS")
+		:WaitForChild("Include")
+		:WaitForChild("RuntimeLib")
+);\n` +
+			result;
 	}
 	return result;
 }

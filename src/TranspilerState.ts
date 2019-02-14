@@ -1,55 +1,11 @@
 import * as ts from "ts-morph";
+import { RbxService } from "./typeUtilities";
 import { ScriptContext } from "./utility";
 
 interface Partition {
 	dir: ts.Directory;
 	target: string;
 }
-
-export const RBX_SERVICES = [
-	"AssetService",
-	"BadgeService",
-	"Chat",
-	"CollectionService",
-	"ContentProvider",
-	"ContextActionService",
-	"DataStoreService",
-	"Debris",
-	"GamePassService",
-	"GroupService",
-	"GuiService",
-	"HapticService",
-	"HttpService",
-	"InsertService",
-	"KeyframeSequenceProvider",
-	"Lighting",
-	"LocalizationService",
-	"LogService",
-	"MarketplaceService",
-	"PathfindingService",
-	"PhysicsService",
-	"Players",
-	"PointsService",
-	"ReplicatedFirst",
-	"ReplicatedStorage",
-	"RunService",
-	"ScriptContext",
-	"Selection",
-	"ServerScriptService",
-	"ServerStorage",
-	"SoundService",
-	"StarterGui",
-	"StarterPlayer",
-	"Stats",
-	"Teams",
-	"TeleportService",
-	"TestService",
-	"TextService",
-	"TweenService",
-	"UserInputService",
-	"VRService",
-	"Workspace",
-];
 
 export class TranspilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
@@ -159,18 +115,36 @@ export class TranspilerState {
 	public hasRoactImport: boolean = false;
 	public usesTSLibrary = false;
 
-	public getService(serviceType: string, node: ts.Node) {
-		// get ancestor immediately inside the SourceFile
+	public getService(serviceType: RbxService, state: TranspilerState, node: ts.Node) {
 		const source = node.getSourceFile();
-		let parent = node.getParent();
+		// get parent to be the ancestor immediately inside the SourceFile
+		let parent: ts.Node | undefined = node;
+
+		let encounteredNonExpression = false;
+		const generations = new Array<[Array<ts.Node<ts.ts.Node>>, ts.Node<ts.ts.Node> | undefined]>();
 
 		while (parent) {
-			const next = parent.getParent();
+			const next: ts.Node | undefined = parent.getParent();
+
 			if (next === source) {
 				break;
 			}
+
+			const previousSiblings = parent.getPreviousSiblings();
+			const isExpression = ts.TypeGuards.isExpression(parent);
+			if (encounteredNonExpression || !isExpression) {
+				if (!isExpression) {
+					encounteredNonExpression = true;
+				}
+				if (previousSiblings.length > 0) {
+					generations.push([previousSiblings, next]);
+				}
+			}
+
 			parent = next;
 		}
+
+		let alias: string | undefined;
 
 		if (parent) {
 			for (const sibling of parent.getPreviousSiblings()) {
@@ -179,17 +153,52 @@ export class TranspilerState {
 					for (const declaration of list.getDeclarations()) {
 						const lhs = declaration.getNameNode();
 						if (ts.TypeGuards.isIdentifier(lhs) && declaration.getType().getText() === serviceType) {
-							return lhs.getText();
+							alias = this.getAlias(lhs.getText());
 						}
 					}
 				} else if (ts.TypeGuards.isImportDeclaration(sibling)) {
-					console.log(sibling.getText());
+					for (const namedImport of sibling.getNamedImports()) {
+						if (namedImport.getType().getText() === serviceType) {
+							const aliasNode = namedImport.getAliasNode();
+							alias = aliasNode ? aliasNode.getText() : namedImport.getName();
+						}
+					}
 				}
 			}
 		}
 
-		const id = "_0" + serviceType;
-		this.hoistStack[0].add(`local ${id} = game:GetService("${serviceType}")`);
-		return id;
+		const id = "___" + serviceType;
+		const localize = `local ${id} = game:GetService("${serviceType}")`;
+
+		// intentionally unsophisticated
+		//
+		for (const generation of generations) {
+			const previousSiblings = generation[0];
+			const next = generation[1];
+			for (const element of previousSiblings) {
+				for (const identifier of element.getDescendantsOfKind(ts.SyntaxKind.Identifier)) {
+					for (const def of identifier.getDefinitions()) {
+						const definition = def.getNode();
+
+						// if a variable overshadows alias
+						if (next && definition.getText() === alias) {
+							if (definition.getAncestors().some(ancestor => ancestor === next)) {
+								this.hoistStack[0].add(localize);
+								return id;
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (alias) {
+			return alias;
+		} else {
+			// Pick a reserved id that won't conflict due to out-of-order compilation
+			// Generates the same id for the same serviceType every time
+			this.hoistStack[0].add(localize);
+			return id;
+		}
 	}
 }

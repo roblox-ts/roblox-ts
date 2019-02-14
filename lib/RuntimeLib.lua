@@ -94,7 +94,7 @@ function TS.import(module, ...)
 
 		if data == nil then
 			-- If called from command bar, use table as a reference (this is never concatenated)
-			local caller = getfenv(0).script or { Name = "Command bar" }
+			local caller = getfenv(0).script or {Name = "Command bar"}
 			currentlyLoading[caller] = module
 
 			-- Check to see if a case like this occurs:
@@ -161,7 +161,6 @@ function TS.typeIs(value, typeName)
 end
 
 function TS.instanceof(obj, class)
-
 	-- custom Class.instanceof() check
 	if typeof(class) == TYPE_TABLE and typeof(class.instanceof) == TYPE_FUNCTION then
 		return class.instanceof(obj)
@@ -223,18 +222,32 @@ function TS.add(a, b)
 	end
 end
 
-function TS.round(a)
+local math_ceil = math.ceil
+local math_floor = math.floor
+
+local function bit_truncate(a)
 	if a < 0 then
-		return math.ceil(a)
+		return math_ceil(a)
 	else
-		return math.floor(a)
+		return math_floor(a)
 	end
 end
 
--- bitwise operations
+TS.round = bit_truncate
+TS.bit_truncate = bit_truncate
 
+-- bitwise operations
+local pow_of_two = setmetatable({}, {
+	__index = function(self, i)
+		local v = 2 ^ i
+		self[i] = v
+		return v
+	end;
+})
+
+local _2_52 = pow_of_two[52]
 local function bitop(a, b, oper)
-	local r, m, s = 0, 2^52
+	local r, m, s = 0, _2_52
 	repeat
 		s, a, b = a + b + m, a % m, b % m
 		r, m = r + m * oper % (s - a - b), m / 2
@@ -243,41 +256,42 @@ local function bitop(a, b, oper)
 end
 
 function TS.bor(a, b)
-	a = TS.round(tonumber(a))
-	b = TS.round(tonumber(b))
+	a = bit_truncate(tonumber(a))
+	b = bit_truncate(tonumber(b))
 	return bitop(a, b, 1)
 end
 
 function TS.band(a, b)
-	a = TS.round(tonumber(a))
-	b = TS.round(tonumber(b))
+	a = bit_truncate(tonumber(a))
+	b = bit_truncate(tonumber(b))
 	return bitop(a, b, 4)
 end
 
 function TS.bxor(a, b)
-	a = TS.round(tonumber(a))
-	b = TS.round(tonumber(b))
+	a = bit_truncate(tonumber(a))
+	b = bit_truncate(tonumber(b))
 	return bitop(a, b, 3)
 end
 
 function TS.blsh(a, b)
-	a = TS.round(tonumber(a))
-	b = TS.round(tonumber(b))
-	return a * 2 ^ b
+	a = bit_truncate(tonumber(a))
+	b = bit_truncate(tonumber(b))
+	return a * pow_of_two[b]
 end
 
 function TS.brsh(a, b)
-	a = TS.round(tonumber(a))
-	b = TS.round(tonumber(b))
-	return TS.round(a / 2 ^ b)
+	a = bit_truncate(tonumber(a))
+	b = bit_truncate(tonumber(b))
+	return bit_truncate(a / pow_of_two[b])
 end
 
 -- array macro functions
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		if list[i] ~= nil then
-			callback(list[i], i - 1, list)
+		local v = list[i]
+		if v ~= nil then
+			callback(v, i - 1, list)
 		end
 	end
 end
@@ -285,7 +299,10 @@ end
 function TS.array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
-		result[i] = callback(list[i], i - 1, list)
+		local v = list[i]
+		if v ~= nil then
+			result[i] = callback(v, i - 1, list)
+		end
 	end
 	return result
 end
@@ -294,7 +311,7 @@ function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
 		local v = list[i]
-		if callback(v, i - 1, list) == true then
+		if v ~= nil and callback(v, i - 1, list) == true then
 			result[#result + 1] = v
 		end
 	end
@@ -319,10 +336,10 @@ end
 
 function TS.array_slice(list, startI, endI)
 	local length = #list
-	if not startI then
+	if startI == nil then
 		startI = 0
 	end
-	if not endI then
+	if endI == nil then
 		endI = length
 	end
 	if startI < 0 then
@@ -343,20 +360,33 @@ end
 function TS.array_splice(list, start, deleteCount, ...)
 	local len = #list
 	local actualStart
-	if start <  0 then
-		actualStart = math.max(len + start, 0)
+	if start < 0 then
+		actualStart = len + start
+		if actualStart < 0 then
+			actualStart = 0
+		end
 	else
-		actualStart = math.min(start, len)
+		if start < len then
+			actualStart = start
+		else
+			actualStart = len
+		end
 	end
 	local items = { ... }
 	local itemCount = #items
 	local actualDeleteCount
-	if not start then
+	if start == nil then
 		actualDeleteCount = 0
-	elseif not deleteCount then
+	elseif deleteCount == nil then
 		actualDeleteCount = len - actualStart
 	else
-		actualDeleteCount = math.min(math.max(deleteCount, 0), len - actualStart)
+		if deleteCount < 0 then
+			deleteCount = 0
+		end
+		actualDeleteCount = len - actualStart
+		if deleteCount < actualDeleteCount then
+			actualDeleteCount = deleteCount
+		end
 	end
 	local out = {}
 	local k = 0
@@ -412,7 +442,8 @@ end
 
 function TS.array_some(list, callback)
 	for i = 1, #list do
-		if callback(list[i], i - 1, list) == true then
+		local v = list[i]
+		if v ~= nil and callback(v, i - 1, list) == true then
 			return true
 		end
 	end
@@ -421,7 +452,8 @@ end
 
 function TS.array_every(list, callback)
 	for i = 1, #list do
-		if callback(list[i], i - 1, list) == false then
+		local v = list[i]
+		if v ~= nil and callback(v, i - 1, list) == false then
 			return false
 		end
 	end
@@ -457,40 +489,43 @@ end
 function TS.array_reverse(list)
 	local result = {}
 	local length = #list
+	local n = length + 1
 	for i = 1, length do
-		result[i] = list[length - i + 1]
+		result[i] = list[n - i]
 	end
 	return result
 end
 
 function TS.array_reduce(list, callback, initialValue)
 	local start = 1
-	if not initialValue then
+	if initialValue == nil then
 		initialValue = list[start]
-		start = start + 1
+		start = 2
 	end
 	local accumulator = initialValue
 	for i = start, #list do
-		accumulator = callback(accumulator, list[i], i)
+		local v = list[i]
+		if v ~= nil then
+			accumulator = callback(accumulator, v, i)
+		end
 	end
 	return accumulator
 end
 
 function TS.array_reduceRight(list, callback, initialValue)
 	local start = #list
-	if not initialValue then
+	if initialValue == nil then
 		initialValue = list[start]
 		start = start - 1
 	end
 	local accumulator = initialValue
 	for i = start, 1, -1 do
-		accumulator = callback(accumulator, list[i], i)
+		local v = list[i]
+		if v ~= nil then
+			accumulator = callback(accumulator, v, i)
+		end
 	end
 	return accumulator
-end
-
-function TS.array_shift(list)
-	return table.remove(list, 1)
 end
 
 function TS.array_unshift(list, ...)
@@ -535,24 +570,21 @@ function TS.array_pop(list)
 	return lastValue
 end
 
+local table_concat = table.concat
+
 function TS.array_join(list, separator)
-	if #list == 0 then
-		return ""
+	local result = {}
+	for i = 1, #list do
+		result[i] = tostring(list[i])
 	end
-	if not separator then
-		separator = ", "
-	end
-	local result = tostring(list[1])
-	for i = 2, #list do
-		result = result .. separator .. tostring(list[i])
-	end
-	return result
+	return table_concat(result, separator or ", ")
 end
 
 function TS.array_find(list, callback)
 	for i = 1, #list do
-		if callback(list[i], i - 1, list) == true then
-			return list[i]
+		local v = list[i]
+		if callback(v, i - 1, list) == true then
+			return v
 		end
 	end
 end
@@ -787,18 +819,6 @@ function TS.string_split(input, sep)
 	return result
 end
 
-function TS.string_trim(str)
-	return str:match("^%s*(.-)%s*$")
-end
-
-function TS.string_trimRight(str)
-	return str:match("(.-)%s*$")
-end
-
-function TS.string_trimLeft(str)
-	return str:match("^%s*(.-)")
-end
-
 -- Object static functions
 
 function TS.Object_keys(object)
@@ -840,7 +860,7 @@ function TS.Object_isEmpty(object)
 end
 
 function TS.Roact_combine(...)
-	local args = {...}
+	local args = { ... }
 	local result = {}
 	for i = 1, #args do
 		for key, value in pairs(args[i]) do

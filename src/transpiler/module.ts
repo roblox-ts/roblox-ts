@@ -5,7 +5,7 @@ import { checkReserved, transpileExpression } from ".";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isUsedAsType } from "../typeUtilities";
+import { isRbxService, isUsedAsType } from "../typeUtilities";
 import {
 	getScriptContext,
 	getScriptType,
@@ -93,6 +93,7 @@ function getRelativeImportPath(
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile | undefined,
 	specifier: string,
+	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
 	if (moduleFile) {
 		validateImport(state, sourceFile, moduleFile);
@@ -102,7 +103,7 @@ function getRelativeImportPath(
 	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 
 	if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
-		return getImportPathFromFile(state, sourceFile, moduleFile);
+		return getImportPathFromFile(state, sourceFile, moduleFile, node);
 	}
 
 	const parts = path.posix
@@ -128,7 +129,12 @@ function getRelativeImportPath(
 
 const moduleCache = new Map<string, string>();
 
-function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+function getImportPathFromFile(
+	state: TranspilerState,
+	sourceFile: ts.SourceFile,
+	moduleFile: ts.SourceFile,
+	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
+) {
 	validateImport(state, sourceFile, moduleFile);
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
 		let parts = state.modulesDir
@@ -194,10 +200,19 @@ function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile
 			.split(".")
 			.concat(parts)
 			.filter(v => v.length > 0)
-			.map(v => `"${v}"`);
+			.map((v, i) => (i === 0 ? v : `"${v}"`));
 
-		// We could probably check this is a valid service at compile-time
-		params[0] = "game:GetService(" + params[0] + ")";
+		const rbxService = params[0];
+		if (rbxService && isRbxService(rbxService)) {
+			params[0] = state.getService(rbxService, state, node);
+		} else {
+			throw new TranspilerError(
+				rbxService + " is not a valid Roblox Service!",
+				node,
+				TranspilerErrorType.InvalidService,
+			);
+		}
+
 		state.usesTSLibrary = true;
 		return `TS.import(${params.join(", ")})`;
 	}
@@ -226,11 +241,12 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 			node.getSourceFile(),
 			node.getModuleSpecifierSourceFile(),
 			node.getModuleSpecifier().getLiteralText(),
+			node,
 		);
 	} else {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (moduleFile) {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
+			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 		} else {
 			const specifierText = node.getModuleSpecifier().getLiteralText();
 			throw new TranspilerError(
@@ -287,7 +303,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 			const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
 
 			// keep these here no matter what, so that exports can take from initial state.
-			checkReserved(alias, node);
+			checkReserved(alias, node, true);
 			lhs.push(alias);
 			rhs.push(`.${name}`);
 
@@ -343,9 +359,9 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 			} else {
 				throw new TranspilerError("Bad specifier", node, TranspilerErrorType.BadSpecifier);
 			}
-			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier);
+			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier, node);
 		} else {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
+			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 		}
 	} else {
 		const text = node.getModuleReference().getText();
@@ -371,11 +387,12 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
 				moduleSpecifier.getLiteralText(),
+				node,
 			);
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile);
+				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 			} else {
 				const specifierText = moduleSpecifier.getLiteralText();
 				throw new TranspilerError(

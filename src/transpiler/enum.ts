@@ -11,7 +11,7 @@ export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDe
 	}
 	const name = node.getName();
 	const nameNode = node.getNameNode();
-	checkReserved(name, nameNode);
+	checkReserved(name, nameNode, true);
 	state.pushExport(name, node);
 	if (shouldHoist(node, nameNode)) {
 		state.pushHoistStack(name);

@@ -22,7 +22,7 @@ export function transpileNamespaceDeclaration(state: TranspilerState, node: ts.N
 	}
 	state.pushIdStack();
 	const name = node.getName();
-	checkReserved(name, node);
+	checkReserved(name, node, true);
 	const parentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 	state.pushExport(name, node);
 	state.pushHoistStack(name);

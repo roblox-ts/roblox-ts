@@ -119,3 +119,17 @@ export function bold(text: string) {
 export function suggest(text: string) {
 	return `...\t${yellow(text)}`;
 }
+
+export function isIdentifierWhoseDefinitionMatchesNode(
+	node: ts.Node<ts.ts.Node>,
+	potentialDefinition: ts.Identifier,
+): node is ts.Identifier {
+	if (ts.TypeGuards.isIdentifier(node)) {
+		for (const def of node.getDefinitions()) {
+			if (def.getNode() === potentialDefinition) {
+				return true;
+			}
+		}
+	}
+	return false;
+}

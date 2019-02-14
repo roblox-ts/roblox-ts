@@ -67,7 +67,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	if (nameNode) {
-		checkReserved(name, nameNode);
+		checkReserved(name, nameNode, true);
 	}
 
 	if (ts.TypeGuards.isClassDeclaration(node)) {
