@@ -53,13 +53,14 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 	await searchForLuaFiles(sourceFolder);
 
 	await fs.copy(sourceFolder, destinationFolder, {
+		dereference: true,
 		filter: async (oldPath, newPath) => {
 			const stats = await fs.stat(oldPath);
 			if (stats.isDirectory() && hasLuaFilesMap.get(oldPath) === true) {
 				return true;
-			} else if (stats.isFile() && path.extname(oldPath) === LUA_EXT) {
+			} else if ((stats.isFile() || stats.isSymbolicLink()) && path.extname(oldPath) === LUA_EXT) {
 				if (await fs.pathExists(newPath)) {
-					const oldContents = await fs.readFile(oldPath);
+					const oldContents = await fs.readFile(await fs.realpath(oldPath));
 					const newContents = await fs.readFile(newPath);
 					return !oldContents.equals(newContents);
 				} else {
