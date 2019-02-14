@@ -74,6 +74,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		state.pushExport(name, node);
 	}
 
+	// Roact checks
 	const baseTypes = node.getBaseTypes();
 	for (const baseType of baseTypes) {
 		const baseTypeText = baseType.getText();
@@ -94,6 +95,14 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		}
 	}
 
+	const extendExp = node.getExtends();
+	let baseClassName = "";
+	let hasSuper = false;
+	if (extendExp) {
+		hasSuper = true;
+		baseClassName = transpileExpression(state, extendExp.getExpression());
+	}
+
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
 	let result = "";
@@ -109,15 +118,8 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	}
 	state.pushIndent();
 
-	let hasSuper = false;
-	const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
-	if (extendsClause) {
-		const typeNode = extendsClause.getTypeNodes()[0];
-		if (typeNode) {
-			hasSuper = true;
-			const baseClassName = transpileExpression(state, typeNode.getExpression());
-			result += state.indent + `local super = ${baseClassName};\n`;
-		}
+	if (hasSuper) {
+		result += state.indent + `local super = ${baseClassName};\n`;
 	}
 
 	const id = name;
