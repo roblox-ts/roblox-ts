@@ -146,6 +146,7 @@ export class TranspilerState {
 
 		let alias: string | undefined;
 
+		// figure out whether this alias is over-written in the local scope(s)
 		if (parent) {
 			for (const sibling of parent.getPreviousSiblings()) {
 				if (ts.TypeGuards.isVariableStatement(sibling)) {
@@ -170,8 +171,7 @@ export class TranspilerState {
 		const id = "___" + serviceType;
 		const localize = `local ${id} = game:GetService("${serviceType}")`;
 
-		// intentionally unsophisticated
-		//
+		// intentionally unsophisticated, just push to the top of the script
 		for (const generation of generations) {
 			const previousSiblings = generation[0];
 			const next = generation[1];
