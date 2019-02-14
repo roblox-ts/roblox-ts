@@ -1,6 +1,6 @@
 -- Import lemur
 package.path = package.path .. ";?/init.lua"
-local lemur = require("tests.submodules.lemur")
+local lemur = require("vendor.lemur")
 
 local habitat = lemur.Habitat.new()
 
@@ -33,7 +33,7 @@ local modulesFolder = newFolder("Modules", robloxTsFolder)
 newFolder("rbx-roact", modulesFolder, "tests/node_modules/rbx-roact");
 
 -- TestEZ
-local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "tests/submodules/testez/lib")
+local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
 
 -- Testing code
 local testsFolder = newFolder("Tests", ReplicatedStorage)
