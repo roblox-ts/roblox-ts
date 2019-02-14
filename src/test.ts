@@ -21,6 +21,7 @@ const compilerArgs = {
 	ci: true,
 	includePath: "include",
 	modulesPath: "modules",
+	project: "tests",
 };
 
 /* tslint:disable:object-literal-sort-keys */
@@ -97,9 +98,8 @@ const errorMatrix: ErrorMatrix = {
 };
 /* tslint:enable:object-literal-sort-keys */
 
-const tsconfigPath = "tests/tsconfig.json";
 const srcFolder = path.resolve("tests", "src");
-const compiler = new Compiler(tsconfigPath, compilerArgs);
+const compiler = new Compiler(compilerArgs);
 
 async function compile(relativePath: string) {
 	return compiler.compileFileByPath(path.resolve(srcFolder, relativePath));
