@@ -19,12 +19,7 @@ function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, 
 	}
 }
 
-function getLuaBitExpression(
-	state: TranspilerState,
-	lhsStr: string,
-	rhsStr: string,
-	name: string,
-) {
+function getLuaBitExpression(state: TranspilerState, lhsStr: string, rhsStr: string, name: string) {
 	state.usesTSLibrary = true;
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
