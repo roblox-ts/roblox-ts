@@ -168,11 +168,19 @@ function TS.instanceof(obj, class)
 	end
 
 	-- metatable check
-	while obj ~= nil do
-		if obj == class then
-			return true
-		end
+	if typeof(obj) == TYPE_TABLE then
 		obj = getmetatable(obj)
+		while obj ~= nil do
+			if obj == class then
+				return true
+			end
+			local mt = getmetatable(obj)
+			if mt then
+				obj = mt.__index
+			else
+				obj = nil
+			end
+		end
 	end
 
 	return false
@@ -268,7 +276,9 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		callback(list[i], i - 1, list)
+		if list[i] ~= nil then
+			callback(list[i], i - 1, list)
+		end
 	end
 end
 
