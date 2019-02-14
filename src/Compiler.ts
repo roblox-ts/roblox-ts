@@ -12,6 +12,11 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
 
+const IGNORED_DIAGNOSTIC_CODES = [
+	2688, // "Cannot find type definition file for '{0}'."
+	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
+];
+
 interface RojoJson {
 	partitions: {
 		[index: string]: {
@@ -219,8 +224,13 @@ export class Compiler {
 		if (opts.target !== ts.ts.ScriptTarget.ES2015) {
 			errors.push(`${yellow(`"target"`)} must be ${yellow(`"es6"`)}`);
 		}
-		if (opts.types === undefined || opts.types.indexOf("rbx-types") === -1) {
+		if (opts.allowSyntheticDefaultImports !== true) {
+			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
+		}
+		if (opts.types === undefined) {
 			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
+		} else if (opts.types.indexOf("rbx-types") === -1) {
+			errors.push(`${yellow(`"types"`)} must include ${yellow(`"rbx-types"`)}`);
 		}
 
 		// configurable compiler options
@@ -244,8 +254,8 @@ export class Compiler {
 			throw new CompilerError(
 				`Invalid "tsconfig.json" configuration!\n` +
 					"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
-					"\n" +
-					errors.map(e => "- " + e).join("\n"),
+					"\n- " +
+					errors.join("\n- "),
 				CompilerErrorType.BadTsConfig,
 			);
 		}
@@ -283,24 +293,16 @@ export class Compiler {
 		return path.join(this.outDirPath, relativeToRoot, luaName);
 	}
 
-	private transformPathFromLua(filePath: string) {
-		const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
-		let name = path.basename(filePath, path.extname(filePath));
-		if (name === "init") {
-			name = "index";
-		}
-		return path.join(this.rootDirPath, relativeToOut, name);
-	}
-
 	public addFile(filePath: string) {
 		this.project.addExistingSourceFile(filePath);
 	}
 
-	public removeFile(filePath: string) {
+	public async removeFile(filePath: string) {
 		const sourceFile = this.project.getSourceFile(filePath);
 		if (sourceFile) {
 			this.project.removeSourceFile(sourceFile);
 		}
+		await this.cleanDirRecursive(this.outDirPath);
 	}
 
 	public refresh(): Promise<Array<ts.FileSystemRefreshResult>> {
@@ -320,13 +322,17 @@ export class Compiler {
 				} else {
 					const ext = path.extname(filePath);
 					if (ext === ".lua") {
-						const rootPath = this.transformPathFromLua(filePath);
+						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
+						const rootPath = path.join(this.rootDirPath, relativeToOut);
+						const baseName = path.basename(filePath, path.extname(filePath));
 						if (
-							!(await fs.pathExists(rootPath + ".ts")) &&
-							!(await fs.pathExists(rootPath + ".lua")) &&
-							!(await fs.pathExists(rootPath + ".tsx"))
+							!(await fs.pathExists(path.join(rootPath, baseName) + ".ts")) &&
+							!(await fs.pathExists(path.join(rootPath, baseName) + ".tsx")) &&
+							((baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) ||
+								!(await fs.pathExists(path.join(rootPath, baseName) + ".lua")))
 						) {
 							fs.removeSync(filePath);
+							console.log("remove", filePath);
 						}
 					}
 				}
@@ -382,23 +388,7 @@ export class Compiler {
 					CompilerErrorType.MissingSourceFile,
 				);
 			}
-
-			const seen = new Set<string>();
-			const files = new Array<ts.SourceFile>();
-
-			const search = (file: ts.SourceFile) => {
-				files.push(file);
-				file.getReferencingSourceFiles().forEach(ref => {
-					const refPath = ref.getFilePath();
-					if (!seen.has(refPath)) {
-						seen.add(refPath);
-						search(ref);
-					}
-				});
-			};
-			search(sourceFile);
-
-			return this.compileFiles(files);
+			return this.compileFiles([sourceFile]);
 		} else if (ext === ".lua") {
 			await this.copyLuaSourceFiles();
 		}
@@ -415,7 +405,7 @@ export class Compiler {
 			const diagnostics = file
 				.getPreEmitDiagnostics()
 				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-				.filter(diagnostic => diagnostic.getCode() !== 2688);
+				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
 				const line = diagnostic.getLineNumber();

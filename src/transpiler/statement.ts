@@ -26,10 +26,10 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isType } from "../typeUtilities";
+import { isTypeStatement } from "../typeUtilities";
 
 export function transpileStatement(state: TranspilerState, node: ts.Statement): string {
-	if (isType(node)) {
+	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
 		return transpileBlock(state, node);

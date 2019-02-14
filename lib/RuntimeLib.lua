@@ -6,7 +6,6 @@ local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
 local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
-local TYPE_INSTANCE = "Instance"
 
 local TS = {}
 
@@ -169,11 +168,19 @@ function TS.instanceof(obj, class)
 	end
 
 	-- metatable check
-	while obj ~= nil do
-		if obj == class then
-			return true
-		end
+	if typeof(obj) == TYPE_TABLE then
 		obj = getmetatable(obj)
+		while obj ~= nil do
+			if obj == class then
+				return true
+			end
+			local mt = getmetatable(obj)
+			if mt then
+				obj = mt.__index
+			else
+				obj = nil
+			end
+		end
 	end
 
 	return false
@@ -269,7 +276,9 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		callback(list[i], i - 1, list)
+		if list[i] ~= nil then
+			callback(list[i], i - 1, list)
+		end
 	end
 end
 
@@ -532,6 +541,8 @@ function TS.array_find(list, callback)
 	end
 end
 
+TS.array_isEmpty = TS.Object_isEmpty
+
 -- map macro functions
 
 function TS.map_new(value)
@@ -607,6 +618,8 @@ function TS.map_values(map)
 	return result
 end
 
+TS.map_isEmpty = TS.Object_isEmpty
+
 -- set macro functions
 
 function TS.set_new(value)
@@ -651,6 +664,8 @@ TS.set_values = TS.map_keys
 TS.set_keys = TS.map_keys
 
 TS.set_size = TS.map_size
+
+TS.set_isEmpty = TS.Object_isEmpty
 
 -- string macro functions
 
@@ -698,6 +713,10 @@ function TS.Object_assign(toObj, ...)
 		end
 	end
 	return toObj
+end
+
+function TS.Object_isEmpty(object)
+	return next(object) == nil
 end
 
 function TS.Roact_combine(...)

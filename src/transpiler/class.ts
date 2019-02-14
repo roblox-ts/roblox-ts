@@ -13,6 +13,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { shouldHoist } from "../typeUtilities";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -99,56 +100,35 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	if (isExpression) {
 		result += `(function()\n`;
 	} else {
+		if (nameNode && shouldHoist(node, nameNode)) {
+			state.pushHoistStack(name);
+		} else {
+			result += state.indent + `local ${name};\n`;
+		}
 		result += state.indent + `do\n`;
-		state.pushHoistStack(name);
 	}
 	state.pushIndent();
 
-	let baseClassName = "";
+	let hasSuper = false;
 	const extendsClause = node.getHeritageClauseByKind(ts.SyntaxKind.ExtendsKeyword);
 	if (extendsClause) {
 		const typeNode = extendsClause.getTypeNodes()[0];
 		if (typeNode) {
-			baseClassName = transpileExpression(state, typeNode.getExpression());
+			hasSuper = true;
+			const baseClassName = transpileExpression(state, typeNode.getExpression());
+			result += state.indent + `local super = ${baseClassName};\n`;
 		}
 	}
 
 	const id = name;
 	let hasStaticMembers = false;
-	let hasStaticInheritance = false;
-	let hasInstanceInheritance = false;
-	let currentBaseClass = node.getBaseClass();
-
-	while (currentBaseClass) {
-		if (
-			currentBaseClass.getStaticMembers().length > 0 ||
-			currentBaseClass.getStaticProperties().length > 0 ||
-			currentBaseClass.getStaticMethods().length > 0
-		) {
-			hasStaticInheritance = true;
-		}
-
-		if (
-			currentBaseClass.getInstanceMembers().length > 0 ||
-			currentBaseClass.getInstanceProperties().length > 0 ||
-			currentBaseClass.getInstanceMethods().length > 0
-		) {
-			hasInstanceInheritance = true;
-		}
-
-		currentBaseClass = currentBaseClass.getBaseClass();
-	}
-
-	if (hasStaticInheritance || hasInstanceInheritance) {
-		result += state.indent + `local super = ${baseClassName};\n`;
-	}
 
 	let prefix = "";
 	if (isExpression) {
 		prefix = `local `;
 	}
 
-	if (hasStaticInheritance) {
+	if (hasSuper) {
 		result += state.indent + prefix + `${id} = setmetatable({`;
 	} else {
 		result += state.indent + prefix + `${id} = {`;
@@ -168,13 +148,13 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 	state.popIndent();
 
-	if (hasStaticInheritance) {
-		result += `${hasStaticMembers ? state.indent : ""}}, {__index = super});\n`;
+	if (hasSuper) {
+		result += `${hasStaticMembers ? state.indent : ""}}, { __index = super });\n`;
 	} else {
 		result += `${hasStaticMembers ? state.indent : ""}};\n`;
 	}
 
-	if (hasInstanceInheritance) {
+	if (hasSuper) {
 		result += state.indent + `${id}.__index = setmetatable({`;
 	} else {
 		result += state.indent + `${id}.__index = {`;
@@ -191,14 +171,34 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
 	for (const prop of instanceProps) {
-		const propName = prop.getName();
-		if (propName) {
-			checkMethodReserved(propName, prop);
+		const propNameNode = prop.getNameNode();
+		if (propNameNode) {
+			let propStr: string;
+			if (ts.TypeGuards.isIdentifier(propNameNode)) {
+				const propName = propNameNode.getText();
+				propStr = "." + propName;
+				checkMethodReserved(propName, prop);
+			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
+				const expStr = transpileExpression(state, propNameNode);
+				checkMethodReserved(propNameNode.getLiteralText(), prop);
+				propStr = `[${expStr}]`;
+			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
+				const expStr = transpileExpression(state, propNameNode);
+				propStr = `[${expStr}]`;
+			} else {
+				// ComputedPropertyName
+				const computedExp = propNameNode.getExpression();
+				if (ts.TypeGuards.isStringLiteral(computedExp)) {
+					checkMethodReserved(computedExp.getLiteralText(), prop);
+				}
+				const computedExpStr = transpileExpression(state, computedExp);
+				propStr = `[${computedExpStr}]`;
+			}
 
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					extraInitializers.push(`self.${propName} = ${transpileExpression(state, initializer)};\n`);
+					extraInitializers.push(`self${propStr} = ${transpileExpression(state, initializer)};\n`);
 				}
 			}
 		}
@@ -216,7 +216,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 	state.popIndent();
 
-	if (hasInstanceInheritance) {
+	if (hasSuper) {
 		result += `${hasIndexMembers ? state.indent : ""}}, super);\n`;
 	} else {
 		result += `${hasIndexMembers ? state.indent : ""}};\n`;
@@ -243,26 +243,48 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		result += state.indent + `end;\n`;
 	}
 
-	result += transpileConstructorDeclaration(
-		state,
-		id,
-		getConstructor(node),
-		extraInitializers,
-		hasInstanceInheritance,
-	);
+	result += transpileConstructorDeclaration(state, id, getConstructor(node), extraInitializers, hasSuper);
 
 	for (const prop of node.getStaticProperties()) {
-		const propName = prop.getName();
-		checkMethodReserved(propName, prop);
-
-		let propValue = "nil";
-		if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-			const initializer = prop.getInitializer();
-			if (initializer) {
-				propValue = transpileExpression(state, initializer);
+		const propNameNode = prop.getNameNode();
+		if (propNameNode) {
+			let propStr: string;
+			if (ts.TypeGuards.isIdentifier(propNameNode)) {
+				const propName = propNameNode.getText();
+				propStr = "." + propName;
+				checkMethodReserved(propName, prop);
+			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
+				const expStr = transpileExpression(state, propNameNode);
+				checkMethodReserved(propNameNode.getLiteralText(), prop);
+				propStr = `[${expStr}]`;
+			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
+				const expStr = transpileExpression(state, propNameNode);
+				propStr = `[${expStr}]`;
+			} else {
+				// ComputedPropertyName
+				const computedExp = propNameNode.getExpression();
+				if (ts.TypeGuards.isStringLiteral(computedExp)) {
+					checkMethodReserved(computedExp.getLiteralText(), prop);
+				}
+				const computedExpStr = transpileExpression(state, computedExp);
+				propStr = `[${computedExpStr}]`;
 			}
+
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					extraInitializers.push(`self${propStr} = ${transpileExpression(state, initializer)};\n`);
+				}
+			}
+			let propValue = "nil";
+			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+				const initializer = prop.getInitializer();
+				if (initializer) {
+					propValue = transpileExpression(state, initializer);
+				}
+			}
+			result += state.indent + `${id}${propStr} = ${propValue};\n`;
 		}
-		result += state.indent + `${id}.${propName} = ${propValue};\n`;
 	}
 
 	const getters = node
