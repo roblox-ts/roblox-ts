@@ -190,6 +190,17 @@ function Promise.new(callback, parent)
 end
 
 --[[
+	Fast spawn: Spawns a thread with predictable timing.
+	Runs immediately instead of first cycle being deferred.
+]]
+local spawnBindable = Instance.new("BindableEvent")
+function Promise.spawn(callback, ...)
+	local c = spawnBindable.Event:Connect(callback)
+	spawnBindable:Fire(...)
+	c:Disconnect()
+end
+
+--[[
 	Create a promise that represents the immediately resolved value.
 ]]
 function Promise.resolve(value)
