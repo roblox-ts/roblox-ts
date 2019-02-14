@@ -106,6 +106,7 @@ export class Compiler {
 	private readonly project: Project;
 	private readonly projectPath: string;
 	private readonly includePath: string;
+	private readonly noInclude: boolean;
 	private readonly modulesPath: string;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDirPath: string;
@@ -115,14 +116,31 @@ export class Compiler {
 	private readonly syncInfo = new Array<Partition>();
 	private readonly ci: boolean;
 
-	constructor(configFilePath: string, args: { [argName: string]: any }) {
+	constructor(argv: { [argName: string]: any }) {
+		let configFilePath = path.resolve(argv.project as string);
+
+		try {
+			fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
+		} catch (e) {
+			throw new Error("Project path does not exist!");
+		}
+
+		if (fs.statSync(configFilePath).isDirectory()) {
+			configFilePath = path.resolve(configFilePath, "tsconfig.json");
+		}
+
+		if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
+			throw new Error("Cannot find tsconfig.json!");
+		}
+
 		this.projectPath = path.resolve(configFilePath, "..");
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
-		this.includePath = path.resolve(this.projectPath, args.includePath);
-		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
-		this.ci = args.ci;
+		this.noInclude = argv.noInclude === true;
+		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
+		this.ci = argv.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
@@ -361,8 +379,8 @@ export class Compiler {
 		}
 	}
 
-	public async copyIncludeFiles(noInclude: boolean) {
-		if (!noInclude) {
+	public async copyIncludeFiles() {
+		if (!this.noInclude) {
 			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
 		}
 	}
@@ -371,10 +389,10 @@ export class Compiler {
 		await copyLuaFiles(this.rootDirPath, this.outDirPath);
 	}
 
-	public async compileAll(noInclude: boolean) {
+	public async compileAll() {
 		await this.copyLuaSourceFiles();
 		await this.compileFiles(this.project.getSourceFiles());
-		await this.copyIncludeFiles(noInclude);
+		await this.copyIncludeFiles();
 		await this.copyModuleFiles();
 	}
 
