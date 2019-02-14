@@ -6,6 +6,51 @@ interface Partition {
 	target: string;
 }
 
+export const RBX_SERVICES = [
+	"AssetService",
+	"BadgeService",
+	"Chat",
+	"CollectionService",
+	"ContentProvider",
+	"ContextActionService",
+	"DataStoreService",
+	"Debris",
+	"GamePassService",
+	"GroupService",
+	"GuiService",
+	"HapticService",
+	"HttpService",
+	"InsertService",
+	"KeyframeSequenceProvider",
+	"Lighting",
+	"LocalizationService",
+	"LogService",
+	"MarketplaceService",
+	"PathfindingService",
+	"PhysicsService",
+	"Players",
+	"PointsService",
+	"ReplicatedFirst",
+	"ReplicatedStorage",
+	"RunService",
+	"ScriptContext",
+	"Selection",
+	"ServerScriptService",
+	"ServerStorage",
+	"SoundService",
+	"StarterGui",
+	"StarterPlayer",
+	"Stats",
+	"Teams",
+	"TeleportService",
+	"TestService",
+	"TextService",
+	"TweenService",
+	"UserInputService",
+	"VRService",
+	"Workspace",
+];
+
 export class TranspilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 
@@ -45,9 +90,20 @@ export class TranspilerState {
 	}
 
 	public popHoistStack(result: string) {
-		const hoists = this.hoistStack.pop();
-		if (hoists && hoists.size > 0) {
-			result = this.indent + `local ${[...hoists].join(", ")};\n` + result;
+		const top = this.hoistStack.pop();
+		if (top) {
+			const hoists = [...top];
+			const namedHoists = new Array<string>();
+			const declareHoists = new Array<string>();
+			hoists.forEach(v => (v.includes("=") ? declareHoists : namedHoists).push(v));
+
+			if (namedHoists && namedHoists.length > 0) {
+				result = this.indent + `local ${namedHoists.join(", ")};\n` + result;
+			}
+
+			if (declareHoists && declareHoists.length > 0) {
+				result = this.indent + `${declareHoists.join(";\n" + this.indent)};\n` + result;
+			}
 		}
 		return result;
 	}
@@ -60,7 +116,6 @@ export class TranspilerState {
 			return;
 		}
 
-		this.isModule = true;
 		const ancestorName = this.getExportContextName(node);
 		const alias = node.isDefaultExport() ? "_default" : name;
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
@@ -103,4 +158,38 @@ export class TranspilerState {
 	public roactIndent: number = 0;
 	public hasRoactImport: boolean = false;
 	public usesTSLibrary = false;
+
+	public getService(serviceType: string, node: ts.Node) {
+		// get ancestor immediately inside the SourceFile
+		const source = node.getSourceFile();
+		let parent = node.getParent();
+
+		while (parent) {
+			const next = parent.getParent();
+			if (next === source) {
+				break;
+			}
+			parent = next;
+		}
+
+		if (parent) {
+			for (const sibling of parent.getPreviousSiblings()) {
+				if (ts.TypeGuards.isVariableStatement(sibling)) {
+					const list = sibling.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
+					for (const declaration of list.getDeclarations()) {
+						const lhs = declaration.getNameNode();
+						if (ts.TypeGuards.isIdentifier(lhs) && declaration.getType().getText() === serviceType) {
+							return lhs.getText();
+						}
+					}
+				} else if (ts.TypeGuards.isImportDeclaration(sibling)) {
+					console.log(sibling.getText());
+				}
+			}
+		}
+
+		const id = "_0" + serviceType;
+		this.hoistStack[0].add(`local ${id} = game:GetService("${serviceType}")`);
+		return id;
+	}
 }

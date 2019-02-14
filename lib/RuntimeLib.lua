@@ -777,6 +777,18 @@ function TS.string_split(input, sep)
 	return result
 end
 
+function TS.string_trim(str)
+	return str:match("^%s*(.-)%s*$")
+end
+
+function TS.string_trimRight(str)
+	return str:match("(.-)%s*$")
+end
+
+function TS.string_trimLeft(str)
+	return str:match("^%s*(.-)")
+end
+
 -- Object static functions
 
 function TS.Object_keys(object)

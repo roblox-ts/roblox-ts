@@ -276,4 +276,66 @@ export = () => {
 		}
 		foo(...[1, 2, 3]);
 	});
+
+	it("should support findIndex", () => {
+		const array1 = [5, 12, 8, 130, 44];
+		expect(array1.findIndex(element => element > 13)).to.equal(3);
+
+		function isPrime(element: number) {
+			let start = 2;
+			while (start <= math.sqrt(element)) {
+				if (element % start < 1) {
+					return false;
+				} else {
+					start++;
+				}
+			}
+			return element > 1;
+		}
+
+		expect([4, 6, 8, 12].findIndex(isPrime)).to.equal(-1); // -1, not found
+		expect([4, 6, 7, 12].findIndex(isPrime)).to.equal(2); // 2 (array[2] is 7)
+
+		const fruits = ["apple", "banana", "cantaloupe", "blueberries", "grapefruit"];
+
+		const index = fruits.findIndex(fruit => fruit === "blueberries");
+		expect(index).to.equal(3);
+		expect(fruits[index]).to.equal("blueberries");
+	});
+
+	it("should support sort", () => {
+		const months = ["March", "Jan", "Feb", "Dec"];
+		months.sort();
+		expect(months[0]).to.equal("Dec");
+		expect(months[1]).to.equal("Feb");
+		expect(months[2]).to.equal("Jan");
+		expect(months[3]).to.equal("March");
+
+		const array1 = [1, 30, 4, 21, 100000];
+		array1.sort();
+
+		expect(array1[0]).to.equal(1);
+		expect(array1[1]).to.equal(100000);
+		expect(array1[2]).to.equal(21);
+		expect(array1[3]).to.equal(30);
+		expect(array1[4]).to.equal(4);
+	});
+
+	it("should support flat", () => {
+		const arr1 = [1, 2, [3, 4]];
+		arr1.flat();
+		// [1, 2, 3, 4]
+
+		const arr2 = [1, 2, [3, 4, [5, 6]]];
+		arr2.flat(1);
+		// [1, 2, 3, 4, [5, 6]]
+
+		const arr3 = [1, 2, [3, 4, [5, 6]]];
+		arr3.flat(2);
+		// [1, 2, 3, 4, 5, 6]
+
+		const arr4 = [1, 2, , 4, 5];
+		arr4.flat();
+		// [1, 2, 4, 5]
+	});
 };

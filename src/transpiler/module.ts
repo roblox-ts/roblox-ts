@@ -286,7 +286,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 			const alias = aliasNode ? aliasNode.getText() : name;
 			const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
 
-			// keep these here no matter what, so that exports can take from intinial state.
+			// keep these here no matter what, so that exports can take from initial state.
 			checkReserved(alias, node);
 			lhs.push(alias);
 			rhs.push(`.${name}`);
@@ -306,9 +306,11 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		result += `local ${rhsPrefix} = ${luaPath};\n`;
 	}
 
-	unlocalizedImports
-		.filter(alias => alias !== "")
-		.forEach((alias, i) => state.variableAliases.set(alias, rhsPrefix + rhs[i]));
+	unlocalizedImports.forEach((alias, i) => {
+		if (alias !== "") {
+			state.variableAliases.set(alias, rhsPrefix + rhs[i]);
+		}
+	});
 
 	if (hasVarNames || lhs.length > 0) {
 		const lhsStr = lhs.join(", ");

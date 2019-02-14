@@ -22,7 +22,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		parentName = state.getExportContextName(grandParent);
 	}
 
-	// optimize tuple return
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 		const isFlatBinding = lhs
 			.getElements()
