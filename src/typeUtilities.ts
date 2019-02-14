@@ -1,6 +1,16 @@
 import * as ts from "ts-morph";
 import { CompilerDirectives, getCompilerDirective } from "./transpiler";
 
+export function isTypeStatement(node: ts.Node) {
+	return (
+		ts.TypeGuards.isEmptyStatement(node) ||
+		ts.TypeGuards.isTypeReferenceNode(node) ||
+		ts.TypeGuards.isTypeAliasDeclaration(node) ||
+		ts.TypeGuards.isInterfaceDeclaration(node) ||
+		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+	);
+}
+
 export function isType(node: ts.Node) {
 	return (
 		ts.TypeGuards.isEmptyStatement(node) ||
@@ -104,12 +114,12 @@ export function isArrayType(type: ts.Type) {
 		const symbol = t.getSymbol();
 		if (symbol) {
 			for (const dec of symbol.getDeclarations()) {
-				if (getCompilerDirective(dec, [CompilerDirectives.NotArray]) === CompilerDirectives.NotArray) {
-					return false;
+				if (getCompilerDirective(dec, [CompilerDirectives.Array]) === CompilerDirectives.Array) {
+					return true;
 				}
 			}
 		}
-		return t.getArrayType() !== undefined || (t.getNumberIndexType() !== undefined && !isEnumType(t));
+		return t.isArray();
 	});
 }
 
@@ -144,11 +154,19 @@ function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
 }
 
 export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
+	if (ts.TypeGuards.isForStatement(ancestor)) {
+		return false;
+	}
+
 	const refs = new Array<ts.Node>();
 	for (const refSymbol of id.findReferences()) {
 		for (const refEntry of refSymbol.getReferences()) {
 			if (refEntry.getSourceFile() === id.getSourceFile()) {
-				refs.push(refEntry.getNode());
+				let refNode = refEntry.getNode();
+				if (ts.TypeGuards.isVariableDeclaration(refNode)) {
+					refNode = refNode.getNameNode();
+				}
+				refs.push(refNode);
 			}
 		}
 	}

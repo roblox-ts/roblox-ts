@@ -80,8 +80,18 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 	let result: string;
 	let backWrap = "";
 
+	let prefix = "";
+	if (ts.TypeGuards.isFunctionDeclaration(node)) {
+		const nameNode = node.getNameNode();
+		if (nameNode && shouldHoist(node, nameNode)) {
+			state.pushHoistStack(name);
+		} else {
+			prefix = "local ";
+		}
+	}
+
 	if (name) {
-		result = state.indent + name + " = ";
+		result = state.indent + prefix + name + " = ";
 		backWrap = ";\n";
 	} else {
 		result = "";
@@ -162,14 +172,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 
 	if (body) {
 		state.pushExport(name, node);
-		const nameNode = node.getNameNode();
-		let prefix = "";
-		if (nameNode && shouldHoist(node, nameNode)) {
-			state.pushHoistStack(name);
-		} else {
-			prefix = "local ";
-		}
-		return prefix + transpileFunction(state, node, name, body);
+		return transpileFunction(state, node, name, body);
 	} else {
 		return "";
 	}
@@ -199,7 +202,7 @@ export function transpileConstructorDeclaration(
 	className: string,
 	node?: ts.ConstructorDeclaration,
 	extraInitializers?: Array<string>,
-	hasInstanceInheritance?: boolean,
+	hasSuper?: boolean,
 ) {
 	const paramNames = new Array<string>();
 	paramNames.push("self");
@@ -251,7 +254,7 @@ export function transpileConstructorDeclaration(
 			}
 		}
 	} else {
-		if (hasInstanceInheritance) {
+		if (hasSuper) {
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {

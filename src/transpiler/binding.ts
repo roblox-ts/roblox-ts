@@ -78,21 +78,25 @@ export function getBindingData(
 	values: Array<string>,
 	preStatements: Array<string>,
 	postStatements: Array<string>,
-	bindingPatern: ts.Node,
+	bindingPattern: ts.Node,
 	parentId: string,
 ) {
-	const strKeys = bindingPatern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
-	const listItems = bindingPatern
+	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
+	const listItems = bindingPattern
 		.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList)
 		.getChildren()
 		.filter(
 			child =>
-				child.getKind() === ts.SyntaxKind.BindingElement || child.getKind() === ts.SyntaxKind.OmittedExpression,
+				ts.TypeGuards.isBindingElement(child) ||
+				ts.TypeGuards.isOmittedExpression(child) ||
+				ts.TypeGuards.isIdentifier(child) ||
+				ts.TypeGuards.isArrayLiteralExpression(child) ||
+				ts.TypeGuards.isPropertyAccessExpression(child),
 		);
 	let childIndex = 1;
-	for (const bindingElement of listItems) {
-		if (bindingElement.getKind() === ts.SyntaxKind.BindingElement) {
-			const [child, op, pattern] = bindingElement.getChildren();
+	for (const item of listItems) {
+		if (ts.TypeGuards.isBindingElement(item)) {
+			const [child, op, pattern] = item.getChildren();
 			const childText = child.getText();
 			const key = strKeys ? `"${childText}"` : childIndex;
 
@@ -129,6 +133,18 @@ export function getBindingData(
 				}
 				values.push(`${parentId}[${key}]`);
 			}
+		} else if (ts.TypeGuards.isIdentifier(item)) {
+			const id = transpileExpression(state, item as ts.Expression);
+			names.push(id);
+			values.push(`${parentId}[${childIndex}]`);
+		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
+			const id = transpileExpression(state, item as ts.Expression);
+			names.push(id);
+			values.push(`${parentId}[${childIndex}]`);
+		} else if (ts.TypeGuards.isArrayLiteralExpression(item)) {
+			const childId = state.getNewId();
+			preStatements.push(`local ${childId} = ${parentId}[${childIndex}];`);
+			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		}
 		childIndex++;
 	}

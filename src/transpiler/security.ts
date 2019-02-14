@@ -88,7 +88,7 @@ const COMPILER_DIRECTIVE_TAG = "rbxts";
 export const enum CompilerDirectives {
 	Client = "client",
 	Server = "server",
-	NotArray = "notarray",
+	Array = "array",
 }
 
 /**
