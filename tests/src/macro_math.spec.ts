@@ -34,4 +34,4 @@ export = () => {
 		expect(c.Y).to.equal(5);
 		expect(c.Z).to.equal(2);
 	});
-}
+};
