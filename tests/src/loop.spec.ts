@@ -48,7 +48,7 @@ export = () => {
 	it("should support optimized simple loops #3", () => {
 		const hit = new Set<number>();
 		let n = 0;
-		for (let i = 3; i >= 1; i = i + 1) {
+		for (let i = 1; i <= 3; i = i + 1) {
 			hit.add(i);
 			n++;
 		}
@@ -74,7 +74,7 @@ export = () => {
 	it("should support optimized simple loops #5", () => {
 		const hit = new Set<number>();
 		let n = 0;
-		for (let i = 3; i >= 1; i += 1) {
+		for (let i = 1; i <= 3; i += 1) {
 			hit.add(i);
 			n++;
 		}
