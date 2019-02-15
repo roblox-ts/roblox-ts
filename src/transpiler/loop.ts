@@ -36,9 +36,6 @@ export function transpileBreakStatement(state: TranspilerState, node: ts.BreakSt
 }
 
 export function transpileContinueStatement(state: TranspilerState, node: ts.ContinueStatement) {
-	if (node.getLabel()) {
-		throw new TranspilerError("Continue labels are not supported!", node, TranspilerErrorType.NoLabeledStatement);
-	}
 	return state.indent + `_continue_${state.continueId} = true; break;\n`;
 }
 
