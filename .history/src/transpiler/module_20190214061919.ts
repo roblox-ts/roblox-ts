@@ -204,7 +204,7 @@ function getImportPathFromFile(
 
 		const rbxService = params[0];
 		if (rbxService && isRbxService(rbxService)) {
-			params[0] = `game:GetService("${params[0]}")`;
+			params[0] = state.getService(rbxService, state, node);
 		} else {
 			throw new TranspilerError(
 				rbxService + " is not a valid Roblox Service!",

@@ -61,19 +61,21 @@ type ReplaceFunction = (
 	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
 ) => string | undefined;
 
-type ReplaceMap = Map<string, ReplaceFunction>;
-
 function wrapExpFunc(replacer: (accessPath: string) => string): ReplaceFunction {
 	return (accessPath, params, state, subExp) => replacer(wrapExpressionIfNeeded(subExp, accessPath));
 }
 
-const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`));
+interface ReplaceMap {
+	[propName: string]: ReplaceFunction;
+}
 
-STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
-STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
+const STRING_REPLACE_METHODS: ReplaceMap = {
+	trim: wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`),
+	trimLeft: wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`),
+	trimRight: wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`),
+};
+STRING_REPLACE_METHODS.trimStart = STRING_REPLACE_METHODS.trimLeft;
+STRING_REPLACE_METHODS.trimEnd = STRING_REPLACE_METHODS.trimRight;
 
 function areParametersSimple(func: ts.ArrowFunction) {
 	if (
@@ -88,12 +90,9 @@ function areParametersSimple(func: ts.ArrowFunction) {
 
 	return !func.getParameters().some(param => param.isRestParameter());
 }
-
-const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
+const ARRAY_REPLACE_METHODS2 = new Map<string, ReplaceFunction>()
 	.set("pop", accessPath => `table.remove(${accessPath})`)
-
 	.set("shift", accessPath => `table.remove(${accessPath}, 1)`)
-
 	.set("join", (accessPath, params, state, subExp) => {
 		const arrayType = subExp.getType().getArrayType()!;
 		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
@@ -102,7 +101,6 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 			return `table.concat(${accessPath}, ${params[0] || `", "`})`;
 		}
 	})
-
 	.set("push", (accessPath, params, state, subExp) => {
 		const length = params.length;
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
@@ -113,7 +111,6 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 			return `table.insert(${concatParams(state, params, accessPath)})`;
 		}
 	})
-
 	.set("forEach", (accessPath, params, state, subExp) => {
 		const arrayType = subExp.getType().getArrayType()!;
 		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
@@ -166,46 +163,48 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		}
 	});
 
-const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("get", (accessPath, params, state, subExp) => {
+const MAP_REPLACE_METHODS: ReplaceMap = {
+	get: (accessPath, params, state, subExp) => {
 		if (!getPropertyCallParentIsExpression(subExp)) {
 			return `${accessPath}[${concatParams(state, params)}]`;
 		}
-	})
+	},
 
-	.set("set", (accessPath, params, state, subExp) => {
+	set: (accessPath, params, state, subExp) => {
 		if (getPropertyCallParentIsExpression(subExp)) {
 			return `${accessPath}[${transpileCallArgument(state, params[0])}] = ${transpileCallArgument(
 				state,
 				params[1],
 			)}`;
 		}
-	})
+	},
 
-	.set("has", (accessPath, params, state, subExp) => {
+	has: (accessPath, params, state, subExp) => {
 		if (!getPropertyCallParentIsExpression(subExp)) {
 			return `(${accessPath}[${concatParams(state, params)}] ~= nil)`;
 		}
-	});
+	},
+};
 
-const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("add", (accessPath, params, state, subExp) => {
+const SET_REPLACE_METHODS: ReplaceMap = {
+	add: (accessPath, params, state, subExp) => {
 		if (getPropertyCallParentIsExpression(subExp)) {
 			return `${accessPath}[${concatParams(state, params)}] = true`;
 		}
-	})
+	},
 
-	.set("delete", (accessPath, params, state, subExp) => {
+	delete: (accessPath, params, state, subExp) => {
 		if (getPropertyCallParentIsExpression(subExp)) {
 			return `${accessPath}[${concatParams(state, params)}] = nil`;
 		}
-	})
+	},
 
-	.set("has", (accessPath, params, state, subExp) => {
+	has: (accessPath, params, state, subExp) => {
 		if (!getPropertyCallParentIsExpression(subExp)) {
 			return `(${accessPath}[${concatParams(state, params)}] ~= nil)`;
 		}
-	});
+	},
+};
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
@@ -263,7 +262,9 @@ function transpilePropertyMethod(
 	className: string,
 	replaceMethods: ReplaceMap,
 ) {
-	const isSubstitutableMethod = replaceMethods.get(property);
+	console.log(SET_REPLACE_METHODS.toString());
+	const x = replaceMethods.get(property);
+	const isSubstitutableMethod = replaceMethods[property];
 
 	if (isSubstitutableMethod) {
 		const str = isSubstitutableMethod(accessPath, params, state, subExp);

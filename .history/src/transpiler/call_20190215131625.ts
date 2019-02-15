@@ -67,13 +67,13 @@ function wrapExpFunc(replacer: (accessPath: string) => string): ReplaceFunction 
 	return (accessPath, params, state, subExp) => replacer(wrapExpressionIfNeeded(subExp, accessPath));
 }
 
-const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`));
-
-STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
-STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
+const STRING_REPLACE_METHODS: ReplaceMap = {
+	trim: wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`),
+	trimLeft: wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`),
+	trimRight: wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`),
+};
+STRING_REPLACE_METHODS.trimStart = STRING_REPLACE_METHODS.trimLeft;
+STRING_REPLACE_METHODS.trimEnd = STRING_REPLACE_METHODS.trimRight;
 
 function areParametersSimple(func: ts.ArrowFunction) {
 	if (
@@ -263,7 +263,9 @@ function transpilePropertyMethod(
 	className: string,
 	replaceMethods: ReplaceMap,
 ) {
-	const isSubstitutableMethod = replaceMethods.get(property);
+	console.log(SET_REPLACE_METHODS.toString());
+	const x = replaceMethods.get(property);
+	const isSubstitutableMethod = replaceMethods[property];
 
 	if (isSubstitutableMethod) {
 		const str = isSubstitutableMethod(accessPath, params, state, subExp);

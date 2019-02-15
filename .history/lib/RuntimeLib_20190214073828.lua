@@ -1,7 +1,5 @@
 local Promise = require(script.Parent.Promise)
 
-local HttpService = game:GetService("HttpService")
-
 -- constants
 local TYPE_NIL = "nil"
 local TYPE_STRING = "string"
@@ -334,10 +332,6 @@ function TS.array_sort(list, callback)
 		quicksort(list, sortFallback)
 	end
 	return list
-end
-
-function TS.array_toString(list)
-	return HttpService:JSONEncode(list)
 end
 
 function TS.array_slice(list, startI, endI)
@@ -764,7 +758,6 @@ function TS.map_values(map)
 	return result
 end
 
-TS.map_toString = TS.array_toString
 TS.map_isEmpty = TS.Object_isEmpty
 
 -- set macro functions
@@ -813,7 +806,6 @@ TS.set_keys = TS.map_keys
 TS.set_size = TS.map_size
 
 TS.set_isEmpty = TS.Object_isEmpty
-TS.set_toString = TS.array_toString
 
 -- string macro functions
 
@@ -866,8 +858,6 @@ end
 function TS.Object_isEmpty(object)
 	return next(object) == nil
 end
-
-TS.Object_toString = TS.array_toString
 
 function TS.Roact_combine(...)
 	local args = { ... }

@@ -321,7 +321,7 @@ export = () => {
 		expect(array1[4]).to.equal(4);
 	});
 
-	it("should support flat", () => {
+	it("should support flat and tostring", () => {
 		const arr1 = [1, 2, [3, 4]];
 		const x = arr1.flat();
 		expect(x[0]).to.equal(1);

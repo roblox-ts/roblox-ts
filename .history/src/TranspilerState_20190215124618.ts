@@ -1,4 +1,5 @@
 import * as ts from "ts-morph";
+import { RbxService } from "./typeUtilities";
 import { ScriptContext } from "./utility";
 
 interface Partition {
