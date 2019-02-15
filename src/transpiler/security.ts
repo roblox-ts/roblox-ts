@@ -124,7 +124,7 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 			node,
 			TranspilerErrorType.InvalidIdentifier,
 		);
-	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/) || name.match(/^___/)) {
+	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
 		throw new TranspilerError(
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
