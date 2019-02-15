@@ -152,4 +152,20 @@ export = () => {
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
 	});
+
+	it("should support destructure assignment as expression", () => {
+		function test(obj: [number, number, [number]]) {
+			expect(obj[0]).to.equal(1);
+			expect(obj[1]).to.equal(2);
+			expect(obj[2][0]).to.equal(3);
+		}
+
+		let x: number;
+		let y: number;
+		let z: number;
+		test([x, y, [z]] = [1, 2, [3]]);
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
 };
