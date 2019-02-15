@@ -13,21 +13,17 @@
 	"scripts": {
 		"tslint": "npx tslint -p tsconfig.json",
 		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
-		"test": "npx nyc --reporter=html mocha --timeout 0 --require ts-node/register --require source-map-support/register --recursive src/test.ts && lua tests/spec.lua",
+		"test": "npm run build && npx nyc --reporter=html mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
 		"coverage": "npx nyc report --reporter=text-lcov | coveralls",
-		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\""
+		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
+		"build": "npx tsc",
+		"prepublishOnly": "npm run build && npm version patch"
 	},
 	"nyc": {
-		"extension": [
-			".ts",
-			".tsx"
-		],
-		"include": [
-			"src/class/Transpiler.ts"
-		],
-		"reporter": [
-			"text-lcov"
-		],
+		"extension": [ ".js" ],
+		"include": [ "out/transpiler" ],
+		"exclude": [ "out/transpiler/await.js" ],
+		"reporter": [ "text-lcov" ],
 		"all": true
 	},
 	"author": "",

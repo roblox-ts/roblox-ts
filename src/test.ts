@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import { describe, it } from "mocha";
 import * as path from "path";
 import * as util from "util";
 import { Compiler } from "./Compiler";
@@ -6,8 +7,6 @@ import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 import { red } from "./utility";
-
-require("mocha");
 
 interface ErrorMatrix {
 	[propName: string]: {

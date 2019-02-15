@@ -224,8 +224,6 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 	}
 }
 
-const debug = false;
-
 export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	let type = node.getType();
@@ -236,9 +234,6 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 		}
 	}
 	if (!isInCatch && isAnyType(type)) {
-		if (debug) {
-			throw new Error();
-		}
 		const parent = node.getParent();
 		if (parent) {
 			throw new TranspilerError(
