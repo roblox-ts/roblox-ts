@@ -23,7 +23,7 @@
 			".tsx"
 		],
 		"include": [
-			"src/class/Transpiler.ts"
+			"src/transpiler"
 		],
 		"reporter": [
 			"text-lcov"
