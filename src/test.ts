@@ -94,6 +94,21 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.RoactNoNewComponentAllowed,
 	},
+	"invalidId.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidIdentifier,
+	},
+	"reservedId.spec.ts": {
+		message: "should not allow reserved identifiers to be used",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RobloxTSReservedIdentifier,
+	},
+	"localPlayer.spec.server.ts": {
+		message: "should not allow client only API to be accessed by server code",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
