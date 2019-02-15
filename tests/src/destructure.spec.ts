@@ -1,3 +1,5 @@
+import { x } from "export_dec";
+
 export = () => {
 	it("should destructure simple arrays", () => {
 		const [a, b] = [1, 2];
@@ -167,5 +169,17 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
+	});
+
+	it("should support destructure assignment with property access", () => {
+		const obj = {
+			x: 0,
+			y: 0,
+			z: 0,
+		};
+		[obj.x, obj.y, [obj.z]] = [1, 2, [3]];
+		expect(obj.x).to.equal(1);
+		expect(obj.y).to.equal(2);
+		expect(obj.z).to.equal(3);
 	});
 };
