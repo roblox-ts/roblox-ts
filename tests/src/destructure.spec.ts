@@ -165,7 +165,7 @@ export = () => {
 		let x: number;
 		let y: number;
 		let z: number;
-		test([x, y, [z]] = [1, 2, [3]]);
+		test(([x, y, [z]] = [1, 2, [3]]));
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
