@@ -9,6 +9,10 @@ local TYPE_TABLE = "table"
 local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
 
+local quicksort = table.sort
+local math_ceil = math.ceil
+local math_floor = math.floor
+
 local TS = {}
 
 -- runtime classes
@@ -224,9 +228,6 @@ function TS.add(a, b)
 	end
 end
 
-local math_ceil = math.ceil
-local math_floor = math.floor
-
 local function bit_truncate(a)
 	if a < 0 then
 		return math_ceil(a)
@@ -320,20 +321,32 @@ function TS.array_filter(list, callback)
 	return result
 end
 
-local quicksort = table.sort
 local function sortFallback(a, b)
 	return tostring(a) < tostring(b)
 end
 
 function TS.array_sort(list, callback)
+	local n = #list
+	local sorted
+
+	if n < 8000 then
+		sorted = {unpack(list)}
+	else
+		sorted = {}
+		for i = 1, n do
+			sorted[i] = list[i]
+		end
+	end
+
 	if callback then
-		quicksort(list, function(a, b)
+		quicksort(sorted, function(a, b)
 			return 0 < callback(a, b)
 		end)
 	else
-		quicksort(list, sortFallback)
+		quicksort(sorted, sortFallback)
 	end
-	return list
+
+	return sorted
 end
 
 function TS.array_toString(list)

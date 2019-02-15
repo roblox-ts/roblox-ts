@@ -11,7 +11,7 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isTupleType, shouldHoist } from "../typeUtilities";
-import { safelyTranspileExpression } from "./expression";
+import { placeInStatementIfExpression } from "./expression";
 import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -81,7 +81,7 @@ export function transpileFunctionBody(
 			let returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
 			if (disableReturn) {
 				returnStr = returnStr.replace(/^\s*(return) /, "");
-				returnStr = safelyTranspileExpression(state, body as ts.Expression, returnStr);
+				returnStr = placeInStatementIfExpression(state, body as ts.Expression, returnStr);
 			}
 			result += state.indent + returnStr + "\n";
 		}

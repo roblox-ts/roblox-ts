@@ -2,44 +2,44 @@ import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isRbxService } from "../typeUtilities";
+// import { isRbxService } from "../typeUtilities";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
-// import { yellow } from "../utility";
-export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
-	state.scriptContext = getScriptContext(node);
-	const scriptType = getScriptType(node);
+type importSpecifierConstraint = (a: ts.ImportSpecifier) => boolean;
 
-	const serviceImports = new Array<[ts.ImportDeclaration, number]>();
-	const nonServiceImports = new Array<[ts.ImportDeclaration, number]>();
+export function prioritizeImportsByCondition(node: ts.SourceFile, condition: importSpecifierConstraint) {
+	const meetsCondition = new Array<[ts.ImportDeclaration, number]>();
+	const otherImports = new Array<[ts.ImportDeclaration, number]>();
 
 	const importDeclarations = node.getImportDeclarations();
 
 	for (let i = 0; i < importDeclarations.length; i++) {
 		const importDeclaration = importDeclarations[i];
-		if (importDeclaration.getNamedImports().some(namedImport => isRbxService(namedImport.getType().getText()))) {
-			serviceImports.push([importDeclaration, i]);
+		if (importDeclaration.getNamedImports().some(condition)) {
+			meetsCondition.push([importDeclaration, i]);
 		} else {
-			nonServiceImports.push([importDeclaration, i]);
+			otherImports.push([importDeclaration, i]);
 		}
 	}
 
 	// Switch imports with an RbxService type to the top
-	if (serviceImports.length > 0 && nonServiceImports.length > 0) {
-		serviceImports.sort((a, b) => a[1] - b[1]);
-		nonServiceImports.sort((a, b) => a[1] - b[1]);
-
-		const limit = Math.min(nonServiceImports.length, serviceImports.length);
+	if (meetsCondition.length > 0 && otherImports.length > 0) {
+		const limit = Math.min(otherImports.length, meetsCondition.length);
 
 		for (let i = 0; i < limit; i++) {
-			const a = nonServiceImports[i][0].getText();
-			const b = serviceImports[i][0].getText();
+			const a = otherImports[i][0].getText();
+			const b = meetsCondition[i][0].getText();
 
-			nonServiceImports[i][0].replaceWithText(b);
-			serviceImports[i][0].replaceWithText(a);
+			otherImports[i][0].replaceWithText(b);
+			meetsCondition[i][0].replaceWithText(a);
 		}
 	}
+}
 
+export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
+	state.scriptContext = getScriptContext(node);
+	const scriptType = getScriptType(node);
+	// prioritizeImportsByCondition(node, (namedImport) => isRbxService(namedImport.getType().getText()))
 	let result = transpileStatementedNode(state, node);
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {

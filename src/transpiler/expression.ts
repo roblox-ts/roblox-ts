@@ -182,7 +182,7 @@ export function expressionModifiesVariable(
 	return false;
 }
 
-export function safelyTranspileExpression(
+export function placeInStatementIfExpression(
 	state: TranspilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,

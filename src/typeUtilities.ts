@@ -1,50 +1,6 @@
 import * as ts from "ts-morph";
 import { CompilerDirectives, getCompilerDirective } from "./transpiler";
 
-export type RbxService =
-	| "AssetService"
-	| "BadgeService"
-	| "Chat"
-	| "CollectionService"
-	| "ContentProvider"
-	| "ContextActionService"
-	| "DataStoreService"
-	| "Debris"
-	| "GamePassService"
-	| "GroupService"
-	| "GuiService"
-	| "HapticService"
-	| "HttpService"
-	| "InsertService"
-	| "KeyframeSequenceProvider"
-	| "Lighting"
-	| "LocalizationService"
-	| "LogService"
-	| "MarketplaceService"
-	| "PathfindingService"
-	| "PhysicsService"
-	| "Players"
-	| "PointsService"
-	| "ReplicatedFirst"
-	| "ReplicatedStorage"
-	| "RunService"
-	| "ScriptContext"
-	| "Selection"
-	| "ServerScriptService"
-	| "ServerStorage"
-	| "SoundService"
-	| "StarterGui"
-	| "StarterPlayer"
-	| "Stats"
-	| "Teams"
-	| "TeleportService"
-	| "TestService"
-	| "TextService"
-	| "TweenService"
-	| "UserInputService"
-	| "VRService"
-	| "Workspace";
-
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
 	"BadgeService",
@@ -90,7 +46,7 @@ export const RBX_SERVICES: Array<string> = [
 	"Workspace",
 ];
 
-export function isRbxService(name: string): name is RbxService {
+export function isRbxService(name: string) {
 	return RBX_SERVICES.indexOf(name) !== -1;
 }
 

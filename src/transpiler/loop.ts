@@ -5,7 +5,7 @@ import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { expressionModifiesVariable, safelyTranspileExpression } from "./expression";
+import { expressionModifiesVariable, placeInStatementIfExpression } from "./expression";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -340,7 +340,7 @@ function safelyHandleExpressionsInForStatement(
 	if (ts.TypeGuards.isExpression(incrementor)) {
 		checkLoopClassExp(incrementor);
 	}
-	return state.indent + safelyTranspileExpression(state, incrementor, incrementorStr);
+	return state.indent + placeInStatementIfExpression(state, incrementor, incrementorStr);
 }
 
 function getSimpleForLoopString(
