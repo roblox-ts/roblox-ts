@@ -25,6 +25,9 @@
 		"include": [
 			"src/transpiler"
 		],
+		"exclude": [
+			"src/transpiler/await.ts"
+		],
 		"reporter": [
 			"text-lcov"
 		],
