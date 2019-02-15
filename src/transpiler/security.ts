@@ -85,25 +85,16 @@ export function checkMethodReserved(name: string, node: ts.Node) {
 
 const COMPILER_DIRECTIVE_TAG = "rbxts";
 
-export const enum CompilerDirectives {
+export const enum CompilerDirective {
 	Client = "client",
 	Server = "server",
 	Array = "array",
 }
 
-/**
- * Searches `node` recursively for directives. Returns either the first directive from the given list that it finds.
- * If it cannot find a directive from the list, it returns `undefined`.
- * Search is:
- *  - left -> right
- *  - inner -> outer
- * @param node JSDocable node to search
- * @param directives list of directives to search for
- */
-export function getCompilerDirective(
+function getCompilerDirectiveFromDeclaration(
 	node: ts.Node,
-	directives: Array<CompilerDirectives>,
-): CompilerDirectives | undefined {
+	directives: Array<CompilerDirective>,
+): CompilerDirective | undefined {
 	if (ts.TypeGuards.isJSDocableNode(node)) {
 		for (const jsDoc of node.getJsDocs()) {
 			for (const jsTag of jsDoc.getTags()) {
@@ -121,21 +112,46 @@ export function getCompilerDirective(
 				}
 			}
 		}
-		const parent = node.getParent();
-		if (parent) {
-			const result = getCompilerDirective(parent, directives);
-			if (result !== undefined) {
-				return result;
-			}
+	}
+	const parent = node.getParent();
+	if (parent) {
+		const result = getCompilerDirectiveFromDeclaration(parent, directives);
+		if (result !== undefined) {
+			return result;
+		}
+	}
+}
+
+/**
+ * Searches `node` recursively for directives. Returns either the first directive from the given list that it finds.
+ * If it cannot find a directive from the list, it returns `undefined`.
+ * Search is:
+ *  - left -> right
+ *  - inner -> outer
+ * @param node JSDocable node to search
+ * @param directives list of directives to search for
+ */
+export function getCompilerDirective(
+	symbol: ts.Symbol,
+	directives: Array<CompilerDirective>,
+): CompilerDirective | undefined {
+	for (const node of symbol.getDeclarations()) {
+		const result = getCompilerDirectiveFromDeclaration(node, directives);
+		if (result !== undefined) {
+			return result;
 		}
 	}
 }
 
 export function checkApiAccess(state: TranspilerState, node: ts.Node) {
+	const symbol = node.getSymbol();
+	if (!symbol) {
+		return;
+	}
 	if (state.scriptContext === ScriptContext.Server) {
 		if (
-			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
-			CompilerDirectives.Client
+			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
+			CompilerDirective.Client
 		) {
 			throw new TranspilerError(
 				"Server script attempted to access a client-only API!",
@@ -145,8 +161,8 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
 		if (
-			getCompilerDirective(node, [CompilerDirectives.Client, CompilerDirectives.Server]) ===
-			CompilerDirectives.Server
+			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
+			CompilerDirective.Server
 		) {
 			throw new TranspilerError(
 				"Client script attempted to access a server-only API!",
