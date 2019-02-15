@@ -142,4 +142,14 @@ export = () => {
 		expect(c).to.equal(1);
 		expect(d).to.equal(2);
 	});
+
+	it("should support destructure assignment", () => {
+		let x: number;
+		let y: number;
+		let z: number;
+		[x, y, [z]] = [1, 2, [3]];
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
 };
