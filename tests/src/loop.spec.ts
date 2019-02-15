@@ -1,19 +1,75 @@
 export = () => {
 	it("should support numeric for loops", () => {
+		const hit = new Set<number>();
 		let sum = 10;
 		for (let i = 0; i < 10; i++) {
+			hit.add(i);
 			sum--;
 		}
 		expect(sum).to.equal(0);
+		expect(hit.has(0)).to.equal(true);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+		expect(hit.has(4)).to.equal(true);
+		expect(hit.has(5)).to.equal(true);
+		expect(hit.has(6)).to.equal(true);
+		expect(hit.has(7)).to.equal(true);
+		expect(hit.has(8)).to.equal(true);
+		expect(hit.has(9)).to.equal(true);
+	});
+
+	it("should support optimized simple loops (1 to 3)", () => {
+		const hit = new Set<number>();
+		let n = 0;
+		for (let i = 1; i <= 3; i++) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+	});
+
+	it("should support optimized simple loops (3 to 1)", () => {
+		const hit = new Set<number>();
+		let n = 0;
+		for (let i = 3; i >= 3; i--) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
 	});
 
 	it("should support for-of loops", () => {
+		const hit = new Set<number>();
 		const array = [1, 2, 3];
-		let sum = 0;
-		for (const value of array) {
-			sum += value;
+		let n = 0;
+		for (const v of array) {
+			hit.add(v);
+			n++;
 		}
-		expect(sum).to.equal(6);
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+	});
+
+	it("should support for-of loops over array literals", () => {
+		const hit = new Set<number>();
+		let n = 0;
+		for (const v of [1, 2, 3]) {
+			hit.add(v);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
 	});
 
 	it("should support for-in loops", () => {
