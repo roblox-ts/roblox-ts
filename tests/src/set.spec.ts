@@ -117,7 +117,7 @@ export = () => {
 			.add("a")
 			.add("b")
 			.add("c");
-		expect(set.toString()).never.to.throw();
+		expect(set.toString()).to.be.ok();
 		expect(typeof new Set<string>().toString()).to.equal("string");
 	});
 };

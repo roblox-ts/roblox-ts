@@ -122,7 +122,7 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoDynamicImport,
 	},
-	"exportNonModule.spec.ts": {
+	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,
 		type: TranspilerErrorType.ExportInNonModuleScript,

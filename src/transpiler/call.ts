@@ -81,9 +81,9 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("join", (accessPath, params, state, subExp) => {
 		const arrayType = subExp.getType().getArrayType()!;
 		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
-
 		if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
-			return `table.concat(${accessPath}, ${params[0] || `", "`})`;
+			const paramStr = params[0] ? transpileCallArgument(state, params[0]) : `", "`;
+			return `table.concat(${accessPath}, ${paramStr})`;
 		}
 	})
 

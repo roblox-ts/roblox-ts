@@ -304,16 +304,13 @@ export = () => {
 	});
 
 	it("should support sort", () => {
-		const months = ["March", "Jan", "Feb", "Dec"];
-		months.sort();
+		const months = ["March", "Jan", "Feb", "Dec"].sort();
 		expect(months[0]).to.equal("Dec");
 		expect(months[1]).to.equal("Feb");
 		expect(months[2]).to.equal("Jan");
 		expect(months[3]).to.equal("March");
 
-		const array1 = [1, 30, 4, 21, 100000];
-		array1.sort();
-
+		const array1 = [1, 30, 4, 21, 100000].sort();
 		expect(array1[0]).to.equal(1);
 		expect(array1[1]).to.equal(100000);
 		expect(array1[2]).to.equal(21);
@@ -330,7 +327,7 @@ export = () => {
 		expect(x[3]).to.equal(4);
 
 		const arr2 = [1, 2, [3, 4, [5, 6]]];
-		const y = arr1.flat(1);
+		const y = arr2.flat(1) as [number, number, number, number, [number, number]];
 		expect(y[0]).to.equal(1);
 		expect(y[1]).to.equal(2);
 		expect(y[2]).to.equal(3);
@@ -353,10 +350,10 @@ export = () => {
 		const arr4 = [1, 2, , 4, 5];
 		const a = arr4.flat();
 		// [1, 2, 4, 5]
-		expect(z[0]).to.equal(1);
-		expect(z[1]).to.equal(2);
-		expect(z[2]).to.equal(4);
-		expect(z[3]).to.equal(5);
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(4);
+		expect(a[3]).to.equal(5);
 	});
 
 	it("should support copyWithin", () => {
@@ -407,16 +404,16 @@ export = () => {
 
 		const d = [1, 2, 3, 4, 5].copyWithin(-2, -3, -1);
 		// [1, 2, 3, 3, 4]
-		expect(c[0]).to.equal(1);
-		expect(c[1]).to.equal(2);
-		expect(c[2]).to.equal(3);
-		expect(c[3]).to.equal(3);
-		expect(c[4]).to.equal(4);
+		expect(d[0]).to.equal(1);
+		expect(d[1]).to.equal(2);
+		expect(d[2]).to.equal(3);
+		expect(d[3]).to.equal(3);
+		expect(d[4]).to.equal(4);
 	});
 
 	it("should support toString", () => {
 		const x = [1, 2, 3];
-		expect([1, 2, 4].toString()).never.to.throw();
+		expect([1, 2, 4].toString()).to.be.ok();
 		expect(typeof x.toString()).to.equal("string");
 	});
 };
