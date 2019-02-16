@@ -11,22 +11,28 @@
 <div>&nbsp;</div>
 <div align="center">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</div>
 
-## Why?
+<h2 align="center">Why?</h2>
+
 As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Lua. In addition, Lua is difficult to make tooling for.
 
 **roblox-ts** is designed to solve these problems by compiling TypeScript code directly into Lua, tuned for use in Roblox specifically.
 
-## How?
+<h2 align="center">How?</h2>
+
 **roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree (aided by the TypeScript compiler) and emit functionally similar structures in Lua so that the code behaves the same (minus the type information).
 
-## Quick start & Documentation
+<h2 align="center">Quick start & Documentation</h2>
+
 Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/)
 
-## Join the Community!
+<h2 align="center">Join the Community!</h2>
+
 https://discord.gg/f6Rn6RY
 
-## Credits
+<h2 align="center">Credits</h2>
+
 **roblox-ts** is powered by [ts-morph](https://github.com/dsherret/ts-morph) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
 
-## Games that use roblox-ts
+<h2 align="center">Games that use roblox-ts</h2>
+
 <a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>
