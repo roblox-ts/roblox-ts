@@ -92,7 +92,16 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
 
 		if (length === 1 && propertyCallParentIsExpression) {
-			return `table.insert(${concatParams(state, params, accessPath)})`;
+			return `table.insert(${accessPath}, ${transpileCallArgument(state, params[0])})`;
+		}
+	})
+
+	.set("unshift", (accessPath, params, state, subExp) => {
+		const length = params.length;
+		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
+
+		if (length === 1 && propertyCallParentIsExpression) {
+			return `table.insert(${accessPath}, 1, ${transpileCallArgument(state, params[0])})`;
 		}
 	});
 
