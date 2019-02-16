@@ -1,19 +1,11 @@
 import * as path from "path";
 import * as ts from "ts-morph";
-import * as util from "util";
 import { checkReserved, transpileExpression } from ".";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isUsedAsType } from "../typeUtilities";
-import {
-	getScriptContext,
-	getScriptType,
-	isValidLuaIdentifier,
-	ScriptContext,
-	ScriptType,
-	stripExts,
-} from "../utility";
+import { isValidLuaIdentifier, stripExts } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
