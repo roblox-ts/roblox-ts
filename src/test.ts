@@ -97,8 +97,13 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.RobloxTSReservedIdentifier,
 	},
-	"localPlayer.spec.server.ts": {
+	"invalidAccess.spec.server.ts": {
 		message: "should not allow client only API to be accessed by server code",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
+	},
+	"invalidAccess.spec.client.ts": {
+		message: "should not allow server only API to be accessed by client code",
 		instance: TranspilerError,
 		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
 	},
