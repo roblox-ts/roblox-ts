@@ -61,43 +61,12 @@ function getRbxPath(state: TranspilerState, sourceFile: ts.SourceFile) {
 	}
 }
 
-function validateImport(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	const sourceContext = getScriptContext(sourceFile);
-	const sourceRbxPath = getRbxPath(state, sourceFile);
-	const moduleRbxPath = getRbxPath(state, moduleFile);
-	if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
-		if (getScriptType(moduleFile) !== ScriptType.Module) {
-			throw new CompilerError(
-				util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
-				CompilerErrorType.ImportNonModuleScript,
-			);
-		}
-
-		if (sourceContext === ScriptContext.Client) {
-			if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
-				throw new CompilerError(
-					util.format(
-						"%s is not allowed to import %s",
-						getRobloxPathString(sourceRbxPath),
-						getRobloxPathString(moduleRbxPath),
-					),
-					CompilerErrorType.InvalidImportAccess,
-				);
-			}
-		}
-	}
-}
-
 function getRelativeImportPath(
 	state: TranspilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile | undefined,
 	specifier: string,
 ) {
-	if (moduleFile) {
-		validateImport(state, sourceFile, moduleFile);
-	}
-
 	const currentPartition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
 	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 
@@ -129,7 +98,6 @@ function getRelativeImportPath(
 const moduleCache = new Map<string, string>();
 
 function getImportPathFromFile(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	validateImport(state, sourceFile, moduleFile);
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
 		let parts = state.modulesDir
 			.getRelativePathTo(moduleFile)
