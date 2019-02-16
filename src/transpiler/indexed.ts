@@ -4,9 +4,18 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom, isArrayType, isNumberType, isStringType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
+import { getPropertyAccessExpressionType } from "./call";
 import { checkNonAny } from "./security";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
+	if (getPropertyAccessExpressionType(state, node, node) !== -1) {
+		throw new TranspilerError(
+			"Invalid property access! Cannot index a roblox-ts macro function",
+			node,
+			TranspilerErrorType.InvalidMacroIndex,
+		);
+	}
+
 	const exp = node.getExpression();
 	const expType = exp.getType();
 	const expStr = transpileExpression(state, exp);

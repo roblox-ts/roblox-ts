@@ -62,6 +62,7 @@ export enum TranspilerErrorType {
 	InvalidService,
 	ReservedNamespace,
 	BadAddition,
+	InvalidMacroIndex,
 }
 
 export class TranspilerError extends Error {
