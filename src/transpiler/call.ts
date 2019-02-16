@@ -63,8 +63,9 @@ type ReplaceFunction = (
 
 type ReplaceMap = Map<string, ReplaceFunction>;
 
-function wrapExpFunc(replacer: (accessPath: string) => string): ReplaceFunction {
-	return (accessPath, params, state, subExp) => replacer(wrapExpressionIfNeeded(subExp, accessPath));
+function wrapExpFunc(replacer: ReplaceFunction): ReplaceFunction {
+	return (accessPath, params, state, subExp) =>
+		replacer(wrapExpressionIfNeeded(subExp, accessPath), params, state, subExp);
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()

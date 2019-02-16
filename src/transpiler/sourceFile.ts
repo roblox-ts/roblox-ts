@@ -13,6 +13,8 @@ export function prioritizeImportsByCondition(node: ts.SourceFile, condition: imp
 
 	const importDeclarations = node.getImportDeclarations();
 
+	console.log("Hello, world!");
+
 	for (let i = 0; i < importDeclarations.length; i++) {
 		const importDeclaration = importDeclarations[i];
 		if (importDeclaration.getNamedImports().some(condition)) {
