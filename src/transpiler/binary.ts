@@ -8,10 +8,7 @@ import { checkNonAny } from "./security";
 
 function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
-	let rhs = node.getRight();
-	if (ts.TypeGuards.isParenthesizedExpression(rhs)) {
-		rhs = rhs.getExpression();
-	}
+	const rhs = node.getRight();
 	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
 		return `TS.round(${lhsStr})`;
 	} else {
