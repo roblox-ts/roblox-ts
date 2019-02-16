@@ -5,7 +5,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import { isValidLuaIdentifier, stripExts } from "../utility";
+import { isValidLuaIdentifier, stripExtensions } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
@@ -51,7 +51,7 @@ function getRelativeImportPath(
 		parts.pop();
 	}
 	let prefix = "script";
-	if (stripExts(sourceFile.getBaseName()) !== "index") {
+	if (stripExtensions(sourceFile.getBaseName()) !== "index") {
 		prefix += ".Parent";
 	}
 
@@ -96,7 +96,7 @@ function getImportPathFromFile(
 		if (!last) {
 			throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
 		}
-		last = stripExts(last);
+		last = stripExtensions(last);
 		if (last !== "init") {
 			parts.push(last);
 		}

@@ -15,10 +15,10 @@ export function safeLuaIndex(parent: string, child: string) {
 	}
 }
 
-export function stripExts(fileName: string): string {
+export function stripExtensions(fileName: string): string {
 	const ext = path.extname(fileName);
 	if (ext.length > 0) {
-		return stripExts(path.basename(fileName, ext));
+		return stripExtensions(path.basename(fileName, ext));
 	} else {
 		return fileName;
 	}
