@@ -107,6 +107,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.InvalidServerOnlyAPIAccess,
 	},
+	"equalsEquals.ts": {
+		message: "should not allow ==",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoEqualsEquals,
+	},
+	"exclamationEquals.ts": {
+		message: "should not allow !=",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoExclamationEquals,
+	},
 	"any/index.spec.ts": {
 		message: "should not allow indexing type any",
 		instance: TranspilerError,

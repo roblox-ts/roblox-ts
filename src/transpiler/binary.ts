@@ -153,8 +153,6 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			statements.push(`${lhsStr} = ${lhsStr} ^ (${rhsStr})`);
 		} else if (opKind === ts.SyntaxKind.PercentEqualsToken) {
 			statements.push(`${lhsStr} = ${lhsStr} % (${rhsStr})`);
-		} else {
-			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
 		}
 
 		const parentKind = node.getParentOrThrow().getKind();
@@ -224,9 +222,9 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		state.usesTSLibrary = true;
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 	} else {
-		const opKindName = node.getOperatorToken().getKindName();
+		/* istanbul ignore next */
 		throw new TranspilerError(
-			`Bad binary expression! (${opKindName})`,
+			`Bad binary expression! (${node.getOperatorToken().getKindName()})`,
 			opToken,
 			TranspilerErrorType.BadBinaryExpression,
 		);
