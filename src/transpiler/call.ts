@@ -213,7 +213,7 @@ function transpilePropertyMethod(
 	return `TS.${className}_${property}(${concatParams(state, params, accessPath)})`;
 }
 
-const enum PropertyCallExpType {
+export const enum PropertyCallExpType {
 	None = -1,
 	Array,
 	BuiltInStringMethod,
