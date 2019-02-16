@@ -117,6 +117,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoExclamationEquals,
 	},
+	"dynamicImport.spec.ts": {
+		message: "should not allow dynamic imports",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoDynamicImport,
+	},
+	"exportNonModule.spec.ts": {
+		message: "should not allow exporting from a non-ModuleScript",
+		instance: TranspilerError,
+		type: TranspilerErrorType.ExportInNonModuleScript,
+	},
 	"any/index.spec.ts": {
 		message: "should not allow indexing type any",
 		instance: TranspilerError,

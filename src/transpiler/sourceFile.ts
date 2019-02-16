@@ -28,15 +28,9 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 
 		let hasExportEquals = false;
 		for (const descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
-			if (hasExportEquals) {
-				throw new TranspilerError(
-					"ModuleScript contains multiple ExportEquals. You can only do `export = ` once.",
-					node,
-					TranspilerErrorType.MultipleExportEquals,
-				);
-			}
 			if (descendant.isExportEquals()) {
 				hasExportEquals = true;
+				break;
 			}
 		}
 

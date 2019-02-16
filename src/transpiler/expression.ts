@@ -105,15 +105,9 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			node,
 			TranspilerErrorType.NoNull,
 		);
-	} else if (ts.TypeGuards.isImportExpression(node)) {
-		throw new TranspilerError(
-			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
-			node,
-			TranspilerErrorType.NoDynamicImport,
-		);
 	} else {
-		const kindName = node.getKindName();
-		throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
+		/* istanbul ignore next */
+		throw new TranspilerError(`Bad expression! (${node.getKindName()})`, node, TranspilerErrorType.BadExpression);
 	}
 }
 

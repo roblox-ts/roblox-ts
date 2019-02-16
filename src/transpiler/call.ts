@@ -36,6 +36,13 @@ export function transpileCallArguments(state: TranspilerState, args: Array<ts.No
 
 export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
 	const exp = node.getExpression();
+	if (exp.getKindName() === "ImportKeyword") {
+		throw new TranspilerError(
+			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
+			node,
+			TranspilerErrorType.NoDynamicImport,
+		);
+	}
 	checkNonAny(exp);
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
