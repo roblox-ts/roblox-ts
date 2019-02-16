@@ -76,10 +76,6 @@ export function isType(node: ts.Node) {
 }
 
 export function isUsedAsType(node: ts.Identifier) {
-	if (isRbxService(node.getType().getText())) {
-		return false;
-	}
-
 	return node.findReferences().every(refSymbol =>
 		refSymbol
 			.getReferences()
