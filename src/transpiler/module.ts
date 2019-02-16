@@ -28,31 +28,6 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 	return true;
 }
 
-function getRobloxPathString(rbxPath: Array<string>) {
-	rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
-	return "game" + rbxPath.join("");
-}
-
-function getRbxPath(state: TranspilerState, sourceFile: ts.SourceFile) {
-	const partition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-	if (partition) {
-		const rbxPath = partition.dir
-			.getRelativePathTo(sourceFile)
-			.split("/")
-			.filter(part => part !== ".");
-
-		let last = rbxPath.pop()!;
-		let ext = path.extname(last);
-		while (ext !== "") {
-			last = path.basename(last, ext);
-			ext = path.extname(last);
-		}
-		rbxPath.push(last);
-
-		return rbxPath;
-	}
-}
-
 function getRelativeImportPath(
 	state: TranspilerState,
 	sourceFile: ts.SourceFile,
