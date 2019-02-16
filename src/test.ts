@@ -16,13 +16,6 @@ interface ErrorMatrix {
 	};
 }
 
-const compilerArgs = {
-	ci: true,
-	includePath: "include",
-	modulesPath: "modules",
-	project: "tests",
-};
-
 /* tslint:disable:object-literal-sort-keys */
 const errorMatrix: ErrorMatrix = {
 	"diagnostic.spec.ts": {
@@ -109,8 +102,65 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
 	},
+	"any/index.spec.ts": {
+		message: "should not allow indexing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/call.spec.ts": {
+		message: "should not allow calling type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/pass.spec.ts": {
+		message: "should not allow passing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/computedAccess.spec.ts": {
+		message: "should not allow computed accessing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/computedAccess2.spec.ts": {
+		message: "should not allow computed accessing type any #2",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/func.spec.ts": {
+		message: "should not allow functions that return type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/add.spec.ts": {
+		message: "should not allow adding type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/sub.spec.ts": {
+		message: "should not allow subtracting type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/mul.spec.ts": {
+		message: "should not allow multiplying type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/div.spec.ts": {
+		message: "should not allow dividing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
+
+const compilerArgs = {
+	ci: true,
+	includePath: "include",
+	modulesPath: "modules",
+	project: "tests",
+};
 
 const srcFolder = path.resolve("tests", "src");
 const compiler = new Compiler(compilerArgs);
