@@ -1,4 +1,5 @@
 import * as fs from "fs-extra";
+import { describe, it } from "mocha";
 import * as path from "path";
 import * as util from "util";
 import { Compiler } from "./Compiler";
@@ -7,8 +8,6 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 import { red } from "./utility";
 
-require("mocha");
-
 interface ErrorMatrix {
 	[propName: string]: {
 		message: string;
@@ -16,12 +15,6 @@ interface ErrorMatrix {
 		type?: TranspilerErrorType;
 	};
 }
-
-const compilerArgs = {
-	ci: true,
-	includePath: "include",
-	modulesPath: "modules",
-};
 
 /* tslint:disable:object-literal-sort-keys */
 const errorMatrix: ErrorMatrix = {
@@ -94,25 +87,120 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.RoactNoNewComponentAllowed,
 	},
+	"invalidId.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidIdentifier,
+	},
+	"reservedId.spec.ts": {
+		message: "should not allow reserved identifiers to be used",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RobloxTSReservedIdentifier,
+	},
+	"invalidAccess.spec.server.ts": {
+		message: "should not allow client only API to be accessed by server code",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
+	},
+	"invalidAccess.spec.client.ts": {
+		message: "should not allow server only API to be accessed by client code",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidServerOnlyAPIAccess,
+	},
+	"equalsEquals.ts": {
+		message: "should not allow ==",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoEqualsEquals,
+	},
+	"exclamationEquals.ts": {
+		message: "should not allow !=",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoExclamationEquals,
+	},
+	"dynamicImport.spec.ts": {
+		message: "should not allow dynamic imports",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoDynamicImport,
+	},
+	"exportNonModule.spec.server.ts": {
+		message: "should not allow exporting from a non-ModuleScript",
+		instance: TranspilerError,
+		type: TranspilerErrorType.ExportInNonModuleScript,
+	},
+	"any/index.spec.ts": {
+		message: "should not allow indexing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/call.spec.ts": {
+		message: "should not allow calling type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/pass.spec.ts": {
+		message: "should not allow passing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/computedAccess.spec.ts": {
+		message: "should not allow computed accessing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/computedAccess2.spec.ts": {
+		message: "should not allow computed accessing type any #2",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/func.spec.ts": {
+		message: "should not allow functions that return type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/add.spec.ts": {
+		message: "should not allow adding type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/sub.spec.ts": {
+		message: "should not allow subtracting type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/mul.spec.ts": {
+		message: "should not allow multiplying type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
+	"any/div.spec.ts": {
+		message: "should not allow dividing type any",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoAny,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
-const tsconfigPath = "tests/tsconfig.json";
-const srcFolder = path.resolve("tests", "src");
-const compiler = new Compiler(tsconfigPath, compilerArgs);
+const compilerArgs = {
+	ci: true,
+	includePath: "include",
+	modulesPath: "modules",
+	project: "tests",
+};
 
-async function compile(relativePath: string) {
-	return compiler.compileFileByPath(path.resolve(srcFolder, relativePath));
+const srcFolder = path.resolve("tests", "src");
+const compiler = new Compiler(compilerArgs);
+
+async function compile(filePath: string) {
+	return compiler.compileFileByPath(filePath);
 }
 
-describe("compile integration tests", () => {
-	// compile integration tests
-	for (const name of fs.readdirSync(srcFolder)) {
+function testFolder(folderPath: string) {
+	for (const name of fs.readdirSync(folderPath)) {
 		if (name !== "errors") {
 			it(name, async () => {
 				process.exitCode = 0;
 				try {
-					await compile(name);
+					await compile(path.join(folderPath, name));
 				} catch (e) {
 					if (e instanceof TranspilerError) {
 						throw new Error(
@@ -139,12 +227,16 @@ describe("compile integration tests", () => {
 			});
 		}
 	}
-});
+}
+
+describe("compile integration tests", () => testFolder(srcFolder));
+
+describe("compile integration tests for imports", () => testFolder(path.join(srcFolder, "imports")));
 
 describe("compile error unit tests", () => {
 	for (const file in errorMatrix) {
 		it(errorMatrix[file].message, done => {
-			compile("errors/" + file)
+			compile(path.join(srcFolder, "errors", file))
 				.then(() => done("Did not throw!"))
 				.catch(e => {
 					if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === undefined) {

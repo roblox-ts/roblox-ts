@@ -7,3 +7,9 @@ export function foo() {
 export default class Vector {
 	constructor(public readonly x = 0, public readonly y = 0, public readonly z = 0) {}
 }
+export enum Fruits {
+	Apple,
+	Orange,
+	Pear,
+}
+export let letVar = 1;

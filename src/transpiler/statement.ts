@@ -26,10 +26,10 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isType } from "../typeUtilities";
+import { isTypeStatement } from "../typeUtilities";
 
 export function transpileStatement(state: TranspilerState, node: ts.Statement): string {
-	if (isType(node)) {
+	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
 		return transpileBlock(state, node);
@@ -90,8 +90,8 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 			TranspilerErrorType.NoLabeledStatement,
 		);
 	} else {
-		const kindName = node.getKindName();
-		throw new TranspilerError(`Bad statement! (${kindName})`, node, TranspilerErrorType.BadStatement);
+		/* istanbul ignore next */
+		throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node, TranspilerErrorType.BadStatement);
 	}
 }
 

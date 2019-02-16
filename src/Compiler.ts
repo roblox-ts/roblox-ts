@@ -12,6 +12,11 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
 
+const IGNORED_DIAGNOSTIC_CODES = [
+	2688, // "Cannot find type definition file for '{0}'."
+	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
+];
+
 interface RojoJson {
 	partitions: {
 		[index: string]: {
@@ -48,13 +53,14 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
 	await searchForLuaFiles(sourceFolder);
 
 	await fs.copy(sourceFolder, destinationFolder, {
+		dereference: true,
 		filter: async (oldPath, newPath) => {
 			const stats = await fs.stat(oldPath);
 			if (stats.isDirectory() && hasLuaFilesMap.get(oldPath) === true) {
 				return true;
-			} else if (stats.isFile() && path.extname(oldPath) === LUA_EXT) {
+			} else if ((stats.isFile() || stats.isSymbolicLink()) && path.extname(oldPath) === LUA_EXT) {
 				if (await fs.pathExists(newPath)) {
-					const oldContents = await fs.readFile(oldPath);
+					const oldContents = await fs.readFile(await fs.realpath(oldPath));
 					const newContents = await fs.readFile(newPath);
 					return !oldContents.equals(newContents);
 				} else {
@@ -101,6 +107,7 @@ export class Compiler {
 	private readonly project: Project;
 	private readonly projectPath: string;
 	private readonly includePath: string;
+	private readonly noInclude: boolean;
 	private readonly modulesPath: string;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDirPath: string;
@@ -110,14 +117,31 @@ export class Compiler {
 	private readonly syncInfo = new Array<Partition>();
 	private readonly ci: boolean;
 
-	constructor(configFilePath: string, args: { [argName: string]: any }) {
+	constructor(argv: { [argName: string]: any }) {
+		let configFilePath = path.resolve(argv.project as string);
+
+		try {
+			fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
+		} catch (e) {
+			throw new Error("Project path does not exist!");
+		}
+
+		if (fs.statSync(configFilePath).isDirectory()) {
+			configFilePath = path.resolve(configFilePath, "tsconfig.json");
+		}
+
+		if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
+			throw new Error("Cannot find tsconfig.json!");
+		}
+
 		this.projectPath = path.resolve(configFilePath, "..");
 		this.project = new Project({
 			tsConfigFilePath: configFilePath,
 		});
-		this.includePath = path.resolve(this.projectPath, args.includePath);
-		this.modulesPath = path.resolve(this.projectPath, args.modulesPath);
-		this.ci = args.ci;
+		this.noInclude = argv.noInclude === true;
+		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
+		this.ci = argv.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
@@ -288,24 +312,16 @@ export class Compiler {
 		return path.join(this.outDirPath, relativeToRoot, luaName);
 	}
 
-	private transformPathFromLua(filePath: string) {
-		const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
-		let name = path.basename(filePath, path.extname(filePath));
-		if (name === "init") {
-			name = "index";
-		}
-		return path.join(this.rootDirPath, relativeToOut, name);
-	}
-
 	public addFile(filePath: string) {
 		this.project.addExistingSourceFile(filePath);
 	}
 
-	public removeFile(filePath: string) {
+	public async removeFile(filePath: string) {
 		const sourceFile = this.project.getSourceFile(filePath);
 		if (sourceFile) {
 			this.project.removeSourceFile(sourceFile);
 		}
+		await this.cleanDirRecursive(this.outDirPath);
 	}
 
 	public refresh(): Promise<Array<ts.FileSystemRefreshResult>> {
@@ -325,13 +341,17 @@ export class Compiler {
 				} else {
 					const ext = path.extname(filePath);
 					if (ext === ".lua") {
-						const rootPath = this.transformPathFromLua(filePath);
+						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
+						const rootPath = path.join(this.rootDirPath, relativeToOut);
+						const baseName = path.basename(filePath, path.extname(filePath));
 						if (
-							!(await fs.pathExists(rootPath + ".ts")) &&
-							!(await fs.pathExists(rootPath + ".lua")) &&
-							!(await fs.pathExists(rootPath + ".tsx"))
+							!(await fs.pathExists(path.join(rootPath, baseName) + ".ts")) &&
+							!(await fs.pathExists(path.join(rootPath, baseName) + ".tsx")) &&
+							((baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) ||
+								!(await fs.pathExists(path.join(rootPath, baseName) + ".lua")))
 						) {
 							fs.removeSync(filePath);
+							console.log("remove", filePath);
 						}
 					}
 				}
@@ -360,8 +380,8 @@ export class Compiler {
 		}
 	}
 
-	public async copyIncludeFiles(noInclude: boolean) {
-		if (!noInclude) {
+	public async copyIncludeFiles() {
+		if (!this.noInclude) {
 			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
 		}
 	}
@@ -370,10 +390,10 @@ export class Compiler {
 		await copyLuaFiles(this.rootDirPath, this.outDirPath);
 	}
 
-	public async compileAll(noInclude: boolean) {
+	public async compileAll() {
 		await this.copyLuaSourceFiles();
 		await this.compileFiles(this.project.getSourceFiles());
-		await this.copyIncludeFiles(noInclude);
+		await this.copyIncludeFiles();
 		await this.copyModuleFiles();
 	}
 
@@ -387,23 +407,7 @@ export class Compiler {
 					CompilerErrorType.MissingSourceFile,
 				);
 			}
-
-			const seen = new Set<string>();
-			const files = new Array<ts.SourceFile>();
-
-			const search = (file: ts.SourceFile) => {
-				files.push(file);
-				file.getReferencingSourceFiles().forEach(ref => {
-					const refPath = ref.getFilePath();
-					if (!seen.has(refPath)) {
-						seen.add(refPath);
-						search(ref);
-					}
-				});
-			};
-			search(sourceFile);
-
-			return this.compileFiles(files);
+			return this.compileFiles([sourceFile]);
 		} else if (ext === ".lua") {
 			await this.copyLuaSourceFiles();
 		}
@@ -420,7 +424,7 @@ export class Compiler {
 			const diagnostics = file
 				.getPreEmitDiagnostics()
 				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-				.filter(diagnostic => diagnostic.getCode() !== 2688);
+				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
 				const line = diagnostic.getLineNumber();

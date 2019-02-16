@@ -4,7 +4,8 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
-import { isSetToken } from "./binary";
+import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { expressionModifiesVariable, placeInStatementIfExpression } from "./expression";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -36,9 +37,6 @@ export function transpileBreakStatement(state: TranspilerState, node: ts.BreakSt
 }
 
 export function transpileContinueStatement(state: TranspilerState, node: ts.ContinueStatement) {
-	if (node.getLabel()) {
-		throw new TranspilerError("Continue labels are not supported!", node, TranspilerErrorType.NoLabeledStatement);
-	}
 	return state.indent + `_continue_${state.continueId} = true; break;\n`;
 }
 
@@ -203,23 +201,8 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	const exp = node.getExpression();
 	let expStr = transpileExpression(state, exp);
 	let result = "";
-	let wasSet = false;
-	let previous: string | undefined;
 
 	if (isArrayType(exp.getType())) {
-		// If we are uncertain for some reason, fallback on old behavior
-		let count = 2;
-
-		// If identifier only shows up once, don't localize
-		if (lhs && ts.TypeGuards.isIdentifier(lhs)) {
-			count = 0;
-			statement.getDescendantsOfKind(ts.SyntaxKind.Identifier).forEach(identifier => {
-				if (isIdentifierWhoseDefinitionMatchesNode(identifier, lhs as ts.Identifier)) {
-					++count;
-				}
-			});
-		}
-
 		let varValue: string;
 
 		if (!ts.TypeGuards.isIdentifier(exp)) {
@@ -227,18 +210,11 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 			result += state.indent + `local ${arrayName} = ${expStr};\n`;
 			expStr = arrayName;
 		}
-		const myInt = count === 0 ? "_" : state.getNewId();
+		const myInt = state.getNewId();
 		result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
 		state.pushIndent();
 		varValue = `${expStr}[${myInt}]`;
-
-		if (count > 1) {
-			result += state.indent + `local ${varName} = ${varValue};\n`;
-		} else if (count === 1) {
-			wasSet = true;
-			previous = state.variableAliases.get(varName);
-			state.variableAliases.set(varName, varValue);
-		}
+		result += state.indent + `local ${varName} = ${varValue};\n`;
 	} else {
 		result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
 		state.pushIndent();
@@ -249,14 +225,6 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	state.popIdStack();
-
-	if (wasSet) {
-		if (previous) {
-			state.variableAliases.set(varName, previous);
-		} else {
-			state.variableAliases.delete(varName);
-		}
-	}
 
 	return result;
 }
@@ -269,45 +237,6 @@ export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 			TranspilerErrorType.ClassyLoop,
 		);
 	}
-}
-
-function isIdentifierWhoseDefinitionMatchesNode(
-	node: ts.Node<ts.ts.Node>,
-	potentialDefinition: ts.Identifier,
-): node is ts.Identifier {
-	if (ts.TypeGuards.isIdentifier(node)) {
-		for (const def of node.getDefinitions()) {
-			if (def.getNode() === potentialDefinition) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-function expressionModifiesVariable(
-	node: ts.Node<ts.ts.Node>,
-	lhs?: ts.Identifier,
-): node is ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression {
-	if (
-		ts.TypeGuards.isPostfixUnaryExpression(node) ||
-		(ts.TypeGuards.isPrefixUnaryExpression(node) &&
-			(node.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
-				node.getOperatorToken() === ts.SyntaxKind.MinusMinusToken))
-	) {
-		if (lhs) {
-			return isIdentifierWhoseDefinitionMatchesNode(node.getOperand(), lhs);
-		} else {
-			return true;
-		}
-	} else if (ts.TypeGuards.isBinaryExpression(node) && isSetToken(node.getOperatorToken().getKind())) {
-		if (lhs) {
-			return isIdentifierWhoseDefinitionMatchesNode(node.getLeft(), lhs);
-		} else {
-			return true;
-		}
-	}
-	return false;
 }
 
 function getSignAndValueInForStatement(
@@ -366,7 +295,7 @@ function getSignAndValueInForStatement(
 	return [sign, forIntervalStr];
 }
 
-export function getLimitInForStatement(
+function getLimitInForStatement(
 	state: TranspilerState,
 	condition: ts.Expression<ts.ts.Expression>,
 	lhs: ts.Identifier,
@@ -403,33 +332,30 @@ export function getLimitInForStatement(
 	return ["", undefined];
 }
 
-export function safelyHandleExpressionsInForStatement(
+function safelyHandleExpressionsInForStatement(
 	state: TranspilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
 ) {
 	if (ts.TypeGuards.isExpression(incrementor)) {
 		checkLoopClassExp(incrementor);
-
-		if (
-			!ts.TypeGuards.isCallExpression(incrementor) &&
-			!expressionModifiesVariable(incrementor) &&
-			!ts.TypeGuards.isVariableDeclarationList(incrementor)
-		) {
-			incrementorStr = `local _ = ` + incrementorStr;
-		}
 	}
-	return state.indent + incrementorStr;
+	return state.indent + placeInStatementIfExpression(state, incrementor, incrementorStr);
 }
 
-export function getSimpleForLoopString(
+function getSimpleForLoopString(
 	state: TranspilerState,
-	first: string,
+	initializer: ts.VariableDeclarationList,
 	forLoopVars: string,
 	statement: ts.Statement<ts.ts.Statement>,
 ) {
 	let result = "";
 	state.popIndent();
+	const first = transpileVariableDeclarationList(state, initializer)
+		.trim()
+		.replace(/^local /, "")
+		.replace(/;$/, "");
+
 	result = state.indent + `for ${first}, ${forLoopVars} do\n`;
 	state.pushIndent();
 	result += transpileLoopBody(state, statement);
@@ -498,10 +424,6 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 						if (rhs) {
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
-								let first = transpileVariableDeclarationList(state, initializer).trim();
-								// skip ahead of local, and remove ending ;
-								first = first.substr(6, first.length - 7);
-
 								if (expressionModifiesVariable(incrementor, lhs)) {
 									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);
 									if (incrSign) {
@@ -510,12 +432,22 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 											if (incrSign === "+" && condSign === "<=") {
 												const forLoopVars =
 													condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
-												return getSimpleForLoopString(state, first, forLoopVars, statement);
+												return getSimpleForLoopString(
+													state,
+													initializer,
+													forLoopVars,
+													statement,
+												);
 											} else if (incrSign === "-" && condSign === ">=") {
 												incrValue = (incrSign + incrValue).replace("--", "");
 												incrSign = "";
 												const forLoopVars = condValue.getText() + ", " + incrValue;
-												return getSimpleForLoopString(state, first, forLoopVars, statement);
+												return getSimpleForLoopString(
+													state,
+													initializer,
+													forLoopVars,
+													statement,
+												);
 											}
 										}
 									}

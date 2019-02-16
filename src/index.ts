@@ -61,25 +61,7 @@ const argv = yargs
 	// parse
 	.parse();
 
-let configFilePath = path.resolve(argv.project as string);
-
-try {
-	fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
-} catch (e) {
-	throw new Error("Project path does not exist!");
-}
-
-if (fs.statSync(configFilePath).isDirectory()) {
-	configFilePath = path.resolve(configFilePath, "tsconfig.json");
-}
-
-if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
-	throw new Error("Cannot find tsconfig.json!");
-}
-
-const noInclude = argv.noInclude === true;
-
-const compiler = new Compiler(configFilePath, argv);
+const compiler = new Compiler(argv);
 if (argv.watch === true) {
 	const rootDir = compiler.getRootDirOrThrow();
 	let isCompiling = false;
@@ -142,8 +124,8 @@ if (argv.watch === true) {
 		.on("unlink", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("Remove", filePath);
-				compiler.removeFile(filePath);
+				console.log("remove", filePath);
+				await compiler.removeFile(filePath);
 				isCompiling = false;
 			}
 		});
@@ -160,12 +142,12 @@ if (argv.watch === true) {
 	console.log("Starting initial compile..");
 	time(async () => {
 		try {
-			await compiler.compileAll(noInclude);
+			await compiler.compileAll();
 		} catch (e) {
 			console.log(e);
 			process.exit();
 		}
 	});
 } else {
-	compiler.compileAll(noInclude);
+	compiler.compileAll();
 }

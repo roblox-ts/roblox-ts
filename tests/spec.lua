@@ -1,6 +1,6 @@
 -- Import lemur
 package.path = package.path .. ";?/init.lua"
-local lemur = require("tests.submodules.lemur")
+local lemur = require("vendor.lemur")
 
 local habitat = lemur.Habitat.new()
 
@@ -33,7 +33,7 @@ local modulesFolder = newFolder("Modules", robloxTsFolder)
 newFolder("rbx-roact", modulesFolder, "tests/node_modules/rbx-roact");
 
 -- TestEZ
-local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "tests/submodules/testez/lib")
+local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
 
 -- Testing code
 local testsFolder = newFolder("Tests", ReplicatedStorage)
@@ -45,6 +45,6 @@ local TestEZ = habitat:require(testEZFolder)
 local results = TestEZ.TestBootstrap:run({ outFolder }, TestEZ.Reporters.TextReporter)
 
 -- Did something go wrong?
-if results.failureCount > 0 then
+if #results.errors > 0 or results.failureCount > 0 then
 	os.exit(1)
 end
