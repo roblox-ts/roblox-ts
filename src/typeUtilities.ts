@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { CompilerDirectives, getCompilerDirective } from "./transpiler";
+import { CompilerDirective, getCompilerDirective } from "./transpiler";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -166,10 +166,8 @@ export function isArrayType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		if (symbol) {
-			for (const dec of symbol.getDeclarations()) {
-				if (getCompilerDirective(dec, [CompilerDirectives.Array]) === CompilerDirectives.Array) {
-					return true;
-				}
+			if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
+				return true;
 			}
 		}
 		return t.isArray();

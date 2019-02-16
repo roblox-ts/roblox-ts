@@ -1,5 +1,3 @@
-// ..does testez actuall work?
-
 export = () => {
 	it("should work with testez", () => {
 		// Equality

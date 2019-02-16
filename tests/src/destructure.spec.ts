@@ -1,5 +1,3 @@
-import { x } from "export_dec";
-
 export = () => {
 	it("should destructure simple arrays", () => {
 		const [a, b] = [1, 2];

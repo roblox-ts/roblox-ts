@@ -1,4 +1,4 @@
-import Vector, { a, b, c, foo } from "./export";
+import Vector, { a, b, c, foo, Fruits, letVar } from "./export";
 import export_equals from "./export_equals";
 import export_equals2 = require("./export_equals");
 import { x, y, z } from "./export_dec";
@@ -27,5 +27,19 @@ export = () => {
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
+	});
+
+	it("should allow exported enums", () => {
+		expect(Fruits).to.be.ok();
+		expect(Fruits.Apple).to.equal(0);
+		expect(Fruits.Orange).to.equal(1);
+		expect(Fruits.Pear).to.equal(2);
+		expect(Fruits[0]).to.equal("Apple");
+		expect(Fruits[1]).to.equal("Orange");
+		expect(Fruits[2]).to.equal("Pear");
+	});
+
+	it("should support let exports", () => {
+		expect(letVar).to.equal(1);
 	});
 };

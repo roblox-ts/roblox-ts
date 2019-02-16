@@ -1,6 +1,5 @@
 import * as path from "path";
 import * as ts from "ts-morph";
-import * as util from "util";
 import { checkReserved, transpileExpression } from ".";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
@@ -14,6 +13,8 @@ import {
 	ScriptType,
 	stripExts,
 } from "../utility";
+import { isUsedAsType } from "../typeUtilities";
+import { isValidLuaIdentifier, stripExts } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
@@ -36,58 +37,6 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 	return true;
 }
 
-function getRobloxPathString(rbxPath: Array<string>) {
-	rbxPath = rbxPath.map(v => (isValidLuaIdentifier(v) ? "." + v : `["${v}"]`));
-	return "game" + rbxPath.join("");
-}
-
-function getRbxPath(state: TranspilerState, sourceFile: ts.SourceFile) {
-	const partition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-	if (partition) {
-		const rbxPath = partition.dir
-			.getRelativePathTo(sourceFile)
-			.split("/")
-			.filter(part => part !== ".");
-
-		let last = rbxPath.pop()!;
-		let ext = path.extname(last);
-		while (ext !== "") {
-			last = path.basename(last, ext);
-			ext = path.extname(last);
-		}
-		rbxPath.push(last);
-
-		return rbxPath;
-	}
-}
-
-function validateImport(state: TranspilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	const sourceContext = getScriptContext(sourceFile);
-	const sourceRbxPath = getRbxPath(state, sourceFile);
-	const moduleRbxPath = getRbxPath(state, moduleFile);
-	if (sourceRbxPath !== undefined && moduleRbxPath !== undefined) {
-		if (getScriptType(moduleFile) !== ScriptType.Module) {
-			throw new CompilerError(
-				util.format("Attempted to import non-ModuleScript! %s", moduleFile.getFilePath()),
-				CompilerErrorType.ImportNonModuleScript,
-			);
-		}
-
-		if (sourceContext === ScriptContext.Client) {
-			if (moduleRbxPath[0] === "ServerScriptService" || moduleRbxPath[0] === "ServerStorage") {
-				throw new CompilerError(
-					util.format(
-						"%s is not allowed to import %s",
-						getRobloxPathString(sourceRbxPath),
-						getRobloxPathString(moduleRbxPath),
-					),
-					CompilerErrorType.InvalidImportAccess,
-				);
-			}
-		}
-	}
-}
-
 function getRelativeImportPath(
 	state: TranspilerState,
 	sourceFile: ts.SourceFile,
@@ -95,10 +44,6 @@ function getRelativeImportPath(
 	specifier: string,
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
-	if (moduleFile) {
-		validateImport(state, sourceFile, moduleFile);
-	}
-
 	const currentPartition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
 	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 
@@ -136,6 +81,7 @@ function getImportPathFromFile(
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
 	validateImport(state, sourceFile, moduleFile);
+
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
 		let parts = state.modulesDir
 			.getRelativePathTo(moduleFile)
@@ -264,6 +210,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 
 	const lhs = new Array<string>();
 	const rhs = new Array<string>();
+	const unlocalizedImports = new Array<string>();
 
 	if (defaultImport && !isUsedAsType(defaultImport)) {
 		const definitions = defaultImport.getDefinitions();
@@ -283,16 +230,17 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 
 		lhs.push(defaultImportExp);
 		rhs.push(`._default`);
+		unlocalizedImports.push("");
 	}
 
 	if (namespaceImport && !isUsedAsType(namespaceImport)) {
 		lhs.push(transpileExpression(state, namespaceImport));
 		rhs.push("");
+		unlocalizedImports.push("");
 	}
 
 	let rhsPrefix: string;
 	let hasVarNames = false;
-	const unlocalizedImports = new Array<string>();
 
 	namedImports
 		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
@@ -322,11 +270,12 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		result += `local ${rhsPrefix} = ${luaPath};\n`;
 	}
 
-	unlocalizedImports.forEach((alias, i) => {
+	for (let i = 0; i < unlocalizedImports.length; i++) {
+		const alias = unlocalizedImports[i];
 		if (alias !== "") {
 			state.variableAliases.set(alias, rhsPrefix + rhs[i]);
 		}
-	});
+	}
 
 	if (hasVarNames || lhs.length > 0) {
 		const lhsStr = lhs.join(", ");

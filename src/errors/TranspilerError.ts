@@ -62,6 +62,7 @@ export enum TranspilerErrorType {
 	MixedMethodCall,
 	InvalidService,
 	ReservedNamespace,
+	BadAddition,
 }
 
 export class TranspilerError extends Error {
