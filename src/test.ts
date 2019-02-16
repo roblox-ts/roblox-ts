@@ -170,18 +170,17 @@ const compilerArgs = {
 const srcFolder = path.resolve("tests", "src");
 const compiler = new Compiler(compilerArgs);
 
-async function compile(relativePath: string) {
-	return compiler.compileFileByPath(path.resolve(srcFolder, relativePath));
+async function compile(filePath: string) {
+	return compiler.compileFileByPath(filePath);
 }
 
-describe("compile integration tests", () => {
-	// compile integration tests
-	for (const name of fs.readdirSync(srcFolder)) {
+function testFolder(folderPath: string) {
+	for (const name of fs.readdirSync(folderPath)) {
 		if (name !== "errors") {
 			it(name, async () => {
 				process.exitCode = 0;
 				try {
-					await compile(name);
+					await compile(path.join(folderPath, name));
 				} catch (e) {
 					if (e instanceof TranspilerError) {
 						throw new Error(
@@ -208,12 +207,16 @@ describe("compile integration tests", () => {
 			});
 		}
 	}
-});
+}
+
+describe("compile integration tests", () => testFolder(srcFolder));
+
+describe("compile integration tests for imports", () => testFolder(path.join(srcFolder, "imports")));
 
 describe("compile error unit tests", () => {
 	for (const file in errorMatrix) {
 		it(errorMatrix[file].message, done => {
-			compile("errors/" + file)
+			compile(path.join(srcFolder, "errors", file))
 				.then(() => done("Did not throw!"))
 				.catch(e => {
 					if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === undefined) {
