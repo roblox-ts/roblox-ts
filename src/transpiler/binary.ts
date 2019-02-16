@@ -21,12 +21,7 @@ function getLuaBitExpression(state: TranspilerState, lhsStr: string, rhsStr: str
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
 
-function getLuaAddExpression(
-	node: ts.BinaryExpression,
-	lhsStr: string,
-	rhsStr: string,
-	wrap = false,
-) {
+function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
