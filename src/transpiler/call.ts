@@ -76,23 +76,8 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
 
-function areParametersSimple(func: ts.ArrowFunction) {
-	if (
-		!ts.TypeGuards.isExpression(func.getBody()) &&
-		func
-			.getBody()
-			.getDescendants()
-			.some(a => ts.TypeGuards.isReturnStatement(a) || ts.TypeGuards.isReturnTypedNode(a))
-	) {
-		return false;
-	}
-
-	return !func.getParameters().some(param => param.isRestParameter());
-}
-
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("pop", accessPath => `table.remove(${accessPath})`)
-
 	.set("shift", accessPath => `table.remove(${accessPath}, 1)`)
 
 	.set("join", (accessPath, params, state, subExp) => {
@@ -108,62 +93,8 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		const length = params.length;
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
 
-		if (length === 0 && !propertyCallParentIsExpression) {
-			return `(#${accessPath})`;
-		} else if (length === 1 && propertyCallParentIsExpression) {
+		if (length === 1 && propertyCallParentIsExpression) {
 			return `table.insert(${concatParams(state, params, accessPath)})`;
-		}
-	})
-
-	.set("forEach", (accessPath, params, state, subExp) => {
-		const arrayType = subExp.getType().getArrayType()!;
-		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
-
-		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
-		const callExpression = subExp.getParent().getParent();
-		const func = params[0];
-
-		if (
-			callExpression &&
-			ts.TypeGuards.isCallExpression(callExpression) &&
-			propertyCallParentIsExpression &&
-			validTypes.every(validType => !validType.isUndefined()) &&
-			ts.TypeGuards.isArrowFunction(func) &&
-			areParametersSimple(func)
-		) {
-			const paramNames = new Array<string>();
-			const initializers = new Array<string>();
-
-			getParameterData(state, paramNames, initializers, func);
-			const valueStr = paramNames[0];
-			let arrStr = paramNames[2];
-			let result = "";
-
-			if (!arrStr && ts.TypeGuards.isIdentifier(subExp)) {
-				arrStr = accessPath;
-			} else if (!arrStr || arrStr !== accessPath) {
-				arrStr = arrStr || state.getNewId();
-				result += `local ${arrStr} = ${accessPath};\n` + state.indent;
-			}
-
-			state.pushIdStack();
-			const incr = paramNames[1];
-			const incrStr = incr || state.getNewId();
-			const countStart = incr ? 0 : 1;
-			const countOffset = incr ? " - 1" : "";
-			const localizeOffset = incr ? " + 1" : "";
-
-			result += `for ${incrStr} = ${countStart}, #${arrStr}${countOffset} do`;
-			state.pushIndent();
-			if (valueStr) {
-				result += "\n" + state.indent + `local ${valueStr} = ${arrStr}[${incrStr}${localizeOffset}];`;
-			}
-
-			state.popIndent();
-			result += transpileFunctionBody(state, func.getBody(), func, initializers, true) + "end";
-			state.popIdStack();
-
-			return result;
 		}
 	});
 

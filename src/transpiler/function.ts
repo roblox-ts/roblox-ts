@@ -31,7 +31,7 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 	return undefined;
 }
 
-export function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, func?: HasParameters) {
+function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, func?: HasParameters) {
 	if (func && isTupleType(func.getReturnType())) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = transpileExpression(state, exp);
