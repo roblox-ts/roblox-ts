@@ -19,9 +19,9 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 		(propertyAccessExpressionType === PropertyCallExpType.Array && propertyStr === "length")
 	) {
 		return `(#${expStr})`;
-	} else if (propertyAccessExpressionType !== -1) {
+	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new TranspilerError(
-			"Invalid property access! Cannot index a roblox-ts macro function",
+			"Invalid property access! Cannot index a roblox-ts macro function: " + propertyStr,
 			node,
 			TranspilerErrorType.InvalidMacroIndex,
 		);
