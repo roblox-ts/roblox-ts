@@ -183,6 +183,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 
 	const lhs = new Array<string>();
 	const rhs = new Array<string>();
+	const unlocalizedImports = new Array<string>();
 
 	if (defaultImport && !isUsedAsType(defaultImport)) {
 		const definitions = defaultImport.getDefinitions();
@@ -202,16 +203,17 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 
 		lhs.push(defaultImportExp);
 		rhs.push(`._default`);
+		unlocalizedImports.push("");
 	}
 
 	if (namespaceImport && !isUsedAsType(namespaceImport)) {
 		lhs.push(transpileExpression(state, namespaceImport));
 		rhs.push("");
+		unlocalizedImports.push("");
 	}
 
 	let rhsPrefix: string;
 	let hasVarNames = false;
-	const unlocalizedImports = new Array<string>();
 
 	namedImports
 		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
@@ -241,9 +243,12 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 		result += `local ${rhsPrefix} = ${luaPath};\n`;
 	}
 
-	unlocalizedImports
-		.filter(alias => alias !== "")
-		.forEach((alias, i) => state.variableAliases.set(alias, rhsPrefix + rhs[i]));
+	for (let i = 0; i < unlocalizedImports.length; i++) {
+		const alias = unlocalizedImports[i];
+		if (alias !== "" ) {
+			state.variableAliases.set(alias, rhsPrefix + rhs[i]);
+		}
+	}
 
 	if (hasVarNames || lhs.length > 0) {
 		const lhsStr = lhs.join(", ");
