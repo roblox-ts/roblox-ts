@@ -5,15 +5,6 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import {
-	getScriptContext,
-	getScriptType,
-	isValidLuaIdentifier,
-	ScriptContext,
-	ScriptType,
-	stripExts,
-} from "../utility";
-import { isUsedAsType } from "../typeUtilities";
 import { isValidLuaIdentifier, stripExts } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
@@ -80,8 +71,6 @@ function getImportPathFromFile(
 	moduleFile: ts.SourceFile,
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
-	validateImport(state, sourceFile, moduleFile);
-
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
 		let parts = state.modulesDir
 			.getRelativePathTo(moduleFile)
