@@ -5,6 +5,9 @@
 
 local PROMISE_DEBUG = false
 
+local format = string.format
+local Instance_new = Instance.new
+
 --[[
 	Packs a number of arguments into a table and returns its length.
 
@@ -64,12 +67,11 @@ local function isEmpty(t)
 end
 
 local function createSymbol(name)
-	assert(type(name) == "string", "createSymbol requires `name` to be a string.")
-
+	if type(name) ~= "string" then error("createSymbol requires `name` to be a string.", 2) return end
 	local symbol = newproxy(true)
 
 	getmetatable(symbol).__tostring = function()
-		return ("Symbol(%s)"):format(name)
+		return format("Symbol(%s)", name)
 	end
 
 	return symbol
@@ -169,7 +171,7 @@ function Promise.new(callback, parent)
 	end
 
 	local function onCancel(cancellationHook)
-		assert(type(cancellationHook) == "function", "onCancel must be called with a function as its first argument.")
+		if type(cancellationHook) ~= "function" then error("onCancel must be called with a function as its first argument.", 2) end
 
 		if self._status == Promise.Status.Cancelled then
 			cancellationHook()
@@ -193,7 +195,7 @@ end
 	Fast spawn: Spawns a thread with predictable timing.
 	Runs immediately instead of first cycle being deferred.
 ]]
-local spawnBindable = Instance.new("BindableEvent")
+local spawnBindable = Instance_new("BindableEvent")
 function Promise.spawn(callback, ...)
 	local c = spawnBindable.Event:Connect(callback)
 	spawnBindable:Fire(...)
@@ -237,7 +239,7 @@ function Promise.all(promises)
 	-- a proper error rather than a rejected promise with our error.
 	for i = 1, #promises do
 		if not Promise.is(promises[i]) then
-			error(("Non-promise value passed into Promise.all at index #%d"):format(i), 2)
+			error(format("Non-promise value passed into Promise.all at index #%d", i), 2)
 		end
 	end
 
@@ -331,8 +333,8 @@ function Promise.prototype:andThen(successHandler, failureHandler)
 
 		if self._status == Promise.Status.Started then
 			-- If we haven't resolved yet, put ourselves into the queue
-			table.insert(self._queuedResolve, successCallback)
-			table.insert(self._queuedReject, failureCallback)
+			self._queuedResolve[#self._queuedResolve + 1] = successCallback
+			self._queuedReject[#self._queuedReject + 1] = failureCallback
 		elseif self._status == Promise.Status.Resolved then
 			-- This promise has already resolved! Trigger success immediately.
 			successCallback(unpack(self._values, 1, self._valuesLength))
@@ -404,7 +406,7 @@ function Promise.prototype:finally(finallyHandler)
 
 		if self._status == Promise.Status.Started then
 			-- The promise is not settled, so queue this.
-			table.insert(self._queuedFinally, finallyCallback)
+			self._queuedFinally[#self._queuedFinally + 1] = finallyCallback
 		else
 			-- The promise already settled or was cancelled, run the callback now.
 			finallyCallback()
@@ -423,7 +425,7 @@ function Promise.prototype:await()
 	if self._status == Promise.Status.Started then
 		local result
 		local resultLength
-		local bindable = Instance.new("BindableEvent")
+		local bindable = Instance_new("BindableEvent")
 
 		self:andThen(
 			function(...)
@@ -484,13 +486,7 @@ function Promise.prototype:_resolve(...)
 	if Promise.is((...)) then
 		-- Without this warning, arguments sometimes mysteriously disappear
 		if select("#", ...) > 1 then
-			local message = (
-				"When returning a Promise from andThen, extra arguments are " ..
-				"discarded! See:\n\n%s"
-			):format(
-				self._source
-			)
-			warn(message)
+			warn("When returning a Promise from andThen, extra arguments are discarded! See:\n\n", self._source)
 		end
 
 		(...):andThen(
@@ -509,8 +505,8 @@ function Promise.prototype:_resolve(...)
 	self._valuesLength, self._values = pack(...)
 
 	-- We assume that these callbacks will not throw errors.
-	for _, callback in ipairs(self._queuedResolve) do
-		callback(...)
+	for index = 1, #self._queuedResolve do
+		self._queuedResolve[index](...)
 	end
 
 	self:_finalize()
@@ -527,8 +523,8 @@ function Promise.prototype:_reject(...)
 	-- If there are any rejection handlers, call those!
 	if not isEmpty(self._queuedReject) then
 		-- We assume that these callbacks will not throw errors.
-		for _, callback in ipairs(self._queuedReject) do
-			callback(...)
+		for index = 1, #self._queuedReject do
+			self._queuedReject[index](...)
 		end
 	else
 		-- At this point, no one was able to observe the error.
@@ -546,11 +542,7 @@ function Promise.prototype:_reject(...)
 			end
 
 			-- Build a reasonable message
-			local message = ("Unhandled promise rejection:\n\n%s\n\n%s"):format(
-				err,
-				self._source
-			)
-			warn(message)
+			warn("Unhandled promise rejection:\n\n" .. err .. "\n\n" .. self._source)
 		end)
 	end
 
@@ -563,11 +555,11 @@ end
 	failure, *and* cancellation.
 ]]
 function Promise.prototype:_finalize()
-	for _, callback in ipairs(self._queuedFinally) do
+	for index = 1, #self._queuedFinally do
 		-- Purposefully not passing values to callbacks here, as it could be the
 		-- resolved values, or rejected errors. If the developer needs the values,
 		-- they should use :andThen or :catch explicitly.
-		callback()
+		self._queuedFinally[index]()
 	end
 end
 

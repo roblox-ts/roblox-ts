@@ -2,16 +2,12 @@ local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
 
--- constants
-local TYPE_NIL = "nil"
-local TYPE_STRING = "string"
-local TYPE_TABLE = "table"
-local TYPE_USERDATA = "userdata"
-local TYPE_FUNCTION = "function"
-
 local quicksort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
+
+local typeof = typeof
+local type = type
 
 local TS = {}
 
@@ -153,9 +149,9 @@ end
 -- general utility functions
 function TS.typeof(value)
 	local type = typeof(value)
-	if type == TYPE_TABLE or type == TYPE_USERDATA then
+	if type == "table" or type == "userdata" then
 		return "object"
-	elseif type == TYPE_NIL then
+	elseif type == "nil" then
 		return "undefined"
 	else
 		return type
@@ -168,12 +164,12 @@ end
 
 function TS.instanceof(obj, class)
 	-- custom Class.instanceof() check
-	if typeof(class) == TYPE_TABLE and typeof(class.instanceof) == TYPE_FUNCTION then
+	if type(class) == "table" and type(class.instanceof) == "function" then
 		return class.instanceof(obj)
 	end
 
 	-- metatable check
-	if typeof(obj) == TYPE_TABLE then
+	if type(obj) == "table" then
 		obj = getmetatable(obj)
 		while obj ~= nil do
 			if obj == class then
@@ -221,7 +217,7 @@ function TS.await(promise)
 end
 
 function TS.add(a, b)
-	if typeof(a) == TYPE_STRING or typeof(b) == TYPE_STRING then
+	if type(a) == "string" or type(b) == "string" then
 		return a .. b
 	else
 		return a + b
@@ -737,7 +733,7 @@ end
 function TS.map_entries(map)
 	local result = {}
 	for key, value in pairs(map) do
-		table.insert(result, {key, value})
+		result[#result + 1] = {key, value}
 	end
 	return result
 end
@@ -759,7 +755,7 @@ end
 function TS.map_keys(map)
 	local result = {}
 	for key in pairs(map) do
-		table.insert(result, key)
+		result[#result + 1] = key
 	end
 	return result
 end
@@ -772,7 +768,7 @@ end
 function TS.map_values(map)
 	local result = {}
 	for _, value in pairs(map) do
-		table.insert(result, value)
+		result[#result + 1] = value
 	end
 	return result
 end
@@ -814,7 +810,7 @@ TS.set_has = TS.map_has
 function TS.set_entries(map)
 	local result = {}
 	for key in pairs(map) do
-		table.insert(result, {key, key})
+		result[#result + 1] = {key, key}
 	end
 	return result
 end
@@ -888,7 +884,7 @@ function TS.Roact_combine(...)
 	for i = 1, #args do
 		for key, value in pairs(args[i]) do
 			if (type(key) == "number") then
-				table.insert(result, value)
+				result[#result + 1] = value
 			else
 				result[key] = value
 			end
