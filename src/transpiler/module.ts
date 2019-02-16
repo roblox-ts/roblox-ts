@@ -245,7 +245,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 
 	for (let i = 0; i < unlocalizedImports.length; i++) {
 		const alias = unlocalizedImports[i];
-		if (alias !== "" ) {
+		if (alias !== "") {
 			state.variableAliases.set(alias, rhsPrefix + rhs[i]);
 		}
 	}
