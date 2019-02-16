@@ -26,6 +26,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isSetToken } from "./binary";
 
 export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -133,24 +134,10 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
 				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
 		) &&
-		!(
-			ts.TypeGuards.isBinaryExpression(expression) &&
-			(expression.getOperatorToken().getKind() === ts.SyntaxKind.EqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.PlusEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.MinusEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.SlashEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.PercentEqualsToken)
-		)
+		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind()))
 	) {
 		const expStr = transpileExpression(state, expression);
 		return state.indent + `local _ = ${expStr};\n`;
-		// throw new TranspilerError(
-		// 	"Expression statements must be variable assignments or function calls.",
-		// 	expression,
-		// 	TranspilerErrorType.BadExpressionStatement,
-		// );
 	}
 	return state.indent + transpileExpression(state, expression) + ";\n";
 }
