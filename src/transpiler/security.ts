@@ -50,7 +50,68 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-export function checkReserved(name: string, node: ts.Node) {
+const LUA_RESERVED_NAMESPACES = [
+	"ipairs",
+	"os",
+	"type",
+	"select",
+	"math",
+	"_G",
+	"string",
+	"require",
+	"debug",
+	"tonumber",
+	"next",
+	"_VERSION",
+	"pairs",
+	"pcall",
+	"rawset",
+	"error",
+	"utf8",
+	"setmetatable",
+	"setfenv",
+	"xpcall",
+	"ypcall",
+	"tostring",
+	"print",
+	"collectgarbage",
+	"rawequal",
+	"assert",
+	"table",
+	"coroutine",
+	"rawget",
+	"getmetatable",
+	"getfenv",
+	"tick",
+	"wait",
+	"delay",
+	"spawn",
+	"warn",
+	"newproxy",
+
+	"Random",
+	"Axes",
+	"BrickColor",
+	"CFrame",
+	"Color3",
+	"ColorSequence",
+	"ColorSequenceKeypoint",
+	"Faces",
+	"NumberRange",
+	"NumberSequence",
+	"NumberSequenceKeypoint",
+	"Rect",
+	"Region3",
+	"Region3int16",
+	"string",
+	"UDim",
+	"UDim2",
+	"Vector2",
+	"Vector3",
+	"Ray",
+];
+
+export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
 	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
 		throw new TranspilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,
@@ -68,6 +129,12 @@ export function checkReserved(name: string, node: ts.Node) {
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
 			TranspilerErrorType.RobloxTSReservedIdentifier,
+		);
+	} else if (checkNamespace && LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
+		throw new TranspilerError(
+			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
+			node,
+			TranspilerErrorType.ReservedNamespace,
 		);
 	}
 }

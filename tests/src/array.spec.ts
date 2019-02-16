@@ -276,4 +276,147 @@ export = () => {
 		}
 		foo(...[1, 2, 3]);
 	});
+
+	it("should support findIndex", () => {
+		const array1 = [5, 12, 8, 130, 44];
+		expect(array1.findIndex(element => element > 13)).to.equal(3);
+
+		function isPrime(element: number) {
+			let start = 2;
+			while (start <= math.sqrt(element)) {
+				if (element % start < 1) {
+					return false;
+				} else {
+					start++;
+				}
+			}
+			return element > 1;
+		}
+
+		expect([4, 6, 8, 12].findIndex(isPrime)).to.equal(-1); // -1, not found
+		expect([4, 6, 7, 12].findIndex(isPrime)).to.equal(2); // 2 (array[2] is 7)
+
+		const fruits = ["apple", "banana", "cantaloupe", "blueberries", "grapefruit"];
+
+		const index = fruits.findIndex(fruit => fruit === "blueberries");
+		expect(index).to.equal(3);
+		expect(fruits[index]).to.equal("blueberries");
+	});
+
+	it("should support sort", () => {
+		const months = ["March", "Jan", "Feb", "Dec"];
+		months.sort();
+		expect(months[0]).to.equal("Dec");
+		expect(months[1]).to.equal("Feb");
+		expect(months[2]).to.equal("Jan");
+		expect(months[3]).to.equal("March");
+
+		const array1 = [1, 30, 4, 21, 100000];
+		array1.sort();
+
+		expect(array1[0]).to.equal(1);
+		expect(array1[1]).to.equal(100000);
+		expect(array1[2]).to.equal(21);
+		expect(array1[3]).to.equal(30);
+		expect(array1[4]).to.equal(4);
+	});
+
+	it("should support flat", () => {
+		const arr1 = [1, 2, [3, 4]];
+		const x = arr1.flat();
+		expect(x[0]).to.equal(1);
+		expect(x[1]).to.equal(2);
+		expect(x[2]).to.equal(3);
+		expect(x[3]).to.equal(4);
+
+		const arr2 = [1, 2, [3, 4, [5, 6]]];
+		const y = arr1.flat(1);
+		expect(y[0]).to.equal(1);
+		expect(y[1]).to.equal(2);
+		expect(y[2]).to.equal(3);
+		expect(y[3]).to.equal(4);
+		expect(y[4][0]).to.equal(5);
+		expect(y[4][1]).to.equal(6);
+		// [1, 2, 3, 4, [5, 6]]
+
+		const arr3 = [1, 2, [3, 4, [5, 6]]];
+		const z = arr3.flat(2);
+
+		expect(z[0]).to.equal(1);
+		expect(z[1]).to.equal(2);
+		expect(z[2]).to.equal(3);
+		expect(z[3]).to.equal(4);
+		expect(z[4]).to.equal(5);
+		expect(z[5]).to.equal(6);
+		// [1, 2, 3, 4, 5, 6]
+
+		const arr4 = [1, 2, , 4, 5];
+		const a = arr4.flat();
+		// [1, 2, 4, 5]
+		expect(z[0]).to.equal(1);
+		expect(z[1]).to.equal(2);
+		expect(z[2]).to.equal(4);
+		expect(z[3]).to.equal(5);
+	});
+
+	it("should support copyWithin", () => {
+		const array1 = ["a", "b", "c", "d", "e"];
+
+		// copy to index 0 the element at index 3
+		array1.copyWithin(0, 3, 4);
+		// expected output: Array ["d", "b", "c", "d", "e"]
+		expect(array1[0]).to.equal("d");
+		expect(array1[1]).to.equal("b");
+		expect(array1[2]).to.equal("c");
+		expect(array1[3]).to.equal("d");
+		expect(array1[4]).to.equal("e");
+
+		// copy to index 1 all elements from index 3 to the end
+		array1.copyWithin(1, 3);
+		// expected output: Array ["d", "d", "e", "d", "e"]
+
+		expect(array1[0]).to.equal("d");
+		expect(array1[1]).to.equal("d");
+		expect(array1[2]).to.equal("e");
+		expect(array1[3]).to.equal("d");
+		expect(array1[4]).to.equal("e");
+
+		const a = [1, 2, 3, 4, 5].copyWithin(-2);
+		// [1, 2, 3, 1, 2]
+		expect(a[0]).to.equal(1);
+		expect(a[1]).to.equal(2);
+		expect(a[2]).to.equal(3);
+		expect(a[3]).to.equal(1);
+		expect(a[4]).to.equal(2);
+
+		const b = [1, 2, 3, 4, 5].copyWithin(0, 3);
+		// [4, 5, 3, 4, 5]
+		expect(b[0]).to.equal(4);
+		expect(b[1]).to.equal(5);
+		expect(b[2]).to.equal(3);
+		expect(b[3]).to.equal(4);
+		expect(b[4]).to.equal(5);
+
+		const c = [1, 2, 3, 4, 5].copyWithin(0, 3, 4);
+		// [4, 2, 3, 4, 5]
+		expect(c[0]).to.equal(4);
+		expect(c[1]).to.equal(2);
+		expect(c[2]).to.equal(3);
+		expect(c[3]).to.equal(4);
+		expect(c[4]).to.equal(5);
+
+		const d = [1, 2, 3, 4, 5].copyWithin(-2, -3, -1);
+		// [1, 2, 3, 3, 4]
+		expect(c[0]).to.equal(1);
+		expect(c[1]).to.equal(2);
+		expect(c[2]).to.equal(3);
+		expect(c[3]).to.equal(3);
+		expect(c[4]).to.equal(4);
+	});
+
+	it("should support toString", () => {
+		const x = [1, 2, 3];
+		expect([1, 2, 4].toString()).never.to.throw();
+		expect(typeof x.toString()).to.equal("string");
+	});
 };

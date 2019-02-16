@@ -22,7 +22,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		parentName = state.getExportContextName(grandParent);
 	}
 
-	// optimize tuple return
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 		const isFlatBinding = lhs
 			.getElements()
@@ -56,7 +55,7 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	let result = "";
 	if (ts.TypeGuards.isIdentifier(lhs)) {
 		const name = lhs.getText();
-		checkReserved(name, lhs);
+		checkReserved(name, lhs, true);
 		if (rhs) {
 			const value = transpileExpression(state, rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {

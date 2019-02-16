@@ -201,6 +201,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 	} else if (opKind === ts.SyntaxKind.AsteriskAsteriskToken) {
 		return `${lhsStr} ^ ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.InKeyword) {
+		// doesn't need parenthesis because In is restrictive
 		return `${rhsStr}[${lhsStr}] ~= nil`;
 	} else if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
 		return `${lhsStr} and ${rhsStr}`;

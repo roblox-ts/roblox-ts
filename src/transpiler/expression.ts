@@ -26,6 +26,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { isSetToken } from "./binary";
 
 export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
@@ -134,4 +135,46 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 		return state.indent + `local _ = ${expStr};\n`;
 	}
 	return state.indent + transpileExpression(state, expression) + ";\n";
+}
+
+export function expressionModifiesVariable(
+	node: ts.Node<ts.ts.Node>,
+	lhs?: ts.Identifier,
+): node is ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression {
+	if (
+		ts.TypeGuards.isPostfixUnaryExpression(node) ||
+		(ts.TypeGuards.isPrefixUnaryExpression(node) &&
+			(node.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+				node.getOperatorToken() === ts.SyntaxKind.MinusMinusToken))
+	) {
+		if (lhs) {
+			return isIdentifierWhoseDefinitionMatchesNode(node.getOperand(), lhs);
+		} else {
+			return true;
+		}
+	} else if (ts.TypeGuards.isBinaryExpression(node) && isSetToken(node.getOperatorToken().getKind())) {
+		if (lhs) {
+			return isIdentifierWhoseDefinitionMatchesNode(node.getLeft(), lhs);
+		} else {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function placeInStatementIfExpression(
+	state: TranspilerState,
+	incrementor: ts.Expression<ts.ts.Expression>,
+	incrementorStr: string,
+) {
+	if (ts.TypeGuards.isExpression(incrementor)) {
+		if (
+			!ts.TypeGuards.isCallExpression(incrementor) &&
+			!expressionModifiesVariable(incrementor) &&
+			!ts.TypeGuards.isVariableDeclarationList(incrementor)
+		) {
+			incrementorStr = `local _ = ` + incrementorStr;
+		}
+	}
+	return incrementorStr;
 }

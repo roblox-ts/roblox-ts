@@ -59,6 +59,8 @@ export enum TranspilerErrorType {
 	BadContext,
 	ClassyLoop,
 	MixedMethodCall,
+	InvalidService,
+	ReservedNamespace,
 	BadAddition,
 }
 
