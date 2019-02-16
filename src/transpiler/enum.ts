@@ -19,7 +19,6 @@ export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDe
 	result += state.indent + `${name} = ${name} or {};\n`;
 	result += state.indent + `do\n`;
 	state.pushIndent();
-	console.log(name);
 	for (const member of node.getMembers()) {
 		const memberName = member.getName();
 		checkReserved(memberName, member.getNameNode());
