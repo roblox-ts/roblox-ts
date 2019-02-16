@@ -100,7 +100,7 @@ function TS.import(module, ...)
 
 		if data == nil then
 			-- If called from command bar, use table as a reference (this is never concatenated)
-			local caller = getfenv(0).script or {Name = "Command bar"}
+			local caller = getfenv(0).script or { Name = "Command bar" }
 			currentlyLoading[caller] = module
 
 			-- Check to see if a case like this occurs:
@@ -228,7 +228,7 @@ function TS.add(a, b)
 	end
 end
 
-local function bit_truncate(a)
+local function bitTruncate(a)
 	if a < 0 then
 		return math_ceil(a)
 	else
@@ -236,11 +236,11 @@ local function bit_truncate(a)
 	end
 end
 
-TS.round = bit_truncate
-TS.bit_truncate = bit_truncate
+TS.round = bitTruncate
+TS.bitTruncate = bitTruncate
 
 -- bitwise operations
-local pow_of_two = setmetatable({}, {
+local powOfTwo = setmetatable({}, {
 	__index = function(self, i)
 		local v = 2 ^ i
 		self[i] = v
@@ -248,7 +248,7 @@ local pow_of_two = setmetatable({}, {
 	end;
 })
 
-local _2_52 = pow_of_two[52]
+local _2_52 = powOfTwo[52]
 local function bitop(a, b, oper)
 	local r, m, s = 0, _2_52
 	repeat
@@ -259,33 +259,33 @@ local function bitop(a, b, oper)
 end
 
 function TS.bor(a, b)
-	a = bit_truncate(tonumber(a))
-	b = bit_truncate(tonumber(b))
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 1)
 end
 
 function TS.band(a, b)
-	a = bit_truncate(tonumber(a))
-	b = bit_truncate(tonumber(b))
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 4)
 end
 
 function TS.bxor(a, b)
-	a = bit_truncate(tonumber(a))
-	b = bit_truncate(tonumber(b))
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 3)
 end
 
 function TS.blsh(a, b)
-	a = bit_truncate(tonumber(a))
-	b = bit_truncate(tonumber(b))
-	return a * pow_of_two[b]
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
+	return a * powOfTwo[b]
 end
 
 function TS.brsh(a, b)
-	a = bit_truncate(tonumber(a))
-	b = bit_truncate(tonumber(b))
-	return bit_truncate(a / pow_of_two[b])
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
+	return bitTruncate(a / powOfTwo[b])
 end
 
 -- array macro functions
