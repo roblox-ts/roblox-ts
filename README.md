@@ -26,7 +26,7 @@ Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/doc
 https://discord.gg/f6Rn6RY
 
 ## Credits
-**roblox-ts** is powered by [ts-morph](https://github.com/dsherret/ts-morph) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua)
+**roblox-ts** is powered by [ts-morph](https://github.com/dsherret/ts-morph) and is inspired by [TypescriptToLua](https://github.com/Perryvw/TypescriptToLua). [Here](https://ts-ast-viewer.com/) is a demo of the AST viewer we use from [ts-morph](https://github.com/dsherret/ts-morph).
 
 ## Games that use roblox-ts
 <a href="https://www.roblox.com/games/2184151436/Dungeon-Life-Pre-Alpha"><img width=30% src="https://i.imgur.com/JSFPTA0.png"></a>
