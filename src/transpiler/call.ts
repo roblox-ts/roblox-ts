@@ -3,8 +3,6 @@ import { checkApiAccess, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isStringType, isTupleReturnType, typeConstraint } from "../typeUtilities";
-import { getParameterData } from "./binding";
-import { transpileFunctionBody } from "./function";
 import { checkNonAny } from "./security";
 
 const STRING_MACRO_METHODS = [
