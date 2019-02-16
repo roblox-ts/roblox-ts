@@ -22,7 +22,6 @@ function getLuaBitExpression(state: TranspilerState, lhsStr: string, rhsStr: str
 }
 
 function getLuaAddExpression(
-	state: TranspilerState,
 	node: ts.BinaryExpression,
 	lhsStr: string,
 	rhsStr: string,
@@ -38,8 +37,12 @@ function getLuaAddExpression(
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
-		state.usesTSLibrary = true;
-		return `TS.add(${lhsStr}, ${rhsStr})`;
+		/* istanbul ignore next */
+		throw new TranspilerError(
+			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
+			node,
+			TranspilerErrorType.BadAddition,
+		);
 	}
 }
 
@@ -141,7 +144,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			const rhsExpStr = getLuaBitExpression(state, lhsStr, rhsStr, "rsh");
 			statements.push(`${lhsStr} = ${rhsExpStr}`);
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
-			const addExpStr = getLuaAddExpression(state, node, lhsStr, rhsStr, true);
+			const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
 			statements.push(`${lhsStr} = ${addExpStr}`);
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
 			statements.push(`${lhsStr} = ${lhsStr} - (${rhsStr})`);
@@ -193,7 +196,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanToken) {
 		return getLuaBitExpression(state, lhsStr, rhsStr, "rsh");
 	} else if (opKind === ts.SyntaxKind.PlusToken) {
-		return getLuaAddExpression(state, node, lhsStr, rhsStr);
+		return getLuaAddExpression(node, lhsStr, rhsStr);
 	} else if (opKind === ts.SyntaxKind.MinusToken) {
 		return `${lhsStr} - ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.AsteriskToken) {

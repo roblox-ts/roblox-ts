@@ -60,6 +60,7 @@ export enum TranspilerErrorType {
 	BadContext,
 	ClassyLoop,
 	MixedMethodCall,
+	BadAddition,
 }
 
 export class TranspilerError extends Error {
