@@ -357,6 +357,7 @@ export function transpilePropertyCallExpression(
 						}
 					}
 				}
+
 				if (
 					ts.TypeGuards.isFunctionTypeNode(dec) ||
 					ts.TypeGuards.isPropertySignature(dec) ||
