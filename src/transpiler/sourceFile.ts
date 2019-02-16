@@ -2,44 +2,11 @@ import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-// import { isRbxService } from "../typeUtilities";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
-
-type importSpecifierConstraint = (a: ts.ImportSpecifier) => boolean;
-
-export function prioritizeImportsByCondition(node: ts.SourceFile, condition: importSpecifierConstraint) {
-	const meetsCondition = new Array<[ts.ImportDeclaration, number]>();
-	const otherImports = new Array<[ts.ImportDeclaration, number]>();
-
-	const importDeclarations = node.getImportDeclarations();
-
-	for (let i = 0; i < importDeclarations.length; i++) {
-		const importDeclaration = importDeclarations[i];
-		if (importDeclaration.getNamedImports().some(condition)) {
-			meetsCondition.push([importDeclaration, i]);
-		} else {
-			otherImports.push([importDeclaration, i]);
-		}
-	}
-
-	// Switch imports with an RbxService type to the top
-	if (meetsCondition.length > 0 && otherImports.length > 0) {
-		const limit = Math.min(otherImports.length, meetsCondition.length);
-
-		for (let i = 0; i < limit; i++) {
-			const a = otherImports[i][0].getText();
-			const b = meetsCondition[i][0].getText();
-
-			otherImports[i][0].replaceWithText(b);
-			meetsCondition[i][0].replaceWithText(a);
-		}
-	}
-}
 
 export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
-	// prioritizeImportsByCondition(node, (namedImport) => isRbxService(namedImport.getType().getText()))
 	let result = transpileStatementedNode(state, node);
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {
