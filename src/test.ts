@@ -105,7 +105,7 @@ const errorMatrix: ErrorMatrix = {
 	"invalidAccess.spec.client.ts": {
 		message: "should not allow server only API to be accessed by client code",
 		instance: TranspilerError,
-		type: TranspilerErrorType.InvalidClientOnlyAPIAccess,
+		type: TranspilerErrorType.InvalidServerOnlyAPIAccess,
 	},
 	"any/index.spec.ts": {
 		message: "should not allow indexing type any",
