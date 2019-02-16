@@ -1,2 +1,2 @@
-export {}
+export {};
 function baz(): any {}
