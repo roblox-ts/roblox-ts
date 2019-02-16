@@ -12,3 +12,4 @@ export enum Fruits {
 	Orange,
 	Pear,
 }
+export let letVar = 1;
