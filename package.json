@@ -20,10 +20,18 @@
 		"prepublishOnly": "npm run build && npm version patch"
 	},
 	"nyc": {
-		"extension": [ ".js" ],
-		"include": [ "out/transpiler" ],
-		"exclude": [ "out/transpiler/await.js" ],
-		"reporter": [ "text-lcov" ],
+		"extension": [
+			".js"
+		],
+		"include": [
+			"out/transpiler"
+		],
+		"exclude": [
+			"out/transpiler/await.js"
+		],
+		"reporter": [
+			"text-lcov"
+		],
 		"all": true
 	},
 	"author": "",
