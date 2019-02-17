@@ -144,7 +144,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 				hasStaticMembers = true;
 				result += "\n";
 			}
-			result += state.indent + transpileMethodDeclaration(state, method);
+			result += transpileMethodDeclaration(state, method);
 		});
 
 	state.popIndent();
