@@ -203,4 +203,32 @@ export = () => {
 	it("should support built-in classes", () => {
 		expect(new Promise(() => {})).to.be.ok();
 	});
+
+	it("should support numeric members", () => {
+		class Foo {
+			1: "bar";
+		}
+		expect(new Foo()[1]).to.equal("bar");
+	});
+
+	it("should support computed members", () => {
+		class Foo {
+			["bar"]: "baz";
+		}
+		expect(new Foo()["bar"]).to.equal("baz");
+	});
+
+	it("should support numeric statics", () => {
+		class Foo {
+			static 1: "bar";
+		}
+		expect(Foo[1]).to.equal("bar");
+	});
+
+	it("should support computed statics", () => {
+		class Foo {
+			static ["bar"]: "baz";
+		}
+		expect(Foo["bar"]).to.equal("baz");
+	});
 };
