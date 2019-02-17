@@ -188,4 +188,15 @@ export = () => {
 		const bar = new Bar();
 		expect(bar.baz()).to.equal("AB");
 	});
+
+	it("should support class expressions", () => {
+		const Foo = class {
+			bar() {
+				return "A";
+			}
+		};
+		const Bar = class extends Foo {};
+		const bar = new Bar();
+		expect(bar.bar()).to.equal("A");
+	});
 };
