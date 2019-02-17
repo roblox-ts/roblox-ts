@@ -122,6 +122,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoDynamicImport,
 	},
+	"macroIndex.spec.ts": {
+		message: "should not allowing indexing macro methods without call",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidMacroIndex,
+	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,

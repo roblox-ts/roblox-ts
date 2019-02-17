@@ -171,4 +171,21 @@ export = () => {
 		}
 		expect(new Foo({ a: 123 }).bar).to.equal(123);
 	});
+
+	it("should support super method calls", () => {
+		class Foo {
+			baz() {
+				return "A";
+			}
+		}
+
+		class Bar extends Foo {
+			baz() {
+				return super.baz() + "B";
+			}
+		}
+
+		const bar = new Bar();
+		expect(bar.baz()).to.equal("AB");
+	});
 };
