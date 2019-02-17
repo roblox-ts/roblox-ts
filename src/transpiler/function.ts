@@ -11,6 +11,7 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isTupleType, shouldHoist } from "../typeUtilities";
+import { placeInStatementIfExpression } from "./expression";
 import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -58,6 +59,39 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	} else {
 		return state.indent + `return nil;\n`;
 	}
+}
+
+export function transpileFunctionBody(
+	state: TranspilerState,
+	body: ts.Node,
+	node: HasParameters,
+	initializers: Array<string>,
+	disableReturn: boolean,
+) {
+	const isBlock = ts.TypeGuards.isBlock(body);
+	const isExpression = ts.TypeGuards.isExpression(body);
+	let result = "";
+	if (isBlock || isExpression) {
+		result += "\n";
+		state.pushIndent();
+		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
+		if (isBlock) {
+			result += transpileBlock(state, body as ts.Block);
+		} else {
+			let returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
+			if (disableReturn) {
+				returnStr = returnStr.replace(/^\s*(return) /, "");
+				returnStr = placeInStatementIfExpression(state, body as ts.Expression, returnStr);
+			}
+			result += state.indent + returnStr + "\n";
+		}
+		state.popIndent();
+		result += state.indent;
+	} else {
+		const bodyKindName = body.getKindName();
+		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
+	}
+	return result;
 }
 
 function transpileFunction(state: TranspilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
@@ -109,22 +143,7 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 	}
 
 	result += "function(" + paramNames.join(", ") + ")";
-
-	if (ts.TypeGuards.isBlock(body)) {
-		result += "\n";
-		state.pushIndent();
-		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
-		result += transpileBlock(state, body);
-		state.popIndent();
-		result += state.indent;
-	} else if (ts.TypeGuards.isExpression(body)) {
-		initializers.push(getReturnStrFromExpression(state, body, node));
-		result += " " + initializers.join(" ") + " ";
-	} else {
-		const bodyKindName = body.getKindName();
-		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
-	}
-
+	result += transpileFunctionBody(state, body, node, initializers, false);
 	state.popIdStack();
 	return result + "end" + backWrap;
 }
@@ -165,7 +184,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 	let name = node.getName();
 
 	if (name) {
-		checkReserved(name, node);
+		checkReserved(name, node, true);
 	} else {
 		name = state.getNewId();
 	}

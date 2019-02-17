@@ -16,7 +16,7 @@ enum Breads {
 enum Soups {
 	Tomato = "TOMATO",
 	ChickenNoodle = "CHICKENNOODLE",
-	Dumpling = "DUMPLINGG",
+	Dumpling = "DUMPLING",
 }
 
 export = () => {
@@ -33,6 +33,8 @@ export = () => {
 	});
 
 	it("should support for string indices", () => {
+		expect(Soups.Tomato).to.equal("TOMATO");
 		expect(Soups.ChickenNoodle).to.equal("CHICKENNOODLE");
+		expect(Soups.Dumpling).to.equal("DUMPLING");
 	});
 };

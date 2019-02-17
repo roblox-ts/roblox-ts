@@ -142,4 +142,53 @@ export = () => {
 		expect(c).to.equal(1);
 		expect(d).to.equal(2);
 	});
+
+	it("should support destructure assignment", () => {
+		let x: number;
+		let y: number;
+		let z: number;
+		[x, y, [z]] = [1, 2, [3]];
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
+
+	it("should support destructure assignment with identifier", () => {
+		let x: number;
+		let y: number;
+		let z: number;
+		const obj: [number, number, [number]] = [1, 2, [3]];
+		[x, y, [z]] = obj;
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
+
+	it("should support destructure assignment as expression", () => {
+		function test(obj: [number, number, [number]]) {
+			expect(obj[0]).to.equal(1);
+			expect(obj[1]).to.equal(2);
+			expect(obj[2][0]).to.equal(3);
+		}
+
+		let x: number;
+		let y: number;
+		let z: number;
+		test(([x, y, [z]] = [1, 2, [3]]));
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
+
+	it("should support destructure assignment with property access", () => {
+		const obj = {
+			x: 0,
+			y: 0,
+			z: 0,
+		};
+		[obj.x, obj.y, [obj.z]] = [1, 2, [3]];
+		expect(obj.x).to.equal(1);
+		expect(obj.y).to.equal(2);
+		expect(obj.z).to.equal(3);
+	});
 };

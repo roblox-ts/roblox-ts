@@ -26,6 +26,8 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
+import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { isSetToken } from "./binary";
 
 export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -104,15 +106,9 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			node,
 			TranspilerErrorType.NoNull,
 		);
-	} else if (ts.TypeGuards.isImportExpression(node)) {
-		throw new TranspilerError(
-			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
-			node,
-			TranspilerErrorType.NoDynamicImport,
-		);
 	} else {
-		const kindName = node.getKindName();
-		throw new TranspilerError(`Bad expression! (${kindName})`, node, TranspilerErrorType.BadExpression);
+		/* istanbul ignore next */
+		throw new TranspilerError(`Bad expression! (${node.getKindName()})`, node, TranspilerErrorType.BadExpression);
 	}
 }
 
@@ -133,24 +129,52 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
 				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
 		) &&
-		!(
-			ts.TypeGuards.isBinaryExpression(expression) &&
-			(expression.getOperatorToken().getKind() === ts.SyntaxKind.EqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.PlusEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.MinusEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.AsteriskAsteriskEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.SlashEqualsToken ||
-				expression.getOperatorToken().getKind() === ts.SyntaxKind.PercentEqualsToken)
-		)
+		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind()))
 	) {
 		const expStr = transpileExpression(state, expression);
 		return state.indent + `local _ = ${expStr};\n`;
-		// throw new TranspilerError(
-		// 	"Expression statements must be variable assignments or function calls.",
-		// 	expression,
-		// 	TranspilerErrorType.BadExpressionStatement,
-		// );
 	}
 	return state.indent + transpileExpression(state, expression) + ";\n";
+}
+
+export function expressionModifiesVariable(
+	node: ts.Node<ts.ts.Node>,
+	lhs?: ts.Identifier,
+): node is ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression {
+	if (
+		ts.TypeGuards.isPostfixUnaryExpression(node) ||
+		(ts.TypeGuards.isPrefixUnaryExpression(node) &&
+			(node.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+				node.getOperatorToken() === ts.SyntaxKind.MinusMinusToken))
+	) {
+		if (lhs) {
+			return isIdentifierWhoseDefinitionMatchesNode(node.getOperand(), lhs);
+		} else {
+			return true;
+		}
+	} else if (ts.TypeGuards.isBinaryExpression(node) && isSetToken(node.getOperatorToken().getKind())) {
+		if (lhs) {
+			return isIdentifierWhoseDefinitionMatchesNode(node.getLeft(), lhs);
+		} else {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function placeInStatementIfExpression(
+	state: TranspilerState,
+	incrementor: ts.Expression<ts.ts.Expression>,
+	incrementorStr: string,
+) {
+	if (ts.TypeGuards.isExpression(incrementor)) {
+		if (
+			!ts.TypeGuards.isCallExpression(incrementor) &&
+			!expressionModifiesVariable(incrementor) &&
+			!ts.TypeGuards.isVariableDeclarationList(incrementor)
+		) {
+			incrementorStr = `local _ = ` + incrementorStr;
+		}
+	}
+	return incrementorStr;
 }

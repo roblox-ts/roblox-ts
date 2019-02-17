@@ -8,10 +8,7 @@ import { checkNonAny } from "./security";
 
 function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
-	let rhs = node.getRight();
-	if (ts.TypeGuards.isParenthesizedExpression(rhs)) {
-		rhs = rhs.getExpression();
-	}
+	const rhs = node.getRight();
 	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
 		return `TS.round(${lhsStr})`;
 	} else {
@@ -19,23 +16,12 @@ function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, 
 	}
 }
 
-function getLuaBitExpression(
-	state: TranspilerState,
-	lhsStr: string,
-	rhsStr: string,
-	name: string,
-) {
+function getLuaBitExpression(state: TranspilerState, lhsStr: string, rhsStr: string, name: string) {
 	state.usesTSLibrary = true;
 	return `TS.b${name}(${lhsStr}, ${rhsStr})`;
 }
 
-function getLuaAddExpression(
-	state: TranspilerState,
-	node: ts.BinaryExpression,
-	lhsStr: string,
-	rhsStr: string,
-	wrap = false,
-) {
+function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
@@ -46,8 +32,12 @@ function getLuaAddExpression(
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
-		state.usesTSLibrary = true;
-		return `TS.add(${lhsStr}, ${rhsStr})`;
+		/* istanbul ignore next */
+		throw new TranspilerError(
+			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
+			node,
+			TranspilerErrorType.BadAddition,
+		);
 	}
 }
 
@@ -149,7 +139,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			const rhsExpStr = getLuaBitExpression(state, lhsStr, rhsStr, "rsh");
 			statements.push(`${lhsStr} = ${rhsExpStr}`);
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
-			const addExpStr = getLuaAddExpression(state, node, lhsStr, rhsStr, true);
+			const addExpStr = getLuaAddExpression(node, lhsStr, rhsStr, true);
 			statements.push(`${lhsStr} = ${addExpStr}`);
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
 			statements.push(`${lhsStr} = ${lhsStr} - (${rhsStr})`);
@@ -161,8 +151,6 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			statements.push(`${lhsStr} = ${lhsStr} ^ (${rhsStr})`);
 		} else if (opKind === ts.SyntaxKind.PercentEqualsToken) {
 			statements.push(`${lhsStr} = ${lhsStr} % (${rhsStr})`);
-		} else {
-			throw new TranspilerError("Unrecognized operation! #1", node, TranspilerErrorType.UnrecognizedOperation1);
 		}
 
 		const parentKind = node.getParentOrThrow().getKind();
@@ -203,7 +191,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanToken) {
 		return getLuaBitExpression(state, lhsStr, rhsStr, "rsh");
 	} else if (opKind === ts.SyntaxKind.PlusToken) {
-		return getLuaAddExpression(state, node, lhsStr, rhsStr);
+		return getLuaAddExpression(node, lhsStr, rhsStr);
 	} else if (opKind === ts.SyntaxKind.MinusToken) {
 		return `${lhsStr} - ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.AsteriskToken) {
@@ -213,6 +201,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 	} else if (opKind === ts.SyntaxKind.AsteriskAsteriskToken) {
 		return `${lhsStr} ^ ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.InKeyword) {
+		// doesn't need parenthesis because In is restrictive
 		return `${rhsStr}[${lhsStr}] ~= nil`;
 	} else if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
 		return `${lhsStr} and ${rhsStr}`;
@@ -232,9 +221,9 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		state.usesTSLibrary = true;
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 	} else {
-		const opKindName = node.getOperatorToken().getKindName();
+		/* istanbul ignore next */
 		throw new TranspilerError(
-			`Bad binary expression! (${opKindName})`,
+			`Bad binary expression! (${node.getOperatorToken().getKindName()})`,
 			opToken,
 			TranspilerErrorType.BadBinaryExpression,
 		);

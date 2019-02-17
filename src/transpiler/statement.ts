@@ -90,8 +90,8 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 			TranspilerErrorType.NoLabeledStatement,
 		);
 	} else {
-		const kindName = node.getKindName();
-		throw new TranspilerError(`Bad statement! (${kindName})`, node, TranspilerErrorType.BadStatement);
+		/* istanbul ignore next */
+		throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node, TranspilerErrorType.BadStatement);
 	}
 }
 

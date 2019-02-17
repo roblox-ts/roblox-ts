@@ -45,9 +45,20 @@ export class TranspilerState {
 	}
 
 	public popHoistStack(result: string) {
-		const hoists = this.hoistStack.pop();
-		if (hoists && hoists.size > 0) {
-			result = this.indent + `local ${[...hoists].join(", ")};\n` + result;
+		const top = this.hoistStack.pop();
+		if (top) {
+			const hoists = [...top];
+			const namedHoists = new Array<string>();
+			const declareHoists = new Array<string>();
+			hoists.forEach(v => (v.includes("=") ? declareHoists : namedHoists).push(v));
+
+			if (namedHoists && namedHoists.length > 0) {
+				result = this.indent + `local ${namedHoists.join(", ")};\n` + result;
+			}
+
+			if (declareHoists && declareHoists.length > 0) {
+				result = this.indent + `${declareHoists.join(";\n" + this.indent)};\n` + result;
+			}
 		}
 		return result;
 	}
@@ -60,7 +71,6 @@ export class TranspilerState {
 			return;
 		}
 
-		this.isModule = true;
 		const ancestorName = this.getExportContextName(node);
 		const alias = node.isDefaultExport() ? "_default" : name;
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);

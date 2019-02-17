@@ -60,10 +60,8 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 		}
 	}
 
-	if (isStringType(expType) || isArrayType(expType)) {
-		if (propertyStr === "length") {
-			return `(#${expStr})`;
-		}
+	if ((isStringType(expType) || isArrayType(expType)) && propertyStr === "length") {
+		return `(#${expStr})`;
 	}
 
 	return `${expStr}.${propertyStr}`;

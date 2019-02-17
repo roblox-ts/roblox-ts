@@ -111,4 +111,13 @@ export = () => {
 		set.add("d");
 		expect(set.size()).to.equal(4);
 	});
+
+	it("should support toString", () => {
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
+		expect(set.toString()).to.be.ok();
+		expect(typeof new Set<string>().toString()).to.equal("string");
+	});
 };

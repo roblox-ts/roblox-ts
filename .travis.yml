@@ -20,6 +20,7 @@ before_install:
 
 install:
   - luarocks install luafilesystem
+  - luarocks install dkjson
   - npm install
   - pushd tests && npm install && popd
 
