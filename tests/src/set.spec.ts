@@ -1,4 +1,18 @@
 export = () => {
+	it("should support set constructor", () => {
+		const set = new Set(["foo", "bar", "baz"]);
+		expect(set.has("foo")).to.equal(true);
+		expect(set.has("bar")).to.equal(true);
+		expect(set.has("baz")).to.equal(true);
+	});
+
+	it("should support weak sets", () => {
+		const set = new WeakSet<Instance>();
+		const f = new Instance("Frame");
+		set.add(f);
+		expect(set.has(f)).to.equal(true);
+	});
+
 	it("should support add", () => {
 		const set = new Set<string>();
 		expect(set.add("test")).to.equal(set);

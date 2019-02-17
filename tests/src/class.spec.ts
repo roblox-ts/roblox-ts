@@ -199,4 +199,8 @@ export = () => {
 		const bar = new Bar();
 		expect(bar.bar()).to.equal("A");
 	});
+
+	it("should support built-in classes", () => {
+		expect(new Promise(() => {})).to.be.ok();
+	});
 };

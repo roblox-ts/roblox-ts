@@ -1,4 +1,18 @@
 export = () => {
+	it("should support map constructor", () => {
+		const map = new Map([["foo", 1], ["bar", 2], ["baz", 3]]);
+		expect(map.get("foo")).to.equal(1);
+		expect(map.get("bar")).to.equal(2);
+		expect(map.get("baz")).to.equal(3);
+	});
+
+	it("should support weak maps", () => {
+		const map = new WeakMap<Instance, string>();
+		const f = new Instance("Frame");
+		map.set(f, "foo");
+		expect(map.get(f)).to.equal("foo");
+	});
+
 	it("should support get and set", () => {
 		const map = new Map<string, number>()
 			.set("a", 1)

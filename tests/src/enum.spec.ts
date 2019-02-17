@@ -19,6 +19,12 @@ enum Soups {
 	Dumpling = "DUMPLING",
 }
 
+const enum Animal {
+	Bear = "BEAR",
+	Dog = "DOG",
+	Snake = "SNAKE",
+}
+
 export = () => {
 	it("should expose enums by number", () => {
 		expect(Fruits[0]).to.equal("Apple");
@@ -36,5 +42,11 @@ export = () => {
 		expect(Soups.Tomato).to.equal("TOMATO");
 		expect(Soups.ChickenNoodle).to.equal("CHICKENNOODLE");
 		expect(Soups.Dumpling).to.equal("DUMPLING");
+	});
+
+	it("should support const enums", () => {
+		expect(Animal.Bear).to.equal("BEAR");
+		expect(Animal.Dog).to.equal("DOG");
+		expect(Animal.Snake).to.equal("SNAKE");
 	});
 };

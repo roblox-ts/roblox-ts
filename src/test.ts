@@ -127,6 +127,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.InvalidMacroIndex,
 	},
+	"classPrototype.spec.ts": {
+		message: "should not allowing indexing class prototype",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoClassPrototype,
+	},
+	"indexFunction.spec.ts": {
+		message: "should not allowing indexing functions",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoFunctionIndex,
+	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,
