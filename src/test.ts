@@ -137,6 +137,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoFunctionIndex,
 	},
+	"invalidMetamethod.spec.ts": {
+		message: "should not allowing reserved metamethods",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UndefinableMetamethod,
+	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,
