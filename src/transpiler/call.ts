@@ -68,8 +68,8 @@ function wrapExpFunc(replacer: ReplaceFunction): ReplaceFunction {
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`));
+	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
+	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`));
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
