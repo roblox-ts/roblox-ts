@@ -136,4 +136,11 @@ export = () => {
 		expect(true ? false : true).to.equal(false);
 		expect(false ? false : true).to.equal(true);
 	});
+
+	it("should support string methods", () => {
+		const foo = " foo ";
+		expect(foo.trim()).to.equal("foo");
+		expect(foo.trimLeft()).to.equal("foo ");
+		expect(foo.trimRight()).to.equal(" foo");
+	});
 };

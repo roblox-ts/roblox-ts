@@ -55,6 +55,7 @@ export = () => {
 	it("should support join", () => {
 		const a = [1, 2, 3];
 		expect(a.join(", ")).to.equal("1, 2, 3");
+		expect([1, 2, 3].join(", ")).to.equal("1, 2, 3");
 	});
 
 	it("should support reverse", () => {
