@@ -77,6 +77,7 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 		return transpileSwitchStatement(state, node);
 	} else if (ts.TypeGuards.isTryStatement(node)) {
 		return transpileTryStatement(state, node);
+		/* istanbul ignore next */
 	} else if (
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
