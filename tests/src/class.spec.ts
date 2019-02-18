@@ -236,7 +236,8 @@ export = () => {
 		class Foo {
 			bar = 1;
 		}
-		const foo = new Foo();
+		// prettier-ignore
+		const foo = new Foo;
 		expect(foo).to.be.ok();
 		expect(foo instanceof Foo).to.equal(true);
 		expect(foo.bar).to.equal(1);
