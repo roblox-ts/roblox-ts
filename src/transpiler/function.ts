@@ -82,7 +82,11 @@ function transpileFunctionBody(
 		result += state.indent;
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(`Bad function body (${body.getKindName()})`, node, TranspilerErrorType.BadFunctionBody);
+		throw new TranspilerError(
+			`Bad function body (${body.getKindName()})`,
+			node,
+			TranspilerErrorType.BadFunctionBody,
+		);
 	}
 	return result;
 }
