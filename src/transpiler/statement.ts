@@ -29,6 +29,7 @@ import { TranspilerState } from "../TranspilerState";
 import { isTypeStatement } from "../typeUtilities";
 
 export function transpileStatement(state: TranspilerState, node: ts.Statement): string {
+	/* istanbul ignore else  */
 	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
