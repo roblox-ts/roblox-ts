@@ -18,10 +18,13 @@ export = () => {
 			.set("a", 1)
 			.set("b", 2)
 			.set("c", 3);
+		map.get("a");
 		expect(map.get("a")).to.equal(1);
 		expect(map.get("b")).to.equal(2);
 		expect(map.get("c")).to.equal(3);
 		expect(map.set("d", 4)).to.equal(map);
+		map.set("e", 5);
+		expect(map.get("e")).to.equal(5);
 	});
 
 	it("should support has", () => {
@@ -29,6 +32,7 @@ export = () => {
 			.set("a", 1)
 			.set("b", 2)
 			.set("c", 3);
+		map.has("a");
 		expect(map.has("a")).to.equal(true);
 		expect(map.has("b")).to.equal(true);
 		expect(map.has("c")).to.equal(true);
