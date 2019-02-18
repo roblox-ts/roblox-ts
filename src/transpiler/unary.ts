@@ -14,35 +14,32 @@ function useIIFEforUnaryExpression(
 }
 
 export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.PrefixUnaryExpression) {
-	const parent = node.getParentOrThrow();
 	const operand = node.getOperand();
-
-	let expStr: string;
-	const statements = new Array<string>();
-
 	const opKind = node.getOperatorToken();
-	state.pushIdStack();
-	if (
-		(opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) &&
-		ts.TypeGuards.isPropertyAccessExpression(operand)
-	) {
-		const expression = operand.getExpression();
-		const opExpStr = transpileExpression(state, expression);
-		const propertyStr = operand.getName();
-		const id = state.getNewId();
-		statements.push(`local ${id} = ${opExpStr}`);
-		expStr = `${id}.${propertyStr}`;
-	} else {
-		expStr = transpileExpression(state, operand);
-	}
-
-	if (opKind === ts.SyntaxKind.PlusPlusToken) {
-		statements.push(`${expStr} = ${expStr} + 1`);
-	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
-		statements.push(`${expStr} = ${expStr} - 1`);
-	}
-	if (statements.length > 0) {
-		if (useIIFEforUnaryExpression(parent, node)) {
+	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
+		const parent = node.getParentOrThrow();
+		const useIIFE = useIIFEforUnaryExpression(parent, node);
+		const statements = new Array<string>();
+		if (useIIFE) {
+			state.pushIdStack();
+		}
+		let expStr: string;
+		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+			const expression = operand.getExpression();
+			const opExpStr = transpileExpression(state, expression);
+			const propertyStr = operand.getName();
+			const id = state.getNewId();
+			statements.push(`local ${id} = ${opExpStr}`);
+			expStr = `${id}.${propertyStr}`;
+		} else {
+			expStr = transpileExpression(state, operand);
+		}
+		if (opKind === ts.SyntaxKind.PlusPlusToken) {
+			statements.push(`${expStr} = ${expStr} + 1`);
+		} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
+			statements.push(`${expStr} = ${expStr} - 1`);
+		}
+		if (useIIFE) {
 			state.popIdStack();
 			const statementsStr = statements.join("; ");
 			return `(function() ${statementsStr}; return ${expStr}; end)()`;
@@ -50,6 +47,7 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 			return statements.join("; ");
 		}
 	} else {
+		const expStr = transpileExpression(state, operand);
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
 			return `not ${expStr}`;
@@ -67,41 +65,44 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 }
 
 export function transpilePostfixUnaryExpression(state: TranspilerState, node: ts.PostfixUnaryExpression) {
-	const parent = node.getParentOrThrow();
 	const operand = node.getOperand();
-
-	let expStr: string;
-	const statements = new Array<string>();
-
 	const opKind = node.getOperatorToken();
-	state.pushIdStack();
-	if (
-		(opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) &&
-		ts.TypeGuards.isPropertyAccessExpression(operand)
-	) {
-		const expression = operand.getExpression();
-		const opExpStr = transpileExpression(state, expression);
-		const propertyStr = operand.getName();
-		const id = state.getNewId();
-		statements.push(`local ${id} = ${opExpStr}`);
-		expStr = `${id}.${propertyStr}`;
-	} else {
-		expStr = transpileExpression(state, operand);
-	}
+	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
+		const parent = node.getParentOrThrow();
+		const useIIFE = useIIFEforUnaryExpression(parent, node);
+		const statements = new Array<string>();
+		if (useIIFE) {
+			state.pushIdStack();
+		}
+		let expStr: string;
+		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+			const expression = operand.getExpression();
+			const opExpStr = transpileExpression(state, expression);
+			const propertyStr = operand.getName();
+			const id = state.getNewId();
+			statements.push(`local ${id} = ${opExpStr}`);
+			expStr = `${id}.${propertyStr}`;
+		} else {
+			expStr = transpileExpression(state, operand);
+		}
 
-	if (opKind === ts.SyntaxKind.PlusPlusToken) {
-		statements.push(`${expStr} = ${expStr} + 1`);
-	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
-		statements.push(`${expStr} = ${expStr} - 1`);
-	}
-	if (statements.length > 0) {
-		if (useIIFEforUnaryExpression(parent, node)) {
+		function getAssignmentExpression() {
+			if (opKind === ts.SyntaxKind.PlusPlusToken) {
+				statements.push(`${expStr} = ${expStr} + 1`);
+			} else {
+				statements.push(`${expStr} = ${expStr} - 1`);
+			}
+		}
+
+		if (useIIFE) {
 			const id = state.getNewId();
 			state.popIdStack();
 			statements.push(`local ${id} = ${expStr}`);
+			getAssignmentExpression();
 			const statementsStr = statements.join("; ");
 			return `(function() ${statementsStr}; return ${id}; end)()`;
 		} else {
+			getAssignmentExpression();
 			return statements.join("; ");
 		}
 	} else {
