@@ -142,6 +142,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.UndefinableMetamethod,
 	},
+	"unexpectedInitializerForOf.spec.ts": {
+		message: "should not allow expressions as initializers in for-of loops",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UnexpectedInitializer,
+	},
+	"unexpectedInitializerForIn.spec.ts": {
+		message: "should not allow expressions as initializers in for-in loops",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UnexpectedInitializer,
+	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,
