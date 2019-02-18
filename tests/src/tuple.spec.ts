@@ -62,4 +62,15 @@ export = () => {
 		foo();
 		expect(itWorked).to.equal(true);
 	});
+
+	it("should support indirect tuple returns", () => {
+		function foo(): [number, number, number] {
+			const result: [number, number, number] = [1, 2, 3];
+			return result;
+		}
+		const [x, y, z] = foo();
+		expect(x).to.equal(1);
+		expect(y).to.equal(2);
+		expect(z).to.equal(3);
+	});
 };
