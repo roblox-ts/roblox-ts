@@ -6,18 +6,10 @@ import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
 
 export function transpileNewExpression(state: TranspilerState, node: ts.NewExpression) {
-	if (!node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)) {
-		throw new TranspilerError(
-			"Parentheses-less new expressions not allowed!",
-			node,
-			TranspilerErrorType.NoParentheseslessNewExpression,
-		);
-	}
-
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
 	let name = transpileExpression(state, expNode);
-	const args = node.getArguments() as Array<ts.Expression>;
+	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken) ? node.getArguments() : [];
 	const params = transpileCallArguments(state, args);
 
 	if (inheritsFromRoact(expressionType)) {
