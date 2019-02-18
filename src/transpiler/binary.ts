@@ -25,6 +25,8 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	}
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
+
+	/* istanbul ignore else */
 	if (isStringType(leftType) || isStringType(rightType)) {
 		return `(${lhsStr}) .. ${rhsStr}`;
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
