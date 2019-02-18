@@ -231,4 +231,14 @@ export = () => {
 		}
 		expect(Foo["bar"]).to.equal("baz");
 	});
+
+	it("should support new expressions without parentheses", () => {
+		class Foo {
+			bar = 1;
+		}
+		const foo = new Foo();
+		expect(foo).to.be.ok();
+		expect(foo instanceof Foo).to.equal(true);
+		expect(foo.bar).to.equal(1);
+	});
 };
