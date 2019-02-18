@@ -1,11 +1,17 @@
 import * as ts from "ts-morph";
-import { getBindingData, transpileExpression, transpileStatement, transpileVariableDeclarationList } from ".";
+import {
+	expressionModifiesVariable,
+	getBindingData,
+	placeInStatementIfExpression,
+	transpileExpression,
+	transpileStatement,
+	transpileVariableDeclarationList,
+} from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { expressionModifiesVariable, placeInStatementIfExpression } from "./expression";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {

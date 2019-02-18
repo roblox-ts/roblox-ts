@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
+	checkReturnsNonAny,
 	getParameterData,
 	transpileBlock,
 	transpileCallExpression,
@@ -11,7 +12,6 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isTupleType, shouldHoist } from "../typeUtilities";
-import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {

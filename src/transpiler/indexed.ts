@@ -1,11 +1,16 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
+import {
+	checkApiAccess,
+	checkNonAny,
+	getPropertyAccessExpressionType,
+	PropertyCallExpType,
+	transpileCallExpression,
+	transpileExpression,
+} from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom, isArrayType, isNumberType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { getPropertyAccessExpressionType, PropertyCallExpType } from "./call";
-import { checkNonAny } from "./security";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();

@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, transpileExpression } from ".";
+import { checkApiAccess, checkNonAny, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isStringType, isTupleReturnType, typeConstraint } from "../typeUtilities";
-import { checkNonAny } from "./security";
 
 const STRING_MACRO_METHODS = [
 	"byte",

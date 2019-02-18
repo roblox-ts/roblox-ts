@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
 import {
+	isSetToken,
 	transpileArrayLiteralExpression,
 	transpileAwaitExpression,
 	transpileBinaryExpression,
@@ -27,7 +28,6 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { isSetToken } from "./binary";
 
 export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
