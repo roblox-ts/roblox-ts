@@ -21,37 +21,30 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 		);
 	}
 
-	if (BUILT_INS.indexOf(name) !== -1) {
-		state.usesTSLibrary = true;
-		name = `TS.${name}`;
+	if (inheritsFrom(expressionType, "ArrayConstructor")) {
+		return "{}";
 	}
 
-	if (expressionType.isObject()) {
-		if (inheritsFrom(expressionType, "ArrayConstructor")) {
+	if (inheritsFrom(expressionType, "MapConstructor")) {
+		if (args.length > 0) {
+			state.usesTSLibrary = true;
+			return `TS.map_new(${params})`;
+		} else {
 			return "{}";
 		}
+	}
 
-		if (inheritsFrom(expressionType, "MapConstructor")) {
-			if (args.length > 0) {
-				state.usesTSLibrary = true;
-				return `TS.map_new(${params})`;
-			} else {
-				return "{}";
-			}
+	if (inheritsFrom(expressionType, "SetConstructor")) {
+		if (args.length > 0) {
+			state.usesTSLibrary = true;
+			return `TS.set_new(${params})`;
+		} else {
+			return "{}";
 		}
+	}
 
-		if (inheritsFrom(expressionType, "SetConstructor")) {
-			if (args.length > 0) {
-				state.usesTSLibrary = true;
-				return `TS.set_new(${params})`;
-			} else {
-				return "{}";
-			}
-		}
-
-		if (inheritsFrom(expressionType, "WeakMapConstructor") || inheritsFrom(expressionType, "WeakSetConstructor")) {
-			return `setmetatable({}, { __mode = "k" })`;
-		}
+	if (inheritsFrom(expressionType, "WeakMapConstructor") || inheritsFrom(expressionType, "WeakSetConstructor")) {
+		return `setmetatable({}, { __mode = "k" })`;
 	}
 
 	return `${name}.new(${params})`;
