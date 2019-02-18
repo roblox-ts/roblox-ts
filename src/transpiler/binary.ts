@@ -119,6 +119,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 			lhsStr = transpileExpression(state, lhs);
 		}
 
+		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.EqualsToken) {
 			statements.push(`${lhsStr} = ${rhsStr}`);
 		} else if (opKind === ts.SyntaxKind.BarEqualsToken) {
@@ -162,6 +163,7 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		lhsStr = transpileExpression(state, lhs);
 	}
 
+	/* istanbul ignore else */
 	if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
 		throw new TranspilerError(
 			"operator '==' is not supported! Use '===' instead.",
