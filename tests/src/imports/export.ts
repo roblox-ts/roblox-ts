@@ -13,3 +13,4 @@ export enum Fruits {
 	Pear,
 }
 export let letVar = 1;
+letVar = 2;
