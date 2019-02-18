@@ -36,18 +36,12 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 		expStr = transpileExpression(state, operand);
 	}
 
-	function getOperandStr() {
-		switch (opKind) {
-			case ts.SyntaxKind.PlusPlusToken:
-				return `${expStr} = ${expStr} + 1`;
-			case ts.SyntaxKind.MinusMinusToken:
-				return `${expStr} = ${expStr} - 1`;
-		}
-		throw new TranspilerError("Unrecognized operation! #2", node, TranspilerErrorType.UnrecognizedOperation2);
+	if (opKind === ts.SyntaxKind.PlusPlusToken) {
+		statements.push(`${expStr} = ${expStr} + 1`);
+	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
+		statements.push(`${expStr} = ${expStr} - 1`);
 	}
-
-	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
-		statements.push(getOperandStr());
+	if (statements.length > 0) {
 		if (useIIFEforUnaryExpression(parent, node)) {
 			state.popIdStack();
 			const statementsStr = statements.join("; ");
@@ -55,20 +49,21 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 		} else {
 			return statements.join("; ");
 		}
-	}
-
-	const tokenKind = node.getOperatorToken();
-	switch (tokenKind) {
-		case ts.SyntaxKind.ExclamationToken:
+	} else {
+		const tokenKind = node.getOperatorToken();
+		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
 			return `not ${expStr}`;
-		case ts.SyntaxKind.MinusToken:
+		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
 			return `-${expStr}`;
+		} else {
+			/* istanbul ignore next */
+			throw new TranspilerError(
+				`Bad prefix unary expression! (${tokenKind})`,
+				node,
+				TranspilerErrorType.BadPrefixUnaryExpression,
+			);
+		}
 	}
-	throw new TranspilerError(
-		`Bad prefix unary expression! (${tokenKind})`,
-		node,
-		TranspilerErrorType.BadPrefixUnaryExpression,
-	);
 }
 
 export function transpilePostfixUnaryExpression(state: TranspilerState, node: ts.PostfixUnaryExpression) {
@@ -94,32 +89,27 @@ export function transpilePostfixUnaryExpression(state: TranspilerState, node: ts
 		expStr = transpileExpression(state, operand);
 	}
 
-	function getOperandStr() {
-		switch (opKind) {
-			case ts.SyntaxKind.PlusPlusToken:
-				return `${expStr} = ${expStr} + 1`;
-			case ts.SyntaxKind.MinusMinusToken:
-				return `${expStr} = ${expStr} - 1`;
-		}
-		throw new TranspilerError("Unrecognized operation! #3", node, TranspilerErrorType.UnrecognizedOperation3);
+	if (opKind === ts.SyntaxKind.PlusPlusToken) {
+		statements.push(`${expStr} = ${expStr} + 1`);
+	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
+		statements.push(`${expStr} = ${expStr} - 1`);
 	}
-
-	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
+	if (statements.length > 0) {
 		if (useIIFEforUnaryExpression(parent, node)) {
 			const id = state.getNewId();
 			state.popIdStack();
 			statements.push(`local ${id} = ${expStr}`);
-			statements.push(getOperandStr());
 			const statementsStr = statements.join("; ");
 			return `(function() ${statementsStr}; return ${id}; end)()`;
 		} else {
-			statements.push(getOperandStr());
 			return statements.join("; ");
 		}
+	} else {
+		/* istanbul ignore next */
+		throw new TranspilerError(
+			`Bad postfix unary expression! (${opKind})`,
+			node,
+			TranspilerErrorType.BadPostfixUnaryExpression,
+		);
 	}
-	throw new TranspilerError(
-		`Bad postfix unary expression! (${opKind})`,
-		node,
-		TranspilerErrorType.BadPostfixUnaryExpression,
-	);
 }
