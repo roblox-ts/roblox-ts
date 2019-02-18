@@ -102,8 +102,6 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 				}
 				result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 			}
-		} else if (!isExported) {
-			result += state.indent + `local ${names.join(", ")};\n`;
 		}
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 	}
