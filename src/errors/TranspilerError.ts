@@ -26,9 +26,6 @@ export enum TranspilerErrorType {
 	ExpectedPropertyAccessExpression,
 	NoMacroMathExpressionStatement,
 	NoXOROperator,
-	UnrecognizedOperation1,
-	UnrecognizedOperation2,
-	UnrecognizedOperation3,
 	NoEqualsEquals,
 	NoExclamationEquals,
 	BadBinaryExpression,
@@ -62,6 +59,7 @@ export enum TranspilerErrorType {
 	InvalidService,
 	ReservedNamespace,
 	BadAddition,
+	InvalidMacroIndex,
 }
 
 export class TranspilerError extends Error {

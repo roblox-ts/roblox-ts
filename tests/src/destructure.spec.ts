@@ -191,4 +191,19 @@ export = () => {
 		expect(obj.y).to.equal(2);
 		expect(obj.z).to.equal(3);
 	});
+
+	it("should support indexing a return value from a function", () => {
+		function foo(): [number, number, number] {
+			return [1, 2, 3];
+		}
+		function bar() {
+			return [4, 5, 6];
+		}
+		expect(foo()[0]).to.equal(1);
+		expect(foo()[1]).to.equal(2);
+		expect(foo()[2]).to.equal(3);
+		expect(bar()[0]).to.equal(4);
+		expect(bar()[1]).to.equal(5);
+		expect(bar()[2]).to.equal(6);
+	});
 };

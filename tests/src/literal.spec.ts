@@ -136,4 +136,24 @@ export = () => {
 		expect(true ? false : true).to.equal(false);
 		expect(false ? false : true).to.equal(true);
 	});
+
+	it("should support string methods", () => {
+		const foo = " foo ";
+		expect(foo.trim()).to.equal("foo");
+		expect(foo.trimLeft()).to.equal("foo ");
+		expect(foo.trimRight()).to.equal(" foo");
+	});
+
+	it("should allow postfix operators on properties", () => {
+		const obj = { x: 0 };
+		expect(obj.x).to.equal(0);
+		obj.x++;
+		expect(obj.x).to.equal(1);
+		obj.x--;
+		expect(obj.x).to.equal(0);
+		expect(obj.x++).to.equal(0);
+		expect(obj.x).to.equal(1);
+		expect(obj.x--).to.equal(1);
+		expect(obj.x).to.equal(0);
+	});
 };

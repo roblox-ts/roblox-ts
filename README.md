@@ -17,7 +17,7 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 **roblox-ts** is designed to solve these problems by compiling TypeScript code directly into Lua, tuned for use in Roblox specifically.
 
 ## How?
-**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree (aided by the TypeScript compiler) and emit functionally similar structures in Lua so that the code behaves the same (minus the type information).
+**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree (via [ts-morph](https://github.com/dsherret/ts-morph)) and emit functionally similar structures in Lua so that the code behaves the same (minus the type information).
 
 ## Quick start & Documentation
 Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/)

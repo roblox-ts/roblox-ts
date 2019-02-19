@@ -171,4 +171,75 @@ export = () => {
 		}
 		expect(new Foo({ a: 123 }).bar).to.equal(123);
 	});
+
+	it("should support super method calls", () => {
+		class Foo {
+			baz() {
+				return "A";
+			}
+		}
+
+		class Bar extends Foo {
+			baz() {
+				return super.baz() + "B";
+			}
+		}
+
+		const bar = new Bar();
+		expect(bar.baz()).to.equal("AB");
+	});
+
+	it("should support class expressions", () => {
+		const Foo = class {
+			bar() {
+				return "A";
+			}
+		};
+		const Bar = class extends Foo {};
+		const bar = new Bar();
+		expect(bar.bar()).to.equal("A");
+	});
+
+	it("should support built-in classes", () => {
+		expect(new Promise(() => {})).to.be.ok();
+	});
+
+	it("should support numeric members", () => {
+		class Foo {
+			1 = "bar";
+		}
+		expect(new Foo()[1]).to.equal("bar");
+	});
+
+	it("should support computed members", () => {
+		class Foo {
+			["bar"] = "baz";
+		}
+		expect(new Foo()["bar"]).to.equal("baz");
+	});
+
+	it("should support numeric statics", () => {
+		class Foo {
+			static 1 = "bar";
+		}
+		expect(Foo[1]).to.equal("bar");
+	});
+
+	it("should support computed statics", () => {
+		class Foo {
+			static ["bar"] = "baz";
+		}
+		expect(Foo["bar"]).to.equal("baz");
+	});
+
+	it("should support new expressions without parentheses", () => {
+		class Foo {
+			bar = 1;
+		}
+		// prettier-ignore
+		const foo = new Foo;
+		expect(foo).to.be.ok();
+		expect(foo instanceof Foo).to.equal(true);
+		expect(foo.bar).to.equal(1);
+	});
 };

@@ -87,4 +87,11 @@ export = () => {
 		}
 		expect(bar([4, 7])).to.equal(28);
 	});
+
+	it("should support this parameter", () => {
+		function foo(this: void, x: number, y: number, z: number) {
+			return `${x}, ${y}, ${z}`;
+		}
+		expect(foo(1, 2, 3)).to.equal("1, 2, 3");
+	});
 };

@@ -1,11 +1,17 @@
 import * as ts from "ts-morph";
-import { getBindingData, transpileExpression, transpileStatement, transpileVariableDeclarationList } from ".";
+import {
+	expressionModifiesVariable,
+	getBindingData,
+	placeInStatementIfExpression,
+	transpileExpression,
+	transpileStatement,
+	transpileVariableDeclarationList,
+} from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { expressionModifiesVariable, placeInStatementIfExpression } from "./expression";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -30,9 +36,6 @@ function hasContinueDescendant(node: ts.Node) {
 }
 
 export function transpileBreakStatement(state: TranspilerState, node: ts.BreakStatement) {
-	if (node.getLabel()) {
-		throw new TranspilerError("Break labels are not supported!", node, TranspilerErrorType.NoLabeledStatement);
-	}
 	return state.indent + "break;\n";
 }
 

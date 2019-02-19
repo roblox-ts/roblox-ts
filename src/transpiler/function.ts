@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
+	checkReturnsNonAny,
 	getParameterData,
 	transpileBlock,
 	transpileCallExpression,
@@ -11,8 +12,6 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isTupleType, shouldHoist } from "../typeUtilities";
-import { placeInStatementIfExpression } from "./expression";
-import { checkReturnsNonAny } from "./security";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -61,12 +60,11 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
-export function transpileFunctionBody(
+function transpileFunctionBody(
 	state: TranspilerState,
 	body: ts.Node,
 	node: HasParameters,
 	initializers: Array<string>,
-	disableReturn: boolean,
 ) {
 	const isBlock = ts.TypeGuards.isBlock(body);
 	const isExpression = ts.TypeGuards.isExpression(body);
@@ -78,18 +76,17 @@ export function transpileFunctionBody(
 		if (isBlock) {
 			result += transpileBlock(state, body as ts.Block);
 		} else {
-			let returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
-			if (disableReturn) {
-				returnStr = returnStr.replace(/^\s*(return) /, "");
-				returnStr = placeInStatementIfExpression(state, body as ts.Expression, returnStr);
-			}
-			result += state.indent + returnStr + "\n";
+			result += state.indent + getReturnStrFromExpression(state, body as ts.Expression, node) + "\n";
 		}
 		state.popIndent();
 		result += state.indent;
 	} else {
-		const bodyKindName = body.getKindName();
-		throw new TranspilerError(`Bad function body (${bodyKindName})`, node, TranspilerErrorType.BadFunctionBody);
+		/* istanbul ignore next */
+		throw new TranspilerError(
+			`Bad function body (${body.getKindName()})`,
+			node,
+			TranspilerErrorType.BadFunctionBody,
+		);
 	}
 	return result;
 }
@@ -143,7 +140,7 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 	}
 
 	result += "function(" + paramNames.join(", ") + ")";
-	result += transpileFunctionBody(state, body, node, initializers, false);
+	result += transpileFunctionBody(state, body, node, initializers);
 	state.popIdStack();
 	return result + "end" + backWrap;
 }

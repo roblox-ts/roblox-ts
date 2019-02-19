@@ -122,6 +122,36 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoDynamicImport,
 	},
+	"macroIndex.spec.ts": {
+		message: "should not allowing indexing macro methods without call",
+		instance: TranspilerError,
+		type: TranspilerErrorType.InvalidMacroIndex,
+	},
+	"classPrototype.spec.ts": {
+		message: "should not allowing indexing class prototype",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoClassPrototype,
+	},
+	"indexFunction.spec.ts": {
+		message: "should not allowing indexing functions",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoFunctionIndex,
+	},
+	"invalidMetamethod.spec.ts": {
+		message: "should not allowing reserved metamethods",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UndefinableMetamethod,
+	},
+	"unexpectedInitializerForOf.spec.ts": {
+		message: "should not allow expressions as initializers in for-of loops",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UnexpectedInitializer,
+	},
+	"unexpectedInitializerForIn.spec.ts": {
+		message: "should not allow expressions as initializers in for-in loops",
+		instance: TranspilerError,
+		type: TranspilerErrorType.UnexpectedInitializer,
+	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
 		instance: TranspilerError,

@@ -2,6 +2,7 @@ import Vector, { a, b, c, foo, Fruits, letVar } from "./export";
 import export_equals from "./export_equals";
 import export_equals2 = require("./export_equals");
 import { x, y, z } from "./export_dec";
+import * as ns from "./namespaceExport";
 
 export = () => {
 	it("should support import/export equals", () => {
@@ -40,6 +41,13 @@ export = () => {
 	});
 
 	it("should support let exports", () => {
-		expect(letVar).to.equal(1);
+		expect(letVar).to.equal(2);
+	});
+
+	it("should support namespace import/export", () => {
+		expect(ns.a).to.equal(1);
+		expect(ns.b).to.equal(2);
+		expect(ns.c).to.equal(3);
+		expect(ns.letVar).to.equal(2);
 	});
 };

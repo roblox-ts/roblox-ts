@@ -1,4 +1,3 @@
-# http://kiki.to/blog/2016/02/04/talk-continuous-integration-with-lua/
 language: python
 sudo: false
 
@@ -20,6 +19,7 @@ before_install:
 
 install:
   - luarocks install luafilesystem
+  - luarocks install dkjson
   - npm install
   - pushd tests && npm install && popd
 

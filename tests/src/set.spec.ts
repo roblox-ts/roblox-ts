@@ -1,7 +1,23 @@
 export = () => {
+	it("should support set constructor", () => {
+		const set = new Set(["foo", "bar", "baz"]);
+		expect(set.has("foo")).to.equal(true);
+		expect(set.has("bar")).to.equal(true);
+		expect(set.has("baz")).to.equal(true);
+	});
+
+	it("should support weak sets", () => {
+		const set = new WeakSet<Instance>();
+		const f = new Instance("Frame");
+		set.add(f);
+		expect(set.has(f)).to.equal(true);
+	});
+
 	it("should support add", () => {
 		const set = new Set<string>();
+		set.add("foo");
 		expect(set.add("test")).to.equal(set);
+		expect(set.has("foo")).to.equal(true);
 	});
 
 	it("should support has", () => {
@@ -9,6 +25,7 @@ export = () => {
 			.add("a")
 			.add("b")
 			.add("c");
+		set.has("a");
 		expect(set.has("a")).to.equal(true);
 		expect(set.has("b")).to.equal(true);
 		expect(set.has("c")).to.equal(true);
@@ -40,6 +57,9 @@ export = () => {
 		expect(hadD).to.equal(false);
 		expect(set.size()).to.equal(2);
 		expect(set.has("b")).to.equal(false);
+		expect(set.has("a")).to.equal(true);
+		set.delete("a");
+		expect(set.has("a")).to.equal(false);
 	});
 
 	it("should support entries", () => {

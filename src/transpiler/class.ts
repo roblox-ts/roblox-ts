@@ -122,7 +122,6 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		result += state.indent + `local super = ${baseClassName};\n`;
 	}
 
-	const id = name;
 	let hasStaticMembers = false;
 
 	let prefix = "";
@@ -131,9 +130,9 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	}
 
 	if (hasSuper) {
-		result += state.indent + prefix + `${id} = setmetatable({`;
+		result += state.indent + prefix + `${name} = setmetatable({`;
 	} else {
-		result += state.indent + prefix + `${id} = {`;
+		result += state.indent + prefix + `${name} = {`;
 	}
 
 	state.pushIndent();
@@ -145,7 +144,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 				hasStaticMembers = true;
 				result += "\n";
 			}
-			result += state.indent + transpileMethodDeclaration(state, method);
+			result += transpileMethodDeclaration(state, method);
 		});
 
 	state.popIndent();
@@ -157,9 +156,9 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	}
 
 	if (hasSuper) {
-		result += state.indent + `${id}.__index = setmetatable({`;
+		result += state.indent + `${name}.__index = setmetatable({`;
 	} else {
-		result += state.indent + `${id}.__index = {`;
+		result += state.indent + `${name}.__index = {`;
 	}
 
 	state.pushIndent();
@@ -233,19 +232,20 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 					TranspilerErrorType.UndefinableMetamethod,
 				);
 			}
-			result += state.indent + `${id}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+			result +=
+				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 		}
 	});
 
 	if (!node.isAbstract()) {
-		result += state.indent + `${id}.new = function(...)\n`;
+		result += state.indent + `${name}.new = function(...)\n`;
 		state.pushIndent();
-		result += state.indent + `return ${id}.constructor(setmetatable({}, ${id}), ...);\n`;
+		result += state.indent + `return ${name}.constructor(setmetatable({}, ${name}), ...);\n`;
 		state.popIndent();
 		result += state.indent + `end;\n`;
 	}
 
-	result += transpileConstructorDeclaration(state, id, getConstructor(node), extraInitializers, hasSuper);
+	result += transpileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper);
 
 	for (const prop of node.getStaticProperties()) {
 		const propNameNode = prop.getNameNode();
@@ -285,7 +285,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 					propValue = transpileExpression(state, initializer);
 				}
 			}
-			result += state.indent + `${id}${propStr} = ${propValue};\n`;
+			result += state.indent + `${name}${propStr} = ${propValue};\n`;
 		}
 	}
 
@@ -317,17 +317,18 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 			getterContent += state.indent;
 			if (ancestorHasGetters) {
 				result +=
-					state.indent + `${id}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`;
+					state.indent +
+					`${name}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`;
 			} else {
-				result += state.indent + `${id}._getters = {${getterContent}};\n`;
+				result += state.indent + `${name}._getters = {${getterContent}};\n`;
 			}
 		} else {
-			result += state.indent + `${id}._getters = super._getters;\n`;
+			result += state.indent + `${name}._getters = super._getters;\n`;
 		}
-		result += state.indent + `local __index = ${id}.__index;\n`;
-		result += state.indent + `${id}.__index = function(self, index)\n`;
+		result += state.indent + `local __index = ${name}.__index;\n`;
+		result += state.indent + `${name}.__index = function(self, index)\n`;
 		state.pushIndent();
-		result += state.indent + `local getter = ${id}._getters[index];\n`;
+		result += state.indent + `local getter = ${name}._getters[index];\n`;
 		result += state.indent + `if getter then\n`;
 		state.pushIndent();
 		result += state.indent + `return getter(self);\n`;
@@ -368,16 +369,17 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 			setterContent += state.indent;
 			if (ancestorHasSetters) {
 				result +=
-					state.indent + `${id}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`;
+					state.indent +
+					`${name}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`;
 			} else {
-				result += state.indent + `${id}._setters = {${setterContent}};\n`;
+				result += state.indent + `${name}._setters = {${setterContent}};\n`;
 			}
 		} else {
-			result += state.indent + `${id}._setters = super._setters;\n`;
+			result += state.indent + `${name}._setters = super._setters;\n`;
 		}
-		result += state.indent + `${id}.__newindex = function(self, index, value)\n`;
+		result += state.indent + `${name}.__newindex = function(self, index, value)\n`;
 		state.pushIndent();
-		result += state.indent + `local setter = ${id}._setters[index];\n`;
+		result += state.indent + `local setter = ${name}._setters[index];\n`;
 		result += state.indent + `if setter then\n`;
 		state.pushIndent();
 		result += state.indent + `setter(self, value);\n`;
@@ -391,10 +393,12 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		result += state.indent + `end;\n`;
 	}
 
-	state.popIndent();
 	if (isExpression) {
+		result += state.indent + `return ${name};\n`;
+		state.popIndent();
 		result += state.indent + `end)()`;
 	} else {
+		state.popIndent();
 		result += state.indent + `end;\n`;
 	}
 

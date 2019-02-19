@@ -55,6 +55,7 @@ export = () => {
 	it("should support join", () => {
 		const a = [1, 2, 3];
 		expect(a.join(", ")).to.equal("1, 2, 3");
+		expect([1, 2, 3].join(", ")).to.equal("1, 2, 3");
 	});
 
 	it("should support reverse", () => {
@@ -132,10 +133,12 @@ export = () => {
 	it("should support unshift", () => {
 		const a = [1, 2, 3];
 		const b = a.unshift(4);
-		expect(a[0]).to.equal(4);
-		expect(a[1]).to.equal(1);
-		expect(a[2]).to.equal(2);
-		expect(a[3]).to.equal(3);
+		a.unshift(5);
+		expect(a[0]).to.equal(5);
+		expect(a[1]).to.equal(4);
+		expect(a[2]).to.equal(1);
+		expect(a[3]).to.equal(2);
+		expect(a[4]).to.equal(3);
 		expect(b).to.equal(4);
 	});
 

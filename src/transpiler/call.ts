@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, transpileExpression } from ".";
+import { checkApiAccess, checkNonAny, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isStringType, isTupleReturnType, typeConstraint } from "../typeUtilities";
-import { checkNonAny } from "./security";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -68,8 +67,8 @@ function wrapExpFunc(replacer: ReplaceFunction): ReplaceFunction {
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("(.-)%s*$")`));
+	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
+	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`));
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
@@ -92,7 +91,16 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
 
 		if (length === 1 && propertyCallParentIsExpression) {
-			return `table.insert(${concatParams(state, params, accessPath)})`;
+			return `table.insert(${accessPath}, ${transpileCallArgument(state, params[0])})`;
+		}
+	})
+
+	.set("unshift", (accessPath, params, state, subExp) => {
+		const length = params.length;
+		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
+
+		if (length === 1 && propertyCallParentIsExpression) {
+			return `table.insert(${accessPath}, 1, ${transpileCallArgument(state, params[0])})`;
 		}
 	});
 
@@ -213,38 +221,43 @@ function transpilePropertyMethod(
 	return `TS.${className}_${property}(${concatParams(state, params, accessPath)})`;
 }
 
-export function transpilePropertyCallExpression(
-	state: TranspilerState,
-	node: ts.CallExpression,
-	doNotWrapTupleReturn = false,
-) {
-	const expression = node.getExpression();
-	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
-		throw new TranspilerError(
-			"Expected PropertyAccessExpression",
-			node,
-			TranspilerErrorType.ExpectedPropertyAccessExpression,
-		);
-	}
+export const enum PropertyCallExpType {
+	None = -1,
+	Array,
+	BuiltInStringMethod,
+	String,
+	PromiseThen,
+	SymbolFor,
+	Map,
+	Set,
+	ObjectConstructor,
+	RbxMathAdd,
+	RbxMathSub,
+	RbxMathMul,
+	RbxMathDiv,
+}
 
+export function getPropertyAccessExpressionType(
+	state: TranspilerState,
+	node: ts.CallExpression | ts.PropertyAccessExpression,
+	expression: ts.PropertyAccessExpression,
+): PropertyCallExpType {
 	checkApiAccess(state, expression.getNameNode());
 
 	const subExp = expression.getExpression();
 	const subExpType = subExp.getType();
-	let accessPath = transpileExpression(state, subExp);
 	const property = expression.getName();
-	const params = node.getArguments();
 
 	if (isArrayType(subExpType)) {
-		return transpilePropertyMethod(state, property, accessPath, params, subExp, "array", ARRAY_REPLACE_METHODS);
+		return PropertyCallExpType.Array;
 	}
 
 	if (isStringType(subExpType)) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
-			return `${wrapExpressionIfNeeded(subExp, accessPath)}:${property}(${concatParams(state, params)})`;
+			return PropertyCallExpType.BuiltInStringMethod;
 		}
 
-		return transpilePropertyMethod(state, property, accessPath, params, subExp, "string", STRING_REPLACE_METHODS);
+		return PropertyCallExpType.String;
 	}
 
 	const subExpTypeSym = subExpType.getSymbol();
@@ -254,28 +267,27 @@ export function transpilePropertyCallExpression(
 		// custom promises
 		if (subExpTypeName === "Promise") {
 			if (property === "then") {
-				return `${accessPath}:andThen(${concatParams(state, params)})`;
+				return PropertyCallExpType.PromiseThen;
 			}
 		}
 
 		// for is a reserved word in Lua
 		if (subExpTypeName === "SymbolConstructor") {
 			if (property === "for") {
-				return `${accessPath}.getFor(${concatParams(state, params)})`;
+				return PropertyCallExpType.SymbolFor;
 			}
 		}
 
 		if (subExpTypeName === "Map" || subExpTypeName === "ReadonlyMap" || subExpTypeName === "WeakMap") {
-			return transpilePropertyMethod(state, property, accessPath, params, subExp, "map", MAP_REPLACE_METHODS);
+			return PropertyCallExpType.Map;
 		}
 
 		if (subExpTypeName === "Set" || subExpTypeName === "ReadonlySet" || subExpTypeName === "WeakSet") {
-			return transpilePropertyMethod(state, property, accessPath, params, subExp, "set", SET_REPLACE_METHODS);
+			return PropertyCallExpType.Set;
 		}
 
 		if (subExpTypeName === "ObjectConstructor") {
-			state.usesTSLibrary = true;
-			return `TS.Object_${property}(${concatParams(state, params)})`;
+			return PropertyCallExpType.ObjectConstructor;
 		}
 
 		const validateMathCall = () => {
@@ -293,22 +305,81 @@ export function transpilePropertyCallExpression(
 			switch (property) {
 				case "add":
 					validateMathCall();
-					return `(${accessPath} + (${concatParams(state, params)}))`;
+					return PropertyCallExpType.RbxMathAdd;
 				case "sub":
 					validateMathCall();
-					return `(${accessPath} - (${concatParams(state, params)}))`;
+					return PropertyCallExpType.RbxMathSub;
 				case "mul":
 					validateMathCall();
-					return `(${accessPath} * (${concatParams(state, params)}))`;
+					return PropertyCallExpType.RbxMathMul;
 				case "div":
 					validateMathCall();
-					return `(${accessPath} / (${concatParams(state, params)}))`;
+					return PropertyCallExpType.RbxMathDiv;
 			}
 		}
 	}
 
-	const expType = expression.getType();
+	return PropertyCallExpType.None;
+}
 
+export function transpilePropertyCallExpression(
+	state: TranspilerState,
+	node: ts.CallExpression,
+	doNotWrapTupleReturn = false,
+) {
+	const expression = node.getExpression();
+	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
+		throw new TranspilerError(
+			"Expected PropertyAccessExpression",
+			node,
+			TranspilerErrorType.ExpectedPropertyAccessExpression,
+		);
+	}
+
+	checkApiAccess(state, expression.getNameNode());
+
+	const subExp = expression.getExpression();
+	let accessPath = transpileExpression(state, subExp);
+	const property = expression.getName();
+	const params = node.getArguments();
+
+	switch (getPropertyAccessExpressionType(state, node, expression)) {
+		case PropertyCallExpType.Array:
+			return transpilePropertyMethod(state, property, accessPath, params, subExp, "array", ARRAY_REPLACE_METHODS);
+		case PropertyCallExpType.BuiltInStringMethod:
+			return `${wrapExpressionIfNeeded(subExp, accessPath)}:${property}(${concatParams(state, params)})`;
+		case PropertyCallExpType.String:
+			return transpilePropertyMethod(
+				state,
+				property,
+				accessPath,
+				params,
+				subExp,
+				"string",
+				STRING_REPLACE_METHODS,
+			);
+		case PropertyCallExpType.PromiseThen:
+			return `${accessPath}:andThen(${concatParams(state, params)})`;
+		case PropertyCallExpType.SymbolFor:
+			return `${accessPath}.getFor(${concatParams(state, params)})`;
+		case PropertyCallExpType.Map:
+			return transpilePropertyMethod(state, property, accessPath, params, subExp, "map", MAP_REPLACE_METHODS);
+		case PropertyCallExpType.Set:
+			return transpilePropertyMethod(state, property, accessPath, params, subExp, "set", SET_REPLACE_METHODS);
+		case PropertyCallExpType.ObjectConstructor:
+			state.usesTSLibrary = true;
+			return `TS.Object_${property}(${concatParams(state, params)})`;
+		case PropertyCallExpType.RbxMathAdd:
+			return `(${accessPath} + (${concatParams(state, params)}))`;
+		case PropertyCallExpType.RbxMathSub:
+			return `(${accessPath} - (${concatParams(state, params)}))`;
+		case PropertyCallExpType.RbxMathMul:
+			return `(${accessPath} * (${concatParams(state, params)}))`;
+		case PropertyCallExpType.RbxMathDiv:
+			return `(${accessPath} / (${concatParams(state, params)}))`;
+	}
+
+	const expType = expression.getType();
 	const allMethods = typeConstraint(expType, t =>
 		t
 			.getSymbolOrThrow()
@@ -348,6 +419,7 @@ export function transpilePropertyCallExpression(
 						}
 					}
 				}
+
 				if (
 					ts.TypeGuards.isFunctionTypeNode(dec) ||
 					ts.TypeGuards.isPropertySignature(dec) ||

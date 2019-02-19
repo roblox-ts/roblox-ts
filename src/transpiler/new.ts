@@ -1,23 +1,15 @@
 import * as ts from "ts-morph";
-import { BUILT_INS, inheritsFromRoact, transpileCallArguments, transpileExpression } from ".";
+import { inheritsFromRoact, transpileCallArguments, transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
 
 export function transpileNewExpression(state: TranspilerState, node: ts.NewExpression) {
-	if (!node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)) {
-		throw new TranspilerError(
-			"Parentheses-less new expressions not allowed!",
-			node,
-			TranspilerErrorType.NoParentheseslessNewExpression,
-		);
-	}
-
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
-	let name = transpileExpression(state, expNode);
-	const args = node.getArguments() as Array<ts.Expression>;
+	const name = transpileExpression(state, expNode);
+	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken) ? node.getArguments() : [];
 	const params = transpileCallArguments(state, args);
 
 	if (inheritsFromRoact(expressionType)) {
@@ -29,37 +21,30 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 		);
 	}
 
-	if (BUILT_INS.indexOf(name) !== -1) {
-		state.usesTSLibrary = true;
-		name = `TS.${name}`;
+	if (inheritsFrom(expressionType, "ArrayConstructor")) {
+		return "{}";
 	}
 
-	if (expressionType.isObject()) {
-		if (inheritsFrom(expressionType, "ArrayConstructor")) {
+	if (inheritsFrom(expressionType, "MapConstructor")) {
+		if (args.length > 0) {
+			state.usesTSLibrary = true;
+			return `TS.map_new(${params})`;
+		} else {
 			return "{}";
 		}
+	}
 
-		if (inheritsFrom(expressionType, "MapConstructor")) {
-			if (args.length > 0) {
-				state.usesTSLibrary = true;
-				return `TS.map_new(${params})`;
-			} else {
-				return "{}";
-			}
+	if (inheritsFrom(expressionType, "SetConstructor")) {
+		if (args.length > 0) {
+			state.usesTSLibrary = true;
+			return `TS.set_new(${params})`;
+		} else {
+			return "{}";
 		}
+	}
 
-		if (inheritsFrom(expressionType, "SetConstructor")) {
-			if (args.length > 0) {
-				state.usesTSLibrary = true;
-				return `TS.set_new(${params})`;
-			} else {
-				return "{}";
-			}
-		}
-
-		if (inheritsFrom(expressionType, "WeakMapConstructor") || inheritsFrom(expressionType, "WeakSetConstructor")) {
-			return `setmetatable({}, { __mode = "k" })`;
-		}
+	if (inheritsFrom(expressionType, "WeakMapConstructor") || inheritsFrom(expressionType, "WeakSetConstructor")) {
+		return `setmetatable({}, { __mode = "k" })`;
 	}
 
 	return `${name}.new(${params})`;
