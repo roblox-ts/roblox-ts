@@ -46,11 +46,12 @@ export function transpileContinueStatement(state: TranspilerState, node: ts.Cont
 export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	const hasContinue = hasContinueDescendant(node);
 
-	let endsWithBreak = false;
+	let endsWithBreakOrReturn = false;
 	if (ts.TypeGuards.isBlock(node)) {
 		const statements = node.getStatements();
-		if (ts.TypeGuards.isBreakStatement(statements[statements.length - 1])) {
-			endsWithBreak = true;
+		const lastStatement = statements[statements.length - 1];
+		if (ts.TypeGuards.isBreakStatement(lastStatement) || ts.TypeGuards.isReturnStatement(lastStatement)) {
+			endsWithBreakOrReturn = true;
 		}
 	}
 
@@ -65,7 +66,7 @@ export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	result += transpileStatement(state, node);
 
 	if (hasContinue) {
-		if (!endsWithBreak) {
+		if (!endsWithBreakOrReturn) {
 			result += state.indent + `_continue_${state.continueId} = true;\n`;
 		}
 		state.popIndent();
