@@ -417,6 +417,6 @@ export = () => {
 	it("should support toString", () => {
 		const x = [1, 2, 3];
 		expect([1, 2, 4].toString()).to.be.ok();
-		expect(typeof x.toString()).to.equal("string");
+		expect(typeOf(x.toString())).to.equal("string");
 	});
 };

@@ -151,17 +151,6 @@ function TS.exportNamespace(module, ancestor)
 end
 
 -- general utility functions
-function TS.typeof(value)
-	local type = typeof(value)
-	if type == TYPE_TABLE or type == TYPE_USERDATA then
-		return "object"
-	elseif type == TYPE_NIL then
-		return "undefined"
-	else
-		return type
-	end
-end
-
 function TS.typeIs(value, typeName)
 	return typeof(value) == typeName
 end

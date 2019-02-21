@@ -157,6 +157,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.ExportInNonModuleScript,
 	},
+	"typeof.spec.ts": {
+		message: "should not allow typeof operator",
+		instance: TranspilerError,
+		type: TranspilerErrorType.NoTypeOf,
+	},
 	"any/index.spec.ts": {
 		message: "should not allow indexing type any",
 		instance: TranspilerError,

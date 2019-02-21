@@ -13,7 +13,7 @@ export = () => {
 				}
 			}
 
-			expect(typeof RoactClass).to.equal("object");
+			expect(typeOf(RoactClass)).to.equal("table");
 			expect(RoactClass._new).to.be.a("function");
 		});
 
@@ -28,7 +28,7 @@ export = () => {
 				}
 			}
 
-			expect(typeof RoactPureClass).to.equal("object");
+			expect(typeOf(RoactPureClass)).to.equal("table");
 			expect(RoactPureClass._new).to.be.a("function");
 		});
 

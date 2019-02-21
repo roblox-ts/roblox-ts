@@ -138,6 +138,6 @@ export = () => {
 			.add("b")
 			.add("c");
 		expect(set.toString()).to.be.ok();
-		expect(typeof new Set<string>().toString()).to.equal("string");
+		expect(typeOf(new Set<string>().toString())).to.equal("string");
 	});
 };

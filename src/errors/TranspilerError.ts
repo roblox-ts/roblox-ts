@@ -60,6 +60,7 @@ export enum TranspilerErrorType {
 	ReservedNamespace,
 	BadAddition,
 	InvalidMacroIndex,
+	NoTypeOf,
 }
 
 export class TranspilerError extends Error {
