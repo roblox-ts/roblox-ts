@@ -151,17 +151,6 @@ function TS.exportNamespace(module, ancestor)
 end
 
 -- general utility functions
-function TS.typeof(value)
-	local type = typeof(value)
-	if type == TYPE_TABLE or type == TYPE_USERDATA then
-		return "object"
-	elseif type == TYPE_NIL then
-		return "undefined"
-	else
-		return type
-	end
-end
-
 function TS.typeIs(value, typeName)
 	return typeof(value) == typeName
 end
@@ -288,6 +277,50 @@ function TS.brsh(a, b)
 	return bitTruncate(a / powOfTwo[b])
 end
 
+-- Object static functions
+
+function TS.Object_keys(object)
+	local result = {}
+	for key in pairs(object) do
+		result[#result + 1] = key
+	end
+	return result
+end
+
+function TS.Object_values(object)
+	local result = {}
+	for _, value in pairs(object) do
+		result[#result + 1] = value
+	end
+	return result
+end
+
+function TS.Object_entries(object)
+	local result = {}
+	for key, value in pairs(object) do
+		result[#result + 1] = {key, value}
+	end
+	return result
+end
+
+function TS.Object_assign(toObj, ...)
+	local args = { ... }
+	for i = 1, #args do
+		for key, value in pairs(args[i]) do
+			toObj[key] = value
+		end
+	end
+	return toObj
+end
+
+function TS.Object_isEmpty(object)
+	return next(object) == nil
+end
+
+function TS.Object_toString(list)
+	return HttpService:JSONEncode(list)
+end
+
 -- array macro functions
 
 function TS.array_forEach(list, callback)
@@ -349,9 +382,7 @@ function TS.array_sort(list, callback)
 	return sorted
 end
 
-function TS.array_toString(list)
-	return HttpService:JSONEncode(list)
-end
+TS.array_toString = TS.Object_toString
 
 function TS.array_slice(list, startI, endI)
 	local length = #list
@@ -840,47 +871,7 @@ function TS.string_split(input, sep)
 	return result
 end
 
--- Object static functions
-
-function TS.Object_keys(object)
-	local result = {}
-	for key in pairs(object) do
-		result[#result + 1] = key
-	end
-	return result
-end
-
-function TS.Object_values(object)
-	local result = {}
-	for _, value in pairs(object) do
-		result[#result + 1] = value
-	end
-	return result
-end
-
-function TS.Object_entries(object)
-	local result = {}
-	for key, value in pairs(object) do
-		result[#result + 1] = {key, value}
-	end
-	return result
-end
-
-function TS.Object_assign(toObj, ...)
-	local args = { ... }
-	for i = 1, #args do
-		for key, value in pairs(args[i]) do
-			toObj[key] = value
-		end
-	end
-	return toObj
-end
-
-function TS.Object_isEmpty(object)
-	return next(object) == nil
-end
-
-TS.Object_toString = TS.array_toString
+-- roact functions
 
 function TS.Roact_combine(...)
 	local args = { ... }

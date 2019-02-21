@@ -1,16 +1,36 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, transpileCallExpression, transpileExpression } from ".";
+import {
+	checkApiAccess,
+	checkNonAny,
+	getPropertyAccessExpressionType,
+	PropertyCallExpType,
+	transpileCallExpression,
+	transpileExpression,
+} from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isNumberType, isStringType, isTupleType } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isNumberType, isTupleType } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { checkNonAny } from "./security";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
-	const expType = exp.getType();
 	const expStr = transpileExpression(state, exp);
 	const propertyStr = node.getName();
+
+	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node, node);
+
+	if (
+		propertyAccessExpressionType === PropertyCallExpType.String ||
+		(propertyAccessExpressionType === PropertyCallExpType.Array && propertyStr === "length")
+	) {
+		return `(#${expStr})`;
+	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+		throw new TranspilerError(
+			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
+			node,
+			TranspilerErrorType.InvalidMacroIndex,
+		);
+	}
 
 	const nameNode = node.getNameNode();
 	checkApiAccess(state, nameNode);
@@ -58,10 +78,6 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 				}
 			}
 		}
-	}
-
-	if ((isStringType(expType) || isArrayType(expType)) && propertyStr === "length") {
-		return `(#${expStr})`;
 	}
 
 	return `${expStr}.${propertyStr}`;

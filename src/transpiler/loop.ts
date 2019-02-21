@@ -1,11 +1,17 @@
 import * as ts from "ts-morph";
-import { getBindingData, transpileExpression, transpileStatement, transpileVariableDeclarationList } from ".";
+import {
+	expressionModifiesVariable,
+	getBindingData,
+	placeInStatementIfExpression,
+	transpileExpression,
+	transpileStatement,
+	transpileVariableDeclarationList,
+} from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { expressionModifiesVariable, placeInStatementIfExpression } from "./expression";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -30,9 +36,6 @@ function hasContinueDescendant(node: ts.Node) {
 }
 
 export function transpileBreakStatement(state: TranspilerState, node: ts.BreakStatement) {
-	if (node.getLabel()) {
-		throw new TranspilerError("Break labels are not supported!", node, TranspilerErrorType.NoLabeledStatement);
-	}
 	return state.indent + "break;\n";
 }
 
@@ -42,6 +45,15 @@ export function transpileContinueStatement(state: TranspilerState, node: ts.Cont
 
 export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	const hasContinue = hasContinueDescendant(node);
+
+	let endsWithBreakOrReturn = false;
+	if (ts.TypeGuards.isBlock(node)) {
+		const statements = node.getStatements();
+		const lastStatement = statements[statements.length - 1];
+		if (ts.TypeGuards.isBreakStatement(lastStatement) || ts.TypeGuards.isReturnStatement(lastStatement)) {
+			endsWithBreakOrReturn = true;
+		}
+	}
 
 	let result = "";
 	if (hasContinue) {
@@ -54,7 +66,9 @@ export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	result += transpileStatement(state, node);
 
 	if (hasContinue) {
-		result += state.indent + `_continue_${state.continueId} = true;\n`;
+		if (!endsWithBreakOrReturn) {
+			result += state.indent + `_continue_${state.continueId} = true;\n`;
+		}
 		state.popIndent();
 		result += state.indent + `until true;\n`;
 		result += state.indent + `if not _continue_${state.continueId} then\n`;

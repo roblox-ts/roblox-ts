@@ -29,6 +29,7 @@ import { TranspilerState } from "../TranspilerState";
 import { isTypeStatement } from "../typeUtilities";
 
 export function transpileStatement(state: TranspilerState, node: ts.Statement): string {
+	/* istanbul ignore else  */
 	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
@@ -77,22 +78,25 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 		return transpileSwitchStatement(state, node);
 	} else if (ts.TypeGuards.isTryStatement(node)) {
 		return transpileTryStatement(state, node);
-	} else if (
-		ts.TypeGuards.isEmptyStatement(node) ||
-		ts.TypeGuards.isTypeAliasDeclaration(node) ||
-		ts.TypeGuards.isInterfaceDeclaration(node)
-	) {
-		return "";
 	} else if (ts.TypeGuards.isLabeledStatement(node)) {
 		throw new TranspilerError(
 			"Labeled statements are not supported!",
 			node,
 			TranspilerErrorType.NoLabeledStatement,
 		);
-	} else {
-		/* istanbul ignore next */
-		throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node, TranspilerErrorType.BadStatement);
 	}
+
+	/* istanbul ignore next */
+	if (
+		ts.TypeGuards.isEmptyStatement(node) ||
+		ts.TypeGuards.isTypeAliasDeclaration(node) ||
+		ts.TypeGuards.isInterfaceDeclaration(node)
+	) {
+		return "";
+	}
+
+	/* istanbul ignore next */
+	throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node, TranspilerErrorType.BadStatement);
 }
 
 export function transpileStatementedNode(state: TranspilerState, node: ts.Node & ts.StatementedNode) {
