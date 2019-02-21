@@ -46,6 +46,14 @@ export function transpileContinueStatement(state: TranspilerState, node: ts.Cont
 export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	const hasContinue = hasContinueDescendant(node);
 
+	let endsWithBreak = false;
+	if (ts.TypeGuards.isBlock(node)) {
+		const statements = node.getStatements();
+		if (ts.TypeGuards.isBreakStatement(statements[statements.length - 1])) {
+			endsWithBreak = true;
+		}
+	}
+
 	let result = "";
 	if (hasContinue) {
 		state.continueId++;
@@ -57,7 +65,9 @@ export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	result += transpileStatement(state, node);
 
 	if (hasContinue) {
-		result += state.indent + `_continue_${state.continueId} = true;\n`;
+		if (!endsWithBreak) {
+			result += state.indent + `_continue_${state.continueId} = true;\n`;
+		}
 		state.popIndent();
 		result += state.indent + `until true;\n`;
 		result += state.indent + `if not _continue_${state.continueId} then\n`;
