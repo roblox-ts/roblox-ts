@@ -3,10 +3,8 @@ local Promise = require(script.Parent.Promise)
 local HttpService = game:GetService("HttpService")
 
 -- constants
-local TYPE_NIL = "nil"
 local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
-local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
 
 local quicksort = table.sort
