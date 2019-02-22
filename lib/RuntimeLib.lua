@@ -3,10 +3,8 @@ local Promise = require(script.Parent.Promise)
 local HttpService = game:GetService("HttpService")
 
 -- constants
-local TYPE_NIL = "nil"
 local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
-local TYPE_USERDATA = "userdata"
 local TYPE_FUNCTION = "function"
 
 local quicksort = table.sort
@@ -151,17 +149,6 @@ function TS.exportNamespace(module, ancestor)
 end
 
 -- general utility functions
-function TS.typeof(value)
-	local type = typeof(value)
-	if type == TYPE_TABLE or type == TYPE_USERDATA then
-		return "object"
-	elseif type == TYPE_NIL then
-		return "undefined"
-	else
-		return type
-	end
-end
-
 function TS.typeIs(value, typeName)
 	return typeof(value) == typeName
 end
@@ -288,6 +275,52 @@ function TS.brsh(a, b)
 	return bitTruncate(a / powOfTwo[b])
 end
 
+-- utility functions
+local function copy(object)
+	local result = {}
+	for k, v in pairs(object) do
+		result[k] = v
+	end
+	return result
+end
+
+local function deepCopy(object)
+	local result = {}
+	for k, v in pairs(object) do
+		if typeof(v) == TYPE_TABLE then
+			result[k] = deepCopy(v)
+		else
+			result[k] = v
+		end
+	end
+	return result
+end
+
+local function deepEquals(a, b)
+	-- a[k] == b[k]
+	for k in pairs(a) do
+		local av = a[k]
+		local bv = b[k]
+		if typeof(av) == TYPE_TABLE and typeof(bv) == TYPE_TABLE then
+			local result = deepEquals(av, bv)
+			if not result then
+				return false
+			end
+		elseif av ~= bv then
+			return false
+		end
+	end
+
+	-- extra keys in b
+	for k in pairs(b) do
+		if a[k] == nil then
+			return false
+		end
+	end
+
+	return true
+end
+
 -- Object static functions
 
 function TS.Object_keys(object)
@@ -323,6 +356,12 @@ function TS.Object_assign(toObj, ...)
 	end
 	return toObj
 end
+
+TS.Object_copy = copy
+
+TS.Object_deepCopy = deepCopy
+
+TS.Object_deepEquals = deepEquals
 
 function TS.Object_isEmpty(object)
 	return next(object) == nil
@@ -741,6 +780,12 @@ function TS.array_copyWithin(list, target, from, to)
 
 	return list
 end
+
+TS.array_copy = copy
+
+TS.array_deepCopy = deepCopy
+
+TS.array_deepEquals = deepEquals
 
 TS.array_isEmpty = TS.Object_isEmpty
 

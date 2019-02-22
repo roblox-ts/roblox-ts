@@ -23,7 +23,6 @@ import {
 	transpileSpreadElement,
 	transpileStringLiteral,
 	transpileTemplateExpression,
-	transpileTypeOfExpression,
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
@@ -66,8 +65,6 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 		return transpileAwaitExpression(state, node);
 	} else if (ts.TypeGuards.isConditionalExpression(node)) {
 		return transpileConditionalExpression(state, node);
-	} else if (ts.TypeGuards.isTypeOfExpression(node)) {
-		return transpileTypeOfExpression(state, node);
 	} else if (ts.TypeGuards.isJsxExpression(node)) {
 		return transpileExpression(state, node.getExpressionOrThrow());
 	} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
@@ -105,6 +102,12 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			"'null' is not supported! Use 'undefined' instead.",
 			node,
 			TranspilerErrorType.NoNull,
+		);
+	} else if (ts.TypeGuards.isTypeOfExpression(node)) {
+		throw new TranspilerError(
+			"'typeof' operator is not supported! Use `typeIs(value, type)` or `typeOf(value)` instead.",
+			node,
+			TranspilerErrorType.NoTypeOf,
 		);
 	} else {
 		/* istanbul ignore next */

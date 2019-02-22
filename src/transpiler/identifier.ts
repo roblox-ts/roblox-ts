@@ -4,11 +4,16 @@ import { TranspilerState } from "../TranspilerState";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
 
+export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+
 export function transpileIdentifier(state: TranspilerState, node: ts.Identifier) {
 	let name = node.getText();
-	if (name === "undefined") {
-		return "nil";
+
+	const replacement = replacements.get(name);
+	if (replacement) {
+		return replacement;
 	}
+
 	checkReserved(name, node);
 	if (BUILT_INS.indexOf(name) !== -1) {
 		state.usesTSLibrary = true;
