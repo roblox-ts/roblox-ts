@@ -55,6 +55,7 @@ local Symbol do
 		end
 	end
 end
+
 TS.Symbol = Symbol
 
 -- module resolution
