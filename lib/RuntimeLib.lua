@@ -224,6 +224,7 @@ local function bitTruncate(a)
 end
 
 TS.round = bitTruncate
+
 TS.bitTruncate = bitTruncate
 
 -- bitwise operations
@@ -865,6 +866,7 @@ function TS.map_values(map)
 end
 
 TS.map_toString = TS.array_toString
+
 TS.map_isEmpty = TS.Object_isEmpty
 
 -- set macro functions
@@ -913,6 +915,7 @@ TS.set_keys = TS.map_keys
 TS.set_size = TS.map_size
 
 TS.set_isEmpty = TS.Object_isEmpty
+
 TS.set_toString = TS.array_toString
 
 -- string macro functions
