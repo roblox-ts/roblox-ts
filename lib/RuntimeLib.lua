@@ -7,7 +7,7 @@ local TYPE_STRING = "string"
 local TYPE_TABLE = "table"
 local TYPE_FUNCTION = "function"
 
-local quicksort = table.sort
+local table_sort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
 
@@ -55,6 +55,7 @@ local Symbol do
 		end
 	end
 end
+
 TS.Symbol = Symbol
 
 -- module resolution
@@ -224,6 +225,7 @@ local function bitTruncate(a)
 end
 
 TS.round = bitTruncate
+
 TS.bitTruncate = bitTruncate
 
 -- bitwise operations
@@ -342,7 +344,7 @@ end
 function TS.Object_entries(object)
 	local result = {}
 	for key, value in pairs(object) do
-		result[#result + 1] = {key, value}
+		result[#result + 1] = { key, value }
 	end
 	return result
 end
@@ -413,7 +415,7 @@ function TS.array_sort(list, callback)
 	local sorted
 
 	if n < 8000 then
-		sorted = {unpack(list)}
+		sorted = { unpack(list) }
 	else
 		sorted = {}
 		for i = 1, n do
@@ -422,11 +424,11 @@ function TS.array_sort(list, callback)
 	end
 
 	if callback then
-		quicksort(sorted, function(a, b)
+		table_sort(sorted, function(a, b)
 			return 0 < callback(a, b)
 		end)
 	else
-		quicksort(sorted, sortFallback)
+		table_sort(sorted, sortFallback)
 	end
 
 	return sorted
@@ -824,7 +826,7 @@ end
 function TS.map_entries(map)
 	local result = {}
 	for key, value in pairs(map) do
-		table.insert(result, {key, value})
+		table.insert(result, { key, value })
 	end
 	return result
 end
@@ -865,6 +867,7 @@ function TS.map_values(map)
 end
 
 TS.map_toString = TS.array_toString
+
 TS.map_isEmpty = TS.Object_isEmpty
 
 -- set macro functions
@@ -901,7 +904,7 @@ TS.set_has = TS.map_has
 function TS.set_entries(map)
 	local result = {}
 	for key in pairs(map) do
-		table.insert(result, {key, key})
+		table.insert(result, { key, key })
 	end
 	return result
 end
@@ -913,6 +916,7 @@ TS.set_keys = TS.map_keys
 TS.set_size = TS.map_size
 
 TS.set_isEmpty = TS.Object_isEmpty
+
 TS.set_toString = TS.array_toString
 
 -- string macro functions
