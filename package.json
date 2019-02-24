@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.29",
+	"version": "0.0.30",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -17,7 +17,7 @@
 		"coverage": "npx nyc report --reporter=text-lcov | coveralls",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"build": "npx tsc",
-		"prepublishOnly": "npm run build && npm version patch"
+		"prepublishOnly": "npm run build"
 	},
 	"nyc": {
 		"extension": [
