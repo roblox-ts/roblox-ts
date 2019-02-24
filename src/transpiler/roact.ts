@@ -10,18 +10,17 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType } from "../typeUtilities";
-import { suggest, red } from "../utility";
+import { bold, suggest } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
 export const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
 const ROACT_COMPONENT_CLASSES = [ROACT_COMPONENT_TYPE, ROACT_PURE_COMPONENT_TYPE];
 
-export const ROACT_DERIVED_CLASSES_ERROR =
-	"Composition is preferred over inheritance with Roact components." +
-	suggest(
-		"see https://reactjs.org/docs/composition-vs-inheritance.html for more info about composition over inheritance.",
-	);
+export const ROACT_DERIVED_CLASSES_ERROR = suggest(
+	"Composition is preferred over inheritance with Roact components.\n" +
+		"...\tsee https://reactjs.org/docs/composition-vs-inheritance.html for more info about composition over inheritance.",
+);
 const CONSTRUCTOR_METHOD_NAME = "init";
 const INHERITANCE_METHOD_NAME = "extend";
 const RESERVED_METHOD_NAMES = [
@@ -252,12 +251,14 @@ export function transpileRoactClassDeclaration(
 		const name = method.getName();
 		checkReserved(name, method);
 		if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
-			let userError = `Method ${name} is a reserved Roact method name.`;
+			let userError = `Method ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
 
 			if (name === CONSTRUCTOR_METHOD_NAME) {
-				userError += suggest("Use the constructor `constructor(props)` instead of the method `init(props)`.");
+				userError += `\n ... Use the constructor ${bold("constructor(props)")} instead of the method ${bold(
+					"init(props)",
+				)}.`;
 			} else if (name === INHERITANCE_METHOD_NAME) {
-				userError += "\n" + red(ROACT_DERIVED_CLASSES_ERROR);
+				userError += "\n... " + red(ROACT_DERIVED_CLASSES_ERROR);
 			}
 
 			throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);

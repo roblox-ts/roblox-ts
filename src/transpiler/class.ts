@@ -15,6 +15,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { shouldHoist } from "../typeUtilities";
+import { bold } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -89,7 +90,8 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 		if (inheritsFromRoact(baseType)) {
 			throw new TranspilerError(
-				ROACT_DERIVED_CLASSES_ERROR,
+				`Cannot inherit ${bold(baseTypeText)}, must inherit ${bold("Roact.Component")}\n` +
+					ROACT_DERIVED_CLASSES_ERROR,
 				node,
 				TranspilerErrorType.RoactSubClassesNotSupported,
 			);
