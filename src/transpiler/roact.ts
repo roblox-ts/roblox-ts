@@ -308,10 +308,6 @@ export function transpileRoactClassDeclaration(
 	return declaration;
 }
 
-export function warn(text: string) {
-	console.log(`\x1b[38;5;202mWARNING: ${text}\x1b[0m`);
-}
-
 function transpileSymbolPropertyCallback(state: TranspilerState, node: ts.Expression) {
 	const symbol = node.getSymbolOrThrow();
 	const name = symbol.getName();
