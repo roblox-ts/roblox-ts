@@ -4,13 +4,13 @@ import {
 	checkReserved,
 	inheritsFromRoact,
 	ROACT_COMPONENT_TYPE,
+	ROACT_DERIVED_CLASSES_ERROR,
 	ROACT_PURE_COMPONENT_TYPE,
 	transpileAccessorDeclaration,
 	transpileConstructorDeclaration,
 	transpileExpression,
 	transpileMethodDeclaration,
 	transpileRoactClassDeclaration,
-	ROACT_DERIVED_CLASSES_ERROR,
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
