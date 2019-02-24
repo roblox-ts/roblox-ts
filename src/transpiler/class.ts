@@ -10,6 +10,7 @@ import {
 	transpileExpression,
 	transpileMethodDeclaration,
 	transpileRoactClassDeclaration,
+	ROACT_DERIVED_CLASSES_ERROR,
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
@@ -88,7 +89,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 		if (inheritsFromRoact(baseType)) {
 			throw new TranspilerError(
-				"Derived Classes are not supported in Roact!",
+				ROACT_DERIVED_CLASSES_ERROR,
 				node,
 				TranspilerErrorType.RoactSubClassesNotSupported,
 			);

@@ -10,12 +10,30 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType } from "../typeUtilities";
-import { suggest } from "../utility";
+import { suggest, red } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
 export const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
 const ROACT_COMPONENT_CLASSES = [ROACT_COMPONENT_TYPE, ROACT_PURE_COMPONENT_TYPE];
+
+export const ROACT_DERIVED_CLASSES_ERROR =
+	"Composition is preferred over inheritance with Roact components." +
+	suggest(
+		"see https://reactjs.org/docs/composition-vs-inheritance.html for more info about composition over inheritance.",
+	);
+const CONSTRUCTOR_METHOD_NAME = "init";
+const INHERITANCE_METHOD_NAME = "extend";
+const RESERVED_METHOD_NAMES = [
+	CONSTRUCTOR_METHOD_NAME,
+	"setState",
+	"_update",
+	"getElementTraceback",
+	"_forceUpdate",
+	"_mount",
+	"_unmount",
+	INHERITANCE_METHOD_NAME,
+];
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -233,6 +251,18 @@ export function transpileRoactClassDeclaration(
 	for (const method of methods) {
 		const name = method.getName();
 		checkReserved(name, method);
+		if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
+			let userError = `Method ${name} is a reserved Roact method name.`;
+
+			if (name === CONSTRUCTOR_METHOD_NAME) {
+				userError += suggest("Use the constructor `constructor(props)` instead of the method `init(props)`.");
+			} else if (name === INHERITANCE_METHOD_NAME) {
+				userError += "\n" + red(ROACT_DERIVED_CLASSES_ERROR);
+			}
+
+			throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);
+		}
+
 		const body = method.getBodyOrThrow();
 
 		const paramNames = new Array<string>();
