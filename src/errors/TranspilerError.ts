@@ -45,6 +45,7 @@ export enum TranspilerErrorType {
 	RoactJsxWithoutImport,
 	RoactNoReservedMethods,
 	RoactInvalidSymbol,
+	RoactInvalidPrimitive,
 	RoactInvalidExpression,
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,

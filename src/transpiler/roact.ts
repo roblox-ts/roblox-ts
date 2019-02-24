@@ -423,7 +423,7 @@ export function generateRoactElement(
 			throw new TranspilerError(
 				`"${bold(name)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
 				nameNode,
-				TranspilerErrorType.BadContext,
+				TranspilerErrorType.RoactInvalidPrimitive,
 			);
 		}
 	} else {
