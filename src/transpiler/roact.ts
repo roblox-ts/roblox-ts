@@ -116,6 +116,22 @@ export function inheritsFromRoact(type: ts.Type): boolean {
 	return isRoactClass;
 }
 
+function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
+	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
+		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
+
+		if (name === CONSTRUCTOR_METHOD_NAME) {
+			userError += `\n ... Use the constructor ${bold("constructor(props)")} instead of the method ${bold(
+				"init(props)",
+			)}.`;
+		} else if (name === INHERITANCE_METHOD_NAME) {
+			userError += "\n" + ROACT_DERIVED_CLASSES_ERROR;
+		}
+
+		throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);
+	}
+}
+
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
@@ -145,6 +161,7 @@ export function transpileRoactClassDeclaration(
 
 			if (propName) {
 				checkMethodReserved(propName, prop);
+				checkRoactReserved(className, propName, prop);
 
 				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 					const initializer = prop.getInitializer();
@@ -212,6 +229,7 @@ export function transpileRoactClassDeclaration(
 		if (ts.TypeGuards.isInitializerExpressionableNode(staticField)) {
 			const initializer = staticField.getInitializer();
 			if (initializer) {
+				checkRoactReserved(className, staticField.getName(), staticField);
 				declaration += `${state.indent}${className}.${staticField.getName()} = ${transpileExpression(
 					state,
 					initializer,
@@ -224,6 +242,7 @@ export function transpileRoactClassDeclaration(
 	for (const staticMethod of staticMethods) {
 		const name = staticMethod.getName();
 		checkReserved(name, staticMethod);
+		checkRoactReserved(className, name, staticMethod);
 		const body = staticMethod.getBodyOrThrow();
 
 		const paramNames = new Array<string>();
@@ -250,19 +269,7 @@ export function transpileRoactClassDeclaration(
 	for (const method of methods) {
 		const name = method.getName();
 		checkReserved(name, method);
-		if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
-			let userError = `Method ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
-
-			if (name === CONSTRUCTOR_METHOD_NAME) {
-				userError += `\n ... Use the constructor ${bold("constructor(props)")} instead of the method ${bold(
-					"init(props)",
-				)}.`;
-			} else if (name === INHERITANCE_METHOD_NAME) {
-				userError += "\n... " + red(ROACT_DERIVED_CLASSES_ERROR);
-			}
-
-			throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);
-		}
+		checkRoactReserved(className, name, method);
 
 		const body = method.getBodyOrThrow();
 
