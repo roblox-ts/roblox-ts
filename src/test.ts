@@ -212,6 +212,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.NoAny,
 	},
+	"roactInitMethod.spec.ts": {
+		message: "should not allow init in Roact class",
+		instance: TranspilerError,
+		type: TranspilerErrorType.RoactNoInitMethodAllowed,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
