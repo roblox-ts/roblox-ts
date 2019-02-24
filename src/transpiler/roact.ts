@@ -397,11 +397,13 @@ export function generateRoactSymbolProperty(
 
 export function generateRoactElement(
 	state: TranspilerState,
-	name: string,
+	// name: string,
+	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
 	children: Array<ts.JsxChild>,
 ): string {
 	let str = `Roact.createElement(`;
+	const name = nameNode.getText();
 	const attributeCollection = new Array<string>();
 	const extraAttributeCollections = new Array<string>();
 	const extraChildrenCollection = new Array<string>();
@@ -417,6 +419,12 @@ export function generateRoactElement(
 		const rbxName = INTRINSIC_MAPPINGS[name];
 		if (rbxName) {
 			str += `"${rbxName}"`;
+		} else {
+			throw new TranspilerError(
+				`"${bold(name)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
+				nameNode,
+				TranspilerErrorType.BadContext,
+			);
 		}
 	} else {
 		str += name;
@@ -636,7 +644,6 @@ export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement)
 	}
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
 	const tagNameNode = open.getTagNameNode();
-	const tagName = tagNameNode.getText();
 	const children = node.getJsxChildren();
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
@@ -644,7 +651,7 @@ export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement)
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagName, open.getAttributes(), children);
+	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
@@ -664,14 +671,13 @@ export function transpileJsxSelfClosingElement(state: TranspilerState, node: ts.
 	}
 
 	const tagNameNode = node.getTagNameNode();
-	const tagName = tagNameNode.getText();
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagName, node.getAttributes(), []);
+	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
