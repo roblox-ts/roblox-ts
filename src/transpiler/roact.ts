@@ -308,6 +308,32 @@ export function transpileRoactClassDeclaration(
 	return declaration;
 }
 
+export function warn(text: string) {
+	console.log(`\x1b[38;5;202mWARNING: ${text}\x1b[0m`);
+}
+
+function transpileSymbolPropertyCallback(state: TranspilerState, node: ts.Expression) {
+	const symbol = node.getSymbolOrThrow();
+	const name = symbol.getName();
+	const value = symbol.getValueDeclarationOrThrow();
+
+	if (ts.TypeGuards.isFunctionLikeDeclaration(value)) {
+		if (ts.TypeGuards.isMethodDeclaration(value)) {
+			throw new TranspilerError(
+				"Do not use Method signatures directly as callbacks for Roact Event, Changed or Ref.\n" +
+					suggest(
+						`Change the declaration of \`${name}(...) {...}\` to \`${name} = () => { ... }\`, ` +
+							` or use an arrow function: \`() => { this.${name}() }\``,
+					),
+				node,
+				TranspilerErrorType.RoactInvalidCallExpression,
+			);
+		}
+	}
+
+	return transpileExpression(state, node);
+}
+
 export function generateRoactSymbolProperty(
 	state: TranspilerState,
 	roactSymbol: "Event" | "Change" | "Ref",
@@ -330,21 +356,12 @@ export function generateRoactSymbolProperty(
 					let value: string;
 
 					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
-						const getAccessExpression = rhs.getExpression();
-						if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-							value = `function(...)`;
-							value += ` ${transpileExpression(state, rhs)}(self, ...); `;
-							value += "end";
-						} else {
-							if (hasExtraAttributes) {
-								state.pushIndent(); // fix indentation with extra props
-							}
-							value = transpileExpression(state, rhs);
-						}
+						value = transpileSymbolPropertyCallback(state, rhs);
 					} else {
 						if (hasExtraAttributes) {
 							state.pushIndent(); // fix indentation with extra props
 						}
+						console.log(rhs.getType().getText());
 						value = transpileExpression(state, rhs);
 					}
 
@@ -361,12 +378,7 @@ export function generateRoactSymbolProperty(
 			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
 				const getAccessExpression = innerExpression.getExpression();
 				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-					// hacky typeof until I can figure out how to tell the difference between state.method and state.property
-					const expressionValue = transpileExpression(state, innerExpression);
-					value = `typeof(${expressionValue}) == 'function' and function(...)`;
-					state.pushIndent();
-					value += ` ${expressionValue}(self, ...); `;
-					value += `end or ${expressionValue}`;
+					value = transpileSymbolPropertyCallback(state, innerExpression);
 				} else {
 					if (hasExtraAttributes) {
 						state.pushIndent(); // fix indentation with extra props
