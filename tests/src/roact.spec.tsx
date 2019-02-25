@@ -208,7 +208,7 @@ export = () => {
 			it("should handle class function references properly", () => {
 				let worked = false;
 				class RoactRefTest extends Roact.Component {
-					public onScreenGuiRender(rbx: Rbx_ScreenGui) {
+					public onScreenGuiRender = (rbx: Rbx_ScreenGui) => {
 						worked = true;
 					}
 					public render(): Roact.Element {
