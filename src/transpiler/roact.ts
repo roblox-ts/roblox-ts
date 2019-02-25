@@ -357,7 +357,6 @@ export function generateRoactSymbolProperty(
 						if (hasExtraAttributes) {
 							state.pushIndent(); // fix indentation with extra props
 						}
-						console.log(rhs.getType().getText());
 						value = transpileExpression(state, rhs);
 					}
 
