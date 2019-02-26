@@ -89,19 +89,30 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("push", (accessPath, params, state, subExp) => {
 		const length = params.length;
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
-
 		if (length === 1 && propertyCallParentIsExpression) {
-			return `table.insert(${accessPath}, ${transpileCallArgument(state, params[0])})`;
+			const paramStr = transpileCallArgument(state, params[0]);
+			return `table.insert(${accessPath}, ${paramStr})`;
 		}
 	})
 
 	.set("unshift", (accessPath, params, state, subExp) => {
 		const length = params.length;
 		const propertyCallParentIsExpression = getPropertyCallParentIsExpression(subExp);
-
 		if (length === 1 && propertyCallParentIsExpression) {
-			return `table.insert(${accessPath}, 1, ${transpileCallArgument(state, params[0])})`;
+			const paramStr = transpileCallArgument(state, params[0]);
+			return `table.insert(${accessPath}, 1, ${paramStr})`;
 		}
+	})
+
+	.set("insert", (accessPath, params, state, subExp) => {
+		const indexParamStr = transpileCallArgument(state, params[0]);
+		const valueParamStr = transpileCallArgument(state, params[1]);
+		return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
+	})
+
+	.set("remove", (accessPath, params, state, subExp) => {
+		const indexParamStr = transpileCallArgument(state, params[0]);
+		return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
 	});
 
 const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()

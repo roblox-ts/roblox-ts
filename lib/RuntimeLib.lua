@@ -791,6 +791,14 @@ TS.array_deepEquals = deepEquals
 
 TS.array_isEmpty = TS.Object_isEmpty
 
+function TS.array_insert(list, index, value)
+	table.insert(list, index + 1, value)
+end
+
+function TS.array_remove(list, index)
+	return table.remove(list, index + 1)
+end
+
 -- map macro functions
 
 function TS.map_new(value)

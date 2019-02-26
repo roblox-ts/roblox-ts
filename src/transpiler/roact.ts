@@ -10,12 +10,29 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType } from "../typeUtilities";
-import { suggest } from "../utility";
+import { bold, suggest } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
 export const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
 const ROACT_COMPONENT_CLASSES = [ROACT_COMPONENT_TYPE, ROACT_PURE_COMPONENT_TYPE];
+
+export const ROACT_DERIVED_CLASSES_ERROR = suggest(
+	"Composition is preferred over inheritance with Roact components.\n" +
+		"...\tsee https://reactjs.org/docs/composition-vs-inheritance.html for more info about composition over inheritance.",
+);
+const CONSTRUCTOR_METHOD_NAME = "init";
+const INHERITANCE_METHOD_NAME = "extend";
+const RESERVED_METHOD_NAMES = [
+	CONSTRUCTOR_METHOD_NAME,
+	"setState",
+	"_update",
+	"getElementTraceback",
+	"_forceUpdate",
+	"_mount",
+	"_unmount",
+	INHERITANCE_METHOD_NAME,
+];
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -99,6 +116,22 @@ export function inheritsFromRoact(type: ts.Type): boolean {
 	return isRoactClass;
 }
 
+function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
+	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
+		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
+
+		if (name === CONSTRUCTOR_METHOD_NAME) {
+			userError += `\n ... Use the constructor ${bold("constructor(props)")} instead of the method ${bold(
+				"init(props)",
+			)}.`;
+		} else if (name === INHERITANCE_METHOD_NAME) {
+			userError += "\n" + ROACT_DERIVED_CLASSES_ERROR;
+		}
+
+		throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);
+	}
+}
+
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
@@ -128,6 +161,7 @@ export function transpileRoactClassDeclaration(
 
 			if (propName) {
 				checkMethodReserved(propName, prop);
+				checkRoactReserved(className, propName, prop);
 
 				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 					const initializer = prop.getInitializer();
@@ -195,6 +229,7 @@ export function transpileRoactClassDeclaration(
 		if (ts.TypeGuards.isInitializerExpressionableNode(staticField)) {
 			const initializer = staticField.getInitializer();
 			if (initializer) {
+				checkRoactReserved(className, staticField.getName(), staticField);
 				declaration += `${state.indent}${className}.${staticField.getName()} = ${transpileExpression(
 					state,
 					initializer,
@@ -207,6 +242,7 @@ export function transpileRoactClassDeclaration(
 	for (const staticMethod of staticMethods) {
 		const name = staticMethod.getName();
 		checkReserved(name, staticMethod);
+		checkRoactReserved(className, name, staticMethod);
 		const body = staticMethod.getBodyOrThrow();
 
 		const paramNames = new Array<string>();
@@ -233,6 +269,8 @@ export function transpileRoactClassDeclaration(
 	for (const method of methods) {
 		const name = method.getName();
 		checkReserved(name, method);
+		checkRoactReserved(className, name, method);
+
 		const body = method.getBodyOrThrow();
 
 		const paramNames = new Array<string>();
@@ -270,6 +308,28 @@ export function transpileRoactClassDeclaration(
 	return declaration;
 }
 
+function transpileSymbolPropertyCallback(state: TranspilerState, node: ts.Expression) {
+	const symbol = node.getSymbolOrThrow();
+	const name = symbol.getName();
+	const value = symbol.getValueDeclarationOrThrow();
+
+	if (ts.TypeGuards.isFunctionLikeDeclaration(value)) {
+		if (ts.TypeGuards.isMethodDeclaration(value)) {
+			throw new TranspilerError(
+				"Do not use Method signatures directly as callbacks for Roact Event, Changed or Ref.\n" +
+					suggest(
+						`Change the declaration of \`${name}(...) {...}\` to \`${name} = () => { ... }\`, ` +
+							` or use an arrow function: \`() => { this.${name}() }\``,
+					),
+				node,
+				TranspilerErrorType.RoactInvalidCallExpression,
+			);
+		}
+	}
+
+	return transpileExpression(state, node);
+}
+
 export function generateRoactSymbolProperty(
 	state: TranspilerState,
 	roactSymbol: "Event" | "Change" | "Ref",
@@ -292,17 +352,7 @@ export function generateRoactSymbolProperty(
 					let value: string;
 
 					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
-						const getAccessExpression = rhs.getExpression();
-						if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-							value = `function(...)`;
-							value += ` ${transpileExpression(state, rhs)}(self, ...); `;
-							value += "end";
-						} else {
-							if (hasExtraAttributes) {
-								state.pushIndent(); // fix indentation with extra props
-							}
-							value = transpileExpression(state, rhs);
-						}
+						value = transpileSymbolPropertyCallback(state, rhs);
 					} else {
 						if (hasExtraAttributes) {
 							state.pushIndent(); // fix indentation with extra props
@@ -323,12 +373,7 @@ export function generateRoactSymbolProperty(
 			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
 				const getAccessExpression = innerExpression.getExpression();
 				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-					// hacky typeof until I can figure out how to tell the difference between state.method and state.property
-					const expressionValue = transpileExpression(state, innerExpression);
-					value = `typeof(${expressionValue}) == 'function' and function(...)`;
-					state.pushIndent();
-					value += ` ${expressionValue}(self, ...); `;
-					value += `end or ${expressionValue}`;
+					value = transpileSymbolPropertyCallback(state, innerExpression);
 				} else {
 					if (hasExtraAttributes) {
 						state.pushIndent(); // fix indentation with extra props
@@ -359,11 +404,13 @@ export function generateRoactSymbolProperty(
 
 export function generateRoactElement(
 	state: TranspilerState,
-	name: string,
+	// name: string,
+	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
 	children: Array<ts.JsxChild>,
 ): string {
 	let str = `Roact.createElement(`;
+	const name = nameNode.getText();
 	const attributeCollection = new Array<string>();
 	const extraAttributeCollections = new Array<string>();
 	const extraChildrenCollection = new Array<string>();
@@ -379,6 +426,12 @@ export function generateRoactElement(
 		const rbxName = INTRINSIC_MAPPINGS[name];
 		if (rbxName) {
 			str += `"${rbxName}"`;
+		} else {
+			throw new TranspilerError(
+				`"${bold(name)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
+				nameNode,
+				TranspilerErrorType.RoactInvalidPrimitive,
+			);
 		}
 	} else {
 		str += name;
@@ -598,7 +651,6 @@ export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement)
 	}
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
 	const tagNameNode = open.getTagNameNode();
-	const tagName = tagNameNode.getText();
 	const children = node.getJsxChildren();
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
@@ -606,7 +658,7 @@ export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement)
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagName, open.getAttributes(), children);
+	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
@@ -626,14 +678,13 @@ export function transpileJsxSelfClosingElement(state: TranspilerState, node: ts.
 	}
 
 	const tagNameNode = node.getTagNameNode();
-	const tagName = tagNameNode.getText();
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagName, node.getAttributes(), []);
+	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;

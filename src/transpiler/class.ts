@@ -4,6 +4,7 @@ import {
 	checkReserved,
 	inheritsFromRoact,
 	ROACT_COMPONENT_TYPE,
+	ROACT_DERIVED_CLASSES_ERROR,
 	ROACT_PURE_COMPONENT_TYPE,
 	transpileAccessorDeclaration,
 	transpileConstructorDeclaration,
@@ -14,6 +15,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { shouldHoist } from "../typeUtilities";
+import { bold } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -88,7 +90,8 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 
 		if (inheritsFromRoact(baseType)) {
 			throw new TranspilerError(
-				"Derived Classes are not supported in Roact!",
+				`Cannot inherit ${bold(baseTypeText)}, must inherit ${bold("Roact.Component")}\n` +
+					ROACT_DERIVED_CLASSES_ERROR,
 				node,
 				TranspilerErrorType.RoactSubClassesNotSupported,
 			);
