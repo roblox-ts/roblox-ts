@@ -38,14 +38,12 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 	}
 	if (state.usesTSLibrary) {
 		result =
-			state.indent +
 			`local TS = require(
 	game:GetService("ReplicatedStorage")
 		:WaitForChild("RobloxTS")
 		:WaitForChild("Include")
 		:WaitForChild("RuntimeLib")
-);\n` +
-			result;
+);\n` + result;
 	}
 	return result;
 }

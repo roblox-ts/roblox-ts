@@ -369,9 +369,11 @@ function TS.Object_isEmpty(object)
 	return next(object) == nil
 end
 
-function TS.Object_toString(list)
-	return HttpService:JSONEncode(list)
+local function toString(data)
+	return HttpService:JSONEncode(data)
 end
+
+TS.Object_toString = toString
 
 -- array macro functions
 
@@ -434,7 +436,7 @@ function TS.array_sort(list, callback)
 	return sorted
 end
 
-TS.array_toString = TS.Object_toString
+TS.array_toString = toString
 
 function TS.array_slice(list, startI, endI)
 	local length = #list
@@ -823,13 +825,15 @@ function TS.map_delete(map, key)
 	return has
 end
 
-function TS.map_size(map)
+local function getNumKeys(map)
 	local result = 0
 	for _ in pairs(map) do
 		result = result + 1
 	end
 	return result
 end
+
+TS.map_size = getNumKeys
 
 function TS.map_entries(map)
 	local result = {}
@@ -853,13 +857,19 @@ function TS.map_has(map, key)
 	return map[key] ~= nil
 end
 
-function TS.map_keys(map)
+local function getKeys(tab)
 	local result = {}
-	for key in pairs(map) do
-		table.insert(result, key)
+	local count = 0
+
+	for key in pairs(tab) do
+		count = count + 1
+		result[count] = key
 	end
+
 	return result
 end
+
+TS.map_keys = getKeys
 
 function TS.map_set(map, key, value)
 	map[key] = value
@@ -874,8 +884,7 @@ function TS.map_values(map)
 	return result
 end
 
-TS.map_toString = TS.array_toString
-
+TS.map_toString = toString
 TS.map_isEmpty = TS.Object_isEmpty
 
 -- set macro functions
@@ -909,23 +918,112 @@ end
 
 TS.set_has = TS.map_has
 
-function TS.set_entries(map)
+function TS.set_entries(set)
 	local result = {}
-	for key in pairs(map) do
+	for key in pairs(set) do
 		table.insert(result, { key, key })
 	end
 	return result
 end
 
-TS.set_values = TS.map_keys
+function TS.set_union(set1, set2)
+	local result = {}
 
-TS.set_keys = TS.map_keys
+	for value in pairs(set1) do
+		result[value] = true
+	end
 
-TS.set_size = TS.map_size
+	for value in pairs(set2) do
+		result[value] = true
+	end
+
+	return result
+end
+
+function TS.set_intersect(set1, set2)
+	local result = {}
+
+	for value in pairs(set1) do
+		if set2[value] then
+			result[value] = true
+		end
+	end
+
+	return result
+end
+
+function TS.set_isDisjointWith(set1, set2)
+	for value in pairs(set1) do
+		if set2[value] then
+			return false
+		end
+	end
+	return true
+end
+
+local function isSubsetOf(set1, set2)
+	for value in pairs(set1) do
+		if set2[value] == nil then
+			return false
+		end
+	end
+
+	return true
+end
+
+TS.set_isSubsetOf = isSubsetOf
+
+function TS.set_isProperSubsetOf(set1, set2)
+	return isSubsetOf(set1, set2) and not isSubsetOf(set2, set1)
+end
+
+local function setDifference(set1, set2, result)
+	for value in pairs(set1) do
+		if set2[value] == nil then
+			result[value] = true
+		end
+	end
+
+	return result
+end
+
+function TS.set_difference(set1, set2)
+	return setDifference(set1, set2, {})
+end
+
+function TS.set_symmetricDifference(set1, set2)
+	return setDifference(set2, set1, setDifference(set1, set2, {}))
+end
+
+local function power_helper(set, result, ...)
+	for value in next, set, ... do
+		power_helper(set, result, value, ...)
+	end
+
+	local subset = {}
+
+	for i = 1, select("#", ...) do
+		subset[select(i, ...)] = true
+	end
+
+	result[#result + 1] = subset
+end
+
+function TS.set_power(set)
+	local result = {}
+	power_helper(set, result)
+	return result
+end
+
+TS.set_values = getKeys
+
+TS.set_keys = getKeys
+
+TS.set_size = getNumKeys
 
 TS.set_isEmpty = TS.Object_isEmpty
 
-TS.set_toString = TS.array_toString
+TS.set_toString = toString
 
 -- string macro functions
 
