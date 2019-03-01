@@ -977,22 +977,25 @@ function TS.set_isProperSubsetOf(set1, set2)
 	return isSubsetOf(set1, set2) and not isSubsetOf(set2, set1)
 end
 
-local function setDifference(set1, set2, result)
+local function storeSetDifference(set1, set2, result)
 	for value in pairs(set1) do
 		if set2[value] == nil then
 			result[value] = true
 		end
 	end
-
-	return result
 end
 
 function TS.set_difference(set1, set2)
-	return setDifference(set1, set2, {})
+	local result = {}
+	storeSetDifference(set1, set2, result)
+	return result
 end
 
 function TS.set_symmetricDifference(set1, set2)
-	return setDifference(set2, set1, setDifference(set1, set2, {}))
+	local result = {}
+	storeSetDifference(set1, set2, result)
+	storeSetDifference(set2, set1, result)
+	return result
 end
 
 local function power_helper(set, result, ...)
