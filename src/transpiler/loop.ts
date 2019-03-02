@@ -442,7 +442,26 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);
 									if (incrSign) {
 										const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
-										if (condValue && condValue.getType().isNumberLiteral()) {
+										// numeric literals, or constant number identifiers are safe
+										if (
+											condValue &&
+											(ts.TypeGuards.isNumericLiteral(condValue) ||
+												(ts.TypeGuards.isIdentifier(condValue) &&
+													condValue.getDefinitions().every(a => {
+														const declNode = a.getDeclarationNode();
+														if (declNode && ts.TypeGuards.isVariableDeclaration(declNode)) {
+															const declParent = declNode.getParent();
+															if (ts.TypeGuards.isVariableDeclarationList(declParent)) {
+																return (
+																	declParent.getDeclarationKind() ===
+																	ts.VariableDeclarationKind.Const
+																);
+															}
+														}
+														return false;
+													}) &&
+													isNumberType(condValue.getType())))
+										) {
 											if (incrSign === "+" && condSign === "<=") {
 												const forLoopVars =
 													condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
