@@ -5,6 +5,14 @@ import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
 
+function transpileRawTable(state: TranspilerState, node: ts.NewExpression) {
+	if (ts.TypeGuards.isExpressionStatement(node.getParent())) {
+		return state.indent + "local _ = {}";
+	} else {
+		return "{}";
+	}
+}
+
 export function transpileNewExpression(state: TranspilerState, node: ts.NewExpression) {
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
@@ -22,7 +30,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 	}
 
 	if (inheritsFrom(expressionType, "ArrayConstructor")) {
-		return "{}";
+		return transpileRawTable(state, node);
 	}
 
 	if (inheritsFrom(expressionType, "MapConstructor")) {
@@ -30,7 +38,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 			state.usesTSLibrary = true;
 			return `TS.map_new(${params})`;
 		} else {
-			return "{}";
+			return transpileRawTable(state, node);
 		}
 	}
 
@@ -39,7 +47,7 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 			state.usesTSLibrary = true;
 			return `TS.set_new(${params})`;
 		} else {
-			return "{}";
+			return transpileRawTable(state, node);
 		}
 	}
 

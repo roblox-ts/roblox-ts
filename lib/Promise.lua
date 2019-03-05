@@ -195,9 +195,13 @@ end
 ]]
 local spawnBindable = Instance.new("BindableEvent")
 function Promise.spawn(callback, ...)
-	local c = spawnBindable.Event:Connect(callback)
-	spawnBindable:Fire(...)
-	c:Disconnect()
+	local args = { ... }
+	local length = select("#", ...)
+	local connection = spawnBindable.Event:Connect(function()
+		callback(unpack(args, 1, length))
+	end)
+	spawnBindable:Fire()
+	connection:Disconnect()
 end
 
 --[[
