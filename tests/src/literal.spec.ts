@@ -12,6 +12,7 @@ export = () => {
 		expect(tostring(0.0000000000001)).to.equal("1e-13");
 		expect(tostring(100000000000000)).to.equal("1e+14");
 		expect(100_00).never.to.throw();
+		expect(100_00).to.equal(10000);
 	});
 
 	it("should add numbers", () => {
@@ -22,12 +23,13 @@ export = () => {
 	});
 
 	// prettier-ignore
+	/* tslint:disable */
 	it("should understand string literals", () => {
 		expect("foo").to.equal("foo");
-		expect("foo").to.equal("foo");
+		expect('foo').to.equal("foo");
 		expect(`foo`).to.equal("foo");
 		expect("foo".length).to.equal(3);
-		expect("foo".length).to.equal(3);
+		expect('foo'.length).to.equal(3);
 		expect(`foo`.length).to.equal(3);
 		expect("\"").to.equal("\"");
 		expect(`\"`).to.equal("\"");
@@ -35,6 +37,7 @@ export = () => {
 		expect(`"`).to.equal("\"");
 		expect('"').to.equal("\"");
 	});
+	/* tslint:enable */
 
 	it("should understand string templates", () => {
 		const value = "hello";
