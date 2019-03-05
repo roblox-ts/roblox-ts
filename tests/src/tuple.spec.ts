@@ -73,4 +73,13 @@ export = () => {
 		expect(y).to.equal(2);
 		expect(z).to.equal(3);
 	});
+
+	it("should allow tuples access to array functions", () => {
+		function foo(): [number, number, number] {
+			const result: [number, number, number] = [1, 2, 3];
+			return result;
+		}
+
+		expect(foo().pop()).never.to.throw();
+	});
 };
