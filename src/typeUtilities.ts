@@ -159,15 +159,17 @@ export function isEnumType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
-				return true;
+	return (
+		typeConstraint(type, t => {
+			const symbol = t.getSymbol();
+			if (symbol) {
+				if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
+					return true;
+				}
 			}
-		}
-		return t.isArray();
-	});
+			return t.isArray();
+		}) || isTupleType(type)
+	);
 }
 
 export function isTupleType(type: ts.Type) {
@@ -175,10 +177,7 @@ export function isTupleType(type: ts.Type) {
 }
 
 export function isTupleReturnType(node: ts.CallExpression) {
-	if (isTupleType(node.getReturnType())) {
-		return true;
-	}
-	return false;
+	return isTupleType(node.getReturnType());
 }
 
 function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
