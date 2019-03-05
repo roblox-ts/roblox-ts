@@ -80,6 +80,6 @@ export = () => {
 			return result;
 		}
 
-		expect(foo().pop()).never.to.throw();
+		expect(foo().pop()).to.equal(3);
 	});
 };
