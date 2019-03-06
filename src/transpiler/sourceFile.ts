@@ -1,4 +1,4 @@
-import { minify } from 'luamin';
+import { minify } from "luamin";
 import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
