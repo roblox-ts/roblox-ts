@@ -7,7 +7,11 @@ interface Partition {
 }
 
 export class TranspilerState {
-	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
+	constructor(
+		public readonly syncInfo: Array<Partition>,
+		public readonly minify: boolean,
+		public readonly modulesDir?: ts.Directory,
+	) {}
 
 	// indent
 	public indent = "";

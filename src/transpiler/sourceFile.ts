@@ -1,3 +1,4 @@
+import { minify } from 'luamin';
 import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
@@ -47,5 +48,10 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 );\n` +
 			result;
 	}
+
+	if (state.minify) {
+		result = minify(result);
+	}
+
 	return result;
 }

@@ -108,6 +108,7 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
+	private readonly minify: boolean;
 	private readonly modulesPath: string;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDirPath: string;
@@ -140,6 +141,7 @@ export class Compiler {
 		});
 		this.noInclude = argv.noInclude === true;
 		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.minify = argv.minify;
 		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
 		this.ci = argv.ci;
 
@@ -465,7 +467,7 @@ export class Compiler {
 				.filter(sourceFile => !sourceFile.isDeclarationFile())
 				.map(sourceFile => [
 					this.transformPathToLua(sourceFile.getFilePath()),
-					transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile),
+					transpileSourceFile(new TranspilerState(this.syncInfo, this.minify, this.modulesDir), sourceFile),
 				]);
 
 			for (const [filePath, contents] of sources) {

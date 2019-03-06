@@ -58,6 +58,13 @@ const argv = yargs
 		describe: "folder to copy modules to",
 	})
 
+	// noInclude
+	.option("minify", {
+		alias: "min",
+		default: false,
+		describe: "minify emitted Lua code",
+	})
+
 	// parse
 	.parse();
 
