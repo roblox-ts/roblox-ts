@@ -92,11 +92,11 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	if (isNumberType(argExp.getType())) {
 		if (isArrayType(expType)) {
 			addOne = true;
-		} else if (ts.TypeGuards.isCallExpression(expNode)) {
-			const returnType = expNode.getReturnType();
-			if (isArrayType(returnType)) {
-				addOne = true;
-			}
+		} else if (
+			ts.TypeGuards.isCallExpression(expNode) &&
+			(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType()))
+		) {
+			addOne = true;
 		}
 	}
 

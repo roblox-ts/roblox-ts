@@ -166,7 +166,7 @@ export function isArrayType(type: ts.Type) {
 				return true;
 			}
 		}
-		return t.isArray();
+		return t.isArray() || t.isTuple();
 	});
 }
 
