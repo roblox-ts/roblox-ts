@@ -159,25 +159,37 @@ export function isEnumType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return (
-		typeConstraint(type, t => {
-			const symbol = t.getSymbol();
-			if (symbol) {
-				if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
-					return true;
-				}
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		if (symbol) {
+			if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
+				return true;
 			}
-			return t.isArray();
-		}) || isTupleType(type)
-	);
+		}
+		return t.isArray();
+	});
 }
 
-export function isTupleType(type: ts.Type) {
-	return type.getText().startsWith("LuaTuple<") || typeConstraint(type, t => t.isTuple());
+const LUA_TUPLE_REGEX = /^LuaTuple<[^>]+>$/;
+
+export function isTupleReturnType(node: ts.ReturnTypedNode) {
+	const returnTypeNode = node.getReturnTypeNode();
+	if (returnTypeNode && LUA_TUPLE_REGEX.test(returnTypeNode.getText())) {
+		return true;
+	}
 }
 
-export function isTupleReturnType(node: ts.CallExpression) {
-	return isTupleType(node.getReturnType());
+export function isTupleReturnTypeCall(node: ts.CallExpression) {
+	const symbol = node.getExpression().getSymbol();
+	if (symbol) {
+		const valDec = symbol.getValueDeclaration();
+		if (valDec && ts.TypeGuards.isReturnTypedNode(valDec)) {
+			if (isTupleReturnType(valDec)) {
+				return true;
+			}
+		}
+	}
+	return false;
 }
 
 function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
