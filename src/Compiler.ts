@@ -50,10 +50,7 @@ function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
 
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
-		const newPath = path.join(
-			destinationFolder,
-			path.relative(sourceFolder, oldPath),
-		);
+		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
 
 		let source = await fs.readFile(oldPath, "utf8");
 
