@@ -9,7 +9,6 @@ interface Partition {
 export class TranspilerState {
 	constructor(
 		public readonly syncInfo: Array<Partition>,
-		public readonly minify: boolean,
 		public readonly modulesDir?: ts.Directory,
 	) {}
 
