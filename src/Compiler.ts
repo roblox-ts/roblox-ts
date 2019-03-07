@@ -467,8 +467,8 @@ export class Compiler {
 					const outPath = this.transformPathToLua(filePath);
 					let source = transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile);
 
-					if (this.minify) {
-						source = minify(source);
+					if (this.luaSourceTransformer) {
+						source = this.luaSourceTransformer(source);
 					}
 
 					sources.push([outPath, source]);
