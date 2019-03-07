@@ -59,6 +59,7 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 		}
 
 		if (!(await fs.pathExists(newPath)) || (await fs.readFile(newPath, "utf8")) !== source) {
+			await fs.ensureFile(newPath);
 			await fs.writeFile(newPath, source);
 		}
 	});
