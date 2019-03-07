@@ -47,5 +47,6 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 );\n` +
 			result;
 	}
+
 	return result;
 }
