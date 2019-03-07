@@ -58,7 +58,7 @@ const argv = yargs
 		describe: "folder to copy modules to",
 	})
 
-	// noInclude
+	// minify
 	.option("minify", {
 		alias: "min",
 		default: false,
