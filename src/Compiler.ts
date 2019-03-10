@@ -1,4 +1,6 @@
 import * as fs from "fs-extra";
+import * as klaw from "klaw";
+import { minify } from "luamin";
 import * as path from "path";
 import Project, * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
@@ -32,44 +34,34 @@ interface Partition {
 }
 
 const LUA_EXT = ".lua";
-async function copyLuaFiles(sourceFolder: string, destinationFolder: string) {
-	const hasLuaFilesMap = new Map<string, boolean>();
-	const searchForLuaFiles = async (dir: string) => {
-		let hasLuaFiles = false;
-		for (const fileName of await fs.readdir(dir)) {
-			const filePath = path.join(dir, fileName);
-			const stats = await fs.stat(filePath);
-			if (stats.isFile() && path.extname(fileName) === LUA_EXT) {
-				hasLuaFiles = true;
-			} else if (stats.isDirectory()) {
-				if (await searchForLuaFiles(filePath)) {
-					hasLuaFiles = true;
+function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
+	return new Promise((resolve, reject) => {
+		const result = new Array<string>();
+		klaw(sourceFolder)
+			.on("data", item => {
+				if (item.stats.isFile() && path.extname(item.path) === LUA_EXT) {
+					result.push(item.path);
 				}
-			}
-		}
-		hasLuaFilesMap.set(dir, hasLuaFiles);
-		return hasLuaFiles;
-	};
-	await searchForLuaFiles(sourceFolder);
+			})
+			.on("end", () => resolve(result))
+			.on("error", reject);
+	});
+}
 
-	await fs.copy(sourceFolder, destinationFolder, {
-		dereference: true,
-		filter: async (oldPath, newPath) => {
-			const stats = await fs.stat(oldPath);
-			if (stats.isDirectory() && hasLuaFilesMap.get(oldPath) === true) {
-				return true;
-			} else if ((stats.isFile() || stats.isSymbolicLink()) && path.extname(oldPath) === LUA_EXT) {
-				if (await fs.pathExists(newPath)) {
-					const oldContents = await fs.readFile(await fs.realpath(oldPath));
-					const newContents = await fs.readFile(newPath);
-					return !oldContents.equals(newContents);
-				} else {
-					return true;
-				}
-			}
-			return false;
-		},
-		recursive: true,
+async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
+	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
+		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
+
+		let source = await fs.readFile(oldPath, "utf8");
+
+		if (transform) {
+			source = transform(source);
+		}
+
+		if (!(await fs.pathExists(newPath)) || (await fs.readFile(newPath, "utf8")) !== source) {
+			await fs.ensureFile(newPath);
+			await fs.writeFile(newPath, source);
+		}
 	});
 }
 
@@ -98,8 +90,12 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 	await searchForDeadFiles(destinationFolder);
 }
 
-async function copyAndCleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	await copyLuaFiles(sourceFolder, destinationFolder);
+async function copyAndCleanDeadLuaFiles(
+	sourceFolder: string,
+	destinationFolder: string,
+	transform?: (input: string) => string,
+) {
+	await copyLuaFiles(sourceFolder, destinationFolder, transform);
 	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
@@ -108,6 +104,7 @@ export class Compiler {
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
+	private readonly minify: boolean;
 	private readonly modulesPath: string;
 	private readonly baseUrl: string | undefined;
 	private readonly rootDirPath: string;
@@ -116,6 +113,7 @@ export class Compiler {
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly syncInfo = new Array<Partition>();
 	private readonly ci: boolean;
+	private readonly luaSourceTransformer: typeof minify | undefined;
 
 	constructor(argv: { [argName: string]: any }) {
 		let configFilePath = path.resolve(argv.project as string);
@@ -140,6 +138,8 @@ export class Compiler {
 		});
 		this.noInclude = argv.noInclude === true;
 		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.minify = argv.minify;
+		this.luaSourceTransformer = this.minify ? minify : undefined;
 		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
 		this.ci = argv.ci;
 
@@ -374,7 +374,7 @@ export class Compiler {
 				if (name.startsWith(MODULE_PREFIX)) {
 					const oldModulePath = path.join(nodeModulesPath, name);
 					const newModulePath = path.join(modulesPath, name);
-					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath);
+					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath, this.luaSourceTransformer);
 				}
 			}
 		}
@@ -387,7 +387,7 @@ export class Compiler {
 	}
 
 	public async copyLuaSourceFiles() {
-		await copyLuaFiles(this.rootDirPath, this.outDirPath);
+		await copyLuaFiles(this.rootDirPath, this.outDirPath, this.luaSourceTransformer);
 	}
 
 	public async compileAll() {
@@ -461,12 +461,20 @@ export class Compiler {
 				throw new DiagnosticError(errors);
 			}
 
-			const sources = files
-				.filter(sourceFile => !sourceFile.isDeclarationFile())
-				.map(sourceFile => [
-					this.transformPathToLua(sourceFile.getFilePath()),
-					transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile),
-				]);
+			const sources = new Array<[string, string]>();
+			for (const sourceFile of files) {
+				if (!sourceFile.isDeclarationFile()) {
+					const filePath = sourceFile.getFilePath();
+					const outPath = this.transformPathToLua(filePath);
+					let source = transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile);
+
+					if (this.luaSourceTransformer) {
+						source = this.luaSourceTransformer(source);
+					}
+
+					sources.push([outPath, source]);
+				}
+			}
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

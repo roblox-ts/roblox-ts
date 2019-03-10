@@ -5,6 +5,8 @@ import { TranspilerState } from "../TranspilerState";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
 export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
+	console.profile(node.getBaseName());
+
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
 	let result = transpileStatementedNode(state, node);
@@ -47,5 +49,7 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 );\n` +
 			result;
 	}
+
+	console.profileEnd();
 	return result;
 }

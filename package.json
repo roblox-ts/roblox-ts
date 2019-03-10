@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.30",
+	"version": "0.0.31",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -39,12 +39,15 @@
 	"dependencies": {
 		"chokidar": "^2.0.4",
 		"fs-extra": "^7.0.1",
+		"klaw": "^3.0.0",
+		"luamin": "^1.0.4",
 		"ts-morph": "^1.0.0",
 		"yargs": "^12.0.5"
 	},
 	"devDependencies": {
 		"@types/chokidar": "^1.7.5",
 		"@types/fs-extra": "^5.0.4",
+		"@types/klaw": "^3.0.0",
 		"@types/mocha": "^5.2.5",
 		"@types/node": "^10.12.12",
 		"@types/yargs": "^11.1.2",

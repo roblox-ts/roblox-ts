@@ -27,7 +27,7 @@ export function transpileNumericLiteral(state: TranspilerState, node: ts.Numeric
 	if (isSpecialNumberPrefix(text)) {
 		return node.getLiteralText();
 	}
-	return text;
+	return text.replace(/_/g, "");
 }
 
 function sanitizeTemplate(str: string) {
