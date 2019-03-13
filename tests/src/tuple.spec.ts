@@ -157,4 +157,12 @@ export = () => {
 
 		expect(foo().pop()).to.equal(3);
 	});
+
+	it("should allow LuaTuples to have Array<> inside", () => {
+		function foo(): LuaTuple<[number, number, ...Array<string | undefined>] | Array<undefined>> {
+			return [1, 2, "3"];
+		}
+
+		expect(foo().pop()).to.equal("3");
+	});
 };
