@@ -428,8 +428,9 @@ export function getPropertyAccessExpressionType(
 export function transpilePropertyCallExpression(
 	state: TranspilerState,
 	node: ts.CallExpression,
-	doNotWrapTupleReturn = false,
+	wrapTupleReturn = isTupleReturnTypeCall(node),
 ) {
+	console.log(node.getText());
 	const expression = node.getExpression();
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new TranspilerError(
@@ -550,7 +551,7 @@ export function transpilePropertyCallExpression(
 	}
 
 	let result = `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
-	if (!doNotWrapTupleReturn && isTupleReturnTypeCall(node)) {
+	if (wrapTupleReturn) {
 		result = `{ ${result} }`;
 	}
 	return result;
