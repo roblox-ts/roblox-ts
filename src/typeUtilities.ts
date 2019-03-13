@@ -170,7 +170,7 @@ export function isArrayType(type: ts.Type) {
 	});
 }
 
-const LUA_TUPLE_REGEX = /^LuaTuple<[^>]+>$/;
+const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
 
 export function isTupleReturnType(node: ts.ReturnTypedNode) {
 	const returnTypeNode = node.getReturnTypeNode();
