@@ -51,8 +51,10 @@ export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	if (ts.TypeGuards.isBlock(node)) {
 		const statements = node.getStatements();
 		const lastStatement = statements[statements.length - 1];
-		if (ts.TypeGuards.isBreakStatement(lastStatement) || ts.TypeGuards.isReturnStatement(lastStatement)) {
-			endsWithBreakOrReturn = true;
+		if (lastStatement) {
+			if (ts.TypeGuards.isBreakStatement(lastStatement) || ts.TypeGuards.isReturnStatement(lastStatement)) {
+				endsWithBreakOrReturn = true;
+			}
 		}
 	}
 

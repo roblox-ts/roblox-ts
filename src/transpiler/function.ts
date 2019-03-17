@@ -11,7 +11,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isTupleType, shouldHoist } from "../typeUtilities";
+import { isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -31,12 +31,12 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, func?: HasParameters) {
-	if (func && isTupleType(func.getReturnType())) {
+	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = transpileExpression(state, exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return `return ${expStr};`;
-		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleType(exp.getReturnType())) {
+		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleReturnTypeCall(exp)) {
 			const expStr = transpileCallExpression(state, exp, true);
 			return `return ${expStr};`;
 		} else {

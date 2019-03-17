@@ -166,26 +166,28 @@ export function isArrayType(type: ts.Type) {
 				return true;
 			}
 		}
-		return t.isArray();
+		return t.isArray() || t.isTuple();
 	});
 }
 
-export function isTupleType(type: ts.Type) {
-	return typeConstraint(type, t => t.isTuple());
-}
+const LUA_TUPLE_REGEX = /^LuaTuple<[^>]+>$/;
 
-export function isTupleReturnType(node: ts.CallExpression) {
-	if (
-		node
-			.getReturnType()
-			.getText()
-			.startsWith("LuaTuple<")
-	) {
+export function isTupleReturnType(node: ts.ReturnTypedNode) {
+	const returnTypeNode = node.getReturnTypeNode();
+	if (returnTypeNode && LUA_TUPLE_REGEX.test(returnTypeNode.getText())) {
 		return true;
 	}
+}
 
-	if (isTupleType(node.getReturnType())) {
-		return true;
+export function isTupleReturnTypeCall(node: ts.CallExpression) {
+	const symbol = node.getExpression().getSymbol();
+	if (symbol) {
+		const valDec = symbol.getValueDeclaration();
+		if (valDec && ts.TypeGuards.isReturnTypedNode(valDec)) {
+			if (isTupleReturnType(valDec)) {
+				return true;
+			}
+		}
 	}
 	return false;
 }
