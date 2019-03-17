@@ -12,6 +12,7 @@ import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { transpileNumericLiteral } from "./literal";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -253,32 +254,54 @@ export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 	}
 }
 
+function isExpressionConstantNumbers(node: ts.Node) {
+	return (
+		node.getChildren().length > 0 &&
+		node
+			.getChildren()
+			.every(
+				child =>
+					isConstantNumberVariableOrLiteral(child) ||
+					child.getKind() === ts.SyntaxKind.PlusToken ||
+					child.getKind() === ts.SyntaxKind.MinusToken ||
+					child.getKind() === ts.SyntaxKind.AsteriskToken ||
+					child.getKind() === ts.SyntaxKind.SlashToken ||
+					child.getKind() === ts.SyntaxKind.AsteriskAsteriskToken ||
+					child.getKind() === ts.SyntaxKind.PercentToken ||
+					(ts.TypeGuards.isPrefixUnaryExpression(child) &&
+						child.getOperatorToken() === ts.SyntaxKind.MinusToken),
+			)
+	);
+}
+
 function getSignAndValueInForStatement(
+	state: TranspilerState,
 	incrementor: ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
 	let forIntervalStr = "";
-	let sign = "";
+	let sign: "" | "+" | "-" = "";
 	if (ts.TypeGuards.isBinaryExpression(incrementor)) {
 		const sibling = incrementor.getChildAtIndex(0).getNextSibling();
 		if (sibling) {
 			let rhsIncr = sibling.getNextSibling();
 
 			if (rhsIncr) {
-				if (isNumberType(rhsIncr.getType())) {
-					if (sibling.getKind() === ts.SyntaxKind.EqualsToken && ts.TypeGuards.isBinaryExpression(rhsIncr)) {
-						// incrementor is something like i = i + 1
-						const sib1 = rhsIncr.getChildAtIndex(0).getNextSibling();
+				if (
+					isNumberType(rhsIncr.getType()) &&
+					sibling.getKind() === ts.SyntaxKind.EqualsToken &&
+					ts.TypeGuards.isBinaryExpression(rhsIncr)
+				) {
+					const sib1 = rhsIncr.getChildAtIndex(0).getNextSibling();
 
-						if (sib1) {
-							if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
-								sign = "-";
-							} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
-								sign = "+";
-							}
-							rhsIncr = sib1.getNextSibling();
-							if (rhsIncr && rhsIncr.getNextSibling()) {
-								rhsIncr = undefined;
-							}
+					if (sib1) {
+						if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
+							sign = "-";
+						} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
+							sign = "+";
+						}
+						rhsIncr = sib1.getNextSibling();
+						if (rhsIncr && rhsIncr.getNextSibling()) {
+							rhsIncr = undefined;
 						}
 					}
 				} else {
@@ -294,8 +317,22 @@ function getSignAndValueInForStatement(
 					}
 				}
 
-				if (rhsIncr && rhsIncr.getType().isNumberLiteral()) {
-					forIntervalStr = rhsIncr.getText();
+				if (rhsIncr && ts.TypeGuards.isNumericLiteral(rhsIncr)) {
+					forIntervalStr = transpileNumericLiteral(state, rhsIncr);
+					if (forIntervalStr.substr(0, 1) === "-") {
+						switch (sign) {
+							case "+":
+								forIntervalStr = forIntervalStr.substr(1);
+								sign = "-";
+								break;
+							case "-":
+								forIntervalStr = forIntervalStr.substr(1);
+								sign = "+";
+								break;
+							case "":
+								return ["", ""];
+						}
+					}
 				}
 			}
 		}
@@ -378,6 +415,24 @@ function getSimpleForLoopString(
 	return result;
 }
 
+function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
+	return (
+		ts.TypeGuards.isNumericLiteral(condValue) ||
+		(ts.TypeGuards.isIdentifier(condValue) &&
+			condValue.getDefinitions().every(a => {
+				const declNode = a.getDeclarationNode();
+				if (declNode && ts.TypeGuards.isVariableDeclaration(declNode)) {
+					const declParent = declNode.getParent();
+					if (ts.TypeGuards.isVariableDeclarationList(declParent)) {
+						return declParent.getDeclarationKind() === ts.VariableDeclarationKind.Const;
+					}
+				}
+				return false;
+			}) &&
+			isNumberType(condValue.getType()))
+	);
+}
+
 export function transpileForStatement(state: TranspilerState, node: ts.ForStatement) {
 	state.pushIdStack();
 	const statement = node.getStatement();
@@ -439,42 +494,22 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
 								if (expressionModifiesVariable(incrementor, lhs)) {
-									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);
-									if (incrSign) {
+									let [incrSign, incrValue] = getSignAndValueInForStatement(state, incrementor);
+									if (incrSign && incrValue) {
 										const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
 										// numeric literals, or constant number identifiers are safe
-										if (
-											condValue &&
-											(ts.TypeGuards.isNumericLiteral(condValue) ||
-												(ts.TypeGuards.isIdentifier(condValue) &&
-													condValue.getDefinitions().every(a => {
-														const declNode = a.getDeclarationNode();
-														if (declNode && ts.TypeGuards.isVariableDeclaration(declNode)) {
-															const declParent = declNode.getParent();
-															if (ts.TypeGuards.isVariableDeclarationList(declParent)) {
-																return (
-																	declParent.getDeclarationKind() ===
-																	ts.VariableDeclarationKind.Const
-																);
-															}
-														}
-														return false;
-													}) &&
-													isNumberType(condValue.getType())))
-										) {
-											if (incrSign === "+" && condSign === "<=") {
-												const forLoopVars =
-													condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
-												return getSimpleForLoopString(
-													state,
-													initializer,
-													forLoopVars,
-													statement,
-												);
-											} else if (incrSign === "-" && condSign === ">=") {
-												incrValue = (incrSign + incrValue).replace("--", "");
-												incrSign = "";
-												const forLoopVars = condValue.getText() + ", " + incrValue;
+										if (condValue && isConstantNumberVariableOrLiteral(condValue)) {
+											if (incrSign === "-") {
+												incrValue = incrSign + incrValue;
+											}
+
+											const forLoopVars =
+												condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
+
+											if (
+												(incrSign === "+" && condSign === "<=") ||
+												(incrSign === "-" && condSign === ">=")
+											) {
 												return getSimpleForLoopString(
 													state,
 													initializer,
