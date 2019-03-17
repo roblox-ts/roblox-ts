@@ -239,23 +239,23 @@ export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 	}
 }
 
-function isExpressionConstantNumbers(node: ts.Node) {
+function isExpressionConstantNumbers(node: ts.Node): boolean {
+	const children = node.getChildren();
 	return (
-		node.getChildren().length > 0 &&
-		node
-			.getChildren()
-			.every(
-				child =>
-					isConstantNumberVariableOrLiteral(child) ||
-					child.getKind() === ts.SyntaxKind.PlusToken ||
-					child.getKind() === ts.SyntaxKind.MinusToken ||
-					child.getKind() === ts.SyntaxKind.AsteriskToken ||
-					child.getKind() === ts.SyntaxKind.SlashToken ||
-					child.getKind() === ts.SyntaxKind.AsteriskAsteriskToken ||
-					child.getKind() === ts.SyntaxKind.PercentToken ||
-					(ts.TypeGuards.isPrefixUnaryExpression(child) &&
-						child.getOperatorToken() === ts.SyntaxKind.MinusToken),
-			)
+		children.length > 0 &&
+		children.every(
+			child =>
+				isConstantNumberVariableOrLiteral(child) ||
+				child.getKind() === ts.SyntaxKind.PlusToken ||
+				child.getKind() === ts.SyntaxKind.MinusToken ||
+				child.getKind() === ts.SyntaxKind.AsteriskToken ||
+				child.getKind() === ts.SyntaxKind.SlashToken ||
+				child.getKind() === ts.SyntaxKind.AsteriskAsteriskToken ||
+				child.getKind() === ts.SyntaxKind.PercentToken ||
+				(ts.TypeGuards.isPrefixUnaryExpression(child) &&
+					child.getOperatorToken() === ts.SyntaxKind.MinusToken) ||
+				(ts.TypeGuards.isBinaryExpression(child) && isExpressionConstantNumbers(child)),
+		)
 	);
 }
 
@@ -413,7 +413,8 @@ function getSimpleForLoopString(
 function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	return (
 		ts.TypeGuards.isNumericLiteral(condValue) ||
-		(ts.TypeGuards.isIdentifier(condValue) &&
+		(isNumberType(condValue.getType()) &&
+			ts.TypeGuards.isIdentifier(condValue) &&
 			condValue.getDefinitions().every(a => {
 				const declNode = a.getDeclarationNode();
 				if (declNode && ts.TypeGuards.isVariableDeclaration(declNode)) {
@@ -423,8 +424,7 @@ function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 					}
 				}
 				return false;
-			}) &&
-			isNumberType(condValue.getType()))
+			}))
 	);
 }
 
