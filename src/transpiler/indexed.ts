@@ -11,7 +11,6 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { transpileNumericLiteral } from "./literal";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
@@ -104,7 +103,7 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 	let offset = "";
 	let argExpStr: string;
 	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
-		let value = Number(transpileNumericLiteral(state, argExp));
+		let value = argExp.getLiteralValue();
 		if (addOne) {
 			value++;
 		}
