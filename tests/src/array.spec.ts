@@ -28,6 +28,24 @@ export = () => {
 		const a = new Array<number>();
 		a.push(123);
 		expect(a[0]).to.equal(123);
+
+		class Noodle {
+			public strings = new Array<string>();
+		}
+
+		const noodle = new Noodle();
+		noodle.strings.push("Rigatoni");
+		const strings = noodle.strings;
+		strings.push("Spaghetti");
+
+		if (strings.push("Lasagna")) {
+		}
+
+		expect(noodle.strings.push("Penne")).to.equal(4);
+		expect(noodle.strings[0]).to.equal("Rigatoni");
+		expect(noodle.strings[1]).to.equal("Spaghetti");
+		expect(noodle.strings[2]).to.equal("Lasagna");
+		expect(noodle.strings[3]).to.equal("Penne");
 	});
 
 	it("should support pop", () => {

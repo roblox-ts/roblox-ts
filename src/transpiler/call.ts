@@ -147,7 +147,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		if (length === 1 && propertyCallParentIsExpression) {
 			const paramStr = transpileCallArgument(state, params[0]);
 			const accessPath = transpileExpression(state, subExp);
-			return `table.insert(${accessPath}, ${paramStr})`;
+
+			if (ts.TypeGuards.isIdentifier(subExp)) {
+				return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
+			} else {
+				return `table.insert(${accessPath}, ${paramStr})`;
+			}
 		}
 	})
 
@@ -203,6 +208,14 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 				const accessPath = transpileExpression(state, subExp);
 				return `${accessPath}[${key}] = ${value}`;
 			}
+		}
+	})
+
+	.set("delete", (params, state, subExp) => {
+		if (getPropertyCallParentIsExpression(subExp)) {
+			const accessPath = transpileExpression(state, subExp);
+			const key = transpileCallArgument(state, params[0]);
+			return `${accessPath}[${key}] = nil`;
 		}
 	})
 
