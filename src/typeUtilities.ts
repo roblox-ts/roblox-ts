@@ -181,8 +181,11 @@ export function isTupleReturnTypeCall(node: ts.CallExpression) {
 	const expr = node.getExpression();
 
 	if (ts.TypeGuards.isIdentifier(expr)) {
+		const definitions = expr.getDefinitions();
 		if (
-			expr.getDefinitions().every(def => {
+			// I don't think a case like this could ever occur, but I also don't want to be blamed if it does.
+			definitions.length > 0 &&
+			definitions.every(def => {
 				const declarationNode = def.getDeclarationNode();
 				return declarationNode && ts.TypeGuards.isFunctionDeclaration(declarationNode)
 					? isTupleReturnType(declarationNode)
