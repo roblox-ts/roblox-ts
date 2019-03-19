@@ -480,13 +480,6 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
 								if (expressionModifiesVariable(incrementor, lhs)) {
-									// if (
-									// 	ts.TypeGuards.isPostfixUnaryExpression(incrementor) ||
-									// 	(ts.TypeGuards.isPrefixUnaryExpression(incrementor) &&
-									// 		(incrementor.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
-									// 			incrementor.getOperatorToken() === ts.SyntaxKind.MinusMinusToken))
-									// ) {
-									// }
 									const [incrSign, incrValue] = getSignAndIncrementorForStatement(
 										state,
 										incrementor,
