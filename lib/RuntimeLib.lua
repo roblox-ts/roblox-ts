@@ -644,18 +644,18 @@ function TS.array_unshift(list, ...)
 	return #list
 end
 
-function TS.array_concat(list, ...)
-	local args = { ... }
+function TS.array_concat(...)
+	local count = 0
 	local result = {}
-	for i = 1, #list do
-		result[i] = list[i]
-	end
-	for i = 1, #args do
-		local value = args[i]
+
+	for i = 1, select("#", ...) do
+		local value = select(i, ...)
 		for j = 1, #value do
-			result[#result + 1] = value[j]
+			count = count + 1
+			result[count] = value[j]
 		end
 	end
+
 	return result
 end
 
@@ -961,7 +961,7 @@ function TS.set_isDisjointWith(set1, set2)
 	return true
 end
 
-local function isSubsetOf(set1, set2)
+function TS.set_isSubsetOf(set1, set2)
 	for value in pairs(set1) do
 		if set2[value] == nil then
 			return false
@@ -971,56 +971,17 @@ local function isSubsetOf(set1, set2)
 	return true
 end
 
-TS.set_isSubsetOf = isSubsetOf
-
-function TS.set_isProperSubsetOf(set1, set2)
-	return isSubsetOf(set1, set2) and not isSubsetOf(set2, set1)
-end
-
-local function storeSetDifference(set1, set2, result)
+function TS.set_difference(set1, set2)
+	local result = {}
 	for value in pairs(set1) do
 		if set2[value] == nil then
 			result[value] = true
 		end
 	end
-end
-
-function TS.set_difference(set1, set2)
-	local result = {}
-	storeSetDifference(set1, set2, result)
-	return result
-end
-
-function TS.set_symmetricDifference(set1, set2)
-	local result = {}
-	storeSetDifference(set1, set2, result)
-	storeSetDifference(set2, set1, result)
-	return result
-end
-
-local function power_helper(set, result, ...)
-	for value in next, set, ... do
-		power_helper(set, result, value, ...)
-	end
-
-	local subset = {}
-
-	for i = 1, select("#", ...) do
-		subset[select(i, ...)] = true
-	end
-
-	result[#result + 1] = subset
-end
-
-function TS.set_power(set)
-	local result = {}
-	power_helper(set, result)
 	return result
 end
 
 TS.set_values = getKeys
-
-TS.set_keys = getKeys
 
 TS.set_size = getNumKeys
 
