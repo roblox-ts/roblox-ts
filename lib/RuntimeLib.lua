@@ -918,14 +918,6 @@ end
 
 TS.set_has = TS.map_has
 
-function TS.set_entries(set)
-	local result = {}
-	for key in pairs(set) do
-		table.insert(result, { key, key })
-	end
-	return result
-end
-
 function TS.set_union(set1, set2)
 	local result = {}
 
