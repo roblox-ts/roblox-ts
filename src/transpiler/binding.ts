@@ -3,6 +3,7 @@ import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
+import { transpileIdentifier } from "./identifier";
 
 export function getParameterData(
 	state: TranspilerState,
@@ -123,12 +124,11 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${parentId}[${key}];`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
-				let id: string;
-				if (pattern && pattern.getKind() === ts.SyntaxKind.Identifier) {
-					id = transpileExpression(state, pattern as ts.Expression);
-				} else {
-					id = transpileExpression(state, child as ts.Expression);
-				}
+				const id: string = transpileIdentifier(
+					state,
+					pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child,
+					true,
+				);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					const value = transpileExpression(state, pattern as ts.Expression);

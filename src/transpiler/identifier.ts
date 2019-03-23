@@ -6,7 +6,7 @@ export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
 
 export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
 
-export function transpileIdentifier(state: TranspilerState, node: ts.Identifier) {
+export function transpileIdentifier(state: TranspilerState, node: ts.Identifier, isDefinition: boolean = false) {
 	let name = node.getText();
 
 	const replacement = replacements.get(name);
@@ -20,11 +20,11 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 		name = `TS.${name}`;
 	}
 
-	for (const def of node.getDefinitions()) {
-		// I have no idea why, but getDefinitionNodes() cannot replace this
-		const definition = def.getNode();
+	const definitions = isDefinition ? [node] : node.getDefinitions().map(def => def.getNode());
 
-		if (def.getSourceFile() === node.getSourceFile()) {
+	for (const definition of definitions) {
+		// I have no idea why, but getDefinitionNodes() cannot replace this
+		if (definition.getSourceFile() === node.getSourceFile()) {
 			let parent = definition;
 
 			do {
@@ -55,7 +55,8 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier)
 					!ts.TypeGuards.isIdentifier(parent) &&
 					!ts.TypeGuards.isBindingElement(parent) &&
 					!ts.TypeGuards.isArrayBindingPattern(parent) &&
-					!ts.TypeGuards.isVariableDeclaration(parent)
+					!ts.TypeGuards.isVariableDeclaration(parent) &&
+					!ts.TypeGuards.isObjectBindingPattern(parent)
 				) {
 					break;
 				}
