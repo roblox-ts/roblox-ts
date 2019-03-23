@@ -168,6 +168,17 @@ export = () => {
 			x += 5;
 		} while (x < 25);
 		expect(x).to.equal(25);
+
+		function expect0(y: number) {
+			expect(y).to.equal(0);
+			return false;
+		}
+
+		const y = 0;
+		do {
+			const y = 1;
+			expect(y).to.equal(1);
+		} while (expect0(y));
 	});
 
 	it("should support while loops", () => {
