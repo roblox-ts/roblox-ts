@@ -119,7 +119,11 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 		const expStr = transpileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		return `(select(${argExpStr}, ${expStr}))`;
+		if (argExpStr === "1") {
+			return `(${expStr})`;
+		} else {
+			return `(select(${argExpStr}, ${expStr}))`;
+		}
 	} else {
 		const expStr = transpileExpression(state, expNode);
 		checkNonAny(expNode);

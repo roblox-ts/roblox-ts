@@ -274,7 +274,11 @@ function concatParams(state: TranspilerState, myParams: Array<ts.Node>, accessPa
 	return params.join(", ");
 }
 
-export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
+export function transpileCallExpression(
+	state: TranspilerState,
+	node: ts.CallExpression,
+	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
+) {
 	const exp = node.getExpression();
 	if (exp.getKindName() === "ImportKeyword") {
 		throw new TranspilerError(
@@ -284,8 +288,10 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		);
 	}
 	checkNonAny(exp);
+	let result: string;
+
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
+		result = transpilePropertyCallExpression(state, node);
 	} else {
 		const params = node.getArguments();
 
@@ -294,12 +300,14 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		}
 
 		const callPath = transpileExpression(state, exp);
-		let result = `${callPath}(${concatParams(state, params)})`;
-		if (!doNotWrapTupleReturn && isTupleReturnTypeCall(node)) {
-			result = `{ ${result} }`;
-		}
-		return result;
+		result = `${callPath}(${concatParams(state, params)})`;
 	}
+
+	if (!doNotWrapTupleReturn) {
+		result = `{ ${result} }`;
+	}
+
+	return result;
 }
 
 function transpilePropertyMethod(
@@ -425,11 +433,7 @@ export function getPropertyAccessExpressionType(
 	return PropertyCallExpType.None;
 }
 
-export function transpilePropertyCallExpression(
-	state: TranspilerState,
-	node: ts.CallExpression,
-	doNotWrapTupleReturn = false,
-) {
+export function transpilePropertyCallExpression(state: TranspilerState, node: ts.CallExpression) {
 	const expression = node.getExpression();
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new TranspilerError(
@@ -549,9 +553,5 @@ export function transpilePropertyCallExpression(
 		);
 	}
 
-	let result = `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
-	if (!doNotWrapTupleReturn && isTupleReturnTypeCall(node)) {
-		result = `{ ${result} }`;
-	}
-	return result;
+	return `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
 }
