@@ -89,7 +89,11 @@ export function transpileDoStatement(state: TranspilerState, node: ts.DoStatemen
 	let result = "";
 	result += state.indent + "repeat\n";
 	state.pushIndent();
+	result += state.indent + "do\n";
+	state.pushIndent();
 	result += transpileLoopBody(state, node.getStatement());
+	state.popIndent();
+	result += state.indent + "end\n";
 	state.popIndent();
 	result += state.indent + `until not (${condition});\n`;
 	return result;
