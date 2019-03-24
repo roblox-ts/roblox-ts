@@ -86,8 +86,32 @@ export = () => {
 
 	it("should support optimized simple loops #6", () => {
 		const hit = new Set<number>();
+		const limit = 1;
 		let n = 0;
-		for (let i = 3; i >= 1; i -= 1) {
+		for (let i = 3; i >= limit; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+	});
+
+	it("should support optimized simple loops #7", () => {
+		const hit = new Set<number>();
+		const limit = 1;
+		let n = 0;
+		for (let i = 3; i <= limit; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(0);
+		expect(hit.has(1)).to.equal(false);
+		expect(hit.has(2)).to.equal(false);
+		expect(hit.has(3)).to.equal(false);
+
+		for (let i = 3; i >= limit; i -= 1) {
 			hit.add(i);
 			n++;
 		}
@@ -168,6 +192,17 @@ export = () => {
 			x += 5;
 		} while (x < 25);
 		expect(x).to.equal(25);
+
+		function expect0(y: number) {
+			expect(y).to.equal(0);
+			return false;
+		}
+
+		const y = 0;
+		do {
+			const y = 1;
+			expect(y).to.equal(1);
+		} while (expect0(y));
 	});
 
 	it("should support while loops", () => {

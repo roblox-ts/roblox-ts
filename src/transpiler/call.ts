@@ -147,7 +147,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		if (length === 1 && propertyCallParentIsExpression) {
 			const paramStr = transpileCallArgument(state, params[0]);
 			const accessPath = transpileExpression(state, subExp);
-			return `table.insert(${accessPath}, ${paramStr})`;
+
+			if (ts.TypeGuards.isIdentifier(subExp)) {
+				return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
+			} else {
+				return `table.insert(${accessPath}, ${paramStr})`;
+			}
 		}
 	})
 
@@ -203,6 +208,14 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 				const accessPath = transpileExpression(state, subExp);
 				return `${accessPath}[${key}] = ${value}`;
 			}
+		}
+	})
+
+	.set("delete", (params, state, subExp) => {
+		if (getPropertyCallParentIsExpression(subExp)) {
+			const accessPath = transpileExpression(state, subExp);
+			const key = transpileCallArgument(state, params[0]);
+			return `${accessPath}[${key}] = nil`;
 		}
 	})
 
@@ -274,7 +287,11 @@ function concatParams(state: TranspilerState, myParams: Array<ts.Node>, accessPa
 	return params.join(", ");
 }
 
-export function transpileCallExpression(state: TranspilerState, node: ts.CallExpression, doNotWrapTupleReturn = false) {
+export function transpileCallExpression(
+	state: TranspilerState,
+	node: ts.CallExpression,
+	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
+) {
 	const exp = node.getExpression();
 	if (exp.getKindName() === "ImportKeyword") {
 		throw new TranspilerError(
@@ -284,8 +301,10 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		);
 	}
 	checkNonAny(exp);
+	let result: string;
+
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-		return transpilePropertyCallExpression(state, node, doNotWrapTupleReturn);
+		result = transpilePropertyCallExpression(state, node);
 	} else {
 		const params = node.getArguments();
 
@@ -294,12 +313,14 @@ export function transpileCallExpression(state: TranspilerState, node: ts.CallExp
 		}
 
 		const callPath = transpileExpression(state, exp);
-		let result = `${callPath}(${concatParams(state, params)})`;
-		if (!doNotWrapTupleReturn && isTupleReturnTypeCall(node)) {
-			result = `{ ${result} }`;
-		}
-		return result;
+		result = `${callPath}(${concatParams(state, params)})`;
 	}
+
+	if (!doNotWrapTupleReturn) {
+		result = `{ ${result} }`;
+	}
+
+	return result;
 }
 
 function transpilePropertyMethod(
@@ -425,11 +446,7 @@ export function getPropertyAccessExpressionType(
 	return PropertyCallExpType.None;
 }
 
-export function transpilePropertyCallExpression(
-	state: TranspilerState,
-	node: ts.CallExpression,
-	doNotWrapTupleReturn = false,
-) {
+export function transpilePropertyCallExpression(state: TranspilerState, node: ts.CallExpression) {
 	const expression = node.getExpression();
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new TranspilerError(
@@ -549,9 +566,5 @@ export function transpilePropertyCallExpression(
 		);
 	}
 
-	let result = `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
-	if (!doNotWrapTupleReturn && isTupleReturnTypeCall(node)) {
-		result = `{ ${result} }`;
-	}
-	return result;
+	return `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
 }

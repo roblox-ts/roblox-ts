@@ -9,9 +9,10 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { HasParameters } from "../types";
 import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { getFirstMemberWithParameters } from "./function";
+import { transpileNumericLiteral } from "./literal";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -89,7 +90,11 @@ export function transpileDoStatement(state: TranspilerState, node: ts.DoStatemen
 	let result = "";
 	result += state.indent + "repeat\n";
 	state.pushIndent();
+	result += state.indent + "do\n";
+	state.pushIndent();
 	result += transpileLoopBody(state, node.getStatement());
+	state.popIndent();
+	result += state.indent + "end\n";
 	state.popIndent();
 	result += state.indent + `until not (${condition});\n`;
 	return result;
@@ -104,23 +109,6 @@ function isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
 		}
 	}
 	return false;
-}
-
-function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
-	for (const node of nodes) {
-		if (
-			ts.TypeGuards.isFunctionExpression(node) ||
-			ts.TypeGuards.isArrowFunction(node) ||
-			ts.TypeGuards.isFunctionDeclaration(node) ||
-			ts.TypeGuards.isConstructorDeclaration(node) ||
-			ts.TypeGuards.isMethodDeclaration(node) ||
-			ts.TypeGuards.isGetAccessorDeclaration(node) ||
-			ts.TypeGuards.isSetAccessorDeclaration(node)
-		) {
-			return node;
-		}
-	}
-	return undefined;
 }
 
 export function transpileForInStatement(state: TranspilerState, node: ts.ForInStatement) {
@@ -255,32 +243,62 @@ export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 	}
 }
 
-function getSignAndValueInForStatement(
+function isExpressionConstantNumbers(node: ts.Node): boolean {
+	const children = node.getChildren();
+	return (
+		children.length > 0 &&
+		children.every(
+			child =>
+				isConstantNumberVariableOrLiteral(child) ||
+				child.getKind() === ts.SyntaxKind.PlusToken ||
+				child.getKind() === ts.SyntaxKind.MinusToken ||
+				child.getKind() === ts.SyntaxKind.AsteriskToken ||
+				child.getKind() === ts.SyntaxKind.SlashToken ||
+				child.getKind() === ts.SyntaxKind.AsteriskAsteriskToken ||
+				child.getKind() === ts.SyntaxKind.PercentToken ||
+				(ts.TypeGuards.isPrefixUnaryExpression(child) &&
+					child.getOperatorToken() === ts.SyntaxKind.MinusToken) ||
+				(ts.TypeGuards.isBinaryExpression(child) && isExpressionConstantNumbers(child)),
+		)
+	);
+}
+
+function getSignAndIncrementorForStatement(
+	state: TranspilerState,
 	incrementor: ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
+	lhs: ts.Identifier,
 ) {
 	let forIntervalStr = "";
-	let sign = "";
+	let sign: "" | "+" | "-" = "";
+
 	if (ts.TypeGuards.isBinaryExpression(incrementor)) {
 		const sibling = incrementor.getChildAtIndex(0).getNextSibling();
 		if (sibling) {
 			let rhsIncr = sibling.getNextSibling();
 
 			if (rhsIncr) {
-				if (isNumberType(rhsIncr.getType())) {
-					if (sibling.getKind() === ts.SyntaxKind.EqualsToken && ts.TypeGuards.isBinaryExpression(rhsIncr)) {
-						// incrementor is something like i = i + 1
-						const sib1 = rhsIncr.getChildAtIndex(0).getNextSibling();
+				if (
+					isNumberType(rhsIncr.getType()) &&
+					sibling.getKind() === ts.SyntaxKind.EqualsToken &&
+					ts.TypeGuards.isBinaryExpression(rhsIncr)
+				) {
+					const sib0 = rhsIncr.getChildAtIndex(0);
+					const sib1 = rhsIncr.getChildAtIndex(1);
 
-						if (sib1) {
-							if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
-								sign = "-";
-							} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
-								sign = "+";
-							}
-							rhsIncr = sib1.getNextSibling();
-							if (rhsIncr && rhsIncr.getNextSibling()) {
-								rhsIncr = undefined;
-							}
+					if (
+						sib0 &&
+						ts.TypeGuards.isIdentifier(sib0) &&
+						isIdentifierWhoseDefinitionMatchesNode(sib0, lhs) &&
+						sib1
+					) {
+						if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
+							sign = "-";
+						} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
+							sign = "+";
+						}
+						rhsIncr = sib1.getNextSibling();
+						if (rhsIncr && rhsIncr.getNextSibling()) {
+							rhsIncr = undefined;
 						}
 					}
 				} else {
@@ -296,8 +314,24 @@ function getSignAndValueInForStatement(
 					}
 				}
 
-				if (rhsIncr && rhsIncr.getType().isNumberLiteral()) {
-					forIntervalStr = rhsIncr.getText();
+				if (rhsIncr && ts.TypeGuards.isPrefixUnaryExpression(rhsIncr)) {
+					if (rhsIncr.getOperatorToken() === ts.SyntaxKind.MinusToken) {
+						switch (sign) {
+							case "+":
+								sign = "-";
+								break;
+							case "-":
+								sign = "+";
+								break;
+							case "":
+								return ["", ""];
+						}
+						rhsIncr = rhsIncr.getChildAtIndex(1);
+					}
+				}
+
+				if (rhsIncr && ts.TypeGuards.isNumericLiteral(rhsIncr)) {
+					forIntervalStr = transpileNumericLiteral(state, rhsIncr);
 				}
 			}
 		}
@@ -380,22 +414,40 @@ function getSimpleForLoopString(
 	return result;
 }
 
+function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
+	return (
+		ts.TypeGuards.isNumericLiteral(condValue) ||
+		(isNumberType(condValue.getType()) &&
+			ts.TypeGuards.isIdentifier(condValue) &&
+			condValue.getDefinitions().every(a => {
+				const declNode = a.getDeclarationNode();
+				if (declNode && ts.TypeGuards.isVariableDeclaration(declNode)) {
+					const declParent = declNode.getParent();
+					if (ts.TypeGuards.isVariableDeclarationList(declParent)) {
+						return declParent.getDeclarationKind() === ts.VariableDeclarationKind.Const;
+					}
+				}
+				return false;
+			}))
+	);
+}
+
 export function transpileForStatement(state: TranspilerState, node: ts.ForStatement) {
 	state.pushIdStack();
 	const statement = node.getStatement();
 	const condition = node.getCondition();
 	checkLoopClassExp(condition);
-	const conditionStr = condition ? transpileExpression(state, condition) : "true";
 	const incrementor = node.getIncrementor();
 	checkLoopClassExp(incrementor);
-	const incrementorStr = incrementor ? transpileExpression(state, incrementor) + ";\n" : undefined;
 
 	let result = "";
 	let localizations = "";
-	let cleanup = () => {};
+	const cleanups = new Array<() => void>();
 	result += state.indent + "do\n";
 	state.pushIndent();
 	const initializer = node.getInitializer();
+	let conditionStr: string | undefined;
+	let incrementorStr: string | undefined;
 
 	if (initializer) {
 		if (
@@ -405,25 +457,16 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 			const declarations = initializer.getDeclarations();
 			const statementDescendants = statement.getDescendants();
 
-			if (declarations.length > 0) {
+			if (declarations.length === 1) {
 				const lhs = declarations[0].getChildAtIndex(0);
 				if (ts.TypeGuards.isIdentifier(lhs)) {
-					const name = lhs.getText();
-					let isLoopVarModified = false;
-					for (const statementDescendant of statementDescendants) {
-						if (expressionModifiesVariable(statementDescendant, lhs)) {
-							isLoopVarModified = true;
-							break;
-						}
-					}
-
 					const nextSibling = lhs.getNextSibling();
 
 					if (
-						declarations.length === 1 &&
-						!isLoopVarModified &&
+						!statementDescendants.some(statementDescendant =>
+							expressionModifiesVariable(statementDescendant, lhs),
+						) &&
 						incrementor &&
-						incrementorStr &&
 						nextSibling &&
 						condition
 					) {
@@ -441,27 +484,31 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 							const rhsType = rhs.getType();
 							if (isNumberType(rhsType)) {
 								if (expressionModifiesVariable(incrementor, lhs)) {
-									let [incrSign, incrValue] = getSignAndValueInForStatement(incrementor);
-									if (incrSign) {
+									const [incrSign, incrValue] = getSignAndIncrementorForStatement(
+										state,
+										incrementor,
+										lhs,
+									);
+									if (incrSign && incrValue) {
 										const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
-										if (condValue && condValue.getType().isNumberLiteral()) {
-											if (incrSign === "+" && condSign === "<=") {
-												const forLoopVars =
-													condValue.getText() + (incrValue === "1" ? "" : ", " + incrValue);
+										// numeric literals, or constant number identifiers are safe
+										if (
+											condValue &&
+											ts.TypeGuards.isExpression(condValue) &&
+											(isConstantNumberVariableOrLiteral(condValue) ||
+												isExpressionConstantNumbers(condValue))
+										) {
+											if (
+												(incrSign === "+" && condSign === "<=") ||
+												(incrSign === "-" && condSign === ">=")
+											) {
+												const incrStr = incrSign === "-" ? incrSign + incrValue : incrValue;
+
 												return getSimpleForLoopString(
 													state,
 													initializer,
-													forLoopVars,
-													statement,
-												);
-											} else if (incrSign === "-" && condSign === ">=") {
-												incrValue = (incrSign + incrValue).replace("--", "");
-												incrSign = "";
-												const forLoopVars = condValue.getText() + ", " + incrValue;
-												return getSimpleForLoopString(
-													state,
-													initializer,
-													forLoopVars,
+													transpileExpression(state, condValue) +
+														(incrStr === "1" ? "" : ", " + incrStr),
 													statement,
 												);
 											}
@@ -471,19 +518,32 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 							}
 						}
 					}
+				}
+			}
 
-					// if we can't convert to a simple for loop:
-					// if it has any internal function declarataions, make sure to locally scope variables
-					if (getFirstMemberWithParameters(statementDescendants)) {
+			// if we can't convert to a simple for loop:
+			// if it has any internal function declarations, make sure to locally scope variables
+			if (getFirstMemberWithParameters(statementDescendants)) {
+				conditionStr = condition ? transpileExpression(state, condition) : "true";
+				incrementorStr = incrementor ? transpileExpression(state, incrementor) + ";\n" : undefined;
+
+				declarations.forEach(declaration => {
+					const lhs = declaration.getChildAtIndex(0);
+
+					if (ts.TypeGuards.isIdentifier(lhs)) {
+						const name = lhs.getText();
+						const isLoopVarModified = statementDescendants.some(statementDescendant =>
+							expressionModifiesVariable(statementDescendant, lhs),
+						);
 						const alias = state.getNewId();
 						state.pushIndent();
-						localizations = state.indent + `local ${alias} = ${name};\n`;
+						localizations += state.indent + `local ${alias} = ${name};\n`;
 						state.popIndent();
 
 						// don't leak
 						const previous = state.variableAliases.get(name);
 
-						cleanup = () => {
+						cleanups.push(() => {
 							if (previous) {
 								state.variableAliases.set(name, previous);
 							} else {
@@ -493,11 +553,11 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 							if (isLoopVarModified) {
 								result += state.indent + `${name} = ${alias};\n`;
 							}
-						};
+						});
 
 						state.variableAliases.set(name, alias);
 					}
-				}
+				});
 			}
 
 			result += transpileVariableDeclarationList(state, initializer);
@@ -507,11 +567,17 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 		}
 	}
 
+	// order matters
+	if (conditionStr === undefined) {
+		conditionStr = condition ? transpileExpression(state, condition) : "true";
+		incrementorStr = incrementor ? transpileExpression(state, incrementor) + ";\n" : undefined;
+	}
+
 	result += state.indent + `while ${conditionStr} do\n`;
 	result += localizations;
 	state.pushIndent();
 	result += transpileLoopBody(state, statement);
-	cleanup();
+	cleanups.forEach(cleanup => cleanup());
 	if (incrementor && incrementorStr) {
 		result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr);
 	}
