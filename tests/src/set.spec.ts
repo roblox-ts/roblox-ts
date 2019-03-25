@@ -62,17 +62,6 @@ export = () => {
 		expect(set.has("a")).to.equal(false);
 	});
 
-	it("should support entries", () => {
-		const set = new Set<string>()
-			.add("a")
-			.add("b")
-			.add("c");
-		const a = set.entries();
-		expect(a.some(v => v[0] === "a" && v[1] === "a")).to.equal(true);
-		expect(a.some(v => v[0] === "b" && v[1] === "b")).to.equal(true);
-		expect(a.some(v => v[0] === "c" && v[1] === "c")).to.equal(true);
-	});
-
 	it("should support forEach", () => {
 		let hitA = 0;
 		let hitB = 0;
@@ -96,18 +85,6 @@ export = () => {
 		expect(hitA).to.equal(1);
 		expect(hitB).to.equal(1);
 		expect(hitC).to.equal(1);
-	});
-
-	it("should support keys", () => {
-		const set = new Set<string>()
-			.add("a")
-			.add("b")
-			.add("c");
-		const a = set.keys();
-		expect(a.some(v => v === "a")).to.equal(true);
-		expect(a.some(v => v === "b")).to.equal(true);
-		expect(a.some(v => v === "c")).to.equal(true);
-		expect(a.some(v => v === "d")).to.equal(false);
 	});
 
 	it("should support values", () => {
@@ -139,5 +116,107 @@ export = () => {
 			.add("c");
 		expect(set.toString()).to.be.ok();
 		expect(typeOf(new Set<string>().toString())).to.equal("string");
+	});
+
+	it("should support isSubsetOf", () => {
+		const set1 = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
+
+		const set2 = new Set<string>().add("b").add("a");
+
+		expect(set1.isSubsetOf(set2)).to.equal(false);
+		expect(set2.isSubsetOf(set1)).to.equal(true);
+
+		set2.add("c");
+
+		expect(set1.isSubsetOf(set2)).to.equal(true);
+		expect(set2.isSubsetOf(set1)).to.equal(true);
+		expect(set2.isSubsetOf(set2)).to.equal(true);
+	});
+
+	it("should support union", () => {
+		const set1 = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
+
+		const set2 = new Set<string>()
+			.add("d")
+			.add("a")
+			.add("e");
+
+		const set3 = set1.union(set2);
+		const set4 = new Set<string>()
+			.add("d")
+			.add("a")
+			.add("e")
+			.add("a")
+			.add("b")
+			.add("c");
+
+		expect(set3.isSubsetOf(set4)).to.equal(true);
+		expect(set4.isSubsetOf(set3)).to.equal(true);
+
+		expect(set3.isSubsetOf(set1)).to.equal(false);
+		expect(set3.isSubsetOf(set2)).to.equal(false);
+
+		expect(set1.isSubsetOf(set3)).to.equal(true);
+		expect(set2.isSubsetOf(set3)).to.equal(true);
+
+		expect(set3.has("e")).to.equal(true);
+		expect(set3.has("a")).to.equal(true);
+		expect(set3.has("d")).to.equal(true);
+		expect(set3.has("b")).to.equal(true);
+		expect(set3.has("c")).to.equal(true);
+	});
+
+	it("should support intersect", () => {
+		const set1 = new Set<number>().add(1).add(2);
+		const set2 = new Set<number>().add(1).add(2);
+		const set3 = set1.intersect(set2);
+
+		expect(set3.has(1)).to.equal(true);
+		expect(set3.has(2)).to.equal(true);
+
+		set2.add(3);
+		const set4 = set2.intersect(set3);
+		expect(set4.has(3)).to.equal(false);
+	});
+
+	it("should support isDisjointWith", () => {
+		const set1 = new Set<number>().add(1).add(2);
+		const set2 = new Set<number>().add(1).add(2);
+		const set3 = new Set<number>().add(3).add(4);
+		const set4 = new Set<number>().add(4).add(2);
+
+		expect(set1.isDisjointWith(set2)).to.equal(false);
+		expect(set1.isDisjointWith(set3)).to.equal(true);
+		expect(set1.isDisjointWith(set4)).to.equal(false);
+	});
+
+	it("should support difference", () => {
+		// the symmetric difference of  { 7, 8, 9, 10 } and { 9, 10, 11, 12 } is the set { 7, 8, 11, 12 }
+		const set1 = new Set<number>()
+			.add(7)
+			.add(8)
+			.add(9)
+			.add(10);
+		const set2 = new Set<number>()
+			.add(9)
+			.add(10)
+			.add(11)
+			.add(12);
+		const set3 = new Set<number>()
+			.add(7)
+			.add(8)
+			.add(11)
+			.add(12);
+
+		const set4 = set1.difference(set2).union(set2.difference(set1));
+
+		expect(set3.isSubsetOf(set4)).to.equal(true);
+		expect(set4.isSubsetOf(set3)).to.equal(true);
 	});
 };
