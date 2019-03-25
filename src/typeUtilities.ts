@@ -166,28 +166,44 @@ export function isArrayType(type: ts.Type) {
 				return true;
 			}
 		}
-		return t.isArray();
+		return t.isArray() || t.isTuple();
 	});
 }
 
-export function isTupleType(type: ts.Type) {
-	return typeConstraint(type, t => t.isTuple());
+const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
+
+export function isTupleReturnType(node: ts.ReturnTypedNode) {
+	const returnTypeNode = node.getReturnTypeNode();
+	return returnTypeNode ? LUA_TUPLE_REGEX.test(returnTypeNode.getText()) : false;
 }
 
-export function isTupleReturnType(node: ts.CallExpression) {
-	if (
-		node
-			.getReturnType()
-			.getText()
-			.startsWith("LuaTuple<")
-	) {
-		return true;
+export function isTupleReturnTypeCall(node: ts.CallExpression) {
+	const expr = node.getExpression();
+
+	if (ts.TypeGuards.isIdentifier(expr)) {
+		const definitions = expr.getDefinitions();
+		if (
+			// I don't think a case like this could ever occur, but I also don't want to be blamed if it does.
+			definitions.length > 0 &&
+			definitions.every(def => {
+				const declarationNode = def.getDeclarationNode();
+				return declarationNode && ts.TypeGuards.isFunctionDeclaration(declarationNode)
+					? isTupleReturnType(declarationNode)
+					: false;
+			})
+		) {
+			return true;
+		}
 	}
 
-	if (isTupleType(node.getReturnType())) {
-		return true;
+	const symbol = expr.getSymbol();
+
+	if (symbol) {
+		const valDec = symbol.getValueDeclaration();
+		return valDec && ts.TypeGuards.isReturnTypedNode(valDec) ? isTupleReturnType(valDec) : false;
+	} else {
+		return false;
 	}
-	return false;
 }
 
 function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {

@@ -413,16 +413,9 @@ local function sortFallback(a, b)
 end
 
 function TS.array_sort(list, callback)
-	local n = #list
-	local sorted
-
-	if n < 8000 then
-		sorted = { unpack(list) }
-	else
-		sorted = {}
-		for i = 1, n do
-			sorted[i] = list[i]
-		end
+	local sorted = {}
+	for i = 1, #list do
+		sorted[i] = list[i]
 	end
 
 	if callback then

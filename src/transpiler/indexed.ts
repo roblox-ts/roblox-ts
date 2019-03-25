@@ -9,8 +9,9 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { inheritsFrom, isArrayType, isNumberType, isTupleType } from "../typeUtilities";
+import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
+import { transpileNumericLiteral } from "./literal";
 
 export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
@@ -90,20 +91,20 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 
 	let addOne = false;
 	if (isNumberType(argExp.getType())) {
-		if (isTupleType(expType) || isArrayType(expType)) {
+		if (isArrayType(expType)) {
 			addOne = true;
-		} else if (ts.TypeGuards.isCallExpression(expNode)) {
-			const returnType = expNode.getReturnType();
-			if (isArrayType(returnType) || isTupleType(returnType)) {
-				addOne = true;
-			}
+		} else if (
+			ts.TypeGuards.isCallExpression(expNode) &&
+			(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType()))
+		) {
+			addOne = true;
 		}
 	}
 
 	let offset = "";
 	let argExpStr: string;
 	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
-		let value = argExp.getLiteralValue();
+		let value = Number(transpileNumericLiteral(state, argExp));
 		if (addOne) {
 			value++;
 		}
@@ -115,11 +116,15 @@ export function transpileElementAccessExpression(state: TranspilerState, node: t
 		argExpStr = transpileExpression(state, argExp) + offset;
 	}
 
-	if (ts.TypeGuards.isCallExpression(expNode) && isTupleType(expNode.getReturnType())) {
+	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
 		const expStr = transpileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		return `(select(${argExpStr}, ${expStr}))`;
+		if (argExpStr === "1") {
+			return `(${expStr})`;
+		} else {
+			return `(select(${argExpStr}, ${expStr}))`;
+		}
 	} else {
 		const expStr = transpileExpression(state, expNode);
 		checkNonAny(expNode);
