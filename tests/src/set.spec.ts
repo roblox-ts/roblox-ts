@@ -62,17 +62,6 @@ export = () => {
 		expect(set.has("a")).to.equal(false);
 	});
 
-	it("should support entries", () => {
-		const set = new Set<string>()
-			.add("a")
-			.add("b")
-			.add("c");
-		const a = set.entries();
-		expect(a.some(v => v[0] === "a" && v[1] === "a")).to.equal(true);
-		expect(a.some(v => v[0] === "b" && v[1] === "b")).to.equal(true);
-		expect(a.some(v => v[0] === "c" && v[1] === "c")).to.equal(true);
-	});
-
 	it("should support forEach", () => {
 		let hitA = 0;
 		let hitB = 0;
@@ -96,18 +85,6 @@ export = () => {
 		expect(hitA).to.equal(1);
 		expect(hitB).to.equal(1);
 		expect(hitC).to.equal(1);
-	});
-
-	it("should support keys", () => {
-		const set = new Set<string>()
-			.add("a")
-			.add("b")
-			.add("c");
-		const a = set.keys();
-		expect(a.some(v => v === "a")).to.equal(true);
-		expect(a.some(v => v === "b")).to.equal(true);
-		expect(a.some(v => v === "c")).to.equal(true);
-		expect(a.some(v => v === "d")).to.equal(false);
 	});
 
 	it("should support values", () => {
