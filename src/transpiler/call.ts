@@ -84,8 +84,9 @@ function transpileLiterally(
 		if (child && ts.TypeGuards.isNewExpression(child)) {
 			state.pushIndent();
 			let result = extraParams.reduceRight((a, x) => (a += state.indent + transpileParamFunc(x)), "{\n");
-			result += state.indent + transpileParamFunc(params) + state.indent + "}";
+			result += state.indent + transpileParamFunc(params);
 			state.popIndent();
+			result += state.indent + "}";
 			return result;
 		}
 	}
