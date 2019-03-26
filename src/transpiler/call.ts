@@ -43,10 +43,10 @@ function wrapExpressionIfNeeded(
 	}
 }
 
-function getLeftHandSideParent(subExp: ts.Node) {
+function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
-	for (let _ = 0; _ < 3; _++) {
+	for (let _ = 0; _ < climb; _++) {
 		exp = exp.getParent();
 		while (ts.TypeGuards.isNonNullExpression(exp)) {
 			exp = exp.getExpression();
@@ -92,8 +92,16 @@ function transpileLiterally(
 	}
 }
 
+function getIsExpression(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>, parent: ts.Node) {
+	return !ts.TypeGuards.isNewExpression(subExp) && ts.TypeGuards.isExpressionStatement(parent);
+}
+
 function getPropertyCallParentIsExpression(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>) {
-	return !ts.TypeGuards.isNewExpression(subExp) && ts.TypeGuards.isExpressionStatement(getLeftHandSideParent(subExp));
+	return getIsExpression(subExp, getLeftHandSideParent(subExp));
+}
+
+function getCallParentIsExpression(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>) {
+	return getIsExpression(subExp, getLeftHandSideParent(subExp, 2));
 }
 
 type SimpleReplaceFunction = (
@@ -264,6 +272,14 @@ const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
+const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("typeIs", (params, state, subExp) => {
+	if (!getCallParentIsExpression(subExp)) {
+		const obj = transpileCallArgument(state, params[0]);
+		const type = transpileCallArgument(state, params[1]);
+		return `(typeof(${obj}) == ${type})`;
+	}
+});
+
 export function transpileCallArgument(state: TranspilerState, arg: ts.Node) {
 	const expStr = transpileExpression(state, arg as ts.Expression);
 	if (!ts.TypeGuards.isSpreadElement(arg)) {
@@ -311,6 +327,15 @@ export function transpileCallExpression(
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
 			return `super.constructor(${concatParams(state, params, "self")})`;
+		}
+
+		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());
+
+		if (isSubstitutableMethod) {
+			const str = isSubstitutableMethod(params, state, exp);
+			if (str) {
+				return str;
+			}
 		}
 
 		const callPath = transpileExpression(state, exp);
