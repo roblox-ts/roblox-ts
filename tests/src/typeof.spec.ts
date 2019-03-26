@@ -21,6 +21,7 @@ export = () => {
 		// make sure this doesn't produce invalid Lua
 		typeIs("Hello, world!", "string");
 		typeIs("Hello, world!", "string")!;
+		!typeIs("Hello, world!", "string");
 		!typeIs("Hello, world!", "string")!;
 		const lel = !typeIs("Hello, world!", "string");
 
