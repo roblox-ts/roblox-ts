@@ -981,11 +981,18 @@ function TS.string_split(input, sep, plain)
 		return input:split(sep)
 	else
 		local result = {}
-		local count = 0
-		for str in input:gmatch("[^" .. sep .. "]+") do
+		local count = 1
+		local pos = 1
+		local a, b = input:find(sep, pos)
+
+		while a do
+			result[count] = input:sub(pos, a - 1)
 			count = count + 1
-			result[count] = str
+			pos = b + 1
+			a, b = input:find(sep, pos)
 		end
+
+		result[count] = input:sub(pos)
 		return result
 	end
 end
