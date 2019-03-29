@@ -528,7 +528,7 @@ export function transpilePropertyCallExpression(state: TranspilerState, node: ts
 						const structure = thisParam.getStructure();
 						if (structure.type === "void") {
 							return false;
-						} else if (structure.type === "this") {
+						} else {
 							return true;
 						}
 					}
@@ -551,7 +551,7 @@ export function transpilePropertyCallExpression(state: TranspilerState, node: ts
 						const structure = thisParam.getStructure();
 						if (structure.type === "void") {
 							return true;
-						} else if (structure.type === "this") {
+						} else {
 							return false;
 						}
 					}
