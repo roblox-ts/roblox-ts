@@ -352,8 +352,10 @@ end
 function TS.Object_assign(toObj, ...)
 	local args = { ... }
 	for i = 1, #args do
-		for key, value in pairs(args[i]) do
-			toObj[key] = value
+		if type(args[i]) == "table" then
+			for key, value in pairs(args[i]) do
+				toObj[key] = value
+			end
 		end
 	end
 	return toObj
