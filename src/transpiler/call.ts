@@ -288,20 +288,18 @@ export function transpileCallArgument(state: TranspilerState, arg: ts.Node) {
 	return expStr;
 }
 
-export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>) {
+export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>, extraParameter?: string) {
 	const argStrs = new Array<string>();
+
 	for (const arg of args) {
 		argStrs.push(transpileCallArgument(state, arg));
 	}
-	return argStrs;
-}
 
-function concatParams(state: TranspilerState, myParams: Array<ts.Node>, accessPath?: string) {
-	const params = transpileCallArguments(state, myParams);
-	if (accessPath) {
-		params.unshift(accessPath);
+	if (extraParameter) {
+		argStrs.unshift(extraParameter);
 	}
-	return params.join(", ");
+
+	return argStrs.join(", ");
 }
 
 export function transpileCallExpression(
@@ -326,7 +324,7 @@ export function transpileCallExpression(
 		const params = node.getArguments();
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
-			return `super.constructor(${concatParams(state, params, "self")})`;
+			return `super.constructor(${transpileCallArguments(state, params, "self")})`;
 		}
 
 		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());
@@ -339,7 +337,7 @@ export function transpileCallExpression(
 		}
 
 		const callPath = transpileExpression(state, exp);
-		result = `${callPath}(${concatParams(state, params)})`;
+		result = `${callPath}(${transpileCallArguments(state, params)})`;
 	}
 
 	if (!doNotWrapTupleReturn) {
@@ -368,7 +366,7 @@ function transpilePropertyMethod(
 
 	const accessPath = transpileExpression(state, subExp);
 	state.usesTSLibrary = true;
-	return `TS.${className}_${property}(${concatParams(state, params, accessPath)})`;
+	return `TS.${className}_${property}(${transpileCallArguments(state, params, accessPath)})`;
 }
 
 export const enum PropertyCallExpType {
@@ -492,20 +490,20 @@ export function transpilePropertyCallExpression(state: TranspilerState, node: ts
 		case PropertyCallExpType.Array:
 			return transpilePropertyMethod(state, property, params, subExp, "array", ARRAY_REPLACE_METHODS);
 		case PropertyCallExpType.BuiltInStringMethod:
-			return `${wrapExpressionIfNeeded(state, subExp)}:${property}(${concatParams(state, params)})`;
+			return `${wrapExpressionIfNeeded(state, subExp)}:${property}(${transpileCallArguments(state, params)})`;
 		case PropertyCallExpType.String:
 			return transpilePropertyMethod(state, property, params, subExp, "string", STRING_REPLACE_METHODS);
 		case PropertyCallExpType.PromiseThen:
-			return `${transpileExpression(state, subExp)}:andThen(${concatParams(state, params)})`;
+			return `${transpileExpression(state, subExp)}:andThen(${transpileCallArguments(state, params)})`;
 		case PropertyCallExpType.SymbolFor:
-			return `${transpileExpression(state, subExp)}.getFor(${concatParams(state, params)})`;
+			return `${transpileExpression(state, subExp)}.getFor(${transpileCallArguments(state, params)})`;
 		case PropertyCallExpType.Map:
 			return transpilePropertyMethod(state, property, params, subExp, "map", MAP_REPLACE_METHODS);
 		case PropertyCallExpType.Set:
 			return transpilePropertyMethod(state, property, params, subExp, "set", SET_REPLACE_METHODS);
 		case PropertyCallExpType.ObjectConstructor:
 			state.usesTSLibrary = true;
-			return `TS.Object_${property}(${concatParams(state, params)})`;
+			return `TS.Object_${property}(${transpileCallArguments(state, params)})`;
 		case PropertyCallExpType.RbxMathAdd:
 			return `(${transpileExpression(state, subExp)} + (${transpileCallArgument(state, params[0])}))`;
 		case PropertyCallExpType.RbxMathSub:
@@ -592,5 +590,5 @@ export function transpilePropertyCallExpression(state: TranspilerState, node: ts
 		);
 	}
 
-	return `${accessPath}${sep}${property}(${concatParams(state, params, extraParam)})`;
+	return `${accessPath}${sep}${property}(${transpileCallArguments(state, params, extraParam)})`;
 }
