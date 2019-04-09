@@ -434,7 +434,7 @@ function transpilePropertyMethod(
 		}
 	}
 
-	const accessPath = transpileExpression(state, subExp);
+	const accessPath = className === "Object" ? undefined : transpileExpression(state, subExp);
 	state.usesTSLibrary = true;
 	return `TS.${className}_${property}(${transpileCallArguments(state, params, accessPath)})`;
 }
