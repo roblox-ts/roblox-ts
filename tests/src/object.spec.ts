@@ -1,10 +1,14 @@
 export = () => {
 	it("should support object literal brackets", () => {
+		/* prettier-ignore */
+		/* tslint:disable */
 		const obj = {
 			test: 1,
-			2: 2,
+			"2": 2,
 			[1]: 3,
 		};
+		/* tslint:enable */
+
 		expect(obj.test).to.equal(1);
 		expect(obj["2"]).to.equal(2);
 		expect(obj[1]).to.equal(3);
