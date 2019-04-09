@@ -80,7 +80,8 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 	} else if (ts.TypeGuards.isThisExpression(node)) {
 		if (
 			!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) &&
-			!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression)
+			!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression) &&
+			!node.getFirstAncestorByKind(ts.SyntaxKind.ClassExpression)
 		) {
 			throw new TranspilerError(
 				"'this' may only be used inside a class definition or object literal",
