@@ -2,7 +2,7 @@ export = () => {
 	it("should support object literal brackets", () => {
 		const obj = {
 			test: 1,
-			"2": 2,
+			2: 2,
 			[1]: 3,
 		};
 		expect(obj.test).to.equal(1);
@@ -202,6 +202,15 @@ export = () => {
 			};
 			expect(object1[1]).to.equal(1);
 			expect(object1[2]).to.equal(1);
+		});
+
+		it("should support isEmpty", () => {
+			expect(Object.isEmpty({})).to.equal(true);
+			expect(
+				Object.isEmpty({
+					1: 2,
+				}),
+			).to.equal(false);
 		});
 	});
 };

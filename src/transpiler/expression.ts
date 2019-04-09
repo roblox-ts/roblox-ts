@@ -166,7 +166,19 @@ export function expressionModifiesVariable(
 	return false;
 }
 
-export function placeInStatementIfExpression(
+export function appendDeclarationIfMissing(
+	state: TranspilerState,
+	possibleExpressionStatement: ts.Node,
+	transpiledNode: string,
+) {
+	if (ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
+		return "local _ = " + transpiledNode;
+	} else {
+		return transpiledNode;
+	}
+}
+
+export function placeIncrementorInStatementIfExpression(
 	state: TranspilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,

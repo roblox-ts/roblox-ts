@@ -63,6 +63,7 @@ export enum TranspilerErrorType {
 	BadAddition,
 	InvalidMacroIndex,
 	NoTypeOf,
+	BadBuiltinConstructorCall,
 }
 
 export class TranspilerError extends Error {
