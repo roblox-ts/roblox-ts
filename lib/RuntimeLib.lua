@@ -788,8 +788,9 @@ function TS.map_clear(map)
 end
 
 function TS.map_delete(map, key)
+	local deleted = map[key] ~= nil
 	map[key] = nil
-	return has
+	return deleted
 end
 
 local function getNumKeys(map)
@@ -863,7 +864,7 @@ end
 TS.set_clear = TS.map_clear
 
 function TS.set_delete(set, value)
-	local result = TS.set_has(set, value)
+	local result = set[value] == true
 	set[value] = nil
 	return result
 end
