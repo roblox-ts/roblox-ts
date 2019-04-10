@@ -72,7 +72,7 @@ export class TranspilerState {
 		}
 
 		const ancestorName = this.getExportContextName(node);
-		const alias = node.isDefaultExport() ? "_default" : name;
+		const alias = node.hasDefaultKeyword() ? "_default" : name;
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
