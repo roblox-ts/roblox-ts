@@ -33,6 +33,13 @@ export function transpileIdentifier(state: TranspilerState, node: ts.Identifier,
 						const declarationKind = parent.getDeclarationKind();
 						if (declarationKind === ts.VariableDeclarationKind.Let) {
 							return state.getExportContextName(parent) + "." + name;
+						} else if (declarationKind === ts.VariableDeclarationKind.Const) {
+							const idContext = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+							const defContext = parent.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+
+							if (idContext && defContext && idContext !== defContext) {
+								state.pushHoistStack(`local ${name} = ${state.getNameForContext(defContext)}.${name}`);
+							}
 						}
 					}
 					break;

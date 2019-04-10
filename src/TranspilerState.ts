@@ -76,8 +76,7 @@ export class TranspilerState {
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
-	public getExportContextName(node: ts.VariableStatement | ts.Node): string {
-		const myNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
+	public getNameForContext(myNamespace: ts.NamespaceDeclaration | undefined): string {
 		let name;
 
 		if (myNamespace) {
@@ -89,6 +88,10 @@ export class TranspilerState {
 		}
 
 		return name;
+	}
+
+	public getExportContextName(node: ts.VariableStatement | ts.Node): string {
+		return this.getNameForContext(node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration));
 	}
 
 	// in the form: { ORIGINAL_IDENTIFIER = REPLACEMENT_VALUE }
