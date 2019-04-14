@@ -182,7 +182,17 @@ function accessPathWrap(replacer: SimpleReplaceFunction): ReplaceFunction {
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
 	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`));
+	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
+	.set("split", (params, state, subExp) => {
+		const firstParam = params[0];
+		const secondParam = params[1];
+		if (
+			(ts.TypeGuards.isStringLiteral(firstParam) && firstParam.getLiteralText() === "") ||
+			(secondParam && ts.TypeGuards.isTrueKeyword(secondParam))
+		) {
+			return `${wrapExpressionIfNeeded(state, subExp)}:split(${transpileCallArgument(state, params[0])})`;
+		}
+	});
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);

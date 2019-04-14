@@ -938,14 +938,25 @@ TS.set_toString = toString
 
 -- string macro functions
 
-function TS.string_split(input, sep)
-	local result = {}
-	local count = 0
-	for str in input:gmatch(sep == "" and "." or "[^" .. sep .. "]+") do
-		count = count + 1
-		result[count] = str
+function TS.string_split(input, sep, plain)
+	if sep == "" or plain then
+		return input:split(sep)
+	else
+		local result = {}
+		local count = 1
+		local pos = 1
+		local a, b = input:find(sep, pos)
+
+		while a do
+			result[count] = input:sub(pos, a - 1)
+			count = count + 1
+			pos = b + 1
+			a, b = input:find(sep, pos)
+		end
+
+		result[count] = input:sub(pos)
+		return result
 	end
-	return result
 end
 
 -- roact functions
