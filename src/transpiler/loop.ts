@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import {
 	expressionModifiesVariable,
 	getBindingData,
-	placeInStatementIfExpression,
+	placeIncrementorInStatementIfExpression,
 	transpileExpression,
 	transpileStatement,
 	transpileVariableDeclarationList,
@@ -390,7 +390,7 @@ function safelyHandleExpressionsInForStatement(
 	if (ts.TypeGuards.isExpression(incrementor)) {
 		checkLoopClassExp(incrementor);
 	}
-	return state.indent + placeInStatementIfExpression(state, incrementor, incrementorStr);
+	return state.indent + placeIncrementorInStatementIfExpression(state, incrementor, incrementorStr);
 }
 
 function getSimpleForLoopString(

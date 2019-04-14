@@ -150,10 +150,6 @@ function TS.exportNamespace(module, ancestor)
 end
 
 -- general utility functions
-function TS.typeIs(value, typeName)
-	return typeof(value) == typeName
-end
-
 function TS.instanceof(obj, class)
 	-- custom Class.instanceof() check
 	if typeof(class) == TYPE_TABLE and typeof(class.instanceof) == TYPE_FUNCTION then
@@ -366,10 +362,6 @@ TS.Object_copy = copy
 TS.Object_deepCopy = deepCopy
 
 TS.Object_deepEquals = deepEquals
-
-function TS.Object_isEmpty(object)
-	return next(object) == nil
-end
 
 local function toString(data)
 	return HttpService:JSONEncode(data)
@@ -662,13 +654,6 @@ function TS.array_push(list, ...)
 	return #list
 end
 
-function TS.array_pop(list)
-	local length = #list
-	local lastValue = list[length]
-	list[length] = nil
-	return lastValue
-end
-
 local table_concat = table.concat
 
 function TS.array_join(list, separator)
@@ -786,16 +771,6 @@ TS.array_deepCopy = deepCopy
 
 TS.array_deepEquals = deepEquals
 
-TS.array_isEmpty = TS.Object_isEmpty
-
-function TS.array_insert(list, index, value)
-	table.insert(list, index + 1, value)
-end
-
-function TS.array_remove(list, index)
-	return table.remove(list, index + 1)
-end
-
 -- map macro functions
 
 function TS.map_new(value)
@@ -813,11 +788,9 @@ function TS.map_clear(map)
 end
 
 function TS.map_delete(map, key)
-	local has = TS.map_has(map, key)
-	if has then
-		map[key] = nil
-	end
-	return has
+	local deleted = map[key] ~= nil
+	map[key] = nil
+	return deleted
 end
 
 local function getNumKeys(map)
@@ -842,14 +815,6 @@ function TS.map_forEach(map, callback)
 	for key, value in pairs(map) do
 		callback(value, key, map)
 	end
-end
-
-function TS.map_get(map, key)
-	return map[key]
-end
-
-function TS.map_has(map, key)
-	return map[key] ~= nil
 end
 
 local function getKeys(tab)
@@ -880,7 +845,6 @@ function TS.map_values(map)
 end
 
 TS.map_toString = toString
-TS.map_isEmpty = TS.Object_isEmpty
 
 -- set macro functions
 
@@ -900,7 +864,7 @@ end
 TS.set_clear = TS.map_clear
 
 function TS.set_delete(set, value)
-	local result = TS.set_has(set, value)
+	local result = set[value] == true
 	set[value] = nil
 	return result
 end
@@ -910,8 +874,6 @@ function TS.set_forEach(set, callback)
 		callback(key, key, set)
 	end
 end
-
-TS.set_has = TS.map_has
 
 function TS.set_union(set1, set2)
 	local result = {}
@@ -971,8 +933,6 @@ end
 TS.set_values = getKeys
 
 TS.set_size = getNumKeys
-
-TS.set_isEmpty = TS.Object_isEmpty
 
 TS.set_toString = toString
 
