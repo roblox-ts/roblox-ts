@@ -29,7 +29,7 @@ export = () => {
 		expect(str.split("H", true).every((word, i) => word === hSplit[i])).to.equal(true);
 		expect(checkLen(1, "".split("a"))[0]).to.equal("");
 
-		for (let i = 2; 2 < 10; i++) {
+		for (let i = 2; i < 10; i++) {
 			const str = "d".rep(i - 1);
 			const str1 = str.split("d");
 			const str2 = str.split("d", true);
