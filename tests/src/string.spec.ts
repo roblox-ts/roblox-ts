@@ -23,7 +23,7 @@ export = () => {
 		expect(str.split("", true).every((char, i) => char === chars[i])).to.equal(true);
 		expect(str.split(", ").every((word, i) => word === words[i])).to.equal(true);
 		expect(str.split(", ", true).every((word, i) => word === words[i])).to.equal(true);
-		expect(str.split(".").every(word => word === str)).to.equal(true);
+		expect(str.split(".").every((char, i) => char === chars[i])).to.equal(true);
 		expect(str.split(".", true).every(word => word === str)).to.equal(true);
 		expect(str.split("H").every((word, i) => word === hSplit[i])).to.equal(true);
 		expect(str.split("H", true).every((word, i) => word === hSplit[i])).to.equal(true);
