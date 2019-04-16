@@ -65,7 +65,13 @@ stds.roblox = {
                 "profileend",
                 "traceback",
             }
-        }
+		},
+
+		string = {
+			fields = {
+				"split"
+			}
+		}
     }
 }
 
