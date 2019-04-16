@@ -190,7 +190,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 			(ts.TypeGuards.isStringLiteral(firstParam) && firstParam.getLiteralText() === "") ||
 			(secondParam && ts.TypeGuards.isTrueKeyword(secondParam))
 		) {
-			return `${wrapExpressionIfNeeded(state, subExp)}:split(${transpileCallArgument(state, params[0])})`;
+			return `string.split(${wrapExpressionIfNeeded(state, subExp)}, ${transpileCallArgument(state, params[0])})`;
 		}
 	});
 
