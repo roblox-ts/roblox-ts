@@ -940,7 +940,7 @@ TS.set_toString = toString
 
 function TS.string_split(input, sep, plain)
 	if sep == "" or plain then
-		return input:split(sep)
+		return string.split(input, sep)
 	else
 		local result = {}
 		local count = 1
