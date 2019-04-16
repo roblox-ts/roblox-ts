@@ -184,14 +184,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
 	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
 	.set("split", (params, state, subExp) => {
-		const firstParam = params[0];
-		const secondParam = params[1];
-		if (
-			(ts.TypeGuards.isStringLiteral(firstParam) && firstParam.getLiteralText() === "") ||
-			(secondParam && ts.TypeGuards.isTrueKeyword(secondParam))
-		) {
-			return `string.split(${wrapExpressionIfNeeded(state, subExp)}, ${transpileCallArgument(state, params[0])})`;
-		}
+		return `string.split(${wrapExpressionIfNeeded(state, subExp)}, ${transpileCallArgument(state, params[0])})`;
 	});
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);

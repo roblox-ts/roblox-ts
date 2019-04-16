@@ -937,29 +937,6 @@ TS.set_size = getNumKeys
 
 TS.set_toString = toString
 
--- string macro functions
-
-function TS.string_split(input, sep, plain)
-	if sep == "" or plain then
-		return string_split(input, sep)
-	else
-		local result = {}
-		local count = 1
-		local pos = 1
-		local a, b = input:find(sep, pos)
-
-		while a do
-			result[count] = input:sub(pos, a - 1)
-			count = count + 1
-			pos = b + 1
-			a, b = input:find(sep, pos)
-		end
-
-		result[count] = input:sub(pos)
-		return result
-	end
-end
-
 -- roact functions
 
 function TS.Roact_combine(...)

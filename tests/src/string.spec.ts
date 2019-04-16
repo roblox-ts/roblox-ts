@@ -20,13 +20,8 @@ export = () => {
 		const hSplit = ["", "ello, world"];
 
 		expect(str.split("").every((char, i) => char === chars[i])).to.equal(true);
-		expect(str.split("", true).every((char, i) => char === chars[i])).to.equal(true);
 		expect(str.split(", ").every((word, i) => word === words[i])).to.equal(true);
-		expect(str.split(", ", true).every((word, i) => word === words[i])).to.equal(true);
-		expect(str.split(".").every((char, i) => char === chars[i])).to.equal(true);
-		expect(str.split(".", true).every(word => word === str)).to.equal(true);
 		expect(str.split("H").every((word, i) => word === hSplit[i])).to.equal(true);
-		expect(str.split("H", true).every((word, i) => word === hSplit[i])).to.equal(true);
 		expect(checkLen(1, "".split("a"))[0]).to.equal("");
 
 		for (let i = 2; i < 10; i++) {
