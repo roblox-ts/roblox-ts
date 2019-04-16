@@ -10,6 +10,7 @@ local TYPE_FUNCTION = "function"
 local table_sort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
+local string_split = string.split
 
 local TS = {}
 
@@ -940,7 +941,7 @@ TS.set_toString = toString
 
 function TS.string_split(input, sep, plain)
 	if sep == "" or plain then
-		return string.split(input, sep)
+		return string_split(input, sep)
 	else
 		local result = {}
 		local count = 1
