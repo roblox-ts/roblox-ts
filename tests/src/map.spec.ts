@@ -123,13 +123,41 @@ export = () => {
 	});
 
 	it("should support values", () => {
-		const map = new Map<string, number>()
-			.set("a", 1)
-			.set("b", 2)
-			.set("c", 3);
+		const map = new Map<string, number>([["b", 2], ["c", 4], ["a", 9]]).set("a", 1).set("c", 3);
 		const a = map.values();
 		expect(a.some(v => v === 1)).to.equal(true);
 		expect(a.some(v => v === 2)).to.equal(true);
 		expect(a.some(v => v === 3)).to.equal(true);
+	});
+
+	it("should support constructor parameters", () => {
+		const arr: ReadonlyArray<[string, number]> = [["a", 1], ["b", 2], ["c", 3]];
+
+		const map = new Map<string, number>([["a", 1], ["b", 2], ["c", 3]]);
+		const map2 = new Map<string, number>(arr);
+
+		{
+			const a = map.values();
+			expect(a.some(v => v === 1)).to.equal(true);
+			expect(a.some(v => v === 2)).to.equal(true);
+			expect(a.some(v => v === 3)).to.equal(true);
+		}
+		{
+			const a = map2.values();
+			expect(a.some(v => v === 1)).to.equal(true);
+			expect(a.some(v => v === 2)).to.equal(true);
+			expect(a.some(v => v === 3)).to.equal(true);
+		}
+	});
+
+	it("should support isEmpty", () => {
+		new Map<string, number>().isEmpty();
+		const v = new Map<string, number>().isEmpty();
+		const map = new Map<string, number>();
+		map.isEmpty();
+		const x = map.isEmpty();
+
+		expect(v).to.equal(true);
+		expect(map.set("Nope", 1).isEmpty()).to.equal(false);
 	});
 };

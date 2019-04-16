@@ -437,4 +437,16 @@ export = () => {
 		expect([1, 2, 4].toString()).to.be.ok();
 		expect(typeOf(x.toString())).to.equal("string");
 	});
+
+	it("should support isEmpty", () => {
+		new Array<string>().isEmpty();
+		const v = new Array<string>().isEmpty();
+		const arr = new Array<string>();
+		arr.isEmpty();
+		const x = arr.isEmpty();
+
+		expect(v).to.equal(true);
+		arr.push("Nope");
+		expect(arr.isEmpty()).to.equal(false);
+	});
 };
