@@ -136,7 +136,7 @@ export function isAnyType(type: ts.Type) {
 }
 
 export function isNullableType(type: ts.Type) {
-	return typeConstraint(type, t => t.isNullable());
+	return typeConstraint(type, t => t.isNullable() || t.isUndefined());
 }
 
 export function isBooleanType(type: ts.Type) {

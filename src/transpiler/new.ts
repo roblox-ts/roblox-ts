@@ -13,18 +13,16 @@ function transpileSetMapConstructorHelper(
 	args: Array<ts.Node>,
 	type: "set" | "map",
 ) {
-	if (
-		node
-			.getType()
-			.getTypeArguments()
-			.some(myType => myType.isUndefined() || myType.isNullable())
-	) {
+	const typeArgument = node.getType().getTypeArguments()[0];
+
+	if (typeArgument.isNullable() || typeArgument.isUndefined()) {
 		throw new TranspilerError(
 			`Cannot create a ${type} with a nullable index!`,
 			node,
 			TranspilerErrorType.NullableIndexOnMapOrSet,
 		);
 	}
+
 	const firstParam = args[0];
 
 	if (
