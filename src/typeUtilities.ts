@@ -136,7 +136,7 @@ export function isAnyType(type: ts.Type) {
 }
 
 export function isNullableType(type: ts.Type) {
-	return typeConstraint(type, t => t.isNullable());
+	return typeConstraint(type, t => t.isNullable() || t.isUndefined());
 }
 
 export function isBooleanType(type: ts.Type) {
@@ -167,6 +167,24 @@ export function isArrayType(type: ts.Type) {
 			}
 		}
 		return t.isArray() || t.isTuple();
+	});
+}
+
+const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
+
+export function isMapType(type: ts.Type) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol ? MAP_NAMES.has(symbol.getEscapedName()) : false;
+	});
+}
+
+const SET_NAMES = new Set<string>(["Set", "ReadonlySet", "WeakSet"]);
+
+export function isSetType(type: ts.Type) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol ? SET_NAMES.has(symbol.getEscapedName()) : false;
 	});
 }
 

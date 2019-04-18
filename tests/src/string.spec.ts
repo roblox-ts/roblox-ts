@@ -27,15 +27,11 @@ export = () => {
 		for (let i = 2; i < 10; i++) {
 			const str = "d".rep(i - 1);
 			const str1 = str.split("d");
-			const str2 = str.split("d", true);
 			expect(str1.length).to.equal(i);
-			expect(str2.length).to.equal(i);
 			expect(str1.every(c => c === "")).to.equal(true);
-			expect(str2.every(c => c === "")).to.equal(true);
 		}
 
 		expect("".split("").isEmpty()).to.equal(true);
-		expect("".split("", true).isEmpty()).to.equal(true);
 
 		const slasher = ["", "Validark", "Osyris", "Vorlias", ""];
 		expect(checkLen(5, "/Validark/Osyris/Vorlias/".split("/")).every((word, i) => word === slasher[i])).to.equal(
@@ -47,5 +43,9 @@ export = () => {
 		expect(checkLen(3, "Validark/Osyris/Vorlias".split("/")).every((word, i) => word === slasher[i + 1])).to.equal(
 			true,
 		);
+	});
+
+	it("should support calling gmatch", () => {
+		expect("Hello".gmatch(".")()).to.equal("H");
 	});
 };

@@ -3,6 +3,7 @@ import { checkReserved, getBindingData, transpileCallExpression, transpileExpres
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { concatNamesAndValues } from "./binding";
 
 export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
@@ -42,12 +43,16 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			}
 			values.push(transpileCallExpression(state, rhs, true));
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				return state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
+				let returnValue: string | undefined;
+				concatNamesAndValues(state, names, values, false, str => (returnValue = str));
+				return returnValue || "";
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					names.forEach(name => state.pushExport(name, grandParent));
 				}
-				return state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+				let returnValue: string | undefined;
+				concatNamesAndValues(state, names, values, true, str => (returnValue = str));
+				return returnValue || "";
 			}
 		}
 	}
@@ -95,12 +100,12 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				result += state.indent + `${names.join(", ")} = ${values.join(", ")};\n`;
+				concatNamesAndValues(state, names, values, false, str => (result += str));
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					names.forEach(name => state.pushExport(name, grandParent));
 				}
-				result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+				concatNamesAndValues(state, names, values, true, str => (result += str));
 			}
 		}
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
