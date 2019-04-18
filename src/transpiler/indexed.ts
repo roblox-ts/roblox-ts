@@ -21,8 +21,9 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node, node);
 
 	if (
-		propertyAccessExpressionType === PropertyCallExpType.String ||
-		(propertyAccessExpressionType === PropertyCallExpType.Array && propertyStr === "length")
+		(propertyAccessExpressionType === PropertyCallExpType.String ||
+			propertyAccessExpressionType === PropertyCallExpType.Array) &&
+		propertyStr === "length"
 	) {
 		return `(#${expStr})`;
 	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {

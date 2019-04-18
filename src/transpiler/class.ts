@@ -174,6 +174,7 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		.filter(prop => prop.getParent() === node)
 		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
+
 	for (const prop of instanceProps) {
 		const propNameNode = prop.getNameNode();
 		if (propNameNode) {

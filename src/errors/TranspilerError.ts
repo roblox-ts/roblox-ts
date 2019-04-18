@@ -67,6 +67,7 @@ export enum TranspilerErrorType {
 	BadForOfInitializer,
 	ForInLoop,
 	BadDestructuringType,
+	NullableIndexOnMapOrSet,
 }
 
 export class TranspilerError extends Error {
