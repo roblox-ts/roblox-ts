@@ -163,30 +163,124 @@ export function transpileForInStatement(state: TranspilerState, node: ts.ForInSt
 	return result;
 }
 
+const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
+
+function getVariableName(
+	state: TranspilerState,
+	lhs: ts.Node,
+	names: Array<string>,
+	values: Array<string>,
+	preStatements: Array<string>,
+	postStatements: Array<string>,
+) {
+	let varName: string;
+	if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
+		varName = state.getNewId();
+		getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
+	} else if (ts.TypeGuards.isIdentifier(lhs)) {
+		varName = lhs.getText();
+	} else {
+		throw new TranspilerError("Unexpected for..of initializer", lhs, TranspilerErrorType.BadForOfInitializer);
+	}
+
+	return varName;
+}
+
 export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfStatement) {
 	state.pushIdStack();
 	const init = node.getInitializer();
 	let lhs: ts.Node<ts.ts.Node> | undefined;
 	let varName = "";
 	const initializers = new Array<string>();
+	const statement = node.getStatement();
+	const exp = node.getExpression();
+	const expType = exp.getType();
+	const expTypeSymbol = expType.getSymbol();
+	const isMapIteration = expTypeSymbol && MAP_NAMES.has(expTypeSymbol.getEscapedName());
+	let result = "";
+	let expStr = transpileExpression(state, exp);
+
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		for (const declaration of init.getDeclarations()) {
 			lhs = declaration.getChildAtIndex(0);
-			if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
-				varName = state.getNewId();
-				const names = new Array<string>();
-				const values = new Array<string>();
-				const preStatements = new Array<string>();
-				const postStatements = new Array<string>();
-				getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
-				preStatements.forEach(myStatement => initializers.push(myStatement));
-				const namesStr = names.join(", ");
-				const valuesStr = values.join(", ");
-				initializers.push(`local ${namesStr} = ${valuesStr};\n`);
-				postStatements.forEach(myStatement => initializers.push(myStatement));
-			} else if (ts.TypeGuards.isIdentifier(lhs)) {
-				varName = lhs.getText();
+
+			const names = new Array<string>();
+			const values = new Array<string>();
+			const preStatements = new Array<string>();
+			const postStatements = new Array<string>();
+
+			if (isMapIteration) {
+				if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
+					const syntaxList = lhs.getChildAtIndex(1);
+
+					if (ts.TypeGuards.isSyntaxList(syntaxList)) {
+						const syntaxChildren = syntaxList.getChildren();
+						const first = syntaxChildren[0];
+						let key: string | undefined;
+						let value: string | undefined;
+
+						if (first) {
+							if (!ts.TypeGuards.isOmittedExpression(first)) {
+								key = getVariableName(
+									state,
+									first.getChildAtIndex(0),
+									names,
+									values,
+									preStatements,
+									postStatements,
+								);
+							}
+						}
+
+						if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
+							const third = syntaxChildren[2];
+							if (third) {
+								if (!ts.TypeGuards.isOmittedExpression(third)) {
+									value = getVariableName(
+										state,
+										third.getChildAtIndex(0),
+										names,
+										values,
+										preStatements,
+										postStatements,
+									);
+								}
+							}
+						}
+
+						result +=
+							state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in pairs(${expStr}) do\n`;
+					} else {
+						throw new TranspilerError(
+							"Unexpected for..of initializer",
+							lhs,
+							TranspilerErrorType.BadForOfInitializer,
+						);
+					}
+				} else {
+					if (!ts.TypeGuards.isIdentifier(lhs)) {
+						throw new TranspilerError(
+							"Unexpected for..of initializer",
+							lhs,
+							TranspilerErrorType.BadForOfInitializer,
+						);
+					}
+					const key = state.getNewId();
+					const value = state.getNewId();
+					result += state.indent + `for ${key}, ${value} in pairs(${expStr}) do\n`;
+					state.pushIndent();
+					result += state.indent + `local ${lhs.getText()} = {${key}, ${value}};\n`;
+					state.popIndent();
+				}
+			} else {
+				varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
 			}
+
+			preStatements.forEach(myStatement => initializers.push(myStatement));
+			if (names.length > 0) {
+				initializers.push(`local ${names.join(", ")} = ${values.join(", ")};\n`);
+			}
+			postStatements.forEach(myStatement => initializers.push(myStatement));
 		}
 	} else if (ts.TypeGuards.isExpression(init)) {
 		const initKindName = init.getKindName();
@@ -197,16 +291,11 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		);
 	}
 
-	if (varName.length === 0) {
+	if (!isMapIteration && varName.length === 0) {
 		throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 	}
 
-	const statement = node.getStatement();
-	const exp = node.getExpression();
-	let expStr = transpileExpression(state, exp);
-	let result = "";
-
-	if (isArrayType(exp.getType())) {
+	if (isArrayType(expType)) {
 		let varValue: string;
 
 		if (!ts.TypeGuards.isIdentifier(exp)) {
@@ -220,7 +309,22 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		varValue = `${expStr}[${myInt}]`;
 		result += state.indent + `local ${varName} = ${varValue};\n`;
 	} else {
-		result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+		let done = false;
+
+		if (expTypeSymbol) {
+			const escapedName = expTypeSymbol.getEscapedName();
+
+			if (escapedName === "Map" || escapedName === "ReadonlyMap" || escapedName === "WeakMap") {
+				done = true;
+			} else if (escapedName === "Set" || escapedName === "ReadonlySet" || escapedName === "WeakSet") {
+				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
+				done = true;
+			}
+		}
+
+		if (!done) {
+			result += state.indent + `for ${varName} in ${expStr} do\n`;
+		}
 		state.pushIndent();
 	}
 
