@@ -15,7 +15,11 @@ function transpileSetMapConstructorHelper(
 ) {
 	const firstParam = args[0];
 
-	if (firstParam && !ts.TypeGuards.isArrayLiteralExpression(firstParam)) {
+	if (
+		firstParam &&
+		(!ts.TypeGuards.isArrayLiteralExpression(firstParam) ||
+			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
+	) {
 		state.usesTSLibrary = true;
 		return `TS.${type}_new(${transpileCallArguments(state, args)})`;
 	} else {
