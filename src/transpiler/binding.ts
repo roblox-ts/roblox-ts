@@ -55,7 +55,7 @@ export function getParameterData(
 			}
 		}
 
-		if (param.hasScopeKeyword()) {
+		if (param.hasScopeKeyword() || param.isReadonly()) {
 			initializers.push(`self.${name} = ${name};`);
 		}
 
