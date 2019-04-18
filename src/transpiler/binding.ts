@@ -67,7 +67,7 @@ export function getParameterData(
 			const postStatements = new Array<string>();
 			getBindingData(state, names, values, preStatements, postStatements, child, name);
 			preStatements.forEach(statement => initializers.push(statement));
-			concatNamesAndValues(state, names, values, true, declaration => initializers.push(declaration));
+			concatNamesAndValues(state, names, values, true, declaration => initializers.push(declaration), false);
 			postStatements.forEach(statement => initializers.push(statement));
 		}
 	}
@@ -134,10 +134,15 @@ export function concatNamesAndValues(
 	values: Array<string>,
 	isLocal: boolean,
 	func: (str: string) => void,
+	includeSpacing: boolean = true,
 ) {
 	if (values.length > 0) {
 		names[0] = names[0] || "_";
-		func(`${state.indent}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(", ")};\n`);
+		func(
+			`${includeSpacing ? state.indent : ""}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(
+				", ",
+			)};${includeSpacing ? "\n" : ""}`,
+		);
 	}
 }
 

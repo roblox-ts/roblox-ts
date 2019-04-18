@@ -251,7 +251,9 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		for (const myStatement of preStatements) {
 			result += state.indent + myStatement + "\n";
 		}
-		concatNamesAndValues(state, names, values, true, str => (result += str));
+		concatNamesAndValues(state, names, values, true, str => {
+			result += str;
+		});
 		for (const myStatement of postStatements) {
 			result += state.indent + myStatement + "\n";
 		}
