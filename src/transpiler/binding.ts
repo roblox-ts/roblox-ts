@@ -197,7 +197,7 @@ export function getBindingData(
 					: getAccessor(parentId, childIndex);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
-			} else {
+			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new TranspilerError(
 					`Roblox-TS doesn't know what to do with ${child.getKindName()}. ` +
 						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
@@ -217,9 +217,9 @@ export function getBindingData(
 			const childId = state.getNewId();
 			preStatements.push(`local ${childId} = ${getAccessor(parentId, childIndex)};`);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
-		} else if (item.getKind() !== ts.SyntaxKind.CommaToken) {
+		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
 			childIndex--;
-		} else {
+		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
 			throw new TranspilerError(
 				`Roblox-TS doesn't know what to do with ${item.getKindName()}. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
