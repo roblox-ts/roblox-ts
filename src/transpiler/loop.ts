@@ -248,13 +248,13 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		}
 
 		for (const myStatement of preStatements) {
-			result += state.indent + myStatement;
+			result += state.indent + myStatement + "\n";
 		}
 		if (names.length > 0) {
 			result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
 		}
 		for (const myStatement of postStatements) {
-			result += state.indent + myStatement;
+			result += state.indent + myStatement + "\n";
 		}
 		result += transpileLoopBody(state, statement);
 		state.popIndent();
