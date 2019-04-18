@@ -121,45 +121,123 @@ export = () => {
 		expect(hit.has(3)).to.equal(true);
 	});
 
-	it("should support for-of loops", () => {
-		const hit = new Set<number>();
-		const array = [1, 2, 3];
+	it("should support for-of loops over arrays", () => {
+		const hit = new Set<string>();
+		const array = ["1", "2", "3", "4"];
 		let n = 0;
 		for (const v of array) {
 			hit.add(v);
 			n++;
 		}
-		expect(n).to.equal(3);
-		expect(hit.has(1)).to.equal(true);
-		expect(hit.has(2)).to.equal(true);
-		expect(hit.has(3)).to.equal(true);
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
 	});
 
 	it("should support for-of loops over array literals", () => {
-		const hit = new Set<number>();
+		const hit = new Set<string>();
 		let n = 0;
-		for (const v of [1, 2, 3]) {
+		for (const v of ["1", "2", "3", "4"]) {
 			hit.add(v);
 			n++;
 		}
-		expect(n).to.equal(3);
-		expect(hit.has(1)).to.equal(true);
-		expect(hit.has(2)).to.equal(true);
-		expect(hit.has(3)).to.equal(true);
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
 	});
 
-	it("should support for-in loops", () => {
-		const obj: { [index: string]: number } = {
-			a: 1,
-			b: 2,
-			c: 3,
-		};
-		for (const key in obj) {
-			obj[key]++;
+	it("should support for-of loops over string literals", () => {
+		const hit = new Set<string>();
+		let n = 0;
+		for (const v of "1234") {
+			hit.add(v);
+			n++;
 		}
-		expect(obj.a).to.equal(2);
-		expect(obj.b).to.equal(3);
-		expect(obj.c).to.equal(4);
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support for-of loops over strings", () => {
+		const hit = new Set<string>();
+		const str = "1234";
+		let n = 0;
+		for (const v of str) {
+			hit.add(v);
+			n++;
+		}
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support for-of loops over Set literals", () => {
+		const hit = new Set<string>();
+		let n = 0;
+		for (const v of new Set(["1", "2", "3", "4"])) {
+			hit.add(v);
+			n++;
+		}
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support for-of loops over Sets", () => {
+		const hit = new Set<string>();
+		const set = new Set(["1", "2", "3", "4"]);
+		let n = 0;
+		for (const v of set) {
+			hit.add(v);
+			n++;
+		}
+		expect(n).to.equal(4);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support for-of loops over Map literals", () => {
+		const hit = new Set<string>();
+		let n = 0;
+		for (const v of new Map([["1", "2"], ["3", "4"]])) {
+			hit.add(v[0]);
+			hit.add(v[1]);
+			n++;
+		}
+		expect(n).to.equal(2);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support for-of loops over Maps", () => {
+		const hit = new Set<string>();
+		const map = new Map([["1", "2"], ["3", "4"]]);
+		let n = 0;
+		for (const v of map) {
+			hit.add(v[0]);
+			hit.add(v[1]);
+			n++;
+		}
+		expect(n).to.equal(2);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support optimized destructuring in for-of loops over Maps", () => {
+		const hit = new Set<string>();
+		const map = new Map([["1", "2"], ["3", "4"]]);
+		let n = 0;
+		for (const [k, v] of map) {
+			hit.add(k);
+			hit.add(v);
+			n++;
+		}
+		expect(n).to.equal(2);
+		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
+	});
+
+	it("should support destructuring optimized destructuring in for-of loops over Maps", () => {
+		let n = 0;
+		for (const [[i, j], [k, v]] of new Map<[string, string], [string, string]>([[["1", "2"], ["3", "4"]]])) {
+			expect(i).to.equal("1");
+			expect(j).to.equal("2");
+			expect(k).to.equal("3");
+			expect(v).to.equal("4");
+			n++;
+		}
+		expect(n).to.equal(1);
 	});
 
 	it("should support break", () => {
@@ -229,7 +307,7 @@ export = () => {
 	});
 
 	it("should work with gmatch", () => {
-		for (const a in "H".gmatch(".")) {
+		for (const a of "H".gmatch(".")) {
 			expect(a).to.equal("H");
 		}
 	});

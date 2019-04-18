@@ -147,10 +147,10 @@ const errorMatrix: ErrorMatrix = {
 		instance: TranspilerError,
 		type: TranspilerErrorType.UnexpectedInitializer,
 	},
-	"unexpectedInitializerForIn.spec.ts": {
-		message: "should not allow expressions as initializers in for-in loops",
+	"disallowForIn.spec.ts": {
+		message: "should not allow for-in loops",
 		instance: TranspilerError,
-		type: TranspilerErrorType.UnexpectedInitializer,
+		type: TranspilerErrorType.ForInLoop,
 	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",

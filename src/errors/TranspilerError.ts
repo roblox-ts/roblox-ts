@@ -64,6 +64,9 @@ export enum TranspilerErrorType {
 	InvalidMacroIndex,
 	NoTypeOf,
 	BadBuiltinConstructorCall,
+	BadForOfInitializer,
+	ForInLoop,
+	BadDestructuringType,
 	NullableIndexOnMapOrSet,
 }
 

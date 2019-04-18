@@ -9,7 +9,6 @@ import {
 	transpileExportAssignment,
 	transpileExportDeclaration,
 	transpileExpressionStatement,
-	transpileForInStatement,
 	transpileForOfStatement,
 	transpileForStatement,
 	transpileFunctionDeclaration,
@@ -57,7 +56,7 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 	} else if (ts.TypeGuards.isContinueStatement(node)) {
 		return transpileContinueStatement(state, node);
 	} else if (ts.TypeGuards.isForInStatement(node)) {
-		return transpileForInStatement(state, node);
+		throw new TranspilerError("For..in loops are disallowed!", node, TranspilerErrorType.ForInLoop);
 	} else if (ts.TypeGuards.isForOfStatement(node)) {
 		return transpileForOfStatement(state, node);
 	} else if (ts.TypeGuards.isForStatement(node)) {
