@@ -43,16 +43,16 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 			}
 			values.push(transpileCallExpression(state, rhs, true));
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				let result: string | undefined;
-				concatNamesAndValues(state, names, values, false, str => (result = str));
-				return result || "";
+				let returnValue: string | undefined;
+				concatNamesAndValues(state, names, values, false, str => (returnValue = str));
+				return returnValue || "";
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					names.forEach(name => state.pushExport(name, grandParent));
 				}
-				let result: string | undefined;
-				concatNamesAndValues(state, names, values, true, str => (result = str));
-				return result || "";
+				let returnValue: string | undefined;
+				concatNamesAndValues(state, names, values, true, str => (returnValue = str));
+				return returnValue || "";
 			}
 		}
 	}
