@@ -64,6 +64,7 @@ export enum TranspilerErrorType {
 	InvalidMacroIndex,
 	NoTypeOf,
 	BadBuiltinConstructorCall,
+	NullableIndexOnMapOrSet,
 }
 
 export class TranspilerError extends Error {
