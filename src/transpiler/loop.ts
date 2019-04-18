@@ -11,6 +11,7 @@ import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError"
 import { TranspilerState } from "../TranspilerState";
 import { isArrayType, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { concatNamesAndValues } from "./binding";
 import { getFirstMemberWithParameters } from "./function";
 import { transpileNumericLiteral } from "./literal";
 
@@ -250,9 +251,7 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		for (const myStatement of preStatements) {
 			result += state.indent + myStatement + "\n";
 		}
-		if (names.length > 0) {
-			result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
-		}
+		concatNamesAndValues(state, names, values, true, str => (result += str));
 		for (const myStatement of postStatements) {
 			result += state.indent + myStatement + "\n";
 		}

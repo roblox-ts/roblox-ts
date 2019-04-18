@@ -67,7 +67,7 @@ export function getParameterData(
 			const postStatements = new Array<string>();
 			getBindingData(state, names, values, preStatements, postStatements, child, name);
 			preStatements.forEach(statement => initializers.push(statement));
-			initializers.push(`local ${names.join(", ")} = ${values.join(", ")};`);
+			concatNamesAndValues(state, names, values, true, declaration => initializers.push(declaration));
 			postStatements.forEach(statement => initializers.push(statement));
 		}
 	}
@@ -128,6 +128,19 @@ function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boo
 	}
 }
 
+export function concatNamesAndValues(
+	state: TranspilerState,
+	names: Array<string>,
+	values: Array<string>,
+	isLocal: boolean,
+	func: (str: string) => void,
+) {
+	if (values.length > 0) {
+		names[0] = names[0] || "_";
+		func(`${state.indent}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(", ")};\n`);
+	}
+}
+
 export function getBindingData(
 	state: TranspilerState,
 	names: Array<string>,
@@ -137,7 +150,6 @@ export function getBindingData(
 	bindingPattern: ts.Node,
 	parentId: string,
 ) {
-	console.log(bindingPattern.getType().getText());
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	const getAccessor = getAccessorForBindingPatternType(bindingPattern, strKeys);
 
