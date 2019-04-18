@@ -170,6 +170,24 @@ export function isArrayType(type: ts.Type) {
 	});
 }
 
+const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
+
+export function isMapType(type: ts.Type) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol ? MAP_NAMES.has(symbol.getEscapedName()) : false;
+	});
+}
+
+const SET_NAMES = new Set<string>(["Set", "ReadonlySet", "WeakSet"]);
+
+export function isSetType(type: ts.Type) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol ? SET_NAMES.has(symbol.getEscapedName()) : false;
+	});
+}
+
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
 
 export function isTupleReturnType(node: ts.ReturnTypedNode) {

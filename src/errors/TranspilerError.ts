@@ -65,6 +65,8 @@ export enum TranspilerErrorType {
 	NoTypeOf,
 	BadBuiltinConstructorCall,
 	BadForOfInitializer,
+	ForInLoop,
+	BadDestructuringType,
 }
 
 export class TranspilerError extends Error {

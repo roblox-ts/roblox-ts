@@ -9,7 +9,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isNumberType, isStringType } from "../typeUtilities";
+import { isArrayType, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { getFirstMemberWithParameters } from "./function";
 import { transpileNumericLiteral } from "./literal";
@@ -100,71 +100,6 @@ export function transpileDoStatement(state: TranspilerState, node: ts.DoStatemen
 	return result;
 }
 
-function isCallExpressionOverridable(node: ts.Expression<ts.ts.Expression>) {
-	if (ts.TypeGuards.isCallExpression(node)) {
-		const exp = node.getExpression();
-		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-			const subExpType = exp.getExpression().getType();
-			return isStringType(subExpType) && exp.getName() === "gmatch";
-		}
-	}
-	return false;
-}
-
-export function transpileForInStatement(state: TranspilerState, node: ts.ForInStatement) {
-	state.pushIdStack();
-	const init = node.getInitializer();
-	let varName = "";
-	const initializers = new Array<string>();
-	if (ts.TypeGuards.isVariableDeclarationList(init)) {
-		for (const declaration of init.getDeclarations()) {
-			const lhs = declaration.getChildAtIndex(0);
-			if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
-				throw new TranspilerError(
-					`ForIn Loop did not expect binding pattern!`,
-					init,
-					TranspilerErrorType.UnexpectedBindingPattern,
-				);
-			} else if (ts.TypeGuards.isIdentifier(lhs)) {
-				varName = lhs.getText();
-			}
-		}
-	} else if (ts.TypeGuards.isExpression(init)) {
-		const initKindName = init.getKindName();
-		throw new TranspilerError(
-			`ForIn Loop did not expect expression initializer! (${initKindName})`,
-			init,
-			TranspilerErrorType.UnexpectedInitializer,
-		);
-	}
-
-	if (varName.length === 0) {
-		throw new TranspilerError(`ForIn Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
-	}
-
-	const exp = node.getExpression();
-	const expStr = transpileExpression(state, exp);
-	let result = "";
-
-	if (isCallExpressionOverridable(exp)) {
-		result += state.indent + `for ${varName} in ${expStr} do\n`;
-	} else if (isArrayType(exp.getType())) {
-		result += state.indent + `for ${varName} = 0, #${expStr} - 1 do\n`;
-	} else {
-		result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
-	}
-
-	state.pushIndent();
-	initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
-	result += transpileLoopBody(state, node.getStatement());
-	state.popIndent();
-	result += state.indent + `end;\n`;
-	state.popIdStack();
-	return result;
-}
-
-const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
-
 function getVariableName(
 	state: TranspilerState,
 	lhs: ts.Node,
@@ -191,39 +126,60 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 	const init = node.getInitializer();
 	let lhs: ts.Node<ts.ts.Node> | undefined;
 	let varName = "";
-	const initializers = new Array<string>();
 	const statement = node.getStatement();
 	const exp = node.getExpression();
 	const expType = exp.getType();
-	const expTypeSymbol = expType.getSymbol();
-	const isMapIteration = expTypeSymbol && MAP_NAMES.has(expTypeSymbol.getEscapedName());
 	let result = "";
 	let expStr = transpileExpression(state, exp);
 
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
-		for (const declaration of init.getDeclarations()) {
-			lhs = declaration.getChildAtIndex(0);
+		const declarations = init.getDeclarations();
 
-			const names = new Array<string>();
-			const values = new Array<string>();
-			const preStatements = new Array<string>();
-			const postStatements = new Array<string>();
+		if (declarations.length !== 1) {
+			throw new TranspilerError(
+				"Expected a single declaration in ForOf loop",
+				init,
+				TranspilerErrorType.BadForOfInitializer,
+			);
+		}
 
-			if (isMapIteration) {
-				if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
-					const syntaxList = lhs.getChildAtIndex(1);
+		lhs = declarations[0].getChildAtIndex(0);
 
-					if (ts.TypeGuards.isSyntaxList(syntaxList)) {
-						const syntaxChildren = syntaxList.getChildren();
-						const first = syntaxChildren[0];
-						let key: string | undefined;
-						let value: string | undefined;
+		const names = new Array<string>();
+		const values = new Array<string>();
+		const preStatements = new Array<string>();
+		const postStatements = new Array<string>();
 
-						if (first) {
-							if (!ts.TypeGuards.isOmittedExpression(first)) {
-								key = getVariableName(
+		if (isMapType(expType)) {
+			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
+				const syntaxList = lhs.getChildAtIndex(1);
+
+				if (ts.TypeGuards.isSyntaxList(syntaxList)) {
+					const syntaxChildren = syntaxList.getChildren();
+					const first = syntaxChildren[0];
+					let key: string | undefined;
+					let value: string | undefined;
+
+					if (first) {
+						if (!ts.TypeGuards.isOmittedExpression(first)) {
+							key = getVariableName(
+								state,
+								first.getChildAtIndex(0),
+								names,
+								values,
+								preStatements,
+								postStatements,
+							);
+						}
+					}
+
+					if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
+						const third = syntaxChildren[2];
+						if (third) {
+							if (!ts.TypeGuards.isOmittedExpression(third)) {
+								value = getVariableName(
 									state,
-									first.getChildAtIndex(0),
+									third.getChildAtIndex(0),
 									names,
 									values,
 									preStatements,
@@ -231,110 +187,88 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 								);
 							}
 						}
-
-						if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
-							const third = syntaxChildren[2];
-							if (third) {
-								if (!ts.TypeGuards.isOmittedExpression(third)) {
-									value = getVariableName(
-										state,
-										third.getChildAtIndex(0),
-										names,
-										values,
-										preStatements,
-										postStatements,
-									);
-								}
-							}
-						}
-
-						result +=
-							state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in pairs(${expStr}) do\n`;
-					} else {
-						throw new TranspilerError(
-							"Unexpected for..of initializer",
-							lhs,
-							TranspilerErrorType.BadForOfInitializer,
-						);
 					}
-				} else {
-					if (!ts.TypeGuards.isIdentifier(lhs)) {
-						throw new TranspilerError(
-							"Unexpected for..of initializer",
-							lhs,
-							TranspilerErrorType.BadForOfInitializer,
-						);
-					}
-					const key = state.getNewId();
-					const value = state.getNewId();
-					result += state.indent + `for ${key}, ${value} in pairs(${expStr}) do\n`;
+
+					result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in pairs(${expStr}) do\n`;
 					state.pushIndent();
-					result += state.indent + `local ${lhs.getText()} = {${key}, ${value}};\n`;
-					state.popIndent();
+				} else {
+					throw new TranspilerError(
+						"Unexpected for..of initializer",
+						lhs,
+						TranspilerErrorType.BadForOfInitializer,
+					);
 				}
 			} else {
-				varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+				if (!ts.TypeGuards.isIdentifier(lhs)) {
+					throw new TranspilerError(
+						"Unexpected for..of initializer",
+						lhs,
+						TranspilerErrorType.BadForOfInitializer,
+					);
+				}
+				const key = state.getNewId();
+				const value = state.getNewId();
+				result += state.indent + `for ${key}, ${value} in pairs(${expStr}) do\n`;
+				state.pushIndent();
+				result += state.indent + `local ${lhs.getText()} = {${key}, ${value}};\n`;
+			}
+		} else {
+			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+
+			if (varName.length === 0) {
+				throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
 			}
 
-			preStatements.forEach(myStatement => initializers.push(myStatement));
-			if (names.length > 0) {
-				initializers.push(`local ${names.join(", ")} = ${values.join(", ")};\n`);
+			if (isArrayType(expType)) {
+				let varValue: string;
+
+				if (!ts.TypeGuards.isIdentifier(exp)) {
+					const arrayName = state.getNewId();
+					result += state.indent + `local ${arrayName} = ${expStr};\n`;
+					expStr = arrayName;
+				}
+				const myInt = state.getNewId();
+				result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
+				state.pushIndent();
+				varValue = `${expStr}[${myInt}]`;
+				result += state.indent + `local ${varName} = ${varValue};\n`;
+			} else if (isStringType(expType)) {
+				if (ts.TypeGuards.isStringLiteral(exp)) {
+					expStr = `(${expStr})`;
+				}
+				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
+				state.pushIndent();
+			} else if (isSetType(expType)) {
+				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
+				state.pushIndent();
+			} else {
+				result += state.indent + `for ${varName} in ${expStr} do\n`;
+				state.pushIndent();
 			}
-			postStatements.forEach(myStatement => initializers.push(myStatement));
 		}
-	} else if (ts.TypeGuards.isExpression(init)) {
+
+		for (const myStatement of preStatements) {
+			result += state.indent + myStatement;
+		}
+		if (names.length > 0) {
+			result += state.indent + `local ${names.join(", ")} = ${values.join(", ")};\n`;
+		}
+		for (const myStatement of postStatements) {
+			result += state.indent + myStatement;
+		}
+		result += transpileLoopBody(state, statement);
+		state.popIndent();
+		result += state.indent + `end;\n`;
+		state.popIdStack();
+		return result;
+	} else {
 		const initKindName = init.getKindName();
 		throw new TranspilerError(
-			`ForOf Loop did not expect expression initializer! (${initKindName})`,
+			`ForOf Loop has an unexpected initializer! (${initKindName})`,
 			init,
 			TranspilerErrorType.UnexpectedInitializer,
 		);
 	}
-
-	if (!isMapIteration && varName.length === 0) {
-		throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
-	}
-
-	if (isArrayType(expType)) {
-		let varValue: string;
-
-		if (!ts.TypeGuards.isIdentifier(exp)) {
-			const arrayName = state.getNewId();
-			result += state.indent + `local ${arrayName} = ${expStr};\n`;
-			expStr = arrayName;
-		}
-		const myInt = state.getNewId();
-		result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
-		state.pushIndent();
-		varValue = `${expStr}[${myInt}]`;
-		result += state.indent + `local ${varName} = ${varValue};\n`;
-	} else {
-		let done = false;
-
-		if (expTypeSymbol) {
-			const escapedName = expTypeSymbol.getEscapedName();
-
-			if (escapedName === "Map" || escapedName === "ReadonlyMap" || escapedName === "WeakMap") {
-				done = true;
-			} else if (escapedName === "Set" || escapedName === "ReadonlySet" || escapedName === "WeakSet") {
-				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
-				done = true;
-			}
-		}
-
-		if (!done) {
-			result += state.indent + `for ${varName} in ${expStr} do\n`;
-		}
-		state.pushIndent();
-	}
-
-	initializers.forEach(initializer => (result += state.indent + initializer));
-	result += transpileLoopBody(state, statement);
-	state.popIndent();
-	result += state.indent + `end;\n`;
-	state.popIdStack();
-
-	return result;
 }
 
 export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {

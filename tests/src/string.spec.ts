@@ -48,4 +48,8 @@ export = () => {
 			true,
 		);
 	});
+
+	it("should support calling gmatch", () => {
+		expect("Hello".gmatch(".")()).to.equal("H");
+	});
 };
