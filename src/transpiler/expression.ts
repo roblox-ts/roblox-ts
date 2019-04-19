@@ -115,7 +115,7 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 		let result = `coroutine.yield {\n`;
 		state.pushIndent();
 		result += state.indent + `value = ${exp ? transpileExpression(state, exp) : "nil"};\n`;
-		result += state.indent + `done = true;\n`;
+		result += state.indent + `done = false;\n`;
 		state.popIndent();
 		result += state.indent + `}`;
 		return result;
