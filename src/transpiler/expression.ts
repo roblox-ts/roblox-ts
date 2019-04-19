@@ -110,6 +110,35 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			node,
 			TranspilerErrorType.NoTypeOf,
 		);
+	} else if (ts.TypeGuards.isYieldExpression(node)) {
+		const exp = node.getExpression();
+
+		if (exp && ts.TypeGuards.isAsExpression(exp)) {
+			throw new TranspilerError(
+				"Roblox-TS currenly only supports yieldExpressions of the form `yield identifier`." +
+					` Please put your yieldExpression inside parenthesis.`,
+				node,
+				TranspilerErrorType.OnlyYieldIdentifiers,
+			);
+		}
+
+		if (exp && ts.TypeGuards.isIdentifier(exp)) {
+			let result = `coroutine.yield {\n`;
+			state.pushIndent();
+			const yielded = transpileExpression(state, exp);
+			result += state.indent + `value = ${yielded};\n`;
+			result += state.indent + `done = ${yielded} == nil;\n`;
+			state.popIndent();
+			result += state.indent + `}`;
+			return result;
+		} else {
+			throw new TranspilerError(
+				"Roblox-TS currenly only supports yieldExpressions of the form `yield identifier`." +
+					` Please put your ${exp ? exp.getKindName() : "yieldExpression"} in a variable.`,
+				node,
+				TranspilerErrorType.OnlyYieldIdentifiers,
+			);
+		}
 	} else {
 		/* istanbul ignore next */
 		throw new TranspilerError(`Bad expression! (${node.getKindName()})`, node, TranspilerErrorType.BadExpression);
@@ -133,7 +162,8 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
 				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
 		) &&
-		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind()))
+		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
+		!ts.TypeGuards.isYieldExpression(expression)
 	) {
 		const expStr = transpileExpression(state, expression);
 		return state.indent + `local _ = ${expStr};\n`;

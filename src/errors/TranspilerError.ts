@@ -68,6 +68,8 @@ export enum TranspilerErrorType {
 	ForInLoop,
 	BadDestructuringType,
 	NullableIndexOnMapOrSet,
+	OnlyYieldIdentifiers,
+	NullableIterableIterator,
 }
 
 export class TranspilerError extends Error {

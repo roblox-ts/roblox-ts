@@ -1,4 +1,5 @@
 import * as ts from "ts-morph";
+import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
 import { CompilerDirective, getCompilerDirective } from "./transpiler";
 
 export const RBX_SERVICES: Array<string> = [
@@ -155,6 +156,24 @@ export function isEnumType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		return symbol !== undefined && symbol.getDeclarations().some(d => ts.TypeGuards.isEnumDeclaration(d));
+	});
+}
+
+export function isIterableIterator(type: ts.Type, node: ts.Node) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		if (symbol && symbol.getEscapedName() === "IterableIterator") {
+			if (isNullableType(t.getTypeArguments()[0])) {
+				throw new TranspilerError(
+					"An IterableIterator cannot yield undefined values.",
+					node,
+					TranspilerErrorType.NullableIterableIterator,
+				);
+			}
+			return true;
+		} else {
+			return false;
+		}
 	});
 }
 

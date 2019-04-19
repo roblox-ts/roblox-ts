@@ -3,7 +3,7 @@ import { transpileExpression } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isArrayType, isMapType, isSetType, isStringType } from "../typeUtilities";
+import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
 import { transpileIdentifier } from "./identifier";
 
 export function getParameterData(
@@ -105,6 +105,10 @@ function mapAccessor(t: string, key: number) {
 	return "({ " + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key) + " })";
 }
 
+function iterAccessor(t: string, key: number) {
+	return `(` + `${t}.next() and `.repeat(key).slice(0, -5) + `.value)`;
+}
+
 function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boolean) {
 	const bindingPatternType = bindingPattern.getType();
 	if (isArrayType(bindingPatternType)) {
@@ -115,6 +119,8 @@ function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boo
 		return setAccessor;
 	} else if (isMapType(bindingPatternType)) {
 		return mapAccessor;
+	} else if (isIterableIterator(bindingPatternType, bindingPattern)) {
+		return iterAccessor;
 	} else {
 		if (isObject) {
 			return null as never;
