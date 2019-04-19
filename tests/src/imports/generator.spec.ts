@@ -95,4 +95,17 @@ export = () => {
 			expect(foo).to.equal(30);
 		}
 	});
+
+	it("should support the spread operator on iterators", () => {
+		function* arrayIterator<T>(arr: Array<T>) {
+			for (const v of arr) {
+				yield v;
+			}
+		}
+
+		const array4 = [10, 20, 30];
+		const it4 = arrayIterator(array4);
+
+		expect([...it4].every((x, i) => x === array4[i])).to.equal(true);
+	});
 };

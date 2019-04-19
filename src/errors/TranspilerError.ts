@@ -70,6 +70,7 @@ export enum TranspilerErrorType {
 	NullableIndexOnMapOrSet,
 	OnlyYieldIdentifiers,
 	NullableIterableIterator,
+	BadSpreadType,
 }
 
 export class TranspilerError extends Error {

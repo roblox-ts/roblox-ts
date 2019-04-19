@@ -48,4 +48,9 @@ export = () => {
 	it("should support calling gmatch", () => {
 		expect("Hello".gmatch(".")()).to.equal("H");
 	});
+
+	it("should support the spread operator on strings", () => {
+		const array4 = ["H", "i", "y", "a"];
+		expect([..."Hiya"].every((x, i) => x === array4[i])).to.equal(true);
+	});
 };

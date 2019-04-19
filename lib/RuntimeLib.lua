@@ -803,14 +803,7 @@ local function getNumKeys(map)
 end
 
 TS.map_size = getNumKeys
-
-function TS.map_entries(map)
-	local result = {}
-	for key, value in pairs(map) do
-		table.insert(result, { key, value })
-	end
-	return result
-end
+TS.map_entries = TS.Object_entries
 
 function TS.map_forEach(map, callback)
 	for key, value in pairs(map) do
@@ -818,33 +811,14 @@ function TS.map_forEach(map, callback)
 	end
 end
 
-local function getKeys(tab)
-	local result = {}
-	local count = 0
-
-	for key in pairs(tab) do
-		count = count + 1
-		result[count] = key
-	end
-
-	return result
-end
-
-TS.map_keys = getKeys
+TS.map_keys = Object_keys
 
 function TS.map_set(map, key, value)
 	map[key] = value
 	return map
 end
 
-function TS.map_values(map)
-	local result = {}
-	for _, value in pairs(map) do
-		table.insert(result, value)
-	end
-	return result
-end
-
+TS.map_values = TS.Object_values
 TS.map_toString = toString
 
 -- set macro functions
@@ -931,11 +905,22 @@ function TS.set_difference(set1, set2)
 	return result
 end
 
-TS.set_values = getKeys
+TS.set_values = Object_keys
 
 TS.set_size = getNumKeys
 
 TS.set_toString = toString
+
+function TS.iterable_cache(iter)
+	local results = {}
+	local count = 0
+	for _0 in iter.next do
+		if _0.done then break end;
+		count = count + 1
+		results[count] = _0.value;
+	end;
+	return results
+end
 
 -- roact functions
 

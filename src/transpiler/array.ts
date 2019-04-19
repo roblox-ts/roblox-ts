@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
 import { TranspilerState } from "../TranspilerState";
+import { transpileArrayForSpread } from "./spread";
 
 export function transpileArrayLiteralExpression(state: TranspilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();
@@ -11,7 +12,7 @@ export function transpileArrayLiteralExpression(state: TranspilerState, node: ts
 	const parts = new Array<Array<string> | string>();
 	elements.forEach(element => {
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(transpileExpression(state, element.getExpression()));
+			parts.push(transpileArrayForSpread(state, element.getExpression()));
 			isInArray = false;
 		} else {
 			let last: Array<string>;
@@ -27,7 +28,7 @@ export function transpileArrayLiteralExpression(state: TranspilerState, node: ts
 	});
 
 	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
-	if (elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
+	if (elements.length > 1 && elements.some(v => ts.TypeGuards.isSpreadElement(v))) {
 		state.usesTSLibrary = true;
 		return `TS.array_concat(${params})`;
 	} else {
