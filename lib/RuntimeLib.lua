@@ -811,7 +811,7 @@ function TS.map_forEach(map, callback)
 	end
 end
 
-TS.map_keys = Object_keys
+TS.map_keys = TS.Object_keys
 
 function TS.map_set(map, key, value)
 	map[key] = value
@@ -905,7 +905,7 @@ function TS.set_difference(set1, set2)
 	return result
 end
 
-TS.set_values = Object_keys
+TS.set_values = TS.Object_keys
 
 TS.set_size = getNumKeys
 
