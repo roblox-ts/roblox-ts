@@ -31,9 +31,9 @@ export function transpileArrayLiteralExpression(state: TranspilerState, node: ts
 	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 	const first = elements[0];
 	if (
-		(elements.length > 1 ||
-			(ts.TypeGuards.isSpreadElement(first) && isArrayType(first.getExpression().getType()))) &&
-		elements.some(v => ts.TypeGuards.isSpreadElement(v))
+		elements.length === 1
+			? ts.TypeGuards.isSpreadElement(first) && isArrayType(first.getExpression().getType())
+			: elements.some(v => ts.TypeGuards.isSpreadElement(v))
 	) {
 		state.usesTSLibrary = true;
 		return `TS.array_concat(${params})`;
