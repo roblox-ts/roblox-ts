@@ -69,7 +69,6 @@ export enum TranspilerErrorType {
 	BadDestructuringType,
 	NullableIndexOnMapOrSet,
 	OnlyYieldIdentifiers,
-	NullableIterableIterator,
 	BadSpreadType,
 }
 
