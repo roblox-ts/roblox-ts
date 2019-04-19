@@ -52,7 +52,14 @@ export = () => {
 			}
 		}
 
-		const answers: Array<[boolean, number | undefined]> = [[false, 10], [false, 50], [false, 20], [false, 60], [false, 30], [false, 70];
+		const answers: Array<[boolean, number | undefined]> = [
+			[false, 10],
+			[false, 50],
+			[false, 20],
+			[false, 60],
+			[false, 30],
+			[false, 70],
+		];
 
 		let count = 0;
 		function observe<T>({ done, value }: IteratorResult<T>) {
