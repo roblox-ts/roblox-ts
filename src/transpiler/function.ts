@@ -139,11 +139,8 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 			state.usesTSLibrary = true;
 			result += "TS.async(";
 			backWrap = ")" + backWrap;
-		} else {
-			if (!ts.TypeGuards.isArrowFunction(node)) {
-				isGenerator = node.isGenerator();
-			}
 		}
+		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
 	result += "function(" + paramNames.join(", ") + ")";
