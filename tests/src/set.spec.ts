@@ -225,4 +225,9 @@ export = () => {
 		expect(v).to.equal(true);
 		expect(set.add("Nope").isEmpty()).to.equal(false);
 	});
+
+	it("should support the spread operator on Sets", () => {
+		const foo = new Set(["a", "b", "c"]);
+		expect(new Set([...foo]).difference(foo).isEmpty()).to.equal(true);
+	});
 };

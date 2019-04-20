@@ -11,7 +11,7 @@ import {
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { HasParameters } from "../types";
-import { isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -128,19 +128,41 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 		result = "";
 	}
 
+	let isGenerator = false;
+
 	if (
 		!ts.TypeGuards.isGetAccessorDeclaration(node) &&
 		!ts.TypeGuards.isSetAccessorDeclaration(node) &&
-		!ts.TypeGuards.isConstructorDeclaration(node) &&
-		node.isAsync()
+		!ts.TypeGuards.isConstructorDeclaration(node)
 	) {
-		state.usesTSLibrary = true;
-		result += "TS.async(";
-		backWrap = ")" + backWrap;
+		if (node.isAsync()) {
+			state.usesTSLibrary = true;
+			result += "TS.async(";
+			backWrap = ")" + backWrap;
+		}
+		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
 	result += "function(" + paramNames.join(", ") + ")";
-	result += transpileFunctionBody(state, body, node, initializers);
+
+	if (isGenerator) {
+		// will error if IterableIterator is nullable
+		isIterableIterator(node.getReturnType(), node);
+		result += "\n";
+		state.pushIndent();
+		result += state.indent + `return {\n`;
+		state.pushIndent();
+		result += state.indent + `next = coroutine.wrap(function()`;
+		result += transpileFunctionBody(state, body, node, initializers);
+		result += `\trepeat coroutine.yield({ done = true }) until false;\n`;
+		result += state.indent + `end);\n`;
+		state.popIndent();
+		result += state.indent + `};\n`;
+		state.popIndent();
+		result += state.indent;
+	} else {
+		result += transpileFunctionBody(state, body, node, initializers);
+	}
 	state.popIdStack();
 	return result + "end" + backWrap;
 }

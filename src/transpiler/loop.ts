@@ -9,7 +9,7 @@ import {
 } from ".";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
-import { isArrayType, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
+import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { concatNamesAndValues } from "./binding";
 import { getFirstMemberWithParameters } from "./function";
@@ -242,6 +242,12 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 			} else if (isSetType(expType)) {
 				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
+			} else if (isIterableIterator(expType, exp)) {
+				const loopVar = state.getNewId();
+				result += state.indent + `for ${loopVar} in ${expStr}.next do\n`;
+				state.pushIndent();
+				result += state.indent + `if ${loopVar}.done then break end;\n`;
+				result += state.indent + `local ${varName} = ${loopVar}.value;\n`;
 			} else {
 				result += state.indent + `for ${varName} in ${expStr} do\n`;
 				state.pushIndent();
