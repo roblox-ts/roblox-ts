@@ -154,7 +154,7 @@ function transpileFunction(state: TranspilerState, node: HasParameters, name: st
 		state.pushIndent();
 		result += state.indent + `next = coroutine.wrap(function()`;
 		result += transpileFunctionBody(state, body, node, initializers);
-		result += `\trepeat coroutine.yield { done = true } until false;\n`;
+		result += `\trepeat coroutine.yield({ done = true }) until false;\n`;
 		result += state.indent + `end);\n`;
 		state.popIndent();
 		result += state.indent + `};\n`;

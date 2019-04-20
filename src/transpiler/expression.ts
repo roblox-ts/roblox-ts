@@ -112,12 +112,12 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 		);
 	} else if (ts.TypeGuards.isYieldExpression(node)) {
 		const exp = node.getExpression();
-		let result = `coroutine.yield {\n`;
+		let result = `coroutine.yield({\n`;
 		state.pushIndent();
 		result += state.indent + `value = ${exp ? transpileExpression(state, exp) : "nil"};\n`;
 		result += state.indent + `done = false;\n`;
 		state.popIndent();
-		result += state.indent + `}`;
+		result += state.indent + `})`;
 		return result;
 	} else {
 		/* istanbul ignore next */
