@@ -22,7 +22,7 @@ export function transpileArrayForSpread(state: TranspilerState, expression: ts.E
 	} else if (isArrayType(expType)) {
 		return transpileExpression(state, expression);
 	} else if (isStringType(expType)) {
-		return `string.split(${transpileExpression(state, expression)})`;
+		return `string.split(${transpileExpression(state, expression)}, "")`;
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
 		return `TS.iterable_cache(${transpileExpression(state, expression)})`;
