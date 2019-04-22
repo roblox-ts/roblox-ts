@@ -160,4 +160,12 @@ export = () => {
 		expect(v).to.equal(true);
 		expect(map.set("Nope", 1).isEmpty()).to.equal(false);
 	});
+
+	it("should support the spread operator on maps", () => {
+		expect(
+			[...new Map([["a", 97], ["b", 98]]), ...new Map([["c", 99], ["d", 100]])].every(
+				([l, n]) => l === string.char(n),
+			),
+		).to.equal(true);
+	});
 };

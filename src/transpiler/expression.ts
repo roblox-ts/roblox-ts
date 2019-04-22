@@ -110,6 +110,15 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			node,
 			TranspilerErrorType.NoTypeOf,
 		);
+	} else if (ts.TypeGuards.isYieldExpression(node)) {
+		const exp = node.getExpression();
+		let result = `coroutine.yield({\n`;
+		state.pushIndent();
+		result += state.indent + `value = ${exp ? transpileExpression(state, exp) : "nil"};\n`;
+		result += state.indent + `done = false;\n`;
+		state.popIndent();
+		result += state.indent + `})`;
+		return result;
 	} else {
 		/* istanbul ignore next */
 		throw new TranspilerError(`Bad expression! (${node.getKindName()})`, node, TranspilerErrorType.BadExpression);
@@ -133,7 +142,8 @@ export function transpileExpressionStatement(state: TranspilerState, node: ts.Ex
 			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
 				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
 		) &&
-		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind()))
+		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
+		!ts.TypeGuards.isYieldExpression(expression)
 	) {
 		const expStr = transpileExpression(state, expression);
 		return state.indent + `local _ = ${expStr};\n`;

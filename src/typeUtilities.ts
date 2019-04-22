@@ -158,6 +158,13 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
+export function isIterableIterator(type: ts.Type, node: ts.Node) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
+	});
+}
+
 export function isArrayType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
