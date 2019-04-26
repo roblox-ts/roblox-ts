@@ -221,9 +221,7 @@ local function bitTruncate(a)
 	end
 end
 
-TS.round = bitTruncate
-
-TS.bitTruncate = bitTruncate
+TS.bit_truncate = bitTruncate
 
 -- bitwise operations
 local powOfTwo = setmetatable({}, {
@@ -244,34 +242,45 @@ local function bitop(a, b, oper)
 	return r
 end
 
-function TS.bor(a, b)
+function TS.bit_not(a)
+	return -a - 1
+end
+
+function TS.bit_or(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 1)
 end
 
-function TS.band(a, b)
+function TS.bit_and(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 4)
 end
 
-function TS.bxor(a, b)
+function TS.bit_xor(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 3)
 end
 
-function TS.blsh(a, b)
+function TS.bit_lsh(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return a * powOfTwo[b]
 end
 
-function TS.brsh(a, b)
+function TS.bit_rsh(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitTruncate(a / powOfTwo[b])
+end
+
+function TS.bit_lrsh(a, b)
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
+	if a >= 0 then return TS.bit_rsh(a, b) end
+	return TS.bit_rsh((a % powOfTwo[32]), b)
 end
 
 -- utility functions

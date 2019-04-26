@@ -53,6 +53,9 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 			return `not ${expStr}`;
 		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
 			return `-${expStr}`;
+		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
+			state.usesTSLibrary = true;
+			return `TS.bit_not(${expStr})`;
 		} else {
 			/* istanbul ignore next */
 			throw new TranspilerError(
