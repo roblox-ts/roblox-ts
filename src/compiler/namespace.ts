@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkReserved, transpileStatementedNode } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeOnlyNamespace } from "../typeUtilities";
 
 function safeMapGet<T, R>(map: Map<T, R>, key: T, node: ts.Node) {

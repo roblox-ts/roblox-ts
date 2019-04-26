@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkNonAny, getBindingData, transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType } from "../typeUtilities";
 import { concatNamesAndValues } from "./binding";
 

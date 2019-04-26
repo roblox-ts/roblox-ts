@@ -7,8 +7,8 @@ import {
 	transpileCallExpression,
 	transpileExpression,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 import { transpileNumericLiteral } from "./literal";

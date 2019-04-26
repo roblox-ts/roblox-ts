@@ -23,8 +23,8 @@ import {
 	transpileVariableStatement,
 	transpileWhileStatement,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../typeUtilities";
 
 export function transpileStatement(state: CompilerState, node: ts.Statement): string {

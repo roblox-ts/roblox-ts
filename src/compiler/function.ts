@@ -8,8 +8,8 @@ import {
 	transpileExpression,
 	transpileStatement,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 

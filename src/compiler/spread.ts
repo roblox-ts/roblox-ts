@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkNonAny, transpileCallExpression, transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayType,
 	isIterableIterator,

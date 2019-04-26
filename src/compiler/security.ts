@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isAnyType } from "../typeUtilities";
 import { bold, ScriptContext, yellow } from "../utility";

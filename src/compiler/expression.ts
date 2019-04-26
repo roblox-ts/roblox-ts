@@ -24,8 +24,8 @@ import {
 	transpileStringLiteral,
 	transpileTemplateExpression,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 
 export function transpileExpression(state: CompilerState, node: ts.Expression): string {

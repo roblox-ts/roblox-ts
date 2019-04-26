@@ -7,8 +7,8 @@ import {
 	transpileStatement,
 	transpileVariableDeclarationList,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { concatNamesAndValues } from "./binding";

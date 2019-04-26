@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
 const { version: VERSION } = require("./../../package.json") as {

@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkApiAccess, checkNonAny, transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
 import { appendDeclarationIfMissing } from "./expression";
 

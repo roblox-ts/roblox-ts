@@ -7,8 +7,8 @@ import {
 	transpileExpression,
 	transpileStatement,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType } from "../typeUtilities";
 import { bold, suggest } from "../utility";
 

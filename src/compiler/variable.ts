@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 import { concatNamesAndValues } from "./binding";
 

@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
 import { transpileIdentifier } from "./identifier";

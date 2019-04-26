@@ -1,9 +1,9 @@
 import * as path from "path";
 import * as ts from "ts-morph";
 import { checkReserved, transpileExpression } from ".";
+import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
-import { CompilerState } from "../CompilerState";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
 import { isValidLuaIdentifier, stripExtensions } from "../utility";
 
