@@ -249,7 +249,7 @@ function testFolder(folderPath: string) {
 								path.relative(srcFolder, e.node.getSourceFile().getFilePath()),
 								e.node.getStartLineNumber(),
 								e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-								red("Transpiler Error:"),
+								red("Compiler Error:"),
 								e.message,
 							),
 						);

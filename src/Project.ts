@@ -497,11 +497,11 @@ export class Project {
 					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
 					e.node.getStartLineNumber(),
 					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-					red("Transpiler Error:"),
+					red("Compiler Error:"),
 					e.message,
 				);
 			} else if (e instanceof ProjectError) {
-				console.log(red("Compiler Error:"), e.message);
+				console.log(red("Project Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
 				// log above
 			} else {

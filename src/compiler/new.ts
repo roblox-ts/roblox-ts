@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
-import { inheritsFromRoact, compileCallArguments, compileExpression } from ".";
+import { compileCallArguments, compileExpression, inheritsFromRoact } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
-import { literalParameterTranspileFunctions } from "./call";
+import { literalParameterCompileFunctions } from "./call";
 import { appendDeclarationIfMissing } from "./expression";
 
 function compileSetMapConstructorHelper(
@@ -37,7 +37,7 @@ function compileSetMapConstructorHelper(
 
 		if (firstParam) {
 			state.pushIndent();
-			result += "\n" + literalParameterTranspileFunctions.get(type)!(state, firstParam.getElements());
+			result += "\n" + literalParameterCompileFunctions.get(type)!(state, firstParam.getElements());
 			state.popIndent();
 			result += state.indent;
 		}

@@ -90,7 +90,7 @@ function compileMapArrayLiteralParameter(state: CompilerState, elements: Array<t
 	}, "");
 }
 
-export const literalParameterTranspileFunctions = new Map<
+export const literalParameterCompileFunctions = new Map<
 	"set" | "map",
 	(state: CompilerState, elements: Array<ts.Expression>) => string
 >([["set", compileSetArrayLiteralParameter], ["map", compileMapArrayLiteralParameter]]);
@@ -129,7 +129,7 @@ function compileLiterally(
 
 			if (newArguments.length === 1 && ts.TypeGuards.isArrayLiteralExpression(firstArgument)) {
 				const elements = firstArgument.getElements();
-				result += literalParameterTranspileFunctions.get(funcName === "add" ? "set" : "map")!(state, elements);
+				result += literalParameterCompileFunctions.get(funcName === "add" ? "set" : "map")!(state, elements);
 			} else if (newArguments.length !== 0) {
 				state.popIndent();
 				return undefined;
