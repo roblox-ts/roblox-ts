@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 
-export function transpileAwaitExpression(state: CompilerState, node: ts.AwaitExpression) {
-	const expStr = transpileExpression(state, node.getExpression());
+export function compileAwaitExpression(state: CompilerState, node: ts.AwaitExpression) {
+	const expStr = compileExpression(state, node.getExpression());
 	state.usesTSLibrary = true;
 	return `TS.await(${expStr})`;
 }

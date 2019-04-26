@@ -3,10 +3,10 @@ import {
 	checkReserved,
 	checkReturnsNonAny,
 	getParameterData,
-	transpileBlock,
-	transpileCallExpression,
-	transpileExpression,
-	transpileStatement,
+	compileBlock,
+	compileCallExpression,
+	compileExpression,
+	compileStatement,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -33,21 +33,21 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
 	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
-			let expStr = transpileExpression(state, exp);
+			let expStr = compileExpression(state, exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return `return ${expStr};`;
 		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleReturnTypeCall(exp)) {
-			const expStr = transpileCallExpression(state, exp, true);
+			const expStr = compileCallExpression(state, exp, true);
 			return `return ${expStr};`;
 		} else {
-			const expStr = transpileExpression(state, exp);
+			const expStr = compileExpression(state, exp);
 			return `return unpack(${expStr});`;
 		}
 	}
-	return `return ${transpileExpression(state, exp)};`;
+	return `return ${compileExpression(state, exp)};`;
 }
 
-export function transpileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
+export function compileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
 		return (
@@ -60,7 +60,7 @@ export function transpileReturnStatement(state: CompilerState, node: ts.ReturnSt
 	}
 }
 
-function transpileFunctionBody(state: CompilerState, body: ts.Node, node: HasParameters, initializers: Array<string>) {
+function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParameters, initializers: Array<string>) {
 	const isBlock = ts.TypeGuards.isBlock(body);
 	const isExpression = ts.TypeGuards.isExpression(body);
 	let result = "";
@@ -69,7 +69,7 @@ function transpileFunctionBody(state: CompilerState, body: ts.Node, node: HasPar
 		state.pushIndent();
 		initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
 		if (isBlock) {
-			result += transpileBlock(state, body as ts.Block);
+			result += compileBlock(state, body as ts.Block);
 		} else {
 			result += state.indent + getReturnStrFromExpression(state, body as ts.Expression, node) + "\n";
 		}
@@ -82,7 +82,7 @@ function transpileFunctionBody(state: CompilerState, body: ts.Node, node: HasPar
 	return result;
 }
 
-function transpileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
+function compileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
@@ -144,7 +144,7 @@ function transpileFunction(state: CompilerState, node: HasParameters, name: stri
 		result += state.indent + `return {\n`;
 		state.pushIndent();
 		result += state.indent + `next = coroutine.wrap(function()`;
-		result += transpileFunctionBody(state, body, node, initializers);
+		result += compileFunctionBody(state, body, node, initializers);
 		result += `\trepeat coroutine.yield({ done = true }) until false;\n`;
 		result += state.indent + `end);\n`;
 		state.popIndent();
@@ -152,7 +152,7 @@ function transpileFunction(state: CompilerState, node: HasParameters, name: stri
 		state.popIndent();
 		result += state.indent;
 	} else {
-		result += transpileFunctionBody(state, body, node, initializers);
+		result += compileFunctionBody(state, body, node, initializers);
 	}
 	state.popIdStack();
 	return result + "end" + backWrap;
@@ -189,7 +189,7 @@ function giveInitialSelfParameter(
 	}
 }
 
-export function transpileFunctionDeclaration(state: CompilerState, node: ts.FunctionDeclaration) {
+export function compileFunctionDeclaration(state: CompilerState, node: ts.FunctionDeclaration) {
 	const body = node.getBody();
 	let name = node.getName();
 
@@ -201,16 +201,16 @@ export function transpileFunctionDeclaration(state: CompilerState, node: ts.Func
 
 	if (body) {
 		state.pushExport(name, node);
-		return transpileFunction(state, node, name, body);
+		return compileFunction(state, node, name, body);
 	} else {
 		return "";
 	}
 }
 
-export function transpileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
+export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
 	const name = node.getName();
 	checkReserved(name, node);
-	return transpileFunction(state, node, name, node.getBodyOrThrow());
+	return compileFunction(state, node, name, node.getBodyOrThrow());
 }
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
@@ -226,7 +226,7 @@ function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
 	return false;
 }
 
-export function transpileConstructorDeclaration(
+export function compileConstructorDeclaration(
 	state: CompilerState,
 	className: string,
 	node?: ts.ConstructorDeclaration,
@@ -259,7 +259,7 @@ export function transpileConstructorDeclaration(
 			let k = 0;
 
 			if (containsSuperExpression(bodyStatements[k])) {
-				result += transpileStatement(state, bodyStatements[k++]);
+				result += compileStatement(state, bodyStatements[k++]);
 			}
 
 			initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
@@ -269,7 +269,7 @@ export function transpileConstructorDeclaration(
 			}
 
 			for (; k < bodyStatements.length; ++k) {
-				result += transpileStatement(state, bodyStatements[k]);
+				result += compileStatement(state, bodyStatements[k]);
 			}
 
 			const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
@@ -297,7 +297,7 @@ export function transpileConstructorDeclaration(
 	return result;
 }
 
-export function transpileAccessorDeclaration(
+export function compileAccessorDeclaration(
 	state: CompilerState,
 	node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
 	name: string,
@@ -306,9 +306,9 @@ export function transpileAccessorDeclaration(
 	if (!body) {
 		return "";
 	}
-	return transpileFunction(state, node, name, body);
+	return compileFunction(state, node, name, body);
 }
 
-export function transpileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	return transpileFunction(state, node, "", node.getBody());
+export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
+	return compileFunction(state, node, "", node.getBody());
 }

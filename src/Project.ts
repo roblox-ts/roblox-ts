@@ -3,7 +3,7 @@ import * as klaw from "klaw";
 import { minify } from "luamin";
 import * as path from "path";
 import TSProject, * as ts from "ts-morph";
-import { transpileSourceFile } from "./compiler";
+import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
@@ -466,7 +466,7 @@ export class Project {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
 					const outPath = this.transformPathToLua(filePath);
-					let source = transpileSourceFile(new CompilerState(this.syncInfo, this.modulesDir), sourceFile);
+					let source = compileSourceFile(new CompilerState(this.syncInfo, this.modulesDir), sourceFile);
 
 					if (this.luaSourceTransformer) {
 						source = this.luaSourceTransformer(source);

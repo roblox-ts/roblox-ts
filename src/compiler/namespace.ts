@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, transpileStatementedNode } from ".";
+import { checkReserved, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeOnlyNamespace } from "../typeUtilities";
@@ -16,7 +16,7 @@ function safeMapGet<T, R>(map: Map<T, R>, key: T, node: ts.Node) {
 	return find;
 }
 
-export function transpileNamespaceDeclaration(state: CompilerState, node: ts.NamespaceDeclaration) {
+export function compileNamespaceDeclaration(state: CompilerState, node: ts.NamespaceDeclaration) {
 	if (isTypeOnlyNamespace(node)) {
 		return "";
 	}
@@ -38,7 +38,7 @@ export function transpileNamespaceDeclaration(state: CompilerState, node: ts.Nam
 	state.namespaceStack.set(name, id);
 	state.pushIndent();
 	result += state.indent + `local ${id} = ${name};\n`;
-	result += transpileStatementedNode(state, node);
+	result += compileStatementedNode(state, node);
 	if (previousName) {
 		state.namespaceStack.set(name, previousName);
 	} else {

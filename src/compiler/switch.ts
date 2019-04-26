@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
-import { transpileExpression, transpileStatementedNode } from ".";
+import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 
-export function transpileSwitchStatement(state: CompilerState, node: ts.SwitchStatement) {
-	const expStr = transpileExpression(state, node.getExpression());
+export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStatement) {
+	const expStr = compileExpression(state, node.getExpression());
 	let result = "";
 	result += state.indent + `repeat\n`;
 	state.pushIndent();
@@ -37,7 +37,7 @@ export function transpileSwitchStatement(state: CompilerState, node: ts.SwitchSt
 	for (const clause of clauses) {
 		// add if statement if the clause is non-default
 		if (ts.TypeGuards.isCaseClause(clause)) {
-			const clauseExpStr = transpileExpression(state, clause.getExpression());
+			const clauseExpStr = compileExpression(state, clause.getExpression());
 			const fallThroughVarOr = lastFallThrough ? `${fallThroughVar} or ` : "";
 			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 			state.pushIndent();
@@ -55,7 +55,7 @@ export function transpileSwitchStatement(state: CompilerState, node: ts.SwitchSt
 			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
 		lastFallThrough = !endsInReturnOrBreakStatement;
 
-		result += transpileStatementedNode(state, clause);
+		result += compileStatementedNode(state, clause);
 
 		if (ts.TypeGuards.isCaseClause(clause)) {
 			if (!endsInReturnOrBreakStatement) {

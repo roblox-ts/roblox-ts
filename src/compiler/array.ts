@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { isArrayType } from "../typeUtilities";
-import { transpileArrayForSpread } from "./spread";
+import { compileArrayForSpread } from "./spread";
 
-export function transpileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
+export function compileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();
 	if (elements.length === 0) {
 		return "{}";
@@ -13,7 +13,7 @@ export function transpileArrayLiteralExpression(state: CompilerState, node: ts.A
 	const parts = new Array<Array<string> | string>();
 	elements.forEach(element => {
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(transpileArrayForSpread(state, element.getExpression()));
+			parts.push(compileArrayForSpread(state, element.getExpression()));
 			isInArray = false;
 		} else {
 			let last: Array<string>;
@@ -23,7 +23,7 @@ export function transpileArrayLiteralExpression(state: CompilerState, node: ts.A
 				last = new Array<string>();
 				parts.push(last);
 			}
-			last.push(transpileExpression(state, element));
+			last.push(compileExpression(state, element));
 			isInArray = true;
 		}
 	});

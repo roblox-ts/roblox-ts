@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { inheritsFromRoact, transpileCallArguments, transpileExpression } from ".";
+import { inheritsFromRoact, compileCallArguments, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
@@ -7,7 +7,7 @@ import { suggest } from "../utility";
 import { literalParameterTranspileFunctions } from "./call";
 import { appendDeclarationIfMissing } from "./expression";
 
-function transpileSetMapConstructorHelper(
+function compileSetMapConstructorHelper(
 	state: CompilerState,
 	node: ts.NewExpression,
 	args: Array<ts.Node>,
@@ -31,7 +31,7 @@ function transpileSetMapConstructorHelper(
 			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
 	) {
 		state.usesTSLibrary = true;
-		return `TS.${type}_new(${transpileCallArguments(state, args)})`;
+		return `TS.${type}_new(${compileCallArguments(state, args)})`;
 	} else {
 		let result = "{";
 
@@ -48,10 +48,10 @@ function transpileSetMapConstructorHelper(
 
 const ARRAY_NIL_LIMIT = 200;
 
-export function transpileNewExpression(state: CompilerState, node: ts.NewExpression) {
+export function compileNewExpression(state: CompilerState, node: ts.NewExpression) {
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
-	const name = transpileExpression(state, expNode);
+	const name = compileExpression(state, expNode);
 	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken) ? node.getArguments() : [];
 
 	if (inheritsFromRoact(expressionType)) {
@@ -97,7 +97,7 @@ export function transpileNewExpression(state: CompilerState, node: ts.NewExpress
 		return appendDeclarationIfMissing(
 			state,
 			node.getParent(),
-			transpileSetMapConstructorHelper(state, node, args, "map"),
+			compileSetMapConstructorHelper(state, node, args, "map"),
 		);
 	}
 
@@ -105,17 +105,17 @@ export function transpileNewExpression(state: CompilerState, node: ts.NewExpress
 		return appendDeclarationIfMissing(
 			state,
 			node.getParent(),
-			transpileSetMapConstructorHelper(state, node, args, "set"),
+			compileSetMapConstructorHelper(state, node, args, "set"),
 		);
 	}
 
 	if (inheritsFrom(expressionType, "WeakMapConstructor")) {
-		return `setmetatable(${transpileSetMapConstructorHelper(state, node, args, "map")}, { __mode = "k" })`;
+		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "map")}, { __mode = "k" })`;
 	}
 
 	if (inheritsFrom(expressionType, "WeakSetConstructor")) {
-		return `setmetatable(${transpileSetMapConstructorHelper(state, node, args, "set")}, { __mode = "k" })`;
+		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "set")}, { __mode = "k" })`;
 	}
 
-	return `${name}.new(${transpileCallArguments(state, args)})`;
+	return `${name}.new(${compileCallArguments(state, args)})`;
 }

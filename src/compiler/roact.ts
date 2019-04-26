@@ -3,9 +3,9 @@ import {
 	checkMethodReserved,
 	checkReserved,
 	getParameterData,
-	transpileBlock,
-	transpileExpression,
-	transpileStatement,
+	compileBlock,
+	compileExpression,
+	compileStatement,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -138,7 +138,7 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
-export function transpileRoactClassDeclaration(
+export function compileRoactClassDeclaration(
 	state: CompilerState,
 	type: "Component" | "PureComponent",
 	className: string,
@@ -166,7 +166,7 @@ export function transpileRoactClassDeclaration(
 				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 					const initializer = prop.getInitializer();
 					if (initializer) {
-						extraInitializers.push(`self.${propName} = ${transpileExpression(state, initializer)};`);
+						extraInitializers.push(`self.${propName} = ${compileExpression(state, initializer)};`);
 					}
 				}
 			}
@@ -203,7 +203,7 @@ export function transpileRoactClassDeclaration(
 					// Because we want to ignore super. I will figure out a better way to do this eventually.
 					// isSuperExpression doesn't seem to work.
 					if (!bodyStatement.getText().startsWith("super")) {
-						declaration += transpileStatement(state, bodyStatement);
+						declaration += compileStatement(state, bodyStatement);
 					}
 				}
 
@@ -230,7 +230,7 @@ export function transpileRoactClassDeclaration(
 			const initializer = staticField.getInitializer();
 			if (initializer) {
 				checkRoactReserved(className, staticField.getName(), staticField);
-				declaration += `${state.indent}${className}.${staticField.getName()} = ${transpileExpression(
+				declaration += `${state.indent}${className}.${staticField.getName()} = ${compileExpression(
 					state,
 					initializer,
 				)};\n`;
@@ -256,7 +256,7 @@ export function transpileRoactClassDeclaration(
 		state.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
 			initializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-			declaration += transpileBlock(state, body);
+			declaration += compileBlock(state, body);
 		}
 		state.popIndent();
 
@@ -284,7 +284,7 @@ export function transpileRoactClassDeclaration(
 		state.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
 			initializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-			declaration += transpileBlock(state, body);
+			declaration += compileBlock(state, body);
 		}
 		state.popIndent();
 
@@ -308,7 +308,7 @@ export function transpileRoactClassDeclaration(
 	return declaration;
 }
 
-function transpileSymbolPropertyCallback(state: CompilerState, node: ts.Expression) {
+function compileSymbolPropertyCallback(state: CompilerState, node: ts.Expression) {
 	const symbol = node.getSymbolOrThrow();
 	const name = symbol.getName();
 	const value = symbol.getValueDeclarationOrThrow();
@@ -327,7 +327,7 @@ function transpileSymbolPropertyCallback(state: CompilerState, node: ts.Expressi
 		}
 	}
 
-	return transpileExpression(state, node);
+	return compileExpression(state, node);
 }
 
 export function generateRoactSymbolProperty(
@@ -352,12 +352,12 @@ export function generateRoactSymbolProperty(
 					let value: string;
 
 					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
-						value = transpileSymbolPropertyCallback(state, rhs);
+						value = compileSymbolPropertyCallback(state, rhs);
 					} else {
 						if (hasExtraAttributes) {
 							state.pushIndent(); // fix indentation with extra props
 						}
-						value = transpileExpression(state, rhs);
+						value = compileExpression(state, rhs);
 					}
 
 					if (hasExtraAttributes) {
@@ -373,18 +373,18 @@ export function generateRoactSymbolProperty(
 			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
 				const getAccessExpression = innerExpression.getExpression();
 				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-					value = transpileSymbolPropertyCallback(state, innerExpression);
+					value = compileSymbolPropertyCallback(state, innerExpression);
 				} else {
 					if (hasExtraAttributes) {
 						state.pushIndent(); // fix indentation with extra props
 					}
-					value = transpileExpression(state, getAccessExpression);
+					value = compileExpression(state, getAccessExpression);
 				}
 			} else {
 				if (hasExtraAttributes) {
 					state.pushIndent(); // fix indentation with extra props
 				}
-				value = transpileExpression(state, innerExpression);
+				value = compileExpression(state, innerExpression);
 			}
 
 			if (hasExtraAttributes) {
@@ -445,11 +445,11 @@ export function generateRoactElement(
 		for (const attributeLike of attributes) {
 			if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
 				const expression = attributeLike.getExpression();
-				extraAttributeCollections.push(transpileExpression(state, expression));
+				extraAttributeCollections.push(compileExpression(state, expression));
 			} else {
 				const attribute = attributeLike as ts.JsxAttribute;
 				const attributeName = attribute.getName();
-				const value = transpileExpression(state, attribute.getInitializerOrThrow());
+				const value = compileExpression(state, attribute.getInitializerOrThrow());
 
 				if (attributeName === "Key") {
 					// handle setting a key for this element
@@ -529,7 +529,7 @@ export function generateRoactElement(
 
 		for (const child of children) {
 			if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
-				const value = transpileExpression(state, child);
+				const value = compileExpression(state, child);
 				childCollection.push(`${state.indent}${value}`);
 			} else if (ts.TypeGuards.isJsxText(child)) {
 				// If the inner text isn't just indentation/spaces
@@ -548,11 +548,11 @@ export function generateRoactElement(
 					if (isRoactElementType(returnType)) {
 						if (isArrayType(returnType)) {
 							// Roact.Element[]
-							extraChildrenCollection.push(state.indent + transpileExpression(state, expression));
+							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
 							// Roact.Element
 							extraChildrenCollection.push(
-								state.indent + `{ ${transpileExpression(state, expression)} }`,
+								state.indent + `{ ${compileExpression(state, expression)} }`,
 							);
 						}
 					} else {
@@ -567,7 +567,7 @@ export function generateRoactElement(
 					for (const definitionNode of definitionNodes) {
 						const type = definitionNode.getType();
 						if (isRoactElementType(type)) {
-							extraChildrenCollection.push(state.indent + transpileExpression(state, expression));
+							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
 							throw new CompilerError(
 								`Roact does not support identifiers that have the return type ` + type.getText(),
@@ -583,7 +583,7 @@ export function generateRoactElement(
 					const propertyType = expression.getType();
 
 					if (isRoactElementType(propertyType)) {
-						extraChildrenCollection.push(transpileExpression(state, expression));
+						extraChildrenCollection.push(compileExpression(state, expression));
 					} else {
 						throw new CompilerError(
 							`Roact does not support the property type ` + propertyType.getText(),
@@ -640,7 +640,7 @@ export function generateRoactElement(
 	}
 }
 
-export function transpileJsxElement(state: CompilerState, node: ts.JsxElement): string {
+export function compileJsxElement(state: CompilerState, node: ts.JsxElement): string {
 	if (!state.hasRoactImport) {
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
@@ -667,7 +667,7 @@ export function transpileJsxElement(state: CompilerState, node: ts.JsxElement): 
 	return element;
 }
 
-export function transpileJsxSelfClosingElement(state: CompilerState, node: ts.JsxSelfClosingElement): string {
+export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxSelfClosingElement): string {
 	if (!state.hasRoactImport) {
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +

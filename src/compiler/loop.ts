@@ -3,9 +3,9 @@ import {
 	expressionModifiesVariable,
 	getBindingData,
 	placeIncrementorInStatementIfExpression,
-	transpileExpression,
-	transpileStatement,
-	transpileVariableDeclarationList,
+	compileExpression,
+	compileStatement,
+	compileVariableDeclarationList,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -13,7 +13,7 @@ import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, is
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { concatNamesAndValues } from "./binding";
 import { getFirstMemberWithParameters } from "./function";
-import { transpileNumericLiteral } from "./literal";
+import { compileNumericLiteral } from "./literal";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -37,15 +37,15 @@ function hasContinueDescendant(node: ts.Node) {
 	return false;
 }
 
-export function transpileBreakStatement(state: CompilerState, node: ts.BreakStatement) {
+export function compileBreakStatement(state: CompilerState, node: ts.BreakStatement) {
 	return state.indent + "break;\n";
 }
 
-export function transpileContinueStatement(state: CompilerState, node: ts.ContinueStatement) {
+export function compileContinueStatement(state: CompilerState, node: ts.ContinueStatement) {
 	return state.indent + `_continue_${state.continueId} = true; break;\n`;
 }
 
-export function transpileLoopBody(state: CompilerState, node: ts.Statement) {
+export function compileLoopBody(state: CompilerState, node: ts.Statement) {
 	const hasContinue = hasContinueDescendant(node);
 
 	let endsWithBreakOrReturn = false;
@@ -67,7 +67,7 @@ export function transpileLoopBody(state: CompilerState, node: ts.Statement) {
 		state.pushIndent();
 	}
 
-	result += transpileStatement(state, node);
+	result += compileStatement(state, node);
 
 	if (hasContinue) {
 		if (!endsWithBreakOrReturn) {
@@ -86,14 +86,14 @@ export function transpileLoopBody(state: CompilerState, node: ts.Statement) {
 	return result;
 }
 
-export function transpileDoStatement(state: CompilerState, node: ts.DoStatement) {
-	const condition = transpileExpression(state, node.getExpression());
+export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
+	const condition = compileExpression(state, node.getExpression());
 	let result = "";
 	result += state.indent + "repeat\n";
 	state.pushIndent();
 	result += state.indent + "do\n";
 	state.pushIndent();
-	result += transpileLoopBody(state, node.getStatement());
+	result += compileLoopBody(state, node.getStatement());
 	state.popIndent();
 	result += state.indent + "end\n";
 	state.popIndent();
@@ -122,7 +122,7 @@ function getVariableName(
 	return varName;
 }
 
-export function transpileForOfStatement(state: CompilerState, node: ts.ForOfStatement) {
+export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatement) {
 	state.pushIdStack();
 	const init = node.getInitializer();
 	let lhs: ts.Node<ts.ts.Node> | undefined;
@@ -131,7 +131,7 @@ export function transpileForOfStatement(state: CompilerState, node: ts.ForOfStat
 	const exp = node.getExpression();
 	const expType = exp.getType();
 	let result = "";
-	let expStr = transpileExpression(state, exp);
+	let expStr = compileExpression(state, exp);
 
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		const declarations = init.getDeclarations();
@@ -263,7 +263,7 @@ export function transpileForOfStatement(state: CompilerState, node: ts.ForOfStat
 		for (const myStatement of postStatements) {
 			result += state.indent + myStatement + "\n";
 		}
-		result += transpileLoopBody(state, statement);
+		result += compileLoopBody(state, statement);
 		state.popIndent();
 		result += state.indent + `end;\n`;
 		state.popIdStack();
@@ -376,7 +376,7 @@ function getSignAndIncrementorForStatement(
 				}
 
 				if (rhsIncr && ts.TypeGuards.isNumericLiteral(rhsIncr)) {
-					forIntervalStr = transpileNumericLiteral(state, rhsIncr);
+					forIntervalStr = compileNumericLiteral(state, rhsIncr);
 				}
 			}
 		}
@@ -446,14 +446,14 @@ function getSimpleForLoopString(
 ) {
 	let result = "";
 	state.popIndent();
-	const first = transpileVariableDeclarationList(state, initializer)
+	const first = compileVariableDeclarationList(state, initializer)
 		.trim()
 		.replace(/^local /, "")
 		.replace(/;$/, "");
 
 	result = state.indent + `for ${first}, ${forLoopVars} do\n`;
 	state.pushIndent();
-	result += transpileLoopBody(state, statement);
+	result += compileLoopBody(state, statement);
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	return result;
@@ -477,7 +477,7 @@ function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	);
 }
 
-export function transpileForStatement(state: CompilerState, node: ts.ForStatement) {
+export function compileForStatement(state: CompilerState, node: ts.ForStatement) {
 	state.pushIdStack();
 	const statement = node.getStatement();
 	const condition = node.getCondition();
@@ -552,7 +552,7 @@ export function transpileForStatement(state: CompilerState, node: ts.ForStatemen
 												return getSimpleForLoopString(
 													state,
 													initializer,
-													transpileExpression(state, condValue) +
+													compileExpression(state, condValue) +
 														(incrStr === "1" ? "" : ", " + incrStr),
 													statement,
 												);
@@ -569,8 +569,8 @@ export function transpileForStatement(state: CompilerState, node: ts.ForStatemen
 			// if we can't convert to a simple for loop:
 			// if it has any internal function declarations, make sure to locally scope variables
 			if (getFirstMemberWithParameters(statementDescendants)) {
-				conditionStr = condition ? transpileExpression(state, condition) : "true";
-				incrementorStr = incrementor ? transpileExpression(state, incrementor) + ";\n" : undefined;
+				conditionStr = condition ? compileExpression(state, condition) : "true";
+				incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
 
 				declarations.forEach(declaration => {
 					const lhs = declaration.getChildAtIndex(0);
@@ -605,23 +605,23 @@ export function transpileForStatement(state: CompilerState, node: ts.ForStatemen
 				});
 			}
 
-			result += transpileVariableDeclarationList(state, initializer);
+			result += compileVariableDeclarationList(state, initializer);
 		} else if (ts.TypeGuards.isExpression(initializer)) {
-			const expStr = transpileExpression(state, initializer);
+			const expStr = compileExpression(state, initializer);
 			result += safelyHandleExpressionsInForStatement(state, initializer, expStr) + ";\n";
 		}
 	}
 
 	// order matters
 	if (conditionStr === undefined) {
-		conditionStr = condition ? transpileExpression(state, condition) : "true";
-		incrementorStr = incrementor ? transpileExpression(state, incrementor) + ";\n" : undefined;
+		conditionStr = condition ? compileExpression(state, condition) : "true";
+		incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
 	}
 
 	result += state.indent + `while ${conditionStr} do\n`;
 	result += localizations;
 	state.pushIndent();
-	result += transpileLoopBody(state, statement);
+	result += compileLoopBody(state, statement);
 	cleanups.forEach(cleanup => cleanup());
 	if (incrementor && incrementorStr) {
 		result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr);
@@ -634,14 +634,14 @@ export function transpileForStatement(state: CompilerState, node: ts.ForStatemen
 	return result;
 }
 
-export function transpileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
+export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	const exp = node.getExpression();
 	checkLoopClassExp(exp);
-	const expStr = transpileExpression(state, exp);
+	const expStr = compileExpression(state, exp);
 	let result = "";
 	result += state.indent + `while ${expStr} do\n`;
 	state.pushIndent();
-	result += transpileLoopBody(state, node.getStatement());
+	result += compileLoopBody(state, node.getStatement());
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	return result;

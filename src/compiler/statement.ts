@@ -1,82 +1,82 @@
 import * as ts from "ts-morph";
 import {
-	transpileBlock,
-	transpileBreakStatement,
-	transpileClassDeclaration,
-	transpileContinueStatement,
-	transpileDoStatement,
-	transpileEnumDeclaration,
-	transpileExportAssignment,
-	transpileExportDeclaration,
-	transpileExpressionStatement,
-	transpileForOfStatement,
-	transpileForStatement,
-	transpileFunctionDeclaration,
-	transpileIfStatement,
-	transpileImportDeclaration,
-	transpileImportEqualsDeclaration,
-	transpileNamespaceDeclaration,
-	transpileReturnStatement,
-	transpileSwitchStatement,
-	transpileThrowStatement,
-	transpileTryStatement,
-	transpileVariableStatement,
-	transpileWhileStatement,
+	compileBlock,
+	compileBreakStatement,
+	compileClassDeclaration,
+	compileContinueStatement,
+	compileDoStatement,
+	compileEnumDeclaration,
+	compileExportAssignment,
+	compileExportDeclaration,
+	compileExpressionStatement,
+	compileForOfStatement,
+	compileForStatement,
+	compileFunctionDeclaration,
+	compileIfStatement,
+	compileImportDeclaration,
+	compileImportEqualsDeclaration,
+	compileNamespaceDeclaration,
+	compileReturnStatement,
+	compileSwitchStatement,
+	compileThrowStatement,
+	compileTryStatement,
+	compileVariableStatement,
+	compileWhileStatement,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../typeUtilities";
 
-export function transpileStatement(state: CompilerState, node: ts.Statement): string {
+export function compileStatement(state: CompilerState, node: ts.Statement): string {
 	/* istanbul ignore else  */
 	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
-		return transpileBlock(state, node);
+		return compileBlock(state, node);
 	} else if (ts.TypeGuards.isImportDeclaration(node)) {
-		return transpileImportDeclaration(state, node);
+		return compileImportDeclaration(state, node);
 	} else if (ts.TypeGuards.isImportEqualsDeclaration(node)) {
-		return transpileImportEqualsDeclaration(state, node);
+		return compileImportEqualsDeclaration(state, node);
 	} else if (ts.TypeGuards.isExportDeclaration(node)) {
-		return transpileExportDeclaration(state, node);
+		return compileExportDeclaration(state, node);
 	} else if (ts.TypeGuards.isFunctionDeclaration(node)) {
-		return transpileFunctionDeclaration(state, node);
+		return compileFunctionDeclaration(state, node);
 	} else if (ts.TypeGuards.isClassDeclaration(node)) {
-		return transpileClassDeclaration(state, node);
+		return compileClassDeclaration(state, node);
 	} else if (ts.TypeGuards.isNamespaceDeclaration(node)) {
-		return transpileNamespaceDeclaration(state, node);
+		return compileNamespaceDeclaration(state, node);
 	} else if (ts.TypeGuards.isDoStatement(node)) {
-		return transpileDoStatement(state, node);
+		return compileDoStatement(state, node);
 	} else if (ts.TypeGuards.isIfStatement(node)) {
-		return transpileIfStatement(state, node);
+		return compileIfStatement(state, node);
 	} else if (ts.TypeGuards.isBreakStatement(node)) {
-		return transpileBreakStatement(state, node);
+		return compileBreakStatement(state, node);
 	} else if (ts.TypeGuards.isExpressionStatement(node)) {
-		return transpileExpressionStatement(state, node);
+		return compileExpressionStatement(state, node);
 	} else if (ts.TypeGuards.isContinueStatement(node)) {
-		return transpileContinueStatement(state, node);
+		return compileContinueStatement(state, node);
 	} else if (ts.TypeGuards.isForInStatement(node)) {
 		throw new CompilerError("For..in loops are disallowed!", node, CompilerErrorType.ForInLoop);
 	} else if (ts.TypeGuards.isForOfStatement(node)) {
-		return transpileForOfStatement(state, node);
+		return compileForOfStatement(state, node);
 	} else if (ts.TypeGuards.isForStatement(node)) {
-		return transpileForStatement(state, node);
+		return compileForStatement(state, node);
 	} else if (ts.TypeGuards.isReturnStatement(node)) {
-		return transpileReturnStatement(state, node);
+		return compileReturnStatement(state, node);
 	} else if (ts.TypeGuards.isThrowStatement(node)) {
-		return transpileThrowStatement(state, node);
+		return compileThrowStatement(state, node);
 	} else if (ts.TypeGuards.isVariableStatement(node)) {
-		return transpileVariableStatement(state, node);
+		return compileVariableStatement(state, node);
 	} else if (ts.TypeGuards.isWhileStatement(node)) {
-		return transpileWhileStatement(state, node);
+		return compileWhileStatement(state, node);
 	} else if (ts.TypeGuards.isEnumDeclaration(node)) {
-		return transpileEnumDeclaration(state, node);
+		return compileEnumDeclaration(state, node);
 	} else if (ts.TypeGuards.isExportAssignment(node)) {
-		return transpileExportAssignment(state, node);
+		return compileExportAssignment(state, node);
 	} else if (ts.TypeGuards.isSwitchStatement(node)) {
-		return transpileSwitchStatement(state, node);
+		return compileSwitchStatement(state, node);
 	} else if (ts.TypeGuards.isTryStatement(node)) {
-		return transpileTryStatement(state, node);
+		return compileTryStatement(state, node);
 	} else if (ts.TypeGuards.isLabeledStatement(node)) {
 		throw new CompilerError("Labeled statements are not supported!", node, CompilerErrorType.NoLabeledStatement);
 	}
@@ -94,13 +94,13 @@ export function transpileStatement(state: CompilerState, node: ts.Statement): st
 	throw new CompilerError(`Bad statement! (${node.getKindName()})`, node, CompilerErrorType.BadStatement);
 }
 
-export function transpileStatementedNode(state: CompilerState, node: ts.Node & ts.StatementedNode) {
+export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.StatementedNode) {
 	state.pushIdStack();
 	state.exportStack.push(new Set<string>());
 	let result = "";
 	state.hoistStack.push(new Set<string>());
 	for (const child of node.getStatements()) {
-		result += transpileStatement(state, child);
+		result += compileStatement(state, child);
 		if (child.getKind() === ts.SyntaxKind.ReturnStatement) {
 			break;
 		}

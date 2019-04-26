@@ -1,80 +1,80 @@
 import * as ts from "ts-morph";
 import {
 	isSetToken,
-	transpileArrayLiteralExpression,
-	transpileAwaitExpression,
-	transpileBinaryExpression,
-	transpileBooleanLiteral,
-	transpileCallExpression,
-	transpileClassExpression,
-	transpileConditionalExpression,
-	transpileElementAccessExpression,
-	transpileFunctionExpression,
-	transpileIdentifier,
-	transpileJsxElement,
-	transpileJsxSelfClosingElement,
-	transpileNewExpression,
-	transpileNumericLiteral,
-	transpileObjectLiteralExpression,
-	transpileParenthesizedExpression,
-	transpilePostfixUnaryExpression,
-	transpilePrefixUnaryExpression,
-	transpilePropertyAccessExpression,
-	transpileSpreadElement,
-	transpileStringLiteral,
-	transpileTemplateExpression,
+	compileArrayLiteralExpression,
+	compileAwaitExpression,
+	compileBinaryExpression,
+	compileBooleanLiteral,
+	compileCallExpression,
+	compileClassExpression,
+	compileConditionalExpression,
+	compileElementAccessExpression,
+	compileFunctionExpression,
+	compileIdentifier,
+	compileJsxElement,
+	compileJsxSelfClosingElement,
+	compileNewExpression,
+	compileNumericLiteral,
+	compileObjectLiteralExpression,
+	compileParenthesizedExpression,
+	compilePostfixUnaryExpression,
+	compilePrefixUnaryExpression,
+	compilePropertyAccessExpression,
+	compileSpreadElement,
+	compileStringLiteral,
+	compileTemplateExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 
-export function transpileExpression(state: CompilerState, node: ts.Expression): string {
+export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
-		return transpileStringLiteral(state, node);
+		return compileStringLiteral(state, node);
 	} else if (ts.TypeGuards.isNumericLiteral(node)) {
-		return transpileNumericLiteral(state, node);
+		return compileNumericLiteral(state, node);
 	} else if (ts.TypeGuards.isBooleanLiteral(node)) {
-		return transpileBooleanLiteral(state, node);
+		return compileBooleanLiteral(state, node);
 	} else if (ts.TypeGuards.isArrayLiteralExpression(node)) {
-		return transpileArrayLiteralExpression(state, node);
+		return compileArrayLiteralExpression(state, node);
 	} else if (ts.TypeGuards.isObjectLiteralExpression(node)) {
-		return transpileObjectLiteralExpression(state, node);
+		return compileObjectLiteralExpression(state, node);
 	} else if (ts.TypeGuards.isFunctionExpression(node) || ts.TypeGuards.isArrowFunction(node)) {
-		return transpileFunctionExpression(state, node);
+		return compileFunctionExpression(state, node);
 	} else if (ts.TypeGuards.isCallExpression(node)) {
-		return transpileCallExpression(state, node);
+		return compileCallExpression(state, node);
 	} else if (ts.TypeGuards.isIdentifier(node)) {
-		return transpileIdentifier(state, node);
+		return compileIdentifier(state, node);
 	} else if (ts.TypeGuards.isBinaryExpression(node)) {
-		return transpileBinaryExpression(state, node);
+		return compileBinaryExpression(state, node);
 	} else if (ts.TypeGuards.isPrefixUnaryExpression(node)) {
-		return transpilePrefixUnaryExpression(state, node);
+		return compilePrefixUnaryExpression(state, node);
 	} else if (ts.TypeGuards.isPostfixUnaryExpression(node)) {
-		return transpilePostfixUnaryExpression(state, node);
+		return compilePostfixUnaryExpression(state, node);
 	} else if (ts.TypeGuards.isPropertyAccessExpression(node)) {
-		return transpilePropertyAccessExpression(state, node);
+		return compilePropertyAccessExpression(state, node);
 	} else if (ts.TypeGuards.isNewExpression(node)) {
-		return transpileNewExpression(state, node);
+		return compileNewExpression(state, node);
 	} else if (ts.TypeGuards.isParenthesizedExpression(node)) {
-		return transpileParenthesizedExpression(state, node);
+		return compileParenthesizedExpression(state, node);
 	} else if (ts.TypeGuards.isTemplateExpression(node)) {
-		return transpileTemplateExpression(state, node);
+		return compileTemplateExpression(state, node);
 	} else if (ts.TypeGuards.isElementAccessExpression(node)) {
-		return transpileElementAccessExpression(state, node);
+		return compileElementAccessExpression(state, node);
 	} else if (ts.TypeGuards.isAwaitExpression(node)) {
-		return transpileAwaitExpression(state, node);
+		return compileAwaitExpression(state, node);
 	} else if (ts.TypeGuards.isConditionalExpression(node)) {
-		return transpileConditionalExpression(state, node);
+		return compileConditionalExpression(state, node);
 	} else if (ts.TypeGuards.isJsxExpression(node)) {
-		return transpileExpression(state, node.getExpressionOrThrow());
+		return compileExpression(state, node.getExpressionOrThrow());
 	} else if (ts.TypeGuards.isJsxSelfClosingElement(node)) {
-		return transpileJsxSelfClosingElement(state, node);
+		return compileJsxSelfClosingElement(state, node);
 	} else if (ts.TypeGuards.isJsxElement(node)) {
-		return transpileJsxElement(state, node);
+		return compileJsxElement(state, node);
 	} else if (ts.TypeGuards.isSpreadElement(node)) {
-		return transpileSpreadElement(state, node);
+		return compileSpreadElement(state, node);
 	} else if (ts.TypeGuards.isClassExpression(node)) {
-		return transpileClassExpression(state, node);
+		return compileClassExpression(state, node);
 	} else if (ts.TypeGuards.isOmittedExpression(node)) {
 		return "nil";
 	} else if (ts.TypeGuards.isThisExpression(node)) {
@@ -97,7 +97,7 @@ export function transpileExpression(state: CompilerState, node: ts.Expression): 
 		ts.TypeGuards.isTypeAssertion(node) ||
 		ts.TypeGuards.isNonNullExpression(node)
 	) {
-		return transpileExpression(state, node.getExpression());
+		return compileExpression(state, node.getExpression());
 	} else if (ts.TypeGuards.isNullLiteral(node)) {
 		throw new CompilerError("'null' is not supported! Use 'undefined' instead.", node, CompilerErrorType.NoNull);
 	} else if (ts.TypeGuards.isTypeOfExpression(node)) {
@@ -110,7 +110,7 @@ export function transpileExpression(state: CompilerState, node: ts.Expression): 
 		const exp = node.getExpression();
 		let result = `coroutine.yield({\n`;
 		state.pushIndent();
-		result += state.indent + `value = ${exp ? transpileExpression(state, exp) : "nil"};\n`;
+		result += state.indent + `value = ${exp ? compileExpression(state, exp) : "nil"};\n`;
 		result += state.indent + `done = false;\n`;
 		state.popIndent();
 		result += state.indent + `})`;
@@ -121,12 +121,12 @@ export function transpileExpression(state: CompilerState, node: ts.Expression): 
 	}
 }
 
-export function transpileExpressionStatement(state: CompilerState, node: ts.ExpressionStatement) {
+export function compileExpressionStatement(state: CompilerState, node: ts.ExpressionStatement) {
 	// big set of rules for expression statements
 	const expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
-		return state.indent + transpileCallExpression(state, expression, true) + ";\n";
+		return state.indent + compileCallExpression(state, expression, true) + ";\n";
 	}
 
 	if (
@@ -141,10 +141,10 @@ export function transpileExpressionStatement(state: CompilerState, node: ts.Expr
 		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
 		!ts.TypeGuards.isYieldExpression(expression)
 	) {
-		const expStr = transpileExpression(state, expression);
+		const expStr = compileExpression(state, expression);
 		return state.indent + `local _ = ${expStr};\n`;
 	}
-	return state.indent + transpileExpression(state, expression) + ";\n";
+	return state.indent + compileExpression(state, expression) + ";\n";
 }
 
 export function expressionModifiesVariable(
@@ -175,12 +175,12 @@ export function expressionModifiesVariable(
 export function appendDeclarationIfMissing(
 	state: CompilerState,
 	possibleExpressionStatement: ts.Node,
-	transpiledNode: string,
+	compiledNode: string,
 ) {
 	if (ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
-		return "local _ = " + transpiledNode;
+		return "local _ = " + compiledNode;
 	} else {
-		return transpiledNode;
+		return compiledNode;
 	}
 }
 

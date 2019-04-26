@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
@@ -13,7 +13,7 @@ function useIIFEforUnaryExpression(
 	);
 }
 
-export function transpilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
+export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -26,13 +26,13 @@ export function transpilePrefixUnaryExpression(state: CompilerState, node: ts.Pr
 		let expStr: string;
 		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 			const expression = operand.getExpression();
-			const opExpStr = transpileExpression(state, expression);
+			const opExpStr = compileExpression(state, expression);
 			const propertyStr = operand.getName();
 			const id = state.getNewId();
 			statements.push(`local ${id} = ${opExpStr}`);
 			expStr = `${id}.${propertyStr}`;
 		} else {
-			expStr = transpileExpression(state, operand);
+			expStr = compileExpression(state, operand);
 		}
 		if (opKind === ts.SyntaxKind.PlusPlusToken) {
 			statements.push(`${expStr} = ${expStr} + 1`);
@@ -47,7 +47,7 @@ export function transpilePrefixUnaryExpression(state: CompilerState, node: ts.Pr
 			return statements.join("; ");
 		}
 	} else {
-		const expStr = transpileExpression(state, operand);
+		const expStr = compileExpression(state, operand);
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
 			return `not ${expStr}`;
@@ -67,7 +67,7 @@ export function transpilePrefixUnaryExpression(state: CompilerState, node: ts.Pr
 	}
 }
 
-export function transpilePostfixUnaryExpression(state: CompilerState, node: ts.PostfixUnaryExpression) {
+export function compilePostfixUnaryExpression(state: CompilerState, node: ts.PostfixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -80,13 +80,13 @@ export function transpilePostfixUnaryExpression(state: CompilerState, node: ts.P
 		let expStr: string;
 		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 			const expression = operand.getExpression();
-			const opExpStr = transpileExpression(state, expression);
+			const opExpStr = compileExpression(state, expression);
 			const propertyStr = operand.getName();
 			const id = state.getNewId();
 			statements.push(`local ${id} = ${opExpStr}`);
 			expStr = `${id}.${propertyStr}`;
 		} else {
-			expStr = transpileExpression(state, operand);
+			expStr = compileExpression(state, operand);
 		}
 
 		function getAssignmentExpression() {

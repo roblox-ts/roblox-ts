@@ -1,11 +1,11 @@
 import * as ts from "ts-morph";
-import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
+import { checkReserved, getBindingData, compileCallExpression, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 import { concatNamesAndValues } from "./binding";
 
-export function transpileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
+export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
 	const rhs = node.getInitializer();
 
@@ -35,13 +35,13 @@ export function transpileVariableDeclaration(state: CompilerState, node: ts.Vari
 				if (ts.TypeGuards.isBindingElement(element)) {
 					const nameNode = element.getNameNode();
 					if (ts.TypeGuards.isIdentifier(nameNode)) {
-						names.push(transpileExpression(state, nameNode));
+						names.push(compileExpression(state, nameNode));
 					}
 				} else if (ts.TypeGuards.isOmittedExpression(element)) {
 					names.push("_");
 				}
 			}
-			values.push(transpileCallExpression(state, rhs, true));
+			values.push(compileCallExpression(state, rhs, true));
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				let returnValue: string | undefined;
 				concatNamesAndValues(state, names, values, false, str => (returnValue = str));
@@ -62,7 +62,7 @@ export function transpileVariableDeclaration(state: CompilerState, node: ts.Vari
 		const name = lhs.getText();
 		checkReserved(name, lhs, true);
 		if (rhs) {
-			const value = transpileExpression(state, rhs);
+			const value = compileExpression(state, rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
@@ -90,10 +90,10 @@ export function transpileVariableDeclaration(state: CompilerState, node: ts.Vari
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 		if (ts.TypeGuards.isIdentifier(rhs)) {
-			getBindingData(state, names, values, preStatements, postStatements, lhs, transpileExpression(state, rhs));
+			getBindingData(state, names, values, preStatements, postStatements, lhs, compileExpression(state, rhs));
 		} else {
 			const rootId = state.getNewId();
-			const rhsStr = transpileExpression(state, rhs);
+			const rhsStr = compileExpression(state, rhs);
 			preStatements.push(`local ${rootId} = ${rhsStr};`);
 			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
 		}
@@ -114,7 +114,7 @@ export function transpileVariableDeclaration(state: CompilerState, node: ts.Vari
 	return result;
 }
 
-export function transpileVariableDeclarationList(state: CompilerState, node: ts.VariableDeclarationList) {
+export function compileVariableDeclarationList(state: CompilerState, node: ts.VariableDeclarationList) {
 	const declarationKind = node.getDeclarationKind();
 	if (declarationKind === ts.VariableDeclarationKind.Var) {
 		throw new CompilerError(
@@ -126,12 +126,12 @@ export function transpileVariableDeclarationList(state: CompilerState, node: ts.
 
 	let result = "";
 	for (const declaration of node.getDeclarations()) {
-		result += transpileVariableDeclaration(state, declaration);
+		result += compileVariableDeclaration(state, declaration);
 	}
 	return result;
 }
 
-export function transpileVariableStatement(state: CompilerState, node: ts.VariableStatement) {
+export function compileVariableStatement(state: CompilerState, node: ts.VariableStatement) {
 	const list = node.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
-	return transpileVariableDeclarationList(state, list);
+	return compileVariableDeclarationList(state, list);
 }

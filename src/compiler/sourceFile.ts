@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { transpileStatementedNode } from ".";
+import { compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
@@ -8,12 +8,12 @@ const { version: VERSION } = require("./../../package.json") as {
 	version: string;
 };
 
-export function transpileSourceFile(state: CompilerState, node: ts.SourceFile) {
+export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 	console.profile(node.getBaseName());
 
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
-	let result = transpileStatementedNode(state, node);
+	let result = compileStatementedNode(state, node);
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {
 			throw new CompilerError(

@@ -1,12 +1,12 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { isBooleanType, isNullableType } from "../typeUtilities";
 
-export function transpileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
-	const conditionStr = transpileExpression(state, node.getCondition());
-	const trueStr = transpileExpression(state, node.getWhenTrue());
-	const falseStr = transpileExpression(state, node.getWhenFalse());
+export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
+	const conditionStr = compileExpression(state, node.getCondition());
+	const trueStr = compileExpression(state, node.getWhenTrue());
+	const falseStr = compileExpression(state, node.getWhenFalse());
 	const trueType = node.getWhenTrue().getType();
 	if (isNullableType(trueType) || isBooleanType(trueType)) {
 		return `(${conditionStr} and function() return ${trueStr} end or function() return ${falseStr} end)()`;

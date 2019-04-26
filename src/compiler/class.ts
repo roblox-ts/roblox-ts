@@ -6,11 +6,11 @@ import {
 	ROACT_COMPONENT_TYPE,
 	ROACT_DERIVED_CLASSES_ERROR,
 	ROACT_PURE_COMPONENT_TYPE,
-	transpileAccessorDeclaration,
-	transpileConstructorDeclaration,
-	transpileExpression,
-	transpileMethodDeclaration,
-	transpileRoactClassDeclaration,
+	compileAccessorDeclaration,
+	compileConstructorDeclaration,
+	compileExpression,
+	compileMethodDeclaration,
+	compileRoactClassDeclaration,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -65,7 +65,7 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
-function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
+function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	if (nameNode) {
@@ -83,9 +83,9 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 
 		// Handle the special case where we have a roact class
 		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
-			return transpileRoactClassDeclaration(state, "Component", name, node);
+			return compileRoactClassDeclaration(state, "Component", name, node);
 		} else if (baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			return transpileRoactClassDeclaration(state, "PureComponent", name, node);
+			return compileRoactClassDeclaration(state, "PureComponent", name, node);
 		}
 
 		if (inheritsFromRoact(baseType)) {
@@ -103,7 +103,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 	let hasSuper = false;
 	if (extendExp) {
 		hasSuper = true;
-		baseClassName = transpileExpression(state, extendExp.getExpression());
+		baseClassName = compileExpression(state, extendExp.getExpression());
 	}
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
@@ -147,7 +147,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				hasStaticMembers = true;
 				result += "\n";
 			}
-			result += transpileMethodDeclaration(state, method);
+			result += compileMethodDeclaration(state, method);
 		});
 
 	state.popIndent();
@@ -184,11 +184,11 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				propStr = "." + propName;
 				checkMethodReserved(propName, prop);
 			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = transpileExpression(state, propNameNode);
+				const expStr = compileExpression(state, propNameNode);
 				checkMethodReserved(propNameNode.getLiteralText(), prop);
 				propStr = `[${expStr}]`;
 			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = transpileExpression(state, propNameNode);
+				const expStr = compileExpression(state, propNameNode);
 				propStr = `[${expStr}]`;
 			} else {
 				// ComputedPropertyName
@@ -196,14 +196,14 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				if (ts.TypeGuards.isStringLiteral(computedExp)) {
 					checkMethodReserved(computedExp.getLiteralText(), prop);
 				}
-				const computedExpStr = transpileExpression(state, computedExp);
+				const computedExpStr = compileExpression(state, computedExp);
 				propStr = `[${computedExpStr}]`;
 			}
 
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					extraInitializers.push(`self${propStr} = ${transpileExpression(state, initializer)};\n`);
+					extraInitializers.push(`self${propStr} = ${compileExpression(state, initializer)};\n`);
 				}
 			}
 		}
@@ -216,7 +216,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				hasIndexMembers = true;
 				result += "\n";
 			}
-			result += transpileMethodDeclaration(state, method);
+			result += compileMethodDeclaration(state, method);
 		});
 
 	state.popIndent();
@@ -249,7 +249,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 		result += state.indent + `end;\n`;
 	}
 
-	result += transpileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper);
+	result += compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper);
 
 	for (const prop of node.getStaticProperties()) {
 		const propNameNode = prop.getNameNode();
@@ -260,11 +260,11 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				propStr = "." + propName;
 				checkMethodReserved(propName, prop);
 			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = transpileExpression(state, propNameNode);
+				const expStr = compileExpression(state, propNameNode);
 				checkMethodReserved(propNameNode.getLiteralText(), prop);
 				propStr = `[${expStr}]`;
 			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = transpileExpression(state, propNameNode);
+				const expStr = compileExpression(state, propNameNode);
 				propStr = `[${expStr}]`;
 			} else {
 				// ComputedPropertyName
@@ -272,21 +272,21 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 				if (ts.TypeGuards.isStringLiteral(computedExp)) {
 					checkMethodReserved(computedExp.getLiteralText(), prop);
 				}
-				const computedExpStr = transpileExpression(state, computedExp);
+				const computedExpStr = compileExpression(state, computedExp);
 				propStr = `[${computedExpStr}]`;
 			}
 
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					extraInitializers.push(`self${propStr} = ${transpileExpression(state, initializer)};\n`);
+					extraInitializers.push(`self${propStr} = ${compileExpression(state, initializer)};\n`);
 				}
 			}
 			let propValue = "nil";
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					propValue = transpileExpression(state, initializer);
+					propValue = compileExpression(state, initializer);
 				}
 			}
 			result += state.indent + `${name}${propStr} = ${propValue};\n`;
@@ -315,7 +315,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 			let getterContent = "\n";
 			state.pushIndent();
 			for (const getter of getters) {
-				getterContent += transpileAccessorDeclaration(state, getter, getter.getName());
+				getterContent += compileAccessorDeclaration(state, getter, getter.getName());
 			}
 			state.popIndent();
 			getterContent += state.indent;
@@ -367,7 +367,7 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 			let setterContent = "\n";
 			state.pushIndent();
 			for (const setter of setters) {
-				setterContent += transpileAccessorDeclaration(state, setter, setter.getName());
+				setterContent += compileAccessorDeclaration(state, setter, setter.getName());
 			}
 			state.popIndent();
 			setterContent += state.indent;
@@ -409,10 +409,10 @@ function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Cla
 	return result;
 }
 
-export function transpileClassDeclaration(state: CompilerState, node: ts.ClassDeclaration) {
-	return transpileClass(state, node);
+export function compileClassDeclaration(state: CompilerState, node: ts.ClassDeclaration) {
+	return compileClass(state, node);
 }
 
-export function transpileClassExpression(state: CompilerState, node: ts.ClassExpression) {
-	return transpileClass(state, node);
+export function compileClassExpression(state: CompilerState, node: ts.ClassExpression) {
+	return compileClass(state, node);
 }

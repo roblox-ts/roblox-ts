@@ -1,14 +1,14 @@
 import * as ts from "ts-morph";
-import { transpileExpression, transpileStatementedNode } from ".";
+import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 
-export function transpileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
-	const expStr = transpileExpression(state, node.getExpressionOrThrow());
+export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
+	const expStr = compileExpression(state, node.getExpressionOrThrow());
 	state.usesTSLibrary = true;
 	return state.indent + `TS.throw(${expStr});\n`;
 }
 
-export function transpileTryStatement(state: CompilerState, node: ts.TryStatement) {
+export function compileTryStatement(state: CompilerState, node: ts.TryStatement) {
 	let result = "";
 
 	state.pushIdStack();
@@ -21,7 +21,7 @@ export function transpileTryStatement(state: CompilerState, node: ts.TryStatemen
 
 	result += state.indent + "function()\n";
 	state.pushIndent();
-	result += transpileStatementedNode(state, node.getTryBlock());
+	result += compileStatementedNode(state, node.getTryBlock());
 	state.popIndent();
 	result += state.indent + "end";
 
@@ -31,7 +31,7 @@ export function transpileTryStatement(state: CompilerState, node: ts.TryStatemen
 		const varName = catchClause.getVariableDeclarationOrThrow().getName();
 		result += state.indent + `function(${varName})\n`;
 		state.pushIndent();
-		result += transpileStatementedNode(state, catchClause.getBlock());
+		result += compileStatementedNode(state, catchClause.getBlock());
 		state.popIndent();
 		result += state.indent + "end";
 	}
@@ -43,7 +43,7 @@ export function transpileTryStatement(state: CompilerState, node: ts.TryStatemen
 
 	const finallyBlock = node.getFinallyBlock();
 	if (finallyBlock !== undefined) {
-		result += transpileStatementedNode(state, finallyBlock);
+		result += compileStatementedNode(state, finallyBlock);
 	}
 
 	state.popIdStack();

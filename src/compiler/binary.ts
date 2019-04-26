@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkNonAny, getBindingData, transpileExpression } from ".";
+import { checkNonAny, getBindingData, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType } from "../typeUtilities";
@@ -60,14 +60,14 @@ export function isSetToken(opKind: ts.ts.SyntaxKind) {
 	);
 }
 
-export function transpileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
+export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
 	const opToken = node.getOperatorToken();
 	const opKind = opToken.getKind();
 
 	const lhs = node.getLeft();
 	const rhs = node.getRight();
 	let lhsStr: string;
-	const rhsStr = transpileExpression(state, rhs);
+	const rhsStr = compileExpression(state, rhs);
 	const statements = new Array<string>();
 
 	if (opKind !== ts.SyntaxKind.EqualsToken) {
@@ -84,10 +84,10 @@ export function transpileBinaryExpression(state: CompilerState, node: ts.BinaryE
 
 		let rootId: string;
 		if (ts.TypeGuards.isIdentifier(rhs)) {
-			rootId = transpileExpression(state, rhs);
+			rootId = compileExpression(state, rhs);
 		} else {
 			rootId = state.getNewId();
-			preStatements.push(`local ${rootId} = ${transpileExpression(state, rhs)};`);
+			preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 		}
 		getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
 
@@ -114,13 +114,13 @@ export function transpileBinaryExpression(state: CompilerState, node: ts.BinaryE
 	if (isSetToken(opKind)) {
 		if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
 			const expression = lhs.getExpression();
-			const opExpStr = transpileExpression(state, expression);
+			const opExpStr = compileExpression(state, expression);
 			const propertyStr = lhs.getName();
 			const id = state.getNewId();
 			statements.push(`local ${id} = ${opExpStr}`);
 			lhsStr = `${id}.${propertyStr}`;
 		} else {
-			lhsStr = transpileExpression(state, lhs);
+			lhsStr = compileExpression(state, lhs);
 		}
 
 		/* istanbul ignore else */
@@ -167,7 +167,7 @@ export function transpileBinaryExpression(state: CompilerState, node: ts.BinaryE
 			return `(function() ${statementsStr}; return ${lhsStr}; end)()`;
 		}
 	} else {
-		lhsStr = transpileExpression(state, lhs);
+		lhsStr = compileExpression(state, lhs);
 	}
 
 	/* istanbul ignore else */

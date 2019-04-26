@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { isStringType } from "../typeUtilities";
 
-export function transpileBooleanLiteral(state: CompilerState, node: ts.BooleanLiteral) {
+export function compileBooleanLiteral(state: CompilerState, node: ts.BooleanLiteral) {
 	return node.getLiteralValue() === true ? "true" : "false";
 }
 
@@ -22,7 +22,7 @@ function isSpecialNumberPrefix(numText: string) {
 	return false;
 }
 
-export function transpileNumericLiteral(state: CompilerState, node: ts.NumericLiteral) {
+export function compileNumericLiteral(state: CompilerState, node: ts.NumericLiteral) {
 	const text = node.getText();
 	if (isSpecialNumberPrefix(text)) {
 		return node.getLiteralText();
@@ -36,7 +36,7 @@ function sanitizeTemplate(str: string) {
 	return str;
 }
 
-export function transpileStringLiteral(
+export function compileStringLiteral(
 	state: CompilerState,
 	node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
 ) {
@@ -47,7 +47,7 @@ export function transpileStringLiteral(
 	}
 }
 
-export function transpileTemplateExpression(state: CompilerState, node: ts.TemplateExpression) {
+export function compileTemplateExpression(state: CompilerState, node: ts.TemplateExpression) {
 	const bin = new Array<string>();
 
 	const headText = sanitizeTemplate(
@@ -73,7 +73,7 @@ export function transpileTemplateExpression(state: CompilerState, node: ts.Templ
 			}
 			literalStr = sanitizeTemplate(literalStr);
 
-			const expStr = transpileExpression(state, exp);
+			const expStr = compileExpression(state, exp);
 			if (isStringType(exp.getType())) {
 				bin.push(expStr);
 			} else {

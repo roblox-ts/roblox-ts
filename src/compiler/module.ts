@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as ts from "ts-morph";
-import { checkReserved, transpileExpression } from ".";
+import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
@@ -153,7 +153,7 @@ function getImportPathFromFile(
 	}
 }
 
-export function transpileImportDeclaration(state: CompilerState, node: ts.ImportDeclaration) {
+export function compileImportDeclaration(state: CompilerState, node: ts.ImportDeclaration) {
 	const defaultImport = node.getDefaultImport();
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
@@ -210,7 +210,7 @@ export function transpileImportDeclaration(state: CompilerState, node: ts.Import
 				.getSourceFile()
 				.getExportAssignments();
 
-		const defaultImportExp = transpileExpression(state, defaultImport);
+		const defaultImportExp = compileExpression(state, defaultImport);
 
 		if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
 			// If the defaultImport is importing an `export = ` statement,
@@ -223,7 +223,7 @@ export function transpileImportDeclaration(state: CompilerState, node: ts.Import
 	}
 
 	if (namespaceImport && !isUsedAsType(namespaceImport)) {
-		lhs.push(transpileExpression(state, namespaceImport));
+		lhs.push(compileExpression(state, namespaceImport));
 		rhs.push("");
 		unlocalizedImports.push("");
 	}
@@ -279,7 +279,7 @@ export function transpileImportDeclaration(state: CompilerState, node: ts.Import
 	return result;
 }
 
-export function transpileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
+export function compileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
 	if (isUsedAsType(nameNode)) {
 		return "";
@@ -315,7 +315,7 @@ export function transpileImportEqualsDeclaration(state: CompilerState, node: ts.
 	return state.indent + `local ${name} = ${luaPath};\n`;
 }
 
-export function transpileExportDeclaration(state: CompilerState, node: ts.ExportDeclaration) {
+export function compileExportDeclaration(state: CompilerState, node: ts.ExportDeclaration) {
 	let luaImportStr = "";
 	const moduleSpecifier = node.getModuleSpecifier();
 	if (moduleSpecifier) {
@@ -411,19 +411,19 @@ export function transpileExportDeclaration(state: CompilerState, node: ts.Export
 	}
 }
 
-export function transpileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
+export function compileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
 	let result = state.indent;
 	const exp = node.getExpression();
 	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {
 		state.isModule = true;
-		const expStr = transpileExpression(state, exp);
+		const expStr = compileExpression(state, exp);
 		result += `_exports = ${expStr};\n`;
 	} else {
 		const symbol = node.getSymbol();
 		if (symbol) {
 			if (symbol.getName() === "default") {
 				state.isModule = true;
-				result += "_exports._default = " + transpileExpression(state, exp) + ";\n";
+				result += "_exports._default = " + compileExpression(state, exp) + ";\n";
 			}
 		}
 	}

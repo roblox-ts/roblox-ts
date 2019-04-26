@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
-import { transpileIdentifier } from "./identifier";
+import { compileIdentifier } from "./identifier";
 
 export function getParameterData(
 	state: CompilerState,
@@ -29,7 +29,7 @@ export function getParameterData(
 			if (param.getName() === "this") {
 				continue;
 			}
-			name = transpileExpression(state, child);
+			name = compileExpression(state, child);
 		} else {
 			name = state.getNewId();
 		}
@@ -43,7 +43,7 @@ export function getParameterData(
 
 		const initial = param.getInitializer();
 		if (initial) {
-			const expStr = transpileExpression(state, initial);
+			const expStr = compileExpression(state, initial);
 			const defaultValue = `if ${name} == nil then ${name} = ${expStr} end;`;
 			if (defaults) {
 				defaults.push(defaultValue);
@@ -195,14 +195,14 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
-				const id: string = transpileIdentifier(
+				const id: string = compileIdentifier(
 					state,
 					pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child,
 					true,
 				);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
-					const value = transpileExpression(state, pattern as ts.Expression);
+					const value = compileExpression(state, pattern as ts.Expression);
 					postStatements.push(`if ${id} == nil then ${id} = ${value} end;`);
 				}
 				const accessor: string = strKeys
@@ -225,11 +225,11 @@ export function getBindingData(
 				);
 			}
 		} else if (ts.TypeGuards.isIdentifier(item)) {
-			const id = transpileExpression(state, item as ts.Expression);
+			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
 			values.push(getAccessor(parentId, childIndex));
 		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
-			const id = transpileExpression(state, item as ts.Expression);
+			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
 			values.push(getAccessor(parentId, childIndex));
 		} else if (ts.TypeGuards.isArrayLiteralExpression(item)) {

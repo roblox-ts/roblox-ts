@@ -1,16 +1,16 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
-	transpileExpression,
-	transpileIdentifier,
-	transpileMethodDeclaration,
-	transpileNumericLiteral,
-	transpileStringLiteral,
+	compileExpression,
+	compileIdentifier,
+	compileMethodDeclaration,
+	compileNumericLiteral,
+	compileStringLiteral,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
-export function transpileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
+export function compileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();
 	if (properties.length === 0) {
 		return "{}";
@@ -36,16 +36,16 @@ export function transpileObjectLiteralExpression(state: CompilerState, node: ts.
 			}
 
 			if (ts.TypeGuards.isComputedPropertyName(child)) {
-				const expStr = transpileExpression(state, child.getExpression());
+				const expStr = compileExpression(state, child.getExpression());
 				lhs = `[${expStr}]`;
 			} else if (ts.TypeGuards.isStringLiteral(child)) {
-				const expStr = transpileStringLiteral(state, child);
+				const expStr = compileStringLiteral(state, child);
 				lhs = `[${expStr}]`;
 			} else if (ts.TypeGuards.isIdentifier(child)) {
 				lhs = child.getText();
 				checkReserved(lhs, child);
 			} else if (ts.TypeGuards.isNumericLiteral(child)) {
-				const expStr = transpileNumericLiteral(state, child);
+				const expStr = compileNumericLiteral(state, child);
 				lhs = `[${expStr}]`;
 			} else {
 				throw new CompilerError(
@@ -63,10 +63,10 @@ export function transpileObjectLiteralExpression(state: CompilerState, node: ts.
 			let rhs: string; // You may want to move this around
 			if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
 				lhs = prop.getName();
-				rhs = transpileIdentifier(state, child);
+				rhs = compileIdentifier(state, child);
 				checkReserved(lhs, child);
 			} else {
-				rhs = transpileExpression(state, prop.getInitializerOrThrow());
+				rhs = compileExpression(state, prop.getInitializerOrThrow());
 			}
 
 			parts[parts.length - 1] += state.indent + `${lhs} = ${rhs};\n`;
@@ -79,7 +79,7 @@ export function transpileObjectLiteralExpression(state: CompilerState, node: ts.
 				parts.push("{\n");
 				state.pushIndent();
 			}
-			parts[parts.length - 1] += transpileMethodDeclaration(state, prop);
+			parts[parts.length - 1] += compileMethodDeclaration(state, prop);
 			isInObject = true;
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
 			if (first) {
@@ -89,7 +89,7 @@ export function transpileObjectLiteralExpression(state: CompilerState, node: ts.
 				state.popIndent();
 				parts[parts.length - 1] += state.indent + "}";
 			}
-			const expStr = transpileExpression(state, prop.getExpression());
+			const expStr = compileExpression(state, prop.getExpression());
 			parts.push(expStr);
 			isInObject = false;
 		}

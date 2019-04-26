@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkNonAny, transpileCallExpression, transpileExpression } from ".";
+import { checkNonAny, compileCallExpression, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
@@ -11,21 +11,21 @@ import {
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
 
-export function transpileArrayForSpread(state: CompilerState, expression: ts.Expression) {
+export function compileArrayForSpread(state: CompilerState, expression: ts.Expression) {
 	const expType = expression.getType();
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
-		return `TS.set_values(${transpileExpression(state, expression)})`;
+		return `TS.set_values(${compileExpression(state, expression)})`;
 	} else if (isMapType(expType)) {
 		state.usesTSLibrary = true;
-		return `TS.map_entries(${transpileExpression(state, expression)})`;
+		return `TS.map_entries(${compileExpression(state, expression)})`;
 	} else if (isArrayType(expType)) {
-		return transpileExpression(state, expression);
+		return compileExpression(state, expression);
 	} else if (isStringType(expType)) {
-		return `string.split(${transpileExpression(state, expression)}, "")`;
+		return `string.split(${compileExpression(state, expression)}, "")`;
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
-		return `TS.iterable_cache(${transpileExpression(state, expression)})`;
+		return `TS.iterable_cache(${compileExpression(state, expression)})`;
 	} else {
 		throw new CompilerError(
 			`Unable to spread expression of type ${expType.getText()}`,
@@ -35,13 +35,13 @@ export function transpileArrayForSpread(state: CompilerState, expression: ts.Exp
 	}
 }
 
-export function transpileSpreadElement(state: CompilerState, node: ts.SpreadElement) {
+export function compileSpreadElement(state: CompilerState, node: ts.SpreadElement) {
 	const expression = node.getExpression();
 	checkNonAny(expression, true);
 
 	if (ts.TypeGuards.isCallExpression(expression) && isTupleReturnTypeCall(expression)) {
-		return transpileCallExpression(state, expression, true);
+		return compileCallExpression(state, expression, true);
 	} else {
-		return `unpack(${transpileArrayForSpread(state, expression)})`;
+		return `unpack(${compileArrayForSpread(state, expression)})`;
 	}
 }

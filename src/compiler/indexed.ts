@@ -4,18 +4,18 @@ import {
 	checkNonAny,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
-	transpileCallExpression,
-	transpileExpression,
+	compileCallExpression,
+	compileExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { transpileNumericLiteral } from "./literal";
+import { compileNumericLiteral } from "./literal";
 
-export function transpilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
+export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
-	const expStr = transpileExpression(state, exp);
+	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
 
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node, node);
@@ -85,7 +85,7 @@ export function transpilePropertyAccessExpression(state: CompilerState, node: ts
 	return `${expStr}.${propertyStr}`;
 }
 
-export function transpileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
@@ -105,7 +105,7 @@ export function transpileElementAccessExpression(state: CompilerState, node: ts.
 	let offset = "";
 	let argExpStr: string;
 	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
-		let value = Number(transpileNumericLiteral(state, argExp));
+		let value = Number(compileNumericLiteral(state, argExp));
 		if (addOne) {
 			value++;
 		}
@@ -114,11 +114,11 @@ export function transpileElementAccessExpression(state: CompilerState, node: ts.
 		if (addOne) {
 			offset = " + 1";
 		}
-		argExpStr = transpileExpression(state, argExp) + offset;
+		argExpStr = compileExpression(state, argExp) + offset;
 	}
 
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-		const expStr = transpileCallExpression(state, expNode, true);
+		const expStr = compileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
 		if (argExpStr === "1") {
@@ -127,7 +127,7 @@ export function transpileElementAccessExpression(state: CompilerState, node: ts.
 			return `(select(${argExpStr}, ${expStr}))`;
 		}
 	} else {
-		const expStr = transpileExpression(state, expNode);
+		const expStr = compileExpression(state, expNode);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
 		let isArrayLiteral = false;

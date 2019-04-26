@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
-import { transpileExpression } from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 
-export function transpileParenthesizedExpression(state: CompilerState, node: ts.ParenthesizedExpression) {
-	const expStr = transpileExpression(state, node.getExpression());
+export function compileParenthesizedExpression(state: CompilerState, node: ts.ParenthesizedExpression) {
+	const expStr = compileExpression(state, node.getExpression());
 	return `(${expStr})`;
 }

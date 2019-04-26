@@ -4,7 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { shouldHoist } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
-export function transpileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
+export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
 	let result = "";
 	if (node.isConstEnum()) {
 		return result;
