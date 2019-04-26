@@ -8,8 +8,8 @@ export = () => {
 		expect(a << 1).to.equal(0b1010);
 		expect(a >> 1).to.equal(0b10);
 		expect(a | 0).to.equal(0b101);
-		expect(~a & 0b111).to.equal(0b010);
-		expect(~b & 0b111).to.equal(0b001);
+		expect(~a).to.equal(-6);
+		expect(~b).to.equal(-7);
 	});
 
 	it("should support bitwise assignment", () => {
