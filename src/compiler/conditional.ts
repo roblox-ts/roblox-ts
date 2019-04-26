@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 import { isBooleanType, isNullableType } from "../typeUtilities";
 
-export function transpileConditionalExpression(state: TranspilerState, node: ts.ConditionalExpression) {
+export function transpileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	const conditionStr = transpileExpression(state, node.getCondition());
 	const trueStr = transpileExpression(state, node.getWhenTrue());
 	const falseStr = transpileExpression(state, node.getWhenFalse());

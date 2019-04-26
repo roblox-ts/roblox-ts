@@ -24,11 +24,11 @@ import {
 	transpileStringLiteral,
 	transpileTemplateExpression,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 
-export function transpileExpression(state: TranspilerState, node: ts.Expression): string {
+export function transpileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 		return transpileStringLiteral(state, node);
 	} else if (ts.TypeGuards.isNumericLiteral(node)) {
@@ -83,10 +83,10 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 			!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression) &&
 			!node.getFirstAncestorByKind(ts.SyntaxKind.ClassExpression)
 		) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"'this' may only be used inside a class definition or object literal",
 				node,
-				TranspilerErrorType.NoThisOutsideClass,
+				CompilerErrorType.NoThisOutsideClass,
 			);
 		}
 		return "self";
@@ -99,16 +99,12 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 	) {
 		return transpileExpression(state, node.getExpression());
 	} else if (ts.TypeGuards.isNullLiteral(node)) {
-		throw new TranspilerError(
-			"'null' is not supported! Use 'undefined' instead.",
-			node,
-			TranspilerErrorType.NoNull,
-		);
+		throw new CompilerError("'null' is not supported! Use 'undefined' instead.", node, CompilerErrorType.NoNull);
 	} else if (ts.TypeGuards.isTypeOfExpression(node)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"'typeof' operator is not supported! Use `typeIs(value, type)` or `typeOf(value)` instead.",
 			node,
-			TranspilerErrorType.NoTypeOf,
+			CompilerErrorType.NoTypeOf,
 		);
 	} else if (ts.TypeGuards.isYieldExpression(node)) {
 		const exp = node.getExpression();
@@ -121,11 +117,11 @@ export function transpileExpression(state: TranspilerState, node: ts.Expression)
 		return result;
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(`Bad expression! (${node.getKindName()})`, node, TranspilerErrorType.BadExpression);
+		throw new CompilerError(`Bad expression! (${node.getKindName()})`, node, CompilerErrorType.BadExpression);
 	}
 }
 
-export function transpileExpressionStatement(state: TranspilerState, node: ts.ExpressionStatement) {
+export function transpileExpressionStatement(state: CompilerState, node: ts.ExpressionStatement) {
 	// big set of rules for expression statements
 	const expression = node.getExpression();
 
@@ -177,7 +173,7 @@ export function expressionModifiesVariable(
 }
 
 export function appendDeclarationIfMissing(
-	state: TranspilerState,
+	state: CompilerState,
 	possibleExpressionStatement: ts.Node,
 	transpiledNode: string,
 ) {
@@ -189,7 +185,7 @@ export function appendDeclarationIfMissing(
 }
 
 export function placeIncrementorInStatementIfExpression(
-	state: TranspilerState,
+	state: CompilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
 ) {

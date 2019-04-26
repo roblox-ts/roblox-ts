@@ -7,8 +7,8 @@ import {
 	transpileExpression,
 	transpileStatement,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isArrayType } from "../typeUtilities";
 import { bold, suggest } from "../utility";
 
@@ -128,7 +128,7 @@ function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts
 			userError += "\n" + ROACT_DERIVED_CLASSES_ERROR;
 		}
 
-		throw new TranspilerError(userError, node, TranspilerErrorType.RoactNoReservedMethods);
+		throw new CompilerError(userError, node, CompilerErrorType.RoactNoReservedMethods);
 	}
 }
 
@@ -139,7 +139,7 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 }
 
 export function transpileRoactClassDeclaration(
-	state: TranspilerState,
+	state: CompilerState,
 	type: "Component" | "PureComponent",
 	className: string,
 	node: ts.ClassDeclaration | ts.ClassExpression,
@@ -210,10 +210,10 @@ export function transpileRoactClassDeclaration(
 				const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
 				if (returnStatement) {
-					throw new TranspilerError(
+					throw new CompilerError(
 						`Cannot use return statement in constructor for ${className}`,
 						returnStatement,
-						TranspilerErrorType.NoConstructorReturn,
+						CompilerErrorType.NoConstructorReturn,
 					);
 				}
 			}
@@ -295,34 +295,34 @@ export function transpileRoactClassDeclaration(
 		.getInstanceProperties()
 		.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 	if (getters.length > 0) {
-		throw new TranspilerError("Roact does not support getters", node, TranspilerErrorType.RoactGettersNotAllowed);
+		throw new CompilerError("Roact does not support getters", node, CompilerErrorType.RoactGettersNotAllowed);
 	}
 
 	const setters = node
 		.getInstanceProperties()
 		.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
 	if (setters.length > 0) {
-		throw new TranspilerError("Roact does not support setters", node, TranspilerErrorType.RoactSettersNotAllowed);
+		throw new CompilerError("Roact does not support setters", node, CompilerErrorType.RoactSettersNotAllowed);
 	}
 
 	return declaration;
 }
 
-function transpileSymbolPropertyCallback(state: TranspilerState, node: ts.Expression) {
+function transpileSymbolPropertyCallback(state: CompilerState, node: ts.Expression) {
 	const symbol = node.getSymbolOrThrow();
 	const name = symbol.getName();
 	const value = symbol.getValueDeclarationOrThrow();
 
 	if (ts.TypeGuards.isFunctionLikeDeclaration(value)) {
 		if (ts.TypeGuards.isMethodDeclaration(value)) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Do not use Method signatures directly as callbacks for Roact Event, Changed or Ref.\n" +
 					suggest(
 						`Change the declaration of \`${name}(...) {...}\` to \`${name} = () => { ... }\`, ` +
 							` or use an arrow function: \`() => { this.${name}() }\``,
 					),
 				node,
-				TranspilerErrorType.RoactInvalidCallExpression,
+				CompilerErrorType.RoactInvalidCallExpression,
 			);
 		}
 	}
@@ -331,7 +331,7 @@ function transpileSymbolPropertyCallback(state: TranspilerState, node: ts.Expres
 }
 
 export function generateRoactSymbolProperty(
-	state: TranspilerState,
+	state: CompilerState,
 	roactSymbol: "Event" | "Change" | "Ref",
 	node: ts.JsxAttributeLike,
 	attributeCollection: Array<string>,
@@ -393,17 +393,17 @@ export function generateRoactSymbolProperty(
 
 			attributeCollection.push(`[Roact.Ref] = ${value}`);
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
 				node,
-				TranspilerErrorType.RoactInvalidSymbol,
+				CompilerErrorType.RoactInvalidSymbol,
 			);
 		}
 	}
 }
 
 export function generateRoactElement(
-	state: TranspilerState,
+	state: CompilerState,
 	// name: string,
 	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
@@ -427,10 +427,10 @@ export function generateRoactElement(
 		if (rbxName) {
 			str += `"${rbxName}"`;
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`"${bold(name)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
 				nameNode,
-				TranspilerErrorType.RoactInvalidPrimitive,
+				CompilerErrorType.RoactInvalidPrimitive,
 			);
 		}
 	} else {
@@ -534,10 +534,10 @@ export function generateRoactElement(
 			} else if (ts.TypeGuards.isJsxText(child)) {
 				// If the inner text isn't just indentation/spaces
 				if (child.getText().match(/[^\s]/)) {
-					throw new TranspilerError(
+					throw new CompilerError(
 						"Roact does not support text!",
 						child,
-						TranspilerErrorType.RoactJsxTextNotSupported,
+						CompilerErrorType.RoactJsxTextNotSupported,
 					);
 				}
 			} else if (ts.TypeGuards.isJsxExpression(child)) {
@@ -556,10 +556,10 @@ export function generateRoactElement(
 							);
 						}
 					} else {
-						throw new TranspilerError(
+						throw new CompilerError(
 							`Function call in an expression must return Roact.Element or Roact.Element[]`,
 							expression,
-							TranspilerErrorType.RoactInvalidCallExpression,
+							CompilerErrorType.RoactInvalidCallExpression,
 						);
 					}
 				} else if (ts.TypeGuards.isIdentifier(expression)) {
@@ -569,10 +569,10 @@ export function generateRoactElement(
 						if (isRoactElementType(type)) {
 							extraChildrenCollection.push(state.indent + transpileExpression(state, expression));
 						} else {
-							throw new TranspilerError(
+							throw new CompilerError(
 								`Roact does not support identifiers that have the return type ` + type.getText(),
 								expression,
-								TranspilerErrorType.RoactInvalidIdentifierExpression,
+								CompilerErrorType.RoactInvalidIdentifierExpression,
 							);
 						}
 					}
@@ -585,18 +585,18 @@ export function generateRoactElement(
 					if (isRoactElementType(propertyType)) {
 						extraChildrenCollection.push(transpileExpression(state, expression));
 					} else {
-						throw new TranspilerError(
+						throw new CompilerError(
 							`Roact does not support the property type ` + propertyType.getText(),
 							expression,
-							TranspilerErrorType.RoactInvalidPropertyExpression,
+							CompilerErrorType.RoactInvalidPropertyExpression,
 						);
 					}
 				} else {
-					throw new TranspilerError(
+					throw new CompilerError(
 						`Roact does not support this type of expression ` +
 							`{${expression.getText()}} (${expression.getKindName()})`,
 						expression,
-						TranspilerErrorType.RoactInvalidExpression,
+						CompilerErrorType.RoactInvalidExpression,
 					);
 				}
 			}
@@ -640,13 +640,13 @@ export function generateRoactElement(
 	}
 }
 
-export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement): string {
+export function transpileJsxElement(state: CompilerState, node: ts.JsxElement): string {
 	if (!state.hasRoactImport) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
 				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
 			node,
-			TranspilerErrorType.RoactJsxWithoutImport,
+			CompilerErrorType.RoactJsxWithoutImport,
 		);
 	}
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
@@ -667,13 +667,13 @@ export function transpileJsxElement(state: TranspilerState, node: ts.JsxElement)
 	return element;
 }
 
-export function transpileJsxSelfClosingElement(state: TranspilerState, node: ts.JsxSelfClosingElement): string {
+export function transpileJsxSelfClosingElement(state: CompilerState, node: ts.JsxSelfClosingElement): string {
 	if (!state.hasRoactImport) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
 				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
 			node,
-			TranspilerErrorType.RoactJsxWithoutImport,
+			CompilerErrorType.RoactJsxWithoutImport,
 		);
 	}
 

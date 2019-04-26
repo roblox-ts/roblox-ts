@@ -1,13 +1,13 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { HasParameters } from "../types";
 import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
 import { transpileIdentifier } from "./identifier";
 
 export function getParameterData(
-	state: TranspilerState,
+	state: CompilerState,
 	paramNames: Array<string>,
 	initializers: Array<string>,
 	node: HasParameters,
@@ -21,11 +21,7 @@ export function getParameterData(
 
 		/* istanbul ignore next */
 		if (child === undefined) {
-			throw new TranspilerError(
-				"Child missing from parameter!",
-				param,
-				TranspilerErrorType.ParameterChildMissing,
-			);
+			throw new CompilerError("Child missing from parameter!", param, CompilerErrorType.ParameterChildMissing);
 		}
 
 		let name: string;
@@ -83,10 +79,10 @@ function objectAccessor(t: string, node: ts.Node, getAccessor: (t: string, key: 
 		if (key === "length") {
 			return `#${t}`;
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Cannot index method ${key} (a roblox-ts internal)`,
 				node,
-				TranspilerErrorType.BadDestructuringType,
+				CompilerErrorType.BadDestructuringType,
 			);
 		}
 	}
@@ -125,17 +121,17 @@ function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boo
 		if (isObject) {
 			return null as never;
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Cannot destructure an object of type ${bindingPatternType.getText()}`,
 				bindingPattern,
-				TranspilerErrorType.BadDestructuringType,
+				CompilerErrorType.BadDestructuringType,
 			);
 		}
 	}
 }
 
 export function concatNamesAndValues(
-	state: TranspilerState,
+	state: CompilerState,
 	names: Array<string>,
 	values: Array<string>,
 	isLocal: boolean,
@@ -153,7 +149,7 @@ export function concatNamesAndValues(
 }
 
 export function getBindingData(
-	state: TranspilerState,
+	state: CompilerState,
 	names: Array<string>,
 	values: Array<string>,
 	preStatements: Array<string>,
@@ -173,10 +169,10 @@ export function getBindingData(
 			const [child, op, pattern] = item.getChildren();
 
 			if (child.getKind() === ts.SyntaxKind.DotDotDotToken) {
-				throw new TranspilerError(
+				throw new CompilerError(
 					"Operator ... is not supported for destructuring!",
 					child,
-					TranspilerErrorType.SpreadDestructuring,
+					CompilerErrorType.SpreadDestructuring,
 				);
 			}
 
@@ -221,11 +217,11 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
-				throw new TranspilerError(
+				throw new CompilerError(
 					`Roblox-TS doesn't know what to do with ${child.getKindName()}. ` +
 						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 					child,
-					TranspilerErrorType.UnexpectedBindingPattern,
+					CompilerErrorType.UnexpectedBindingPattern,
 				);
 			}
 		} else if (ts.TypeGuards.isIdentifier(item)) {
@@ -243,11 +239,11 @@ export function getBindingData(
 		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
 			childIndex--;
 		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Roblox-TS doesn't know what to do with ${item.getKindName()}. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 				item,
-				TranspilerErrorType.UnexpectedBindingPattern,
+				CompilerErrorType.UnexpectedBindingPattern,
 			);
 		}
 

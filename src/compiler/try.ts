@@ -1,14 +1,14 @@
 import * as ts from "ts-morph";
 import { transpileExpression, transpileStatementedNode } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 
-export function transpileThrowStatement(state: TranspilerState, node: ts.ThrowStatement) {
+export function transpileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
 	const expStr = transpileExpression(state, node.getExpressionOrThrow());
 	state.usesTSLibrary = true;
 	return state.indent + `TS.throw(${expStr});\n`;
 }
 
-export function transpileTryStatement(state: TranspilerState, node: ts.TryStatement) {
+export function transpileTryStatement(state: CompilerState, node: ts.TryStatement) {
 	let result = "";
 
 	state.pushIdStack();

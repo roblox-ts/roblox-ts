@@ -1,9 +1,9 @@
 import * as path from "path";
 import * as ts from "ts-morph";
 import { checkReserved, transpileExpression } from ".";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
 import { isValidLuaIdentifier, stripExtensions } from "../utility";
 
@@ -29,7 +29,7 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 }
 
 function getRelativeImportPath(
-	state: TranspilerState,
+	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile | undefined,
 	specifier: string,
@@ -66,7 +66,7 @@ function getRelativeImportPath(
 const moduleCache = new Map<string, string>();
 
 function getImportPathFromFile(
-	state: TranspilerState,
+	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile,
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
@@ -141,10 +141,10 @@ function getImportPathFromFile(
 		if (rbxService && isRbxService(rbxService)) {
 			params[0] = `game:GetService("${params[0]}")`;
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				rbxService + " is not a valid Roblox Service!",
 				node,
-				TranspilerErrorType.InvalidService,
+				CompilerErrorType.InvalidService,
 			);
 		}
 
@@ -153,7 +153,7 @@ function getImportPathFromFile(
 	}
 }
 
-export function transpileImportDeclaration(state: TranspilerState, node: ts.ImportDeclaration) {
+export function transpileImportDeclaration(state: CompilerState, node: ts.ImportDeclaration) {
 	const defaultImport = node.getDefaultImport();
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
@@ -184,10 +184,10 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 		} else {
 			const specifierText = node.getModuleSpecifier().getLiteralText();
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
 				node,
-				TranspilerErrorType.MissingModuleFile,
+				CompilerErrorType.MissingModuleFile,
 			);
 		}
 	}
@@ -279,7 +279,7 @@ export function transpileImportDeclaration(state: TranspilerState, node: ts.Impo
 	return result;
 }
 
-export function transpileImportEqualsDeclaration(state: TranspilerState, node: ts.ImportEqualsDeclaration) {
+export function transpileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
 	if (isUsedAsType(nameNode)) {
 		return "";
@@ -295,7 +295,7 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 				const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
 				specifier = exp.getLiteralText();
 			} else {
-				throw new TranspilerError("Bad specifier", node, TranspilerErrorType.BadSpecifier);
+				throw new CompilerError("Bad specifier", node, CompilerErrorType.BadSpecifier);
 			}
 			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier, node);
 		} else {
@@ -303,7 +303,7 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 		}
 	} else {
 		const text = node.getModuleReference().getText();
-		throw new TranspilerError(`Could not find file for '${text}'`, node, TranspilerErrorType.MissingModuleFile);
+		throw new CompilerError(`Could not find file for '${text}'`, node, CompilerErrorType.MissingModuleFile);
 	}
 
 	const name = node.getName();
@@ -315,7 +315,7 @@ export function transpileImportEqualsDeclaration(state: TranspilerState, node: t
 	return state.indent + `local ${name} = ${luaPath};\n`;
 }
 
-export function transpileExportDeclaration(state: TranspilerState, node: ts.ExportDeclaration) {
+export function transpileExportDeclaration(state: CompilerState, node: ts.ExportDeclaration) {
 	let luaImportStr = "";
 	const moduleSpecifier = node.getModuleSpecifier();
 	if (moduleSpecifier) {
@@ -333,10 +333,10 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 			} else {
 				const specifierText = moduleSpecifier.getLiteralText();
-				throw new TranspilerError(
+				throw new CompilerError(
 					`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
 					node,
-					TranspilerErrorType.MissingModuleFile,
+					CompilerErrorType.MissingModuleFile,
 				);
 			}
 		}
@@ -347,7 +347,7 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 		node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
 
 	if (!ancestor) {
-		throw new TranspilerError("Could not find export ancestor!", node, TranspilerErrorType.BadAncestor);
+		throw new CompilerError("Could not find export ancestor!", node, CompilerErrorType.BadAncestor);
 	}
 
 	const lhs = new Array<string>();
@@ -411,7 +411,7 @@ export function transpileExportDeclaration(state: TranspilerState, node: ts.Expo
 	}
 }
 
-export function transpileExportAssignment(state: TranspilerState, node: ts.ExportAssignment) {
+export function transpileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
 	let result = state.indent;
 	const exp = node.getExpression();
 	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {

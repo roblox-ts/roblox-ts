@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 
 function useIIFEforUnaryExpression(
 	parent: ts.Node<ts.ts.Node>,
@@ -13,7 +13,7 @@ function useIIFEforUnaryExpression(
 	);
 }
 
-export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.PrefixUnaryExpression) {
+export function transpilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -58,16 +58,16 @@ export function transpilePrefixUnaryExpression(state: TranspilerState, node: ts.
 			return `TS.bit_not(${expStr})`;
 		} else {
 			/* istanbul ignore next */
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Bad prefix unary expression! (${tokenKind})`,
 				node,
-				TranspilerErrorType.BadPrefixUnaryExpression,
+				CompilerErrorType.BadPrefixUnaryExpression,
 			);
 		}
 	}
 }
 
-export function transpilePostfixUnaryExpression(state: TranspilerState, node: ts.PostfixUnaryExpression) {
+export function transpilePostfixUnaryExpression(state: CompilerState, node: ts.PostfixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
@@ -110,10 +110,10 @@ export function transpilePostfixUnaryExpression(state: TranspilerState, node: ts
 		}
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Bad postfix unary expression! (${opKind})`,
 			node,
-			TranspilerErrorType.BadPostfixUnaryExpression,
+			CompilerErrorType.BadPostfixUnaryExpression,
 		);
 	}
 }

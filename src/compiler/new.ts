@@ -1,14 +1,14 @@
 import * as ts from "ts-morph";
 import { inheritsFromRoact, transpileCallArguments, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
 import { literalParameterTranspileFunctions } from "./call";
 import { appendDeclarationIfMissing } from "./expression";
 
 function transpileSetMapConstructorHelper(
-	state: TranspilerState,
+	state: CompilerState,
 	node: ts.NewExpression,
 	args: Array<ts.Node>,
 	type: "set" | "map",
@@ -16,10 +16,10 @@ function transpileSetMapConstructorHelper(
 	const typeArgument = node.getType().getTypeArguments()[0];
 
 	if (typeArgument.isNullable() || typeArgument.isUndefined()) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot create a ${type} with a nullable index!`,
 			node,
-			TranspilerErrorType.NullableIndexOnMapOrSet,
+			CompilerErrorType.NullableIndexOnMapOrSet,
 		);
 	}
 
@@ -48,18 +48,18 @@ function transpileSetMapConstructorHelper(
 
 const ARRAY_NIL_LIMIT = 200;
 
-export function transpileNewExpression(state: TranspilerState, node: ts.NewExpression) {
+export function transpileNewExpression(state: CompilerState, node: ts.NewExpression) {
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
 	const name = transpileExpression(state, expNode);
 	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken) ? node.getArguments() : [];
 
 	if (inheritsFromRoact(expressionType)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Roact components cannot be created using new\n` +
 				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
 			node,
-			TranspilerErrorType.RoactNoNewComponentAllowed,
+			CompilerErrorType.RoactNoNewComponentAllowed,
 		);
 	}
 
@@ -74,19 +74,19 @@ export function transpileNewExpression(state: TranspilerState, node: ts.NewExpre
 			) {
 				result += ", nil".repeat(arg.getLiteralValue()).substring(1);
 			} else {
-				throw new TranspilerError(
+				throw new CompilerError(
 					"Invalid argument #1 passed into ArrayConstructor. Expected a simple integer fewer or equal to " +
 						ARRAY_NIL_LIMIT +
 						".",
 					node,
-					TranspilerErrorType.BadBuiltinConstructorCall,
+					CompilerErrorType.BadBuiltinConstructorCall,
 				);
 			}
 		} else if (args.length !== 0) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Invalid arguments passed into ArrayConstructor!",
 				node,
-				TranspilerErrorType.BadBuiltinConstructorCall,
+				CompilerErrorType.BadBuiltinConstructorCall,
 			);
 		}
 

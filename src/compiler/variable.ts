@@ -1,11 +1,11 @@
 import * as ts from "ts-morph";
 import { checkReserved, getBindingData, transpileCallExpression, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 import { concatNamesAndValues } from "./binding";
 
-export function transpileVariableDeclaration(state: TranspilerState, node: ts.VariableDeclaration) {
+export function transpileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
 	const rhs = node.getInitializer();
 
@@ -114,13 +114,13 @@ export function transpileVariableDeclaration(state: TranspilerState, node: ts.Va
 	return result;
 }
 
-export function transpileVariableDeclarationList(state: TranspilerState, node: ts.VariableDeclarationList) {
+export function transpileVariableDeclarationList(state: CompilerState, node: ts.VariableDeclarationList) {
 	const declarationKind = node.getDeclarationKind();
 	if (declarationKind === ts.VariableDeclarationKind.Var) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"'var' keyword is not supported! Use 'let' or 'const' instead.",
 			node,
-			TranspilerErrorType.NoVarKeyword,
+			CompilerErrorType.NoVarKeyword,
 		);
 	}
 
@@ -131,7 +131,7 @@ export function transpileVariableDeclarationList(state: TranspilerState, node: t
 	return result;
 }
 
-export function transpileVariableStatement(state: TranspilerState, node: ts.VariableStatement) {
+export function transpileVariableStatement(state: CompilerState, node: ts.VariableStatement) {
 	const list = node.getFirstChildByKindOrThrow(ts.SyntaxKind.VariableDeclarationList);
 	return transpileVariableDeclarationList(state, list);
 }

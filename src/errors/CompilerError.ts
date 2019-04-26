@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 
-export enum TranspilerErrorType {
+export enum CompilerErrorType {
 	NoAny,
 	ReservedKeyword,
 	ReservedMethodName,
@@ -66,8 +66,8 @@ export enum TranspilerErrorType {
 	BadSpreadType,
 }
 
-export class TranspilerError extends Error {
-	constructor(message: string, public readonly node: ts.Node, public readonly type: TranspilerErrorType) {
+export class CompilerError extends Error {
+	constructor(message: string, public readonly node: ts.Node, public readonly type: CompilerErrorType) {
 		super(message);
 	}
 }

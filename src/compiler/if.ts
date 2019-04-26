@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
 import { transpileExpression, transpileStatement } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 
-export function transpileIfStatement(state: TranspilerState, node: ts.IfStatement) {
+export function transpileIfStatement(state: CompilerState, node: ts.IfStatement) {
 	let result = "";
 	const expStr = transpileExpression(state, node.getExpression());
 	result += state.indent + `if ${expStr} then\n`;

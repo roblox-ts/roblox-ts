@@ -12,8 +12,8 @@ import {
 	transpileMethodDeclaration,
 	transpileRoactClassDeclaration,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { shouldHoist } from "../typeUtilities";
 import { bold } from "../utility";
 
@@ -65,7 +65,7 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
-function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
+function transpileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	if (nameNode) {
@@ -89,11 +89,11 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 		}
 
 		if (inheritsFromRoact(baseType)) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`Cannot inherit ${bold(baseTypeText)}, must inherit ${bold("Roact.Component")}\n` +
 					ROACT_DERIVED_CLASSES_ERROR,
 				node,
-				TranspilerErrorType.RoactSubClassesNotSupported,
+				CompilerErrorType.RoactSubClassesNotSupported,
 			);
 		}
 	}
@@ -230,10 +230,10 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 		if (getClassMethod(node, metamethod)) {
 			if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
-				throw new TranspilerError(
+				throw new CompilerError(
 					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
 					node,
-					TranspilerErrorType.UndefinableMetamethod,
+					CompilerErrorType.UndefinableMetamethod,
 				);
 			}
 			result +=
@@ -409,10 +409,10 @@ function transpileClass(state: TranspilerState, node: ts.ClassDeclaration | ts.C
 	return result;
 }
 
-export function transpileClassDeclaration(state: TranspilerState, node: ts.ClassDeclaration) {
+export function transpileClassDeclaration(state: CompilerState, node: ts.ClassDeclaration) {
 	return transpileClass(state, node);
 }
 
-export function transpileClassExpression(state: TranspilerState, node: ts.ClassExpression) {
+export function transpileClassExpression(state: CompilerState, node: ts.ClassExpression) {
 	return transpileClass(state, node);
 }

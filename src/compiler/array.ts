@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 import { isArrayType } from "../typeUtilities";
 import { transpileArrayForSpread } from "./spread";
 
-export function transpileArrayLiteralExpression(state: TranspilerState, node: ts.ArrayLiteralExpression) {
+export function transpileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();
 	if (elements.length === 0) {
 		return "{}";

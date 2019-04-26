@@ -7,10 +7,10 @@ import {
 	transpileNumericLiteral,
 	transpileStringLiteral,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 
-export function transpileObjectLiteralExpression(state: TranspilerState, node: ts.ObjectLiteralExpression) {
+export function transpileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();
 	if (properties.length === 0) {
 		return "{}";
@@ -48,10 +48,10 @@ export function transpileObjectLiteralExpression(state: TranspilerState, node: t
 				const expStr = transpileNumericLiteral(state, child);
 				lhs = `[${expStr}]`;
 			} else {
-				throw new TranspilerError(
+				throw new CompilerError(
 					`Unexpected type of object index! (${child.getKindName()})`,
 					child,
-					TranspilerErrorType.UnexpectedObjectIndex,
+					CompilerErrorType.UnexpectedObjectIndex,
 				);
 			}
 

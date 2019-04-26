@@ -7,13 +7,13 @@ import {
 	transpileCallExpression,
 	transpileExpression,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 import { transpileNumericLiteral } from "./literal";
 
-export function transpilePropertyAccessExpression(state: TranspilerState, node: ts.PropertyAccessExpression) {
+export function transpilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
 	const expStr = transpileExpression(state, exp);
 	const propertyStr = node.getName();
@@ -27,10 +27,10 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 	) {
 		return `(#${expStr})`;
 	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
-			TranspilerErrorType.InvalidMacroIndex,
+			CompilerErrorType.InvalidMacroIndex,
 		);
 	}
 
@@ -60,7 +60,7 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 				ts.TypeGuards.isFunctionExpression(valDec) ||
 				ts.TypeGuards.isMethodDeclaration(valDec)
 			) {
-				throw new TranspilerError("Cannot index a function value!", node, TranspilerErrorType.NoFunctionIndex);
+				throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
 			} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
 				if (valDec.isConstEnum()) {
 					const value = valDec.getMemberOrThrow(propertyStr).getValue();
@@ -72,10 +72,10 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 				}
 			} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
 				if (propertyStr === "prototype") {
-					throw new TranspilerError(
+					throw new CompilerError(
 						"Class prototypes are not supported!",
 						node,
-						TranspilerErrorType.NoClassPrototype,
+						CompilerErrorType.NoClassPrototype,
 					);
 				}
 			}
@@ -85,7 +85,7 @@ export function transpilePropertyAccessExpression(state: TranspilerState, node: 
 	return `${expStr}.${propertyStr}`;
 }
 
-export function transpileElementAccessExpression(state: TranspilerState, node: ts.ElementAccessExpression) {
+export function transpileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();

@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkApiAccess, checkNonAny, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
 import { appendDeclarationIfMissing } from "./expression";
 
@@ -20,7 +20,7 @@ const STRING_MACRO_METHODS = [
 	"upper",
 ];
 
-function shouldWrapExpression(state: TranspilerState, subExp: ts.Node, strict: boolean) {
+function shouldWrapExpression(state: CompilerState, subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
@@ -29,7 +29,7 @@ function shouldWrapExpression(state: TranspilerState, subExp: ts.Node, strict: b
 }
 
 function wrapExpressionIfNeeded(
-	state: TranspilerState,
+	state: CompilerState,
 	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
 	strict: boolean = false,
 ) {
@@ -65,46 +65,42 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	return exp;
 }
 
-function transpileMapElement(state: TranspilerState, argumentList: Array<ts.Node>) {
+function transpileMapElement(state: CompilerState, argumentList: Array<ts.Node>) {
 	const key = transpileCallArgument(state, argumentList[0]);
 	const value = transpileCallArgument(state, argumentList[1]);
 	return state.indent + `[${key}] = ${value};\n`;
 }
 
-function transpileSetElement(state: TranspilerState, argument: ts.Node) {
+function transpileSetElement(state: CompilerState, argument: ts.Node) {
 	const key = transpileCallArgument(state, argument);
 	return state.indent + `[${key}] = true;\n`;
 }
 
-function transpileSetArrayLiteralParameter(state: TranspilerState, elements: Array<ts.Expression>) {
+function transpileSetArrayLiteralParameter(state: CompilerState, elements: Array<ts.Expression>) {
 	return elements.reduce((a, x) => a + transpileSetElement(state, x), "");
 }
 
-function transpileMapArrayLiteralParameter(state: TranspilerState, elements: Array<ts.Expression>) {
+function transpileMapArrayLiteralParameter(state: CompilerState, elements: Array<ts.Expression>) {
 	return elements.reduce((a, x) => {
 		if (ts.TypeGuards.isArrayLiteralExpression(x)) {
 			return a + transpileMapElement(state, x.getElements());
 		} else {
-			throw new TranspilerError(
-				"Bad arguments to Map constructor",
-				x,
-				TranspilerErrorType.BadBuiltinConstructorCall,
-			);
+			throw new CompilerError("Bad arguments to Map constructor", x, CompilerErrorType.BadBuiltinConstructorCall);
 		}
 	}, "");
 }
 
 export const literalParameterTranspileFunctions = new Map<
 	"set" | "map",
-	(state: TranspilerState, elements: Array<ts.Expression>) => string
+	(state: CompilerState, elements: Array<ts.Expression>) => string
 >([["set", transpileSetArrayLiteralParameter], ["map", transpileMapArrayLiteralParameter]]);
 
 function transpileLiterally(
-	state: TranspilerState,
+	state: CompilerState,
 	params: Array<ts.Node>,
 	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
 	funcName: "set" | "add",
-	transpileParamFunc: (state: TranspilerState, argumentList: Array<ts.Node>) => string,
+	transpileParamFunc: (state: CompilerState, argumentList: Array<ts.Node>) => string,
 ) {
 	const leftHandSideParent = getLeftHandSideParent(subExp);
 	if (!getIsExpressionStatement(subExp, leftHandSideParent)) {
@@ -159,13 +155,13 @@ function getPropertyCallParentIsExpressionStatement(subExp: ts.LeftHandSideExpre
 type SimpleReplaceFunction = (
 	accessPath: string,
 	params: Array<ts.Node>,
-	state: TranspilerState,
+	state: CompilerState,
 	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
 ) => string | undefined;
 
 type ReplaceFunction = (
 	params: Array<ts.Node>,
-	state: TranspilerState,
+	state: CompilerState,
 	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
 ) => string | undefined;
 
@@ -353,7 +349,7 @@ const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(typeof(${obj}) == ${type})`);
 });
 
-export function transpileCallArgument(state: TranspilerState, arg: ts.Node) {
+export function transpileCallArgument(state: CompilerState, arg: ts.Node) {
 	const expStr = transpileExpression(state, arg as ts.Expression);
 	if (!ts.TypeGuards.isSpreadElement(arg)) {
 		checkNonAny(arg);
@@ -361,7 +357,7 @@ export function transpileCallArgument(state: TranspilerState, arg: ts.Node) {
 	return expStr;
 }
 
-export function transpileCallArguments(state: TranspilerState, args: Array<ts.Node>, extraParameter?: string) {
+export function transpileCallArguments(state: CompilerState, args: Array<ts.Node>, extraParameter?: string) {
 	const argStrs = new Array<string>();
 
 	for (const arg of args) {
@@ -376,16 +372,16 @@ export function transpileCallArguments(state: TranspilerState, args: Array<ts.No
 }
 
 export function transpileCallExpression(
-	state: TranspilerState,
+	state: CompilerState,
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
 	const exp = node.getExpression();
 	if (exp.getKindName() === "ImportKeyword") {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
 			node,
-			TranspilerErrorType.NoDynamicImport,
+			CompilerErrorType.NoDynamicImport,
 		);
 	}
 	checkNonAny(exp);
@@ -421,7 +417,7 @@ export function transpileCallExpression(
 }
 
 function transpilePropertyMethod(
-	state: TranspilerState,
+	state: CompilerState,
 	property: string,
 	params: Array<ts.Node>,
 	subExp: ts.LeftHandSideExpression,
@@ -459,7 +455,7 @@ export const enum PropertyCallExpType {
 }
 
 export function getPropertyAccessExpressionType(
-	state: TranspilerState,
+	state: CompilerState,
 	node: ts.CallExpression | ts.PropertyAccessExpression,
 	expression: ts.PropertyAccessExpression,
 ): PropertyCallExpType {
@@ -513,10 +509,10 @@ export function getPropertyAccessExpressionType(
 
 		const validateMathCall = () => {
 			if (ts.TypeGuards.isExpressionStatement(node.getParent())) {
-				throw new TranspilerError(
+				throw new CompilerError(
 					`${subExpTypeName}.${property}() cannot be an expression statement!`,
 					node,
-					TranspilerErrorType.NoMacroMathExpressionStatement,
+					CompilerErrorType.NoMacroMathExpressionStatement,
 				);
 			}
 		};
@@ -543,13 +539,13 @@ export function getPropertyAccessExpressionType(
 	return PropertyCallExpType.None;
 }
 
-export function transpilePropertyCallExpression(state: TranspilerState, node: ts.CallExpression) {
+export function transpilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
 	const expression = getNonNull(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Expected PropertyAccessExpression",
 			node,
-			TranspilerErrorType.ExpectedPropertyAccessExpression,
+			CompilerErrorType.ExpectedPropertyAccessExpression,
 		);
 	}
 
@@ -655,10 +651,10 @@ export function transpilePropertyCallExpression(state: TranspilerState, node: ts
 		sep = ".";
 	} else {
 		// mixed methods and callbacks
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 			node,
-			TranspilerErrorType.MixedMethodCall,
+			CompilerErrorType.MixedMethodCall,
 		);
 	}
 

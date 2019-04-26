@@ -4,10 +4,10 @@ import { minify } from "luamin";
 import * as path from "path";
 import TSProject, * as ts from "ts-morph";
 import { transpileSourceFile } from "./compiler";
+import { CompilerState } from "./CompilerState";
+import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { TranspilerError } from "./errors/TranspilerError";
-import { TranspilerState } from "./TranspilerState";
 import { red, yellow } from "./utility";
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
@@ -466,7 +466,7 @@ export class Project {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
 					const outPath = this.transformPathToLua(filePath);
-					let source = transpileSourceFile(new TranspilerState(this.syncInfo, this.modulesDir), sourceFile);
+					let source = transpileSourceFile(new CompilerState(this.syncInfo, this.modulesDir), sourceFile);
 
 					if (this.luaSourceTransformer) {
 						source = this.luaSourceTransformer(source);
@@ -491,7 +491,7 @@ export class Project {
 			if (this.ci) {
 				throw e;
 			}
-			if (e instanceof TranspilerError) {
+			if (e instanceof CompilerError) {
 				console.log(
 					"%s:%d:%d - %s %s",
 					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),

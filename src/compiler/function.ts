@@ -8,8 +8,8 @@ import {
 	transpileExpression,
 	transpileStatement,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { HasParameters } from "../types";
 import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 
@@ -30,7 +30,7 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 	return undefined;
 }
 
-function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, func?: HasParameters) {
+function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
 	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = transpileExpression(state, exp);
@@ -47,7 +47,7 @@ function getReturnStrFromExpression(state: TranspilerState, exp: ts.Expression, 
 	return `return ${transpileExpression(state, exp)};`;
 }
 
-export function transpileReturnStatement(state: TranspilerState, node: ts.ReturnStatement) {
+export function transpileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
 		return (
@@ -60,12 +60,7 @@ export function transpileReturnStatement(state: TranspilerState, node: ts.Return
 	}
 }
 
-function transpileFunctionBody(
-	state: TranspilerState,
-	body: ts.Node,
-	node: HasParameters,
-	initializers: Array<string>,
-) {
+function transpileFunctionBody(state: CompilerState, body: ts.Node, node: HasParameters, initializers: Array<string>) {
 	const isBlock = ts.TypeGuards.isBlock(body);
 	const isExpression = ts.TypeGuards.isExpression(body);
 	let result = "";
@@ -82,16 +77,12 @@ function transpileFunctionBody(
 		result += state.indent;
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(
-			`Bad function body (${body.getKindName()})`,
-			node,
-			TranspilerErrorType.BadFunctionBody,
-		);
+		throw new CompilerError(`Bad function body (${body.getKindName()})`, node, CompilerErrorType.BadFunctionBody);
 	}
 	return result;
 }
 
-function transpileFunction(state: TranspilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
+function transpileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
@@ -198,7 +189,7 @@ function giveInitialSelfParameter(
 	}
 }
 
-export function transpileFunctionDeclaration(state: TranspilerState, node: ts.FunctionDeclaration) {
+export function transpileFunctionDeclaration(state: CompilerState, node: ts.FunctionDeclaration) {
 	const body = node.getBody();
 	let name = node.getName();
 
@@ -216,7 +207,7 @@ export function transpileFunctionDeclaration(state: TranspilerState, node: ts.Fu
 	}
 }
 
-export function transpileMethodDeclaration(state: TranspilerState, node: ts.MethodDeclaration) {
+export function transpileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
 	const name = node.getName();
 	checkReserved(name, node);
 	return transpileFunction(state, node, name, node.getBodyOrThrow());
@@ -236,7 +227,7 @@ function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
 }
 
 export function transpileConstructorDeclaration(
-	state: TranspilerState,
+	state: CompilerState,
 	className: string,
 	node?: ts.ConstructorDeclaration,
 	extraInitializers?: Array<string>,
@@ -284,10 +275,10 @@ export function transpileConstructorDeclaration(
 			const returnStatement = node.getStatementByKind(ts.SyntaxKind.ReturnStatement);
 
 			if (returnStatement) {
-				throw new TranspilerError(
+				throw new CompilerError(
 					`Cannot use return statement in constructor for ${className}`,
 					returnStatement,
-					TranspilerErrorType.NoConstructorReturn,
+					CompilerErrorType.NoConstructorReturn,
 				);
 			}
 		}
@@ -307,7 +298,7 @@ export function transpileConstructorDeclaration(
 }
 
 export function transpileAccessorDeclaration(
-	state: TranspilerState,
+	state: CompilerState,
 	node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
 	name: string,
 ) {
@@ -318,6 +309,6 @@ export function transpileAccessorDeclaration(
 	return transpileFunction(state, node, name, body);
 }
 
-export function transpileFunctionExpression(state: TranspilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
+export function transpileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	return transpileFunction(state, node, "", node.getBody());
 }

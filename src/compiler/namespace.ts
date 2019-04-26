@@ -1,22 +1,22 @@
 import * as ts from "ts-morph";
 import { checkReserved, transpileStatementedNode } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isTypeOnlyNamespace } from "../typeUtilities";
 
 function safeMapGet<T, R>(map: Map<T, R>, key: T, node: ts.Node) {
 	const find = map.get(key);
 	if (!find) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Failed to find context for ${node.getKindName()} ${node.getText()}`,
 			node,
-			TranspilerErrorType.BadContext,
+			CompilerErrorType.BadContext,
 		);
 	}
 	return find;
 }
 
-export function transpileNamespaceDeclaration(state: TranspilerState, node: ts.NamespaceDeclaration) {
+export function transpileNamespaceDeclaration(state: CompilerState, node: ts.NamespaceDeclaration) {
 	if (isTypeOnlyNamespace(node)) {
 		return "";
 	}

@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 import { shouldHoist } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
-export function transpileEnumDeclaration(state: TranspilerState, node: ts.EnumDeclaration) {
+export function transpileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
 	let result = "";
 	if (node.isConstEnum()) {
 		return result;

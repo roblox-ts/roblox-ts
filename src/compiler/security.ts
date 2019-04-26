@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { HasParameters } from "../types";
 import { isAnyType } from "../typeUtilities";
 import { bold, ScriptContext, yellow } from "../utility";
@@ -113,28 +113,28 @@ const LUA_RESERVED_NAMESPACES = [
 
 export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
 	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 			node,
-			TranspilerErrorType.ReservedKeyword,
+			CompilerErrorType.ReservedKeyword,
 		);
 	} else if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot use '${name}' as identifier (doesn't match Lua's identifier rules)`,
 			node,
-			TranspilerErrorType.InvalidIdentifier,
+			CompilerErrorType.InvalidIdentifier,
 		);
 	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
-			TranspilerErrorType.RobloxTSReservedIdentifier,
+			CompilerErrorType.RobloxTSReservedIdentifier,
 		);
 	} else if (checkNamespace && LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
 			node,
-			TranspilerErrorType.ReservedNamespace,
+			CompilerErrorType.ReservedNamespace,
 		);
 	}
 }
@@ -142,10 +142,10 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 export function checkMethodReserved(name: string, node: ts.Node) {
 	checkReserved(name, node);
 	if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Cannot use '${name}' as a method name (reserved Lua metamethod)`,
 			node,
-			TranspilerErrorType.ReservedMethodName,
+			CompilerErrorType.ReservedMethodName,
 		);
 	}
 }
@@ -210,7 +210,7 @@ export function getCompilerDirective(
 	}
 }
 
-export function checkApiAccess(state: TranspilerState, node: ts.Node) {
+export function checkApiAccess(state: CompilerState, node: ts.Node) {
 	const symbol = node.getSymbol();
 	if (!symbol) {
 		return;
@@ -220,10 +220,10 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
 			CompilerDirective.Client
 		) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Server script attempted to access a client-only API!",
 				node,
-				TranspilerErrorType.InvalidClientOnlyAPIAccess,
+				CompilerErrorType.InvalidClientOnlyAPIAccess,
 			);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
@@ -231,10 +231,10 @@ export function checkApiAccess(state: TranspilerState, node: ts.Node) {
 			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
 			CompilerDirective.Server
 		) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Client script attempted to access a server-only API!",
 				node,
-				TranspilerErrorType.InvalidServerOnlyAPIAccess,
+				CompilerErrorType.InvalidServerOnlyAPIAccess,
 			);
 		}
 	}
@@ -252,20 +252,20 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	if (!isInCatch && isAnyType(type)) {
 		const parent = node.getParent();
 		if (parent) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`${yellow(node.getText())} in ${yellow(parent.getText())} is of type ${bold(
 					"any",
 				)} which is not supported! Use type ${bold("unknown")} instead.`,
 				node,
-				TranspilerErrorType.NoAny,
+				CompilerErrorType.NoAny,
 			);
 		} else {
-			throw new TranspilerError(
+			throw new CompilerError(
 				`${yellow(node.getText())} is of type ${bold("any")} which is not supported! Use type ${bold(
 					"unknown",
 				)} instead.`,
 				node,
-				TranspilerErrorType.NoAny,
+				CompilerErrorType.NoAny,
 			);
 		}
 	}
@@ -274,10 +274,10 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 export function checkReturnsNonAny(node: HasParameters) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	if (!isInCatch && isAnyType(node.getReturnType())) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Functions with a return type of type ${bold("any")} are unsupported! Use type ${bold("unknown")} instead!`,
 			node,
-			TranspilerErrorType.NoAny,
+			CompilerErrorType.NoAny,
 		);
 	}
 }

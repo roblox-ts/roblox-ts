@@ -4,8 +4,8 @@ import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
+import { CompilerError } from "./errors/CompilerError";
 import { ProjectError } from "./errors/ProjectError";
-import { TranspilerError } from "./errors/TranspilerError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
 
@@ -78,7 +78,7 @@ if (argv.watch === true) {
 		try {
 			await callback();
 		} catch (e) {
-			if (e instanceof ProjectError || e instanceof TranspilerError) {
+			if (e instanceof ProjectError || e instanceof CompilerError) {
 				process.exitCode = 0;
 			} else {
 				throw e;

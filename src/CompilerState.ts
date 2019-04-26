@@ -6,7 +6,7 @@ interface Partition {
 	target: string;
 }
 
-export class TranspilerState {
+export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 
 	// indent

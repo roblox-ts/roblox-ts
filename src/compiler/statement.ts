@@ -23,11 +23,11 @@ import {
 	transpileVariableStatement,
 	transpileWhileStatement,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isTypeStatement } from "../typeUtilities";
 
-export function transpileStatement(state: TranspilerState, node: ts.Statement): string {
+export function transpileStatement(state: CompilerState, node: ts.Statement): string {
 	/* istanbul ignore else  */
 	if (isTypeStatement(node)) {
 		return "";
@@ -56,7 +56,7 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 	} else if (ts.TypeGuards.isContinueStatement(node)) {
 		return transpileContinueStatement(state, node);
 	} else if (ts.TypeGuards.isForInStatement(node)) {
-		throw new TranspilerError("For..in loops are disallowed!", node, TranspilerErrorType.ForInLoop);
+		throw new CompilerError("For..in loops are disallowed!", node, CompilerErrorType.ForInLoop);
 	} else if (ts.TypeGuards.isForOfStatement(node)) {
 		return transpileForOfStatement(state, node);
 	} else if (ts.TypeGuards.isForStatement(node)) {
@@ -78,11 +78,7 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 	} else if (ts.TypeGuards.isTryStatement(node)) {
 		return transpileTryStatement(state, node);
 	} else if (ts.TypeGuards.isLabeledStatement(node)) {
-		throw new TranspilerError(
-			"Labeled statements are not supported!",
-			node,
-			TranspilerErrorType.NoLabeledStatement,
-		);
+		throw new CompilerError("Labeled statements are not supported!", node, CompilerErrorType.NoLabeledStatement);
 	}
 
 	/* istanbul ignore next */
@@ -95,10 +91,10 @@ export function transpileStatement(state: TranspilerState, node: ts.Statement): 
 	}
 
 	/* istanbul ignore next */
-	throw new TranspilerError(`Bad statement! (${node.getKindName()})`, node, TranspilerErrorType.BadStatement);
+	throw new CompilerError(`Bad statement! (${node.getKindName()})`, node, CompilerErrorType.BadStatement);
 }
 
-export function transpileStatementedNode(state: TranspilerState, node: ts.Node & ts.StatementedNode) {
+export function transpileStatementedNode(state: CompilerState, node: ts.Node & ts.StatementedNode) {
 	state.pushIdStack();
 	state.exportStack.push(new Set<string>());
 	let result = "";

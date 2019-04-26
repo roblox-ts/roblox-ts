@@ -1,12 +1,12 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
 
 export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
 
-export function transpileIdentifier(state: TranspilerState, node: ts.Identifier, isDefinition: boolean = false) {
+export function transpileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition: boolean = false) {
 	let name = node.getText();
 
 	const replacement = replacements.get(name);

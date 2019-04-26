@@ -1,9 +1,9 @@
 import * as ts from "ts-morph";
 import { transpileExpression } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 import { isStringType } from "../typeUtilities";
 
-export function transpileBooleanLiteral(state: TranspilerState, node: ts.BooleanLiteral) {
+export function transpileBooleanLiteral(state: CompilerState, node: ts.BooleanLiteral) {
 	return node.getLiteralValue() === true ? "true" : "false";
 }
 
@@ -22,7 +22,7 @@ function isSpecialNumberPrefix(numText: string) {
 	return false;
 }
 
-export function transpileNumericLiteral(state: TranspilerState, node: ts.NumericLiteral) {
+export function transpileNumericLiteral(state: CompilerState, node: ts.NumericLiteral) {
 	const text = node.getText();
 	if (isSpecialNumberPrefix(text)) {
 		return node.getLiteralText();
@@ -37,7 +37,7 @@ function sanitizeTemplate(str: string) {
 }
 
 export function transpileStringLiteral(
-	state: TranspilerState,
+	state: CompilerState,
 	node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
 ) {
 	if (ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -47,7 +47,7 @@ export function transpileStringLiteral(
 	}
 }
 
-export function transpileTemplateExpression(state: TranspilerState, node: ts.TemplateExpression) {
+export function transpileTemplateExpression(state: CompilerState, node: ts.TemplateExpression) {
 	const bin = new Array<string>();
 
 	const headText = sanitizeTemplate(

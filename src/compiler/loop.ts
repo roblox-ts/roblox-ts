@@ -7,8 +7,8 @@ import {
 	transpileStatement,
 	transpileVariableDeclarationList,
 } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
 import { concatNamesAndValues } from "./binding";
@@ -37,15 +37,15 @@ function hasContinueDescendant(node: ts.Node) {
 	return false;
 }
 
-export function transpileBreakStatement(state: TranspilerState, node: ts.BreakStatement) {
+export function transpileBreakStatement(state: CompilerState, node: ts.BreakStatement) {
 	return state.indent + "break;\n";
 }
 
-export function transpileContinueStatement(state: TranspilerState, node: ts.ContinueStatement) {
+export function transpileContinueStatement(state: CompilerState, node: ts.ContinueStatement) {
 	return state.indent + `_continue_${state.continueId} = true; break;\n`;
 }
 
-export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
+export function transpileLoopBody(state: CompilerState, node: ts.Statement) {
 	const hasContinue = hasContinueDescendant(node);
 
 	let endsWithBreakOrReturn = false;
@@ -86,7 +86,7 @@ export function transpileLoopBody(state: TranspilerState, node: ts.Statement) {
 	return result;
 }
 
-export function transpileDoStatement(state: TranspilerState, node: ts.DoStatement) {
+export function transpileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	const condition = transpileExpression(state, node.getExpression());
 	let result = "";
 	result += state.indent + "repeat\n";
@@ -102,7 +102,7 @@ export function transpileDoStatement(state: TranspilerState, node: ts.DoStatemen
 }
 
 function getVariableName(
-	state: TranspilerState,
+	state: CompilerState,
 	lhs: ts.Node,
 	names: Array<string>,
 	values: Array<string>,
@@ -116,13 +116,13 @@ function getVariableName(
 	} else if (ts.TypeGuards.isIdentifier(lhs)) {
 		varName = lhs.getText();
 	} else {
-		throw new TranspilerError("Unexpected for..of initializer", lhs, TranspilerErrorType.BadForOfInitializer);
+		throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
 	}
 
 	return varName;
 }
 
-export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfStatement) {
+export function transpileForOfStatement(state: CompilerState, node: ts.ForOfStatement) {
 	state.pushIdStack();
 	const init = node.getInitializer();
 	let lhs: ts.Node<ts.ts.Node> | undefined;
@@ -137,10 +137,10 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		const declarations = init.getDeclarations();
 
 		if (declarations.length !== 1) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Expected a single declaration in ForOf loop",
 				init,
-				TranspilerErrorType.BadForOfInitializer,
+				CompilerErrorType.BadForOfInitializer,
 			);
 		}
 
@@ -193,18 +193,18 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 					result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in pairs(${expStr}) do\n`;
 					state.pushIndent();
 				} else {
-					throw new TranspilerError(
+					throw new CompilerError(
 						"Unexpected for..of initializer",
 						lhs,
-						TranspilerErrorType.BadForOfInitializer,
+						CompilerErrorType.BadForOfInitializer,
 					);
 				}
 			} else {
 				if (!ts.TypeGuards.isIdentifier(lhs)) {
-					throw new TranspilerError(
+					throw new CompilerError(
 						"Unexpected for..of initializer",
 						lhs,
-						TranspilerErrorType.BadForOfInitializer,
+						CompilerErrorType.BadForOfInitializer,
 					);
 				}
 				const key = state.getNewId();
@@ -217,7 +217,7 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
 
 			if (varName.length === 0) {
-				throw new TranspilerError(`ForOf Loop empty varName!`, init, TranspilerErrorType.ForEmptyVarName);
+				throw new CompilerError(`ForOf Loop empty varName!`, init, CompilerErrorType.ForEmptyVarName);
 			}
 
 			if (isArrayType(expType)) {
@@ -270,20 +270,20 @@ export function transpileForOfStatement(state: TranspilerState, node: ts.ForOfSt
 		return result;
 	} else {
 		const initKindName = init.getKindName();
-		throw new TranspilerError(
+		throw new CompilerError(
 			`ForOf Loop has an unexpected initializer! (${initKindName})`,
 			init,
-			TranspilerErrorType.UnexpectedInitializer,
+			CompilerErrorType.UnexpectedInitializer,
 		);
 	}
 }
 
 export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
 	if (node && ts.TypeGuards.isClassExpression(node)) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"Loops cannot contain class expressions as their condition/init/incrementor!",
 			node,
-			TranspilerErrorType.ClassyLoop,
+			CompilerErrorType.ClassyLoop,
 		);
 	}
 }
@@ -309,7 +309,7 @@ function isExpressionConstantNumbers(node: ts.Node): boolean {
 }
 
 function getSignAndIncrementorForStatement(
-	state: TranspilerState,
+	state: CompilerState,
 	incrementor: ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 	lhs: ts.Identifier,
 ) {
@@ -391,7 +391,7 @@ function getSignAndIncrementorForStatement(
 }
 
 function getLimitInForStatement(
-	state: TranspilerState,
+	state: CompilerState,
 	condition: ts.Expression<ts.ts.Expression>,
 	lhs: ts.Identifier,
 ): [string, ts.Node<ts.ts.Node> | undefined] {
@@ -428,7 +428,7 @@ function getLimitInForStatement(
 }
 
 function safelyHandleExpressionsInForStatement(
-	state: TranspilerState,
+	state: CompilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
 ) {
@@ -439,7 +439,7 @@ function safelyHandleExpressionsInForStatement(
 }
 
 function getSimpleForLoopString(
-	state: TranspilerState,
+	state: CompilerState,
 	initializer: ts.VariableDeclarationList,
 	forLoopVars: string,
 	statement: ts.Statement<ts.ts.Statement>,
@@ -477,7 +477,7 @@ function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	);
 }
 
-export function transpileForStatement(state: TranspilerState, node: ts.ForStatement) {
+export function transpileForStatement(state: CompilerState, node: ts.ForStatement) {
 	state.pushIdStack();
 	const statement = node.getStatement();
 	const condition = node.getCondition();
@@ -634,7 +634,7 @@ export function transpileForStatement(state: TranspilerState, node: ts.ForStatem
 	return result;
 }
 
-export function transpileWhileStatement(state: TranspilerState, node: ts.WhileStatement) {
+export function transpileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	const exp = node.getExpression();
 	checkLoopClassExp(exp);
 	const expStr = transpileExpression(state, exp);

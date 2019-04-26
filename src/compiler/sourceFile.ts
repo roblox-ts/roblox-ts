@@ -1,14 +1,14 @@
 import * as ts from "ts-morph";
 import { transpileStatementedNode } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
 };
 
-export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile) {
+export function transpileSourceFile(state: CompilerState, node: ts.SourceFile) {
 	console.profile(node.getBaseName());
 
 	state.scriptContext = getScriptContext(node);
@@ -16,10 +16,10 @@ export function transpileSourceFile(state: TranspilerState, node: ts.SourceFile)
 	let result = transpileStatementedNode(state, node);
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {
-			throw new TranspilerError(
+			throw new CompilerError(
 				"Attempted to export in a non-ModuleScript!",
 				node,
-				TranspilerErrorType.ExportInNonModuleScript,
+				CompilerErrorType.ExportInNonModuleScript,
 			);
 		}
 

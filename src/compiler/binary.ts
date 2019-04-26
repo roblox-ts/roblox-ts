@@ -1,11 +1,11 @@
 import * as ts from "ts-morph";
 import { checkNonAny, getBindingData, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import { isNumberType, isStringType } from "../typeUtilities";
 import { concatNamesAndValues } from "./binding";
 
-function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
+function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
 	const rhs = node.getRight();
 	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
@@ -15,7 +15,7 @@ function getLuaBarExpression(state: TranspilerState, node: ts.BinaryExpression, 
 	}
 }
 
-function getLuaBitExpression(state: TranspilerState, lhsStr: string, rhsStr: string, name: string) {
+function getLuaBitExpression(state: CompilerState, lhsStr: string, rhsStr: string, name: string) {
 	state.usesTSLibrary = true;
 	return `TS.bit_${name}(${lhsStr}, ${rhsStr})`;
 }
@@ -34,10 +34,10 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
 			node,
-			TranspilerErrorType.BadAddition,
+			CompilerErrorType.BadAddition,
 		);
 	}
 }
@@ -60,7 +60,7 @@ export function isSetToken(opKind: ts.ts.SyntaxKind) {
 	);
 }
 
-export function transpileBinaryExpression(state: TranspilerState, node: ts.BinaryExpression) {
+export function transpileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
 	const opToken = node.getOperatorToken();
 	const opKind = opToken.getKind();
 
@@ -172,18 +172,18 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 
 	/* istanbul ignore else */
 	if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"operator '==' is not supported! Use '===' instead.",
 			opToken,
-			TranspilerErrorType.NoEqualsEquals,
+			CompilerErrorType.NoEqualsEquals,
 		);
 	} else if (opKind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
 		return `${lhsStr} == ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.ExclamationEqualsToken) {
-		throw new TranspilerError(
+		throw new CompilerError(
 			"operator '!=' is not supported! Use '!==' instead.",
 			opToken,
-			TranspilerErrorType.NoExclamationEquals,
+			CompilerErrorType.NoExclamationEquals,
 		);
 	} else if (opKind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
 		return `${lhsStr} ~= ${rhsStr}`;
@@ -231,10 +231,10 @@ export function transpileBinaryExpression(state: TranspilerState, node: ts.Binar
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 	} else {
 		/* istanbul ignore next */
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Bad binary expression! (${node.getOperatorToken().getKindName()})`,
 			opToken,
-			TranspilerErrorType.BadBinaryExpression,
+			CompilerErrorType.BadBinaryExpression,
 		);
 	}
 }

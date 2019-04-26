@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
 import { transpileExpression, transpileStatementedNode } from ".";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerState } from "../CompilerState";
 
-export function transpileSwitchStatement(state: TranspilerState, node: ts.SwitchStatement) {
+export function transpileSwitchStatement(state: CompilerState, node: ts.SwitchStatement) {
 	const expStr = transpileExpression(state, node.getExpression());
 	let result = "";
 	result += state.indent + `repeat\n`;

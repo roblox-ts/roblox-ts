@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { checkNonAny, transpileCallExpression, transpileExpression } from ".";
-import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
-import { TranspilerState } from "../TranspilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { CompilerState } from "../CompilerState";
 import {
 	isArrayType,
 	isIterableIterator,
@@ -11,7 +11,7 @@ import {
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
 
-export function transpileArrayForSpread(state: TranspilerState, expression: ts.Expression) {
+export function transpileArrayForSpread(state: CompilerState, expression: ts.Expression) {
 	const expType = expression.getType();
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
@@ -27,15 +27,15 @@ export function transpileArrayForSpread(state: TranspilerState, expression: ts.E
 		state.usesTSLibrary = true;
 		return `TS.iterable_cache(${transpileExpression(state, expression)})`;
 	} else {
-		throw new TranspilerError(
+		throw new CompilerError(
 			`Unable to spread expression of type ${expType.getText()}`,
 			expression,
-			TranspilerErrorType.BadSpreadType,
+			CompilerErrorType.BadSpreadType,
 		);
 	}
 }
 
-export function transpileSpreadElement(state: TranspilerState, node: ts.SpreadElement) {
+export function transpileSpreadElement(state: CompilerState, node: ts.SpreadElement) {
 	const expression = node.getExpression();
 	checkNonAny(expression, true);
 
