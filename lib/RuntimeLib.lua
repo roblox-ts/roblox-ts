@@ -244,6 +244,10 @@ local function bitop(a, b, oper)
 	return r
 end
 
+function TS.bnot(a)
+	return -a - 1
+end
+
 function TS.bor(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
