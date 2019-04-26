@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as ts from "ts-morph";
 import { checkReserved, transpileExpression } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
 import { TranspilerError, TranspilerErrorType } from "../errors/TranspilerError";
 import { TranspilerState } from "../TranspilerState";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
@@ -79,7 +79,7 @@ function getImportPathFromFile(
 
 		const moduleName = parts.shift();
 		if (!moduleName) {
-			throw new CompilerError("Compiler.getImportPath() failed! #1", CompilerErrorType.GetImportPathFail1);
+			throw new ProjectError("Compiler.getImportPath() failed! #1", ProjectErrorType.GetImportPathFail1);
 		}
 
 		let mainPath: string;
@@ -94,7 +94,7 @@ function getImportPathFromFile(
 		parts = mainPath.split(/[\\/]/g);
 		let last = parts.pop();
 		if (!last) {
-			throw new CompilerError("Compiler.getImportPath() failed! #2", CompilerErrorType.GetImportPathFail2);
+			throw new ProjectError("Compiler.getImportPath() failed! #2", ProjectErrorType.GetImportPathFail2);
 		}
 		last = stripExtensions(last);
 		if (last !== "init") {
@@ -111,9 +111,9 @@ function getImportPathFromFile(
 	} else {
 		const partition = state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
 		if (!partition) {
-			throw new CompilerError(
+			throw new ProjectError(
 				"Could not compile non-relative import, no data from rojo.json",
-				CompilerErrorType.NoRojoData,
+				ProjectErrorType.NoRojoData,
 			);
 		}
 
@@ -124,7 +124,7 @@ function getImportPathFromFile(
 
 		const last = parts.pop();
 		if (!last) {
-			throw new CompilerError("Compiler.getImportPath() failed! #3", CompilerErrorType.GetImportPathFail3);
+			throw new ProjectError("Compiler.getImportPath() failed! #3", ProjectErrorType.GetImportPathFail3);
 		}
 
 		if (last !== "index") {

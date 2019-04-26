@@ -2,11 +2,11 @@ import * as fs from "fs-extra";
 import * as klaw from "klaw";
 import { minify } from "luamin";
 import * as path from "path";
-import Project, * as ts from "ts-morph";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import TSProject, * as ts from "ts-morph";
+import { transpileSourceFile } from "./compiler";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { TranspilerError } from "./errors/TranspilerError";
-import { transpileSourceFile } from "./transpiler";
 import { TranspilerState } from "./TranspilerState";
 import { red, yellow } from "./utility";
 
@@ -99,8 +99,8 @@ async function copyAndCleanDeadLuaFiles(
 	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
-export class Compiler {
-	private readonly project: Project;
+export class Project {
+	private readonly project: TSProject;
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
@@ -133,7 +133,7 @@ export class Compiler {
 		}
 
 		this.projectPath = path.resolve(configFilePath, "..");
-		this.project = new Project({
+		this.project = new TSProject({
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
@@ -147,7 +147,7 @@ export class Compiler {
 		try {
 			this.validateCompilerOptions();
 		} catch (e) {
-			if (e instanceof CompilerError) {
+			if (e instanceof ProjectError) {
 				console.log(red("Compiler Error:"), e.message);
 				process.exit(1);
 			} else {
@@ -159,13 +159,13 @@ export class Compiler {
 
 		const rootDirPath = this.compilerOptions.rootDir;
 		if (!rootDirPath) {
-			throw new CompilerError("Expected 'rootDir' option in tsconfig.json!", CompilerErrorType.MissingRootDir);
+			throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
 		}
 		this.rootDirPath = rootDirPath;
 
 		const outDirPath = this.compilerOptions.outDir;
 		if (!outDirPath) {
-			throw new CompilerError("Expected 'outDir' option in tsconfig.json!", CompilerErrorType.MissingOutDir);
+			throw new ProjectError("Expected 'outDir' option in tsconfig.json!", ProjectErrorType.MissingOutDir);
 		}
 		this.outDirPath = outDirPath;
 
@@ -197,9 +197,9 @@ export class Compiler {
 							target: part.target,
 						});
 					} else {
-						throw new CompilerError(
+						throw new ProjectError(
 							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							CompilerErrorType.MissingPartitionDir,
+							ProjectErrorType.MissingPartitionDir,
 						);
 					}
 				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
@@ -212,9 +212,9 @@ export class Compiler {
 							target: part.target,
 						});
 					} else {
-						throw new CompilerError(
+						throw new ProjectError(
 							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							CompilerErrorType.MissingPartitionDir,
+							ProjectErrorType.MissingPartitionDir,
 						);
 					}
 				}
@@ -270,12 +270,12 @@ export class Compiler {
 
 		// throw if errors
 		if (errors.length > 0) {
-			throw new CompilerError(
+			throw new ProjectError(
 				`Invalid "tsconfig.json" configuration!\n` +
 					"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
 					"\n- " +
 					errors.join("\n- "),
-				CompilerErrorType.BadTsConfig,
+				ProjectErrorType.BadTsConfig,
 			);
 		}
 	}
@@ -361,7 +361,7 @@ export class Compiler {
 
 	public getRootDirOrThrow() {
 		if (!this.rootDirPath) {
-			throw new CompilerError("Could not find rootDir!", CompilerErrorType.MissingRootDir);
+			throw new ProjectError("Could not find rootDir!", ProjectErrorType.MissingRootDir);
 		}
 		return this.rootDirPath;
 	}
@@ -402,9 +402,9 @@ export class Compiler {
 		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
-				throw new CompilerError(
+				throw new ProjectError(
 					`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`,
-					CompilerErrorType.MissingSourceFile,
+					ProjectErrorType.MissingSourceFile,
 				);
 			}
 			return this.compileFiles([sourceFile]);
@@ -500,7 +500,7 @@ export class Compiler {
 					red("Transpiler Error:"),
 					e.message,
 				);
-			} else if (e instanceof CompilerError) {
+			} else if (e instanceof ProjectError) {
 				console.log(red("Compiler Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
 				// log above

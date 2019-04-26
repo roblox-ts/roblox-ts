@@ -4,9 +4,9 @@ import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
-import { Compiler } from "./Compiler";
-import { CompilerError } from "./errors/CompilerError";
+import { ProjectError } from "./errors/ProjectError";
 import { TranspilerError } from "./errors/TranspilerError";
+import { Project } from "./Project";
 import { clearContextCache } from "./utility";
 
 // cli interface
@@ -68,9 +68,9 @@ const argv = yargs
 	// parse
 	.parse();
 
-const compiler = new Compiler(argv);
+const project = new Project(argv);
 if (argv.watch === true) {
-	const rootDir = compiler.getRootDirOrThrow();
+	const rootDir = project.getRootDirOrThrow();
 	let isCompiling = false;
 
 	const time = async (callback: () => any) => {
@@ -78,7 +78,7 @@ if (argv.watch === true) {
 		try {
 			await callback();
 		} catch (e) {
-			if (e instanceof CompilerError || e instanceof TranspilerError) {
+			if (e instanceof ProjectError || e instanceof TranspilerError) {
 				process.exitCode = 0;
 			} else {
 				throw e;
@@ -89,11 +89,11 @@ if (argv.watch === true) {
 
 	const update = async (filePath: string) => {
 		console.log("Change detected, compiling..");
-		await compiler.refresh();
+		await project.refresh();
 		clearContextCache();
 		await time(async () => {
 			try {
-				await compiler.compileFileByPath(filePath);
+				await project.compileFileByPath(filePath);
 			} catch (e) {
 				console.log(e);
 				process.exit();
@@ -123,7 +123,7 @@ if (argv.watch === true) {
 			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Add", filePath);
-				compiler.addFile(filePath);
+				project.addFile(filePath);
 				await update(filePath);
 				isCompiling = false;
 			}
@@ -132,7 +132,7 @@ if (argv.watch === true) {
 			if (!isCompiling) {
 				isCompiling = true;
 				console.log("remove", filePath);
-				await compiler.removeFile(filePath);
+				await project.removeFile(filePath);
 				isCompiling = false;
 			}
 		});
@@ -141,7 +141,7 @@ if (argv.watch === true) {
 	if (fs.existsSync(pkgLockJsonPath)) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
-			await compiler.copyModuleFiles();
+			await project.copyModuleFiles();
 		});
 	}
 
@@ -149,12 +149,12 @@ if (argv.watch === true) {
 	console.log("Starting initial compile..");
 	time(async () => {
 		try {
-			await compiler.compileAll();
+			await project.compileAll();
 		} catch (e) {
 			console.log(e);
 			process.exit();
 		}
 	});
 } else {
-	compiler.compileAll();
+	project.compileAll();
 }

@@ -1,4 +1,4 @@
-export enum CompilerErrorType {
+export enum ProjectErrorType {
 	MissingRootDir,
 	MissingOutDir,
 	MissingPartitionDir,
@@ -13,8 +13,8 @@ export enum CompilerErrorType {
 	BadTsConfig,
 }
 
-export class CompilerError extends Error {
-	constructor(message: string, public readonly type: CompilerErrorType) {
+export class ProjectError extends Error {
+	constructor(message: string, public readonly type: ProjectErrorType) {
 		super(message);
 	}
 }

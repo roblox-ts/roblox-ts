@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective } from "./transpiler";
+import { CompilerDirective, getCompilerDirective } from "./compiler";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",

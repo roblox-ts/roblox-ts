@@ -2,10 +2,10 @@ import * as fs from "fs-extra";
 import { describe, it } from "mocha";
 import * as path from "path";
 import * as util from "util";
-import { Compiler } from "./Compiler";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { TranspilerError, TranspilerErrorType } from "./errors/TranspilerError";
+import { Project } from "./Project";
 import { red } from "./utility";
 
 interface ErrorMatrix {
@@ -228,10 +228,10 @@ const compilerArgs = {
 };
 
 const srcFolder = path.resolve("tests", "src");
-const compiler = new Compiler(compilerArgs);
+const project = new Project(compilerArgs);
 
 async function compile(filePath: string) {
-	return compiler.compileFileByPath(filePath);
+	return project.compileFileByPath(filePath);
 }
 
 function testFolder(folderPath: string) {
@@ -253,8 +253,8 @@ function testFolder(folderPath: string) {
 								e.message,
 							),
 						);
-					} else if (e instanceof CompilerError) {
-						throw new Error(util.format("%s %s", red("Compiler Error:"), e.message));
+					} else if (e instanceof ProjectError) {
+						throw new Error(util.format("%s %s", red("Project Error:"), e.message));
 					} else if (e instanceof DiagnosticError) {
 						throw new Error(`DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
@@ -285,8 +285,8 @@ describe("compile error unit tests", () => {
 						done();
 					} else if (e instanceof TranspilerError) {
 						done(`Unexpected TranspilerError: ${TranspilerErrorType[e.type]}`);
-					} else if (e instanceof CompilerError) {
-						done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+					} else if (e instanceof ProjectError) {
+						done(`Unexpected ProjectError: ${ProjectErrorType[e.type]}`);
 					} else if (e instanceof DiagnosticError) {
 						done(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
