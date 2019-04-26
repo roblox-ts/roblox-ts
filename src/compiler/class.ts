@@ -12,8 +12,8 @@ import {
 	transpileMethodDeclaration,
 	transpileRoactClassDeclaration,
 } from ".";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
 import { bold } from "../utility";
 
