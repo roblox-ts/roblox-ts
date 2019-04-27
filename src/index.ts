@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import * as chokidar from "chokidar";
+import * as spawn from "cross-spawn";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
@@ -65,6 +66,12 @@ const argv = yargs
 		describe: "minify emitted Lua code",
 	})
 
+	// onSuccess
+	.option("onSuccess", {
+		default: "",
+		describe: "Command to run on watch success",
+	})
+
 	// parse
 	.parse();
 
@@ -72,6 +79,14 @@ const project = new Project(argv);
 if (argv.watch === true) {
 	const rootDir = project.getRootDirOrThrow();
 	let isCompiling = false;
+
+	const onSuccessCommand: string = argv.onSuccess;
+	async function onSuccess() {
+		if (onSuccessCommand.length > 0) {
+			const parts = onSuccessCommand.split(/\s+/);
+			await spawn(parts.shift()!, parts, { stdio: "inherit" });
+		}
+	}
 
 	const time = async (callback: () => any) => {
 		const start = Date.now();
@@ -99,6 +114,9 @@ if (argv.watch === true) {
 				process.exit();
 			}
 		});
+		if (process.exitCode === 0) {
+			await onSuccess();
+		}
 	};
 
 	chokidar
@@ -153,6 +171,9 @@ if (argv.watch === true) {
 		} catch (e) {
 			console.log(e);
 			process.exit();
+		}
+		if (process.exitCode === 0) {
+			await onSuccess();
 		}
 	});
 } else {

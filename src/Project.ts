@@ -455,6 +455,8 @@ export class Project {
 			}
 		}
 
+		process.exitCode = 0;
+
 		try {
 			if (errors.length > 0) {
 				process.exitCode = 1;
