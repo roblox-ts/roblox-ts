@@ -21,7 +21,7 @@ const STRING_MACRO_METHODS = [
 	"upper",
 ];
 
-function shouldWrapExpression(state: CompilerState, subExp: ts.Node, strict: boolean) {
+function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
@@ -40,7 +40,7 @@ function wrapExpressionIfNeeded(
 
 	const accessPath = compileExpression(state, subExp);
 
-	if (shouldWrapExpression(state, subExp, strict)) {
+	if (shouldWrapExpression(subExp, strict)) {
 		return `(${accessPath})`;
 	} else {
 		return accessPath;
