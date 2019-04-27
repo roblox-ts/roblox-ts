@@ -1,8 +1,17 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function compileYieldExpression(state: CompilerState, node: ts.YieldExpression) {
+	if (!ts.TypeGuards.isExpressionStatement(node.getParent())) {
+		throw new CompilerError(
+			"Yield expressions must be expression statements!",
+			node,
+			CompilerErrorType.YieldNotInExpressionStatement,
+		);
+	}
+
 	const exp = node.getExpression();
 	if (node.isGenerator()) {
 		state.pushIdStack();
