@@ -4,7 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
 import { appendDeclarationIfMissing } from "./expression";
-import { shouldCompileAsSpreadableList, compileSpreadableList } from "./spread";
+import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",
