@@ -2,15 +2,15 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
-	inheritsFromRoact,
-	ROACT_COMPONENT_TYPE,
-	ROACT_DERIVED_CLASSES_ERROR,
-	ROACT_PURE_COMPONENT_TYPE,
 	compileAccessorDeclaration,
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
 	compileRoactClassDeclaration,
+	inheritsFromRoact,
+	ROACT_COMPONENT_TYPE,
+	ROACT_DERIVED_CLASSES_ERROR,
+	ROACT_PURE_COMPONENT_TYPE,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

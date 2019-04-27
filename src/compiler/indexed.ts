@@ -2,10 +2,10 @@ import * as ts from "ts-morph";
 import {
 	checkApiAccess,
 	checkNonAny,
-	getPropertyAccessExpressionType,
-	PropertyCallExpType,
 	compileCallExpression,
 	compileExpression,
+	getPropertyAccessExpressionType,
+	PropertyCallExpType,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

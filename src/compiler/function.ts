@@ -2,11 +2,11 @@ import * as ts from "ts-morph";
 import {
 	checkReserved,
 	checkReturnsNonAny,
-	getParameterData,
 	compileBlock,
 	compileCallExpression,
 	compileExpression,
 	compileStatement,
+	getParameterData,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

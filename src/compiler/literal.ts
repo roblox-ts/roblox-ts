@@ -36,10 +36,7 @@ function sanitizeTemplate(str: string) {
 	return str;
 }
 
-export function compileStringLiteral(
-	state: CompilerState,
-	node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
-) {
+export function compileStringLiteral(state: CompilerState, node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
 	if (ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 		return '"' + sanitizeTemplate(node.getText().slice(1, -1)) + '"';
 	} else {

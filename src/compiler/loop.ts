@@ -1,11 +1,11 @@
 import * as ts from "ts-morph";
 import {
-	expressionModifiesVariable,
-	getBindingData,
-	placeIncrementorInStatementIfExpression,
 	compileExpression,
 	compileStatement,
 	compileVariableDeclarationList,
+	expressionModifiesVariable,
+	getBindingData,
+	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

@@ -1,6 +1,5 @@
 import * as ts from "ts-morph";
 import {
-	isSetToken,
 	compileArrayLiteralExpression,
 	compileAwaitExpression,
 	compileBinaryExpression,
@@ -23,6 +22,7 @@ import {
 	compileSpreadElement,
 	compileStringLiteral,
 	compileTemplateExpression,
+	isSetToken,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

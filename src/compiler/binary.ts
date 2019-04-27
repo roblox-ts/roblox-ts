@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkNonAny, getBindingData, compileExpression } from ".";
+import { checkNonAny, compileExpression, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType } from "../typeUtilities";

@@ -2,10 +2,10 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
-	getParameterData,
 	compileBlock,
 	compileExpression,
 	compileStatement,
+	getParameterData,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -551,9 +551,7 @@ export function generateRoactElement(
 							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
 							// Roact.Element
-							extraChildrenCollection.push(
-								state.indent + `{ ${compileExpression(state, expression)} }`,
-							);
+							extraChildrenCollection.push(state.indent + `{ ${compileExpression(state, expression)} }`);
 						}
 					} else {
 						throw new CompilerError(
