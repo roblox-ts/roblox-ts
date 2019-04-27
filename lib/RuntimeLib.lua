@@ -10,7 +10,6 @@ local TYPE_FUNCTION = "function"
 local table_sort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
-local string_split = string.split
 
 local TS = {}
 
