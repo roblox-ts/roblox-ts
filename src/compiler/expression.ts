@@ -27,6 +27,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { compileYieldExpression } from "./yield";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -75,6 +76,8 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		return compileSpreadElement(state, node);
 	} else if (ts.TypeGuards.isClassExpression(node)) {
 		return compileClassExpression(state, node);
+	} else if (ts.TypeGuards.isYieldExpression(node)) {
+		return compileYieldExpression(state, node);
 	} else if (ts.TypeGuards.isOmittedExpression(node)) {
 		return "nil";
 	} else if (ts.TypeGuards.isThisExpression(node)) {
@@ -106,15 +109,6 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 			node,
 			CompilerErrorType.NoTypeOf,
 		);
-	} else if (ts.TypeGuards.isYieldExpression(node)) {
-		const exp = node.getExpression();
-		let result = `coroutine.yield({\n`;
-		state.pushIndent();
-		result += state.indent + `value = ${exp ? compileExpression(state, exp) : "nil"};\n`;
-		result += state.indent + `done = false;\n`;
-		state.popIndent();
-		result += state.indent + `})`;
-		return result;
 	} else {
 		/* istanbul ignore next */
 		throw new CompilerError(`Bad expression! (${node.getKindName()})`, node, CompilerErrorType.BadExpression);
