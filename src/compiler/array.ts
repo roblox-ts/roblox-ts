@@ -1,43 +1,18 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import { isArrayType } from "../typeUtilities";
-import { compileArrayForSpread } from "./spread";
+import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
 
 export function compileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();
 	if (elements.length === 0) {
 		return "{}";
 	}
-	let isInArray = false;
-	const parts = new Array<Array<string> | string>();
-	elements.forEach(element => {
-		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(compileArrayForSpread(state, element.getExpression()));
-			isInArray = false;
-		} else {
-			let last: Array<string>;
-			if (isInArray) {
-				last = parts[parts.length - 1] as Array<string>;
-			} else {
-				last = new Array<string>();
-				parts.push(last);
-			}
-			last.push(compileExpression(state, element));
-			isInArray = true;
-		}
-	});
 
-	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
-	const first = elements[0];
-	if (
-		elements.length === 1
-			? ts.TypeGuards.isSpreadElement(first) && isArrayType(first.getExpression().getType())
-			: elements.some(v => ts.TypeGuards.isSpreadElement(v))
-	) {
-		state.usesTSLibrary = true;
-		return `TS.array_concat(${params})`;
+	if (shouldCompileAsSpreadableList(elements)) {
+		return compileSpreadableList(state, elements);
 	} else {
-		return params;
+		const elementsStr = elements.map(e => compileExpression(state, e)).join(", ");
+		return `{ ${elementsStr} }`;
 	}
 }

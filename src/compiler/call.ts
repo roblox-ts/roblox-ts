@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
 import { appendDeclarationIfMissing } from "./expression";
+import { shouldCompileAsSpreadableList, compileSpreadableList } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -357,18 +358,19 @@ export function compileCallArgument(state: CompilerState, arg: ts.Node) {
 	return expStr;
 }
 
-export function compileCallArguments(state: CompilerState, args: Array<ts.Node>, extraParameter?: string) {
-	const argStrs = new Array<string>();
-
-	for (const arg of args) {
-		argStrs.push(compileCallArgument(state, arg));
+export function compileCallArguments(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
+	if (shouldCompileAsSpreadableList(args)) {
+		return `unpack(${compileSpreadableList(state, args)})`;
+	} else {
+		const argStrs = new Array<string>();
+		for (const arg of args) {
+			argStrs.push(compileCallArgument(state, arg));
+		}
+		if (extraParameter) {
+			argStrs.unshift(extraParameter);
+		}
+		return argStrs.join(", ");
 	}
-
-	if (extraParameter) {
-		argStrs.unshift(extraParameter);
-	}
-
-	return argStrs.join(", ");
 }
 
 export function compileCallExpression(
@@ -390,7 +392,7 @@ export function compileCallExpression(
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		result = compilePropertyCallExpression(state, node);
 	} else {
-		const params = node.getArguments();
+		const params = node.getArguments() as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
 			return `super.constructor(${compileCallArguments(state, params, "self")})`;
@@ -419,7 +421,7 @@ export function compileCallExpression(
 function compilePropertyMethod(
 	state: CompilerState,
 	property: string,
-	params: Array<ts.Node>,
+	params: Array<ts.Expression>,
 	subExp: ts.LeftHandSideExpression,
 	className: string,
 	replaceMethods: ReplaceMap,
@@ -553,7 +555,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	const subExp = getNonNull(expression.getExpression());
 	const property = expression.getName();
-	const params = node.getArguments();
+	const params = node.getArguments() as Array<ts.Expression>;
 
 	switch (getPropertyAccessExpressionType(state, node, expression)) {
 		case PropertyCallExpType.Array:

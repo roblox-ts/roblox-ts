@@ -10,7 +10,7 @@ import { appendDeclarationIfMissing } from "./expression";
 function compileSetMapConstructorHelper(
 	state: CompilerState,
 	node: ts.NewExpression,
-	args: Array<ts.Node>,
+	args: Array<ts.Expression>,
 	type: "set" | "map",
 ) {
 	const typeArgument = node.getType().getTypeArguments()[0];
@@ -52,7 +52,9 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	const expNode = node.getExpression();
 	const expressionType = expNode.getType();
 	const name = compileExpression(state, expNode);
-	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken) ? node.getArguments() : [];
+	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)
+		? (node.getArguments() as Array<ts.Expression>)
+		: [];
 
 	if (inheritsFromRoact(expressionType)) {
 		throw new CompilerError(
