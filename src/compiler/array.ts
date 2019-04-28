@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import { isIterableIterator } from "../typeUtilities";
-import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
+import { isArrayType } from "../typeUtilities";
+import { compileArrayForSpread, compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
 
 export function compileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();
@@ -14,11 +14,13 @@ export function compileArrayLiteralExpression(state: CompilerState, node: ts.Arr
 	if (elements.length === 1) {
 		const element = elements[0];
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			const expression = element.getExpression();
-			const expType = expression.getType();
-			if (isIterableIterator(expType, expression)) {
-				state.usesTSLibrary = true;
-				return `TS.iterable_cache(${compileExpression(state, expression)})`;
+			const exp = element.getExpression();
+			const expType = exp.getType();
+			if (!isArrayType(expType)) {
+				const spreadResult = compileArrayForSpread(state, exp);
+				if (spreadResult) {
+					return spreadResult;
+				}
 			}
 		}
 	}

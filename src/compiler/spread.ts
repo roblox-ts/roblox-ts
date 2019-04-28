@@ -29,7 +29,7 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 	const parts = new Array<Array<string> | string>();
 	for (const element of elements) {
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(compileArrayForSpread(state, element.getExpression()));
+			parts.push(compileArrayForSpreadOrThrow(state, element.getExpression()));
 			isInArray = false;
 		} else {
 			let last: Array<string>;
@@ -63,9 +63,16 @@ export function compileArrayForSpread(state: CompilerState, expression: ts.Expre
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
 		return `TS.iterable_cache(${compileExpression(state, expression)})`;
+	}
+}
+
+export function compileArrayForSpreadOrThrow(state: CompilerState, expression: ts.Expression) {
+	const result = compileArrayForSpread(state, expression);
+	if (result) {
+		return result;
 	} else {
 		throw new CompilerError(
-			`Unable to spread expression of type ${expType.getText()}`,
+			`Unable to spread expression of type ${expression.getType().getText()}`,
 			expression,
 			CompilerErrorType.BadSpreadType,
 		);
@@ -79,6 +86,6 @@ export function compileSpreadElement(state: CompilerState, node: ts.SpreadElemen
 	if (ts.TypeGuards.isCallExpression(expression) && isTupleReturnTypeCall(expression)) {
 		return compileCallExpression(state, expression, true);
 	} else {
-		return `unpack(${compileArrayForSpread(state, expression)})`;
+		return `unpack(${compileArrayForSpreadOrThrow(state, expression)})`;
 	}
 }
