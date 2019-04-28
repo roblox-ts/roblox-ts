@@ -947,6 +947,23 @@ function TS.Roact_combine(...)
 	return result
 end
 
+-- opcall
+
+function TS.opcall(func, ...)
+	local success, valueOrErr = pcall(func, ...)
+	if success then
+		return {
+			success = true,
+			value = valueOrErr,
+		}
+	else
+		return {
+			success = false,
+			error = valueOrErr,
+		}
+	end
+end
+
 -- try catch utilities
 
 local function pack(...)

@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved } from ".";
 import { CompilerState } from "../CompilerState";
 
-export const BUILT_INS = ["Promise", "Symbol", "typeIs"];
+export const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
 
 export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
 
