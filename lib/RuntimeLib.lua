@@ -923,10 +923,10 @@ function TS.iterable_cache(iter)
 	local results = {}
 	local count = 0
 	for _0 in iter.next do
-		if _0.done then break end;
+		if _0.done then break end
 		count = count + 1
-		results[count] = _0.value;
-	end;
+		results[count] = _0.value
+	end
 	return results
 end
 
