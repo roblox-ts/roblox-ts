@@ -66,6 +66,7 @@ export enum CompilerErrorType {
 	BadSpreadType,
 	YieldNotInExpressionStatement,
 	NonStringThrow,
+	TryReturn,
 }
 
 export class CompilerError extends Error {

@@ -13,6 +13,18 @@ export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatem
 }
 
 export function compileTryStatement(state: CompilerState, node: ts.TryStatement) {
+	const tryBlock = node.getTryBlock();
+	const returnStatement = tryBlock
+		.getDescendantStatements()
+		.find(statement => ts.TypeGuards.isReturnStatement(statement));
+	if (returnStatement) {
+		throw new CompilerError(
+			"Try blocks cannot have return statements!",
+			returnStatement,
+			CompilerErrorType.TryReturn,
+		);
+	}
+
 	let result = "";
 
 	let hasErrVar = false;
@@ -36,7 +48,7 @@ export function compileTryStatement(state: CompilerState, node: ts.TryStatement)
 	result += `pcall(function()\n`;
 
 	state.pushIndent();
-	result += compileStatementedNode(state, node.getTryBlock());
+	result += compileStatementedNode(state, tryBlock);
 	state.popIndent();
 	result += state.indent + `end);\n`;
 
