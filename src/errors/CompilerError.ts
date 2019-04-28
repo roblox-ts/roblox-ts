@@ -64,6 +64,7 @@ export enum CompilerErrorType {
 	BadDestructuringType,
 	NullableIndexOnMapOrSet,
 	BadSpreadType,
+	YieldNotInExpressionStatement,
 }
 
 export class CompilerError extends Error {
