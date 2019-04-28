@@ -2,17 +2,6 @@ function stringThrow(): void {
 	throw "foo";
 }
 
-function objectThrow(): void {
-	throw setmetatable(
-		{
-			id: "baz",
-		},
-		{
-			__tostring: () => "bar",
-		},
-	);
-}
-
 export = () => {
 	it("should throw", () => {
 		expect(stringThrow).to.throw();
@@ -29,27 +18,6 @@ export = () => {
 		}
 
 		expect(message).to.equal("foo");
-	});
-
-	it("should allow throwing objects", () => {
-		expect(objectThrow).to.throw();
-
-		let object: { id: string } | undefined;
-		try {
-			objectThrow();
-		} catch (e) {
-			object = e;
-		}
-
-		expect(object).to.be.ok();
-		expect(object!.id).to.equal("baz");
-	});
-
-	it("should display the error message in output", () => {
-		const [ok, errorMessage] = pcall(objectThrow);
-
-		expect(ok).to.equal(false);
-		expect((errorMessage as string).find("bar")).to.be.ok();
 	});
 
 	it("should support try catch with return values", () => {
@@ -75,20 +43,6 @@ export = () => {
 			value = e;
 		}
 		expect(value).to.equal("foo");
-	});
-
-	it("should support catch with objects", () => {
-		interface MyObject {
-			id: string;
-		}
-
-		let value: MyObject;
-		try {
-			throw { id: "foo" };
-		} catch (e) {
-			value = e;
-		}
-		expect(value.id).to.equal("foo");
 	});
 
 	it("should support try without catch", () => {
