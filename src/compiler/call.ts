@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
 import { appendDeclarationIfMissing } from "./expression";
+import { CompilerDirective, getCompilerDirective } from "./security";
 import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
 
 const STRING_MACRO_METHODS = [
@@ -468,6 +469,11 @@ export function getPropertyAccessExpressionType(
 	const property = expression.getName();
 
 	if (isArrayType(subExpType)) {
+		return PropertyCallExpType.Array;
+	}
+
+	const expSym = expression.getSymbol();
+	if (expSym && getCompilerDirective(expSym, [CompilerDirective.Array]) === CompilerDirective.Array) {
 		return PropertyCallExpType.Array;
 	}
 
