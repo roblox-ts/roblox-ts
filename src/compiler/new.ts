@@ -66,6 +66,10 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	}
 
 	if (inheritsFrom(expressionType, "ArrayConstructor")) {
+		if (args.length === 0) {
+			return "{}";
+		}
+
 		let result = `{`;
 		if (args.length === 1) {
 			const arg = args[0];
