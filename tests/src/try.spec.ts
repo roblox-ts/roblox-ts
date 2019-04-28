@@ -17,7 +17,7 @@ export = () => {
 			}
 		}
 
-		expect(message).to.equal("foo");
+		expect(message.match("foo$")).to.equal("foo");
 	});
 
 	it("should support catch with strings", () => {
@@ -27,7 +27,7 @@ export = () => {
 		} catch (e) {
 			value = e;
 		}
-		expect(value).to.equal("foo");
+		expect(value.match("foo$")).to.equal("foo");
 	});
 
 	it("should support try without catch", () => {
