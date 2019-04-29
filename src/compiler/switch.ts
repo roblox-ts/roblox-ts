@@ -4,7 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStatement) {
-	let result = "";
+	let preResult = "";
 	let expStr: string;
 
 	const expression = node.getExpression();
@@ -14,41 +14,26 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		expStr = rawExpStr;
 	} else {
 		expStr = state.getNewId();
-		result += state.indent + `local ${expStr} = ${rawExpStr};\n`;
+		preResult += state.indent + `local ${expStr} = ${rawExpStr};\n`;
 	}
 
-	result += state.indent + `repeat\n`;
+	preResult += state.indent + `repeat\n`;
 	state.pushIndent();
 	state.pushIdStack();
 	const fallThroughVar = state.getNewId();
 
 	const clauses = node.getCaseBlock().getClauses();
 	let anyFallThrough = false;
-	for (const clause of clauses) {
-		const statements = clause.getStatements();
 
-		let lastStatement = statements[statements.length - 1];
-		while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
-			const blockStatements = lastStatement.getStatements();
-			lastStatement = blockStatements[blockStatements.length - 1];
-		}
-		const endsInReturnOrBreakStatement =
-			lastStatement &&
-			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
-		if (!endsInReturnOrBreakStatement) {
-			anyFallThrough = true;
-		}
-	}
-
-	if (anyFallThrough) {
-		result += state.indent + `local ${fallThroughVar} = false;\n`;
-	}
+	let result = "";
 
 	let previousCaseFallsThrough = false;
 	const lastClauseIndex = clauses.length - 1;
 	const hasDefault = !ts.TypeGuards.isCaseClause(clauses[lastClauseIndex]);
 
-	clauses.forEach((clause, i) => {
+	for (let i = 0; i < clauses.length; i++) {
+		const clause = clauses[i];
+
 		// add if statement if the clause is non-default
 		let isNonDefault = false;
 		if (ts.TypeGuards.isCaseClause(clause)) {
@@ -80,6 +65,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		result += compileStatementedNode(state, clause);
 
 		if (!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i) {
+			anyFallThrough = true;
 			result += state.indent + `${fallThroughVar} = true;\n`;
 		}
 
@@ -87,9 +73,13 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 			state.popIndent();
 			result += state.indent + `end;\n`;
 		}
-	});
+	}
+
+	if (anyFallThrough) {
+		result = state.indent + `local ${fallThroughVar} = false;\n` + result;
+	}
 	state.popIdStack();
 	state.popIndent();
 	result += state.indent + `until true;\n`;
-	return result;
+	return preResult + result;
 }
