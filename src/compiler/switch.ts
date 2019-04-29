@@ -1,10 +1,22 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStatement) {
-	const expStr = compileExpression(state, node.getExpression());
 	let result = "";
+	let expStr: string;
+
+	const expression = node.getExpression();
+	const rawExpStr = compileExpression(state, expression);
+
+	if (ts.TypeGuards.isIdentifier(expression)) {
+		expStr = rawExpStr;
+	} else {
+		expStr = state.getNewId();
+		result += state.indent + `local ${expStr} = ${rawExpStr};\n`;
+	}
+
 	result += state.indent + `repeat\n`;
 	state.pushIndent();
 	state.pushIdStack();
@@ -32,15 +44,25 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		result += state.indent + `local ${fallThroughVar} = false;\n`;
 	}
 
-	let lastFallThrough = false;
+	let previousCaseFallsThrough = false;
+	const lastClauseIndex = clauses.length - 1;
+	const hasDefault = !ts.TypeGuards.isCaseClause(clauses[lastClauseIndex]);
 
-	for (const clause of clauses) {
+	clauses.forEach((clause, i) => {
 		// add if statement if the clause is non-default
+		let isNonDefault = false;
 		if (ts.TypeGuards.isCaseClause(clause)) {
+			isNonDefault = true;
 			const clauseExpStr = compileExpression(state, clause.getExpression());
-			const fallThroughVarOr = lastFallThrough ? `${fallThroughVar} or ` : "";
+			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar} or ` : "";
 			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 			state.pushIndent();
+		} else if (i !== lastClauseIndex) {
+			throw new CompilerError(
+				"Default case must be the last case in a switch statement!",
+				clause,
+				CompilerErrorType.BadSwitchDefaultPosition,
+			);
 		}
 
 		const statements = clause.getStatements();
@@ -53,18 +75,19 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		const endsInReturnOrBreakStatement =
 			lastStatement &&
 			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
-		lastFallThrough = !endsInReturnOrBreakStatement;
+		previousCaseFallsThrough = !endsInReturnOrBreakStatement;
 
 		result += compileStatementedNode(state, clause);
 
-		if (ts.TypeGuards.isCaseClause(clause)) {
-			if (!endsInReturnOrBreakStatement) {
-				result += state.indent + `${fallThroughVar} = true;\n`;
-			}
+		if (!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i) {
+			result += state.indent + `${fallThroughVar} = true;\n`;
+		}
+
+		if (isNonDefault) {
 			state.popIndent();
 			result += state.indent + `end;\n`;
 		}
-	}
+	});
 	state.popIdStack();
 	state.popIndent();
 	result += state.indent + `until true;\n`;
