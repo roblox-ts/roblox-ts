@@ -22,7 +22,6 @@ export enum CompilerErrorType {
 	BadExpression,
 	BadFunctionBody,
 	ExpectedPropertyAccessExpression,
-	NoMacroMathExpressionStatement,
 	NoEqualsEquals,
 	NoExclamationEquals,
 	BadBinaryExpression,

@@ -515,30 +515,16 @@ export function getPropertyAccessExpressionType(
 			return PropertyCallExpType.ObjectConstructor;
 		}
 
-		const validateMathCall = () => {
-			if (ts.TypeGuards.isExpressionStatement(node.getParent())) {
-				throw new CompilerError(
-					`${subExpTypeName}.${property}() cannot be an expression statement!`,
-					node,
-					CompilerErrorType.NoMacroMathExpressionStatement,
-				);
-			}
-		};
-
 		// custom math
 		if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
 			switch (property) {
 				case "add":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathAdd;
 				case "sub":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathSub;
 				case "mul":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathMul;
 				case "div":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathDiv;
 			}
 		}
@@ -581,13 +567,29 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		case PropertyCallExpType.ObjectConstructor:
 			return compilePropertyMethod(state, property, params, subExp, "Object", OBJECT_REPLACE_METHODS);
 		case PropertyCallExpType.RbxMathAdd:
-			return `(${compileExpression(state, subExp)} + (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} + (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathSub:
-			return `(${compileExpression(state, subExp)} - (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} - (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathMul:
-			return `(${compileExpression(state, subExp)} * (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} * (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathDiv:
-			return `(${compileExpression(state, subExp)} / (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} / (${compileCallArgument(state, params[0])}))`,
+			);
 	}
 
 	const expType = expression.getType();
