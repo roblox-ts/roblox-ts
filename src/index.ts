@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import * as chokidar from "chokidar";
+import * as spawn from "cross-spawn";
 import * as fs from "fs";
 import * as path from "path";
 import * as yargs from "yargs";
-import { Compiler } from "./Compiler";
 import { CompilerError } from "./errors/CompilerError";
-import { TranspilerError } from "./errors/TranspilerError";
+import { ProjectError } from "./errors/ProjectError";
+import { Project } from "./Project";
 import { clearContextCache } from "./utility";
 
 // cli interface
@@ -65,20 +66,34 @@ const argv = yargs
 		describe: "minify emitted Lua code",
 	})
 
+	// onSuccess
+	.option("onSuccess", {
+		default: "",
+		describe: "Command to run on watch success",
+	})
+
 	// parse
 	.parse();
 
-const compiler = new Compiler(argv);
+const project = new Project(argv);
 if (argv.watch === true) {
-	const rootDir = compiler.getRootDirOrThrow();
+	const rootDir = project.getRootDirOrThrow();
 	let isCompiling = false;
+
+	const onSuccessCommand: string = argv.onSuccess;
+	async function onSuccess() {
+		if (onSuccessCommand.length > 0) {
+			const parts = onSuccessCommand.split(/\s+/);
+			await spawn(parts.shift()!, parts, { stdio: "inherit" });
+		}
+	}
 
 	const time = async (callback: () => any) => {
 		const start = Date.now();
 		try {
 			await callback();
 		} catch (e) {
-			if (e instanceof CompilerError || e instanceof TranspilerError) {
+			if (e instanceof ProjectError || e instanceof CompilerError) {
 				process.exitCode = 0;
 			} else {
 				throw e;
@@ -89,16 +104,19 @@ if (argv.watch === true) {
 
 	const update = async (filePath: string) => {
 		console.log("Change detected, compiling..");
-		await compiler.refresh();
+		await project.refresh();
 		clearContextCache();
 		await time(async () => {
 			try {
-				await compiler.compileFileByPath(filePath);
+				await project.compileFileByPath(filePath);
 			} catch (e) {
 				console.log(e);
 				process.exit();
 			}
 		});
+		if (process.exitCode === 0) {
+			await onSuccess();
+		}
 	};
 
 	chokidar
@@ -123,7 +141,7 @@ if (argv.watch === true) {
 			if (!isCompiling) {
 				isCompiling = true;
 				console.log("Add", filePath);
-				compiler.addFile(filePath);
+				project.addFile(filePath);
 				await update(filePath);
 				isCompiling = false;
 			}
@@ -132,7 +150,7 @@ if (argv.watch === true) {
 			if (!isCompiling) {
 				isCompiling = true;
 				console.log("remove", filePath);
-				await compiler.removeFile(filePath);
+				await project.removeFile(filePath);
 				isCompiling = false;
 			}
 		});
@@ -141,7 +159,7 @@ if (argv.watch === true) {
 	if (fs.existsSync(pkgLockJsonPath)) {
 		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
-			await compiler.copyModuleFiles();
+			await project.copyModuleFiles();
 		});
 	}
 
@@ -149,12 +167,15 @@ if (argv.watch === true) {
 	console.log("Starting initial compile..");
 	time(async () => {
 		try {
-			await compiler.compileAll();
+			await project.compileAll();
 		} catch (e) {
 			console.log(e);
 			process.exit();
 		}
+		if (process.exitCode === 0) {
+			await onSuccess();
+		}
 	});
 } else {
-	compiler.compileAll();
+	project.compileAll();
 }

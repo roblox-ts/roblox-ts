@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as ts from "ts-morph";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 export function isValidLuaIdentifier(id: string) {
@@ -39,7 +39,7 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 	const filePath = file.getFilePath();
 	const ext = path.extname(filePath);
 	if (ext !== ".ts" && ext !== ".tsx") {
-		throw new CompilerError(`Unexpected extension type: ${ext}`, CompilerErrorType.UnexpectedExtensionType);
+		throw new ProjectError(`Unexpected extension type: ${ext}`, ProjectErrorType.UnexpectedExtensionType);
 	}
 
 	const subext = path.extname(path.basename(filePath, ext));

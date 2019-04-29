@@ -6,5 +6,6 @@ src
 .DS_Store
 .vscode
 tests
+vendor
 .editorconfig
 .history

@@ -10,7 +10,6 @@ local TYPE_FUNCTION = "function"
 local table_sort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
-local string_split = string.split
 
 local TS = {}
 
@@ -221,9 +220,7 @@ local function bitTruncate(a)
 	end
 end
 
-TS.round = bitTruncate
-
-TS.bitTruncate = bitTruncate
+TS.bit_truncate = bitTruncate
 
 -- bitwise operations
 local powOfTwo = setmetatable({}, {
@@ -244,34 +241,45 @@ local function bitop(a, b, oper)
 	return r
 end
 
-function TS.bor(a, b)
+function TS.bit_not(a)
+	return -a - 1
+end
+
+function TS.bit_or(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 1)
 end
 
-function TS.band(a, b)
+function TS.bit_and(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 4)
 end
 
-function TS.bxor(a, b)
+function TS.bit_xor(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitop(a, b, 3)
 end
 
-function TS.blsh(a, b)
+function TS.bit_lsh(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return a * powOfTwo[b]
 end
 
-function TS.brsh(a, b)
+function TS.bit_rsh(a, b)
 	a = bitTruncate(tonumber(a))
 	b = bitTruncate(tonumber(b))
 	return bitTruncate(a / powOfTwo[b])
+end
+
+function TS.bit_lrsh(a, b)
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
+	if a >= 0 then return TS.bit_rsh(a, b) end
+	return TS.bit_rsh((a % powOfTwo[32]), b)
 end
 
 -- utility functions
@@ -915,10 +923,10 @@ function TS.iterable_cache(iter)
 	local results = {}
 	local count = 0
 	for _0 in iter.next do
-		if _0.done then break end;
+		if _0.done then break end
 		count = count + 1
-		results[count] = _0.value;
-	end;
+		results[count] = _0.value
+	end
 	return results
 end
 
@@ -937,6 +945,23 @@ function TS.Roact_combine(...)
 		end
 	end
 	return result
+end
+
+-- opcall
+
+function TS.opcall(func, ...)
+	local success, valueOrErr = pcall(func, ...)
+	if success then
+		return {
+			success = true,
+			value = valueOrErr,
+		}
+	else
+		return {
+			success = false,
+			error = valueOrErr,
+		}
+	end
 end
 
 -- try catch utilities
