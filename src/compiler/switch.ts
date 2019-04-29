@@ -20,7 +20,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 	preResult += state.indent + `repeat\n`;
 	state.pushIndent();
 	state.pushIdStack();
-	const fallThroughVar = state.getNewId();
+	let fallThroughVar: string;
 
 	const clauses = node.getCaseBlock().getClauses();
 	let anyFallThrough = false;
@@ -39,7 +39,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		if (ts.TypeGuards.isCaseClause(clause)) {
 			isNonDefault = true;
 			const clauseExpStr = compileExpression(state, clause.getExpression());
-			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar} or ` : "";
+			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
 			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 			state.pushIndent();
 		} else if (i !== lastClauseIndex) {
@@ -60,23 +60,30 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		const endsInReturnOrBreakStatement =
 			lastStatement &&
 			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
-		previousCaseFallsThrough = !endsInReturnOrBreakStatement;
+
+		const currentCaseFallsThrough =
+			!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i;
 
 		result += compileStatementedNode(state, clause);
 
-		if (!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i) {
-			anyFallThrough = true;
-			result += state.indent + `${fallThroughVar} = true;\n`;
+		if (currentCaseFallsThrough) {
+			if (!anyFallThrough) {
+				fallThroughVar = state.getNewId();
+				anyFallThrough = true;
+			}
+			result += state.indent + `${fallThroughVar!} = true;\n`;
 		}
 
 		if (isNonDefault) {
 			state.popIndent();
 			result += state.indent + `end;\n`;
 		}
+
+		previousCaseFallsThrough = currentCaseFallsThrough;
 	}
 
 	if (anyFallThrough) {
-		result = state.indent + `local ${fallThroughVar} = false;\n` + result;
+		result = state.indent + `local ${fallThroughVar!} = false;\n` + result;
 	}
 	state.popIdStack();
 	state.popIndent();
