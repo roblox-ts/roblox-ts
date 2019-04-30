@@ -22,12 +22,12 @@ import {
 	compileSpreadElement,
 	compileStringLiteral,
 	compileTemplateExpression,
+	compileYieldExpression,
 	isSetToken,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { compileYieldExpression } from "./yield";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {

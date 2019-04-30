@@ -1,10 +1,15 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, checkNonAny, compileExpression } from ".";
+import {
+	appendDeclarationIfMissing,
+	checkApiAccess,
+	checkNonAny,
+	compileExpression,
+	compileSpreadableList,
+	shouldCompileAsSpreadableList,
+} from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
-import { appendDeclarationIfMissing } from "./expression";
-import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",

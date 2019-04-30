@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileExpression, getBindingData } from ".";
+import { checkNonAny, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType } from "../typeUtilities";
-import { concatNamesAndValues } from "./binding";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;

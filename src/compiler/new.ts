@@ -1,11 +1,15 @@
 import * as ts from "ts-morph";
-import { compileCallArguments, compileExpression, inheritsFromRoact } from ".";
+import {
+	appendDeclarationIfMissing,
+	compileCallArguments,
+	compileExpression,
+	inheritsFromRoact,
+	literalParameterCompileFunctions,
+} from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
-import { literalParameterCompileFunctions } from "./call";
-import { appendDeclarationIfMissing } from "./expression";
 
 function compileSetMapConstructorHelper(
 	state: CompilerState,

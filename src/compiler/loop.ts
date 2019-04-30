@@ -1,19 +1,19 @@
 import * as ts from "ts-morph";
 import {
 	compileExpression,
+	compileNumericLiteral,
 	compileStatement,
 	compileVariableDeclarationList,
+	concatNamesAndValues,
 	expressionModifiesVariable,
 	getBindingData,
+	getFirstMemberWithParameters,
 	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
-import { concatNamesAndValues } from "./binding";
-import { getFirstMemberWithParameters } from "./function";
-import { compileNumericLiteral } from "./literal";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {

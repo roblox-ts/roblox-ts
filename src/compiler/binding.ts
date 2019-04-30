@@ -1,10 +1,9 @@
 import * as ts from "ts-morph";
-import { compileExpression } from ".";
+import { compileExpression, compileIdentifier } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
-import { compileIdentifier } from "./identifier";
 
 export function getParameterData(
 	state: CompilerState,

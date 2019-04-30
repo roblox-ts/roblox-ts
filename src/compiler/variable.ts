@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkReserved, compileCallExpression, compileExpression, getBindingData } from ".";
+import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
-import { concatNamesAndValues } from "./binding";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
