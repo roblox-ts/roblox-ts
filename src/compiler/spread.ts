@@ -29,7 +29,7 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 	const parts = new Array<Array<string> | string>();
 	for (const element of elements) {
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(compileArrayForSpreadOrThrow(state, element.getExpression()));
+			parts.push(compileSpreadExpressionOrThrow(state, element.getExpression()));
 			isInArray = false;
 		} else {
 			let last: Array<string>;
@@ -48,7 +48,7 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 	return `TS.array_concat(${params})`;
 }
 
-export function compileArrayForSpread(state: CompilerState, expression: ts.Expression) {
+export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
 	const expType = expression.getType();
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
@@ -62,12 +62,12 @@ export function compileArrayForSpread(state: CompilerState, expression: ts.Expre
 		return `string.split(${compileExpression(state, expression)}, "")`;
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
-		return `TS.iterable_cache(${compileExpression(state, expression)})`;
+		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	}
 }
 
-export function compileArrayForSpreadOrThrow(state: CompilerState, expression: ts.Expression) {
-	const result = compileArrayForSpread(state, expression);
+export function compileSpreadExpressionOrThrow(state: CompilerState, expression: ts.Expression) {
+	const result = compileSpreadExpression(state, expression);
 	if (result) {
 		return result;
 	} else {
@@ -86,6 +86,6 @@ export function compileSpreadElement(state: CompilerState, node: ts.SpreadElemen
 	if (ts.TypeGuards.isCallExpression(expression) && isTupleReturnTypeCall(expression)) {
 		return compileCallExpression(state, expression, true);
 	} else {
-		return `unpack(${compileArrayForSpreadOrThrow(state, expression)})`;
+		return `unpack(${compileSpreadExpressionOrThrow(state, expression)})`;
 	}
 }

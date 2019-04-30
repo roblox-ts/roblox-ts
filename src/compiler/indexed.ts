@@ -4,6 +4,7 @@ import {
 	checkNonAny,
 	compileCallExpression,
 	compileExpression,
+	compileNumericLiteral,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
 } from ".";
@@ -11,14 +12,13 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
-import { compileNumericLiteral } from "./literal";
 
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
 	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
 
-	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node, node);
+	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
 	if (
 		(propertyAccessExpressionType === PropertyCallExpType.String ||

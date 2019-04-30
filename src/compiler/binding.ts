@@ -1,10 +1,9 @@
 import * as ts from "ts-morph";
-import { compileExpression } from ".";
+import { compileExpression, compileIdentifier } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
-import { compileIdentifier } from "./identifier";
 
 export function getParameterData(
 	state: CompilerState,
@@ -136,14 +135,15 @@ export function concatNamesAndValues(
 	values: Array<string>,
 	isLocal: boolean,
 	func: (str: string) => void,
-	includeSpacing: boolean = true,
+	includeSpacing = true,
+	includeSemicolon = true,
 ) {
 	if (values.length > 0) {
 		names[0] = names[0] || "_";
 		func(
-			`${includeSpacing ? state.indent : ""}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(
-				", ",
-			)};${includeSpacing ? "\n" : ""}`,
+			`${includeSpacing ? state.indent : ""}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(", ")}${
+				includeSemicolon ? ";" : ""
+			}${includeSpacing ? "\n" : ""}`,
 		);
 	}
 }
@@ -218,7 +218,7 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
-					`Roblox-TS doesn't know what to do with ${child.getKindName()}. ` +
+					`roblox-ts doesn't know what to do with ${child.getKindName()}. ` +
 						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 					child,
 					CompilerErrorType.UnexpectedBindingPattern,
@@ -240,7 +240,7 @@ export function getBindingData(
 			childIndex--;
 		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
 			throw new CompilerError(
-				`Roblox-TS doesn't know what to do with ${item.getKindName()}. ` +
+				`roblox-ts doesn't know what to do with ${item.getKindName()}. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 				item,
 				CompilerErrorType.UnexpectedBindingPattern,

@@ -17,7 +17,8 @@
 		"coverage": "npx nyc report --reporter=text-lcov | coveralls",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"build": "npx tsc",
-		"prepublishOnly": "npm run build"
+		"prepublishOnly": "npm run build",
+		"types": "cd tests && npm install rbx-types"
 	},
 	"nyc": {
 		"extension": [

@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkReserved, compileCallExpression, compileExpression, getBindingData } from ".";
+import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
-import { concatNamesAndValues } from "./binding";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	const lhs = node.getNameNode();
@@ -27,7 +26,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const isFlatBinding = lhs
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
-			.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
+			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
 			const names = new Array<string>();
 			const values = new Array<string>();

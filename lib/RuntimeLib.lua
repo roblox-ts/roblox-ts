@@ -919,7 +919,7 @@ TS.set_size = getNumKeys
 
 TS.set_toString = toString
 
-function TS.iterable_cache(iter)
+function TS.iterableCache(iter)
 	local results = {}
 	local count = 0
 	for _0 in iter.next do

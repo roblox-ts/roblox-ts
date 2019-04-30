@@ -165,34 +165,47 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	});
 }
 
-export function isArrayType(type: ts.Type) {
+export function getCompilerDirectiveWithConstraint(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => false,
+) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
-		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
-				return true;
-			}
-		}
-		return t.isArray() || t.isTuple();
+		return (symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t);
 	});
 }
 
-const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
+export function isArrayType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+}
+
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
+export function isMethodType(type: ts.Type) {
+	return type.getCallSignatures().length > 0;
+}
+
+export function isArrayMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
+}
+
+export function isMapMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+}
+
+export function isSetMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
+}
 
 export function isMapType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		return symbol ? MAP_NAMES.has(symbol.getEscapedName()) : false;
-	});
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
 }
 
-const SET_NAMES = new Set<string>(["Set", "ReadonlySet", "WeakSet"]);
-
 export function isSetType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		return symbol ? SET_NAMES.has(symbol.getEscapedName()) : false;
-	});
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;

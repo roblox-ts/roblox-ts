@@ -1,11 +1,22 @@
 import * as ts from "ts-morph";
-import { checkApiAccess, checkNonAny, compileExpression } from ".";
+import {
+	appendDeclarationIfMissing,
+	checkApiAccess,
+	checkNonAny,
+	compileExpression,
+	compileSpreadableList,
+	shouldCompileAsSpreadableList,
+} from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
-import { appendDeclarationIfMissing } from "./expression";
-import { CompilerDirective, getCompilerDirective } from "./security";
-import { compileSpreadableList, shouldCompileAsSpreadableList } from "./spread";
+import {
+	isArrayMethodType,
+	isMapMethodType,
+	isSetMethodType,
+	isStringMethodType,
+	isTupleReturnTypeCall,
+	typeConstraint,
+} from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -459,30 +470,32 @@ export const enum PropertyCallExpType {
 
 export function getPropertyAccessExpressionType(
 	state: CompilerState,
-	node: ts.CallExpression | ts.PropertyAccessExpression,
 	expression: ts.PropertyAccessExpression,
 ): PropertyCallExpType {
 	checkApiAccess(state, expression.getNameNode());
 
+	const expType = expression.getType();
 	const subExp = expression.getExpression();
 	const subExpType = subExp.getType();
 	const property = expression.getName();
 
-	if (isArrayType(subExpType)) {
+	if (isArrayMethodType(expType)) {
 		return PropertyCallExpType.Array;
 	}
 
-	const expSym = expression.getSymbol();
-	if (expSym && getCompilerDirective(expSym, [CompilerDirective.Array]) === CompilerDirective.Array) {
-		return PropertyCallExpType.Array;
-	}
-
-	if (isStringType(subExpType)) {
+	if (isStringMethodType(subExpType)) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
-
 		return PropertyCallExpType.String;
+	}
+
+	if (isSetMethodType(expType)) {
+		return PropertyCallExpType.Set;
+	}
+
+	if (isMapMethodType(expType)) {
+		return PropertyCallExpType.Map;
 	}
 
 	const subExpTypeSym = subExpType.getSymbol();
@@ -503,42 +516,20 @@ export function getPropertyAccessExpressionType(
 			}
 		}
 
-		if (subExpTypeName === "Map" || subExpTypeName === "ReadonlyMap" || subExpTypeName === "WeakMap") {
-			return PropertyCallExpType.Map;
-		}
-
-		if (subExpTypeName === "Set" || subExpTypeName === "ReadonlySet" || subExpTypeName === "WeakSet") {
-			return PropertyCallExpType.Set;
-		}
-
 		if (subExpTypeName === "ObjectConstructor") {
 			return PropertyCallExpType.ObjectConstructor;
 		}
-
-		const validateMathCall = () => {
-			if (ts.TypeGuards.isExpressionStatement(node.getParent())) {
-				throw new CompilerError(
-					`${subExpTypeName}.${property}() cannot be an expression statement!`,
-					node,
-					CompilerErrorType.NoMacroMathExpressionStatement,
-				);
-			}
-		};
 
 		// custom math
 		if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
 			switch (property) {
 				case "add":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathAdd;
 				case "sub":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathSub;
 				case "mul":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathMul;
 				case "div":
-					validateMathCall();
 					return PropertyCallExpType.RbxMathDiv;
 			}
 		}
@@ -563,7 +554,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 	const property = expression.getName();
 	const params = node.getArguments() as Array<ts.Expression>;
 
-	switch (getPropertyAccessExpressionType(state, node, expression)) {
+	switch (getPropertyAccessExpressionType(state, expression)) {
 		case PropertyCallExpType.Array:
 			return compilePropertyMethod(state, property, params, subExp, "array", ARRAY_REPLACE_METHODS);
 		case PropertyCallExpType.BuiltInStringMethod:
@@ -581,13 +572,29 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		case PropertyCallExpType.ObjectConstructor:
 			return compilePropertyMethod(state, property, params, subExp, "Object", OBJECT_REPLACE_METHODS);
 		case PropertyCallExpType.RbxMathAdd:
-			return `(${compileExpression(state, subExp)} + (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} + (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathSub:
-			return `(${compileExpression(state, subExp)} - (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} - (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathMul:
-			return `(${compileExpression(state, subExp)} * (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} * (${compileCallArgument(state, params[0])}))`,
+			);
 		case PropertyCallExpType.RbxMathDiv:
-			return `(${compileExpression(state, subExp)} / (${compileCallArgument(state, params[0])}))`;
+			return appendDeclarationIfMissing(
+				state,
+				node.getParent(),
+				`(${compileExpression(state, subExp)} / (${compileCallArgument(state, params[0])}))`,
+			);
 	}
 
 	const expType = expression.getType();

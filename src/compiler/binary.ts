@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileExpression, getBindingData } from ".";
+import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isNumberType, isStringType } from "../typeUtilities";
-import { concatNamesAndValues } from "./binding";
+import { isNumberType, isStringType, isTupleReturnTypeCall } from "../typeUtilities";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -82,31 +81,48 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 
-		let rootId: string;
-		if (ts.TypeGuards.isIdentifier(rhs)) {
-			rootId = compileExpression(state, rhs);
-		} else {
-			rootId = state.getNewId();
-			preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
-		}
-		getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
-
 		let result = "";
-		const parentKind = node.getParentOrThrow().getKind();
-		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			result = result.replace(/;\n$/, ""); // terrible hack
+
+		const isFlatBinding = lhs
+			.getElements()
+			.filter(v => ts.TypeGuards.isBindingElement(v))
+			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
+		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
+			for (const element of lhs.getElements()) {
+				if (ts.TypeGuards.isIdentifier(element)) {
+					names.push(compileExpression(state, element));
+				} else if (ts.TypeGuards.isOmittedExpression(element)) {
+					names.push("_");
+				}
+			}
+			values.push(compileCallExpression(state, rhs, true));
+			concatNamesAndValues(state, names, values, false, declaration => (result += declaration), false, false);
 		} else {
-			result += `(function()\n`;
-			state.pushIndent();
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			result += state.indent + `return ${rootId};\n`;
-			state.popIndent();
-			result += `end)()`;
+			let rootId: string;
+			if (ts.TypeGuards.isIdentifier(rhs)) {
+				rootId = compileExpression(state, rhs);
+			} else {
+				rootId = state.getNewId();
+				preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+			}
+			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
+
+			const parent = node.getParentOrThrow();
+			if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
+				preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+				concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
+				postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+				result = result.replace(/;\n$/, ""); // terrible hack
+			} else {
+				result += `(function()\n`;
+				state.pushIndent();
+				preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+				concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
+				postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+				result += state.indent + `return ${rootId};\n`;
+				state.popIndent();
+				result += `end)()`;
+			}
 		}
 		return result;
 	}
