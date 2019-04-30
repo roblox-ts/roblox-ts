@@ -470,7 +470,6 @@ export const enum PropertyCallExpType {
 
 export function getPropertyAccessExpressionType(
 	state: CompilerState,
-	node: ts.CallExpression | ts.PropertyAccessExpression,
 	expression: ts.PropertyAccessExpression,
 ): PropertyCallExpType {
 	checkApiAccess(state, expression.getNameNode());
@@ -555,7 +554,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 	const property = expression.getName();
 	const params = node.getArguments() as Array<ts.Expression>;
 
-	switch (getPropertyAccessExpressionType(state, node, expression)) {
+	switch (getPropertyAccessExpressionType(state, expression)) {
 		case PropertyCallExpType.Array:
 			return compilePropertyMethod(state, property, params, subExp, "array", ARRAY_REPLACE_METHODS);
 		case PropertyCallExpType.BuiltInStringMethod:

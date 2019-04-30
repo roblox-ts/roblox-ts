@@ -18,7 +18,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
 
-	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node, node);
+	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
 	if (
 		(propertyAccessExpressionType === PropertyCallExpType.String ||
