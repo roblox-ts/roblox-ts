@@ -217,7 +217,7 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
-					`Roblox-TS doesn't know what to do with ${child.getKindName()}. ` +
+					`roblox-ts doesn't know what to do with ${child.getKindName()}. ` +
 						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 					child,
 					CompilerErrorType.UnexpectedBindingPattern,
@@ -239,7 +239,7 @@ export function getBindingData(
 			childIndex--;
 		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
 			throw new CompilerError(
-				`Roblox-TS doesn't know what to do with ${item.getKindName()}. ` +
+				`roblox-ts doesn't know what to do with ${item.getKindName()}. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 				item,
 				CompilerErrorType.UnexpectedBindingPattern,
