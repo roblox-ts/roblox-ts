@@ -135,14 +135,15 @@ export function concatNamesAndValues(
 	values: Array<string>,
 	isLocal: boolean,
 	func: (str: string) => void,
-	includeSpacing: boolean = true,
+	includeSpacing = true,
+	includeSemicolon = true,
 ) {
 	if (values.length > 0) {
 		names[0] = names[0] || "_";
 		func(
-			`${includeSpacing ? state.indent : ""}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(
-				", ",
-			)};${includeSpacing ? "\n" : ""}`,
+			`${includeSpacing ? state.indent : ""}${isLocal ? "local " : ""}${names.join(", ")} = ${values.join(", ")}${
+				includeSemicolon ? ";" : ""
+			}${includeSpacing ? "\n" : ""}`,
 		);
 	}
 }
