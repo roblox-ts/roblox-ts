@@ -9,7 +9,14 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType, isStringType, isTupleReturnTypeCall, typeConstraint } from "../typeUtilities";
+import {
+	isArrayType,
+	isMapType,
+	isSetType,
+	isStringType,
+	isTupleReturnTypeCall,
+	typeConstraint,
+} from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -484,6 +491,14 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.String;
 	}
 
+	if (isSetType(subExpType)) {
+		return PropertyCallExpType.Set;
+	}
+
+	if (isMapType(subExpType)) {
+		return PropertyCallExpType.Map;
+	}
+
 	const subExpTypeSym = subExpType.getSymbol();
 	if (subExpTypeSym && ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		const subExpTypeName = subExpTypeSym.getEscapedName();
@@ -500,14 +515,6 @@ export function getPropertyAccessExpressionType(
 			if (property === "for") {
 				return PropertyCallExpType.SymbolFor;
 			}
-		}
-
-		if (subExpTypeName === "Map" || subExpTypeName === "ReadonlyMap" || subExpTypeName === "WeakMap") {
-			return PropertyCallExpType.Map;
-		}
-
-		if (subExpTypeName === "Set" || subExpTypeName === "ReadonlySet" || subExpTypeName === "WeakSet") {
-			return PropertyCallExpType.Set;
 		}
 
 		if (subExpTypeName === "ObjectConstructor") {

@@ -193,7 +193,7 @@ export function isSetType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Map]) === CompilerDirective.Map) {
+			if (getCompilerDirective(symbol, [CompilerDirective.Set]) === CompilerDirective.Set) {
 				return true;
 			}
 		}
