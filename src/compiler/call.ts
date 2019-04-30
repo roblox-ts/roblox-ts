@@ -488,7 +488,6 @@ export function getPropertyAccessExpressionType(
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
-
 		return PropertyCallExpType.String;
 	}
 

@@ -154,7 +154,7 @@ export function isStringType(type: ts.Type) {
 export function getCompilerDirectiveWithConstraint(
 	type: ts.Type,
 	directive: CompilerDirective,
-	orCallback = (t: ts.Type) => true,
+	orCallback = (t: ts.Type) => false,
 ) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
