@@ -10,9 +10,9 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
-	isArrayType,
-	isMapType,
-	isSetType,
+	isArrayMethodType,
+	isMapMethodType,
+	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
 	typeConstraint,
@@ -479,7 +479,7 @@ export function getPropertyAccessExpressionType(
 	const subExpType = subExp.getType();
 	const property = expression.getName();
 
-	if (isArrayType(expType)) {
+	if (isArrayMethodType(expType)) {
 		return PropertyCallExpType.Array;
 	}
 
@@ -490,11 +490,11 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.String;
 	}
 
-	if (isSetType(expType)) {
+	if (isSetMethodType(expType)) {
 		return PropertyCallExpType.Set;
 	}
 
-	if (isMapType(expType)) {
+	if (isMapMethodType(expType)) {
 		return PropertyCallExpType.Map;
 	}
 

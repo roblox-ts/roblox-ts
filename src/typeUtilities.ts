@@ -151,21 +151,6 @@ export function isStringType(type: ts.Type) {
 	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
 }
 
-export function getCompilerDirectiveWithConstraint(
-	type: ts.Type,
-	directive: CompilerDirective,
-	orCallback = (t: ts.Type) => false,
-) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		return (symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t);
-	});
-}
-
-export function isStringMethodType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
-}
-
 export function isEnumType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
@@ -180,8 +165,39 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	});
 }
 
+export function getCompilerDirectiveWithConstraint(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => false,
+) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return (symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t);
+	});
+}
+
 export function isArrayType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+}
+
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
+export function isMethodType(type: ts.Type) {
+	return type.getCallSignatures().length > 0;
+}
+
+export function isArrayMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
+}
+
+export function isMapMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+}
+
+export function isSetMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isMapType(type: ts.Type) {
