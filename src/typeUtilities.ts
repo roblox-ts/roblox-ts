@@ -151,6 +151,21 @@ export function isStringType(type: ts.Type) {
 	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
 }
 
+export function getCompilerDirectiveWithConstraint(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => true,
+) {
+	return typeConstraint(type, t => {
+		const symbol = t.getSymbol();
+		return (symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t);
+	});
+}
+
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
 export function isEnumType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
@@ -166,39 +181,15 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Array]) === CompilerDirective.Array) {
-				return true;
-			}
-		}
-		return t.isArray() || t.isTuple();
-	});
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
 }
 
 export function isMapType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Map]) === CompilerDirective.Map) {
-				return true;
-			}
-		}
-		return false;
-	});
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
 }
 
 export function isSetType(type: ts.Type) {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
-		if (symbol) {
-			if (getCompilerDirective(symbol, [CompilerDirective.Set]) === CompilerDirective.Set) {
-				return true;
-			}
-		}
-		return false;
-	});
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;

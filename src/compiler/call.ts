@@ -13,7 +13,7 @@ import {
 	isArrayType,
 	isMapType,
 	isSetType,
-	isStringType,
+	isStringMethodType,
 	isTupleReturnTypeCall,
 	typeConstraint,
 } from "../typeUtilities";
@@ -475,15 +475,16 @@ export function getPropertyAccessExpressionType(
 ): PropertyCallExpType {
 	checkApiAccess(state, expression.getNameNode());
 
+	const expType = expression.getType();
 	const subExp = expression.getExpression();
 	const subExpType = subExp.getType();
 	const property = expression.getName();
 
-	if (isArrayType(subExpType)) {
+	if (isArrayType(expType)) {
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringType(subExpType)) {
+	if (isStringMethodType(subExpType)) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
@@ -491,11 +492,11 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.String;
 	}
 
-	if (isSetType(subExpType)) {
+	if (isSetType(expType)) {
 		return PropertyCallExpType.Set;
 	}
 
-	if (isMapType(subExpType)) {
+	if (isMapType(expType)) {
 		return PropertyCallExpType.Map;
 	}
 
