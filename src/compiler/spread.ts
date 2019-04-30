@@ -62,7 +62,7 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		return `string.split(${compileExpression(state, expression)}, "")`;
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
-		return `TS.iterable_cache(${compileExpression(state, expression)})`;
+		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	}
 }
 
