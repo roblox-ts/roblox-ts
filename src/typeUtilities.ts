@@ -177,21 +177,27 @@ export function isArrayType(type: ts.Type) {
 	});
 }
 
-const MAP_NAMES = new Set<string>(["Map", "ReadonlyMap", "WeakMap"]);
-
 export function isMapType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
-		return symbol ? MAP_NAMES.has(symbol.getEscapedName()) : false;
+		if (symbol) {
+			if (getCompilerDirective(symbol, [CompilerDirective.Map]) === CompilerDirective.Map) {
+				return true;
+			}
+		}
+		return false;
 	});
 }
-
-const SET_NAMES = new Set<string>(["Set", "ReadonlySet", "WeakSet"]);
 
 export function isSetType(type: ts.Type) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
-		return symbol ? SET_NAMES.has(symbol.getEscapedName()) : false;
+		if (symbol) {
+			if (getCompilerDirective(symbol, [CompilerDirective.Map]) === CompilerDirective.Map) {
+				return true;
+			}
+		}
+		return false;
 	});
 }
 
