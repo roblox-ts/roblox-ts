@@ -156,6 +156,8 @@ export const enum CompilerDirective {
 	Client = "client",
 	Server = "server",
 	Array = "array",
+	Map = "map",
+	Set = "set",
 }
 
 function getCompilerDirectiveFromDeclaration(
