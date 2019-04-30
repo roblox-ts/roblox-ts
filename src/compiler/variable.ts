@@ -26,7 +26,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const isFlatBinding = lhs
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
-			.every(bindingElement => bindingElement.getChildAtIndex(0).getKind() === ts.SyntaxKind.Identifier);
+			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
 			const names = new Array<string>();
 			const values = new Array<string>();
