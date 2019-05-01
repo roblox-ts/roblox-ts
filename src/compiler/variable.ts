@@ -5,6 +5,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
+	state.enterPrecedingStatementContext();
 	const lhs = node.getNameNode();
 	const rhs = node.getInitializer();
 
@@ -110,7 +111,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 	}
 
-	return result;
+	return state.exitPrecedingStatementContextAndJoin() + result;
 }
 
 export function compileVariableDeclarationList(state: CompilerState, node: ts.VariableDeclarationList) {

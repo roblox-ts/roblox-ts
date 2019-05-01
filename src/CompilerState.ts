@@ -9,6 +9,81 @@ interface Partition {
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 
+	public currentConditionalContext: string = "";
+	private precedingStatementContexts = new Array<Array<string>>();
+
+	public enterPrecedingStatementContext() {
+		const newContext = new Array<string>();
+		return this.precedingStatementContexts.push(newContext);
+	}
+
+	public exitPrecedingStatementContextAndJoin(numTabs: number = 0) {
+		const sep = "\t".repeat(numTabs);
+		return sep + this.precedingStatementContexts.pop()!.join(sep);
+	}
+
+	// public getOptimizedPrecedingStr(
+	// 	transpiledSource: string,
+	// 	context: Array<string> = this.precedingStatementContexts[this.precedingStatementContexts.length - 1],
+	// ) {
+	// 	if (context && context.length > 0) {
+	// 		const top = context[context.length - 1];
+	// 		const matchesRegex = top.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
+	// 		if (matchesRegex) {
+	// 			const [, indentation, currentId, data] = matchesRegex;
+	// 			if (indentation === this.indent && currentId === transpiledSource) {
+	// 				context.pop();
+	// 				return data;
+	// 			}
+	// 		}
+	// 	}
+
+	// 	return transpiledSource;
+	// }
+
+	public currentPrecedingStatementContextHasStatements() {
+		return this.precedingStatementContexts[this.precedingStatementContexts.length - 1].length > 0;
+	}
+
+	public pushPrecedingStatements(...statements: Array<string>) {
+		this.precedingStatementContexts[this.precedingStatementContexts.length - 1].push(...statements);
+	}
+
+	public exitPrecedingStatementContext() {
+		return this.precedingStatementContexts.pop()!;
+	}
+
+	public pushPrecedingStatementToNextId(transpiledSource: string, nextCachedStrs?: Array<string>) {
+		/** Gets the top PreStatement to compare to */
+		let previousTop: string | undefined;
+
+		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
+			const context = this.precedingStatementContexts[i];
+			const topPreStatement = context[context.length - 1];
+			if (topPreStatement) {
+				previousTop = topPreStatement;
+				break;
+			}
+		}
+
+		for (const top of [previousTop, nextCachedStrs ? nextCachedStrs[0] : undefined]) {
+			/** If we would write a duplicate `local _5 = i`, skip it */
+			if (top) {
+				const matchesRegex = top.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
+				if (matchesRegex) {
+					const [, indentation, currentId, data] = matchesRegex;
+					if (indentation === this.indent && data === transpiledSource) {
+						return currentId;
+					}
+				}
+			}
+		}
+
+		const newId = this.getNewId();
+		this.pushPrecedingStatements(this.indent + `local ${newId} = ${transpiledSource};\n`);
+		return newId;
+	}
+
 	// indent
 	public indent = "";
 

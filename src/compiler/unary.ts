@@ -3,7 +3,7 @@ import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
-function useIIFEforUnaryExpression(
+function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
@@ -13,38 +13,46 @@ function useIIFEforUnaryExpression(
 	);
 }
 
+function getUnaryExpressionString(state: CompilerState, operand: ts.UnaryExpression) {
+	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+		const expression = operand.getExpression();
+		const opExpStr = compileExpression(state, expression);
+		const propertyStr = operand.getName();
+		const id = state.pushPrecedingStatementToNextId(opExpStr);
+		return `${id}.${propertyStr}`;
+	} else {
+		return compileExpression(state, operand);
+	}
+}
+
+function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, node: ts.Node) {
+	if (opKind === ts.SyntaxKind.PlusPlusToken) {
+		return `${expStr} = ${expStr} + 1`;
+	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
+		return `${expStr} = ${expStr} - 1`;
+	} else {
+		/* istanbul ignore next */
+		throw new CompilerError(`Bad unary expression! (${opKind})`, node, CompilerErrorType.BadPrefixUnaryExpression);
+	}
+}
+
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
-		const useIIFE = useIIFEforUnaryExpression(parent, node);
-		const statements = new Array<string>();
-		if (useIIFE) {
-			state.pushIdStack();
-		}
-		let expStr: string;
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const expression = operand.getExpression();
-			const opExpStr = compileExpression(state, expression);
-			const propertyStr = operand.getName();
-			const id = state.getNewId();
-			statements.push(`local ${id} = ${opExpStr}`);
-			expStr = `${id}.${propertyStr}`;
+		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
+		state.enterPrecedingStatementContext();
+		const expStr = getUnaryExpressionString(state, operand);
+		const incrStr = getIncrementString(opKind, expStr, node);
+
+		if (isNonStatement) {
+			state.pushPrecedingStatements(state.indent + incrStr + ";\n");
+			state.pushPrecedingStatements(...state.exitPrecedingStatementContext());
+			return expStr;
 		} else {
-			expStr = compileExpression(state, operand);
-		}
-		if (opKind === ts.SyntaxKind.PlusPlusToken) {
-			statements.push(`${expStr} = ${expStr} + 1`);
-		} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
-			statements.push(`${expStr} = ${expStr} - 1`);
-		}
-		if (useIIFE) {
-			state.popIdStack();
-			const statementsStr = statements.join("; ");
-			return `(function() ${statementsStr}; return ${expStr}; end)()`;
-		} else {
-			return statements.join("; ");
+			state.pushPrecedingStatements(incrStr);
+			return state.exitPrecedingStatementContextAndJoin();
 		}
 	} else {
 		const expStr = compileExpression(state, operand);
@@ -72,41 +80,19 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
-		const useIIFE = useIIFEforUnaryExpression(parent, node);
-		const statements = new Array<string>();
-		if (useIIFE) {
-			state.pushIdStack();
-		}
-		let expStr: string;
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const expression = operand.getExpression();
-			const opExpStr = compileExpression(state, expression);
-			const propertyStr = operand.getName();
-			const id = state.getNewId();
-			statements.push(`local ${id} = ${opExpStr}`);
-			expStr = `${id}.${propertyStr}`;
-		} else {
-			expStr = compileExpression(state, operand);
-		}
+		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
+		state.enterPrecedingStatementContext();
+		const expStr = getUnaryExpressionString(state, operand);
+		const incrStr = getIncrementString(opKind, expStr, node);
 
-		function getAssignmentExpression() {
-			if (opKind === ts.SyntaxKind.PlusPlusToken) {
-				statements.push(`${expStr} = ${expStr} + 1`);
-			} else {
-				statements.push(`${expStr} = ${expStr} - 1`);
-			}
-		}
-
-		if (useIIFE) {
-			const id = state.getNewId();
-			state.popIdStack();
-			statements.push(`local ${id} = ${expStr}`);
-			getAssignmentExpression();
-			const statementsStr = statements.join("; ");
-			return `(function() ${statementsStr}; return ${id}; end)()`;
+		if (isNonStatement) {
+			const id = state.pushPrecedingStatementToNextId(expStr);
+			state.pushPrecedingStatements(state.indent + incrStr + ";\n");
+			state.pushPrecedingStatements(...state.exitPrecedingStatementContext());
+			return id;
 		} else {
-			getAssignmentExpression();
-			return statements.join("; ");
+			state.pushPrecedingStatements(incrStr);
+			return state.exitPrecedingStatementContextAndJoin();
 		}
 	} else {
 		/* istanbul ignore next */

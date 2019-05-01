@@ -292,3 +292,13 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 
 	return false;
 }
+
+/** Returns whether or not the given expression is a Binary expression containing only numeric literals */
+export function isNumericLiteralExpression(node: ts.Expression): boolean {
+	return (
+		ts.TypeGuards.isNumericLiteral(node) ||
+		(ts.TypeGuards.isBinaryExpression(node) &&
+			isNumericLiteralExpression(node.getLeft()) &&
+			isNumericLiteralExpression(node.getRight()))
+	);
+}
