@@ -14,7 +14,10 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 		return replacement;
 	}
 
-	checkReserved(name, node);
+	if (!isDefinition || name !== "_") {
+		checkReserved(name, node, isDefinition);
+	}
+
 	if (BUILT_INS.has(name)) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;

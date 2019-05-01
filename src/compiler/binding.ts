@@ -28,7 +28,8 @@ export function getParameterData(
 			if (param.getName() === "this") {
 				continue;
 			}
-			name = compileExpression(state, child);
+
+			name = compileIdentifier(state, child, true);
 		} else {
 			name = state.getNewId();
 		}
