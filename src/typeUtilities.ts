@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { CompilerDirective, getCompilerDirective } from "./compiler";
 
-export const RBX_SERVICES: Array<string> = [
+export const RBX_SERVICES = new Set([
 	"AssetService",
 	"BadgeService",
 	"Chat",
@@ -44,10 +44,10 @@ export const RBX_SERVICES: Array<string> = [
 	"UserInputService",
 	"VRService",
 	"Workspace",
-];
+]);
 
 export function isRbxService(name: string) {
-	return RBX_SERVICES.indexOf(name) !== -1;
+	return RBX_SERVICES.has(name);
 }
 
 export function isTypeStatement(node: ts.Node) {

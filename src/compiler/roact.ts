@@ -23,7 +23,7 @@ export const ROACT_DERIVED_CLASSES_ERROR = suggest(
 );
 const CONSTRUCTOR_METHOD_NAME = "init";
 const INHERITANCE_METHOD_NAME = "extend";
-const RESERVED_METHOD_NAMES = [
+const RESERVED_METHOD_NAMES = new Set([
 	CONSTRUCTOR_METHOD_NAME,
 	"setState",
 	"_update",
@@ -32,7 +32,7 @@ const RESERVED_METHOD_NAMES = [
 	"_mount",
 	"_unmount",
 	INHERITANCE_METHOD_NAME,
-];
+]);
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -70,18 +70,18 @@ const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 };
 
 function isRoactElementType(type: ts.Type) {
-	const allowed = [ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`];
+	const allowed = new Set([ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`]);
 	const types = type.getUnionTypes();
 
 	if (types.length > 0) {
 		for (const unionType of types) {
 			const unionTypeName = unionType.getText();
-			if (allowed.indexOf(unionTypeName) === -1 && unionTypeName !== "undefined") {
+			if (allowed.has(unionTypeName) && unionTypeName !== "undefined") {
 				return false;
 			}
 		}
 	} else {
-		return allowed.indexOf(type.getText()) !== -1;
+		return allowed.has(type.getText());
 	}
 
 	return true;
@@ -117,7 +117,7 @@ export function inheritsFromRoact(type: ts.Type): boolean {
 }
 
 function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
-	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
+	if (RESERVED_METHOD_NAMES.has(name)) {
 		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
 
 		if (name === CONSTRUCTOR_METHOD_NAME) {

@@ -18,7 +18,7 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 
-const STRING_MACRO_METHODS = [
+const STRING_MACRO_METHODS = new Set([
 	"byte",
 	"find",
 	"format",
@@ -31,7 +31,7 @@ const STRING_MACRO_METHODS = [
 	"reverse",
 	"sub",
 	"upper",
-];
+]);
 
 function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
@@ -354,7 +354,7 @@ const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	),
 );
 
-const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
+const RBX_MATH_CLASSES = new Set(["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"]);
 
 const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("typeIs", (params, state, subExp) => {
 	const obj = compileCallArgument(state, params[0]);
@@ -484,7 +484,7 @@ export function getPropertyAccessExpressionType(
 	}
 
 	if (isStringMethodType(subExpType)) {
-		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
+		if (STRING_MACRO_METHODS.has(property)) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
 		return PropertyCallExpType.String;
@@ -521,7 +521,7 @@ export function getPropertyAccessExpressionType(
 		}
 
 		// custom math
-		if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
+		if (RBX_MATH_CLASSES.has(subExpTypeName)) {
 			switch (property) {
 				case "add":
 					return PropertyCallExpType.RbxMathAdd;

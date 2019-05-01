@@ -5,7 +5,7 @@ import { HasParameters } from "../types";
 import { isAnyType } from "../typeUtilities";
 import { bold, ScriptContext, yellow } from "../utility";
 
-const LUA_RESERVED_KEYWORDS = [
+const LUA_RESERVED_KEYWORDS = new Set([
 	"and",
 	"break",
 	"do",
@@ -27,9 +27,9 @@ const LUA_RESERVED_KEYWORDS = [
 	"true",
 	"until",
 	"while",
-];
+]);
 
-const LUA_RESERVED_METAMETHODS = [
+const LUA_RESERVED_METAMETHODS = new Set([
 	"__index",
 	"__newindex",
 	"__add",
@@ -48,9 +48,9 @@ const LUA_RESERVED_METAMETHODS = [
 	"__len",
 	"__metatable",
 	"__mode",
-];
+]);
 
-const LUA_RESERVED_NAMESPACES = [
+const LUA_RESERVED_NAMESPACES = new Set([
 	"ipairs",
 	"os",
 	"type",
@@ -109,10 +109,10 @@ const LUA_RESERVED_NAMESPACES = [
 	"Vector2",
 	"Vector3",
 	"Ray",
-];
+]);
 
 export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
-	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
+	if (LUA_RESERVED_KEYWORDS.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 			node,
@@ -124,13 +124,13 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 			node,
 			CompilerErrorType.InvalidIdentifier,
 		);
-	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
+	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]*$/)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
 			CompilerErrorType.RobloxTSReservedIdentifier,
 		);
-	} else if (checkNamespace && LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
+	} else if (checkNamespace && LUA_RESERVED_NAMESPACES.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
 			node,
@@ -141,7 +141,7 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 
 export function checkMethodReserved(name: string, node: ts.Node) {
 	checkReserved(name, node);
-	if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
+	if (LUA_RESERVED_METAMETHODS.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as a method name (reserved Lua metamethod)`,
 			node,

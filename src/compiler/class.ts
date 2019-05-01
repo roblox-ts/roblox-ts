@@ -17,7 +17,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
 import { bold } from "../utility";
 
-const LUA_RESERVED_METAMETHODS = [
+const LUA_RESERVED_METAMETHODS = new Set([
 	"__index",
 	"__newindex",
 	"__add",
@@ -36,9 +36,9 @@ const LUA_RESERVED_METAMETHODS = [
 	"__len",
 	"__metatable",
 	"__mode",
-];
+]);
 
-const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
+const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
 
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
@@ -227,9 +227,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		result += `${hasIndexMembers ? state.indent : ""}};\n`;
 	}
 
-	LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
-			if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
 				throw new CompilerError(
 					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
 					node,
@@ -239,7 +239,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			result +=
 				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
 		}
-	});
+	}
 
 	if (!node.isAbstract()) {
 		result += state.indent + `${name}.new = function(...)\n`;

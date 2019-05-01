@@ -14,10 +14,10 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
 
-const IGNORED_DIAGNOSTIC_CODES = [
+const IGNORED_DIAGNOSTIC_CODES = new Set([
 	2688, // "Cannot find type definition file for '{0}'."
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
-];
+]);
 
 interface RojoJson {
 	partitions: {
@@ -424,7 +424,7 @@ export class Project {
 			const diagnostics = file
 				.getPreEmitDiagnostics()
 				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
+				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.has(diagnostic.getCode()));
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
 				const line = diagnostic.getLineNumber();
