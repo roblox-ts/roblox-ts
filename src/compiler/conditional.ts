@@ -24,26 +24,31 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	if (currentConditionalContext === "") {
 		id = state.getNewId();
 		state.currentConditionalContext = id;
-		state.pushPrecedingStatements(state.indent + `local ${id};\n`);
+		state.pushPrecedingStatements(node, state.indent + `local ${id};\n`);
 	} else {
 		id = currentConditionalContext;
 	}
-	state.pushPrecedingStatements(state.indent + `if ${compileExpression(state, node.getCondition())} then\n`);
+	const condition = node.getCondition();
+	const whenTrue = node.getWhenTrue();
+	const whenFalse = node.getWhenFalse();
+
+	state.pushPrecedingStatements(condition, state.indent + `if ${compileExpression(state, condition)} then\n`);
 	state.pushIndent();
-	const whenTrueStr = unwrapEndParens(compileExpression(state, node.getWhenTrue()));
+	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
 
 	if (id !== whenTrueStr) {
-		state.pushPrecedingStatements(state.indent + `${id} = ${whenTrueStr};\n`);
+		state.pushPrecedingStatements(whenTrue, state.indent + `${id} = ${whenTrueStr};\n`);
 	}
+
 	state.popIndent();
-	state.pushPrecedingStatements(state.indent + `else\n`);
+	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
 	state.pushIndent();
-	const whenFalseStr = unwrapEndParens(compileExpression(state, node.getWhenFalse()));
+	const whenFalseStr = unwrapEndParens(compileExpression(state, whenFalse));
 	if (id !== whenFalseStr) {
-		state.pushPrecedingStatements(state.indent + `${id} = ${whenFalseStr};\n`);
+		state.pushPrecedingStatements(whenFalse, state.indent + `${id} = ${whenFalseStr};\n`);
 	}
 	state.popIndent();
-	state.pushPrecedingStatements(state.indent + `end;\n`);
+	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
 
 	if (currentConditionalContext === "") {
 		state.currentConditionalContext = "";

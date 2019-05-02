@@ -132,7 +132,7 @@ export = () => {
 		function b(arg1?: number, arg2?: number): [number, number] {
 			return [arg1 || 1, arg2 || 1];
 		}
-		function a(...args: number[]): [number, number] {
+		function a(...args: Array<number>): [number, number] {
 			const x = () => {
 				return b(...args);
 			};
@@ -205,5 +205,11 @@ export = () => {
 		expect(bar()[0]).to.equal(4);
 		expect(bar()[1]).to.equal(5);
 		expect(bar()[2]).to.equal(6);
+	});
+
+	it("should destructure properly into already declared variables", () => {
+		let a: number;
+		[a] = new Set([4]);
+		expect(a).to.equal(4);
 	});
 };

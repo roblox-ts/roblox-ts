@@ -116,29 +116,33 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 }
 
 export function compileExpressionStatement(state: CompilerState, node: ts.ExpressionStatement) {
-	// big set of rules for expression statements
+	state.enterPrecedingStatementContext();
+
+	let expStr: string;
 	const expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
-		return state.indent + compileCallExpression(state, expression, true) + ";\n";
-	}
+		expStr = compileCallExpression(state, expression, true);
+	} else {
+		expStr = compileExpression(state, expression);
 
-	if (
-		!ts.TypeGuards.isNewExpression(expression) &&
-		!ts.TypeGuards.isAwaitExpression(expression) &&
-		!ts.TypeGuards.isPostfixUnaryExpression(expression) &&
-		!(
-			ts.TypeGuards.isPrefixUnaryExpression(expression) &&
-			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
-				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
-		) &&
-		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
-		!ts.TypeGuards.isYieldExpression(expression)
-	) {
-		const expStr = compileExpression(state, expression);
-		return state.indent + `local _ = ${expStr};\n`;
+		// big set of rules for expression statements
+		if (
+			!ts.TypeGuards.isNewExpression(expression) &&
+			!ts.TypeGuards.isAwaitExpression(expression) &&
+			!ts.TypeGuards.isPostfixUnaryExpression(expression) &&
+			!(
+				ts.TypeGuards.isPrefixUnaryExpression(expression) &&
+				(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+					expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
+			) &&
+			!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
+			!ts.TypeGuards.isYieldExpression(expression)
+		) {
+			expStr = `local _ = ${expStr}`;
+		}
 	}
-	return state.indent + compileExpression(state, expression) + ";\n";
+	return state.exitPrecedingStatementContextAndJoin() + state.indent + expStr + ";\n";
 }
 
 export function expressionModifiesVariable(

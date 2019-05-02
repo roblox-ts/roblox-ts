@@ -104,7 +104,7 @@ function iterAccessor(t: string, key: number) {
 	return `(` + `${t}.next() and `.repeat(key).slice(0, -5) + `.value)`;
 }
 
-function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boolean) {
+export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	const bindingPatternType = bindingPattern.getType();
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
@@ -117,7 +117,7 @@ function getAccessorForBindingPatternType(bindingPattern: ts.Node, isObject: boo
 	} else if (isIterableIterator(bindingPatternType, bindingPattern)) {
 		return iterAccessor;
 	} else {
-		if (isObject) {
+		if (bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern) {
 			return null as never;
 		} else {
 			throw new CompilerError(
@@ -156,9 +156,9 @@ export function getBindingData(
 	postStatements: Array<string>,
 	bindingPattern: ts.Node,
 	parentId: string,
+	getAccessor = getAccessorForBindingPatternType(bindingPattern),
 ) {
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
-	const getAccessor = getAccessorForBindingPatternType(bindingPattern, strKeys);
 
 	const listItems = bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren();
 	let childIndex = 1;

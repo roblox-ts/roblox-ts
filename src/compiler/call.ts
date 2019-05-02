@@ -362,25 +362,30 @@ const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(typeof(${obj}) == ${type})`);
 });
 
-export function compileCallArgument(state: CompilerState, arg: ts.Node) {
-	const expStr = compileExpression(state, arg as ts.Expression);
-	if (!ts.TypeGuards.isSpreadElement(arg)) {
-		checkNonAny(arg);
-	}
-	return expStr;
-}
+// function compileCallArguments
 
 export function compileCallArguments(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
 	if (shouldCompileAsSpreadableList(args)) {
 		return `unpack(${compileSpreadableList(state, args)})`;
 	} else {
 		const argStrs = new Array<string>();
+
 		for (const arg of args) {
-			argStrs.push(compileCallArgument(state, arg));
+			state.enterPrecedingStatementContext();
+			const expStr = compileExpression(state, arg as ts.Expression);
+			if (!ts.TypeGuards.isSpreadElement(arg)) {
+				checkNonAny(arg);
+			}
+			if (state.currentPrecedingStatementContextHasStatements()) {
+				state.exitPrecedingStatementContext();
+			}
+			argStrs.push(expStr);
 		}
+
 		if (extraParameter) {
 			argStrs.unshift(extraParameter);
 		}
+
 		return argStrs.join(", ");
 	}
 }
@@ -390,6 +395,7 @@ export function compileCallExpression(
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
+	state.enterPrecedingStatementContext();
 	const exp = node.getExpression();
 	if (exp.getKindName() === "ImportKeyword") {
 		throw new CompilerError(

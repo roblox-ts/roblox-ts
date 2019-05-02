@@ -12,13 +12,10 @@ import {
 } from "../typeUtilities";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
-	let foundSpread = false;
-	for (const element of elements) {
-		if (foundSpread) {
-			return true;
-		}
-		if (ts.TypeGuards.isSpreadElement(element)) {
-			foundSpread = true;
+	const { length } = elements;
+	for (let i = 0; i < length; i++) {
+		if (ts.TypeGuards.isSpreadElement(elements[i])) {
+			return i + 1 !== length;
 		}
 	}
 	return false;

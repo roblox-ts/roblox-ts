@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndVa
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isNumericLiteralExpression, isStringType, isTupleReturnTypeCall } from "../typeUtilities";
+import { getAccessorForBindingPatternType } from "./binding";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -105,7 +106,16 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				rootId = state.getNewId();
 				preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 			}
-			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
+			getBindingData(
+				state,
+				names,
+				values,
+				preStatements,
+				postStatements,
+				lhs,
+				rootId,
+				getAccessorForBindingPatternType(rhs),
+			);
 
 			const parent = node.getParentOrThrow();
 			if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
@@ -145,18 +155,18 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 		if (rhsStrContext.length > 0) {
 			previouslhs =
-				opKind === ts.SyntaxKind.EqualsToken ? "" : state.pushPrecedingStatementToNextId(lhsStr, rhsStrContext);
+				opKind === ts.SyntaxKind.EqualsToken
+					? ""
+					: state.pushPrecedingStatementToNextId(lhs, lhsStr, rhsStrContext);
 
-			state.pushPrecedingStatements(...rhsStrContext);
+			state.pushPrecedingStatements(rhs, ...rhsStrContext);
 		} else {
 			previouslhs = lhsStr;
 		}
 
 		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.EqualsToken) {
-			if (lhsStr !== rhsStr) {
-				statements.push(`${lhsStr} = ${rhsStr}`);
-			}
+			statements.push(`${lhsStr} = ${rhsStr}`);
 		} else if (opKind === ts.SyntaxKind.BarEqualsToken) {
 			const barExpStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
 			statements.push(`${lhsStr} = ${barExpStr}`);
@@ -194,7 +204,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
 			return statements.join("; ");
 		} else {
-			state.pushPrecedingStatements(...statements.map(statement => state.indent + statement + ";\n"));
+			state.pushPrecedingStatements(node, ...statements.map(statement => state.indent + statement + ";\n"));
 			return lhsStr;
 		}
 	} else {
@@ -206,14 +216,14 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		const rhsContext = state.exitPrecedingStatementContext();
 
 		if (rhsContext.length > 0) {
-			state.pushPrecedingStatements(...lhsContext);
+			state.pushPrecedingStatements(lhs, ...lhsContext);
 
 			if (!lhsStr.match(/^_\d+$/) && !isNumericLiteralExpression(lhs)) {
-				lhsStr = state.pushPrecedingStatementToNextId(lhsStr, rhsContext);
+				lhsStr = state.pushPrecedingStatementToNextId(lhs, lhsStr, rhsContext);
 			}
-			state.pushPrecedingStatements(...rhsContext);
+			state.pushPrecedingStatements(rhs, ...rhsContext);
 		} else if (lhsContext.length > 0) {
-			state.pushPrecedingStatements(...lhsContext);
+			state.pushPrecedingStatements(lhs, ...lhsContext);
 		}
 	}
 

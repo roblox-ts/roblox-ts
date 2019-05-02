@@ -18,7 +18,7 @@ function getUnaryExpressionString(state: CompilerState, operand: ts.UnaryExpress
 		const expression = operand.getExpression();
 		const opExpStr = compileExpression(state, expression);
 		const propertyStr = operand.getName();
-		const id = state.pushPrecedingStatementToNextId(opExpStr);
+		const id = state.pushPrecedingStatementToNextId(operand, opExpStr);
 		return `${id}.${propertyStr}`;
 	} else {
 		return compileExpression(state, operand);
@@ -47,11 +47,11 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		const incrStr = getIncrementString(opKind, expStr, node);
 
 		if (isNonStatement) {
-			state.pushPrecedingStatements(state.indent + incrStr + ";\n");
-			state.pushPrecedingStatements(...state.exitPrecedingStatementContext());
+			state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+			state.pushPrecedingStatements(node, ...state.exitPrecedingStatementContext());
 			return expStr;
 		} else {
-			state.pushPrecedingStatements(incrStr);
+			state.pushPrecedingStatements(node, incrStr);
 			return state.exitPrecedingStatementContextAndJoin();
 		}
 	} else {
@@ -86,12 +86,12 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 		const incrStr = getIncrementString(opKind, expStr, node);
 
 		if (isNonStatement) {
-			const id = state.pushPrecedingStatementToNextId(expStr);
-			state.pushPrecedingStatements(state.indent + incrStr + ";\n");
-			state.pushPrecedingStatements(...state.exitPrecedingStatementContext());
+			const id = state.pushPrecedingStatementToNextId(node, expStr);
+			state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+			state.pushPrecedingStatements(node, ...state.exitPrecedingStatementContext());
 			return id;
 		} else {
-			state.pushPrecedingStatements(incrStr);
+			state.pushPrecedingStatements(node, incrStr);
 			return state.exitPrecedingStatementContextAndJoin();
 		}
 	} else {

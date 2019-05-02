@@ -1,4 +1,5 @@
 import * as ts from "ts-morph";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { ScriptContext } from "./utility";
 
 interface Partition {
@@ -45,15 +46,29 @@ export class CompilerState {
 		return this.precedingStatementContexts[this.precedingStatementContexts.length - 1].length > 0;
 	}
 
-	public pushPrecedingStatements(...statements: Array<string>) {
-		this.precedingStatementContexts[this.precedingStatementContexts.length - 1].push(...statements);
+	public pushPrecedingStatements(node: ts.Node, ...statements: Array<string>) {
+		const currentContext = this.precedingStatementContexts[this.precedingStatementContexts.length - 1];
+
+		if (!currentContext) {
+			const kind = node.getKindName();
+
+			throw new CompilerError(
+				`Roblox-TS accidentally does not support using a ${kind} which requires preceding statements in a ${node
+					.getAncestors()
+					.find(ancestor => ts.TypeGuards.isStatement(ancestor))!
+					.getKindName()}`,
+				node,
+				CompilerErrorType.BadExpression,
+			);
+		}
+		currentContext.push(...statements);
 	}
 
 	public exitPrecedingStatementContext() {
 		return this.precedingStatementContexts.pop()!;
 	}
 
-	public pushPrecedingStatementToNextId(transpiledSource: string, nextCachedStrs?: Array<string>) {
+	public pushPrecedingStatementToNextId(node: ts.Node, transpiledSource: string, nextCachedStrs?: Array<string>) {
 		/** Gets the top PreStatement to compare to */
 		let previousTop: string | undefined;
 
@@ -80,7 +95,7 @@ export class CompilerState {
 		}
 
 		const newId = this.getNewId();
-		this.pushPrecedingStatements(this.indent + `local ${newId} = ${transpiledSource};\n`);
+		this.pushPrecedingStatements(node, this.indent + `local ${newId} = ${transpiledSource};\n`);
 		return newId;
 	}
 
