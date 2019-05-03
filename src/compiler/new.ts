@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import {
 	appendDeclarationIfMissing,
-	compileCallArguments,
+	compileCallArgumentsAndJoin,
 	compileExpression,
 	inheritsFromRoact,
 	literalParameterCompileFunctions,
@@ -35,7 +35,7 @@ function compileSetMapConstructorHelper(
 			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
 	) {
 		state.usesTSLibrary = true;
-		return `TS.${type}_new(${compileCallArguments(state, args)})`;
+		return `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})`;
 	} else {
 		let result = "{";
 
@@ -82,7 +82,10 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 				arg.getText().match(/^\d+$/) &&
 				arg.getLiteralValue() <= ARRAY_NIL_LIMIT
 			) {
-				result += ", nil".repeat(arg.getLiteralValue()).substring(1);
+				const literalValue = arg.getLiteralValue();
+				if (literalValue !== 0) {
+					result += ", nil".repeat(literalValue).substring(1) + " ";
+				}
 			} else {
 				throw new CompilerError(
 					"Invalid argument #1 passed into ArrayConstructor. Expected a simple integer fewer or equal to " +
@@ -100,7 +103,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 			);
 		}
 
-		return appendDeclarationIfMissing(state, node.getParent(), result + ` }`);
+		return appendDeclarationIfMissing(state, node.getParent(), result + `}`);
 	}
 
 	if (inheritsFrom(expressionType, "MapConstructor")) {
@@ -127,5 +130,5 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "set")}, { __mode = "k" })`;
 	}
 
-	return `${name}.new(${compileCallArguments(state, args)})`;
+	return `${name}.new(${compileCallArgumentsAndJoin(state, args)})`;
 }

@@ -1,53 +1,24 @@
 import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
-import { ScriptContext } from "./utility";
+import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
 
 interface Partition {
 	dir: ts.Directory;
 	target: string;
 }
 
+export type PrecedingStatementContext = Array<string> & { pushed: boolean };
+
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 
 	public currentConditionalContext: string = "";
-	private precedingStatementContexts = new Array<Array<string>>();
+	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
-	public enterPrecedingStatementContext() {
-		const newContext = new Array<string>();
-		return this.precedingStatementContexts.push(newContext);
-	}
-
-	public exitPrecedingStatementContextAndJoin(numTabs: number = 0) {
-		const sep = "\t".repeat(numTabs);
-		return sep + this.precedingStatementContexts.pop()!.join(sep);
-	}
-
-	// public getOptimizedPrecedingStr(
-	// 	transpiledSource: string,
-	// 	context: Array<string> = this.precedingStatementContexts[this.precedingStatementContexts.length - 1],
-	// ) {
-	// 	if (context && context.length > 0) {
-	// 		const top = context[context.length - 1];
-	// 		const matchesRegex = top.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
-	// 		if (matchesRegex) {
-	// 			const [, indentation, currentId, data] = matchesRegex;
-	// 			if (indentation === this.indent && currentId === transpiledSource) {
-	// 				context.pop();
-	// 				return data;
-	// 			}
-	// 		}
-	// 	}
-
-	// 	return transpiledSource;
-	// }
-
-	public currentPrecedingStatementContextHasStatements() {
-		return this.precedingStatementContexts[this.precedingStatementContexts.length - 1].length > 0;
-	}
-
-	public pushPrecedingStatements(node: ts.Node, ...statements: Array<string>) {
-		const currentContext = this.precedingStatementContexts[this.precedingStatementContexts.length - 1];
+	private getCurrentPrecedingStatementContext(node: ts.Node) {
+		const currentContext = this.precedingStatementContexts[this.precedingStatementContexts.length - 1] as
+			| PrecedingStatementContext
+			| undefined;
 
 		if (!currentContext) {
 			const kind = node.getKindName();
@@ -56,36 +27,76 @@ export class CompilerState {
 				`Roblox-TS accidentally does not support using a ${kind} which requires preceding statements in a ${node
 					.getAncestors()
 					.find(ancestor => ts.TypeGuards.isStatement(ancestor))!
-					.getKindName()}`,
+					.getKindName()}.` +
+					" Please submit an issue report to https://github.com/roblox-ts/roblox-ts/issues",
 				node,
 				CompilerErrorType.BadExpression,
 			);
 		}
-		currentContext.push(...statements);
+
+		return currentContext;
+	}
+
+	public setCurrentContextAsPushed(node: ts.Node) {
+		this.getCurrentPrecedingStatementContext(node).pushed = true;
+	}
+	public currentPrecedingStatementContextHasStatements(node: ts.Node) {
+		return this.getCurrentPrecedingStatementContext(node).length > 0;
+	}
+
+	public enterPrecedingStatementContext() {
+		const newContext = new Array<string>() as PrecedingStatementContext;
+		newContext.pushed = false;
+		// console.log("context:", this.precedingStatementContexts.length + 1, this.precedingStatementContexts);
+		return this.precedingStatementContexts.push(newContext as PrecedingStatementContext);
 	}
 
 	public exitPrecedingStatementContext() {
+		// console.log("context:", this.precedingStatementContexts.length - 1, this.precedingStatementContexts);
 		return this.precedingStatementContexts.pop()!;
+	}
+
+	public exitPrecedingStatementContextAndJoin(numTabs: number = 0) {
+		return joinIndentedLines(this.exitPrecedingStatementContext(), numTabs);
+	}
+
+	public pushPrecedingStatements(node: ts.Node, ...statements: Array<string>) {
+		this.getCurrentPrecedingStatementContext(node).pushed = false;
+		return this.getCurrentPrecedingStatementContext(node).push(...statements);
+	}
+
+	public pushPrecedingStatementToNewIds(node: ts.Node, statement: string, numIds: number) {
+		const newIds = new Array<string>();
+		for (let i = 0; i < numIds; i++) {
+			newIds[i] = this.getNewId();
+		}
+		this.pushPrecedingStatements(node, this.indent + `local ${newIds.join(", ")} = ${statement};\n`);
+		return newIds;
 	}
 
 	public pushPrecedingStatementToNextId(node: ts.Node, transpiledSource: string, nextCachedStrs?: Array<string>) {
 		/** Gets the top PreStatement to compare to */
-		let previousTop: string | undefined;
+		transpiledSource = removeBalancedParenthesisFromStringBorders(transpiledSource);
+		let previousTop: Array<string> | undefined;
 
 		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
 			const context = this.precedingStatementContexts[i];
 			const topPreStatement = context[context.length - 1];
 			if (topPreStatement) {
-				previousTop = topPreStatement;
+				previousTop = [...context].reverse();
 				break;
 			}
 		}
 
-		for (const top of [previousTop, nextCachedStrs ? nextCachedStrs[0] : undefined]) {
+		for (const cache of [previousTop, nextCachedStrs]) {
 			/** If we would write a duplicate `local _5 = i`, skip it */
-			if (top) {
-				const matchesRegex = top.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
-				if (matchesRegex) {
+			if (cache) {
+				for (const str of cache) {
+					const matchesRegex = str.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
+					// iterate only through non-state changing pushed id statements
+					if (!matchesRegex) {
+						break;
+					}
 					const [, indentation, currentId, data] = matchesRegex;
 					if (indentation === this.indent && data === transpiledSource) {
 						return currentId;

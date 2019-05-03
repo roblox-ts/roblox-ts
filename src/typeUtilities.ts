@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
 import { CompilerDirective, getCompilerDirective } from "./compiler";
+import { PrecedingStatementContext } from "./CompilerState";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -291,6 +292,14 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 	}
 
 	return false;
+}
+
+export function shouldPushToPrecedingStatement(
+	arg: ts.Expression,
+	argStr: string,
+	argContext: PrecedingStatementContext,
+) {
+	return !argContext.pushed && !isNumericLiteralExpression(arg);
 }
 
 /** Returns whether or not the given expression is a Binary expression containing only numeric literals */

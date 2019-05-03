@@ -1,8 +1,10 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
 import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
+import { compileExpression } from "./expression";
 
 export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
 	let result = "";
@@ -24,11 +26,26 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		checkReserved(memberName, member.getNameNode());
 		const memberValue = member.getValue();
 		const safeIndex = safeLuaIndex(name, memberName);
+		console.log(typeof memberValue);
 		if (typeof memberValue === "string") {
 			result += state.indent + `${safeIndex} = "${memberValue}";\n`;
 		} else if (typeof memberValue === "number") {
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${name}[${memberValue}] = "${memberName}";\n`;
+		} else if (member.hasInitializer()) {
+			const initializer = member.getInitializer()!;
+			state.enterPrecedingStatementContext();
+			const expStr = compileExpression(state, initializer);
+			result += state.exitPrecedingStatementContextAndJoin();
+			result += state.indent + `${safeIndex} = ${expStr};\n`;
+			result += state.indent + `${name}[${expStr}] = "${memberName}";\n`;
+		} else {
+			throw new CompilerError(
+				"You discovered a new kind of enum declaration!" +
+					" Please submit an issue at https://github.com/roblox-ts/roblox-ts/issues",
+				node,
+				CompilerErrorType.BadEnum,
+			);
 		}
 	}
 	state.popIndent();

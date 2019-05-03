@@ -89,6 +89,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 			const id = state.pushPrecedingStatementToNextId(node, expStr);
 			state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 			state.pushPrecedingStatements(node, ...state.exitPrecedingStatementContext());
+			state.setCurrentContextAsPushed(node);
 			return id;
 		} else {
 			state.pushPrecedingStatements(node, incrStr);

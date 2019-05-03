@@ -142,6 +142,7 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 			expStr = `local _ = ${expStr}`;
 		}
 	}
+
 	return state.exitPrecedingStatementContextAndJoin() + state.indent + expStr + ";\n";
 }
 

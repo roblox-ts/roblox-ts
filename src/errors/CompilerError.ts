@@ -67,6 +67,7 @@ export enum CompilerErrorType {
 	NonStringThrow,
 	TryReturn,
 	BadSwitchDefaultPosition,
+	BadEnum,
 }
 
 export class CompilerError extends Error {

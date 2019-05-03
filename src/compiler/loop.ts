@@ -13,7 +13,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
-import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -431,11 +431,16 @@ function safelyHandleExpressionsInForStatement(
 	state: CompilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
+	context: Array<string>,
 ) {
 	if (ts.TypeGuards.isExpression(incrementor)) {
 		checkLoopClassExp(incrementor);
 	}
-	return state.indent + placeIncrementorInStatementIfExpression(state, incrementor, incrementorStr);
+	return (
+		joinIndentedLines(context, 2) +
+		state.indent +
+		placeIncrementorInStatementIfExpression(state, incrementor, incrementorStr)
+	);
 }
 
 function getSimpleForLoopString(
@@ -493,6 +498,10 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 	const initializer = node.getInitializer();
 	let conditionStr: string | undefined;
 	let incrementorStr: string | undefined;
+
+	let conditionContext: Array<string> | undefined;
+	let incrementorContext: Array<string> | undefined;
+	let initializerContext: Array<string> | undefined;
 
 	if (initializer) {
 		if (
@@ -565,12 +574,15 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 					}
 				}
 			}
-
 			// if we can't convert to a simple for loop:
 			// if it has any internal function declarations, make sure to locally scope variables
 			if (getFirstMemberWithParameters(statementDescendants)) {
+				state.enterPrecedingStatementContext();
 				conditionStr = condition ? compileExpression(state, condition) : "true";
+				conditionContext = state.exitPrecedingStatementContext();
+				state.enterPrecedingStatementContext();
 				incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
+				incrementorContext = state.exitPrecedingStatementContext();
 
 				declarations.forEach(declaration => {
 					const lhs = declaration.getChildAtIndex(0);
@@ -605,29 +617,59 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 				});
 			}
 
+			state.enterPrecedingStatementContext();
 			result += compileVariableDeclarationList(state, initializer);
+			initializerContext = state.exitPrecedingStatementContext();
 		} else if (ts.TypeGuards.isExpression(initializer)) {
+			state.enterPrecedingStatementContext();
 			const expStr = compileExpression(state, initializer);
-			result += safelyHandleExpressionsInForStatement(state, initializer, expStr) + ";\n";
+			initializerContext = state.exitPrecedingStatementContext();
+			result += safelyHandleExpressionsInForStatement(state, initializer, expStr, initializerContext) + ";\n";
 		}
 	}
-
 	// order matters
 	if (conditionStr === undefined) {
+		state.enterPrecedingStatementContext();
 		conditionStr = condition ? compileExpression(state, condition) : "true";
+		conditionContext = state.exitPrecedingStatementContext();
+		state.enterPrecedingStatementContext();
 		incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
+		incrementorContext = state.exitPrecedingStatementContext();
 	}
 
-	result += state.indent + `while ${conditionStr} do\n`;
-	result += localizations;
-	state.pushIndent();
-	result += compileLoopBody(state, statement);
-	cleanups.forEach(cleanup => cleanup());
-	if (incrementor && incrementorStr) {
-		result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr);
+	if (conditionContext && conditionContext.length > 0) {
+		result += state.indent + `repeat\n`;
+		state.pushIndent();
+		result += state.indent + `do\n`;
+		state.pushIndent();
+		result += joinIndentedLines(conditionContext, 2);
+		result += state.indent + `if not (${conditionStr}) then break; end;\n`;
+		if (localizations) {
+			result += "\t" + localizations;
+		}
+		result += compileLoopBody(state, statement);
+		cleanups.forEach(cleanup => cleanup());
+		if (incrementor && incrementorStr) {
+			console.log(`"${incrementorStr}"`, incrementorContext);
+			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!);
+		}
+		state.popIndent();
+		result += state.indent + `end;\n`;
+		state.popIndent();
+		result += state.indent + `until false;\n`;
+	} else {
+		result += state.indent + `while ${conditionStr} do\n`;
+		result += localizations;
+		state.pushIndent();
+		result += compileLoopBody(state, statement);
+		cleanups.forEach(cleanup => cleanup());
+		if (incrementor && incrementorStr) {
+			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!);
+		}
+		state.popIndent();
+		result += state.indent + "end;\n";
 	}
-	state.popIndent();
-	result += state.indent + "end;\n";
+
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	state.popIdStack();
@@ -637,12 +679,28 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	const exp = node.getExpression();
 	checkLoopClassExp(exp);
+	state.enterPrecedingStatementContext();
 	const expStr = compileExpression(state, exp);
 	let result = "";
-	result += state.indent + `while ${expStr} do\n`;
-	state.pushIndent();
-	result += compileLoopBody(state, node.getStatement());
-	state.popIndent();
-	result += state.indent + `end;\n`;
+
+	if (state.currentPrecedingStatementContextHasStatements(exp)) {
+		result += state.indent + `repeat\n`;
+		state.pushIndent();
+		result += state.indent + `do\n`;
+		state.pushIndent();
+		result += state.exitPrecedingStatementContextAndJoin(2);
+		result += state.indent + `if not (${expStr}) then break; end;\n`;
+		result += compileLoopBody(state, node.getStatement());
+		state.popIndent();
+		result += state.indent + `end;\n`;
+		state.popIndent();
+		result += state.indent + `until false;\n`;
+	} else {
+		result += state.indent + `while ${expStr} do\n`;
+		state.pushIndent();
+		result += compileLoopBody(state, node.getStatement());
+		state.popIndent();
+		result += state.indent + `end;\n`;
+	}
 	return result;
 }

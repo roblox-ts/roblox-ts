@@ -53,5 +53,6 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	if (currentConditionalContext === "") {
 		state.currentConditionalContext = "";
 	}
+	state.setCurrentContextAsPushed(node);
 	return id;
 }

@@ -21,14 +21,18 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	return false;
 }
 
+// TODO: Make this compile properly
 export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
-	for (const element of elements) {
+
+	for (let i = 0; i < elements.length; i++) {
+		const element = elements[i];
 		if (ts.TypeGuards.isSpreadElement(element)) {
 			parts.push(compileSpreadExpressionOrThrow(state, element.getExpression()));
 			isInArray = false;
 		} else {
+			checkNonAny(element);
 			let last: Array<string>;
 			if (isInArray) {
 				last = parts[parts.length - 1] as Array<string>;
@@ -40,8 +44,14 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 			isInArray = true;
 		}
 	}
+
+	const params = parts
+		.map(v => {
+			return typeof v === "string" ? v : `{ ${v.join(", ")} }`;
+		})
+		.join(", ");
+
 	state.usesTSLibrary = true;
-	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 	return `TS.array_concat(${params})`;
 }
 

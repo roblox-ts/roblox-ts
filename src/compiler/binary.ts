@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isNumberType, isNumericLiteralExpression, isStringType, isTupleReturnTypeCall } from "../typeUtilities";
+import { isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
 import { getAccessorForBindingPatternType } from "./binding";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
@@ -124,14 +124,17 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 				result = result.replace(/;\n$/, ""); // terrible hack
 			} else {
-				result += `(function()\n`;
-				state.pushIndent();
-				preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-				concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-				postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+				preStatements.forEach(statementStr =>
+					state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"),
+				);
+				concatNamesAndValues(state, names, values, false, declaration =>
+					state.pushPrecedingStatements(node, declaration),
+				);
+				postStatements.forEach(statementStr =>
+					state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"),
+				);
 				result += state.indent + `return ${rootId};\n`;
-				state.popIndent();
-				result += `end)()`;
+				return rootId;
 			}
 		}
 		return result;
@@ -215,15 +218,12 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		rhsStr = compileExpression(state, rhs);
 		const rhsContext = state.exitPrecedingStatementContext();
 
+		state.pushPrecedingStatements(lhs, ...lhsContext);
 		if (rhsContext.length > 0) {
-			state.pushPrecedingStatements(lhs, ...lhsContext);
-
-			if (!lhsStr.match(/^_\d+$/) && !isNumericLiteralExpression(lhs)) {
+			if (shouldPushToPrecedingStatement(lhs, lhsStr, lhsContext)) {
 				lhsStr = state.pushPrecedingStatementToNextId(lhs, lhsStr, rhsContext);
 			}
 			state.pushPrecedingStatements(rhs, ...rhsContext);
-		} else if (lhsContext.length > 0) {
-			state.pushPrecedingStatements(lhs, ...lhsContext);
 		}
 	}
 

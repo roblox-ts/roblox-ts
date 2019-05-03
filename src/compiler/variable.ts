@@ -45,14 +45,14 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				let returnValue: string | undefined;
 				concatNamesAndValues(state, names, values, false, str => (returnValue = str));
-				return returnValue || "";
+				return state.exitPrecedingStatementContextAndJoin() + returnValue || "";
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					names.forEach(name => state.pushExport(name, grandParent));
 				}
 				let returnValue: string | undefined;
 				concatNamesAndValues(state, names, values, true, str => (returnValue = str));
-				return returnValue || "";
+				return state.exitPrecedingStatementContextAndJoin() + returnValue || "";
 			}
 		}
 	}

@@ -31,6 +31,30 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
+	// TODO: Decide whether to add this here:
+	// while (exp && ts.TypeGuards.isParenthesizedExpression(exp)) {
+	// 	exp = exp.getExpression();
+	// }
+
+	// TODO: An optimization I would like to perform looks like this:
+	/*
+	local _0;
+	if true then
+		_0 = 1
+	else
+		_0 = 2;
+	end
+
+	-- either of these ending statements could be replaced in-line:
+	let i = _0;
+	return _0;
+
+	example:
+		return 1;
+		i = 1; -- (of course, `i` would be hoisted instead of `_0`)
+
+	We should be able to easily implement this on the new flag object.
+	*/
 	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = compileExpression(state, exp);
@@ -50,11 +74,9 @@ function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, fu
 export function compileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
-		return (
-			state.indent +
-			getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors())) +
-			"\n"
-		);
+		state.enterPrecedingStatementContext();
+		const returnStr = getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors()));
+		return state.exitPrecedingStatementContextAndJoin() + state.indent + returnStr + "\n";
 	} else {
 		return state.indent + `return nil;\n`;
 	}
@@ -71,7 +93,9 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 		if (isBlock) {
 			result += compileBlock(state, body as ts.Block);
 		} else {
-			result += state.indent + getReturnStrFromExpression(state, body as ts.Expression, node) + "\n";
+			state.enterPrecedingStatementContext();
+			const returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
+			result += state.exitPrecedingStatementContextAndJoin() + state.indent + returnStr + "\n";
 		}
 		state.popIndent();
 		result += state.indent;
@@ -265,7 +289,7 @@ export function compileConstructorDeclaration(
 			initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
 
 			if (extraInitializers) {
-				extraInitializers.forEach(initializer => (result += state.indent + initializer));
+				extraInitializers.forEach(initializer => (result += initializer));
 			}
 
 			for (; k < bodyStatements.length; ++k) {
@@ -287,7 +311,7 @@ export function compileConstructorDeclaration(
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {
-			extraInitializers.forEach(initializer => (result += state.indent + initializer));
+			extraInitializers.forEach(initializer => (result += initializer));
 		}
 	}
 	result += state.indent + "return self;\n";

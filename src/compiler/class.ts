@@ -68,6 +68,8 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
+	let expAlias: string | undefined;
+
 	if (nameNode) {
 		checkReserved(name, nameNode, true);
 	}
@@ -110,7 +112,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	let result = "";
 	if (isExpression) {
-		result += `(function()\n`;
+		if (nameNode) {
+			expAlias = state.getNewId();
+			result += state.indent + `local ${expAlias};\n`;
+			result += state.indent + `do\n`;
+		} else {
+			result += state.indent + `local ${name};\n`;
+			result += state.indent + `do\n`;
+		}
 	} else {
 		if (nameNode && shouldHoist(node, nameNode)) {
 			state.pushHoistStack(name);
@@ -129,7 +138,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	let prefix = "";
 	if (isExpression) {
-		prefix = `local `;
+		if (nameNode) {
+			prefix = `local `;
+		}
 	}
 
 	if (hasSuper) {
@@ -203,7 +214,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					extraInitializers.push(`self${propStr} = ${compileExpression(state, initializer)};\n`);
+					state.enterPrecedingStatementContext();
+					const expStr = compileExpression(state, initializer);
+					extraInitializers.push(...state.exitPrecedingStatementContext());
+					extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
 				}
 			}
 		}
@@ -276,17 +290,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				propStr = `[${computedExpStr}]`;
 			}
 
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					extraInitializers.push(`self${propStr} = ${compileExpression(state, initializer)};\n`);
-				}
-			}
 			let propValue = "nil";
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
+					state.enterPrecedingStatementContext();
 					propValue = compileExpression(state, initializer);
+					result += state.exitPrecedingStatementContextAndJoin();
 				}
 			}
 			result += state.indent + `${name}${propStr} = ${propValue};\n`;
@@ -398,9 +408,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	if (isExpression) {
-		result += state.indent + `return ${name};\n`;
+		if (nameNode) {
+			result += state.indent + `${expAlias} = ${name};\n`;
+		}
 		state.popIndent();
-		result += state.indent + `end)()`;
+		result += state.indent + `end;\n`;
+		state.pushPrecedingStatements(node, result);
+		return expAlias || name;
 	} else {
 		state.popIndent();
 		result += state.indent + `end;\n`;
