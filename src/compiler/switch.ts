@@ -8,9 +8,16 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 	let expStr: string;
 
 	const expression = node.getExpression();
+	state.enterPrecedingStatementContext();
 	const rawExpStr = compileExpression(state, expression);
+	const hasStatements = state.currentPrecedingStatementContextHasStatements(expression);
+	const expressionContext = state.exitPrecedingStatementContext();
 
-	if (ts.TypeGuards.isIdentifier(expression)) {
+	if (hasStatements) {
+		preResult += expressionContext.join("");
+	}
+
+	if (ts.TypeGuards.isIdentifier(expression) || (hasStatements && expressionContext.pushed)) {
 		expStr = rawExpStr;
 	} else {
 		expStr = state.getNewId();
