@@ -130,8 +130,9 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	const statement = node.getStatement();
 	const exp = node.getExpression();
 	const expType = exp.getType();
-	let result = "";
+	state.enterPrecedingStatementContext();
 	let expStr = compileExpression(state, exp);
+	let result = state.exitPrecedingStatementContextAndJoin();
 
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		const declarations = init.getDeclarations();
