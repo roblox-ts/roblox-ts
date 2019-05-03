@@ -17,7 +17,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		preResult += expressionContext.join("");
 	}
 
-	if (ts.TypeGuards.isIdentifier(expression) || (hasStatements && expressionContext.pushed)) {
+	if (hasStatements && expressionContext.pushed) {
 		expStr = rawExpStr;
 	} else {
 		expStr = state.getNewId();
@@ -45,8 +45,10 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		let isNonDefault = false;
 		if (ts.TypeGuards.isCaseClause(clause)) {
 			isNonDefault = true;
+			state.enterPrecedingStatementContext();
 			const clauseExpStr = compileExpression(state, clause.getExpression());
 			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
+			result += state.exitPrecedingStatementContextAndJoin();
 			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
 			state.pushIndent();
 		} else if (i !== lastClauseIndex) {
