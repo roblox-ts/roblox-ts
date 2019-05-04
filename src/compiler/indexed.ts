@@ -13,7 +13,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
-export function isExpressionDefinedInExportLet(state: CompilerState, exp: ts.Identifier) {
+export function isIdentifierDefinedInExportLet(state: CompilerState, exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
 	for (const def of exp.getDefinitions()) {
 		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
@@ -38,7 +38,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 
 		if (
 			ts.TypeGuards.isPropertyAccessExpression(child) ||
-			(ts.TypeGuards.isIdentifier(child) && isExpressionDefinedInExportLet(state, child))
+			(ts.TypeGuards.isIdentifier(child) && isIdentifierDefinedInExportLet(state, child))
 		) {
 			const expression = operand.getExpression();
 			const opExpStr = compileExpression(state, expression);
@@ -55,7 +55,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
  * Similar to getWritableOperandName, but should push anything with any depth. This includes export let vars.
  */
 export function getReadableExpressionName(state: CompilerState, exp: ts.Expression, expStr: string) {
-	if (ts.TypeGuards.isIdentifier(exp) && !isExpressionDefinedInExportLet(state, exp)) {
+	if (ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(state, exp)) {
 		return expStr;
 	} else {
 		return state.pushPrecedingStatementToNextId(exp, expStr);

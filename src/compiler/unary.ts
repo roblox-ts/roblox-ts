@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getWritableOperandName, isExpressionDefinedInExportLet } from "./indexed";
+import { getWritableOperandName, isIdentifierDefinedInExportLet } from "./indexed";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -39,12 +39,10 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		const expStr = getWritableOperandName(state, operand);
 
 		if (isNonStatement) {
-			if (!ts.TypeGuards.isIdentifier(operand) || isExpressionDefinedInExportLet(state, operand)) {
+			if (!ts.TypeGuards.isIdentifier(operand) || isIdentifierDefinedInExportLet(state, operand)) {
 				const id = state.getNewId();
-				state.pushPrecedingStatements(
-					node,
-					state.indent + `${getIncrementString(opKind, expStr, node, `local ${id}`)};\n`,
-				);
+				const incrStr = getIncrementString(opKind, expStr, node, `local ${id}`);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 				state.pushPrecedingStatements(node, state.indent + `${expStr} = ${id};\n`);
 				state.getCurrentPrecedingStatementContext(node).isPushed = true;
 				return id;

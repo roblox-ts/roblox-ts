@@ -334,5 +334,20 @@ export function compileAccessorDeclaration(
 }
 
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	return compileFunction(state, node, "", node.getBody());
+	const potentialNameNode = node.getChildAtIndex(1);
+
+	if (ts.TypeGuards.isFunctionExpression(node) && ts.TypeGuards.isIdentifier(potentialNameNode)) {
+		const name = compileExpression(state, potentialNameNode);
+		const id = state.getNewId();
+		state.pushPrecedingStatements(node, state.indent + `local ${id};\n`);
+		state.pushPrecedingStatements(node, state.indent + `do\n`);
+		state.pushIndent();
+		state.pushPrecedingStatements(node, compileFunction(state, node, `local ${name}`, node.getBody()));
+		state.pushPrecedingStatements(node, state.indent + `${id} = ${name};\n`);
+		state.popIndent();
+		state.pushPrecedingStatements(node, state.indent + `end;\n`);
+		return id;
+	} else {
+		return compileFunction(state, node, "", node.getBody());
+	}
 }
