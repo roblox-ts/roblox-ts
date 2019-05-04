@@ -17,7 +17,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 		preResult += expressionContext.join("");
 	}
 
-	if (hasStatements && expressionContext.pushed) {
+	if (hasStatements && expressionContext.isPushed) {
 		expStr = rawExpStr;
 	} else {
 		expStr = state.getNewId();

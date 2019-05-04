@@ -7,7 +7,7 @@ interface Partition {
 	target: string;
 }
 
-export type PrecedingStatementContext = Array<string> & { pushed: boolean };
+export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
@@ -24,7 +24,7 @@ export class CompilerState {
 			const kind = node.getKindName();
 
 			throw new CompilerError(
-				`Roblox-TS accidentally does not support using a ${kind} which requires preceding statements in a ${node
+				`roblox-ts accidentally does not support using a ${kind} which requires preceding statements in a ${node
 					.getAncestors()
 					.find(ancestor => ts.TypeGuards.isStatement(ancestor))!
 					.getKindName()}.` +
@@ -38,7 +38,7 @@ export class CompilerState {
 	}
 
 	public setCurrentContextAsPushed(node: ts.Node) {
-		this.getCurrentPrecedingStatementContext(node).pushed = true;
+		this.getCurrentPrecedingStatementContext(node).isPushed = true;
 	}
 	public currentPrecedingStatementContextHasStatements(node: ts.Node) {
 		return this.getCurrentPrecedingStatementContext(node).length > 0;
@@ -46,7 +46,7 @@ export class CompilerState {
 
 	public enterPrecedingStatementContext() {
 		const newContext = new Array<string>() as PrecedingStatementContext;
-		newContext.pushed = false;
+		newContext.isPushed = false;
 		// console.log("context:", this.precedingStatementContexts.length + 1, this.precedingStatementContexts);
 		return this.precedingStatementContexts.push(newContext as PrecedingStatementContext);
 	}
@@ -61,7 +61,7 @@ export class CompilerState {
 	}
 
 	public pushPrecedingStatements(node: ts.Node, ...statements: Array<string>) {
-		this.getCurrentPrecedingStatementContext(node).pushed = false;
+		this.getCurrentPrecedingStatementContext(node).isPushed = false;
 		return this.getCurrentPrecedingStatementContext(node).push(...statements);
 	}
 

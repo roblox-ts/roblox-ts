@@ -299,7 +299,7 @@ export function shouldPushToPrecedingStatement(
 	argStr: string,
 	argContext: PrecedingStatementContext,
 ) {
-	return !argContext.pushed && !isNumericLiteralExpression(arg);
+	return !argContext.isPushed && !isNumericLiteralExpression(arg);
 }
 
 /** Returns whether or not the given expression is a Binary expression containing only numeric literals */
