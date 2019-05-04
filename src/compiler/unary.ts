@@ -39,7 +39,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		const expStr = getWritableOperandName(state, operand);
 
 		if (isNonStatement) {
-			if (!ts.TypeGuards.isIdentifier(node) || isExpressionDefinedInExportLet(state, node)) {
+			if (!ts.TypeGuards.isIdentifier(operand) || isExpressionDefinedInExportLet(state, operand)) {
 				const id = state.getNewId();
 				state.pushPrecedingStatements(
 					node,

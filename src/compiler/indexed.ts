@@ -47,6 +47,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			return `${id}.${propertyStr}`;
 		}
 	}
+
 	return compileExpression(state, operand);
 }
 
