@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective } from "./compiler";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInLet } from "./compiler";
 import { PrecedingStatementContext } from "./CompilerState";
 
 export const RBX_SERVICES: Array<string> = [
@@ -299,7 +299,12 @@ export function shouldPushToPrecedingStatement(
 	argStr: string,
 	argContext: PrecedingStatementContext,
 ) {
-	return !argContext.isPushed && !isNumericLiteralExpression(arg);
+	return (
+		!argContext.isPushed &&
+		!isNumericLiteralExpression(arg) &&
+		!ts.TypeGuards.isStringLiteral(arg) &&
+		(!ts.TypeGuards.isIdentifier(arg) || isIdentifierDefinedInLet(arg))
+	);
 }
 
 /** Returns whether or not the given expression is a Binary expression containing only numeric literals */

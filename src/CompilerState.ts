@@ -67,7 +67,10 @@ export class CompilerState {
 		for (let i = 0; i < numIds; i++) {
 			newIds[i] = this.getNewId();
 		}
-		this.pushPrecedingStatements(node, this.indent + `local ${newIds.join(", ")} = ${statement};\n`);
+		this.pushPrecedingStatements(
+			node,
+			this.indent + `local ${newIds.join(", ")}${statement ? ` = ${statement}` : ""};\n`,
+		);
 		return newIds;
 	}
 
@@ -102,8 +105,7 @@ export class CompilerState {
 			}
 		}
 
-		const newId = this.getNewId();
-		this.pushPrecedingStatements(node, this.indent + `local ${newId} = ${transpiledSource};\n`);
+		const [newId] = this.pushPrecedingStatementToNewIds(node, transpiledSource, 1);
 		return newId;
 	}
 

@@ -338,8 +338,7 @@ export function compileFunctionExpression(state: CompilerState, node: ts.Functio
 
 	if (ts.TypeGuards.isFunctionExpression(node) && ts.TypeGuards.isIdentifier(potentialNameNode)) {
 		const name = compileExpression(state, potentialNameNode);
-		const id = state.getNewId();
-		state.pushPrecedingStatements(node, state.indent + `local ${id};\n`);
+		const [id] = state.pushPrecedingStatementToNewIds(node, "", 1);
 		state.pushPrecedingStatements(node, state.indent + `do\n`);
 		state.pushIndent();
 		state.pushPrecedingStatements(node, compileFunction(state, node, `local ${name}`, node.getBody()));

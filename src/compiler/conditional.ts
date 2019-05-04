@@ -22,9 +22,8 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const currentConditionalContext = state.currentConditionalContext;
 
 	if (currentConditionalContext === "") {
-		id = state.getNewId();
+		[id] = state.pushPrecedingStatementToNewIds(node, "", 1);
 		state.currentConditionalContext = id;
-		state.pushPrecedingStatements(node, state.indent + `local ${id};\n`);
 	} else {
 		id = currentConditionalContext;
 	}

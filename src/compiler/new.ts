@@ -1,15 +1,10 @@
 import * as ts from "ts-morph";
-import {
-	appendDeclarationIfMissing,
-	compileCallArgumentsAndJoin,
-	compileExpression,
-	inheritsFromRoact,
-	literalParameterCompileFunctions,
-} from ".";
+import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
+import { compileMapSetElement } from "./call";
 
 function compileSetMapConstructorHelper(
 	state: CompilerState,
@@ -37,16 +32,42 @@ function compileSetMapConstructorHelper(
 		state.usesTSLibrary = true;
 		return `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})`;
 	} else {
-		let result = "{";
+		let id = "";
+		const lines = new Array<string>();
+		let hasContext = false;
+
+		const compileElement = compileMapSetElement.get(type)!;
 
 		if (firstParam) {
-			state.pushIndent();
-			result += "\n" + literalParameterCompileFunctions.get(type)!(state, firstParam.getElements());
-			state.popIndent();
-			result += state.indent;
+			for (const element of firstParam.getElements()) {
+				if (hasContext) {
+					state.pushPrecedingStatements(node, id + compileElement(state, element));
+				} else {
+					state.enterPrecedingStatementContext();
+					const line = compileElement(state, element);
+					const context = state.exitPrecedingStatementContext();
+					if (context.length > 0) {
+						hasContext = true;
+						id = state.pushPrecedingStatementToNewIds(node, "{}", 1)[0];
+						state.pushPrecedingStatements(node, ...lines.map(current => id + current));
+						state.pushPrecedingStatements(node, ...context);
+						state.pushPrecedingStatements(node, id + line);
+					} else {
+						lines.push(line);
+					}
+				}
+			}
 		}
 
-		return result + "}";
+		if (!hasContext) {
+			[id] = state.pushPrecedingStatementToNewIds(
+				node,
+				lines.reduce((result, line) => result + "\t" + line, lines.length > 0 ? "{\n" : "{") + "}",
+				1,
+			);
+		}
+
+		return id;
 	}
 }
 
