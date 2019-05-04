@@ -75,6 +75,57 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		checkNonAny(rhs);
 	}
 
+	if (ts.TypeGuards.isObjectLiteralExpression(lhs)) {
+		console.log(lhs.getProperties().map(o => o.getText()));
+
+		const names = new Array<string>();
+		const values = new Array<string>();
+		const preStatements = new Array<string>();
+		const postStatements = new Array<string>();
+
+		let result = "";
+		let rootId: string;
+		if (ts.TypeGuards.isIdentifier(rhs)) {
+			rootId = compileExpression(state, rhs);
+		} else {
+			rootId = state.getNewId();
+			preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+		}
+
+		getBindingData(
+			state,
+			names,
+			values,
+			preStatements,
+			postStatements,
+			lhs,
+			rootId,
+			getAccessorForBindingPatternType(rhs),
+		);
+
+		const parent = node.getParentOrThrow();
+		if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
+			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+			concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
+			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+			result = result.replace(/;\n$/, ""); // terrible hack
+		} else {
+			preStatements.forEach(statementStr =>
+				state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"),
+			);
+			concatNamesAndValues(state, names, values, false, declaration =>
+				state.pushPrecedingStatements(node, declaration),
+			);
+			postStatements.forEach(statementStr =>
+				state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"),
+			);
+			result += state.indent + `return ${rootId};\n`;
+			return rootId;
+		}
+
+		return result;
+	}
+
 	// binding patterns
 	if (ts.TypeGuards.isArrayLiteralExpression(lhs)) {
 		const names = new Array<string>();

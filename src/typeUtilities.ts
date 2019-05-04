@@ -159,6 +159,10 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
+export function isObjectType(type: ts.Type) {
+	return typeConstraint(type, t => t.isObject());
+}
+
 export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
@@ -177,12 +181,20 @@ export function getCompilerDirectiveWithConstraint(
 	});
 }
 
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
 export function isArrayType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
 }
 
-export function isStringMethodType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+export function isMapType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+}
+
+export function isSetType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isMethodType(type: ts.Type) {
@@ -199,14 +211,6 @@ export function isMapMethodType(type: ts.Type) {
 
 export function isSetMethodType(type: ts.Type) {
 	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
-}
-
-export function isMapType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
-}
-
-export function isSetType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;

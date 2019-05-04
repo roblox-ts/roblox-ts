@@ -66,7 +66,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
  * Similar to getWritableOperandName, but should push anything with any depth. This includes export let vars.
  */
 export function getReadableExpressionName(state: CompilerState, exp: ts.Expression, expStr: string) {
-	if (ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp)) {
+	if (expStr.match(/^_\d+$/) || (ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp))) {
 		return expStr;
 	} else {
 		return state.pushPrecedingStatementToNextId(exp, expStr);

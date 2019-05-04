@@ -3,7 +3,18 @@ import { compileExpression, compileIdentifier } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { isArrayType, isIterableIterator, isMapType, isSetType, isStringType } from "../typeUtilities";
+import {
+	isArrayMethodType,
+	isArrayType,
+	isIterableIterator,
+	isMapMethodType,
+	isMapType,
+	isObjectType,
+	isSetMethodType,
+	isSetType,
+	isStringType,
+} from "../typeUtilities";
+import { joinIndentedLines } from "../utility";
 
 export function getParameterData(
 	state: CompilerState,
@@ -42,8 +53,21 @@ export function getParameterData(
 
 		const initial = param.getInitializer();
 		if (initial) {
+			state.enterPrecedingStatementContext();
 			const expStr = compileExpression(state, initial);
-			const defaultValue = `if ${name} == nil then ${name} = ${expStr} end;`;
+			const context = state.exitPrecedingStatementContext();
+			let defaultValue: string;
+			if (context.length > 0) {
+				state.pushIndent();
+				defaultValue =
+					`if ${name} == nil then\n` +
+					joinIndentedLines(context, 2) +
+					state.indent +
+					`\t${name} = ${expStr}\n${state.indent}end;`;
+				state.popIndent();
+			} else {
+				defaultValue = `if ${name} == nil then ${name} = ${expStr} end;`;
+			}
 			if (defaults) {
 				defaults.push(defaultValue);
 			} else {
@@ -72,20 +96,28 @@ function arrayAccessor(t: string, key: number) {
 	return `${t}[${key}]`;
 }
 
-function objectAccessor(t: string, node: ts.Node, getAccessor: (t: string, key: number) => string) {
-	const key = node.getText();
+function objectAccessor(
+	t: string,
+	node: ts.Node,
+	getAccessor: (t: string, key: number) => string,
+	name = node.getText(),
+) {
 	if (getAccessor) {
-		if (key === "length") {
-			return `#${t}`;
-		} else {
+		const type = node.getType();
+		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type)) {
 			throw new CompilerError(
-				`Cannot index method ${key} (a roblox-ts internal)`,
+				`Cannot index method ${name} (a roblox-ts internal)`,
 				node,
 				CompilerErrorType.BadDestructuringType,
 			);
 		}
+
+		if (name === "length") {
+			return `#${t}`;
+		}
 	}
-	return `${t}.${key}`;
+
+	return `${t}.${name}`;
 }
 
 function stringAccessor(t: string, key: number) {
@@ -116,6 +148,8 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 		return mapAccessor;
 	} else if (isIterableIterator(bindingPatternType, bindingPattern)) {
 		return iterAccessor;
+	} else if (isObjectType(bindingPatternType)) {
+		return setAccessor;
 	} else {
 		if (bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern) {
 			return null as never;
@@ -159,11 +193,10 @@ export function getBindingData(
 	getAccessor = getAccessorForBindingPatternType(bindingPattern),
 ) {
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
-
-	const listItems = bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren();
 	let childIndex = 1;
+	console.log(bindingPattern.getKindName(), bindingPattern.getText());
 
-	for (const item of listItems) {
+	for (const item of bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
 		/* istanbul ignore else */
 		if (ts.TypeGuards.isBindingElement(item)) {
 			const [child, op, pattern] = item.getChildren();
@@ -202,8 +235,21 @@ export function getBindingData(
 				);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
+					state.enterPrecedingStatementContext();
 					const value = compileExpression(state, pattern as ts.Expression);
-					postStatements.push(`if ${id} == nil then ${id} = ${value} end;`);
+					const context = state.exitPrecedingStatementContext();
+					if (context.length > 0) {
+						state.pushIndent();
+						postStatements.push(
+							`if ${id} == nil then\n` +
+								joinIndentedLines(context, 2) +
+								state.indent +
+								`\t${id} = ${value}\n${state.indent}end;`,
+						);
+						state.popIndent();
+					} else {
+						postStatements.push(`if ${id} == nil then ${id} = ${value} end;`);
+					}
 				}
 				const accessor: string = strKeys
 					? objectAccessor(parentId, child, getAccessor)
@@ -218,7 +264,7 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
-					`roblox-ts doesn't know what to do with ${child.getKindName()}. ` +
+					`roblox-ts doesn't know what to do with ${child.getKindName()} [1]. ` +
 						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 					child,
 					CompilerErrorType.UnexpectedBindingPattern,
@@ -238,9 +284,18 @@ export function getBindingData(
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
 			childIndex--;
+		} else if (ts.TypeGuards.isObjectLiteralExpression(item)) {
+			const childId = state.getNewId();
+			preStatements.push(`local ${childId} = ${getAccessor(parentId, childIndex)};`);
+			getBindingData(state, names, values, preStatements, postStatements, item, childId);
+		} else if (ts.TypeGuards.isShorthandPropertyAssignment(item)) {
+			preStatements.push(`${item.getName()} = ${objectAccessor(parentId, item, getAccessor)};`);
+		} else if (ts.TypeGuards.isPropertyAssignment(item)) {
+			const alias = item.hasInitializer() ? item.getInitializer()!.getText() : item.getName();
+			preStatements.push(`${alias} = ${objectAccessor(parentId, item, getAccessor, item.getName())};`);
 		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
 			throw new CompilerError(
-				`roblox-ts doesn't know what to do with ${item.getKindName()}. ` +
+				`roblox-ts doesn't know what to do with ${item.getKindName()} [2]. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 				item,
 				CompilerErrorType.UnexpectedBindingPattern,

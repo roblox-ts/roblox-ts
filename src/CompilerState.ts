@@ -26,7 +26,7 @@ export class CompilerState {
 			throw new CompilerError(
 				`roblox-ts accidentally does not support using a ${kind} which requires preceding statements in a ${node
 					.getAncestors()
-					.find(ancestor => ts.TypeGuards.isStatement(ancestor))!
+					.find(ancestor => ts.TypeGuards.isStatement(ancestor) || ts.TypeGuards.isStatementedNode(ancestor))!
 					.getKindName()}.` +
 					" Please submit an issue report to https://github.com/roblox-ts/roblox-ts/issues",
 				node,
@@ -71,6 +71,8 @@ export class CompilerState {
 			node,
 			this.indent + `local ${newIds.join(", ")}${statement ? ` = ${statement}` : ""};\n`,
 		);
+
+		this.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return newIds;
 	}
 

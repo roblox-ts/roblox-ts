@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { isIdentifierDefinedInLet } from "./indexed";
+import { getReadableExpressionName, isIdentifierDefinedInLet } from "./indexed";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -158,7 +158,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
 
 		if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
-			const paramStr = params[0] ? compileCallArguments(state, params)[0] : `", "`;
+			const paramStr = params[0] ? compileCallArguments(state, params)[0] : `","`;
 			const accessPath = compileExpression(state, subExp);
 			return `table.concat(${accessPath}, ${paramStr})`;
 		}
@@ -219,7 +219,7 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	})
 
 	.set("set", (params, state, subExp) => {
-		const accessPath = compileExpression(state, subExp);
+		const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
 		const [key, value] = compileCallArguments(state, params);
 		const expStr = `${accessPath}[${key}] = ${value}`;
 
@@ -267,7 +267,7 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 
 const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("add", (params, state, subExp) => {
-		const accessPath = compileExpression(state, subExp);
+		const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
 		const [key] = compileCallArguments(state, params);
 		const expStr = `${accessPath}[${key}] = true`;
 
