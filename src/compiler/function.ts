@@ -346,6 +346,7 @@ export function compileFunctionExpression(state: CompilerState, node: ts.Functio
 		state.pushPrecedingStatements(node, state.indent + `${id} = ${name};\n`);
 		state.popIndent();
 		state.pushPrecedingStatements(node, state.indent + `end;\n`);
+		// this should not be classified as isPushed.
 		return id;
 	} else {
 		return compileFunction(state, node, "", node.getBody());
