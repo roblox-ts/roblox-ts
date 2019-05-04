@@ -15,7 +15,7 @@ export class CompilerState {
 	public currentConditionalContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
-	private getCurrentPrecedingStatementContext(node: ts.Node) {
+	public getCurrentPrecedingStatementContext(node: ts.Node) {
 		const currentContext = this.precedingStatementContexts[this.precedingStatementContexts.length - 1] as
 			| PrecedingStatementContext
 			| undefined;
@@ -37,9 +37,6 @@ export class CompilerState {
 		return currentContext;
 	}
 
-	public setCurrentContextAsPushed(node: ts.Node) {
-		this.getCurrentPrecedingStatementContext(node).isPushed = true;
-	}
 	public currentPrecedingStatementContextHasStatements(node: ts.Node) {
 		return this.getCurrentPrecedingStatementContext(node).length > 0;
 	}

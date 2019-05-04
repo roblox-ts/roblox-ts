@@ -412,20 +412,22 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 }
 
 export function compileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
-	let result = state.indent;
 	const exp = node.getExpression();
 	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {
 		state.isModule = true;
+		state.enterPrecedingStatementContext();
 		const expStr = compileExpression(state, exp);
-		result += `_exports = ${expStr};\n`;
+		return state.exitPrecedingStatementContextAndJoin() + `_exports = ${expStr};\n`;
 	} else {
 		const symbol = node.getSymbol();
 		if (symbol) {
 			if (symbol.getName() === "default") {
 				state.isModule = true;
-				result += "_exports._default = " + compileExpression(state, exp) + ";\n";
+				state.enterPrecedingStatementContext();
+				const expStr = compileExpression(state, exp);
+				return state.exitPrecedingStatementContextAndJoin() + "_exports._default = " + expStr + ";\n";
 			}
 		}
 	}
-	return result;
+	return "";
 }

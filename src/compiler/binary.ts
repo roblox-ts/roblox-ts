@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
 import { getAccessorForBindingPatternType } from "./binding";
+import { getWritableOperandName } from "./indexed";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -68,7 +69,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	const rhs = node.getRight();
 	let lhsStr: string;
 	let rhsStr: string;
-	const statements = new Array<string>();
 
 	if (opKind !== ts.SyntaxKind.EqualsToken) {
 		checkNonAny(lhs);
@@ -141,16 +141,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	}
 
 	if (isSetToken(opKind)) {
-		if (ts.TypeGuards.isPropertyAccessExpression(lhs) && opKind !== ts.SyntaxKind.EqualsToken) {
-			const expression = lhs.getExpression();
-			const opExpStr = compileExpression(state, expression);
-			const propertyStr = lhs.getName();
-			const id = state.getNewId();
-			statements.push(`local ${id} = ${opExpStr}`);
-			lhsStr = `${id}.${propertyStr}`;
-		} else {
-			lhsStr = compileExpression(state, lhs);
-		}
+		lhsStr =
+			opKind === ts.SyntaxKind.EqualsToken ? compileExpression(state, lhs) : getWritableOperandName(state, lhs);
 		state.enterPrecedingStatementContext();
 		rhsStr = compileExpression(state, rhs);
 		const rhsStrContext = state.exitPrecedingStatementContext();
@@ -167,47 +159,57 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			previouslhs = lhsStr;
 		}
 
+		let statementStr: string;
+
 		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.EqualsToken) {
-			statements.push(`${lhsStr} = ${rhsStr}`);
+			statementStr = `${lhsStr} = ${rhsStr}`;
 		} else if (opKind === ts.SyntaxKind.BarEqualsToken) {
 			const barExpStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
-			statements.push(`${lhsStr} = ${barExpStr}`);
+			statementStr = `${lhsStr} = ${barExpStr}`;
 		} else if (opKind === ts.SyntaxKind.AmpersandEqualsToken) {
 			const ampersandExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "and");
-			statements.push(`${lhsStr} = ${ampersandExpStr}`);
+			statementStr = `${lhsStr} = ${ampersandExpStr}`;
 		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
 			const caretExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "xor");
-			statements.push(`${lhsStr} = ${caretExpStr}`);
+			statementStr = `${lhsStr} = ${caretExpStr}`;
 		} else if (opKind === ts.SyntaxKind.LessThanLessThanEqualsToken) {
 			const lhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "lsh");
-			statements.push(`${lhsStr} = ${lhsExpStr}`);
+			statementStr = `${lhsStr} = ${lhsExpStr}`;
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken) {
 			const rhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "rsh");
-			statements.push(`${lhsStr} = ${rhsExpStr}`);
+			statementStr = `${lhsStr} = ${rhsExpStr}`;
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken) {
 			const rhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "lrsh");
-			statements.push(`${lhsStr} = ${rhsExpStr}`);
+			statementStr = `${lhsStr} = ${rhsExpStr}`;
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
 			const addExpStr = getLuaAddExpression(node, previouslhs, rhsStr, true);
-			statements.push(`${lhsStr} = ${addExpStr}`);
+			statementStr = `${lhsStr} = ${addExpStr}`;
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
-			statements.push(`${lhsStr} = ${previouslhs} - (${rhsStr})`);
+			statementStr = `${lhsStr} = ${previouslhs} - (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.AsteriskEqualsToken) {
-			statements.push(`${lhsStr} = ${previouslhs} * (${rhsStr})`);
+			statementStr = `${lhsStr} = ${previouslhs} * (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.SlashEqualsToken) {
-			statements.push(`${lhsStr} = ${previouslhs} / (${rhsStr})`);
+			statementStr = `${lhsStr} = ${previouslhs} / (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken) {
-			statements.push(`${lhsStr} = ${previouslhs} ^ (${rhsStr})`);
+			statementStr = `${lhsStr} = ${previouslhs} ^ (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.PercentEqualsToken) {
-			statements.push(`${lhsStr} = ${previouslhs} % (${rhsStr})`);
+			statementStr = `${lhsStr} = ${previouslhs} % (${rhsStr})`;
+		} else {
+			throw new CompilerError(
+				"You just discovered a new kind of BinaryExpression! (" +
+					opToken.getText() +
+					") Please submit an issue request at https://github.com/roblox-ts/roblox-ts/issues",
+				opToken,
+				CompilerErrorType.BadBinaryExpression,
+			);
 		}
 
 		const parentKind = node.getParentOrThrow().getKind();
 		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-			return statements.join("; ");
+			return statementStr;
 		} else {
-			state.pushPrecedingStatements(node, ...statements.map(statement => state.indent + statement + ";\n"));
+			state.pushPrecedingStatements(node, state.indent + statementStr + ";\n");
 			return lhsStr;
 		}
 	} else {

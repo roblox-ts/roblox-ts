@@ -13,6 +13,54 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
+export function isExpressionDefinedInExportLet(state: CompilerState, exp: ts.Identifier) {
+	// I have no idea why, but getDefinitionNodes() cannot replace this
+	for (const def of exp.getDefinitions()) {
+		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+		if (
+			definition &&
+			definition.hasExportKeyword() &&
+			definition.getDeclarationKind() === ts.VariableDeclarationKind.Let
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
+ * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
+ */
+export function getWritableOperandName(state: CompilerState, operand: ts.Expression) {
+	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+		const child = operand.getChildAtIndex(0);
+
+		if (
+			ts.TypeGuards.isPropertyAccessExpression(child) ||
+			(ts.TypeGuards.isIdentifier(child) && isExpressionDefinedInExportLet(state, child))
+		) {
+			const expression = operand.getExpression();
+			const opExpStr = compileExpression(state, expression);
+			const propertyStr = operand.getName();
+			const id = state.pushPrecedingStatementToNextId(operand, opExpStr);
+			return `${id}.${propertyStr}`;
+		}
+	}
+	return compileExpression(state, operand);
+}
+
+/**
+ * Similar to getWritableOperandName, but should push anything with any depth. This includes export let vars.
+ */
+export function getReadableExpressionName(state: CompilerState, exp: ts.Expression, expStr: string) {
+	if (ts.TypeGuards.isIdentifier(exp) && !isExpressionDefinedInExportLet(state, exp)) {
+		return expStr;
+	} else {
+		return state.pushPrecedingStatementToNextId(exp, expStr);
+	}
+}
+
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
 	const expStr = compileExpression(state, exp);

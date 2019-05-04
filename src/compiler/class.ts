@@ -414,6 +414,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.popIndent();
 		result += state.indent + `end;\n`;
 		state.pushPrecedingStatements(node, result);
+		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return expAlias || name;
 	} else {
 		state.popIndent();

@@ -10,10 +10,11 @@ import {
 	getFirstMemberWithParameters,
 	placeIncrementorInStatementIfExpression,
 } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
+import { getReadableExpressionName } from "./indexed";
 
 function hasContinueDescendant(node: ts.Node) {
 	for (const child of node.getChildren()) {
@@ -79,7 +80,7 @@ export function compileLoopBody(state: CompilerState, node: ts.Statement) {
 		state.pushIndent();
 		result += state.indent + `break;\n`;
 		state.popIndent();
-		result += state.indent + `end\n`;
+		result += state.indent + `end;\n`;
 		state.continueId--;
 	}
 
@@ -87,17 +88,20 @@ export function compileLoopBody(state: CompilerState, node: ts.Statement) {
 }
 
 export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
-	const condition = compileExpression(state, node.getExpression());
-	let result = "";
-	result += state.indent + "repeat\n";
+	state.pushIdStack();
+	let result = state.indent + "repeat\n";
 	state.pushIndent();
 	result += state.indent + "do\n";
 	state.pushIndent();
 	result += compileLoopBody(state, node.getStatement());
 	state.popIndent();
-	result += state.indent + "end\n";
+	result += state.indent + "end;\n";
+	state.enterPrecedingStatementContext();
+	const condition = compileExpression(state, node.getExpression());
+	result += state.exitPrecedingStatementContextAndJoin();
 	state.popIndent();
 	result += state.indent + `until not (${condition});\n`;
+	state.popIdStack();
 	return result;
 }
 
@@ -224,11 +228,9 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			if (isArrayType(expType)) {
 				let varValue: string;
 
-				if (!ts.TypeGuards.isIdentifier(exp)) {
-					const arrayName = state.getNewId();
-					result += state.indent + `local ${arrayName} = ${expStr};\n`;
-					expStr = arrayName;
-				}
+				state.enterPrecedingStatementContext();
+				expStr = getReadableExpressionName(state, exp, expStr);
+				result += state.exitPrecedingStatementContextAndJoin();
 				const myInt = state.getNewId();
 				result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
 				state.pushIndent();
@@ -278,17 +280,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		);
 	}
 }
-
-export function checkLoopClassExp(node?: ts.Expression<ts.ts.Expression>) {
-	if (node && ts.TypeGuards.isClassExpression(node)) {
-		throw new CompilerError(
-			"Loops cannot contain class expressions as their condition/init/incrementor!",
-			node,
-			CompilerErrorType.ClassyLoop,
-		);
-	}
-}
-
 function isExpressionConstantNumbers(node: ts.Node): boolean {
 	const children = node.getChildren();
 	return (
@@ -432,15 +423,16 @@ function safelyHandleExpressionsInForStatement(
 	state: CompilerState,
 	incrementor: ts.Expression<ts.ts.Expression>,
 	incrementorStr: string,
-	context: Array<string>,
+	context: PrecedingStatementContext,
+	indentation: number,
 ) {
-	if (ts.TypeGuards.isExpression(incrementor)) {
-		checkLoopClassExp(incrementor);
-	}
+	console.log(context.isPushed, ":", incrementorStr);
 	return (
-		joinIndentedLines(context, 2) +
+		joinIndentedLines(context, indentation) +
 		state.indent +
-		placeIncrementorInStatementIfExpression(state, incrementor, incrementorStr)
+		(context.isPushed
+			? incrementorStr
+			: placeIncrementorInStatementIfExpression(state, incrementor, incrementorStr))
 	);
 }
 
@@ -487,85 +479,80 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 	state.pushIdStack();
 	const statement = node.getStatement();
 	const condition = node.getCondition();
-	checkLoopClassExp(condition);
 	const incrementor = node.getIncrementor();
-	checkLoopClassExp(incrementor);
 
-	let result = "";
 	let localizations = "";
 	const cleanups = new Array<() => void>();
-	result += state.indent + "do\n";
+	let result = state.indent + "do\n";
 	state.pushIndent();
 	const initializer = node.getInitializer();
 	let conditionStr: string | undefined;
 	let incrementorStr: string | undefined;
 
-	let conditionContext: Array<string> | undefined;
-	let incrementorContext: Array<string> | undefined;
-	let initializerContext: Array<string> | undefined;
+	let conditionContext: PrecedingStatementContext | undefined;
+	let incrementorContext: PrecedingStatementContext | undefined;
+	let initializerContext: PrecedingStatementContext | undefined;
 
 	if (initializer) {
-		if (
-			ts.TypeGuards.isVariableDeclarationList(initializer) &&
-			initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let
-		) {
+		if (ts.TypeGuards.isVariableDeclarationList(initializer)) {
 			const declarations = initializer.getDeclarations();
 			const statementDescendants = statement.getDescendants();
+			if (initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let) {
+				if (declarations.length === 1) {
+					const lhs = declarations[0].getChildAtIndex(0);
+					if (ts.TypeGuards.isIdentifier(lhs)) {
+						const nextSibling = lhs.getNextSibling();
 
-			if (declarations.length === 1) {
-				const lhs = declarations[0].getChildAtIndex(0);
-				if (ts.TypeGuards.isIdentifier(lhs)) {
-					const nextSibling = lhs.getNextSibling();
+						if (
+							!statementDescendants.some(statementDescendant =>
+								expressionModifiesVariable(statementDescendant, lhs),
+							) &&
+							incrementor &&
+							nextSibling &&
+							condition
+						) {
+							// check if we can convert to a simple for loop
+							// IF there aren't any in-loop modifications to the let variable
+							// AND the let variable is a single numeric variable
+							// AND the incrementor is a simple +/- expression of the let var
+							// AND the conditional expression is a binary expression
+							// with one of these operators: <= >= < >
+							// AND the conditional expression compares the let var to a numeric literal
+							// OR the conditional expression compares the let var to an unchanging number
 
-					if (
-						!statementDescendants.some(statementDescendant =>
-							expressionModifiesVariable(statementDescendant, lhs),
-						) &&
-						incrementor &&
-						nextSibling &&
-						condition
-					) {
-						// check if we can convert to a simple for loop
-						// IF there aren't any in-loop modifications to the let variable
-						// AND the let variable is a single numeric variable
-						// AND the incrementor is a simple +/- expression of the let var
-						// AND the conditional expression is a binary expression
-						// with one of these operators: <= >= < >
-						// AND the conditional expression compares the let var to a numeric literal
-						// OR the conditional expression compares the let var to an unchanging number
-
-						const rhs = nextSibling.getNextSibling();
-						if (rhs) {
-							const rhsType = rhs.getType();
-							if (isNumberType(rhsType)) {
-								if (expressionModifiesVariable(incrementor, lhs)) {
-									const [incrSign, incrValue] = getSignAndIncrementorForStatement(
-										state,
-										incrementor,
-										lhs,
-									);
-									if (incrSign && incrValue) {
-										const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
-										// numeric literals, or constant number identifiers are safe
-										if (
-											condValue &&
-											ts.TypeGuards.isExpression(condValue) &&
-											(isConstantNumberVariableOrLiteral(condValue) ||
-												isExpressionConstantNumbers(condValue))
-										) {
+							const rhs = nextSibling.getNextSibling();
+							if (rhs) {
+								const rhsType = rhs.getType();
+								if (isNumberType(rhsType)) {
+									if (expressionModifiesVariable(incrementor, lhs)) {
+										const [incrSign, incrValue] = getSignAndIncrementorForStatement(
+											state,
+											incrementor,
+											lhs,
+										);
+										if (incrSign && incrValue) {
+											const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
+											// numeric literals, or constant number identifiers are safe
 											if (
-												(incrSign === "+" && condSign === "<=") ||
-												(incrSign === "-" && condSign === ">=")
+												condValue &&
+												ts.TypeGuards.isExpression(condValue) &&
+												(isConstantNumberVariableOrLiteral(condValue) ||
+													isExpressionConstantNumbers(condValue))
 											) {
-												const incrStr = incrSign === "-" ? incrSign + incrValue : incrValue;
+												if (
+													(incrSign === "+" && condSign === "<=") ||
+													(incrSign === "-" && condSign === ">=")
+												) {
+													const incrStr = incrSign === "-" ? incrSign + incrValue : incrValue;
 
-												return getSimpleForLoopString(
-													state,
-													initializer,
-													compileExpression(state, condValue) +
-														(incrStr === "1" ? "" : ", " + incrStr),
-													statement,
-												);
+													return getSimpleForLoopString(
+														state,
+														initializer,
+														compileExpression(state, condValue) +
+															(incrStr === "1" ? "" : ", " + incrStr),
+														statement,
+													);
+												}
 											}
 										}
 									}
@@ -575,6 +562,11 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 					}
 				}
 			}
+
+			state.enterPrecedingStatementContext();
+			const expStr = compileVariableDeclarationList(state, initializer);
+			result += state.exitPrecedingStatementContextAndJoin() + expStr; // + ";\n";
+
 			// if we can't convert to a simple for loop:
 			// if it has any internal function declarations, make sure to locally scope variables
 			if (getFirstMemberWithParameters(statementDescendants)) {
@@ -617,15 +609,11 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 					}
 				});
 			}
-
-			state.enterPrecedingStatementContext();
-			result += compileVariableDeclarationList(state, initializer);
-			initializerContext = state.exitPrecedingStatementContext();
 		} else if (ts.TypeGuards.isExpression(initializer)) {
 			state.enterPrecedingStatementContext();
 			const expStr = compileExpression(state, initializer);
 			initializerContext = state.exitPrecedingStatementContext();
-			result += safelyHandleExpressionsInForStatement(state, initializer, expStr, initializerContext) + ";\n";
+			result += safelyHandleExpressionsInForStatement(state, initializer, expStr, initializerContext, 0) + ";\n";
 		}
 	}
 	// order matters
@@ -652,7 +640,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 		cleanups.forEach(cleanup => cleanup());
 		if (incrementor && incrementorStr) {
 			console.log(`"${incrementorStr}"`, incrementorContext);
-			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!);
+			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!, 2);
 		}
 		state.popIndent();
 		result += state.indent + `end;\n`;
@@ -665,7 +653,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 		result += compileLoopBody(state, statement);
 		cleanups.forEach(cleanup => cleanup());
 		if (incrementor && incrementorStr) {
-			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!);
+			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!, 1);
 		}
 		state.popIndent();
 		result += state.indent + "end;\n";
@@ -679,7 +667,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	const exp = node.getExpression();
-	checkLoopClassExp(exp);
+	state.pushIdStack();
 	state.enterPrecedingStatementContext();
 	const expStr = compileExpression(state, exp);
 	let result = "";
@@ -703,5 +691,6 @@ export function compileWhileStatement(state: CompilerState, node: ts.WhileStatem
 		state.popIndent();
 		result += state.indent + `end;\n`;
 	}
+	state.popIdStack();
 	return result;
 }

@@ -49,6 +49,6 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		}
 	}
 	state.popIndent();
-	result += state.indent + `end\n`;
+	result += state.indent + `end;\n`;
 	return result;
 }
