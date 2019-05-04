@@ -10,6 +10,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
+import { joinIndentedLines } from "../utility";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;
@@ -40,7 +41,17 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 				last = new Array<string>();
 				parts.push(last);
 			}
-			last.push(compileExpression(state, element));
+			// lhsContext.push(state.indent + `return ${lhsStr};\n`);
+			// lhsStr = "(function()\n" + joinIndentedLines(lhsContext, 1) + state.indent + "end)()";
+			state.enterPrecedingStatementContext();
+			let expStr = compileExpression(state, element);
+			const context = state.exitPrecedingStatementContext();
+
+			if (context.length > 0) {
+				context.push(state.indent + `return ${expStr};\n`);
+				expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
+			}
+			last.push(expStr);
 			isInArray = true;
 		}
 	}

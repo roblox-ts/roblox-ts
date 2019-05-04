@@ -61,6 +61,58 @@ export function isSetToken(opKind: ts.ts.SyntaxKind) {
 	);
 }
 
+function compileBinaryLiteral(
+	state: CompilerState,
+	node: ts.BinaryExpression,
+	lhs: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
+	rhs: ts.Expression,
+) {
+	const names = new Array<string>();
+	const values = new Array<string>();
+	const preStatements = new Array<string>();
+	const postStatements = new Array<string>();
+
+	let rootId: string;
+	if (ts.TypeGuards.isIdentifier(rhs)) {
+		rootId = compileExpression(state, rhs);
+	} else {
+		rootId = state.getNewId();
+		preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+	}
+
+	getBindingData(
+		state,
+		names,
+		values,
+		preStatements,
+		postStatements,
+		lhs,
+		rootId,
+		getAccessorForBindingPatternType(rhs),
+	);
+
+	let parent = node.getParentOrThrow();
+
+	while (ts.TypeGuards.isParenthesizedExpression(parent)) {
+		parent = parent.getParent();
+	}
+
+	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
+		let result = "";
+		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
+		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		return result.replace(/;\n$/, ""); // terrible hack
+	} else {
+		preStatements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
+		concatNamesAndValues(state, names, values, false, declaration =>
+			state.pushPrecedingStatements(node, declaration),
+		);
+		postStatements.forEach(statementStr => state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"));
+		return rootId;
+	}
+}
+
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
 	const opToken = node.getOperatorToken();
 	const opKind = opToken.getKind();
@@ -75,71 +127,18 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		checkNonAny(rhs);
 	}
 
-	if (ts.TypeGuards.isObjectLiteralExpression(lhs)) {
-		console.log(lhs.getProperties().map(o => o.getText()));
-
-		const names = new Array<string>();
-		const values = new Array<string>();
-		const preStatements = new Array<string>();
-		const postStatements = new Array<string>();
-
-		let result = "";
-		let rootId: string;
-		if (ts.TypeGuards.isIdentifier(rhs)) {
-			rootId = compileExpression(state, rhs);
-		} else {
-			rootId = state.getNewId();
-			preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
-		}
-
-		getBindingData(
-			state,
-			names,
-			values,
-			preStatements,
-			postStatements,
-			lhs,
-			rootId,
-			getAccessorForBindingPatternType(rhs),
-		);
-
-		const parent = node.getParentOrThrow();
-		if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			result = result.replace(/;\n$/, ""); // terrible hack
-		} else {
-			preStatements.forEach(statementStr =>
-				state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"),
-			);
-			concatNamesAndValues(state, names, values, false, declaration =>
-				state.pushPrecedingStatements(node, declaration),
-			);
-			postStatements.forEach(statementStr =>
-				state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"),
-			);
-			result += state.indent + `return ${rootId};\n`;
-			return rootId;
-		}
-
-		return result;
-	}
-
 	// binding patterns
 	if (ts.TypeGuards.isArrayLiteralExpression(lhs)) {
-		const names = new Array<string>();
-		const values = new Array<string>();
-		const preStatements = new Array<string>();
-		const postStatements = new Array<string>();
-
-		let result = "";
-
 		const isFlatBinding = lhs
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
+
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
+			const names = new Array<string>();
+			const values = new Array<string>();
+			let result = "";
+
 			for (const element of lhs.getElements()) {
 				if (ts.TypeGuards.isIdentifier(element)) {
 					names.push(compileExpression(state, element));
@@ -150,45 +149,10 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			values.push(compileCallExpression(state, rhs, true));
 			concatNamesAndValues(state, names, values, false, declaration => (result += declaration), false, false);
 		} else {
-			let rootId: string;
-			if (ts.TypeGuards.isIdentifier(rhs)) {
-				rootId = compileExpression(state, rhs);
-			} else {
-				rootId = state.getNewId();
-				preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
-			}
-			getBindingData(
-				state,
-				names,
-				values,
-				preStatements,
-				postStatements,
-				lhs,
-				rootId,
-				getAccessorForBindingPatternType(rhs),
-			);
-
-			const parent = node.getParentOrThrow();
-			if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
-				preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-				concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-				postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-				result = result.replace(/;\n$/, ""); // terrible hack
-			} else {
-				preStatements.forEach(statementStr =>
-					state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"),
-				);
-				concatNamesAndValues(state, names, values, false, declaration =>
-					state.pushPrecedingStatements(node, declaration),
-				);
-				postStatements.forEach(statementStr =>
-					state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"),
-				);
-				result += state.indent + `return ${rootId};\n`;
-				return rootId;
-			}
+			return compileBinaryLiteral(state, node, lhs, rhs);
 		}
-		return result;
+	} else if (ts.TypeGuards.isObjectLiteralExpression(lhs)) {
+		return compileBinaryLiteral(state, node, lhs, rhs);
 	}
 
 	if (isSetToken(opKind)) {

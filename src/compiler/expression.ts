@@ -119,11 +119,15 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	state.enterPrecedingStatementContext();
 
 	let expStr: string;
-	const expression = node.getExpression();
+	let expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);
 	} else {
+		while (ts.TypeGuards.isParenthesizedExpression(expression)) {
+			expression = expression.getExpression();
+		}
+
 		expStr = compileExpression(state, expression);
 
 		// big set of rules for expression statements
@@ -143,7 +147,8 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 		}
 	}
 
-	return state.exitPrecedingStatementContextAndJoin() + state.indent + expStr + ";\n";
+	const result = state.exitPrecedingStatementContextAndJoin();
+	return expStr ? result + state.indent + expStr + ";\n" : result;
 }
 
 export function expressionModifiesVariable(
