@@ -37,10 +37,6 @@ export class CompilerState {
 		return currentContext;
 	}
 
-	public currentPrecedingStatementContextHasStatements(node: ts.Node) {
-		return this.getCurrentPrecedingStatementContext(node).length > 0;
-	}
-
 	public enterPrecedingStatementContext() {
 		const newContext = new Array<string>() as PrecedingStatementContext;
 		newContext.isPushed = false;

@@ -481,7 +481,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 	const condition = node.getCondition();
 	const incrementor = node.getIncrementor();
 
-	let localizations = "";
+	const localizations = new Array<string>();
 	const cleanups = new Array<() => void>();
 	let result = state.indent + "do\n";
 	state.pushIndent();
@@ -587,7 +587,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 						);
 						const alias = state.getNewId();
 						state.pushIndent();
-						localizations += state.indent + `local ${alias} = ${name};\n`;
+						localizations.push(`local ${alias} = ${name};\n`);
 						state.popIndent();
 
 						// don't leak
@@ -626,39 +626,28 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 		incrementorContext = state.exitPrecedingStatementContext();
 	}
 
-	if (conditionContext && conditionContext.length > 0) {
-		result += state.indent + `repeat\n`;
-		state.pushIndent();
-		result += state.indent + `do\n`;
-		state.pushIndent();
-		result += joinIndentedLines(conditionContext, 2);
+	const conditionContextHasStatements = conditionContext && conditionContext.length > 0;
+	result += state.indent + `while ${conditionContextHasStatements ? "true" : conditionStr} do\n`;
+	state.pushIndent();
+
+	if (conditionContextHasStatements) {
+		result += joinIndentedLines(conditionContext!, 1);
 		result += state.indent + `if not (${conditionStr}) then break; end;\n`;
-		if (localizations) {
-			result += "\t" + localizations;
-		}
-		result += compileLoopBody(state, statement);
-		cleanups.forEach(cleanup => cleanup());
-		if (incrementor && incrementorStr) {
-			console.log(`"${incrementorStr}"`, incrementorContext);
-			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!, 2);
-		}
-		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.popIndent();
-		result += state.indent + `until false;\n`;
-	} else {
-		result += state.indent + `while ${conditionStr} do\n`;
-		result += localizations;
-		state.pushIndent();
-		result += compileLoopBody(state, statement);
-		cleanups.forEach(cleanup => cleanup());
-		if (incrementor && incrementorStr) {
-			result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!, 1);
-		}
-		state.popIndent();
-		result += state.indent + "end;\n";
 	}
 
+	for (const localization of localizations) {
+		result += state.indent + localization;
+	}
+
+	result += compileLoopBody(state, statement);
+	cleanups.forEach(cleanup => cleanup());
+
+	if (incrementor && incrementorStr) {
+		result += safelyHandleExpressionsInForStatement(state, incrementor, incrementorStr, incrementorContext!, 1);
+	}
+
+	state.popIndent();
+	result += state.indent + "end;\n";
 	state.popIndent();
 	result += state.indent + `end;\n`;
 	state.popIdStack();
@@ -671,26 +660,25 @@ export function compileWhileStatement(state: CompilerState, node: ts.WhileStatem
 	state.enterPrecedingStatementContext();
 	const expStr = compileExpression(state, exp);
 	let result = "";
+	const context = state.exitPrecedingStatementContext();
+	const contextHasStatements = context.length > 0;
 
-	if (state.currentPrecedingStatementContextHasStatements(exp)) {
-		result += state.indent + `repeat\n`;
-		state.pushIndent();
-		result += state.indent + `do\n`;
-		state.pushIndent();
-		result += state.exitPrecedingStatementContextAndJoin(2);
+	// Did you know `while true do` loops are optimized by the Lua interpreter?
+	// It skips checking whether true is true (it's true!)
+
+	result += state.indent + `while ${contextHasStatements ? "true" : expStr} do\n`;
+	state.pushIndent();
+
+	if (contextHasStatements) {
+		result += joinIndentedLines(context, 1);
 		result += state.indent + `if not (${expStr}) then break; end;\n`;
-		result += compileLoopBody(state, node.getStatement());
-		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.popIndent();
-		result += state.indent + `until false;\n`;
-	} else {
-		result += state.indent + `while ${expStr} do\n`;
-		state.pushIndent();
-		result += compileLoopBody(state, node.getStatement());
-		state.popIndent();
-		result += state.indent + `end;\n`;
 	}
+
+	result += compileLoopBody(state, node.getStatement());
+	state.popIndent();
+
+	result += state.indent + `end;\n`;
+
 	state.popIdStack();
 	return result;
 }

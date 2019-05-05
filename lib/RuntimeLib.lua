@@ -671,7 +671,7 @@ function TS.array_join(list, separator)
 			result[i] = tostring(list[i])
 		end
 	end
-	return table_concat(result, separator or ", ")
+	return table_concat(result, separator or ",")
 end
 
 function TS.array_find(list, callback)

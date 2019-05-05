@@ -352,10 +352,9 @@ export function compileList(
 		state.enterPrecedingStatementContext();
 		const expStr = compile(state, arg);
 
-		const currentContextHasStatements = state.currentPrecedingStatementContextHasStatements(arg);
 		const currentContext = state.exitPrecedingStatementContext();
 
-		if (currentContextHasStatements) {
+		if (currentContext.length > 0) {
 			lastContextualIndex = i;
 			cached[i] = currentContext;
 		}

@@ -10,8 +10,8 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 	const expression = node.getExpression();
 	state.enterPrecedingStatementContext();
 	const rawExpStr = compileExpression(state, expression);
-	const hasStatements = state.currentPrecedingStatementContextHasStatements(expression);
 	const expressionContext = state.exitPrecedingStatementContext();
+	const hasStatements = expressionContext.length > 0;
 
 	if (hasStatements) {
 		preResult += expressionContext.join("");

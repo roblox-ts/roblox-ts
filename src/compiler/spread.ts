@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { checkNonAny, compileCallExpression, compileExpression } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayType,
@@ -26,17 +26,20 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
+	// // const context = new Array<Array<PrecedingStatementContext> | PrecedingStatementContext>();
+	const contexts = new Array<PrecedingStatementContext>();
 
 	for (let i = 0; i < elements.length; i++) {
 		const element = elements[i];
 		if (ts.TypeGuards.isSpreadElement(element)) {
 			state.enterPrecedingStatementContext();
-			let expStr = compileSpreadExpressionOrThrow(state, element.getExpression());
+			const expStr = compileSpreadExpressionOrThrow(state, element.getExpression());
 			const context = state.exitPrecedingStatementContext();
 
 			if (context.length > 0) {
-				context.push(state.indent + `return ${expStr};\n`);
-				expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
+				contexts[i] = context;
+				// context.push(state.indent + `return ${expStr};\n`);
+				// expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
 			}
 			parts.push(expStr);
 			isInArray = false;

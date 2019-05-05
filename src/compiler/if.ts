@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileStatement } from ".";
 import { CompilerState } from "../CompilerState";
+import { joinIndentedLines } from "../utility";
 
 export function compileIfStatement(state: CompilerState, node: ts.IfStatement) {
 	let result = "";
@@ -19,17 +20,18 @@ export function compileIfStatement(state: CompilerState, node: ts.IfStatement) {
 		state.pushIndent();
 		const exp = elseStatement.getExpression();
 		const elseIfExpression = compileExpression(state, exp);
+		const context = state.exitPrecedingStatementContext();
 
-		if (state.currentPrecedingStatementContextHasStatements(exp)) {
+		if (context.length > 0) {
 			state.popIndent();
 			result += state.indent + `else\n`;
 			state.pushIndent();
 			numBlocks++;
-			result += state.exitPrecedingStatementContextAndJoin();
+			result += joinIndentedLines(context);
 			result += state.indent + `if ${elseIfExpression} then\n`;
 		} else {
 			state.popIndent();
-			state.exitPrecedingStatementContext();
+
 			result += state.indent + `elseif ${elseIfExpression} then\n`;
 		}
 
