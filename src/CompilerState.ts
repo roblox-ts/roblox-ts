@@ -37,6 +37,20 @@ export class CompilerState {
 		return currentContext;
 	}
 
+	public isTopPrecedingStatementPushed() {
+		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
+			const context = this.precedingStatementContexts[i];
+
+			if (context.isPushed) {
+				return true;
+			} else if (context.length > 0) {
+				console.log(context.length, context);
+				break;
+			}
+		}
+		return false;
+	}
+
 	public enterPrecedingStatementContext() {
 		const newContext = new Array<string>() as PrecedingStatementContext;
 		newContext.isPushed = false;

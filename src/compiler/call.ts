@@ -267,6 +267,8 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 
 const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("add", (params, state, subExp) => {
+		const context = state.getCurrentPrecedingStatementContext(subExp);
+		const wasPushed = state.isTopPrecedingStatementPushed();
 		const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
 		const [key] = compileCallArguments(state, params);
 		const expStr = `${accessPath}[${key}] = true`;
@@ -274,10 +276,7 @@ const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 		if (getPropertyCallParentIsExpressionStatement(subExp)) {
 			return expStr;
 		} else {
-			const context = state.getCurrentPrecedingStatementContext(subExp);
-			const isPushed =
-				context.isPushed || (ts.TypeGuards.isIdentifier(subExp) && !isIdentifierDefinedInLet(subExp));
-
+			const isPushed = wasPushed || (ts.TypeGuards.isIdentifier(subExp) && !isIdentifierDefinedInLet(subExp));
 			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
 			context.isPushed = isPushed;
 			return accessPath;

@@ -66,7 +66,6 @@ function compileSetMapConstructorHelper(
 				1,
 			);
 		}
-
 		return id;
 	}
 }

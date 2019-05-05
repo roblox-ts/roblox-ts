@@ -128,6 +128,7 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 			expression = expression.getExpression();
 		}
 
+		console.log(expression.getKindName(), expression.getText());
 		expStr = compileExpression(state, expression);
 
 		// big set of rules for expression statements
@@ -181,7 +182,7 @@ export function appendDeclarationIfMissing(
 	possibleExpressionStatement: ts.Node,
 	compiledNode: string,
 ) {
-	if (ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
+	if (compiledNode.match(/^_d+$/) || ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
 		return "local _ = " + compiledNode;
 	} else {
 		return compiledNode;
