@@ -22,7 +22,7 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	return false;
 }
 
-// TODO: Make this compile properly
+// TODO: Make this compile without IIFE's
 export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
@@ -30,7 +30,15 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 	for (let i = 0; i < elements.length; i++) {
 		const element = elements[i];
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			parts.push(compileSpreadExpressionOrThrow(state, element.getExpression()));
+			state.enterPrecedingStatementContext();
+			let expStr = compileSpreadExpressionOrThrow(state, element.getExpression());
+			const context = state.exitPrecedingStatementContext();
+
+			if (context.length > 0) {
+				context.push(state.indent + `return ${expStr};\n`);
+				expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
+			}
+			parts.push(expStr);
 			isInArray = false;
 		} else {
 			checkNonAny(element);

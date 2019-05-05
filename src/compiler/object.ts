@@ -60,14 +60,15 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			state.enterPrecedingStatementContext();
 			let lhsStr = compileExpression(state, lhs);
 			const lhsContext = state.exitPrecedingStatementContext();
-			state.enterPrecedingStatementContext();
-			let rhsStr = compileExpression(state, rhs);
-			const rhsContext = state.exitPrecedingStatementContext();
 
 			if (lhsContext.length > 0) {
 				lhsContext.push(state.indent + `return ${lhsStr};\n`);
 				lhsStr = "(function()\n" + joinIndentedLines(lhsContext, 1) + state.indent + "end)()";
 			}
+
+			state.enterPrecedingStatementContext();
+			let rhsStr = compileExpression(state, rhs);
+			const rhsContext = state.exitPrecedingStatementContext();
 
 			if (rhsContext.length > 0) {
 				rhsContext.push(state.indent + `return ${rhsStr};\n`);
