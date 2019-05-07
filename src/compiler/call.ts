@@ -77,7 +77,7 @@ export function getNonNull<T extends ts.Node>(exp: T): T {
 function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
-	for (let _ = 0; _ < climb; _++) {
+	for (let i = 0; i < climb; i++) {
 		exp = getNonNull(exp.getParent());
 	}
 
@@ -107,12 +107,8 @@ export const compileMapSetElement = new Map<"set" | "map", (state: CompilerState
 	["set", compileSetElement],
 ]);
 
-function getIsExpressionStatement(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>, parent: ts.Node) {
-	return !ts.TypeGuards.isNewExpression(subExp) && ts.TypeGuards.isExpressionStatement(parent);
-}
-
 function getPropertyCallParentIsExpressionStatement(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>) {
-	return getIsExpressionStatement(subExp, getLeftHandSideParent(subExp));
+	return ts.TypeGuards.isExpressionStatement(getLeftHandSideParent(subExp));
 }
 
 type SimpleReplaceFunction = (
@@ -149,168 +145,179 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
 
-const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("pop", accessPathWrap(accessPath => `table.remove(${accessPath})`))
-	.set("shift", accessPathWrap(accessPath => `table.remove(${accessPath}, 1)`))
+const isMapOrSetOrArrayEmpty: ReplaceFunction = (params, state, subExp) =>
+	appendDeclarationIfMissing(
+		state,
+		getLeftHandSideParent(subExp),
+		`(next(${compileExpression(state, subExp)}) == nil)`,
+	);
 
-	.set("join", (params, state, subExp) => {
-		const arrayType = subExp.getType().getArrayType()!;
-		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
+// const accessPath = compileExpression(state, subExp);
+// const [key] = compileCallArguments(state, params);
+// const expStr = `${accessPath}[${key}] = nil`;
+// if (getPropertyCallParentIsExpressionStatement(subExp)) {
+// 			return expStr;
+// 		} else {
+// 			const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] ~= nil`, 1);
+// 			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+// 			state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+// 			return id;
+// 		}
 
-		if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
-			const paramStr = params[0] ? compileCallArguments(state, params)[0] : `","`;
-			const accessPath = compileExpression(state, subExp);
-			return `table.concat(${accessPath}, ${paramStr})`;
-		}
-	})
-
-	.set("push", (params, state, subExp) => {
-		const { length } = params;
-		if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = compileExpression(state, subExp);
-			const [paramStr] = compileCallArguments(state, params);
-
-			if (ts.TypeGuards.isIdentifier(subExp)) {
-				return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
+const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	[
+		"pop",
+		(params, state, subExp) => {
+			const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
+			const expStr = `${accessPath}[#${accessPath}] = nil`;
+			if (getPropertyCallParentIsExpressionStatement(subExp)) {
+				return expStr;
 			} else {
-				return `table.insert(${accessPath}, ${paramStr})`;
+				const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[#${accessPath}]`, 1);
+				state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+				state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+				return id;
 			}
-		}
-	})
+		},
+	],
 
-	.set("unshift", (params, state, subExp) => {
-		const length = params.length;
-		if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = compileExpression(state, subExp);
-			const [paramStr] = compileCallArguments(state, params);
-			return `table.insert(${accessPath}, 1, ${paramStr})`;
-		}
-	})
+	["shift", accessPathWrap(accessPath => `table.remove(${accessPath}, 1)`)],
 
-	.set(
+	[
+		"join",
+		(params, state, subExp) => {
+			const arrayType = subExp.getType().getArrayType()!;
+			const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
+
+			if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
+				const paramStr = params[0] ? compileCallArguments(state, params)[0] : `","`;
+				const accessPath = compileExpression(state, subExp);
+				return `table.concat(${accessPath}, ${paramStr})`;
+			}
+		},
+	],
+
+	[
+		"push",
+		(params, state, subExp) => {
+			const { length } = params;
+			if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
+				const accessPath = compileExpression(state, subExp);
+				const [paramStr] = compileCallArguments(state, params);
+
+				if (ts.TypeGuards.isIdentifier(subExp)) {
+					return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
+				} else {
+					return `table.insert(${accessPath}, ${paramStr})`;
+				}
+			}
+		},
+	],
+
+	[
+		"unshift",
+		(params, state, subExp) => {
+			const length = params.length;
+			if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
+				const accessPath = compileExpression(state, subExp);
+				const [paramStr] = compileCallArguments(state, params);
+				return `table.insert(${accessPath}, 1, ${paramStr})`;
+			}
+		},
+	],
+
+	[
 		"insert",
 		accessPathWrap((accessPath, params, state) => {
 			const [indexParamStr, valueParamStr] = compileCallArguments(state, params);
 			return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
 		}),
-	)
+	],
 
-	.set(
+	[
 		"remove",
 		accessPathWrap((accessPath, params, state) => {
 			const [indexParamStr] = compileCallArguments(state, params);
 			return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
 		}),
-	)
+	],
 
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
+	["isEmpty", isMapOrSetOrArrayEmpty],
+]);
 
-const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("get", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const [key] = compileCallArguments(state, params);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `${accessPath}[${key}]`);
-	})
+const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
+	const wasPushed = state.isTopPrecedingStatementPushed();
+	let root: ts.Expression = subExp;
 
-	.set("set", (params, state, subExp) => {
-		const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
-		const [key, value] = compileCallArguments(state, params);
-		const expStr = `${accessPath}[${key}] = ${value}`;
-
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			return expStr;
-		} else {
-			const context = state.getCurrentPrecedingStatementContext(subExp);
-			const isPushed =
-				context.isPushed || (ts.TypeGuards.isIdentifier(subExp) && !isIdentifierDefinedInLet(subExp));
-
-			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-			context.isPushed = isPushed;
-			return accessPath;
+	while (ts.TypeGuards.isCallExpression(root)) {
+		const exp = root.getExpression();
+		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			root = exp.getExpression();
 		}
-	})
+	}
 
-	.set("delete", (params, state, subExp) => {
-		const accessPath = compileExpression(state, subExp);
-		const [key] = compileCallArguments(state, params);
-		const expStr = `${accessPath}[${key}] = nil`;
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			return expStr;
-		} else {
-			const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] ~= nil`, 1);
-			const context = state.getCurrentPrecedingStatementContext(subExp);
-			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-			context.isPushed = true;
-			return id;
-		}
-	})
+	const accessPath = getReadableExpressionName(state, root, compileExpression(state, subExp));
+	const [key, value] = compileCallArguments(state, params);
+	const expStr = `${accessPath}[${key}] = ${value || "true"}`;
 
-	.set("has", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const [key] = compileCallArguments(state, params);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] ~= nil)`);
-	})
+	if (getPropertyCallParentIsExpressionStatement(subExp)) {
+		return expStr;
+	} else {
+		// const expressionType = expNode.getType();
+		// if (inheritsFrom(expressionType, "MapConstructor")) {
+		// if (inheritsFrom(expressionType, "SetConstructor")) {
+		const isPushed =
+			wasPushed ||
+			ts.TypeGuards.isNewExpression(root) ||
+			(ts.TypeGuards.isIdentifier(root) && !isIdentifierDefinedInLet(root));
+		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+		console.log(isPushed, accessPath);
+		state.getCurrentPrecedingStatementContext(subExp).isPushed = isPushed;
+		return accessPath;
+	}
+};
 
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
+const hasKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
+	const accessPath = wrapExpressionIfNeeded(state, subExp, true);
+	const [key] = compileCallArguments(state, params);
+	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] ~= nil)`);
+};
 
-const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("add", (params, state, subExp) => {
-		const context = state.getCurrentPrecedingStatementContext(subExp);
-		const wasPushed = state.isTopPrecedingStatementPushed();
-		const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
-		const [key] = compileCallArguments(state, params);
-		const expStr = `${accessPath}[${key}] = true`;
+const deleteKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
+	const accessPath = compileExpression(state, subExp);
+	const [key] = compileCallArguments(state, params);
+	const expStr = `${accessPath}[${key}] = nil`;
+	if (getPropertyCallParentIsExpressionStatement(subExp)) {
+		return expStr;
+	} else {
+		const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] ~= nil`, 1);
+		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+		state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+		return id;
+	}
+};
 
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			return expStr;
-		} else {
-			const isPushed = wasPushed || (ts.TypeGuards.isIdentifier(subExp) && !isIdentifierDefinedInLet(subExp));
-			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-			context.isPushed = isPushed;
-			return accessPath;
-		}
-	})
+const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["set", setKeyOfMapOrSet],
+	["delete", deleteKeyOfMapOrSet],
+	["has", hasKeyOfMapOrSet],
+	["isEmpty", isMapOrSetOrArrayEmpty],
+	[
+		"get",
+		(params, state, subExp) => {
+			const accessPath = wrapExpressionIfNeeded(state, subExp, true);
+			const [key] = compileCallArguments(state, params);
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `${accessPath}[${key}]`);
+		},
+	],
+]);
 
-	.set("delete", (params, state, subExp) => {
-		const accessPath = compileExpression(state, subExp);
-		const [key] = compileCallArguments(state, params);
-		const expStr = `${accessPath}[${key}] = nil`;
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			return expStr;
-		} else {
-			const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] == true`, 1);
-			const context = state.getCurrentPrecedingStatementContext(subExp);
-			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-			context.isPushed = true;
-			return id;
-		}
-	})
-
-	.set("has", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const [key] = compileCallArguments(state, params);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] == true)`);
-	})
-
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
+const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["add", setKeyOfMapOrSet],
+	["delete", deleteKeyOfMapOrSet],
+	["has", hasKeyOfMapOrSet],
+	["isEmpty", isMapOrSetOrArrayEmpty],
+]);
 
 const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("isEmpty", (params, state, subExp) =>
 	appendDeclarationIfMissing(
