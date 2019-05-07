@@ -13,11 +13,11 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
 import { safeLuaIndex } from "../utility";
 
-export function isIdentifierDefinedInLet(exp: ts.Identifier) {
+export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
 	for (const def of exp.getDefinitions()) {
 		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
-		if (definition && definition.getDeclarationKind() === ts.VariableDeclarationKind.Let) {
+		if (definition && definition.getDeclarationKind() === ts.VariableDeclarationKind.Const) {
 			return true;
 		}
 	}

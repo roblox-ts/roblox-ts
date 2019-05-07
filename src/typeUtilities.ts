@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInLet } from "./compiler";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
 import { PrecedingStatementContext } from "./CompilerState";
 
 export const RBX_SERVICES: Array<string> = [
@@ -307,7 +307,7 @@ export function shouldPushToPrecedingStatement(
 		!argContext.isPushed &&
 		!isNumericLiteralExpression(arg) &&
 		!ts.TypeGuards.isStringLiteral(arg) &&
-		(!ts.TypeGuards.isIdentifier(arg) || isIdentifierDefinedInLet(arg))
+		(!ts.TypeGuards.isIdentifier(arg) || !isIdentifierDefinedInConst(arg))
 	);
 }
 

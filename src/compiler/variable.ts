@@ -18,11 +18,6 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		decKind = parent.getDeclarationKind();
 	}
 
-	let parentName = "";
-	if (isExported) {
-		parentName = state.getExportContextName(grandParent);
-	}
-
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 		const isFlatBinding = lhs
 			.getElements()
@@ -64,6 +59,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		if (rhs) {
 			const value = compileExpression(state, rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
+				const parentName = state.getExportContextName(grandParent);
 				result += state.indent + `${parentName}.${name} = ${value};\n`;
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
@@ -124,11 +120,9 @@ export function compileVariableDeclarationList(state: CompilerState, node: ts.Va
 		);
 	}
 
-	let result = "";
-	for (const declaration of node.getDeclarations()) {
-		result += compileVariableDeclaration(state, declaration);
-	}
-	return result;
+	return node
+		.getDeclarations()
+		.reduce((result, declaration) => result + compileVariableDeclaration(state, declaration), "");
 }
 
 export function compileVariableStatement(state: CompilerState, node: ts.VariableStatement) {

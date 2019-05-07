@@ -31,10 +31,9 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
-	// TODO: Decide whether to add this here:
-	// while (exp && ts.TypeGuards.isParenthesizedExpression(exp)) {
-	// 	exp = exp.getExpression();
-	// }
+	while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
+		exp = exp.getExpression();
+	}
 
 	// TODO: An optimization I would like to perform looks like this:
 	/*
@@ -336,12 +335,17 @@ export function compileAccessorDeclaration(
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	const potentialNameNode = node.getChildAtIndex(1);
 
-	if (ts.TypeGuards.isFunctionExpression(node) && ts.TypeGuards.isIdentifier(potentialNameNode)) {
+	if (
+		ts.TypeGuards.isFunctionExpression(node) &&
+		ts.TypeGuards.isIdentifier(potentialNameNode) &&
+		potentialNameNode.findReferences()[0].getReferences().length > 1
+	) {
 		const name = compileExpression(state, potentialNameNode);
 		const [id] = state.pushPrecedingStatementToNewIds(node, "", 1);
 		state.pushPrecedingStatements(node, state.indent + `do\n`);
 		state.pushIndent();
-		state.pushPrecedingStatements(node, compileFunction(state, node, `local ${name}`, node.getBody()));
+		state.pushPrecedingStatements(node, state.indent + `local ${name};\n`);
+		state.pushPrecedingStatements(node, compileFunction(state, node, `${name}`, node.getBody()));
 		state.pushPrecedingStatements(node, state.indent + `${id} = ${name};\n`);
 		state.popIndent();
 		state.pushPrecedingStatements(node, state.indent + `end;\n`);

@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getReadableExpressionName, isIdentifierDefinedInLet } from "./indexed";
+import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -269,7 +269,8 @@ const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
 		const isPushed =
 			wasPushed ||
 			ts.TypeGuards.isNewExpression(root) ||
-			(ts.TypeGuards.isIdentifier(root) && !isIdentifierDefinedInLet(root));
+			(ts.TypeGuards.isIdentifier(root) && isIdentifierDefinedInConst(root));
+
 		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
 		console.log(isPushed, accessPath);
 		state.getCurrentPrecedingStatementContext(subExp).isPushed = isPushed;
