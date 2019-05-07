@@ -43,7 +43,6 @@ export function removeBalancedParenthesisFromStringBorders(str: string) {
 			inOpenParens = parenDepth;
 		}
 	}
-
 	const index = Math.min(inOpenParens || 0, outCloseParens || 0);
 	return index === 0 ? str : str.slice(index, -index);
 }
@@ -184,4 +183,21 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 		}
 	}
 	return false;
+}
+
+/** Skips over Null expressions */
+export function getNonNullExpression<T extends ts.Node>(exp: T): T {
+	while (ts.TypeGuards.isNonNullExpression(exp)) {
+		exp = (exp.getExpression() as unknown) as T;
+	}
+
+	return exp;
+}
+
+/** Skips over Null/Parenthesis expressions */
+export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp: T): T {
+	while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
+		exp = (exp.getExpression() as unknown) as T;
+	}
+	return exp;
 }

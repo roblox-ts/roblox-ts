@@ -11,6 +11,7 @@ export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
+	public declarationContext = new Map<ts.Node, string>();
 
 	public currentConditionalContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
@@ -44,7 +45,7 @@ export class CompilerState {
 			if (context.isPushed) {
 				return true;
 			} else if (context.length > 0) {
-				console.log(context.length, context);
+				// console.log(context.length, context);
 				break;
 			}
 		}

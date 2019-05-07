@@ -57,6 +57,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const name = lhs.getText();
 		checkReserved(name, lhs, true);
 		if (rhs) {
+			state.declarationContext.set(rhs, `${name} = `);
 			const value = compileExpression(state, rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				const parentName = state.getExportContextName(grandParent);

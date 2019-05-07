@@ -21,6 +21,12 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	let id: string;
 	const currentConditionalContext = state.currentConditionalContext;
 
+	// const parent = node.getParent();
+	console.log([...state.declarationContext.keys()].map(key => key.getKindName() + " " + key.getText()));
+	console.log(0, node.getKindName(), node.getText(), state.declarationContext.get(node));
+
+	const declaration = state.declarationContext.get(node);
+
 	if (currentConditionalContext === "") {
 		[id] = state.pushPrecedingStatementToNewIds(node, "", 1);
 		state.currentConditionalContext = id;
@@ -36,7 +42,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
 
 	if (id !== whenTrueStr) {
-		state.pushPrecedingStatements(whenTrue, state.indent + `${id} = ${whenTrueStr};\n`);
+		state.pushPrecedingStatements(whenTrue, state.indent + `${declaration || `${id} = `}${whenTrueStr};\n`);
 	}
 
 	state.popIndent();
@@ -44,7 +50,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.pushIndent();
 	const whenFalseStr = unwrapEndParens(compileExpression(state, whenFalse));
 	if (id !== whenFalseStr) {
-		state.pushPrecedingStatements(whenFalse, state.indent + `${id} = ${whenFalseStr};\n`);
+		state.pushPrecedingStatements(whenFalse, state.indent + `${declaration || `${id} = `}${whenFalseStr};\n`);
 	}
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
@@ -53,5 +59,6 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		state.currentConditionalContext = "";
 	}
 	state.getCurrentPrecedingStatementContext(node).isPushed = true;
+	state.declarationContext.delete(node);
 	return id;
 }

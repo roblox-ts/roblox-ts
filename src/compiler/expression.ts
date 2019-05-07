@@ -128,7 +128,7 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 			expression = expression.getExpression();
 		}
 
-		console.log(expression.getKindName(), expression.getText());
+		// console.log(expression.getKindName(), expression.getText());
 		expStr = compileExpression(state, expression);
 
 		// big set of rules for expression statements

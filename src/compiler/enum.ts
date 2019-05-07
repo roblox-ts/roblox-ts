@@ -26,7 +26,7 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		checkReserved(memberName, member.getNameNode());
 		const memberValue = member.getValue();
 		const safeIndex = safeLuaIndex(name, memberName);
-		console.log(typeof memberValue);
+		// console.log(typeof memberValue);
 		if (typeof memberValue === "string") {
 			result += state.indent + `${safeIndex} = "${memberValue}";\n`;
 		} else if (typeof memberValue === "number") {

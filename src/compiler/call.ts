@@ -18,6 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
+import { getNonNullExpression, getNonNullUnParenthesizedExpression } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
@@ -65,47 +66,15 @@ function wrapExpressionIfNeeded(
 	}
 }
 
-/** Skips over Null expressions */
-export function getNonNull<T extends ts.Node>(exp: T): T {
-	while (ts.TypeGuards.isNonNullExpression(exp)) {
-		exp = (exp.getExpression() as unknown) as T;
-	}
-
-	return exp;
-}
-
 function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
 	for (let i = 0; i < climb; i++) {
-		exp = getNonNull(exp.getParent());
+		exp = getNonNullUnParenthesizedExpression(exp.getParent());
 	}
 
 	return exp;
 }
-
-function compileMapElement(state: CompilerState, element: ts.Expression) {
-	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
-		const [key, value] = compileCallArguments(state, element.getElements());
-		return state.indent + `[${key}] = ${value};\n`;
-	} else {
-		throw new CompilerError(
-			"Bad arguments to Map constructor",
-			element,
-			CompilerErrorType.BadBuiltinConstructorCall,
-		);
-	}
-}
-
-function compileSetElement(state: CompilerState, element: ts.Expression) {
-	const [key] = compileCallArguments(state, [element]);
-	return state.indent + `[${key}] = true;\n`;
-}
-
-export const compileMapSetElement = new Map<"set" | "map", (state: CompilerState, element: ts.Expression) => string>([
-	["map", compileMapElement],
-	["set", compileSetElement],
-]);
 
 function getPropertyCallParentIsExpressionStatement(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>) {
 	return ts.TypeGuards.isExpressionStatement(getLeftHandSideParent(subExp));
@@ -272,8 +241,8 @@ const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
 			(ts.TypeGuards.isIdentifier(root) && isIdentifierDefinedInConst(root));
 
 		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-		console.log(isPushed, accessPath);
 		state.getCurrentPrecedingStatementContext(subExp).isPushed = isPushed;
+
 		return accessPath;
 	}
 };
@@ -565,7 +534,7 @@ export function getPropertyAccessExpressionType(
 }
 
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
-	const expression = getNonNull(node.getExpression());
+	const expression = getNonNullExpression(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new CompilerError(
 			"Expected PropertyAccessExpression",
@@ -576,7 +545,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	checkApiAccess(state, expression.getNameNode());
 
-	const subExp = getNonNull(expression.getExpression());
+	const subExp = getNonNullExpression(expression.getExpression());
 	const property = expression.getName();
 	const params = node.getArguments() as Array<ts.Expression>;
 

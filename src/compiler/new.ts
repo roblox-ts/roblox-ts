@@ -4,7 +4,30 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
 import { suggest } from "../utility";
-import { compileMapSetElement } from "./call";
+import { compileCallArguments } from "./call";
+
+function compileMapElement(state: CompilerState, element: ts.Expression) {
+	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
+		const [key, value] = compileCallArguments(state, element.getElements());
+		return `[${key}] = ${value};\n`;
+	} else {
+		throw new CompilerError(
+			"Bad arguments to Map constructor",
+			element,
+			CompilerErrorType.BadBuiltinConstructorCall,
+		);
+	}
+}
+
+function compileSetElement(state: CompilerState, element: ts.Expression) {
+	const [key] = compileCallArguments(state, [element]);
+	return `[${key}] = true;\n`;
+}
+
+const compileMapSetElement = new Map<"set" | "map", (state: CompilerState, element: ts.Expression) => string>([
+	["map", compileMapElement],
+	["set", compileSetElement],
+]);
 
 function compileSetMapConstructorHelper(
 	state: CompilerState,
@@ -48,10 +71,13 @@ function compileSetMapConstructorHelper(
 					const context = state.exitPrecedingStatementContext();
 					if (context.length > 0) {
 						hasContext = true;
+
+						// console.log(state.declarationContext.get(node));
+
 						id = state.pushPrecedingStatementToNewIds(node, "{}", 1)[0];
 						state.pushPrecedingStatements(node, ...lines.map(current => id + current));
 						state.pushPrecedingStatements(node, ...context);
-						state.pushPrecedingStatements(node, id + line);
+						state.pushPrecedingStatements(node, state.indent + id + line);
 					} else {
 						lines.push(line);
 					}
@@ -62,7 +88,9 @@ function compileSetMapConstructorHelper(
 		if (!hasContext) {
 			[id] = state.pushPrecedingStatementToNewIds(
 				node,
-				lines.reduce((result, line) => result + "\t" + line, lines.length > 0 ? "{\n" : "{") + "}",
+				lines.reduce((result, line) => result + state.indent + "\t" + line, lines.length > 0 ? "{\n" : "{") +
+					state.indent +
+					"}",
 				1,
 			);
 		}

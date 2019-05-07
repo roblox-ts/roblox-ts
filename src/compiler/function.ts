@@ -12,6 +12,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { getNonNullUnParenthesizedExpression } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -31,10 +32,7 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
-	while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
-		exp = exp.getExpression();
-	}
-
+	exp = getNonNullUnParenthesizedExpression(exp);
 	// TODO: An optimization I would like to perform looks like this:
 	/*
 	local _0;
