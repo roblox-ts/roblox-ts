@@ -2,6 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { isStringType } from "../typeUtilities";
+import { compileList } from "./call";
 
 export function compileBooleanLiteral(state: CompilerState, node: ts.BooleanLiteral) {
 	return node.getLiteralValue() === true ? "true" : "false";
@@ -45,7 +46,30 @@ export function compileStringLiteral(state: CompilerState, node: ts.StringLitera
 }
 
 export function compileTemplateExpression(state: CompilerState, node: ts.TemplateExpression) {
-	const bin = new Array<string>();
+	const followingStrs = new Map<ts.Expression, string>();
+
+	const bin = compileList(
+		state,
+		node
+			.getTemplateSpans()
+			.filter(span => ts.TypeGuards.isTemplateSpan(span))
+			.map(span => {
+				const exp = span.getExpression();
+				const literal = span.getLiteral();
+				const literalStr = sanitizeTemplate(
+					literal.getText().slice(1, ts.TypeGuards.isTemplateMiddle(literal) ? -2 : -1),
+				);
+
+				if (literalStr.length > 0) {
+					followingStrs.set(exp, ` .. "${literalStr}"`);
+				}
+				return exp;
+			}),
+		(_, exp) => {
+			const expStr = compileExpression(state, exp);
+			return isStringType(exp.getType()) ? expStr : `tostring(${expStr})` + (followingStrs.get(exp) || "");
+		},
+	);
 
 	const headText = sanitizeTemplate(
 		node
@@ -53,33 +77,9 @@ export function compileTemplateExpression(state: CompilerState, node: ts.Templat
 			.getText()
 			.slice(1, -2),
 	);
+
 	if (headText.length > 0) {
-		bin.push(`"${headText}"`);
-	}
-
-	for (const span of node.getTemplateSpans()) {
-		if (ts.TypeGuards.isTemplateSpan(span)) {
-			const exp = span.getExpression();
-
-			const literal = span.getLiteral();
-			let literalStr = literal.getText();
-			if (ts.TypeGuards.isTemplateMiddle(literal)) {
-				literalStr = literalStr.slice(1, -2);
-			} else {
-				literalStr = literalStr.slice(1, -1);
-			}
-			literalStr = sanitizeTemplate(literalStr);
-
-			const expStr = compileExpression(state, exp);
-			if (isStringType(exp.getType())) {
-				bin.push(expStr);
-			} else {
-				bin.push(`tostring(${expStr})`);
-			}
-			if (literalStr.length > 0) {
-				bin.push(`"${literalStr}"`);
-			}
-		}
+		bin.unshift(`"${headText}"`);
 	}
 
 	return bin.join(" .. ");
