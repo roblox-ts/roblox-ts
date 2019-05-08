@@ -145,7 +145,6 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const node = getLeftHandSideParent(subExp, 2);
 				const declaration = state.declarationContext.get(node);
 				let id: string;
-				console.log(8, node.getKindName(), node.getText());
 				if (declaration && declaration.isIdentifier) {
 					id = declaration.set;
 					state.pushPrecedingStatements(

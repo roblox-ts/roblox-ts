@@ -53,7 +53,6 @@ export class CompilerState {
 			if (context.isPushed) {
 				return true;
 			} else if (context.length > 0) {
-				// console.log(context.length, context);
 				break;
 			}
 		}
@@ -63,12 +62,10 @@ export class CompilerState {
 	public enterPrecedingStatementContext() {
 		const newContext = new Array<string>() as PrecedingStatementContext;
 		newContext.isPushed = false;
-		// console.log("context:", this.precedingStatementContexts.length + 1, this.precedingStatementContexts);
 		return this.precedingStatementContexts.push(newContext as PrecedingStatementContext);
 	}
 
 	public exitPrecedingStatementContext() {
-		// console.log("context:", this.precedingStatementContexts.length - 1, this.precedingStatementContexts);
 		return this.precedingStatementContexts.pop()!;
 	}
 

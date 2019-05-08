@@ -98,9 +98,6 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 		const { expStr } = expData;
 
 		if (isNonStatement) {
-			console.log([...state.declarationContext.keys()].map(key => key.getKindName() + " " + key.getText()));
-			console.log(1, node.getKindName(), node.getText(), state.declarationContext.get(node));
-
 			const declaration = state.declarationContext.get(node);
 			let id: string;
 			if (declaration && (declaration.isIdentifier || expData.isIdentifier) && declaration.set !== "return") {

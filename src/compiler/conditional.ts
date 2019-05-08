@@ -22,10 +22,6 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	let id: string | undefined;
 	const currentConditionalContext = state.currentConditionalContext;
 
-	// const parent = node.getParent();
-	console.log([...state.declarationContext.keys()].map(key => key.getKindName() + " " + key.getText()));
-	console.log(0, node.getKindName(), node.getText(), state.declarationContext.get(node));
-
 	const declaration = state.declarationContext.get(node);
 
 	const condition = node.getCondition();

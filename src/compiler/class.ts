@@ -221,7 +221,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					});
 					const expStr = compileExpression(state, initializer);
 					extraInitializers.push(...state.exitPrecedingStatementContext());
-					console.log(propStr, expStr);
 					if (state.declarationContext.delete(initializer)) {
 						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
 					}

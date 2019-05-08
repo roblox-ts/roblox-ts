@@ -194,7 +194,6 @@ export function getBindingData(
 ) {
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	let childIndex = 1;
-	// console.log(bindingPattern.getKindName(), bindingPattern.getText());
 
 	for (const item of bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
 		/* istanbul ignore else */

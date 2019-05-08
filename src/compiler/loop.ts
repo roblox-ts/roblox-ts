@@ -426,7 +426,6 @@ function safelyHandleExpressionsInForStatement(
 	context: PrecedingStatementContext,
 	indentation: number,
 ) {
-	// console.log(context.isPushed, ":", incrementorStr);
 	return (
 		joinIndentedLines(context, indentation) +
 		state.indent +
