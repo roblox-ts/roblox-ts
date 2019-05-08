@@ -55,11 +55,14 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			const opExpStr = compileExpression(state, expression);
 			const propertyStr = operand.getName();
 			const id = state.pushPrecedingStatementToNextId(operand, opExpStr);
-			return `${id}.${propertyStr}`;
+			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
 		}
 	}
 
-	return compileExpression(state, operand);
+	return {
+		expStr: compileExpression(state, operand),
+		isIdentifier: !ts.TypeGuards.isIdentifier(operand) || !isIdentifierDefinedInExportLet(operand),
+	};
 }
 
 /**

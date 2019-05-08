@@ -36,12 +36,25 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
 		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
-		const expStr = getWritableOperandName(state, operand);
+		const expData = getWritableOperandName(state, operand);
+		const { expStr } = expData;
 
 		if (isNonStatement) {
 			if (!ts.TypeGuards.isIdentifier(operand) || isIdentifierDefinedInExportLet(operand)) {
-				const id = state.getNewId();
-				const incrStr = getIncrementString(opKind, expStr, node, `local ${id}`);
+				const declaration = state.declarationContext.get(node);
+				let id: string;
+				let needsLocalizing: boolean | undefined;
+
+				if (declaration && declaration.isIdentifier) {
+					id = declaration.set;
+					needsLocalizing = declaration.needsLocalizing;
+					state.declarationContext.delete(node);
+				} else {
+					id = state.getNewId();
+					needsLocalizing = true;
+				}
+
+				const incrStr = getIncrementString(opKind, expStr, node, `${needsLocalizing ? "local " : ""}${id}`);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 				state.pushPrecedingStatements(node, state.indent + `${expStr} = ${id};\n`);
 				state.getCurrentPrecedingStatementContext(node).isPushed = true;
@@ -81,10 +94,26 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
 		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
-		const expStr = getWritableOperandName(state, operand);
+		const expData = getWritableOperandName(state, operand);
+		const { expStr } = expData;
 
 		if (isNonStatement) {
-			const id = state.pushPrecedingStatementToNextId(node, expStr);
+			console.log([...state.declarationContext.keys()].map(key => key.getKindName() + " " + key.getText()));
+			console.log(1, node.getKindName(), node.getText(), state.declarationContext.get(node));
+
+			const declaration = state.declarationContext.get(node);
+			let id: string;
+			if (declaration && (declaration.isIdentifier || expData.isIdentifier) && declaration.set !== "return") {
+				state.pushPrecedingStatements(
+					node,
+					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
+				);
+
+				id = declaration.isIdentifier ? declaration.set : expStr;
+				state.declarationContext.delete(node);
+			} else {
+				id = state.pushPrecedingStatementToNextId(node, expStr);
+			}
 			const incrStr = getIncrementString(opKind, id, node, expStr);
 			state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 			state.getCurrentPrecedingStatementContext(node).isPushed = true;

@@ -65,7 +65,14 @@ function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, fu
 			return `return unpack(${expStr});`;
 		}
 	}
-	return `return ${compileExpression(state, exp)};`;
+	{
+		state.declarationContext.set(exp, {
+			isIdentifier: false,
+			set: "return",
+		});
+		const expStr = compileExpression(state, exp);
+		return state.declarationContext.delete(exp) && `return ${expStr};`;
+	}
 }
 
 export function compileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
@@ -73,7 +80,7 @@ export function compileReturnStatement(state: CompilerState, node: ts.ReturnStat
 	if (exp) {
 		state.enterPrecedingStatementContext();
 		const returnStr = getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors()));
-		return state.exitPrecedingStatementContextAndJoin() + state.indent + returnStr + "\n";
+		return state.exitPrecedingStatementContextAndJoin() + (returnStr ? state.indent + returnStr + "\n" : "");
 	} else {
 		return state.indent + `return nil;\n`;
 	}
@@ -92,7 +99,7 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 		} else {
 			state.enterPrecedingStatementContext();
 			const returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
-			result += state.exitPrecedingStatementContextAndJoin() + state.indent + returnStr + "\n";
+			result += state.exitPrecedingStatementContextAndJoin() + (returnStr ? state.indent + returnStr + "\n" : "");
 		}
 		state.popIndent();
 		result += state.indent;

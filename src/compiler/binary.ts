@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndVa
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
+import { getNonNullExpression } from "../utility";
 import { getAccessorForBindingPatternType } from "./binding";
 import { getWritableOperandName } from "./indexed";
 
@@ -116,13 +117,14 @@ function compileBinaryLiteral(
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
 	const opToken = node.getOperatorToken();
 	const opKind = opToken.getKind();
+	const isEqualsOperation = opKind === ts.SyntaxKind.EqualsToken;
 
 	const lhs = node.getLeft();
-	const rhs = node.getRight();
+	const rhs = getNonNullExpression(node.getRight());
 	let lhsStr: string;
 	let rhsStr: string;
 
-	if (opKind !== ts.SyntaxKind.EqualsToken) {
+	if (!isEqualsOperation) {
 		checkNonAny(lhs);
 		checkNonAny(rhs);
 	}
@@ -156,61 +158,55 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	}
 
 	if (isSetToken(opKind)) {
-		lhsStr =
-			opKind === ts.SyntaxKind.EqualsToken ? compileExpression(state, lhs) : getWritableOperandName(state, lhs);
+		const lhsData = getWritableOperandName(state, lhs);
+		({ expStr: lhsStr } = lhsData);
+
 		state.enterPrecedingStatementContext();
-		rhsStr = compileExpression(state, rhs);
+		let rhsPushedStr: false | [string] = false;
+
+		if (isEqualsOperation) {
+			state.declarationContext.set(rhs, { isIdentifier: lhsData.isIdentifier, set: lhsStr });
+			rhsStr = compileExpression(state, rhs);
+			rhsPushedStr = state.getCurrentPrecedingStatementContext(node).isPushed && [rhsStr];
+		} else {
+			rhsStr = compileExpression(state, rhs);
+		}
 		const rhsStrContext = state.exitPrecedingStatementContext();
 		let previouslhs: string;
 
 		if (rhsStrContext.length > 0) {
-			previouslhs =
-				opKind === ts.SyntaxKind.EqualsToken
-					? ""
-					: state.pushPrecedingStatementToNextId(lhs, lhsStr, rhsStrContext);
-
+			previouslhs = isEqualsOperation ? "" : state.pushPrecedingStatementToNextId(lhs, lhsStr, rhsStrContext);
 			state.pushPrecedingStatements(rhs, ...rhsStrContext);
 		} else {
 			previouslhs = lhsStr;
 		}
 
-		let statementStr: string;
-
 		/* istanbul ignore else */
-		if (opKind === ts.SyntaxKind.EqualsToken) {
-			statementStr = `${lhsStr} = ${rhsStr}`;
-		} else if (opKind === ts.SyntaxKind.BarEqualsToken) {
-			const barExpStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
-			statementStr = `${lhsStr} = ${barExpStr}`;
+		if (opKind === ts.SyntaxKind.BarEqualsToken) {
+			rhsStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
 		} else if (opKind === ts.SyntaxKind.AmpersandEqualsToken) {
-			const ampersandExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "and");
-			statementStr = `${lhsStr} = ${ampersandExpStr}`;
+			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "and");
 		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
-			const caretExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "xor");
-			statementStr = `${lhsStr} = ${caretExpStr}`;
+			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "xor");
 		} else if (opKind === ts.SyntaxKind.LessThanLessThanEqualsToken) {
-			const lhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "lsh");
-			statementStr = `${lhsStr} = ${lhsExpStr}`;
+			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "lsh");
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken) {
-			const rhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "rsh");
-			statementStr = `${lhsStr} = ${rhsExpStr}`;
+			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "rsh");
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken) {
-			const rhsExpStr = getLuaBitExpression(state, previouslhs, rhsStr, "lrsh");
-			statementStr = `${lhsStr} = ${rhsExpStr}`;
+			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "lrsh");
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
-			const addExpStr = getLuaAddExpression(node, previouslhs, rhsStr, true);
-			statementStr = `${lhsStr} = ${addExpStr}`;
+			rhsStr = getLuaAddExpression(node, previouslhs, rhsStr, true);
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
-			statementStr = `${lhsStr} = ${previouslhs} - (${rhsStr})`;
+			rhsStr = `${previouslhs} - (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.AsteriskEqualsToken) {
-			statementStr = `${lhsStr} = ${previouslhs} * (${rhsStr})`;
+			rhsStr = `${previouslhs} * (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.SlashEqualsToken) {
-			statementStr = `${lhsStr} = ${previouslhs} / (${rhsStr})`;
+			rhsStr = `${previouslhs} / (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.AsteriskAsteriskEqualsToken) {
-			statementStr = `${lhsStr} = ${previouslhs} ^ (${rhsStr})`;
+			rhsStr = `${previouslhs} ^ (${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.PercentEqualsToken) {
-			statementStr = `${lhsStr} = ${previouslhs} % (${rhsStr})`;
-		} else {
+			rhsStr = `${previouslhs} % (${rhsStr})`;
+		} else if (!isEqualsOperation) {
 			throw new CompilerError(
 				"You just discovered a new kind of BinaryExpression! (" +
 					opToken.getText() +
@@ -221,11 +217,23 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		}
 
 		const parentKind = node.getParentOrThrow().getKind();
+		const unUsedStatement = !isEqualsOperation || state.declarationContext.delete(rhs);
 		if (parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement) {
-			return statementStr;
+			return unUsedStatement ? `${lhsStr} = ${rhsStr}` : "";
 		} else {
-			state.pushPrecedingStatements(node, state.indent + statementStr + ";\n");
-			return lhsStr;
+			if (!lhsData.isIdentifier) {
+				const [newId] = rhsPushedStr || state.pushPrecedingStatementToNewIds(node, rhsStr, 1);
+				if (unUsedStatement) {
+					state.pushPrecedingStatements(node, state.indent + `${lhsStr} = ${newId};\n`);
+				}
+				state.getCurrentPrecedingStatementContext(node).isPushed = true;
+				return newId;
+			} else {
+				if (unUsedStatement) {
+					state.pushPrecedingStatements(node, state.indent + `${lhsStr} = ${rhsStr};\n`);
+				}
+				return lhsStr;
+			}
 		}
 	} else {
 		state.enterPrecedingStatementContext();

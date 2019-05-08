@@ -119,16 +119,11 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	state.enterPrecedingStatementContext();
 
 	let expStr: string;
-	let expression = node.getExpression();
+	const expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);
 	} else {
-		while (ts.TypeGuards.isParenthesizedExpression(expression)) {
-			expression = expression.getExpression();
-		}
-
-		// console.log(expression.getKindName(), expression.getText());
 		expStr = compileExpression(state, expression);
 
 		// big set of rules for expression statements

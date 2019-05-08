@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
+import { makeSetStatement } from "../utility";
 
 export function unwrapEndParens(str: string) {
 	// Not very sophisticated, but because we are only matching things of the form ((_N))
@@ -18,7 +19,7 @@ export function unwrapEndParens(str: string) {
 }
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
-	let id: string;
+	let id: string | undefined;
 	const currentConditionalContext = state.currentConditionalContext;
 
 	// const parent = node.getParent();
@@ -27,30 +28,45 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	const declaration = state.declarationContext.get(node);
 
-	if (currentConditionalContext === "") {
-		[id] = state.pushPrecedingStatementToNewIds(node, "", 1);
-		state.currentConditionalContext = id;
-	} else {
-		id = currentConditionalContext;
-	}
 	const condition = node.getCondition();
 	const whenTrue = node.getWhenTrue();
 	const whenFalse = node.getWhenFalse();
+	let conditionStr: string;
 
-	state.pushPrecedingStatements(condition, state.indent + `if ${compileExpression(state, condition)} then\n`);
+	if (declaration) {
+		conditionStr = compileExpression(state, condition);
+		if (declaration.needsLocalizing) {
+			state.pushPrecedingStatements(node, state.indent + "local " + declaration.set + ";\n");
+		}
+		id = declaration.set;
+	} else {
+		if (currentConditionalContext === "") {
+			[id] = state.pushPrecedingStatementToNewIds(node, "", 1);
+			state.currentConditionalContext = id;
+		} else {
+			id = currentConditionalContext;
+		}
+		conditionStr = compileExpression(state, condition);
+	}
+
+	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
 	state.pushIndent();
-	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
 
-	if (id !== whenTrueStr) {
-		state.pushPrecedingStatements(whenTrue, state.indent + `${declaration || `${id} = `}${whenTrueStr};\n`);
+	state.declarationContext.set(whenTrue, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
+
+	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
+	if (state.declarationContext.delete(whenTrue)) {
+		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + "\n");
 	}
 
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
 	state.pushIndent();
+
+	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
 	const whenFalseStr = unwrapEndParens(compileExpression(state, whenFalse));
-	if (id !== whenFalseStr) {
-		state.pushPrecedingStatements(whenFalse, state.indent + `${declaration || `${id} = `}${whenFalseStr};\n`);
+	if (state.declarationContext.delete(whenFalse)) {
+		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + "\n");
 	}
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
@@ -60,5 +76,5 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	}
 	state.getCurrentPrecedingStatementContext(node).isPushed = true;
 	state.declarationContext.delete(node);
-	return id;
+	return id || "";
 }

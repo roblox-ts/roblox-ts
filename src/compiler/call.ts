@@ -142,9 +142,24 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			if (getPropertyCallParentIsExpressionStatement(subExp)) {
 				return expStr;
 			} else {
-				const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[#${accessPath}]`, 1);
-				state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-				state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+				const node = getLeftHandSideParent(subExp, 2);
+				const declaration = state.declarationContext.get(node);
+				let id: string;
+				console.log(8, node.getKindName(), node.getText());
+				if (declaration && declaration.isIdentifier) {
+					id = declaration.set;
+					state.pushPrecedingStatements(
+						subExp,
+						state.indent +
+							`${declaration.needsLocalizing ? "local " : ""}${id} = ${accessPath}[#${accessPath}];\n`,
+					);
+					state.declarationContext.delete(node);
+					state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+				} else {
+					[id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[#${accessPath}]`, 1);
+					state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+					state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+				}
 				return id;
 			}
 		},

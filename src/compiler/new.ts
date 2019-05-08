@@ -71,9 +71,6 @@ function compileSetMapConstructorHelper(
 					const context = state.exitPrecedingStatementContext();
 					if (context.length > 0) {
 						hasContext = true;
-
-						// console.log(state.declarationContext.get(node));
-
 						id = state.pushPrecedingStatementToNewIds(node, "{}", 1)[0];
 						state.pushPrecedingStatements(node, ...lines.map(current => id + current));
 						state.pushPrecedingStatements(node, ...context);

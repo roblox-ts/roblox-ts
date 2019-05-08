@@ -201,3 +201,11 @@ export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp: T): 
 	}
 	return exp;
 }
+
+export function makeSetStatement(varToSet: string, value: string) {
+	if (varToSet === "return") {
+		return `return ${value}`;
+	} else {
+		return `${varToSet} = ${value}`;
+	}
+}

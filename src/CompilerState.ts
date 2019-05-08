@@ -11,7 +11,15 @@ export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
-	public declarationContext = new Map<ts.Node, string>();
+	// string1 is the declaration string, string2 is the string to set it to
+	public declarationContext = new Map<
+		ts.Node,
+		{
+			isIdentifier: boolean;
+			needsLocalizing?: boolean;
+			set: string;
+		}
+	>();
 
 	public currentConditionalContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();

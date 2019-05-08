@@ -57,20 +57,37 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const name = lhs.getText();
 		checkReserved(name, lhs, true);
 		if (rhs) {
-			state.declarationContext.set(rhs, `${name} = `);
-			const value = compileExpression(state, rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				const parentName = state.getExportContextName(grandParent);
-				result += state.indent + `${parentName}.${name} = ${value};\n`;
+				state.declarationContext.set(rhs, {
+					set: `${parentName}.${name}`,
+					isIdentifier: false,
+				});
+				const value = compileExpression(state, rhs);
+				if (state.declarationContext.delete(rhs)) {
+					result += state.indent + `${parentName}.${name} = ${value};\n`;
+				}
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					state.pushExport(name, grandParent);
 				}
 				if (shouldHoist(grandParent, lhs)) {
 					state.pushHoistStack(name);
-					result += state.indent + `${name} = ${value};\n`;
+					state.declarationContext.set(rhs, { isIdentifier: true, set: `${name}` });
+					const value = compileExpression(state, rhs);
+					if (state.declarationContext.delete(rhs)) {
+						result += state.indent + `${name} = ${value};\n`;
+					}
 				} else {
-					result += state.indent + `local ${name} = ${value};\n`;
+					state.declarationContext.set(rhs, {
+						isIdentifier: true,
+						needsLocalizing: true,
+						set: `${name}`,
+					});
+					const value = compileExpression(state, rhs);
+					if (state.declarationContext.delete(rhs)) {
+						result += state.indent + `local ${name} = ${value};\n`;
+					}
 				}
 			}
 		} else if (!isExported) {

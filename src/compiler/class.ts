@@ -215,9 +215,16 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				const initializer = prop.getInitializer();
 				if (initializer) {
 					state.enterPrecedingStatementContext();
+					state.declarationContext.set(initializer, {
+						isIdentifier: false,
+						set: `self${propStr}`,
+					});
 					const expStr = compileExpression(state, initializer);
 					extraInitializers.push(...state.exitPrecedingStatementContext());
-					extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
+					console.log(propStr, expStr);
+					if (state.declarationContext.delete(initializer)) {
+						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
+					}
 				}
 			}
 		}
