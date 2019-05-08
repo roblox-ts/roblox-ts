@@ -109,7 +109,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
 				);
 
-				id = declaration.isIdentifier ? declaration.set : expStr;
+				id = expData.isIdentifier ? expStr : declaration.set;
 				state.declarationContext.delete(node);
 			} else {
 				id = state.pushPrecedingStatementToNextId(node, expStr);
