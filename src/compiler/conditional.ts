@@ -52,7 +52,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
 	if (state.declarationContext.delete(whenTrue)) {
-		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + "\n");
+		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + ";\n");
 	}
 
 	state.popIndent();
@@ -62,7 +62,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
 	const whenFalseStr = unwrapEndParens(compileExpression(state, whenFalse));
 	if (state.declarationContext.delete(whenFalse)) {
-		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + "\n");
+		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + ";\n");
 	}
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
