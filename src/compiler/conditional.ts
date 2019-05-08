@@ -1,22 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import { makeSetStatement } from "../utility";
-
-export function unwrapEndParens(str: string) {
-	// Not very sophisticated, but because we are only matching things of the form ((_N))
-	// and _N is blocked as an identifier in Roblox-TS
-	// This will always work for this case
-
-	const match = str.match(/^\(*(_\d+)\)*$/);
-
-	if (match) {
-		const [, innerStr] = match;
-		return innerStr;
-	} else {
-		return str;
-	}
-}
+import { makeSetStatement, removeBalancedParenthesisFromStringBorders } from "../utility";
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
@@ -35,6 +20,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 			state.pushPrecedingStatements(node, state.indent + "local " + declaration.set + ";\n");
 		}
 		id = declaration.set;
+		state.currentConditionalContext = id;
 	} else {
 		if (currentConditionalContext === "") {
 			[id] = state.pushPrecedingStatementToNewIds(node, "", 1);
@@ -50,7 +36,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	state.declarationContext.set(whenTrue, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
 
-	const whenTrueStr = unwrapEndParens(compileExpression(state, whenTrue));
+	const whenTrueStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenTrue));
 	if (state.declarationContext.delete(whenTrue) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + ";\n");
 	}
@@ -60,7 +46,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.pushIndent();
 
 	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
-	const whenFalseStr = unwrapEndParens(compileExpression(state, whenFalse));
+	const whenFalseStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenFalse));
 	if (state.declarationContext.delete(whenFalse) && id !== whenFalseStr) {
 		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + ";\n");
 	}
