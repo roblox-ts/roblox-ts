@@ -173,7 +173,7 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 		state.pushIndent();
 		result += state.indent + `next = coroutine.wrap(function()`;
 		result += compileFunctionBody(state, body, node, initializers);
-		result += `\trepeat coroutine.yield({ done = true }) until false;\n`;
+		result += `\twhile true do coroutine.yield({ done = true }) end;\n`;
 		result += state.indent + `end);\n`;
 		state.popIndent();
 		result += state.indent + `};\n`;
