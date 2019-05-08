@@ -186,20 +186,28 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 }
 
 /** Skips over Null expressions */
-export function getNonNullExpression<T extends ts.Node>(exp: T): T {
-	while (ts.TypeGuards.isNonNullExpression(exp)) {
-		exp = (exp.getExpression() as unknown) as T;
-	}
+export function getNonNullExpression<T extends ts.Node>(exp: T): T;
+export function getNonNullExpression<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullExpression<T extends ts.Node>(exp?: T) {
+	if (exp) {
+		while (ts.TypeGuards.isNonNullExpression(exp)) {
+			exp = (exp.getExpression() as unknown) as T;
+		}
 
-	return exp;
+		return exp;
+	}
 }
 
 /** Skips over Null/Parenthesis expressions */
-export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp: T): T {
-	while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
-		exp = (exp.getExpression() as unknown) as T;
+export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp: T): T;
+export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp?: T) {
+	if (exp) {
+		while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
+			exp = (exp.getExpression() as unknown) as T;
+		}
+		return exp;
 	}
-	return exp;
 }
 
 export function makeSetStatement(varToSet: string, value: string) {

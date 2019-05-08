@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpression, getNonNullUnParenthesizedExpression } from "../utility";
+import { getNonNullExpression } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
@@ -70,7 +70,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
 	for (let i = 0; i < climb; i++) {
-		exp = getNonNullUnParenthesizedExpression(exp.getParent());
+		exp = exp.getParent();
 	}
 
 	return exp;
@@ -145,7 +145,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const node = getLeftHandSideParent(subExp, 2);
 				const declaration = state.declarationContext.get(node);
 				let id: string;
-				if (declaration && declaration.isIdentifier) {
+				if (declaration && declaration.set !== "return") {
 					id = declaration.set;
 					state.pushPrecedingStatements(
 						subExp,
