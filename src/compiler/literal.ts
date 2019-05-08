@@ -67,7 +67,7 @@ export function compileTemplateExpression(state: CompilerState, node: ts.Templat
 			}),
 		(_, exp) => {
 			const expStr = compileExpression(state, exp);
-			return isStringType(exp.getType()) ? expStr : `tostring(${expStr})` + (followingStrs.get(exp) || "");
+			return (isStringType(exp.getType()) ? expStr : `tostring(${expStr})`) + (followingStrs.get(exp) || "");
 		},
 	);
 
