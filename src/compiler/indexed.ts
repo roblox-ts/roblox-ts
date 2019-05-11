@@ -54,7 +54,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			const expression = operand.getExpression();
 			const opExpStr = compileExpression(state, expression);
 			const propertyStr = operand.getName();
-			const id = state.pushPrecedingStatementToNextId(operand, opExpStr);
+			const id = state.pushPrecedingStatementToReuseableId(operand, opExpStr);
 			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
 		}
 	}
@@ -72,7 +72,7 @@ export function getReadableExpressionName(state: CompilerState, exp: ts.Expressi
 	if (expStr.match(/^_\d+$/) || (ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp))) {
 		return expStr;
 	} else {
-		return state.pushPrecedingStatementToNextId(exp, expStr);
+		return state.pushPrecedingStatementToReuseableId(exp, expStr);
 	}
 }
 

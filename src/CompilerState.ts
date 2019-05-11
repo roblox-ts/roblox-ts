@@ -12,14 +12,30 @@ export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 	// string1 is the declaration string, string2 is the string to set it to
-	public declarationContext = new Map<
-		ts.Node,
-		{
-			isIdentifier: boolean;
-			needsLocalizing?: boolean;
-			set: string;
+	public declarationContext = new Map<ts.Node, { isIdentifier: boolean; needsLocalizing?: boolean; set: string }>();
+
+	public pushToDeclarationOrNewId(node: ts.Node, expStr: string, canConsumeReturn = false) {
+		const declaration = this.declarationContext.get(node);
+		let id: string;
+		const isReturn = declaration && declaration.set === "return";
+		console.log(declaration);
+
+		if (declaration && (canConsumeReturn || !isReturn)) {
+			this.declarationContext.delete(node);
+			({ set: id } = declaration);
+			this.pushPrecedingStatements(
+				node,
+				this.indent +
+					`${declaration.needsLocalizing ? "local " : ""}${id}${
+						expStr ? ` ${isReturn ? "" : "= "}${expStr}` : ""
+					};\n`,
+			);
+		} else {
+			id = this.pushPrecedingStatementToNewId(node, expStr);
 		}
-	>();
+
+		return id;
+	}
 
 	public currentConditionalContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
@@ -46,19 +62,6 @@ export class CompilerState {
 		return currentContext;
 	}
 
-	public isTopPrecedingStatementPushed() {
-		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
-			const context = this.precedingStatementContexts[i];
-
-			if (context.isPushed) {
-				return true;
-			} else if (context.length > 0) {
-				break;
-			}
-		}
-		return false;
-	}
-
 	public enterPrecedingStatementContext() {
 		const newContext = new Array<string>() as PrecedingStatementContext;
 		newContext.isPushed = false;
@@ -74,25 +77,36 @@ export class CompilerState {
 	}
 
 	public pushPrecedingStatements(node: ts.Node, ...statements: Array<string>) {
-		this.getCurrentPrecedingStatementContext(node).isPushed = false;
-		return this.getCurrentPrecedingStatementContext(node).push(...statements);
+		const context = this.getCurrentPrecedingStatementContext(node);
+		context.isPushed = false;
+		return context.push(...statements);
 	}
 
-	public pushPrecedingStatementToNewIds(node: ts.Node, statement: string, numIds: number) {
-		const newIds = new Array<string>();
-		for (let i = 0; i < numIds; i++) {
-			newIds[i] = this.getNewId();
+	public pushPrecedingStatementToNewId(node: ts.Node, transpiledSource: string, newId = this.getNewId()) {
+		const currentContext = this.getCurrentPrecedingStatementContext(node);
+		currentContext.push(this.indent + `local ${newId}${transpiledSource ? ` = ${transpiledSource}` : ""};\n`);
+		currentContext.isPushed = true;
+		return newId;
+	}
+
+	public pushPrecedingStatementToReuseableId(
+		node: ts.Node,
+		transpiledSource: string,
+		nextCachedStrs?: Array<string>,
+	) {
+		if (
+			transpiledSource === "" ||
+			[node, ...node.getDescendants()].some(
+				exp =>
+					!ts.TypeGuards.isIdentifier(exp) &&
+					!ts.TypeGuards.isBinaryExpression(exp) &&
+					!ts.TypeGuards.isUnaryExpression(exp) &&
+					!ts.TypeGuards.isPropertyAccessExpression(exp),
+			)
+		) {
+			return this.pushPrecedingStatementToNewId(node, transpiledSource);
 		}
-		this.pushPrecedingStatements(
-			node,
-			this.indent + `local ${newIds.join(", ")}${statement ? ` = ${statement}` : ""};\n`,
-		);
 
-		this.getCurrentPrecedingStatementContext(node).isPushed = true;
-		return newIds;
-	}
-
-	public pushPrecedingStatementToNextId(node: ts.Node, transpiledSource: string, nextCachedStrs?: Array<string>) {
 		/** Gets the top PreStatement to compare to */
 		transpiledSource = removeBalancedParenthesisFromStringBorders(transpiledSource);
 		let previousTop: Array<string> | undefined;
@@ -123,8 +137,7 @@ export class CompilerState {
 			}
 		}
 
-		const [newId] = this.pushPrecedingStatementToNewIds(node, transpiledSource, 1);
-		return newId;
+		return this.pushPrecedingStatementToNewId(node, transpiledSource);
 	}
 
 	// indent

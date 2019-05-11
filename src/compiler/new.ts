@@ -29,6 +29,8 @@ const compileMapSetElement = new Map<"set" | "map", (state: CompilerState, eleme
 	["set", compileSetElement],
 ]);
 
+const addKeyMethodNames = new Map<"set" | "map", "add" | "set">([["map", "set"], ["set", "add"]]);
+
 function compileSetMapConstructorHelper(
 	state: CompilerState,
 	node: ts.NewExpression,
@@ -61,20 +63,35 @@ function compileSetMapConstructorHelper(
 
 		const compileElement = compileMapSetElement.get(type)!;
 
+		let exp: ts.Node = node;
+		let parent = node.getParent();
+		const addMethodName = addKeyMethodNames.get(type)!;
+
+		while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
+			const grandparent = parent.getParent();
+			if (ts.TypeGuards.isCallExpression(grandparent)) {
+				exp = grandparent;
+				parent = grandparent.getParent();
+			}
+		}
+
 		if (firstParam) {
 			for (const element of firstParam.getElements()) {
 				if (hasContext) {
-					state.pushPrecedingStatements(node, id + compileElement(state, element));
+					state.pushPrecedingStatements(exp, id + compileElement(state, element));
 				} else {
 					state.enterPrecedingStatementContext();
 					const line = compileElement(state, element);
 					const context = state.exitPrecedingStatementContext();
 					if (context.length > 0) {
 						hasContext = true;
-						id = state.pushPrecedingStatementToNewIds(node, "{}", 1)[0];
-						state.pushPrecedingStatements(node, ...lines.map(current => id + current));
-						state.pushPrecedingStatements(node, ...context);
-						state.pushPrecedingStatements(node, state.indent + id + line);
+						id = state.pushToDeclarationOrNewId(exp, "{}");
+						state.pushPrecedingStatements(
+							exp,
+							...lines.map(current => id + current),
+							...context,
+							state.indent + id + line,
+						);
 					} else {
 						lines.push(line);
 					}
@@ -83,16 +100,15 @@ function compileSetMapConstructorHelper(
 		}
 
 		if (!hasContext) {
-			[id] = state.pushPrecedingStatementToNewIds(
-				node,
+			id = state.pushToDeclarationOrNewId(
+				exp,
 				lines.reduce((result, line) => result + state.indent + "\t" + line, lines.length > 0 ? "{\n" : "{") +
 					state.indent +
 					"}",
-				1,
+				true,
 			);
 		}
 
-		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	}
 }

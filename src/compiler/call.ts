@@ -138,27 +138,30 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"pop",
 		(params, state, subExp) => {
 			const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
-			const expStr = `${accessPath}[#${accessPath}] = nil`;
 			if (getPropertyCallParentIsExpressionStatement(subExp)) {
-				return expStr;
+				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
 				const node = getLeftHandSideParent(subExp, 2);
 				const declaration = state.declarationContext.get(node);
 				let id: string;
+				const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+				const place = `${accessPath}[${len}]`;
+				const nullSet = state.indent + `${place} = nil;\n`;
+
 				if (declaration && declaration.set !== "return") {
+					state.declarationContext.delete(node);
 					id = declaration.set;
 					state.pushPrecedingStatements(
 						subExp,
-						state.indent +
-							`${declaration.needsLocalizing ? "local " : ""}${id} = ${accessPath}[#${accessPath}];\n`,
+						state.indent + `${declaration.needsLocalizing ? "local " : ""}${id} = ${place};\n`,
 					);
-					state.declarationContext.delete(node);
-					state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+					state.pushPrecedingStatements(subExp, nullSet);
 				} else {
-					[id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[#${accessPath}]`, 1);
-					state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+					id = state.pushPrecedingStatementToNewId(subExp, place);
+					state.pushPrecedingStatements(subExp, nullSet);
 					state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
 				}
+
 				return id;
 			}
 		},
@@ -228,17 +231,19 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	["isEmpty", isMapOrSetOrArrayEmpty],
 ]);
 
-const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
-	const wasPushed = state.isTopPrecedingStatementPushed();
-	let root: ts.Expression = subExp;
-
+function getPropertyAccessExpressionRoot(root: ts.Expression) {
 	while (ts.TypeGuards.isCallExpression(root)) {
 		const exp = root.getExpression();
 		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 			root = exp.getExpression();
 		}
 	}
+	return root;
+}
 
+const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
+	const wasPushed = state.getCurrentPrecedingStatementContext(subExp).isPushed;
+	const root: ts.Expression = getPropertyAccessExpressionRoot(subExp);
 	const accessPath = getReadableExpressionName(state, root, compileExpression(state, subExp));
 	const [key, value] = compileCallArguments(state, params);
 	const expStr = `${accessPath}[${key}] = ${value || "true"}`;
@@ -246,9 +251,6 @@ const setKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
 	if (getPropertyCallParentIsExpressionStatement(subExp)) {
 		return expStr;
 	} else {
-		// const expressionType = expNode.getType();
-		// if (inheritsFrom(expressionType, "MapConstructor")) {
-		// if (inheritsFrom(expressionType, "SetConstructor")) {
 		const isPushed =
 			wasPushed ||
 			ts.TypeGuards.isNewExpression(root) ||
@@ -274,7 +276,7 @@ const deleteKeyOfMapOrSet: ReplaceFunction = (params, state, subExp) => {
 	if (getPropertyCallParentIsExpressionStatement(subExp)) {
 		return expStr;
 	} else {
-		const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] ~= nil`, 1);
+		const id = state.pushPrecedingStatementToNewId(subExp, `${accessPath}[${key}] ~= nil`);
 		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
 		state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
 		return id;
@@ -317,7 +319,11 @@ const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	let [obj, type] = compileCallArguments(state, params);
 
 	if (!type) {
-		[obj, type] = state.pushPrecedingStatementToNewIds(subExp, obj, 2);
+		const id = state.getNewId();
+		type = state.getNewId();
+
+		state.pushPrecedingStatements(subExp, state.indent + `local ${id}, ${type} = ${obj}`);
+		obj = id;
 	}
 
 	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(typeof(${obj}) == ${type})`);
@@ -363,7 +369,7 @@ export function compileList(
 			}
 
 			if (shouldPushToPrecedingStatement(arg, argStr, cachedStrs || [])) {
-				argStrs[i] = state.pushPrecedingStatementToNextId(arg, argStr, cached[i + 1]);
+				argStrs[i] = state.pushPrecedingStatementToReuseableId(arg, argStr, cached[i + 1]);
 			}
 		}
 

@@ -346,7 +346,7 @@ export function compileFunctionExpression(state: CompilerState, node: ts.Functio
 		potentialNameNode.findReferences()[0].getReferences().length > 1
 	) {
 		const name = compileExpression(state, potentialNameNode);
-		const [id] = state.pushPrecedingStatementToNewIds(node, "", 1);
+		const id = state.pushPrecedingStatementToNewId(node, "");
 		state.pushPrecedingStatements(node, state.indent + `do\n`);
 		state.pushIndent();
 		state.pushPrecedingStatements(node, state.indent + `local ${name};\n`);

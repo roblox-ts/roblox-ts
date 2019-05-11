@@ -103,6 +103,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extendExp = node.getExtends();
 	let baseClassName = "";
 	let hasSuper = false;
+
 	if (extendExp) {
 		hasSuper = true;
 		baseClassName = compileExpression(state, extendExp.getExpression());

@@ -106,14 +106,23 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
 				);
 
-				id = expData.isIdentifier ? expStr : declaration.set;
+				id = expData.isIdentifier
+					? declaration.isIdentifier
+						? expStr
+						: state.pushPrecedingStatementToReuseableId(node, expStr)
+					: declaration.set;
 				state.declarationContext.delete(node);
+
+				const incrStr = getIncrementString(opKind, id, node, expStr);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+				state.getCurrentPrecedingStatementContext(node).isPushed =
+					expData.isIdentifier && !declaration.isIdentifier;
 			} else {
-				id = state.pushPrecedingStatementToNextId(node, expStr);
+				id = state.pushPrecedingStatementToReuseableId(node, expStr);
+				const incrStr = getIncrementString(opKind, id, node, expStr);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+				state.getCurrentPrecedingStatementContext(node).isPushed = true;
 			}
-			const incrStr = getIncrementString(opKind, id, node, expStr);
-			state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
-			state.getCurrentPrecedingStatementContext(node).isPushed = true;
 			return id;
 		} else {
 			return getIncrementString(opKind, expStr, node);
