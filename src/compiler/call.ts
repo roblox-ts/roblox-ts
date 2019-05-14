@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpression } from "../utility";
+import { getNonNullExpressionDownwards } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
@@ -577,7 +577,7 @@ export function getPropertyAccessExpressionType(
 }
 
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
-	const expression = getNonNullExpression(node.getExpression());
+	const expression = getNonNullExpressionDownwards(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new CompilerError(
 			"Expected PropertyAccessExpression",
@@ -588,7 +588,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	checkApiAccess(state, expression.getNameNode());
 
-	const subExp = getNonNullExpression(expression.getExpression());
+	const subExp = getNonNullExpressionDownwards(expression.getExpression());
 	const property = expression.getName();
 	const params = node.getArguments() as Array<ts.Expression>;
 

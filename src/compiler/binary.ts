@@ -3,7 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndVa
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
-import { getNonNullExpression, getNonNullUnParenthesizedExpression } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionUpwards } from "../utility";
 import { getAccessorForBindingPatternType } from "./binding";
 import { isIdentifierDefinedInExportLet } from "./indexed";
 
@@ -92,7 +92,7 @@ function compileBinaryLiteral(
 		getAccessorForBindingPatternType(rhs),
 	);
 
-	const parent = getNonNullUnParenthesizedExpression(node.getParentOrThrow());
+	const parent = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow());
 
 	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
 		let result = "";
@@ -116,7 +116,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	const isEqualsOperation = opKind === ts.SyntaxKind.EqualsToken;
 
 	const lhs = node.getLeft();
-	const rhs = getNonNullExpression(node.getRight());
+	const rhs = getNonNullExpressionDownwards(node.getRight());
 	let lhsStr: string;
 	let rhsStr: string;
 
@@ -181,7 +181,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			);
 			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			if (ts.TypeGuards.isExpressionStatement(getNonNullUnParenthesizedExpression(node.getParent()))) {
+			if (ts.TypeGuards.isExpressionStatement(getNonNullUnParenthesizedExpressionUpwards(node.getParent()))) {
 				return result.replace(/;\n$/, ""); // terrible hack
 			} else {
 				throw new CompilerError(
@@ -206,7 +206,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		let rhsStrContext: PrecedingStatementContext;
 		let hasOpenContext = false;
 
-		const parentKind = node.getParentOrThrow().getKind();
+		const parentKind = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow()).getKind();
 		const isStatement =
 			parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
 

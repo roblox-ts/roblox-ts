@@ -12,7 +12,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpression } from "../utility";
+import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -32,26 +32,8 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
-	exp = getNonNullUnParenthesizedExpression(exp);
-	// TODO: An optimization I would like to perform looks like this:
-	/*
-	local _0;
-	if true then
-		_0 = 1
-	else
-		_0 = 2;
-	end
+	exp = getNonNullUnParenthesizedExpressionDownwards(exp);
 
-	-- either of these ending statements could be replaced in-line:
-	let i = _0;
-	return _0;
-
-	example:
-		return 1;
-		i = 1; -- (of course, `i` would be hoisted instead of `_0`)
-
-	We should be able to easily implement this on the new flag object.
-	*/
 	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = compileExpression(state, exp);

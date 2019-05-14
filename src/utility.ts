@@ -186,9 +186,9 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 }
 
 /** Skips over Null expressions */
-export function getNonNullExpression<T extends ts.Node>(exp: T): T;
-export function getNonNullExpression<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullExpression<T extends ts.Node>(exp?: T) {
+export function getNonNullExpressionDownwards<T extends ts.Node>(exp: T): T;
+export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T) {
 	if (exp) {
 		while (ts.TypeGuards.isNonNullExpression(exp)) {
 			exp = (exp.getExpression() as unknown) as T;
@@ -199,12 +199,37 @@ export function getNonNullExpression<T extends ts.Node>(exp?: T) {
 }
 
 /** Skips over Null/Parenthesis expressions */
-export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp: T): T;
-export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullUnParenthesizedExpression<T extends ts.Node>(exp?: T) {
+export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp: T): T;
+export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T) {
 	if (exp) {
 		while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
 			exp = (exp.getExpression() as unknown) as T;
+		}
+		return exp;
+	}
+}
+
+/** Skips over Null expressions */
+export function getNonNullExpressionUpwards<T extends ts.Node>(exp: T): T;
+export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T) {
+	if (exp) {
+		while (ts.TypeGuards.isNonNullExpression(exp)) {
+			exp = (exp.getParent() as unknown) as T;
+		}
+
+		return exp;
+	}
+}
+
+/** Skips over Null/Parenthesis expressions */
+export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp: T): T;
+export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
+export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T) {
+	if (exp) {
+		while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
+			exp = (exp.getParent() as unknown) as T;
 		}
 		return exp;
 	}

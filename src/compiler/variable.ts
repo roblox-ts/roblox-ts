@@ -3,12 +3,12 @@ import { checkReserved, compileCallExpression, compileExpression, concatNamesAnd
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
-import { getNonNullExpression } from "../utility";
+import { getNonNullExpressionDownwards } from "../utility";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	state.enterPrecedingStatementContext();
 	const lhs = node.getNameNode();
-	const rhs = getNonNullExpression(node.getInitializer());
+	const rhs = getNonNullExpressionDownwards(node.getInitializer());
 
 	const parent = node.getParent();
 	const grandParent = parent.getParent();
