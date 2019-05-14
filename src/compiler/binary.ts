@@ -164,7 +164,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						);
 						return rootId;
 					} else {
-						console.log(element.getKindName(), element.getText());
 						return compileExpression(state, element);
 					}
 				})

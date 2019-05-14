@@ -39,16 +39,6 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
 	return false;
 }
 
-export function isFlatIdentifier(state: CompilerState, identifier: ts.Node) {
-	console.log(
-		identifier.getKindName(),
-		identifier.getText(),
-		identifier.getParent()!.getKindName(),
-		identifier.getParent()!.getText(),
-		ts.TypeGuards.isIdentifier(identifier),
-	);
-}
-
 /**
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`

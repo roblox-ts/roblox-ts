@@ -121,18 +121,6 @@ const isMapOrSetOrArrayEmpty: ReplaceFunction = (params, state, subExp) =>
 		`(next(${compileExpression(state, subExp)}) == nil)`,
 	);
 
-// const accessPath = compileExpression(state, subExp);
-// const [key] = compileCallArguments(state, params);
-// const expStr = `${accessPath}[${key}] = nil`;
-// if (getPropertyCallParentIsExpressionStatement(subExp)) {
-// 			return expStr;
-// 		} else {
-// 			const [id] = state.pushPrecedingStatementToNewIds(subExp, `${accessPath}[${key}] ~= nil`, 1);
-// 			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
-// 			state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
-// 			return id;
-// 		}
-
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"pop",
@@ -525,15 +513,13 @@ export function getPropertyAccessExpressionType(
 	checkApiAccess(state, expression.getNameNode());
 
 	const expType = expression.getType();
-	const subExp = expression.getExpression();
-	const subExpType = subExp.getType();
 	const property = expression.getName();
 
 	if (isArrayMethodType(expType)) {
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringMethodType(subExpType)) {
+	if (isStringMethodType(expType)) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
@@ -548,6 +534,8 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.Map;
 	}
 
+	const subExp = expression.getExpression();
+	const subExpType = subExp.getType();
 	const subExpTypeSym = subExpType.getSymbol();
 	if (subExpTypeSym && ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		const subExpTypeName = subExpTypeSym.getEscapedName();
