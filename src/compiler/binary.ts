@@ -176,7 +176,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				names,
 				values,
 				false,
-				declaration => (result += "local " + declaration + ";\n"),
+				declaration => (result += declaration + ";\n"),
 				false,
 				false,
 			);
