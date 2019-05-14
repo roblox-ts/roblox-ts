@@ -14,20 +14,21 @@ function isUnaryExpressionNonStatement(
 	);
 }
 
-function getIncrementString(
-	opKind: ts.ts.PrefixUnaryOperator,
-	expStr: string,
-	node: ts.Node,
-	varName: string = expStr,
-) {
-	if (opKind === ts.SyntaxKind.PlusPlusToken) {
-		return `${varName} = ${expStr} + 1`;
-	} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
-		return `${varName} = ${expStr} - 1`;
-	} else {
-		/* istanbul ignore next */
-		throw new CompilerError(`Bad unary expression! (${opKind})`, node, CompilerErrorType.BadPrefixUnaryExpression);
-	}
+function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, node: ts.Node, varName: string) {
+	const op =
+		opKind === ts.SyntaxKind.PlusPlusToken
+			? " + "
+			: opKind === ts.SyntaxKind.MinusMinusToken
+			? " - "
+			: (() => {
+					throw new CompilerError(
+						`Bad unary expression! (${opKind})`,
+						node,
+						CompilerErrorType.BadPrefixUnaryExpression,
+					);
+			  })();
+
+	return `${varName ? `${varName} = ` : ""}${expStr}${op}1`;
 }
 
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
@@ -41,31 +42,22 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 
 		if (isNonStatement) {
 			if (!ts.TypeGuards.isIdentifier(operand) || isIdentifierDefinedInExportLet(operand)) {
-				const declaration = state.declarationContext.get(node);
-				let id: string;
-				let needsLocalizing: boolean | undefined;
+				const id = state.pushToDeclarationOrNewId(
+					node,
+					getIncrementString(opKind, expStr, node, ""),
+					declaration => declaration.isIdentifier,
+				);
 
-				if (declaration && declaration.isIdentifier) {
-					id = declaration.set;
-					needsLocalizing = declaration.needsLocalizing;
-					state.declarationContext.delete(node);
-				} else {
-					id = state.getNewId();
-					needsLocalizing = true;
-				}
-
-				const incrStr = getIncrementString(opKind, expStr, node, `${needsLocalizing ? "local " : ""}${id}`);
-				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 				state.pushPrecedingStatements(node, state.indent + `${expStr} = ${id};\n`);
 				state.getCurrentPrecedingStatementContext(node).isPushed = true;
 				return id;
 			} else {
-				const incrStr = getIncrementString(opKind, expStr, node);
+				const incrStr = getIncrementString(opKind, expStr, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 				return expStr;
 			}
 		} else {
-			return getIncrementString(opKind, expStr, node);
+			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
 		const expStr = compileExpression(state, operand);
@@ -107,6 +99,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
 				);
 
+				// due to this optimization here, this shouldn't be shortened
 				id = expData.isIdentifier ? expStr : declaration.set;
 				const incrStr = getIncrementString(opKind, id, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
@@ -119,7 +112,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 
 			return id;
 		} else {
-			return getIncrementString(opKind, expStr, node);
+			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
 		/* istanbul ignore next */

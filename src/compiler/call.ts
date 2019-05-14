@@ -146,7 +146,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
 				const place = `${accessPath}[${len}]`;
 				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
-				id = state.pushToDeclarationOrNewId(node, place, false);
+				id = state.pushToDeclarationOrNewId(node, place);
 				state.pushPrecedingStatements(subExp, nullSet);
 				return id;
 			}
@@ -187,12 +187,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			if (isStatement && numParams === 1) {
 				return `${accessPath}[#${accessPath} + 1] = ${parameterStrs}`;
 			} else {
-				const declaration = state.declarationContext.get(node);
 				const returnVal = `#${accessPath}${numParams ? ` + ${numParams}` : ""}`;
-				const finalLength =
-					declaration && declaration.isIdentifier
-						? state.pushToDeclarationOrNewId(node, returnVal)
-						: state.pushPrecedingStatementToNewId(node, returnVal);
+				const finalLength = state.pushToDeclarationOrNewId(
+					node,
+					returnVal,
+					declaration => declaration.isIdentifier,
+				);
 
 				let lastStatement: string | undefined;
 

@@ -105,7 +105,7 @@ function compileSetMapConstructorHelper(
 				lines.reduce((result, line) => result + state.indent + "\t" + line, lines.length > 0 ? "{\n" : "{") +
 					state.indent +
 					"}",
-				true,
+				() => true,
 			);
 		}
 

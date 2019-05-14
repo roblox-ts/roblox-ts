@@ -9,17 +9,27 @@ interface Partition {
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
+interface DeclarationContext {
+	isIdentifier: boolean;
+	needsLocalizing?: boolean;
+	set: string;
+}
+
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
 	// string1 is the declaration string, string2 is the string to set it to
-	public declarationContext = new Map<ts.Node, { isIdentifier: boolean; needsLocalizing?: boolean; set: string }>();
+	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
-	public pushToDeclarationOrNewId(node: ts.Node, expStr: string, canConsumeReturn = false) {
+	public pushToDeclarationOrNewId(
+		node: ts.Node,
+		expStr: string,
+		condition: (declaration: DeclarationContext) => boolean = dec => dec.set !== "return",
+	) {
 		const declaration = this.declarationContext.get(node);
 		let id: string;
 		const isReturn = declaration && declaration.set === "return";
 
-		if (declaration && (canConsumeReturn || !isReturn)) {
+		if (declaration && condition(declaration)) {
 			this.declarationContext.delete(node);
 			({ set: id } = declaration);
 			this.pushPrecedingStatements(
