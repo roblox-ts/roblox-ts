@@ -18,7 +18,6 @@ export class CompilerState {
 		const declaration = this.declarationContext.get(node);
 		let id: string;
 		const isReturn = declaration && declaration.set === "return";
-		console.log(declaration);
 
 		if (declaration && (canConsumeReturn || !isReturn)) {
 			this.declarationContext.delete(node);
@@ -31,7 +30,7 @@ export class CompilerState {
 					};\n`,
 			);
 		} else {
-			id = this.pushPrecedingStatementToNewId(node, expStr);
+			id = this.pushPrecedingStatementToReuseableId(node, expStr);
 		}
 
 		return id;
@@ -84,7 +83,12 @@ export class CompilerState {
 
 	public pushPrecedingStatementToNewId(node: ts.Node, transpiledSource: string, newId = this.getNewId()) {
 		const currentContext = this.getCurrentPrecedingStatementContext(node);
-		currentContext.push(this.indent + `local ${newId}${transpiledSource ? ` = ${transpiledSource}` : ""};\n`);
+		currentContext.push(
+			this.indent +
+				`local ${newId}${
+					transpiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(transpiledSource)}` : ""
+				};\n`,
+		);
 		currentContext.isPushed = true;
 		return newId;
 	}
@@ -124,7 +128,7 @@ export class CompilerState {
 			/** If we would write a duplicate `local _5 = i`, skip it */
 			if (cache) {
 				for (const str of cache) {
-					const matchesRegex = str.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
+					const matchesRegex = str.match(/^(\t*)local ([a-zA-Z_][a-zA-Z0-9_]*) = ([^;]+);\n$/);
 					// iterate only through non-state changing pushed id statements
 					if (!matchesRegex) {
 						break;

@@ -109,6 +109,7 @@ function compileSetMapConstructorHelper(
 			);
 		}
 
+		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	}
 }

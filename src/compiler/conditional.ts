@@ -35,21 +35,23 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.pushIndent();
 
 	state.declarationContext.set(whenTrue, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
-
+	state.pushIdStack();
 	const whenTrueStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenTrue));
 	if (state.declarationContext.delete(whenTrue) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + ";\n");
 	}
-
+	state.popIdStack();
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
 	state.pushIndent();
+	state.pushIdStack();
 
 	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
 	const whenFalseStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenFalse));
 	if (state.declarationContext.delete(whenFalse) && id !== whenFalseStr) {
 		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + ";\n");
 	}
+	state.popIdStack();
 	state.popIndent();
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
 

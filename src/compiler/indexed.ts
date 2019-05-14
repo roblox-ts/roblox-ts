@@ -10,8 +10,8 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
-import { safeLuaIndex } from "../utility";
+import { inheritsFrom, isArrayType, isNumberType, isStringType, isTupleReturnTypeCall } from "../typeUtilities";
+import { removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -39,6 +39,16 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
 	return false;
 }
 
+export function isFlatIdentifier(state: CompilerState, identifier: ts.Node) {
+	console.log(
+		identifier.getKindName(),
+		identifier.getText(),
+		identifier.getParent()!.getKindName(),
+		identifier.getParent()!.getText(),
+		ts.TypeGuards.isIdentifier(identifier),
+	);
+}
+
 /**
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
@@ -61,7 +71,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 
 	return {
 		expStr: compileExpression(state, operand),
-		isIdentifier: !ts.TypeGuards.isIdentifier(operand) || !isIdentifierDefinedInExportLet(operand),
+		isIdentifier: ts.TypeGuards.isIdentifier(operand) && !isIdentifierDefinedInExportLet(operand),
 	};
 }
 
@@ -80,15 +90,11 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const exp = node.getExpression();
 	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
-
+	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if (
-		(propertyAccessExpressionType === PropertyCallExpType.String ||
-			propertyAccessExpressionType === PropertyCallExpType.Array) &&
-		propertyStr === "length"
-	) {
-		return `(#${expStr})`;
+	if ((isArrayType(expType) || isStringType(expType)) && propertyStr === "length") {
+		return `#(${removeBalancedParenthesisFromStringBorders(expStr)})`;
 	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,

@@ -119,12 +119,16 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	state.enterPrecedingStatementContext();
 
 	let expStr: string;
-	const expression = node.getExpression();
+	let expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);
 	} else {
 		expStr = compileExpression(state, expression);
+
+		while (ts.TypeGuards.isParenthesizedExpression(expression)) {
+			expression = expression.getExpression();
+		}
 
 		// big set of rules for expression statements
 		if (
@@ -144,7 +148,11 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	}
 
 	const result = state.exitPrecedingStatementContextAndJoin();
-	return expStr ? result + state.indent + expStr + ";\n" : result;
+
+	// this is a hack for the time being, to prevent double indenting
+	// situations like these: ({ length } = "Hello, world!")
+	const indent = expStr.match(/^\s+/) ? "" : state.indent;
+	return expStr ? result + indent + expStr + ";\n" : result;
 }
 
 export function expressionModifiesVariable(

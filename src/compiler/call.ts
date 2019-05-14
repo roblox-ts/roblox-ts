@@ -142,26 +142,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
 				const node = getLeftHandSideParent(subExp, 2);
-				const declaration = state.declarationContext.get(node);
 				let id: string;
 				const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
 				const place = `${accessPath}[${len}]`;
-				const nullSet = state.indent + `${place} = nil;\n`;
-
-				if (declaration && declaration.set !== "return") {
-					state.declarationContext.delete(node);
-					id = declaration.set;
-					state.pushPrecedingStatements(
-						subExp,
-						state.indent + `${declaration.needsLocalizing ? "local " : ""}${id} = ${place};\n`,
-					);
-					state.pushPrecedingStatements(subExp, nullSet);
-				} else {
-					id = state.pushPrecedingStatementToNewId(subExp, place);
-					state.pushPrecedingStatements(subExp, nullSet);
-					state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
-				}
-
+				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
+				id = state.pushToDeclarationOrNewId(node, place, false);
+				state.pushPrecedingStatements(subExp, nullSet);
 				return id;
 			}
 		},
@@ -186,15 +172,50 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"push",
 		(params, state, subExp) => {
-			const { length } = params;
-			if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-				const accessPath = compileExpression(state, subExp);
-				const [paramStr] = compileCallArguments(state, params);
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			const node = getLeftHandSideParent(subExp, 2);
 
-				if (ts.TypeGuards.isIdentifier(subExp)) {
-					return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
+			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
+				return `TS.array_push(${compileExpression(state, subExp)}, ${compileSpreadableList(state, params)})`;
+			} else {
+			}
+
+			const parameterStrs = compileCallArguments(state, params);
+			const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
+			const { length: numParams } = parameterStrs;
+
+			if (isStatement && numParams === 1) {
+				return `${accessPath}[#${accessPath} + 1] = ${parameterStrs}`;
+			} else {
+				const declaration = state.declarationContext.get(node);
+				const returnVal = `#${accessPath}${numParams ? ` + ${numParams}` : ""}`;
+				const finalLength =
+					declaration && declaration.isIdentifier
+						? state.pushToDeclarationOrNewId(node, returnVal)
+						: state.pushPrecedingStatementToNewId(node, returnVal);
+
+				let lastStatement: string | undefined;
+
+				for (let i = 0; i < numParams; i++) {
+					const j = numParams - i - 1;
+
+					if (lastStatement) {
+						state.pushPrecedingStatements(
+							node,
+							state.indent + lastStatement + `; -- ${subExp.getParent().getText()}\n`,
+						);
+					}
+
+					lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${parameterStrs[i]}`;
+				}
+
+				if (isStatement) {
+					return lastStatement;
 				} else {
-					return `table.insert(${accessPath}, ${paramStr})`;
+					if (lastStatement) {
+						state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+					}
+					return finalLength;
 				}
 			}
 		},
@@ -204,10 +225,24 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"unshift",
 		(params, state, subExp) => {
 			const length = params.length;
-			if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-				const accessPath = compileExpression(state, subExp);
+			let accessPath = compileExpression(state, subExp);
+			if (length === 0) {
+				return `#${accessPath}`;
+			} else if (length === 1) {
+				const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
 				const [paramStr] = compileCallArguments(state, params);
-				return `table.insert(${accessPath}, 1, ${paramStr})`;
+
+				if (isStatement) {
+					const expStr = `table.insert(${accessPath}, 1, ${paramStr})`;
+					return expStr;
+				} else {
+					accessPath = getReadableExpressionName(state, subExp, accessPath);
+					state.pushPrecedingStatements(
+						subExp,
+						state.indent + `table.insert(${accessPath}, 1, ${paramStr});\n`,
+					);
+					return `#${accessPath}`;
+				}
 			}
 		},
 	],

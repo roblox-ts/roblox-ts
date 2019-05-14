@@ -36,59 +36,63 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 
 	let previousCaseFallsThrough = false;
 	const lastClauseIndex = clauses.length - 1;
-	const hasDefault = !ts.TypeGuards.isCaseClause(clauses[lastClauseIndex]);
+	const lastClause = clauses[lastClauseIndex];
 
-	for (let i = 0; i < clauses.length; i++) {
-		const clause = clauses[i];
+	if (lastClause) {
+		const hasDefault = !ts.TypeGuards.isCaseClause(lastClause);
 
-		// add if statement if the clause is non-default
-		let isNonDefault = false;
-		if (ts.TypeGuards.isCaseClause(clause)) {
-			isNonDefault = true;
-			state.enterPrecedingStatementContext();
-			const clauseExpStr = compileExpression(state, clause.getExpression());
-			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
-			result += state.exitPrecedingStatementContextAndJoin();
-			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
-			state.pushIndent();
-		} else if (i !== lastClauseIndex) {
-			throw new CompilerError(
-				"Default case must be the last case in a switch statement!",
-				clause,
-				CompilerErrorType.BadSwitchDefaultPosition,
-			);
-		}
+		for (let i = 0; i < clauses.length; i++) {
+			const clause = clauses[i];
 
-		const statements = clause.getStatements();
-
-		let lastStatement = statements[statements.length - 1];
-		while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
-			const blockStatements = lastStatement.getStatements();
-			lastStatement = blockStatements[blockStatements.length - 1];
-		}
-		const endsInReturnOrBreakStatement =
-			lastStatement &&
-			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
-
-		const currentCaseFallsThrough =
-			!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i;
-
-		result += compileStatementedNode(state, clause);
-
-		if (currentCaseFallsThrough) {
-			if (!anyFallThrough) {
-				fallThroughVar = state.getNewId();
-				anyFallThrough = true;
+			// add if statement if the clause is non-default
+			let isNonDefault = false;
+			if (ts.TypeGuards.isCaseClause(clause)) {
+				isNonDefault = true;
+				state.enterPrecedingStatementContext();
+				const clauseExpStr = compileExpression(state, clause.getExpression());
+				const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
+				result += state.exitPrecedingStatementContextAndJoin();
+				result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
+				state.pushIndent();
+			} else if (i !== lastClauseIndex) {
+				throw new CompilerError(
+					"Default case must be the last case in a switch statement!",
+					clause,
+					CompilerErrorType.BadSwitchDefaultPosition,
+				);
 			}
-			result += state.indent + `${fallThroughVar!} = true;\n`;
-		}
 
-		if (isNonDefault) {
-			state.popIndent();
-			result += state.indent + `end;\n`;
-		}
+			const statements = clause.getStatements();
 
-		previousCaseFallsThrough = currentCaseFallsThrough;
+			let lastStatement = statements[statements.length - 1];
+			while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
+			const endsInReturnOrBreakStatement =
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+
+			const currentCaseFallsThrough =
+				!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i;
+
+			result += compileStatementedNode(state, clause);
+
+			if (currentCaseFallsThrough) {
+				if (!anyFallThrough) {
+					fallThroughVar = state.getNewId();
+					anyFallThrough = true;
+				}
+				result += state.indent + `${fallThroughVar!} = true;\n`;
+			}
+
+			if (isNonDefault) {
+				state.popIndent();
+				result += state.indent + `end;\n`;
+			}
+
+			previousCaseFallsThrough = currentCaseFallsThrough;
+		}
 	}
 
 	if (anyFallThrough) {

@@ -651,12 +651,13 @@ function TS.array_concat(...)
 	return result
 end
 
-function TS.array_push(list, ...)
-	local args = { ... }
-	for i = 1, #args do
-		list[#list + 1] = args[i]
+function TS.array_push(list, list2)
+	local len = #list
+	local len2 = #list2
+	for i = 1, len2 do
+		list[len + i] = list2[i]
 	end
-	return #list
+	return len + len2
 end
 
 local table_concat = table.concat
@@ -946,9 +947,7 @@ end
 -- try catch utilities
 
 local function pack(...)
-	local result = { ... }
-	result.size = select("#", ...)
-	return result
+	return { size = select("#", ...), ... }
 end
 
 local throwStack = {}
