@@ -481,11 +481,11 @@ export function getPropertyAccessExpressionType(
 	const subExpType = subExp.getType();
 	const property = expression.getName();
 
-	if (isArrayMethodType(expType) || (isArrayType(subExpType) && property == "length")) {
+	if (isArrayMethodType(expType) || (isArrayType(subExpType) && property === "length")) {
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringMethodType(expType) || (isStringType(subExpType) && property == "length")) {
+	if (isStringMethodType(expType) || (isStringType(subExpType) && property === "length")) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
