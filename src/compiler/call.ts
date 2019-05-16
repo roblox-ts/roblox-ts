@@ -16,6 +16,8 @@ import {
 	isStringMethodType,
 	isTupleReturnTypeCall,
 	typeConstraint,
+	isArrayType,
+	isStringType,
 } from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
@@ -479,11 +481,11 @@ export function getPropertyAccessExpressionType(
 	const subExpType = subExp.getType();
 	const property = expression.getName();
 
-	if (isArrayMethodType(expType)) {
+	if (isArrayMethodType(expType) || (isArrayType(subExpType) && property == "length")) {
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringMethodType(subExpType)) {
+	if (isStringMethodType(subExpType) || (isStringType(subExpType) && property == "length")) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
