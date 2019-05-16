@@ -485,7 +485,7 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringMethodType(subExpType) || (isStringType(subExpType) && property == "length")) {
+	if (isStringMethodType(expType) || (isStringType(subExpType) && property == "length")) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
