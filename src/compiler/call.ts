@@ -11,13 +11,13 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayMethodType,
+	isArrayType,
 	isMapMethodType,
 	isSetMethodType,
 	isStringMethodType,
+	isStringType,
 	isTupleReturnTypeCall,
 	typeConstraint,
-	isArrayType,
-	isStringType,
 } from "../typeUtilities";
 
 const STRING_MACRO_METHODS = [
