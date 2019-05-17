@@ -106,9 +106,10 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const postStatements = new Array<string>();
 		let rhsStr = compileExpression(state, rhs);
 
-		if (!ts.TypeGuards.isIdentifier(rhs) && ts.TypeGuards.isThisExpression(rhs)) {
-			rhsStr = state.getNewId();
-			preStatements.push(`local ${rhsStr} = ${rhsStr};`);
+		if (!ts.TypeGuards.isIdentifier(rhs) && !ts.TypeGuards.isThisExpression(rhs)) {
+			const id = state.getNewId();
+			preStatements.push(`local ${id} = ${rhsStr};`);
+			rhsStr = id;
 		}
 
 		getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);

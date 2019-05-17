@@ -104,7 +104,6 @@ function objectAccessor(
 	getAccessor: (state: CompilerState, t: string, key: number) => string,
 	nameNode: ts.Node = node,
 ) {
-	console.log(node.getKindName());
 	let name: string;
 
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
@@ -362,7 +361,6 @@ export function getBindingData(
 			const nameNode = item.getNameNode();
 			if (item.hasInitializer()) {
 				const initializer = item.getInitializer()!;
-
 				if (ts.TypeGuards.isIdentifier(initializer)) {
 					alias = compileExpression(state, initializer);
 					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
