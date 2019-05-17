@@ -132,6 +132,16 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 	}
 }
 
+export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.getUnionTypes().every(t => typeConstraint(t, cb));
+	} else if (type.isIntersection()) {
+		return type.getIntersectionTypes().every(t => typeConstraint(t, cb));
+	} else {
+		return cb(type);
+	}
+}
+
 export function isAnyType(type: ts.Type) {
 	return type.getText() === "any";
 }

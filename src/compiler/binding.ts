@@ -13,6 +13,7 @@ import {
 	isSetMethodType,
 	isSetType,
 	isStringType,
+	strictTypeConstraint,
 } from "../typeUtilities";
 import { joinIndentedLines } from "../utility";
 
@@ -92,16 +93,43 @@ export function getParameterData(
 	}
 }
 
-function arrayAccessor(t: string, key: number) {
+function arrayAccessor(state: CompilerState, t: string, key: number) {
 	return `${t}[${key}]`;
 }
 
 function objectAccessor(
+	state: CompilerState,
 	t: string,
 	node: ts.Node,
-	getAccessor: (t: string, key: number) => string,
-	name = node.getText(),
+	getAccessor: (state: CompilerState, t: string, key: number) => string,
+	nameNode: ts.Node = node,
 ) {
+	console.log(node.getKindName());
+	let name: string;
+
+	if (ts.TypeGuards.isIdentifier(nameNode)) {
+		name = compileExpression(state, nameNode);
+	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		const exp = nameNode.getExpression();
+		const expType = exp.getType();
+		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
+			return `${t}[${compileExpression(state, exp)} + 1]`;
+		} else {
+			throw new CompilerError(
+				`Cannot index an object with type ${exp.getType().getText()}.`,
+				nameNode,
+				CompilerErrorType.BadExpression,
+			);
+		}
+	} else {
+		throw new CompilerError(
+			`Cannot index an object with type ${nameNode.getKindName()}.` +
+				`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
+			nameNode,
+			CompilerErrorType.BadExpression,
+		);
+	}
+
 	if (getAccessor) {
 		const type = node.getType();
 		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type)) {
@@ -120,20 +148,46 @@ function objectAccessor(
 	return `${t}.${name}`;
 }
 
-function stringAccessor(t: string, key: number) {
+function stringAccessor(state: CompilerState, t: string, key: number) {
 	return `${t}:sub(${key}, ${key})`;
 }
 
-function setAccessor(t: string, key: number) {
+function setAccessor(state: CompilerState, t: string, key: number) {
 	return "(" + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key + 1);
 }
 
-function mapAccessor(t: string, key: number) {
+function mapAccessor(state: CompilerState, t: string, key: number) {
 	return "({ " + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key) + " })";
 }
 
-function iterAccessor(t: string, key: number) {
+function iterAccessor(state: CompilerState, t: string, key: number) {
 	return `(` + `${t}.next() and `.repeat(key).slice(0, -5) + `.value)`;
+}
+
+// FIXME: Currently broken is destructuring from TS.Symbol.Iterator more than a single value
+// We are going to want a system which is aware of which values have already been destructured/used,
+// because we need to reuse them. With the other Accessors we could get away with just recomputing the
+// `next(t, next(t, next(t)))` etc but here we can't because these are stateful
+// With the implementation of this system, the other use cases can be optimized as well
+
+/* Example:
+	const foo = {
+		*[Symbol.iterator]() {
+			yield 1;
+			yield 2;
+			yield 4;
+		},
+	};
+
+	const [a, b, c] = foo;
+*/
+function objectIterAccessor(state: CompilerState, t: string, key: number) {
+	state.usesTSLibrary = true;
+	return iterAccessor(
+		state,
+		state.pushPrecedingStatementToNewId(({} as unknown) as ts.Node, t + "[TS.Symbol.iterator]()"),
+		key,
+	);
 }
 
 export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
@@ -148,8 +202,8 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 		return mapAccessor;
 	} else if (isIterableIterator(bindingPatternType, bindingPattern)) {
 		return iterAccessor;
-	} else if (isObjectType(bindingPatternType)) {
-		return setAccessor;
+	} else if (isObjectType(bindingPatternType) || ts.TypeGuards.isThisExpression(bindingPattern)) {
+		return objectIterAccessor;
 	} else {
 		if (bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern) {
 			return null as never;
@@ -215,15 +269,15 @@ export function getBindingData(
 			) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys
-					? objectAccessor(parentId, child, getAccessor)
-					: getAccessor(parentId, childIndex);
+					? objectAccessor(state, parentId, child, getAccessor)
+					: getAccessor(state, parentId, childIndex);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
 			} else if (ts.TypeGuards.isArrayBindingPattern(child)) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys
-					? objectAccessor(parentId, child, getAccessor)
-					: getAccessor(parentId, childIndex);
+					? objectAccessor(state, parentId, child, getAccessor)
+					: getAccessor(state, parentId, childIndex);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
@@ -251,16 +305,30 @@ export function getBindingData(
 					}
 				}
 				const accessor: string = strKeys
-					? objectAccessor(parentId, child, getAccessor)
-					: getAccessor(parentId, childIndex);
+					? objectAccessor(state, parentId, child, getAccessor)
+					: getAccessor(state, parentId, childIndex);
 				values.push(accessor);
 			} else if (ts.TypeGuards.isObjectBindingPattern(child)) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys
-					? objectAccessor(parentId, child, getAccessor)
-					: getAccessor(parentId, childIndex);
+					? objectAccessor(state, parentId, child, getAccessor)
+					: getAccessor(state, parentId, childIndex);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
+			} else if (ts.TypeGuards.isComputedPropertyName(child)) {
+				const exp = child.getExpression();
+				const expType = exp.getType();
+				if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
+					const accessor = `${parentId}[${compileExpression(state, exp)} + 1]`;
+					const childId: string = compileExpression(state, pattern as ts.Expression);
+					preStatements.push(`local ${childId} = ${accessor};`);
+				} else {
+					throw new CompilerError(
+						`Cannot index an object with type ${exp.getType().getText()}.`,
+						child,
+						CompilerErrorType.BadExpression,
+					);
+				}
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
 					`roblox-ts doesn't know what to do with ${child.getKindName()} [1]. ` +
@@ -272,26 +340,41 @@ export function getBindingData(
 		} else if (ts.TypeGuards.isIdentifier(item)) {
 			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
-			values.push(getAccessor(parentId, childIndex));
+			values.push(getAccessor(state, parentId, childIndex));
 		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
 			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
-			values.push(getAccessor(parentId, childIndex));
+			values.push(getAccessor(state, parentId, childIndex));
 		} else if (ts.TypeGuards.isArrayLiteralExpression(item)) {
 			const childId = state.getNewId();
-			preStatements.push(`local ${childId} = ${getAccessor(parentId, childIndex)};`);
+			preStatements.push(`local ${childId} = ${getAccessor(state, parentId, childIndex)};`);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
 			childIndex--;
 		} else if (ts.TypeGuards.isObjectLiteralExpression(item)) {
 			const childId = state.getNewId();
-			preStatements.push(`local ${childId} = ${getAccessor(parentId, childIndex)};`);
+			preStatements.push(`local ${childId} = ${getAccessor(state, parentId, childIndex)};`);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (ts.TypeGuards.isShorthandPropertyAssignment(item)) {
-			preStatements.push(`${item.getName()} = ${objectAccessor(parentId, item, getAccessor)};`);
+			preStatements.push(`${item.getName()} = ${objectAccessor(state, parentId, item, getAccessor)};`);
 		} else if (ts.TypeGuards.isPropertyAssignment(item)) {
-			const alias = item.hasInitializer() ? item.getInitializer()!.getText() : item.getName();
-			preStatements.push(`${alias} = ${objectAccessor(parentId, item, getAccessor, item.getName())};`);
+			let alias: string;
+			const nameNode = item.getNameNode();
+			if (item.hasInitializer()) {
+				const initializer = item.getInitializer()!;
+
+				if (ts.TypeGuards.isIdentifier(initializer)) {
+					alias = compileExpression(state, initializer);
+					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
+				} else {
+					alias = state.getNewId();
+					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
+					getBindingData(state, names, values, preStatements, postStatements, initializer, alias);
+				}
+			} else {
+				alias = item.getName();
+				preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
+			}
 		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
 			throw new CompilerError(
 				`roblox-ts doesn't know what to do with ${item.getKindName()} [2]. ` +

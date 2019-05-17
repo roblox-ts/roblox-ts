@@ -218,8 +218,13 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 }
 
 export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
-	const name = node.getName();
-	checkReserved(name, node);
+	const nameNode = node.getNameNode();
+	const name = nameNode.getText();
+
+	if (!ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		checkReserved(name, node);
+	}
+
 	return compileFunction(state, node, name, node.getBodyOrThrow());
 }
 

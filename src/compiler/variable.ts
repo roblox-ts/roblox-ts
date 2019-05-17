@@ -104,14 +104,14 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
-		if (ts.TypeGuards.isIdentifier(rhs)) {
-			getBindingData(state, names, values, preStatements, postStatements, lhs, compileExpression(state, rhs));
-		} else {
-			const rootId = state.getNewId();
-			const rhsStr = compileExpression(state, rhs);
-			preStatements.push(`local ${rootId} = ${rhsStr};`);
-			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
+		let rhsStr = compileExpression(state, rhs);
+
+		if (!ts.TypeGuards.isIdentifier(rhs) && ts.TypeGuards.isThisExpression(rhs)) {
+			rhsStr = state.getNewId();
+			preStatements.push(`local ${rhsStr} = ${rhsStr};`);
 		}
+
+		getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {

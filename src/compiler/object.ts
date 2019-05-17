@@ -9,7 +9,6 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 	if (properties.length === 0) {
 		return "{}";
 	}
-
 	let isInObject = false;
 	let first = true;
 	let firstIsObj = false;

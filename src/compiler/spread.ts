@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { checkNonAny, compileCallExpression, compileExpression } from ".";
-import { CompilerState, PrecedingStatementContext } from "../CompilerState";
+import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayType,
@@ -10,7 +10,6 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
-import { joinIndentedLines } from "../utility";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;
@@ -22,29 +21,14 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	return false;
 }
 
-// TODO: Make this compile without IIFE's
 export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
-	// // const context = new Array<Array<PrecedingStatementContext> | PrecedingStatementContext>();
-	const contexts = new Array<PrecedingStatementContext>();
-
-	for (let i = 0; i < elements.length; i++) {
-		const element = elements[i];
+	for (const element of elements) {
 		if (ts.TypeGuards.isSpreadElement(element)) {
-			state.enterPrecedingStatementContext();
-			const expStr = compileSpreadExpressionOrThrow(state, element.getExpression());
-			const context = state.exitPrecedingStatementContext();
-
-			if (context.length > 0) {
-				contexts[i] = context;
-				// context.push(state.indent + `return ${expStr};\n`);
-				// expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
-			}
-			parts.push(expStr);
+			parts.push(compileSpreadExpressionOrThrow(state, element.getExpression()));
 			isInArray = false;
 		} else {
-			checkNonAny(element);
 			let last: Array<string>;
 			if (isInArray) {
 				last = parts[parts.length - 1] as Array<string>;
@@ -52,28 +36,12 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 				last = new Array<string>();
 				parts.push(last);
 			}
-			// lhsContext.push(state.indent + `return ${lhsStr};\n`);
-			// lhsStr = "(function()\n" + joinIndentedLines(lhsContext, 1) + state.indent + "end)()";
-			state.enterPrecedingStatementContext();
-			let expStr = compileExpression(state, element);
-			const context = state.exitPrecedingStatementContext();
-
-			if (context.length > 0) {
-				context.push(state.indent + `return ${expStr};\n`);
-				expStr = "(function()\n" + joinIndentedLines(context, 1) + state.indent + "end)()";
-			}
-			last.push(expStr);
+			last.push(compileExpression(state, element));
 			isInArray = true;
 		}
 	}
-
-	const params = parts
-		.map(v => {
-			return typeof v === "string" ? v : `{ ${v.join(", ")} }`;
-		})
-		.join(", ");
-
 	state.usesTSLibrary = true;
+	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
 	return `TS.array_concat(${params})`;
 }
 
