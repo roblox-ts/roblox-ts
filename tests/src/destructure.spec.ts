@@ -225,4 +225,20 @@ export = () => {
 		({ x: y } = { x: 1 });
 		expect(y).to.equal(1);
 	});
+
+	it("should destructure computed property types as well (number-only)", () => {
+		const array = new Array<number>();
+		array.push(1, 2, 3, 4);
+
+		function f(i: number) {
+			let num: number;
+			({ [i]: num } = array);
+			return num;
+		}
+
+		expect(f(0)).to.equal(1);
+		expect(f(1)).to.equal(2);
+		expect(f(2)).to.equal(3);
+		expect(f(3)).to.equal(4);
+	});
 };
