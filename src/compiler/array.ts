@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { compileSpreadableList, compileSpreadExpression, shouldCompileAsSpreadableList } from ".";
+import { compileSpreadableListAndJoin, compileSpreadExpression, shouldCompileAsSpreadableList } from ".";
 import { CompilerState } from "../CompilerState";
 import { isArrayType } from "../typeUtilities";
 import { compileList } from "./call";
@@ -26,7 +26,7 @@ export function compileArrayLiteralExpression(state: CompilerState, node: ts.Arr
 	}
 
 	if (shouldCompileAsSpreadableList(elements)) {
-		return compileSpreadableList(state, elements);
+		return compileSpreadableListAndJoin(state, elements);
 	} else {
 		return `{ ${compileList(state, elements).join(", ")} }`;
 	}

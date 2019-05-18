@@ -4,7 +4,7 @@ import {
 	checkApiAccess,
 	checkNonAny,
 	compileExpression,
-	compileSpreadableList,
+	compileSpreadableListAndJoin,
 	shouldCompileAsSpreadableList,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
@@ -164,7 +164,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const node = getLeftHandSideParent(subExp, 2);
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
-				return `TS.array_push(${compileExpression(state, subExp)}, ${compileSpreadableList(state, params)})`;
+				return `TS.array_push(${compileExpression(state, subExp)}, ${compileSpreadableListAndJoin(
+					state,
+					params,
+				)})`;
 			} else {
 			}
 
@@ -406,7 +409,7 @@ export function compileCallArguments(state: CompilerState, args: Array<ts.Expres
 	let argStrs: Array<string>;
 
 	if (shouldCompileAsSpreadableList(args)) {
-		argStrs = [`unpack(${compileSpreadableList(state, args)})`];
+		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args)})`];
 	} else {
 		argStrs = compileList(state, args);
 	}
