@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { checkNonAny, compileCallExpression, compileExpression } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayType,
@@ -21,27 +21,49 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	return false;
 }
 
+// TODO: Add logic equivalent to compileList.
 export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
+	const contexts = new Array<Array<PrecedingStatementContext> | PrecedingStatementContext>();
+
 	for (const element of elements) {
 		if (ts.TypeGuards.isSpreadElement(element)) {
+			state.enterPrecedingStatementContext();
 			parts.push(compileSpreadExpressionOrThrow(state, element.getExpression()));
+			contexts.push(state.exitPrecedingStatementContext());
 			isInArray = false;
 		} else {
 			let last: Array<string>;
+			let lastContext: Array<PrecedingStatementContext>;
 			if (isInArray) {
 				last = parts[parts.length - 1] as Array<string>;
+				lastContext = contexts[contexts.length - 1] as Array<PrecedingStatementContext>;
 			} else {
 				last = new Array<string>();
+				lastContext = new Array<PrecedingStatementContext>();
 				parts.push(last);
+				contexts.push(lastContext);
 			}
+			state.enterPrecedingStatementContext();
 			last.push(compileExpression(state, element));
+			lastContext.push(state.exitPrecedingStatementContext());
 			isInArray = true;
 		}
 	}
+
 	state.usesTSLibrary = true;
-	const params = parts.map(v => (typeof v === "string" ? v : `{ ${v.join(", ")} }`)).join(", ");
+
+	const params = parts
+		.map(v => {
+			if (typeof v === "string") {
+				return v;
+			} else {
+				return `{ ${v.join(", ")} }`;
+			}
+		})
+		.join(", ");
+
 	return `TS.array_concat(${params})`;
 }
 

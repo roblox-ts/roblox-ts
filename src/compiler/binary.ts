@@ -74,7 +74,7 @@ function compileBinaryLiteral(
 	const postStatements = new Array<string>();
 
 	let rootId: string;
-	if (ts.TypeGuards.isIdentifier(rhs)) {
+	if (ts.TypeGuards.isIdentifier(rhs) || ts.TypeGuards.isThisExpression(rhs)) {
 		rootId = compileExpression(state, rhs);
 	} else {
 		rootId = state.getNewId();

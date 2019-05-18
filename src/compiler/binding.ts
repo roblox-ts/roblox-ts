@@ -103,8 +103,12 @@ function objectAccessor(
 	node: ts.Node,
 	getAccessor: (state: CompilerState, t: string, key: number) => string,
 	nameNode: ts.Node = node,
-) {
+): string {
 	let name: string;
+
+	if (ts.TypeGuards.isShorthandPropertyAssignment(nameNode)) {
+		nameNode = nameNode.getNameNode();
+	}
 
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
@@ -123,7 +127,7 @@ function objectAccessor(
 	} else {
 		throw new CompilerError(
 			`Cannot index an object with type ${nameNode.getKindName()}.` +
-				`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
+				` Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
 			nameNode,
 			CompilerErrorType.BadExpression,
 		);
@@ -355,6 +359,7 @@ export function getBindingData(
 			preStatements.push(`local ${childId} = ${getAccessor(state, parentId, childIndex)};`);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (ts.TypeGuards.isShorthandPropertyAssignment(item)) {
+			console.log(item.getName(), parentId);
 			preStatements.push(`${item.getName()} = ${objectAccessor(state, parentId, item, getAccessor)};`);
 		} else if (ts.TypeGuards.isPropertyAssignment(item)) {
 			let alias: string;
