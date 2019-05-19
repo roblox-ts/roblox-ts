@@ -68,7 +68,11 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 /**
  * Similar to getWritableOperandName, but should push anything with any depth. This includes export let vars.
  */
-export function getReadableExpressionName(state: CompilerState, exp: ts.Expression, expStr: string) {
+export function getReadableExpressionName(
+	state: CompilerState,
+	exp: ts.Expression,
+	expStr = compileExpression(state, exp),
+) {
 	if (expStr.match(/^_\d+$/) || (ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp))) {
 		return expStr;
 	} else {
@@ -141,7 +145,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		}
 	}
 
-	return `${expStr}.${propertyStr}`;
+	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
 export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {

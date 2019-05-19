@@ -188,7 +188,7 @@ function objectIterAccessor(state: CompilerState, t: string, key: number) {
 	state.usesTSLibrary = true;
 	return iterAccessor(
 		state,
-		state.pushPrecedingStatementToNewId(({} as unknown) as ts.Node, t + "[TS.Symbol.iterator]()"),
+		state.pushPrecedingStatementToNewId(({} as unknown) as ts.Node, t + `[TS.Symbol_iterator](${t})`),
 		key,
 	);
 }

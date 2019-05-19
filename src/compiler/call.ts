@@ -125,7 +125,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"pop",
 		(params, state, subExp) => {
-			const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
+			const accessPath = getReadableExpressionName(state, subExp);
 			if (getPropertyCallParentIsExpressionStatement(subExp)) {
 				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
@@ -162,51 +162,60 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(params, state, subExp) => {
 			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
 			const node = getLeftHandSideParent(subExp, 2);
+			const { length: numParams } = params;
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
-				return `TS.array_push(${compileExpression(state, subExp)}, ${compileSpreadableListAndJoin(
-					state,
-					params,
-				)})`;
+				return `TS.array_push_apply(${compileExpression(state, subExp)}, ${
+					numParams === 1
+						? compileExpression(state, (params[0] as ts.SpreadElement).getExpression())
+						: compileSpreadableListAndJoin(state, params)
+				})`;
 			} else {
-			}
+				// const parameterStrs = compileCallArguments(state, params);
+				const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
 
-			const parameterStrs = compileCallArguments(state, params);
-			const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
-			const { length: numParams } = parameterStrs;
-
-			if (isStatement && numParams === 1) {
-				return `${accessPath}[#${accessPath} + 1] = ${parameterStrs}`;
-			} else {
-				const returnVal = `#${accessPath}${numParams ? ` + ${numParams}` : ""}`;
-				const finalLength = state.pushToDeclarationOrNewId(
-					node,
-					returnVal,
-					declaration => declaration.isIdentifier,
-				);
-
-				let lastStatement: string | undefined;
-
-				for (let i = 0; i < numParams; i++) {
-					const j = numParams - i - 1;
-
-					if (lastStatement) {
-						state.pushPrecedingStatements(
-							node,
-							state.indent + lastStatement + `; -- ${subExp.getParent().getText()}\n`,
-						);
-					}
-
-					lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${parameterStrs[i]}`;
-				}
-
-				if (isStatement) {
-					return lastStatement;
+				if (isStatement && numParams === 1) {
+					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[0])}`;
 				} else {
-					if (lastStatement) {
-						state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+					const returnVal = `#${accessPath}${numParams ? ` + ${numParams}` : ""}`;
+					const finalLength = state.pushToDeclarationOrNewId(
+						node,
+						returnVal,
+						declaration => declaration.isIdentifier,
+					);
+
+					let lastStatement: string | undefined;
+					const commentStr = subExp.getParent().getText();
+
+					for (let i = 0; i < numParams; i++) {
+						const j = numParams - i - 1;
+
+						if (lastStatement) {
+							state.pushPrecedingStatements(node, state.indent + lastStatement + `; -- ${commentStr}\n`);
+						}
+
+						lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${compileExpression(
+							state,
+							params[i],
+						)}`;
 					}
-					return finalLength;
+
+					if (isStatement) {
+						return (
+							lastStatement ||
+							state
+								.getCurrentPrecedingStatementContext(node)
+								// just returns finalLength from above
+								.pop()!
+								// removes ;\n from the back
+								.slice(0, -2)
+						);
+					} else {
+						if (lastStatement) {
+							state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+						}
+						return finalLength;
+					}
 				}
 			}
 		},

@@ -241,4 +241,30 @@ export = () => {
 		expect(f(2)).to.equal(3);
 		expect(f(3)).to.equal(4);
 	});
+
+	it("should properly destruct objects with a Symbol.iterator method", () => {
+		const k = { o: 1, b: 2 };
+		const o = {
+			o: 3,
+			...k,
+			b: 4,
+			*[Symbol.iterator]() {
+				const values = Object.values(this).filter(a => typeIs(a, "number")) as Array<number>;
+				for (const value of values) {
+					yield value;
+				}
+			},
+		};
+
+		const arr = [...o].filter(i => typeIs(i, "number")) as Array<number>;
+		const set1 = new Set(arr);
+		const set2 = new Set([1, 4]);
+
+		expect(
+			set1
+				.difference(set2)
+				.union(set2.difference(set1))
+				.isEmpty(),
+		).to.equal(true);
+	});
 };

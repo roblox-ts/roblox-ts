@@ -18,7 +18,7 @@ local Symbol do
 	setmetatable(Symbol, {
 		__call = function(_, description)
 			local self = setmetatable({}, Symbol)
-			self.description = description or ""
+			self.description = "Symbol(" .. (description or "") .. ")"
 			return self
 		end
 	})
@@ -30,13 +30,11 @@ local Symbol do
 		end
 	})
 
-	function Symbol:__tostring()
-		return "Symbol(" .. self.description .. ")"
+	function Symbol:toString()
+		return self.description
 	end
 
-	function Symbol:toString()
-		return tostring(self)
-	end
+	Symbol.__tostring = Symbol.toString
 
 	-- Symbol.for
 	function Symbol.getFor(key)
@@ -53,6 +51,7 @@ local Symbol do
 end
 
 TS.Symbol = Symbol
+TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
@@ -651,7 +650,7 @@ function TS.array_concat(...)
 	return result
 end
 
-function TS.array_push(list, list2)
+function TS.array_push_apply(list, list2)
 	local len = #list
 	local len2 = #list2
 	for i = 1, len2 do

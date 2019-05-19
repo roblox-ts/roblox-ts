@@ -184,6 +184,10 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
+	} else {
+		state.usesTSLibrary = true;
+		const arrName = compileExpression(state, expression);
+		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}))`;
 	}
 }
 
