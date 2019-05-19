@@ -14,7 +14,6 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 	let firstIsObj = false;
 	const parts = new Array<string>();
 	for (const prop of properties) {
-		console.log(prop.getKindName(), prop.getText());
 		if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
 			if (first) {
 				firstIsObj = true;
