@@ -527,6 +527,9 @@ function compilePropertyMethod(
 		}
 	}
 
+	if (className === "Object") {
+		params = params.slice(1);
+	}
 	state.usesTSLibrary = true;
 	return `TS.${className}_${property}(${compileCallArgumentsAndJoin(state, params)})`;
 }
