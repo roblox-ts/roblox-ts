@@ -47,9 +47,10 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 					getIncrementString(opKind, expStr, node, ""),
 					declaration => declaration.isIdentifier,
 				);
-
+				const context = state.getCurrentPrecedingStatementContext(node);
+				const isPushed = context.isPushed;
 				state.pushPrecedingStatements(node, state.indent + `${expStr} = ${id};\n`);
-				state.getCurrentPrecedingStatementContext(node).isPushed = true;
+				context.isPushed = isPushed;
 				return id;
 			} else {
 				const incrStr = getIncrementString(opKind, expStr, node, expStr);
