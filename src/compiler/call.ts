@@ -45,27 +45,6 @@ function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	);
 }
 
-function wrapExpressionIfNeeded(
-	state: CompilerState,
-	subExp: ts.Expression,
-	accessPath: string,
-	strict: boolean = false,
-) {
-	// If we compile to a method call, we might need to wrap in parenthesis
-	// We are going to wrap in parenthesis just to be safe,
-	// unless it's a CallExpression, Identifier, ElementAccessExpression, or PropertyAccessExpression
-
-	if (
-		!state.getCurrentPrecedingStatementContext(subExp).isPushed &&
-		!accessPath.match(/^_\d+$/) &&
-		shouldWrapExpression(subExp, strict)
-	) {
-		return `(${accessPath})`;
-	} else {
-		return accessPath;
-	}
-}
-
 function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
@@ -84,17 +63,37 @@ type ReplaceFunction = (state: CompilerState, params: Array<ts.Expression>) => s
 type ReplaceMap = Map<string, ReplaceFunction>;
 
 function wrapExpFunc(replacer: (accessPath: string) => string): ReplaceFunction {
-	return (state, params) => replacer(wrapExpressionIfNeeded(state, params[0], compileExpression(state, params[0])));
+	return (state, params) => replacer(compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true)[0]);
 }
 
-function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Array<ts.Expression>) {
+function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Array<ts.Expression>): [string, string] {
 	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
 	return [accessPath, compiledArgs.join(", ")];
 }
 
-function compileCallArgumentsAndSeparateAndJoinWrapped(state: CompilerState, params: Array<ts.Expression>) {
+function compileCallArgumentsAndSeparateAndJoinWrapped(
+	state: CompilerState,
+	params: Array<ts.Expression>,
+	strict: boolean = false,
+): [string, string] {
 	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
-	return [wrapExpressionIfNeeded(state, params[0], accessPath), compiledArgs.join(", ")];
+
+	// If we compile to a method call, we might need to wrap in parenthesis
+	// We are going to wrap in parenthesis just to be safe,
+	// unless it's a CallExpression, Identifier, ElementAccessExpression, or PropertyAccessExpression
+	const subExp = params[0];
+	let accessStr: string;
+	if (
+		!state.getCurrentPrecedingStatementContext(subExp).isPushed &&
+		!accessPath.match(/^_\d+$/) &&
+		shouldWrapExpression(subExp, strict)
+	) {
+		accessStr = `(${accessPath})`;
+	} else {
+		accessStr = accessPath;
+	}
+
+	return [accessStr, compiledArgs.join(", ")];
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
@@ -330,10 +329,8 @@ function setKeyOfMapOrSet(kind: "map" | "set") {
 }
 
 const hasKeyOfMapOrSet: ReplaceFunction = (state, params) => {
-	const [acccessStr, key] = compileCallArguments(state, params);
-	const subExp = params[0];
-	const accessPath = wrapExpressionIfNeeded(state, subExp, acccessStr, true);
-	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] ~= nil)`);
+	const [accessPath, key] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+	return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), `(${accessPath}[${key}] ~= nil)`);
 };
 
 const deleteKeyOfMapOrSet: ReplaceFunction = (state, params) => {
@@ -359,10 +356,8 @@ const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"get",
 		(state, params) => {
-			const [accessStr, key] = compileCallArguments(state, params);
-			const subExp = params[0];
-			const accessPath = wrapExpressionIfNeeded(state, subExp, accessStr, true);
-			return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `${accessPath}[${key}]`);
+			const [accessPath, key] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), `${accessPath}[${key}]`);
 		},
 	],
 ]);
@@ -656,16 +651,16 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
 		}
 		case PropertyCallExpType.BuiltInStringMethod: {
-			const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
-			return `${wrapExpressionIfNeeded(state, params[0], accessPath)}:${property}(${compiledArgs.join(", ")})`;
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			return `${accessPath}:${property}(${compiledArgs})`;
 		}
 		case PropertyCallExpType.PromiseThen: {
-			const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
-			return `${accessPath}:andThen(${compiledArgs.join(", ")})`;
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			return `${accessPath}:andThen(${compiledArgs})`;
 		}
 		case PropertyCallExpType.SymbolFor: {
-			const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
-			return `${accessPath}.getFor(${compiledArgs.join(", ")})`;
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			return `${accessPath}.getFor(${compiledArgs})`;
 		}
 		case PropertyCallExpType.RbxMathAdd: {
 			const argStrs = compileCallArguments(state, params);
