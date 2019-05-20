@@ -103,7 +103,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 					node,
 					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
 				);
-				// due to this optimization here, this shouldn't be shortened with `state.pushToDeclarationOrNewId
+				// due to this optimization here, this shouldn't be shortened with `state.pushToDeclarationOrNewId`
 				id = expData.isIdentifier ? expStr : declaration.set;
 				const incrStr = getIncrementString(opKind, id, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");

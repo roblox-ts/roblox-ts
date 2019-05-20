@@ -17,7 +17,6 @@ interface DeclarationContext {
 
 export class CompilerState {
 	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
-	// string1 is the declaration string, string2 is the string to set it to
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
 	public pushToDeclarationOrNewId(

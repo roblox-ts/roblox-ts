@@ -52,7 +52,7 @@ export function compileStatement(state: CompilerState, node: ts.Statement): stri
 	} else if (ts.TypeGuards.isBreakStatement(node)) {
 		return compileBreakStatement(state, node);
 	} else if (ts.TypeGuards.isExpressionStatement(node)) {
-		return compileExpressionStatement(state, node); // HERE
+		return compileExpressionStatement(state, node);
 	} else if (ts.TypeGuards.isContinueStatement(node)) {
 		return compileContinueStatement(state, node);
 	} else if (ts.TypeGuards.isForInStatement(node)) {
