@@ -267,4 +267,14 @@ export = () => {
 				.isEmpty(),
 		).to.equal(true);
 	});
+
+	it("should properly destruct gmatch", () => {
+		function catchLetters(...strs: Array<string>) {
+			expect(strs[0]).to.equal("a");
+			expect(strs[1]).to.equal("b");
+			expect(strs[2]).to.equal("c");
+			expect(strs[3]).to.equal("d");
+		}
+		catchLetters(..."abcd".gmatch("."));
+	});
 };

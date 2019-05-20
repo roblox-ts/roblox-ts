@@ -312,5 +312,27 @@ export = () => {
 		}
 	});
 
-	it("should support using Symbol.iterator on every other kind of object", () => {});
+	it("should support using Symbol.iterator on every other kind of object", () => {
+		const fee = {
+			*[Symbol.iterator]() {
+				yield 1;
+				yield 2;
+				yield 3;
+			},
+			*values() {
+				yield 4;
+				yield 5;
+				yield 6;
+			},
+		};
+
+		let i = 0;
+		for (const f of fee) {
+			expect(f).to.equal(++i);
+		}
+
+		for (const f of fee.values()) {
+			expect(f).to.equal(++i);
+		}
+	});
 };
