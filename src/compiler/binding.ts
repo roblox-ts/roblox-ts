@@ -178,6 +178,7 @@ function iterAccessor(state: CompilerState, t: string, key: number) {
 }
 
 // FIXME: Currently broken is destructuring from TS.Symbol.Iterator more than a single value
+// (same for gmatch/IterableFunctions)
 // We are going to want a system which is aware of which values have already been destructured/used,
 // because we need to reuse them. With the other Accessors we could get away with just recomputing the
 // `next(t, next(t, next(t)))` etc but here we can't because these are stateful
@@ -194,6 +195,7 @@ function iterAccessor(state: CompilerState, t: string, key: number) {
 
 	const [a, b, c] = foo;
 */
+
 function objectIterAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>) {
 	state.usesTSLibrary = true;
 	const newId = state.getNewId();
