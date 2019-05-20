@@ -173,9 +173,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 					const context = state.exitPrecedingStatementContext();
 
 					if (context.length > 0) {
-						if (!context.isPushed) {
-							arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
-						}
+						arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
 						state.pushPrecedingStatements(subExp, ...context);
 					}
 
