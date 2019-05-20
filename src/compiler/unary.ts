@@ -92,14 +92,18 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 		if (isNonStatement) {
 			const declaration = state.declarationContext.get(node);
 			let id: string;
-			if (declaration && (declaration.isIdentifier || expData.isIdentifier) && declaration.set !== "return") {
+			if (
+				declaration &&
+				(declaration.isIdentifier || expData.isIdentifier) &&
+				declaration.set !== "return" &&
+				declaration.set !== expStr
+			) {
 				state.declarationContext.delete(node);
 				state.pushPrecedingStatements(
 					node,
 					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
 				);
-
-				// due to this optimization here, this shouldn't be shortened
+				// due to this optimization here, this shouldn't be shortened with `state.pushToDeclarationOrNewId
 				id = expData.isIdentifier ? expStr : declaration.set;
 				const incrStr = getIncrementString(opKind, id, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
