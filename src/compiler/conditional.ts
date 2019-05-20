@@ -13,6 +13,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const whenTrue = node.getWhenTrue();
 	const whenFalse = node.getWhenFalse();
 	let conditionStr: string;
+	let isPushed = false;
 
 	if (declaration) {
 		conditionStr = compileExpression(state, condition);
@@ -25,6 +26,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		if (currentConditionalContext === "") {
 			id = state.pushPrecedingStatementToNewId(node, "");
 			state.currentConditionalContext = id;
+			isPushed = true;
 		} else {
 			id = currentConditionalContext;
 		}
@@ -58,7 +60,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	if (currentConditionalContext === "") {
 		state.currentConditionalContext = "";
 	}
-	state.getCurrentPrecedingStatementContext(node).isPushed = true;
 	state.declarationContext.delete(node);
+	state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
 	return id || "";
 }

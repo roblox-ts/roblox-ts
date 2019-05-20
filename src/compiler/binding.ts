@@ -16,6 +16,34 @@ import {
 	strictTypeConstraint,
 } from "../typeUtilities";
 import { joinIndentedLines } from "../utility";
+import { isIdentifierDefinedInExportLet } from "./indexed";
+
+function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
+	state.enterPrecedingStatementContext();
+	state.declarationContext.set(initial, {
+		isIdentifier: ts.TypeGuards.isIdentifier(initial) && !isIdentifierDefinedInExportLet(initial),
+		set: name,
+	});
+	const expStr = compileExpression(state, initial);
+	const context = state.exitPrecedingStatementContext();
+
+	let defaultValue: string;
+	if (context.length > 0) {
+		state.pushIndent();
+		defaultValue =
+			`if ${name} == nil then\n` +
+			joinIndentedLines(context, 2) +
+			state.indent +
+			`${state.declarationContext.delete(initial) ? `\t${name} = ${expStr};\n` + state.indent : ""}` +
+			`end;`;
+		state.popIndent();
+	} else {
+		defaultValue = `if ${name} == nil then${
+			state.declarationContext.delete(initial) ? ` ${name} = ${expStr};` : ""
+		} end;`;
+	}
+	return defaultValue;
+}
 
 export function getParameterData(
 	state: CompilerState,
@@ -54,26 +82,7 @@ export function getParameterData(
 
 		const initial = param.getInitializer();
 		if (initial) {
-			state.enterPrecedingStatementContext();
-			const expStr = compileExpression(state, initial);
-			const context = state.exitPrecedingStatementContext();
-			let defaultValue: string;
-			if (context.length > 0) {
-				state.pushIndent();
-				defaultValue =
-					`if ${name} == nil then\n` +
-					joinIndentedLines(context, 2) +
-					state.indent +
-					`\t${name} = ${expStr}\n${state.indent}end;`;
-				state.popIndent();
-			} else {
-				defaultValue = `if ${name} == nil then ${name} = ${expStr} end;`;
-			}
-			if (defaults) {
-				defaults.push(defaultValue);
-			} else {
-				initializers.push(defaultValue);
-			}
+			(defaults ? defaults : initializers).push(compileParamDefault(state, initial, name));
 		}
 
 		if (param.hasScopeKeyword() || param.isReadonly()) {
@@ -291,21 +300,7 @@ export function getBindingData(
 				);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
-					state.enterPrecedingStatementContext();
-					const value = compileExpression(state, pattern as ts.Expression);
-					const context = state.exitPrecedingStatementContext();
-					if (context.length > 0) {
-						state.pushIndent();
-						postStatements.push(
-							`if ${id} == nil then\n` +
-								joinIndentedLines(context, 2) +
-								state.indent +
-								`\t${id} = ${value}\n${state.indent}end;`,
-						);
-						state.popIndent();
-					} else {
-						postStatements.push(`if ${id} == nil then ${id} = ${value} end;`);
-					}
+					postStatements.push(compileParamDefault(state, pattern as ts.Expression, id));
 				}
 				const accessor: string = strKeys
 					? objectAccessor(state, parentId, child, getAccessor)

@@ -82,7 +82,7 @@ export function getReadableExpressionName(
 	expStr = compileExpression(state, exp),
 ) {
 	if (
-		expStr.match(/^_\d+$/) ||
+		expStr.match(/^\(*_\d+\)*$/) ||
 		(ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp)) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
 		(ts.TypeGuards.isNewExpression(exp) && (isSetType(exp.getType()) || isMapType(exp.getType())))

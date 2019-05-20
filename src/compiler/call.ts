@@ -85,7 +85,7 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 	let accessStr: string;
 	if (
 		!state.getCurrentPrecedingStatementContext(subExp).isPushed &&
-		!accessPath.match(/^_\d+$/) &&
+		!accessPath.match(/^\(*_\d+\)*$/) &&
 		shouldWrapExpression(subExp, strict)
 	) {
 		accessStr = `(${accessPath})`;
@@ -167,21 +167,22 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 						(params[1] as ts.SpreadElement).getExpression(),
 					)})`;
 				} else {
+					let arrayStr = compileExpression(state, subExp);
 					state.enterPrecedingStatementContext();
 					const listStr = compileSpreadableListAndJoin(state, params.slice(1));
 					const context = state.exitPrecedingStatementContext();
-					let arrayStr = compileExpression(state, subExp);
 
 					if (context.length > 0) {
-						arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
+						if (!context.isPushed) {
+							arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
+						}
 						state.pushPrecedingStatements(subExp, ...context);
 					}
 
 					return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 				}
 			} else {
-				const accessPath = getReadableExpressionName(state, subExp, compileExpression(state, subExp));
-
+				const accessPath = getReadableExpressionName(state, subExp);
 				if (isStatement && numParams === 2) {
 					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
 				} else {
