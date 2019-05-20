@@ -184,14 +184,14 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		return `string.split(${compileExpression(state, expression)}, "")`;
 	} else if (isIterableFunction(expType)) {
 		state.usesTSLibrary = true;
-		return `TS.iterableCache(${compileExpression(state, expression)})`;
+		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
 	} else if (isIterableIterator(expType, expression)) {
 		state.usesTSLibrary = true;
-		return `TS.iterableCache(${compileExpression(state, expression)}.next)`;
+		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {
 		state.usesTSLibrary = true;
 		const arrName = compileExpression(state, expression);
-		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}).next)`;
+		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}))`;
 	}
 }
 
