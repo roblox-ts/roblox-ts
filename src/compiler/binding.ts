@@ -215,7 +215,6 @@ function iterableFunctionAccessor(state: CompilerState, t: string, key: number, 
 
 export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	const bindingPatternType = bindingPattern.getType();
-	console.log(">", bindingPatternType.getText(), isIterableFunction(bindingPatternType));
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
 	} else if (isStringType(bindingPatternType)) {

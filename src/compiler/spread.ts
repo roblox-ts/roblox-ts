@@ -4,6 +4,7 @@ import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayType,
+	isIterableFunction,
 	isIterableIterator,
 	isMapType,
 	isSetType,
@@ -181,13 +182,16 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		return compileExpression(state, expression);
 	} else if (isStringType(expType)) {
 		return `string.split(${compileExpression(state, expression)}, "")`;
-	} else if (isIterableIterator(expType, expression)) {
+	} else if (isIterableFunction(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
+	} else if (isIterableIterator(expType, expression)) {
+		state.usesTSLibrary = true;
+		return `TS.iterableCache(${compileExpression(state, expression)}.next)`;
 	} else {
 		state.usesTSLibrary = true;
 		const arrName = compileExpression(state, expression);
-		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}))`;
+		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}).next)`;
 	}
 }
 

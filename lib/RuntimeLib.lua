@@ -901,7 +901,7 @@ TS.set_toString = toString
 function TS.iterableCache(iter)
 	local results = {}
 	local count = 0
-	for _0 in iter.next do
+	for _0 in iter do
 		if _0.done then break end
 		count = count + 1
 		results[count] = _0.value
