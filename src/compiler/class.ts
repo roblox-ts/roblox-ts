@@ -103,15 +103,17 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extendExp = node.getExtends();
 	let baseClassName = "";
 	let hasSuper = false;
+	let result = "";
 
 	if (extendExp) {
 		hasSuper = true;
+		state.enterPrecedingStatementContext();
 		baseClassName = compileExpression(state, extendExp.getExpression());
+		result += state.exitPrecedingStatementContextAndJoin();
 	}
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
-	let result = "";
 	if (isExpression) {
 		if (nameNode) {
 			expAlias = state.getNewId();

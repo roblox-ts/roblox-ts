@@ -85,7 +85,7 @@ function compileSetMapConstructorHelper(
 					const context = state.exitPrecedingStatementContext();
 					if (context.length > 0) {
 						hasContext = true;
-						id = state.pushToDeclarationOrNewId(exp, "{}");
+						id = state.pushToDeclarationOrNewId(exp, "{}", declaration => declaration.isIdentifier);
 						state.pushPrecedingStatements(
 							exp,
 							...lines.map(current => id + current),
@@ -105,7 +105,7 @@ function compileSetMapConstructorHelper(
 				lines.reduce((result, line) => result + state.indent + "\t" + line, lines.length > 0 ? "{\n" : "{") +
 					state.indent +
 					"}",
-				() => true,
+				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
 			);
 		}
 
