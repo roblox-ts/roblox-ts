@@ -651,7 +651,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
 		}
 		case PropertyCallExpType.BuiltInStringMethod: {
-			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
 			return `${accessPath}:${property}(${compiledArgs})`;
 		}
 		case PropertyCallExpType.PromiseThen: {
