@@ -311,4 +311,6 @@ export = () => {
 			expect(a).to.equal("H");
 		}
 	});
+
+	it("should support using Symbol.iterator on every other kind of object", () => {});
 };

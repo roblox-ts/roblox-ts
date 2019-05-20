@@ -181,17 +181,8 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 }
 
 export function isIterableFunction(type: ts.Type) {
-	let i = 0;
-
-	return typeConstraint(type, t => {
-		if (i++ % 2 === 0) {
-			const symbol = t.getAliasSymbol();
-			return symbol ? symbol.getEscapedName() === "Iterable" : false;
-		} else {
-			const callSignatures = t.getCallSignatures();
-			return callSignatures ? callSignatures.length > 0 : false;
-		}
-	});
+	const symbol = type.getAliasSymbol();
+	return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
 }
 
 export function getCompilerDirectiveWithConstraint(

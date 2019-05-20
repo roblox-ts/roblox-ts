@@ -12,7 +12,15 @@ import {
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType, isIterableFunction, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
+import {
+	isArrayType,
+	isIterableFunction,
+	isIterableIterator,
+	isMapType,
+	isNumberType,
+	isSetType,
+	isStringType,
+} from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
 import { getReadableExpressionName } from "./indexed";
 
@@ -249,7 +257,13 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				result += state.indent + `for ${varName} in ${expStr} do\n`;
 				state.pushIndent();
 			} else {
+				state.enterPrecedingStatementContext();
+				if (!isIterableIterator(expType, exp)) {
+					const expStrTemp = getReadableExpressionName(state, exp, expStr);
+					expStr = `${expStrTemp}[TS.Symbol_iterator](${expStrTemp})`;
+				}
 				const loopVar = state.getNewId();
+				result += state.exitPrecedingStatementContextAndJoin();
 				result += state.indent + `for ${loopVar} in ${expStr}.next do\n`;
 				state.pushIndent();
 				result += state.indent + `if ${loopVar}.done then break end;\n`;
