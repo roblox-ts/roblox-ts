@@ -134,9 +134,9 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 
 export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
-		return type.getUnionTypes().every(t => typeConstraint(t, cb));
+		return type.getUnionTypes().every(t => strictTypeConstraint(t, cb));
 	} else if (type.isIntersection()) {
-		return type.getIntersectionTypes().every(t => typeConstraint(t, cb));
+		return type.getIntersectionTypes().every(t => strictTypeConstraint(t, cb));
 	} else {
 		return cb(type);
 	}
@@ -177,6 +177,20 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
+	});
+}
+
+export function isIterableFunction(type: ts.Type) {
+	let i = 0;
+
+	return typeConstraint(type, t => {
+		if (i++ % 2 === 0) {
+			const symbol = t.getAliasSymbol();
+			return symbol ? symbol.getEscapedName() === "Iterable" : false;
+		} else {
+			const callSignatures = t.getCallSignatures();
+			return callSignatures ? callSignatures.length > 0 : false;
+		}
 	});
 }
 

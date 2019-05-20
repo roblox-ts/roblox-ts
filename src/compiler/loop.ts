@@ -12,7 +12,7 @@ import {
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType, isIterableIterator, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
+import { isArrayType, isIterableFunction, isMapType, isNumberType, isSetType, isStringType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
 import { getReadableExpressionName } from "./indexed";
 
@@ -245,15 +245,15 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			} else if (isSetType(expType)) {
 				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
-			} else if (isIterableIterator(expType, exp)) {
+			} else if (isIterableFunction(expType)) {
+				result += state.indent + `for ${varName} in ${expStr} do\n`;
+				state.pushIndent();
+			} else {
 				const loopVar = state.getNewId();
 				result += state.indent + `for ${loopVar} in ${expStr}.next do\n`;
 				state.pushIndent();
 				result += state.indent + `if ${loopVar}.done then break end;\n`;
 				result += state.indent + `local ${varName} = ${loopVar}.value;\n`;
-			} else {
-				result += state.indent + `for ${varName} in ${expStr} do\n`;
-				state.pushIndent();
 			}
 		}
 
