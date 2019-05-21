@@ -50,7 +50,6 @@ export enum CompilerErrorType {
 	InvalidIdentifier,
 	RobloxTSReservedIdentifier,
 	BadContext,
-	ClassyLoop,
 	MixedMethodCall,
 	InvalidService,
 	ReservedNamespace,
@@ -67,6 +66,8 @@ export enum CompilerErrorType {
 	NonStringThrow,
 	TryReturn,
 	BadSwitchDefaultPosition,
+	BadEnum,
+	BadLuaTupleStatement,
 }
 
 export class CompilerError extends Error {

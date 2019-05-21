@@ -116,29 +116,43 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 }
 
 export function compileExpressionStatement(state: CompilerState, node: ts.ExpressionStatement) {
-	// big set of rules for expression statements
-	const expression = node.getExpression();
+	state.enterPrecedingStatementContext();
+
+	let expStr: string;
+	let expression = node.getExpression();
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
-		return state.indent + compileCallExpression(state, expression, true) + ";\n";
+		expStr = compileCallExpression(state, expression, true);
+	} else {
+		expStr = compileExpression(state, expression);
+
+		while (ts.TypeGuards.isParenthesizedExpression(expression)) {
+			expression = expression.getExpression();
+		}
+
+		// big set of rules for expression statements
+		if (
+			!ts.TypeGuards.isNewExpression(expression) &&
+			!ts.TypeGuards.isAwaitExpression(expression) &&
+			!ts.TypeGuards.isPostfixUnaryExpression(expression) &&
+			!(
+				ts.TypeGuards.isPrefixUnaryExpression(expression) &&
+				(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
+					expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
+			) &&
+			!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
+			!ts.TypeGuards.isYieldExpression(expression)
+		) {
+			expStr = `local _ = ${expStr}`;
+		}
 	}
 
-	if (
-		!ts.TypeGuards.isNewExpression(expression) &&
-		!ts.TypeGuards.isAwaitExpression(expression) &&
-		!ts.TypeGuards.isPostfixUnaryExpression(expression) &&
-		!(
-			ts.TypeGuards.isPrefixUnaryExpression(expression) &&
-			(expression.getOperatorToken() === ts.SyntaxKind.PlusPlusToken ||
-				expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
-		) &&
-		!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
-		!ts.TypeGuards.isYieldExpression(expression)
-	) {
-		const expStr = compileExpression(state, expression);
-		return state.indent + `local _ = ${expStr};\n`;
-	}
-	return state.indent + compileExpression(state, expression) + ";\n";
+	const result = state.exitPrecedingStatementContextAndJoin();
+
+	// this is a hack for the time being, to prevent double indenting
+	// situations like these: ({ length } = "Hello, world!")
+	const indent = expStr.match(/^\s+/) ? "" : state.indent;
+	return expStr ? result + indent + expStr + ";\n" : result;
 }
 
 export function expressionModifiesVariable(
@@ -171,7 +185,7 @@ export function appendDeclarationIfMissing(
 	possibleExpressionStatement: ts.Node,
 	compiledNode: string,
 ) {
-	if (ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
+	if (compiledNode.match(/^_d+$/) || ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
 		return "local _ = " + compiledNode;
 	} else {
 		return compiledNode;

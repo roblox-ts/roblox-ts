@@ -4,10 +4,10 @@ import {
 	checkApiAccess,
 	checkNonAny,
 	compileExpression,
-	compileSpreadableList,
+	compileSpreadableListAndJoin,
 	shouldCompileAsSpreadableList,
 } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayMethodType,
@@ -15,8 +15,12 @@ import {
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
+	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
+import { getNonNullExpressionDownwards } from "../utility";
+import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
+import { compileSpreadExpression } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -41,348 +45,422 @@ function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	);
 }
 
-function wrapExpressionIfNeeded(
-	state: CompilerState,
-	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
-	strict: boolean = false,
-) {
-	// If we compile to a method call, we might need to wrap in parenthesis
-	// We are going to wrap in parenthesis just to be safe,
-	// unless it's a CallExpression, Identifier, ElementAccessExpression, or PropertyAccessExpression
-
-	const accessPath = compileExpression(state, subExp);
-
-	if (shouldWrapExpression(subExp, strict)) {
-		return `(${accessPath})`;
-	} else {
-		return accessPath;
-	}
-}
-
-/** Skips over Null expressions */
-export function getNonNull<T extends ts.Node>(exp: T): T {
-	while (ts.TypeGuards.isNonNullExpression(exp)) {
-		exp = (exp.getExpression() as unknown) as T;
-	}
-
-	return exp;
-}
-
 function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
-	for (let _ = 0; _ < climb; _++) {
-		exp = getNonNull(exp.getParent());
+	for (let i = 0; i < climb; i++) {
+		exp = exp.getParent();
 	}
 
 	return exp;
 }
 
-function compileMapElement(state: CompilerState, argumentList: Array<ts.Node>) {
-	const key = compileCallArgument(state, argumentList[0]);
-	const value = compileCallArgument(state, argumentList[1]);
-	return state.indent + `[${key}] = ${value};\n`;
+function getPropertyCallParentIsExpressionStatement(subExp: ts.Expression) {
+	return ts.TypeGuards.isExpressionStatement(getLeftHandSideParent(subExp));
 }
 
-function compileSetElement(state: CompilerState, argument: ts.Node) {
-	const key = compileCallArgument(state, argument);
-	return state.indent + `[${key}] = true;\n`;
-}
-
-function compileSetArrayLiteralParameter(state: CompilerState, elements: Array<ts.Expression>) {
-	return elements.reduce((a, x) => a + compileSetElement(state, x), "");
-}
-
-function compileMapArrayLiteralParameter(state: CompilerState, elements: Array<ts.Expression>) {
-	return elements.reduce((a, x) => {
-		if (ts.TypeGuards.isArrayLiteralExpression(x)) {
-			return a + compileMapElement(state, x.getElements());
-		} else {
-			throw new CompilerError("Bad arguments to Map constructor", x, CompilerErrorType.BadBuiltinConstructorCall);
-		}
-	}, "");
-}
-
-export const literalParameterCompileFunctions = new Map<
-	"set" | "map",
-	(state: CompilerState, elements: Array<ts.Expression>) => string
->([["set", compileSetArrayLiteralParameter], ["map", compileMapArrayLiteralParameter]]);
-
-function compileLiterally(
-	state: CompilerState,
-	params: Array<ts.Node>,
-	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
-	funcName: "set" | "add",
-	compileParamFunc: (state: CompilerState, argumentList: Array<ts.Node>) => string,
-) {
-	const leftHandSideParent = getLeftHandSideParent(subExp);
-	if (!getIsExpressionStatement(subExp, leftHandSideParent)) {
-		let child: ts.Node = subExp;
-		const extraParams = new Array<Array<ts.Node>>();
-
-		// Walk down the tree, making sure all descendants of subExp are .set() calls
-		while (ts.TypeGuards.isCallExpression(child)) {
-			extraParams.push(child.getArguments());
-			child = getNonNull(child.getChildAtIndex(0));
-
-			if (ts.TypeGuards.isPropertyAccessExpression(child) && child.getName() === funcName) {
-				child = getNonNull(child.getChildAtIndex(0));
-			} else {
-				break;
-			}
-		}
-
-		// if all set calls are on a newExpression
-		if (child && ts.TypeGuards.isNewExpression(child)) {
-			let result = "{\n";
-			state.pushIndent();
-
-			const newArguments = child.getArguments();
-			const firstArgument = newArguments[0];
-
-			if (newArguments.length === 1 && ts.TypeGuards.isArrayLiteralExpression(firstArgument)) {
-				const elements = firstArgument.getElements();
-				result += literalParameterCompileFunctions.get(funcName === "add" ? "set" : "map")!(state, elements);
-			} else if (newArguments.length !== 0) {
-				state.popIndent();
-				return undefined;
-			}
-
-			result = extraParams.reduceRight((a, x) => a + compileParamFunc(state, x), result);
-			result += compileParamFunc(state, params);
-			state.popIndent();
-			result += state.indent + "}";
-			return appendDeclarationIfMissing(state, leftHandSideParent, result);
-		}
-	}
-}
-
-function getIsExpressionStatement(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>, parent: ts.Node) {
-	return !ts.TypeGuards.isNewExpression(subExp) && ts.TypeGuards.isExpressionStatement(parent);
-}
-
-function getPropertyCallParentIsExpressionStatement(subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>) {
-	return getIsExpressionStatement(subExp, getLeftHandSideParent(subExp));
-}
-
-type SimpleReplaceFunction = (
-	accessPath: string,
-	params: Array<ts.Node>,
-	state: CompilerState,
-	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
-) => string | undefined;
-
-type ReplaceFunction = (
-	params: Array<ts.Node>,
-	state: CompilerState,
-	subExp: ts.LeftHandSideExpression<ts.ts.LeftHandSideExpression>,
-) => string | undefined;
-
+type ReplaceFunction = (state: CompilerState, params: Array<ts.Expression>) => string | undefined;
 type ReplaceMap = Map<string, ReplaceFunction>;
 
 function wrapExpFunc(replacer: (accessPath: string) => string): ReplaceFunction {
-	return (params, state, subExp) => replacer(wrapExpressionIfNeeded(state, subExp));
+	return (state, params) => replacer(compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true)[0]);
 }
 
-function accessPathWrap(replacer: SimpleReplaceFunction): ReplaceFunction {
-	return (params, state, subExp) => replacer(compileExpression(state, subExp), params, state, subExp);
+function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Array<ts.Expression>): [string, string] {
+	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
+	return [accessPath, compiledArgs.join(", ")];
+}
+
+function compileCallArgumentsAndSeparateAndJoinWrapped(
+	state: CompilerState,
+	params: Array<ts.Expression>,
+	strict: boolean = false,
+): [string, string] {
+	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
+
+	// If we compile to a method call, we might need to wrap in parenthesis
+	// We are going to wrap in parenthesis just to be safe,
+	// unless it's a CallExpression, Identifier, ElementAccessExpression, or PropertyAccessExpression
+	const subExp = params[0];
+	let accessStr: string;
+	if (
+		!state.getCurrentPrecedingStatementContext(subExp).isPushed &&
+		!accessPath.match(/^\(*_\d+\)*$/) &&
+		shouldWrapExpression(subExp, strict)
+	) {
+		accessStr = `(${accessPath})`;
+	} else {
+		accessStr = accessPath;
+	}
+
+	return [accessStr, compiledArgs.join(", ")];
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
 	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
 	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
-	.set("split", (params, state, subExp) => {
-		return `string.split(${wrapExpressionIfNeeded(state, subExp)}, ${compileCallArgument(state, params[0])})`;
+	.set("split", (state, params) => {
+		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+		return `string.split(${str}, ${args})`;
 	});
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
 
-const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("pop", accessPathWrap(accessPath => `table.remove(${accessPath})`))
-	.set("shift", accessPathWrap(accessPath => `table.remove(${accessPath}, 1)`))
-
-	.set("join", (params, state, subExp) => {
-		const arrayType = subExp.getType().getArrayType()!;
-		const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
-
-		if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
-			const paramStr = params[0] ? compileCallArgument(state, params[0]) : `", "`;
-			const accessPath = compileExpression(state, subExp);
-			return `table.concat(${accessPath}, ${paramStr})`;
-		}
-	})
-
-	.set("push", (params, state, subExp) => {
-		const length = params.length;
-		if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = compileExpression(state, subExp);
-			const paramStr = compileCallArgument(state, params[0]);
-
-			if (ts.TypeGuards.isIdentifier(subExp)) {
-				return `${accessPath}[#${accessPath} + 1] = ${paramStr}`;
-			} else {
-				return `table.insert(${accessPath}, ${paramStr})`;
-			}
-		}
-	})
-
-	.set("unshift", (params, state, subExp) => {
-		const length = params.length;
-		if (length === 1 && getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = compileExpression(state, subExp);
-			const paramStr = compileCallArgument(state, params[0]);
-			return `table.insert(${accessPath}, 1, ${paramStr})`;
-		}
-	})
-
-	.set(
-		"insert",
-		accessPathWrap((accessPath, params, state) => {
-			const indexParamStr = compileCallArgument(state, params[0]);
-			const valueParamStr = compileCallArgument(state, params[1]);
-			return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
-		}),
-	)
-
-	.set(
-		"remove",
-		accessPathWrap((accessPath, params, state) => {
-			const indexParamStr = compileCallArgument(state, params[0]);
-			return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
-		}),
-	)
-
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
-
-const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("get", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const key = compileCallArgument(state, params[0]);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `${accessPath}[${key}]`);
-	})
-
-	.set("set", (params, state, subExp) => {
-		const literalResults = compileLiterally(state, params, subExp, "set", (stately, argumentList) =>
-			compileMapElement(stately, argumentList),
-		);
-		if (literalResults) {
-			return literalResults;
-		} else {
-			if (getPropertyCallParentIsExpressionStatement(subExp)) {
-				const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-				const key = compileCallArgument(state, params[0]);
-				const value = compileCallArgument(state, params[1]);
-				return `${accessPath}[${key}] = ${value}`;
-			}
-		}
-	})
-
-	.set("delete", (params, state, subExp) => {
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-			const key = compileCallArgument(state, params[0]);
-			return `${accessPath}[${key}] = nil`;
-		}
-	})
-
-	.set("has", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const key = compileCallArgument(state, params[0]);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] ~= nil)`);
-	})
-
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
-
-const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("add", (params, state, subExp) => {
-		const literalResults = compileLiterally(state, params, subExp, "add", (stately, argumentList) =>
-			compileSetElement(stately, argumentList[0]),
-		);
-
-		if (literalResults) {
-			return literalResults;
-		} else {
-			if (getPropertyCallParentIsExpressionStatement(subExp)) {
-				const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-				const key = compileCallArgument(state, params[0]);
-				return `${accessPath}[${key}] = true`;
-			}
-		}
-	})
-
-	.set("delete", (params, state, subExp) => {
-		if (getPropertyCallParentIsExpressionStatement(subExp)) {
-			const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-			const key = compileCallArgument(state, params[0]);
-			return `${accessPath}[${key}] = nil`;
-		}
-	})
-
-	.set("has", (params, state, subExp) => {
-		const accessPath = wrapExpressionIfNeeded(state, subExp, true);
-		const key = compileCallArgument(state, params[0]);
-		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp), `(${accessPath}[${key}] == true)`);
-	})
-
-	.set("isEmpty", (params, state, subExp) =>
-		appendDeclarationIfMissing(
-			state,
-			getLeftHandSideParent(subExp),
-			`(next(${compileExpression(state, subExp)}) == nil)`,
-		),
-	);
-
-const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("isEmpty", (params, state, subExp) =>
+const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 	appendDeclarationIfMissing(
 		state,
-		getLeftHandSideParent(subExp),
-		`(next(${compileCallArgument(state, params[0])}) == nil)`,
+		getLeftHandSideParent(params[0]),
+		`(next(${compileExpression(state, params[0])}) == nil)`,
+	);
+
+const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	[
+		"pop",
+		(state, params) => {
+			const subExp = params[0];
+			const accessPath = getReadableExpressionName(state, subExp);
+			if (getPropertyCallParentIsExpressionStatement(subExp)) {
+				return `${accessPath}[#${accessPath}] = nil`;
+			} else {
+				const node = getLeftHandSideParent(subExp, 2);
+				let id: string;
+				const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+				const place = `${accessPath}[${len}]`;
+				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
+				id = state.pushToDeclarationOrNewId(node, place);
+				state.pushPrecedingStatements(subExp, nullSet);
+				return id;
+			}
+		},
+	],
+
+	["shift", (state, params) => `table.remove(${compileExpression(state, params[0])}, 1)`],
+
+	[
+		"join",
+		(state, params) => {
+			const subExp = params[0];
+			const arrayType = subExp.getType().getArrayType()!;
+			const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
+
+			if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
+				const argStrs = compileCallArguments(state, params);
+				return `table.concat(${argStrs[0]}, ${params[1] ? argStrs[1] : `","`})`;
+			}
+		},
+	],
+
+	[
+		"push",
+		(state, params) => {
+			const subExp = params[0];
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			const node = getLeftHandSideParent(subExp, 2);
+			const { length: numParams } = params;
+
+			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
+				if (numParams === 2) {
+					return `TS.array_push_apply(${compileExpression(state, params[0])}, ${compileSpreadExpression(
+						state,
+						(params[1] as ts.SpreadElement).getExpression(),
+					)})`;
+				} else {
+					let arrayStr = compileExpression(state, subExp);
+					state.enterPrecedingStatementContext();
+					const listStr = compileSpreadableListAndJoin(state, params.slice(1));
+					const context = state.exitPrecedingStatementContext();
+
+					if (context.length > 0) {
+						arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
+						state.pushPrecedingStatements(subExp, ...context);
+					}
+
+					return `TS.array_push_apply(${arrayStr}, ${listStr})`;
+				}
+			} else {
+				const accessPath = getReadableExpressionName(state, subExp);
+				if (isStatement && numParams === 2) {
+					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
+				} else {
+					const returnVal = `#${accessPath}${numParams - 1 ? ` + ${numParams - 1}` : ""}`;
+					const finalLength = state.pushToDeclarationOrNewId(
+						node,
+						returnVal,
+						declaration => declaration.isIdentifier,
+					);
+
+					let lastStatement: string | undefined;
+					const commentStr = subExp.getParent().getText();
+
+					for (let i = 1; i < numParams; i++) {
+						const j = numParams - i - 1;
+
+						if (lastStatement) {
+							state.pushPrecedingStatements(node, state.indent + lastStatement + `; -- ${commentStr}\n`);
+						}
+
+						lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${compileExpression(
+							state,
+							params[i],
+						)}`;
+					}
+
+					if (isStatement) {
+						return (
+							lastStatement ||
+							state
+								.getCurrentPrecedingStatementContext(node)
+								// just returns finalLength from above
+								.pop()!
+								// removes ;\n from the back
+								.slice(0, -2)
+						);
+					} else {
+						if (lastStatement) {
+							state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+						}
+						return finalLength;
+					}
+				}
+			}
+		},
+	],
+
+	[
+		"unshift",
+		(state, params) => {
+			const length = params.length;
+			const subExp = params[0];
+
+			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
+				return undefined;
+			}
+
+			let accessPath: string;
+			let paramStr: string;
+			[accessPath, paramStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			if (length === 1) {
+				return `#${accessPath}`;
+			} else if (length === 2) {
+				const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+
+				if (isStatement) {
+					const expStr = `table.insert(${accessPath}, 1, ${paramStr})`;
+					return expStr;
+				} else {
+					accessPath = getReadableExpressionName(state, subExp, accessPath);
+					state.pushPrecedingStatements(
+						subExp,
+						state.indent + `table.insert(${accessPath}, 1, ${paramStr});\n`,
+					);
+					return `#${accessPath}`;
+				}
+			}
+		},
+	],
+
+	[
+		"insert",
+		(state, params) => {
+			const [accessPath, indexParamStr, valueParamStr] = compileCallArguments(state, params);
+			return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
+		},
+	],
+
+	[
+		"remove",
+		(state, params) => {
+			const [accessPath, indexParamStr] = compileCallArguments(state, params);
+			return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
+		},
+	],
+
+	["isEmpty", isMapOrSetOrArrayEmpty],
+]);
+
+function getPropertyAccessExpressionRoot(root: ts.Expression) {
+	while (ts.TypeGuards.isCallExpression(root)) {
+		const exp = root.getExpression();
+		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			root = exp.getExpression();
+		}
+	}
+	return root;
+}
+
+function setKeyOfMapOrSet(kind: "map" | "set") {
+	const func: ReplaceFunction = (state, params) => {
+		const subExp = params[0];
+		const wasPushed = state.getCurrentPrecedingStatementContext(subExp).isPushed;
+		const root: ts.Expression = getPropertyAccessExpressionRoot(subExp);
+		let accessStr: string;
+		let key: string;
+		let value: string;
+		[accessStr, key, value] = compileCallArguments(state, params);
+		const accessPath = getReadableExpressionName(state, root, accessStr);
+		if (kind === "map" && ts.TypeGuards.isSpreadElement(params[1])) {
+			const newKey = state.getNewId();
+			value = state.getNewId();
+
+			state.pushPrecedingStatements(subExp, state.indent + `local ${newKey}, ${value} = ${key};\n`);
+			key = newKey;
+		}
+		const expStr = `${accessPath}[${key}] = ${value || "true"}`;
+
+		if (getPropertyCallParentIsExpressionStatement(subExp)) {
+			return expStr;
+		} else {
+			const isPushed =
+				wasPushed ||
+				ts.TypeGuards.isNewExpression(root) ||
+				(ts.TypeGuards.isIdentifier(root) && isIdentifierDefinedInConst(root));
+
+			state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+			state.getCurrentPrecedingStatementContext(subExp).isPushed = isPushed;
+
+			return accessPath;
+		}
+	};
+
+	return func;
+}
+
+const hasKeyOfMapOrSet: ReplaceFunction = (state, params) => {
+	const [accessPath, key] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+	return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), `(${accessPath}[${key}] ~= nil)`);
+};
+
+const deleteKeyOfMapOrSet: ReplaceFunction = (state, params) => {
+	const [accessPath, key] = compileCallArguments(state, params);
+	const expStr = `${accessPath}[${key}] = nil`;
+	const subExp = params[0];
+	if (getPropertyCallParentIsExpressionStatement(subExp)) {
+		return expStr;
+	} else {
+		const node = getLeftHandSideParent(subExp, 2);
+		const id = state.pushToDeclarationOrNewId(node, `${accessPath}[${key}] ~= nil`);
+		state.pushPrecedingStatements(subExp, state.indent + expStr + `;\n`);
+		state.getCurrentPrecedingStatementContext(subExp).isPushed = true;
+		return id;
+	}
+};
+
+const MAP_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["set", setKeyOfMapOrSet("map")],
+	["delete", deleteKeyOfMapOrSet],
+	["has", hasKeyOfMapOrSet],
+	["isEmpty", isMapOrSetOrArrayEmpty],
+	[
+		"get",
+		(state, params) => {
+			const [accessPath, key] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), `${accessPath}[${key}]`);
+		},
+	],
+]);
+
+const SET_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["add", setKeyOfMapOrSet("set")],
+	["delete", deleteKeyOfMapOrSet],
+	["has", hasKeyOfMapOrSet],
+	["isEmpty", isMapOrSetOrArrayEmpty],
+]);
+
+const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("isEmpty", (state, params) =>
+	appendDeclarationIfMissing(
+		state,
+		getLeftHandSideParent(params[0]),
+		`(next(${compileCallArguments(state, params)[1]}) == nil)`,
 	),
 );
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("typeIs", (params, state, subExp) => {
-	const obj = compileCallArgument(state, params[0]);
-	const type = compileCallArgument(state, params[1]);
+const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("typeIs", (state, params) => {
+	const subExp = params[0];
+	let [obj, type] = compileCallArguments(state, params);
+
+	if (ts.TypeGuards.isSpreadElement(subExp)) {
+		const id = state.getNewId();
+		type = state.getNewId();
+
+		state.pushPrecedingStatements(subExp, state.indent + `local ${id}, ${type} = ${obj};\n`);
+		obj = id;
+	}
+
 	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(typeof(${obj}) == ${type})`);
 });
 
-export function compileCallArgument(state: CompilerState, arg: ts.Node) {
-	const expStr = compileExpression(state, arg as ts.Expression);
-	if (!ts.TypeGuards.isSpreadElement(arg)) {
-		checkNonAny(arg);
+export function compileList(
+	state: CompilerState,
+	args: Array<ts.Expression>,
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+) {
+	const argStrs = new Array<string>();
+	let lastContextualIndex: number | undefined;
+	const cached = new Array<PrecedingStatementContext>();
+
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+
+		if (!ts.TypeGuards.isSpreadElement(arg)) {
+			checkNonAny(arg);
+		}
+
+		state.enterPrecedingStatementContext();
+		const expStr = compile(state, arg);
+
+		const currentContext = state.exitPrecedingStatementContext();
+
+		if (currentContext.length > 0) {
+			lastContextualIndex = i;
+			cached[i] = currentContext;
+		}
+
+		argStrs[i] = expStr;
 	}
-	return expStr;
+
+	if (lastContextualIndex !== undefined) {
+		for (let i = 0; i < lastContextualIndex; i++) {
+			const arg = args[i];
+			const argStr = argStrs[i];
+			const cachedStrs = cached[i];
+
+			if (cachedStrs) {
+				state.pushPrecedingStatements(arg, ...cachedStrs);
+			}
+
+			if (shouldPushToPrecedingStatement(arg, argStr, cachedStrs || [])) {
+				argStrs[i] = state.pushPrecedingStatementToReuseableId(arg, argStr, cached[i + 1]);
+			}
+		}
+
+		state.pushPrecedingStatements(args[lastContextualIndex], ...cached[lastContextualIndex]);
+	}
+
+	return argStrs;
 }
 
 export function compileCallArguments(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
+	let argStrs: Array<string>;
+
 	if (shouldCompileAsSpreadableList(args)) {
-		return `unpack(${compileSpreadableList(state, args)})`;
+		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args)})`];
 	} else {
-		const argStrs = new Array<string>();
-		for (const arg of args) {
-			argStrs.push(compileCallArgument(state, arg));
-		}
-		if (extraParameter) {
-			argStrs.unshift(extraParameter);
-		}
-		return argStrs.join(", ");
+		argStrs = compileList(state, args);
 	}
+
+	if (extraParameter) {
+		argStrs.unshift(extraParameter);
+	}
+
+	return argStrs;
+}
+
+export function compileCallArgumentsAndJoin(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
+	return compileCallArguments(state, args, extraParameter).join(", ");
 }
 
 export function compileCallExpression(
@@ -399,6 +477,7 @@ export function compileCallExpression(
 		);
 	}
 	checkNonAny(exp);
+
 	let result: string;
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
@@ -407,20 +486,21 @@ export function compileCallExpression(
 		const params = node.getArguments() as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
-			return `super.constructor(${compileCallArguments(state, params, "self")})`;
+			return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
 		}
 
 		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());
 
 		if (isSubstitutableMethod) {
-			const str = isSubstitutableMethod(params, state, exp);
+			const str = isSubstitutableMethod(state, params);
+
 			if (str) {
 				return str;
 			}
 		}
 
 		const callPath = compileExpression(state, exp);
-		result = `${callPath}(${compileCallArguments(state, params)})`;
+		result = `${callPath}(${compileCallArgumentsAndJoin(state, params)})`;
 	}
 
 	if (!doNotWrapTupleReturn) {
@@ -434,22 +514,23 @@ function compilePropertyMethod(
 	state: CompilerState,
 	property: string,
 	params: Array<ts.Expression>,
-	subExp: ts.LeftHandSideExpression,
 	className: string,
 	replaceMethods: ReplaceMap,
 ) {
 	const isSubstitutableMethod = replaceMethods.get(property);
 
 	if (isSubstitutableMethod) {
-		const str = isSubstitutableMethod(params, state, subExp);
+		const str = isSubstitutableMethod(state, params);
 		if (str) {
 			return str;
 		}
 	}
 
-	const accessPath = className === "Object" ? undefined : compileExpression(state, subExp);
+	if (className === "Object") {
+		params = params.slice(1);
+	}
 	state.usesTSLibrary = true;
-	return `TS.${className}_${property}(${compileCallArguments(state, params, accessPath)})`;
+	return `TS.${className}_${property}(${compileCallArgumentsAndJoin(state, params)})`;
 }
 
 export const enum PropertyCallExpType {
@@ -475,15 +556,13 @@ export function getPropertyAccessExpressionType(
 	checkApiAccess(state, expression.getNameNode());
 
 	const expType = expression.getType();
-	const subExp = expression.getExpression();
-	const subExpType = subExp.getType();
 	const property = expression.getName();
 
 	if (isArrayMethodType(expType)) {
 		return PropertyCallExpType.Array;
 	}
 
-	if (isStringMethodType(subExpType)) {
+	if (isStringMethodType(expType)) {
 		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
@@ -498,6 +577,8 @@ export function getPropertyAccessExpressionType(
 		return PropertyCallExpType.Map;
 	}
 
+	const subExp = expression.getExpression();
+	const subExpType = subExp.getType();
 	const subExpTypeSym = subExpType.getSymbol();
 	if (subExpTypeSym && ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		const subExpTypeName = subExpTypeSym.getEscapedName();
@@ -539,7 +620,7 @@ export function getPropertyAccessExpressionType(
 }
 
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
-	const expression = getNonNull(node.getExpression());
+	const expression = getNonNullExpressionDownwards(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
 		throw new CompilerError(
 			"Expected PropertyAccessExpression",
@@ -550,51 +631,55 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	checkApiAccess(state, expression.getNameNode());
 
-	const subExp = getNonNull(expression.getExpression());
 	const property = expression.getName();
-	const params = node.getArguments() as Array<ts.Expression>;
+	const params = [getNonNullExpressionDownwards(expression.getExpression()), ...node.getArguments()] as Array<
+		ts.Expression
+	>;
 
 	switch (getPropertyAccessExpressionType(state, expression)) {
-		case PropertyCallExpType.Array:
-			return compilePropertyMethod(state, property, params, subExp, "array", ARRAY_REPLACE_METHODS);
-		case PropertyCallExpType.BuiltInStringMethod:
-			return `${wrapExpressionIfNeeded(state, subExp)}:${property}(${compileCallArguments(state, params)})`;
-		case PropertyCallExpType.String:
-			return compilePropertyMethod(state, property, params, subExp, "string", STRING_REPLACE_METHODS);
-		case PropertyCallExpType.PromiseThen:
-			return `${compileExpression(state, subExp)}:andThen(${compileCallArguments(state, params)})`;
-		case PropertyCallExpType.SymbolFor:
-			return `${compileExpression(state, subExp)}.getFor(${compileCallArguments(state, params)})`;
-		case PropertyCallExpType.Map:
-			return compilePropertyMethod(state, property, params, subExp, "map", MAP_REPLACE_METHODS);
-		case PropertyCallExpType.Set:
-			return compilePropertyMethod(state, property, params, subExp, "set", SET_REPLACE_METHODS);
-		case PropertyCallExpType.ObjectConstructor:
-			return compilePropertyMethod(state, property, params, subExp, "Object", OBJECT_REPLACE_METHODS);
-		case PropertyCallExpType.RbxMathAdd:
-			return appendDeclarationIfMissing(
-				state,
-				node.getParent(),
-				`(${compileExpression(state, subExp)} + (${compileCallArgument(state, params[0])}))`,
-			);
-		case PropertyCallExpType.RbxMathSub:
-			return appendDeclarationIfMissing(
-				state,
-				node.getParent(),
-				`(${compileExpression(state, subExp)} - (${compileCallArgument(state, params[0])}))`,
-			);
-		case PropertyCallExpType.RbxMathMul:
-			return appendDeclarationIfMissing(
-				state,
-				node.getParent(),
-				`(${compileExpression(state, subExp)} * (${compileCallArgument(state, params[0])}))`,
-			);
-		case PropertyCallExpType.RbxMathDiv:
-			return appendDeclarationIfMissing(
-				state,
-				node.getParent(),
-				`(${compileExpression(state, subExp)} / (${compileCallArgument(state, params[0])}))`,
-			);
+		case PropertyCallExpType.Array: {
+			return compilePropertyMethod(state, property, params, "array", ARRAY_REPLACE_METHODS);
+		}
+		case PropertyCallExpType.String: {
+			return compilePropertyMethod(state, property, params, "string", STRING_REPLACE_METHODS);
+		}
+		case PropertyCallExpType.Map: {
+			return compilePropertyMethod(state, property, params, "map", MAP_REPLACE_METHODS);
+		}
+		case PropertyCallExpType.Set: {
+			return compilePropertyMethod(state, property, params, "set", SET_REPLACE_METHODS);
+		}
+		case PropertyCallExpType.ObjectConstructor: {
+			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
+		}
+		case PropertyCallExpType.BuiltInStringMethod: {
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			return `${accessPath}:${property}(${compiledArgs})`;
+		}
+		case PropertyCallExpType.PromiseThen: {
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			return `${accessPath}:andThen(${compiledArgs})`;
+		}
+		case PropertyCallExpType.SymbolFor: {
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
+			return `${accessPath}.getFor(${compiledArgs})`;
+		}
+		case PropertyCallExpType.RbxMathAdd: {
+			const argStrs = compileCallArguments(state, params);
+			return appendDeclarationIfMissing(state, node.getParent(), `(${argStrs[0]} + (${argStrs[1]}))`);
+		}
+		case PropertyCallExpType.RbxMathSub: {
+			const argStrs = compileCallArguments(state, params);
+			return appendDeclarationIfMissing(state, node.getParent(), `(${argStrs[0]} - (${argStrs[1]}))`);
+		}
+		case PropertyCallExpType.RbxMathMul: {
+			const argStrs = compileCallArguments(state, params);
+			return appendDeclarationIfMissing(state, node.getParent(), `(${argStrs[0]} * (${argStrs[1]}))`);
+		}
+		case PropertyCallExpType.RbxMathDiv: {
+			const argStrs = compileCallArguments(state, params);
+			return appendDeclarationIfMissing(state, node.getParent(), `(${argStrs[0]} / (${argStrs[1]}))`);
+		}
 	}
 
 	const expType = expression.getType();
@@ -651,13 +736,14 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			}),
 	);
 
-	let accessPath = compileExpression(state, subExp);
+	let accessedPath: string;
+	let paramsStr: string;
+	[accessedPath, paramsStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
 	let sep: string;
-	let extraParam = "";
 	if (allMethods && !allCallbacks) {
-		if (ts.TypeGuards.isSuperExpression(subExp)) {
-			accessPath = "super.__index";
-			extraParam = "self";
+		if (ts.TypeGuards.isSuperExpression(params[0])) {
+			accessedPath = "super.__index";
+			paramsStr = paramsStr ? "self, " + paramsStr : "self";
 			sep = ".";
 		} else {
 			sep = ":";
@@ -673,5 +759,5 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		);
 	}
 
-	return `${accessPath}${sep}${property}(${compileCallArguments(state, params, extraParam)})`;
+	return `${accessedPath}${sep}${property}(${paramsStr})`;
 }

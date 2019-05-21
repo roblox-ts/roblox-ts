@@ -3,10 +3,6 @@ local Promise = require(script.Parent.Promise)
 local HttpService = game:GetService("HttpService")
 
 -- constants
-local TYPE_STRING = "string"
-local TYPE_TABLE = "table"
-local TYPE_FUNCTION = "function"
-
 local table_sort = table.sort
 local math_ceil = math.ceil
 local math_floor = math.floor
@@ -22,7 +18,7 @@ local Symbol do
 	setmetatable(Symbol, {
 		__call = function(_, description)
 			local self = setmetatable({}, Symbol)
-			self.description = description or ""
+			self.description = "Symbol(" .. (description or "") .. ")"
 			return self
 		end
 	})
@@ -34,13 +30,11 @@ local Symbol do
 		end
 	})
 
-	function Symbol:__tostring()
-		return "Symbol(" .. self.description .. ")"
+	function Symbol:toString()
+		return self.description
 	end
 
-	function Symbol:toString()
-		return tostring(self)
-	end
+	Symbol.__tostring = Symbol.toString
 
 	-- Symbol.for
 	function Symbol.getFor(key)
@@ -57,6 +51,7 @@ local Symbol do
 end
 
 TS.Symbol = Symbol
+TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
 local globalModules = script.Parent.Parent:FindFirstChild("Modules")
@@ -152,12 +147,12 @@ end
 -- general utility functions
 function TS.instanceof(obj, class)
 	-- custom Class.instanceof() check
-	if typeof(class) == TYPE_TABLE and typeof(class.instanceof) == TYPE_FUNCTION then
+	if type(class) == "table" and type(class.instanceof) == "function" then
 		return class.instanceof(obj)
 	end
 
 	-- metatable check
-	if typeof(obj) == TYPE_TABLE then
+	if type(obj) == "table" then
 		obj = getmetatable(obj)
 		while obj ~= nil do
 			if obj == class then
@@ -205,7 +200,7 @@ function TS.await(promise)
 end
 
 function TS.add(a, b)
-	if typeof(a) == TYPE_STRING or typeof(b) == TYPE_STRING then
+	if type(a) == "string" or type(b) == "string" then
 		return a .. b
 	else
 		return a + b
@@ -294,7 +289,7 @@ end
 local function deepCopy(object)
 	local result = {}
 	for k, v in pairs(object) do
-		if typeof(v) == TYPE_TABLE then
+		if type(v) == "table" then
 			result[k] = deepCopy(v)
 		else
 			result[k] = v
@@ -308,7 +303,7 @@ local function deepEquals(a, b)
 	for k in pairs(a) do
 		local av = a[k]
 		local bv = b[k]
-		if typeof(av) == TYPE_TABLE and typeof(bv) == TYPE_TABLE then
+		if type(av) == "table" and type(bv) == "table" then
 			local result = deepEquals(av, bv)
 			if not result then
 				return false
@@ -355,10 +350,10 @@ function TS.Object_entries(object)
 end
 
 function TS.Object_assign(toObj, ...)
-	local args = { ... }
-	for i = 1, #args do
-		if type(args[i]) == "table" then
-			for key, value in pairs(args[i]) do
+	for i = 1, select("#", ...) do
+		local arg = select(i, ...)
+		if type(arg) == "table" then
+			for key, value in pairs(arg) do
 				toObj[key] = value
 			end
 		end
@@ -655,12 +650,13 @@ function TS.array_concat(...)
 	return result
 end
 
-function TS.array_push(list, ...)
-	local args = { ... }
-	for i = 1, #args do
-		list[#list + 1] = args[i]
+function TS.array_push_apply(list, list2)
+	local len = #list
+	local len2 = #list2
+	for i = 1, len2 do
+		list[len + i] = list2[i]
 	end
-	return #list
+	return len + len2
 end
 
 local table_concat = table.concat
@@ -668,9 +664,14 @@ local table_concat = table.concat
 function TS.array_join(list, separator)
 	local result = {}
 	for i = 1, #list do
-		result[i] = tostring(list[i])
+		local item = list[i]
+		if item == nil then
+			result[i] = ""
+		else
+			result[i] = tostring(list[i])
+		end
 	end
-	return table_concat(result, separator or ", ")
+	return table_concat(result, separator or ",")
 end
 
 function TS.array_find(list, callback)
@@ -796,12 +797,6 @@ function TS.map_clear(map)
 	end
 end
 
-function TS.map_delete(map, key)
-	local deleted = map[key] ~= nil
-	map[key] = nil
-	return deleted
-end
-
 local function getNumKeys(map)
 	local result = 0
 	for _ in pairs(map) do
@@ -821,11 +816,6 @@ end
 
 TS.map_keys = TS.Object_keys
 
-function TS.map_set(map, key, value)
-	map[key] = value
-	return map
-end
-
 TS.map_values = TS.Object_values
 TS.map_toString = toString
 
@@ -839,18 +829,7 @@ function TS.set_new(value)
 	return result
 end
 
-function TS.set_add(set, value)
-	set[value] = true
-	return set
-end
-
 TS.set_clear = TS.map_clear
-
-function TS.set_delete(set, value)
-	local result = set[value] == true
-	set[value] = nil
-	return result
-end
 
 function TS.set_forEach(set, callback)
 	for key in pairs(set) do
@@ -930,6 +909,16 @@ function TS.iterableCache(iter)
 	return results
 end
 
+function TS.iterableFunctionCache(iter)
+	local results = {}
+	local count = 0
+	for _0 in iter do
+		count = count + 1
+		results[count] = _0
+	end
+	return results
+end
+
 -- roact functions
 
 function TS.Roact_combine(...)
@@ -967,9 +956,7 @@ end
 -- try catch utilities
 
 local function pack(...)
-	local result = { ... }
-	result.size = select("#", ...)
-	return result
+	return { size = select("#", ...), ... }
 end
 
 local throwStack = {}

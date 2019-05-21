@@ -8,9 +8,16 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 	let expStr: string;
 
 	const expression = node.getExpression();
+	state.enterPrecedingStatementContext();
 	const rawExpStr = compileExpression(state, expression);
+	const expressionContext = state.exitPrecedingStatementContext();
+	const hasStatements = expressionContext.length > 0;
 
-	if (ts.TypeGuards.isIdentifier(expression)) {
+	if (hasStatements) {
+		preResult += expressionContext.join("");
+	}
+
+	if (hasStatements && expressionContext.isPushed) {
 		expStr = rawExpStr;
 	} else {
 		expStr = state.getNewId();
@@ -29,57 +36,68 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 
 	let previousCaseFallsThrough = false;
 	const lastClauseIndex = clauses.length - 1;
-	const hasDefault = !ts.TypeGuards.isCaseClause(clauses[lastClauseIndex]);
+	const lastClause = clauses[lastClauseIndex];
 
-	for (let i = 0; i < clauses.length; i++) {
-		const clause = clauses[i];
+	if (lastClause) {
+		const hasDefault = !ts.TypeGuards.isCaseClause(lastClause);
 
-		// add if statement if the clause is non-default
-		let isNonDefault = false;
-		if (ts.TypeGuards.isCaseClause(clause)) {
-			isNonDefault = true;
-			const clauseExpStr = compileExpression(state, clause.getExpression());
-			const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
-			result += state.indent + `if ${fallThroughVarOr}${expStr} == ( ${clauseExpStr} ) then\n`;
-			state.pushIndent();
-		} else if (i !== lastClauseIndex) {
-			throw new CompilerError(
-				"Default case must be the last case in a switch statement!",
-				clause,
-				CompilerErrorType.BadSwitchDefaultPosition,
-			);
-		}
+		for (let i = 0; i < clauses.length; i++) {
+			const clause = clauses[i];
+			const statements = clause.getStatements();
+			let fallThroughValue = "true";
 
-		const statements = clause.getStatements();
-
-		let lastStatement = statements[statements.length - 1];
-		while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
-			const blockStatements = lastStatement.getStatements();
-			lastStatement = blockStatements[blockStatements.length - 1];
-		}
-		const endsInReturnOrBreakStatement =
-			lastStatement &&
-			(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
-
-		const currentCaseFallsThrough =
-			!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i;
-
-		result += compileStatementedNode(state, clause);
-
-		if (currentCaseFallsThrough) {
-			if (!anyFallThrough) {
-				fallThroughVar = state.getNewId();
-				anyFallThrough = true;
+			// add if statement if the clause is non-default
+			let isNonDefault = false;
+			if (ts.TypeGuards.isCaseClause(clause)) {
+				isNonDefault = true;
+				state.enterPrecedingStatementContext();
+				const clauseExpStr = compileExpression(state, clause.getExpression());
+				const fallThroughVarOr = previousCaseFallsThrough ? `${fallThroughVar!} or ` : "";
+				result += state.exitPrecedingStatementContextAndJoin();
+				const condition = `${fallThroughVarOr}${expStr} == ( ${clauseExpStr} )`;
+				if (statements.length === 0) {
+					fallThroughValue = condition;
+				} else {
+					result += state.indent + `if ${condition} then\n`;
+					state.pushIndent();
+				}
+			} else if (i !== lastClauseIndex) {
+				throw new CompilerError(
+					"Default case must be the last case in a switch statement!",
+					clause,
+					CompilerErrorType.BadSwitchDefaultPosition,
+				);
 			}
-			result += state.indent + `${fallThroughVar!} = true;\n`;
-		}
 
-		if (isNonDefault) {
-			state.popIndent();
-			result += state.indent + `end;\n`;
-		}
+			let lastStatement = statements[statements.length - 1];
+			while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
+				const blockStatements = lastStatement.getStatements();
+				lastStatement = blockStatements[blockStatements.length - 1];
+			}
+			const endsInReturnOrBreakStatement =
+				lastStatement &&
+				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
 
-		previousCaseFallsThrough = currentCaseFallsThrough;
+			const currentCaseFallsThrough =
+				!endsInReturnOrBreakStatement && (hasDefault ? lastClauseIndex - 1 : lastClauseIndex) > i;
+
+			result += compileStatementedNode(state, clause);
+
+			if (currentCaseFallsThrough) {
+				if (!anyFallThrough) {
+					fallThroughVar = state.getNewId();
+					anyFallThrough = true;
+				}
+				result += state.indent + `${fallThroughVar!} = ${fallThroughValue};\n`;
+			}
+
+			if (fallThroughValue === "true" && isNonDefault) {
+				state.popIndent();
+				result += state.indent + `end;\n`;
+			}
+
+			previousCaseFallsThrough = currentCaseFallsThrough;
+		}
 	}
 
 	if (anyFallThrough) {

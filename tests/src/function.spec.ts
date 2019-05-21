@@ -68,6 +68,27 @@ export = () => {
 		).to.equal(123);
 	});
 
+	it("should support named function expressions", () => {
+		const nums = new Array<number>();
+		const start = 10;
+		const last = 0;
+
+		expect(
+			(function Recurse(num: number): string {
+				nums.push(num);
+				if (num === last) {
+					return "Done!";
+				} else {
+					return Recurse(num - 1);
+				}
+			})(start),
+		).to.equal("Done!");
+
+		for (let i = start; i >= last; i--) {
+			expect(nums[-i + start]).to.equal(i);
+		}
+	});
+
 	it("should support arrow functions", () => {
 		expect(
 			(() => {

@@ -132,7 +132,7 @@ export = () => {
 		function b(arg1?: number, arg2?: number): [number, number] {
 			return [arg1 || 1, arg2 || 1];
 		}
-		function a(...args: number[]): [number, number] {
+		function a(...args: Array<number>): [number, number] {
 			const x = () => {
 				return b(...args);
 			};
@@ -205,5 +205,76 @@ export = () => {
 		expect(bar()[0]).to.equal(4);
 		expect(bar()[1]).to.equal(5);
 		expect(bar()[2]).to.equal(6);
+	});
+
+	it("should support destructuring the length property", () => {
+		const { length: len } = [1, 2, 3];
+		expect(len).to.equal(3);
+	});
+
+	it("should destructure properly into already declared variables", () => {
+		let a: number;
+		[a] = new Set([4]);
+		expect(a).to.equal(4);
+
+		let len: number;
+		({ length: len } = [1, 2, 3]);
+		expect(len).to.equal(3);
+
+		let y = 0;
+		({ x: y } = { x: 1 });
+		expect(y).to.equal(1);
+	});
+
+	it("should destructure computed property types as well (number-only)", () => {
+		const array = new Array<number>();
+		array.push(1, 2, 3, 4);
+
+		function f(i: number) {
+			let num: number;
+			({ [i]: num } = array);
+			return num;
+		}
+
+		expect(f(0)).to.equal(1);
+		expect(f(1)).to.equal(2);
+		expect(f(2)).to.equal(3);
+		expect(f(3)).to.equal(4);
+	});
+
+	it("should properly destruct objects with a Symbol.iterator method", () => {
+		const k = { o: 1, b: 2 };
+		const o = {
+			o: 3,
+			...k,
+			b: 4,
+			*[Symbol.iterator]() {
+				const values = Object.values(this).filter(a => typeIs(a, "number")) as Array<number>;
+				for (const value of values) {
+					yield value;
+				}
+			},
+		};
+
+		const arr = [...o].filter(i => typeIs(i, "number")) as Array<number>;
+		const set1 = new Set(arr);
+		const set2 = new Set([1, 4]);
+
+		expect(
+			set1
+				.difference(set2)
+				.union(set2.difference(set1))
+				.isEmpty(),
+		).to.equal(true);
+	});
+
+	it("should properly destruct gmatch", () => {
+		function catchLetters(...strs: Array<string>) {
+			expect(strs[0]).to.equal("a");
+			expect(strs[1]).to.equal("b");
+			expect(strs[2]).to.equal("c");
+			expect(strs[3]).to.equal("d");
+		}
+		catchLetters(..."abcd".gmatch("."));
 	});
 };

@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective } from "./compiler";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
+import { PrecedingStatementContext } from "./CompilerState";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -131,6 +132,16 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 	}
 }
 
+export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.getUnionTypes().every(t => strictTypeConstraint(t, cb));
+	} else if (type.isIntersection()) {
+		return type.getIntersectionTypes().every(t => strictTypeConstraint(t, cb));
+	} else {
+		return cb(type);
+	}
+}
+
 export function isAnyType(type: ts.Type) {
 	return type.getText() === "any";
 }
@@ -158,11 +169,20 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
+export function isObjectType(type: ts.Type) {
+	return typeConstraint(type, t => t.isObject());
+}
+
 export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
 	});
+}
+
+export function isIterableFunction(type: ts.Type) {
+	const symbol = type.getAliasSymbol();
+	return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
 }
 
 export function getCompilerDirectiveWithConstraint(
@@ -176,12 +196,20 @@ export function getCompilerDirectiveWithConstraint(
 	});
 }
 
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
 export function isArrayType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
 }
 
-export function isStringMethodType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+export function isMapType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+}
+
+export function isSetType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isMethodType(type: ts.Type) {
@@ -198,14 +226,6 @@ export function isMapMethodType(type: ts.Type) {
 
 export function isSetMethodType(type: ts.Type) {
 	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
-}
-
-export function isMapType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
-}
-
-export function isSetType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
@@ -291,4 +311,27 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 	}
 
 	return false;
+}
+
+export function shouldPushToPrecedingStatement(
+	arg: ts.Expression,
+	argStr: string,
+	argContext: PrecedingStatementContext,
+) {
+	return (
+		!argContext.isPushed &&
+		!isNumericLiteralExpression(arg) &&
+		!ts.TypeGuards.isStringLiteral(arg) &&
+		(!ts.TypeGuards.isIdentifier(arg) || !isIdentifierDefinedInConst(arg))
+	);
+}
+
+/** Returns whether or not the given expression is a Binary expression containing only numeric literals */
+export function isNumericLiteralExpression(node: ts.Expression): boolean {
+	return (
+		ts.TypeGuards.isNumericLiteral(node) ||
+		(ts.TypeGuards.isBinaryExpression(node) &&
+			isNumericLiteralExpression(node.getLeft()) &&
+			isNumericLiteralExpression(node.getRight()))
+	);
 }
