@@ -142,7 +142,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"join",
 		(state, params) => {
 			const subExp = params[0];
-			const arrayType = subExp.getType().getArrayType()!;
+			const arrayType = subExp.getType().getArrayElementType()!;
 			const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
 
 			if (validTypes.every(validType => validType.isNumber() || validType.isString())) {

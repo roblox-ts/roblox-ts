@@ -204,7 +204,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
 				const expStr = compileExpression(state, propNameNode);
 				propStr = `[${expStr}]`;
-			} else {
+			} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
 				// ComputedPropertyName
 				const computedExp = propNameNode.getExpression();
 				if (ts.TypeGuards.isStringLiteral(computedExp)) {
@@ -212,6 +212,12 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				}
 				const computedExpStr = compileExpression(state, computedExp);
 				propStr = `[${computedExpStr}]`;
+			} else {
+				throw new CompilerError(
+					`Unexpected prop type: ${prop.getKindName()}`,
+					prop,
+					CompilerErrorType.UnexpectedPropType,
+				);
 			}
 
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {

@@ -2,7 +2,7 @@ import * as fs from "fs-extra";
 import * as klaw from "klaw";
 import { minify } from "luamin";
 import * as path from "path";
-import TSProject, * as ts from "ts-morph";
+import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
@@ -100,7 +100,7 @@ async function copyAndCleanDeadLuaFiles(
 }
 
 export class Project {
-	private readonly project: TSProject;
+	private readonly project: ts.Project;
 	private readonly projectPath: string;
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
@@ -133,7 +133,7 @@ export class Project {
 		}
 
 		this.projectPath = path.resolve(configFilePath, "..");
-		this.project = new TSProject({
+		this.project = new ts.Project({
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;

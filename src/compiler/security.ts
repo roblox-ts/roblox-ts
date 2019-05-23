@@ -247,7 +247,7 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	let type = node.getType();
 	if (type.isArray() && checkArrayType) {
-		const arrayType = type.getArrayType();
+		const arrayType = type.getArrayElementType();
 		if (arrayType) {
 			type = arrayType;
 		}

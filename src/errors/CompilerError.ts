@@ -68,6 +68,7 @@ export enum CompilerErrorType {
 	BadSwitchDefaultPosition,
 	BadEnum,
 	BadLuaTupleStatement,
+	UnexpectedPropType,
 }
 
 export class CompilerError extends Error {
