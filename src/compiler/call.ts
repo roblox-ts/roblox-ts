@@ -121,6 +121,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const subExp = params[0];
 			const accessPath = getReadableExpressionName(state, subExp);
+
 			if (getPropertyCallParentIsExpressionStatement(subExp)) {
 				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
@@ -130,7 +131,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const place = `${accessPath}[${len}]`;
 				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
 				id = state.pushToDeclarationOrNewId(node, place);
+				const context = state.getCurrentPrecedingStatementContext(subExp);
+				const { isPushed } = context;
 				state.pushPrecedingStatements(subExp, nullSet);
+				context.isPushed = isPushed;
 				return id;
 			}
 		},
@@ -161,6 +165,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const { length: numParams } = params;
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
+				state.usesTSLibrary = true;
 				if (numParams === 2) {
 					return `TS.array_push_apply(${compileExpression(state, params[0])}, ${compileSpreadExpression(
 						state,

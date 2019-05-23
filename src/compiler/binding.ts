@@ -211,7 +211,6 @@ function objectIterAccessor(state: CompilerState, t: string, key: number, preSta
 }
 
 function iterableFunctionAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>) {
-	console.log(t);
 	return `(` + `${t}() and `.repeat(key).slice(0, -5) + `)`;
 }
 

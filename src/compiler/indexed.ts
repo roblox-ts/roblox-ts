@@ -161,7 +161,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
-export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
@@ -193,17 +193,19 @@ export function compileElementAccessExpression(state: CompilerState, node: ts.El
 		argExpStr = compileExpression(state, argExp) + offset;
 	}
 
+	return argExpStr;
+}
+
+export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	const expNode = node.getExpression();
+	const argExp = node.getArgumentExpressionOrThrow();
+
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
 		const expStr = compileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		if (argExpStr === "1") {
-			return `(${expStr})`;
-		} else {
-			return `(select(${argExpStr}, ${expStr}))`;
-		}
+		return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
 	} else {
-		const expStr = compileExpression(state, expNode);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
 		let isArrayLiteral = false;
@@ -216,10 +218,16 @@ export function compileElementAccessExpression(state: CompilerState, node: ts.El
 				isArrayLiteral = true;
 			}
 		}
+		const expStr = compileExpression(state, expNode);
+
 		if (isArrayLiteral) {
-			return `(${expStr})[${argExpStr}]`;
+			return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
 		} else {
-			return `${expStr}[${argExpStr}]`;
+			return (argExpStr: string) => `${expStr}[${argExpStr}]`;
 		}
 	}
+}
+
+export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
 }

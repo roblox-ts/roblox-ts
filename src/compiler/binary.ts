@@ -2,10 +2,21 @@ import * as ts from "ts-morph";
 import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
+import {
+	isConstantExpression,
+	isNumberType,
+	isStringType,
+	isTupleReturnTypeCall,
+	shouldPushToPrecedingStatement,
+} from "../typeUtilities";
 import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionUpwards } from "../utility";
 import { getAccessorForBindingPatternType } from "./binding";
-import { isIdentifierDefinedInExportLet } from "./indexed";
+import {
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
+	getWritableOperandName,
+	isIdentifierDefinedInExportLet,
+} from "./indexed";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -74,7 +85,10 @@ function compileBinaryLiteral(
 	const postStatements = new Array<string>();
 
 	let rootId: string;
-	if (ts.TypeGuards.isIdentifier(rhs) || ts.TypeGuards.isThisExpression(rhs)) {
+	if (
+		(ts.TypeGuards.isIdentifier(rhs) && !isIdentifierDefinedInExportLet(rhs)) ||
+		ts.TypeGuards.isThisExpression(rhs)
+	) {
 		rootId = compileExpression(state, rhs);
 	} else {
 		rootId = state.getNewId();
@@ -111,6 +125,10 @@ function compileBinaryLiteral(
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
+	const nodeParent = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow());
+	const parentKind = nodeParent.getKind();
+	const isStatement = parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
+
 	const opToken = node.getOperatorToken();
 	const opKind = opToken.getKind();
 	const isEqualsOperation = opKind === ts.SyntaxKind.EqualsToken;
@@ -181,7 +199,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			);
 			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			if (ts.TypeGuards.isExpressionStatement(getNonNullUnParenthesizedExpressionUpwards(node.getParent()))) {
+			if (isStatement) {
 				return result.replace(/;\n$/, ""); // terrible hack
 			} else {
 				throw new CompilerError(
@@ -198,26 +216,45 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	}
 
 	if (isSetToken(opKind)) {
-		lhsStr = compileExpression(state, lhs);
-		const isLhsIdentifier = ts.TypeGuards.isIdentifier(lhs) && !isIdentifierDefinedInExportLet(lhs);
+		let isLhsIdentifier = ts.TypeGuards.isIdentifier(lhs) && !isIdentifierDefinedInExportLet(lhs);
 
-		state.enterPrecedingStatementContext();
 		let rhsPushedStr: string = "";
 		let rhsStrContext: PrecedingStatementContext;
 		let hasOpenContext = false;
 
-		const parentKind = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow()).getKind();
-		const isStatement =
-			parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
+		let stashedInnerStr: (() => string) | undefined;
+
+		if (ts.TypeGuards.isElementAccessExpression(lhs)) {
+			const compileLhsStr = compileElementAccessDataTypeExpression(state, lhs);
+			let innerStr = compileElementAccessBracketExpression(state, lhs);
+
+			if (!isConstantExpression(lhs.getArgumentExpressionOrThrow(), 0)) {
+				const previousInner = innerStr;
+				stashedInnerStr = () => compileLhsStr(previousInner);
+				innerStr = state.pushPrecedingStatementToNewId(lhs, innerStr);
+			}
+
+			lhsStr = compileLhsStr(innerStr);
+		} else if (!isEqualsOperation) {
+			const newLhsStrData = getWritableOperandName(state, lhs);
+			lhsStr = newLhsStrData.expStr;
+			isLhsIdentifier = newLhsStrData.isIdentifier;
+		} else {
+			lhsStr = compileExpression(state, lhs);
+		}
+
+		state.enterPrecedingStatementContext();
 
 		if (isEqualsOperation) {
-			state.declarationContext.set(rhs, { isIdentifier: isLhsIdentifier, set: lhsStr });
-			hasOpenContext = true;
+			if (isStatement) {
+				state.declarationContext.set(rhs, { isIdentifier: isLhsIdentifier, set: lhsStr });
+				hasOpenContext = true;
+			}
 
-			state.enterPrecedingStatementContext();
+			const currentContext = state.getCurrentPrecedingStatementContext(node);
+			const previousLength = currentContext.length;
 			rhsStr = compileExpression(state, rhs);
-			const rhsSubContext = state.exitPrecedingStatementContext();
-			const { isPushed } = rhsSubContext;
+			const { isPushed } = currentContext;
 
 			if (isPushed) {
 				rhsPushedStr = rhsStr;
@@ -225,31 +262,25 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 			if (state.declarationContext.delete(rhs)) {
 				hasOpenContext = false;
-			} else if (
-				!isPushed &&
-				!isStatement &&
-				(!ts.TypeGuards.isIdentifier(lhs) || isIdentifierDefinedInExportLet(lhs))
-			) {
-				rhsPushedStr = rhsStr = state.pushPrecedingStatementToReuseableId(rhs, rhsStr);
 			}
 
-			state.pushPrecedingStatements(rhs, ...rhsSubContext);
+			if (currentContext.length - previousLength === 1 && stashedInnerStr) {
+				state.getCurrentPrecedingStatementContext(lhs).pop();
+				lhsStr = stashedInnerStr();
+			}
 		} else {
 			rhsStr = compileExpression(state, rhs);
 		}
+
 		rhsStrContext = state.exitPrecedingStatementContext();
 
-		let previouslhs: string;
+		const previouslhs = isEqualsOperation
+			? ""
+			: isStatement && rhsStrContext.length === 0
+			? lhsStr
+			: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
 
-		if (rhsStrContext.length > 0) {
-			previouslhs = isEqualsOperation
-				? ""
-				: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
-
-			state.pushPrecedingStatements(rhs, ...rhsStrContext);
-		} else {
-			previouslhs = lhsStr;
-		}
+		state.pushPrecedingStatements(rhs, ...rhsStrContext);
 
 		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.BarEqualsToken) {
@@ -287,23 +318,53 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		}
 
 		const unUsedStatement = !isEqualsOperation || !hasOpenContext;
+
 		if (isStatement) {
 			return unUsedStatement ? `${lhsStr} = ${rhsStr}` : "";
 		} else {
-			if (!isLhsIdentifier) {
-				const newId = rhsPushedStr || state.pushToDeclarationOrNewId(node.getParent(), rhsStr);
-				if (unUsedStatement) {
-					state.pushPrecedingStatements(node, state.indent + `${lhsStr} = ${newId};\n`);
-				}
-				state.getCurrentPrecedingStatementContext(node).isPushed = true;
-				return newId;
-			} else {
-				if (unUsedStatement) {
-					state.pushPrecedingStatements(node, state.indent + `${lhsStr} = ${rhsStr};\n`);
-				}
+			let returnStr: string = lhsStr;
+			const currentContext = state.getCurrentPrecedingStatementContext(node);
+			let { isPushed } = currentContext;
 
-				return lhsStr;
+			if (!isLhsIdentifier && rhsPushedStr) {
+				if (hasOpenContext) {
+					if (isConstantExpression(lhs, 1)) {
+						console.log("effo", (returnStr = rhsStr = lhsStr));
+					} else {
+						returnStr = rhsStr = state.pushToDeclarationOrNewId(
+							nodeParent,
+							lhsStr,
+							declaration => declaration.isIdentifier,
+						);
+						({ isPushed } = currentContext);
+					}
+				} else {
+					if (isConstantExpression(rhs, 1)) {
+						returnStr = rhsStr;
+					} else {
+						returnStr = rhsStr = state.pushToDeclarationOrNewId(
+							nodeParent,
+							rhsStr,
+							declaration => declaration.isIdentifier,
+						);
+						({ isPushed } = currentContext);
+					}
+				}
 			}
+
+			if (unUsedStatement) {
+				if (!isPushed && !isStatement) {
+					returnStr = rhsStr = state.pushToDeclarationOrNewId(
+						nodeParent,
+						rhsStr,
+						declaration => declaration.isIdentifier,
+					);
+				}
+				state.pushPrecedingStatements(node, state.indent + `${lhsStr} = ${rhsStr};\n`);
+			}
+
+			console.log(returnStr, node.getText());
+			return returnStr;
 		}
 	} else {
 		state.enterPrecedingStatementContext();
