@@ -26,4 +26,7 @@ install:
 script:
   - npm run tslint
   - npm run prettylint
+  - npm run test
+
+after_success:
   - npm run coverage
