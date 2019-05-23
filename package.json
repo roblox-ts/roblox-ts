@@ -25,10 +25,10 @@
 			".js"
 		],
 		"include": [
-			"out/transpiler"
+			"out/compiler"
 		],
 		"exclude": [
-			"out/transpiler/await.js"
+			"out/compiler/await.js"
 		],
 		"reporter": [
 			"text-lcov"
