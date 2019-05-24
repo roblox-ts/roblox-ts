@@ -306,7 +306,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"insert",
 		(state, params) => {
 			const [accessPath, indexParamStr, valueParamStr] = compileCallArguments(state, params);
-			return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
+			return `table.insert(${accessPath}, ${addOneToArrayIndex(indexParamStr)}, ${valueParamStr})`;
 		},
 	],
 
@@ -314,7 +314,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"remove",
 		(state, params) => {
 			const [accessPath, indexParamStr] = compileCallArguments(state, params);
-			return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
+			return `table.remove(${accessPath}, ${addOneToArrayIndex(indexParamStr)})`;
 		},
 	],
 

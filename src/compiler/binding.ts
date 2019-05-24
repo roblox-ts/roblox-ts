@@ -21,7 +21,7 @@ import {
 	joinIndentedLines,
 	removeBalancedParenthesisFromStringBorders,
 } from "../utility";
-import { isIdentifierDefinedInExportLet } from "./indexed";
+import { addOneToArrayIndex, isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
 	state.enterPrecedingStatementContext();
@@ -132,7 +132,7 @@ function objectAccessor(
 		const exp = nameNode.getExpression();
 		const expType = exp.getType();
 		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
-			return `${t}[${compileExpression(state, exp)} + 1]`;
+			return `${t}[${addOneToArrayIndex(compileExpression(state, exp))}]`;
 		} else {
 			throw new CompilerError(
 				`Cannot index an object with type ${exp.getType().getText()}.`,
@@ -337,7 +337,7 @@ export function getBindingData(
 				const exp = child.getExpression();
 				const expType = exp.getType();
 				if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
-					const accessor = `${parentId}[${compileExpression(state, exp)} + 1]`;
+					const accessor = `${parentId}[${addOneToArrayIndex(compileExpression(state, exp))}]`;
 					const childId: string = compileExpression(state, pattern as ts.Expression);
 					preStatements.push(`local ${childId} = ${accessor};`);
 				} else {
