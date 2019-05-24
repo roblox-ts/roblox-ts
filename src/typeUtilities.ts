@@ -318,20 +318,41 @@ export function shouldPushToPrecedingStatement(
 	argStr: string,
 	argContext: PrecedingStatementContext,
 ) {
-	return (
-		!argContext.isPushed &&
-		!isNumericLiteralExpression(arg) &&
-		!ts.TypeGuards.isStringLiteral(arg) &&
-		(!ts.TypeGuards.isIdentifier(arg) || !isIdentifierDefinedInConst(arg))
-	);
+	return !argContext.isPushed && !isConstantExpression(arg);
 }
 
-/** Returns whether or not the given expression is a Binary expression containing only numeric literals */
-export function isNumericLiteralExpression(node: ts.Expression): boolean {
-	return (
-		ts.TypeGuards.isNumericLiteral(node) ||
-		(ts.TypeGuards.isBinaryExpression(node) &&
-			isNumericLiteralExpression(node.getLeft()) &&
-			isNumericLiteralExpression(node.getRight()))
-	);
+/** Returns whether or not the given expression is an expression containing only:
+ * - constants
+ * - numeric/string literals
+ * - unary/binary/ternary expressions
+ */
+export function isConstantExpression(node: ts.Expression, maxDepth: number = Number.MAX_VALUE): boolean {
+	if (maxDepth >= 0) {
+		if (ts.TypeGuards.isStringLiteral(node)) {
+			return true;
+		} else if (ts.TypeGuards.isNumericLiteral(node)) {
+			return true;
+		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
+			return true;
+		} else if (
+			ts.TypeGuards.isBinaryExpression(node) &&
+			isConstantExpression(node.getLeft(), maxDepth - 1) &&
+			isConstantExpression(node.getRight(), maxDepth - 1)
+		) {
+			return true;
+		} else if (
+			(ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) &&
+			isConstantExpression(node.getOperand(), maxDepth)
+		) {
+			return true;
+		} else if (
+			ts.TypeGuards.isConditionalExpression(node) &&
+			isConstantExpression(node.getCondition(), maxDepth - 1) &&
+			isConstantExpression(node.getWhenTrue(), maxDepth - 1) &&
+			isConstantExpression(node.getWhenFalse(), maxDepth - 1)
+		) {
+			return true;
+		}
+	}
+	return false;
 }

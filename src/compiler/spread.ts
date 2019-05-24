@@ -155,8 +155,12 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 	return parts;
 }
 
-export function compileSpreadableListAndJoin(state: CompilerState, elements: Array<ts.Expression>) {
-	const params = compileSpreadableList(state, elements)
+export function compileSpreadableListAndJoin(
+	state: CompilerState,
+	elements: Array<ts.Expression>,
+	shouldWrapInConcat: boolean = true,
+) {
+	let params = compileSpreadableList(state, elements)
 		.map(v => {
 			if (typeof v === "string") {
 				return v;
@@ -166,8 +170,12 @@ export function compileSpreadableListAndJoin(state: CompilerState, elements: Arr
 		})
 		.join(", ");
 
-	state.usesTSLibrary = true;
-	return `TS.array_concat(${params})`;
+	if (shouldWrapInConcat) {
+		state.usesTSLibrary = true;
+		params = `TS.array_concat(${params})`;
+	}
+
+	return params;
 }
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {

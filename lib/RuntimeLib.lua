@@ -4,6 +4,7 @@ local HttpService = game:GetService("HttpService")
 
 -- constants
 local table_sort = table.sort
+local table_concat = table.concat
 local math_ceil = math.ceil
 local math_floor = math.floor
 
@@ -374,6 +375,15 @@ end
 TS.Object_toString = toString
 
 -- array macro functions
+local function array_copy(list)
+	local result = {}
+	for i = 1, #list do
+		result[i] = list[i]
+	end
+	return result
+end
+
+TS.array_copy = array_copy
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
@@ -411,10 +421,7 @@ local function sortFallback(a, b)
 end
 
 function TS.array_sort(list, callback)
-	local sorted = {}
-	for i = 1, #list do
-		sorted[i] = list[i]
-	end
+	local sorted = array_copy(list)
 
 	if callback then
 		table_sort(sorted, function(a, b)
@@ -624,42 +631,37 @@ function TS.array_reduceRight(list, callback, initialValue)
 end
 
 function TS.array_unshift(list, ...)
-	local args = { ... }
-	local argsLength = #args
-	for i = #list, 1, -1 do
+	local n = #list
+	local argsLength = select("#", ...)
+	for i = n, 1, -1 do
 		list[i + argsLength] = list[i]
 	end
 	for i = 1, argsLength do
-		list[i] = args[i]
+		list[i] = select(i, ...)
 	end
-	return #list
+	return n + argsLength
 end
+
+local function array_push_apply(list, ...)
+	local len = #list
+	for i = 1, select("#", ...) do
+		local list2 = select(i, ...)
+		local len2 = #list2
+		for j = 1, len2 do
+			list[len + j] = list2[j]
+		end
+		len = len + len2
+	end
+	return len
+end
+
+TS.array_push_apply = array_push_apply
 
 function TS.array_concat(...)
-	local count = 0
 	local result = {}
-
-	for i = 1, select("#", ...) do
-		local value = select(i, ...)
-		for j = 1, #value do
-			count = count + 1
-			result[count] = value[j]
-		end
-	end
-
+	array_push_apply(result, ...)
 	return result
 end
-
-function TS.array_push_apply(list, list2)
-	local len = #list
-	local len2 = #list2
-	for i = 1, len2 do
-		list[len + i] = list2[i]
-	end
-	return len + len2
-end
-
-local table_concat = table.concat
 
 function TS.array_join(list, separator)
 	local result = {}
@@ -775,17 +777,16 @@ function TS.array_copyWithin(list, target, from, to)
 	return list
 end
 
-TS.array_copy = copy
-
 TS.array_deepCopy = deepCopy
 
 TS.array_deepEquals = deepEquals
 
 -- map macro functions
 
-function TS.map_new(value)
+function TS.map_new(pairs)
 	local result = {}
-	for _, pair in pairs(value) do
+	for i = 1, #pairs do
+		local pair = pairs[i]
 		result[pair[1]] = pair[2]
 	end
 	return result
@@ -821,10 +822,10 @@ TS.map_toString = toString
 
 -- set macro functions
 
-function TS.set_new(value)
+function TS.set_new(values)
 	local result = {}
-	for _, v in pairs(value) do
-		result[v] = true
+	for i = 1, #values do
+		result[values[i]] = true
 	end
 	return result
 end

@@ -20,7 +20,6 @@ import {
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
-import { compileSpreadExpression } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -121,6 +120,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const subExp = params[0];
 			const accessPath = getReadableExpressionName(state, subExp);
+
 			if (getPropertyCallParentIsExpressionStatement(subExp)) {
 				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
@@ -130,7 +130,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const place = `${accessPath}[${len}]`;
 				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
 				id = state.pushToDeclarationOrNewId(node, place);
+				const context = state.getCurrentPrecedingStatementContext(subExp);
+				const { isPushed } = context;
 				state.pushPrecedingStatements(subExp, nullSet);
+				context.isPushed = isPushed;
 				return id;
 			}
 		},
@@ -161,24 +164,18 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const { length: numParams } = params;
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
-				if (numParams === 2) {
-					return `TS.array_push_apply(${compileExpression(state, params[0])}, ${compileSpreadExpression(
-						state,
-						(params[1] as ts.SpreadElement).getExpression(),
-					)})`;
-				} else {
-					let arrayStr = compileExpression(state, subExp);
-					state.enterPrecedingStatementContext();
-					const listStr = compileSpreadableListAndJoin(state, params.slice(1));
-					const context = state.exitPrecedingStatementContext();
+				state.usesTSLibrary = true;
+				let arrayStr = compileExpression(state, subExp);
+				state.enterPrecedingStatementContext();
+				const listStr = compileSpreadableListAndJoin(state, params.slice(1), false);
+				const context = state.exitPrecedingStatementContext();
 
-					if (context.length > 0) {
-						arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
-						state.pushPrecedingStatements(subExp, ...context);
-					}
-
-					return `TS.array_push_apply(${arrayStr}, ${listStr})`;
+				if (context.length > 0) {
+					arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
+					state.pushPrecedingStatements(subExp, ...context);
 				}
+
+				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
 				if (isStatement && numParams === 2) {
