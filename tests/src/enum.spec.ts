@@ -19,6 +19,14 @@ enum Soups {
 	Dumpling = "DUMPLING",
 }
 
+const enum Person {
+	Validark,
+	Osyris,
+	Evaera,
+	Vorlias,
+	DataBrain,
+}
+
 const enum Animal {
 	Bear = "BEAR",
 	Dog = "DOG",
@@ -44,7 +52,15 @@ export = () => {
 		expect(Soups.Dumpling).to.equal("DUMPLING");
 	});
 
-	it("should support const enums", () => {
+	it("should support numeric const enums", () => {
+		expect(Person.Validark).to.equal(0);
+		expect(Person.Osyris).to.equal(1);
+		expect(Person.Evaera).to.equal(2);
+		expect(Person.Vorlias).to.equal(3);
+		expect(Person.DataBrain).to.equal(4);
+	});
+
+	it("should support string const enums", () => {
 		expect(Animal.Bear).to.equal("BEAR");
 		expect(Animal.Dog).to.equal("DOG");
 		expect(Animal.Snake).to.equal("SNAKE");
