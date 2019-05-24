@@ -218,14 +218,11 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				const initializer = prop.getInitializer();
 				if (initializer) {
 					state.enterPrecedingStatementContext();
-					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer)
-					state.declarationContext.set(
-						fullInitializer,
-						{
-							isIdentifier: false,
-							set: `self${propStr}`,
-						},
-					);
+					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
+					state.declarationContext.set(fullInitializer, {
+						isIdentifier: false,
+						set: `self${propStr}`,
+					});
 					const expStr = compileExpression(state, initializer);
 					extraInitializers.push(...state.exitPrecedingStatementContext());
 					if (state.declarationContext.delete(fullInitializer)) {
