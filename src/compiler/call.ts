@@ -20,7 +20,6 @@ import {
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
-import { compileSpreadExpression } from "./spread";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -166,24 +165,17 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
 				state.usesTSLibrary = true;
-				if (numParams === 2) {
-					return `TS.array_push_apply(${compileExpression(state, params[0])}, ${compileSpreadExpression(
-						state,
-						(params[1] as ts.SpreadElement).getExpression(),
-					)})`;
-				} else {
-					let arrayStr = compileExpression(state, subExp);
-					state.enterPrecedingStatementContext();
-					const listStr = compileSpreadableListAndJoin(state, params.slice(1), false);
-					const context = state.exitPrecedingStatementContext();
+				let arrayStr = compileExpression(state, subExp);
+				state.enterPrecedingStatementContext();
+				const listStr = compileSpreadableListAndJoin(state, params.slice(1), false);
+				const context = state.exitPrecedingStatementContext();
 
-					if (context.length > 0) {
-						arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
-						state.pushPrecedingStatements(subExp, ...context);
-					}
-
-					return `TS.array_push_apply(${arrayStr}, ${listStr})`;
+				if (context.length > 0) {
+					arrayStr = state.pushPrecedingStatementToNewId(subExp, arrayStr);
+					state.pushPrecedingStatements(subExp, ...context);
 				}
+
+				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
 				if (isStatement && numParams === 2) {

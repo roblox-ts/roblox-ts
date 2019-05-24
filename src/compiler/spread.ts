@@ -160,7 +160,7 @@ export function compileSpreadableListAndJoin(
 	elements: Array<ts.Expression>,
 	shouldWrapInConcat: boolean = true,
 ) {
-	const params = compileSpreadableList(state, elements)
+	let params = compileSpreadableList(state, elements)
 		.map(v => {
 			if (typeof v === "string") {
 				return v;
@@ -172,10 +172,10 @@ export function compileSpreadableListAndJoin(
 
 	if (shouldWrapInConcat) {
 		state.usesTSLibrary = true;
-		return `TS.array_concat(${params})`;
-	} else {
-		return params;
+		params = `TS.array_concat(${params})`;
 	}
+
+	return params;
 }
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
