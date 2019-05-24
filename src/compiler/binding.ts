@@ -16,7 +16,11 @@ import {
 	isStringType,
 	strictTypeConstraint,
 } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines, removeBalancedParenthesisFromStringBorders } from "../utility";
+import {
+	getNonNullUnParenthesizedExpressionDownwards,
+	joinIndentedLines,
+	removeBalancedParenthesisFromStringBorders,
+} from "../utility";
 import { isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
