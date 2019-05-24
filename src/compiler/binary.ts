@@ -329,7 +329,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 			if (!isLhsIdentifier) {
 				if (hasOpenContext) {
-					if (isPushed || isConstantExpression(lhs, 0)) {
+					if ((isPushed && isEqualsOperation) || isConstantExpression(lhs, 0)) {
 						returnStr = rhsStr = lhsStr;
 					} else {
 						returnStr = rhsStr = state.pushToDeclarationOrNewId(
@@ -341,7 +341,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						({ isPushed } = upperContext);
 					}
 				} else {
-					if (isPushed || isConstantExpression(rhs, 0)) {
+					if ((isPushed && isEqualsOperation) || isConstantExpression(rhs, 0)) {
 						returnStr = rhsStr;
 					} else {
 						returnStr = rhsStr = state.pushToDeclarationOrNewId(
