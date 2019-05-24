@@ -15,7 +15,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
-import { bold } from "../utility";
+import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -218,13 +218,17 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				const initializer = prop.getInitializer();
 				if (initializer) {
 					state.enterPrecedingStatementContext();
-					state.declarationContext.set(initializer, {
-						isIdentifier: false,
-						set: `self${propStr}`,
-					});
+					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer)
+					state.declarationContext.set(
+						fullInitializer,
+						{
+							isIdentifier: false,
+							set: `self${propStr}`,
+						},
+					);
 					const expStr = compileExpression(state, initializer);
 					extraInitializers.push(...state.exitPrecedingStatementContext());
-					if (state.declarationContext.delete(initializer)) {
+					if (state.declarationContext.delete(fullInitializer)) {
 						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
 					}
 				}

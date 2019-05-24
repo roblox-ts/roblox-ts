@@ -174,7 +174,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				} else {
 					let arrayStr = compileExpression(state, subExp);
 					state.enterPrecedingStatementContext();
-					const listStr = compileSpreadableListAndJoin(state, params.slice(1));
+					const listStr = compileSpreadableListAndJoin(state, params.slice(1), false);
 					const context = state.exitPrecedingStatementContext();
 
 					if (context.length > 0) {

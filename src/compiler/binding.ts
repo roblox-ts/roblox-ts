@@ -16,12 +16,14 @@ import {
 	isStringType,
 	strictTypeConstraint,
 } from "../typeUtilities";
-import { joinIndentedLines, removeBalancedParenthesisFromStringBorders } from "../utility";
+import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines, removeBalancedParenthesisFromStringBorders } from "../utility";
 import { isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
 	state.enterPrecedingStatementContext();
-	state.declarationContext.set(initial, {
+	const initialToWriteTo = getNonNullUnParenthesizedExpressionDownwards(initial);
+
+	state.declarationContext.set(initialToWriteTo, {
 		isIdentifier: ts.TypeGuards.isIdentifier(initial) && !isIdentifierDefinedInExportLet(initial),
 		set: name,
 	});
@@ -35,12 +37,12 @@ function compileParamDefault(state: CompilerState, initial: ts.Expression, name:
 			`if ${name} == nil then\n` +
 			joinIndentedLines(context, 2) +
 			state.indent +
-			`${state.declarationContext.delete(initial) ? `\t${name} = ${expStr};\n` + state.indent : ""}` +
+			`${state.declarationContext.delete(initialToWriteTo) ? `\t${name} = ${expStr};\n` + state.indent : ""}` +
 			`end;`;
 		state.popIndent();
 	} else {
 		defaultValue = `if ${name} == nil then${
-			state.declarationContext.delete(initial) ? ` ${name} = ${expStr};` : ""
+			state.declarationContext.delete(initialToWriteTo) ? ` ${name} = ${expStr};` : ""
 		} end;`;
 	}
 	return defaultValue;

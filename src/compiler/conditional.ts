@@ -1,7 +1,11 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import { makeSetStatement, removeBalancedParenthesisFromStringBorders } from "../utility";
+import {
+	getNonNullUnParenthesizedExpressionDownwards,
+	makeSetStatement,
+	removeBalancedParenthesisFromStringBorders,
+} from "../utility";
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
@@ -10,8 +14,8 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const declaration = state.declarationContext.get(node);
 
 	const condition = node.getCondition();
-	const whenTrue = node.getWhenTrue();
-	const whenFalse = node.getWhenFalse();
+	const whenTrue = getNonNullUnParenthesizedExpressionDownwards(node.getWhenTrue());
+	const whenFalse = getNonNullUnParenthesizedExpressionDownwards(node.getWhenFalse());
 	let conditionStr: string;
 	let isPushed = false;
 
