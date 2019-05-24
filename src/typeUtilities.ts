@@ -326,7 +326,7 @@ export function shouldPushToPrecedingStatement(
  * - numeric/string literals
  * - unary/binary/ternary expressions
  */
-export function isConstantExpression(node: ts.Expression, maxDepth: number = 1 / 0): boolean {
+export function isConstantExpression(node: ts.Expression, maxDepth: number = Number.MAX_VALUE): boolean {
 	if (maxDepth >= 0) {
 		if (ts.TypeGuards.isStringLiteral(node)) {
 			return true;
