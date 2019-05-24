@@ -11,6 +11,7 @@ import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayMethodType,
+	isConstantExpression,
 	isMapMethodType,
 	isSetMethodType,
 	isStringMethodType,
@@ -19,7 +20,7 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards } from "../utility";
-import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
+import { addOneToArrayIndex, getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
 	"byte",
@@ -136,6 +137,49 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				context.isPushed = isPushed;
 				return id;
 			}
+		},
+	],
+
+	[
+		"unorderedRemove",
+		(state, params) => {
+			const subExp = params[0];
+			const node = getLeftHandSideParent(subExp, 2);
+			const accessPath = getReadableExpressionName(state, subExp);
+			let id: string;
+
+			const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+			const lastPlace = `${accessPath}[${len}]`;
+
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			let removingIndex = addOneToArrayIndex(compileCallArguments(state, params.slice(1))[0]);
+
+			if (!isStatement && !isConstantExpression(params[1], 0)) {
+				removingIndex = state.pushPrecedingStatementToNewId(subExp, removingIndex);
+			}
+
+			const removingPlace = `${accessPath}[${removingIndex}]`;
+
+			if (!isStatement) {
+				id = state.pushToDeclarationOrNewId(node, removingPlace);
+			}
+
+			const context = state.getCurrentPrecedingStatementContext(subExp);
+			const { isPushed } = context;
+
+			state.pushPrecedingStatements(
+				subExp,
+				`${removingPlace} = ${lastPlace}; -- ${subExp.getText()}.unorderedRemove\n`,
+			);
+
+			const nullSet = state.indent + `${lastPlace} = nil`;
+
+			if (!isStatement) {
+				state.pushPrecedingStatements(subExp, nullSet + ";\n");
+			}
+
+			context.isPushed = isPushed;
+			return isStatement ? nullSet : id!;
 		},
 	],
 

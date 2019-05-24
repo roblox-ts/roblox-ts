@@ -4,7 +4,6 @@ import {
 	checkNonAny,
 	compileCallExpression,
 	compileExpression,
-	compileNumericLiteral,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
 } from ".";
@@ -161,39 +160,33 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
+export function addOneToArrayIndex(valueStr: string) {
+	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+		const valueNumber = Number(valueStr);
+		if (!Number.isNaN(valueNumber)) {
+			return (valueNumber + 1).toString();
+		}
+	}
+	return valueStr + " + 1";
+}
+
 export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
 
-	let addOne = false;
+	const valueStr = compileExpression(state, argExp);
+
 	if (isNumberType(argExp.getType())) {
-		if (isArrayType(expType)) {
-			addOne = true;
-		} else if (
-			ts.TypeGuards.isCallExpression(expNode) &&
-			(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType()))
+		if (
+			isArrayType(expType) ||
+			(ts.TypeGuards.isCallExpression(expNode) &&
+				(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType())))
 		) {
-			addOne = true;
+			return addOneToArrayIndex(valueStr);
 		}
 	}
-
-	let offset = "";
-	let argExpStr: string;
-	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
-		let value = Number(compileNumericLiteral(state, argExp));
-		if (addOne) {
-			value++;
-		}
-		argExpStr = value.toString();
-	} else {
-		if (addOne) {
-			offset = " + 1";
-		}
-		argExpStr = compileExpression(state, argExp) + offset;
-	}
-
-	return argExpStr;
+	return valueStr;
 }
 
 export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {

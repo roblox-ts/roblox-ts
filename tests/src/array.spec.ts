@@ -449,4 +449,16 @@ export = () => {
 		arr.push("Nope");
 		expect(arr.isEmpty()).to.equal(false);
 	});
+
+	it("should support unorderedRemove", () => {
+		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
+		let i = 2;
+		let value: number;
+
+		expect(arr.unorderedRemove((i *= 2))).to.equal(4);
+		expect(arr.length).to.equal(7);
+		expect(arr[4]).to.equal(7);
+		expect(arr[6]).to.equal(6);
+		expect;
+	});
 };
