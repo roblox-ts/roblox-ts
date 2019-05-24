@@ -2,8 +2,9 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { getWritableOperandName, isIdentifierDefinedInExportLet } from "./indexed";
 
-function useIIFEforUnaryExpression(
+function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
@@ -13,38 +14,51 @@ function useIIFEforUnaryExpression(
 	);
 }
 
+function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, node: ts.Node, varName: string) {
+	const op =
+		opKind === ts.SyntaxKind.PlusPlusToken
+			? " + "
+			: opKind === ts.SyntaxKind.MinusMinusToken
+			? " - "
+			: (() => {
+					throw new CompilerError(
+						`Bad unary expression! (${opKind})`,
+						node,
+						CompilerErrorType.BadPrefixUnaryExpression,
+					);
+			  })();
+
+	return `${varName ? `${varName} = ` : ""}${expStr}${op}1`;
+}
+
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = node.getOperand();
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
-		const useIIFE = useIIFEforUnaryExpression(parent, node);
-		const statements = new Array<string>();
-		if (useIIFE) {
-			state.pushIdStack();
-		}
-		let expStr: string;
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const expression = operand.getExpression();
-			const opExpStr = compileExpression(state, expression);
-			const propertyStr = operand.getName();
-			const id = state.getNewId();
-			statements.push(`local ${id} = ${opExpStr}`);
-			expStr = `${id}.${propertyStr}`;
+		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
+		const expData = getWritableOperandName(state, operand);
+		const { expStr } = expData;
+
+		if (isNonStatement) {
+			if (!ts.TypeGuards.isIdentifier(operand) || isIdentifierDefinedInExportLet(operand)) {
+				const id = state.pushToDeclarationOrNewId(
+					node,
+					getIncrementString(opKind, expStr, node, ""),
+					declaration => declaration.isIdentifier,
+				);
+				const context = state.getCurrentPrecedingStatementContext(node);
+				const isPushed = context.isPushed;
+				state.pushPrecedingStatements(node, state.indent + `${expStr} = ${id};\n`);
+				context.isPushed = isPushed;
+				return id;
+			} else {
+				const incrStr = getIncrementString(opKind, expStr, node, expStr);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+				return expStr;
+			}
 		} else {
-			expStr = compileExpression(state, operand);
-		}
-		if (opKind === ts.SyntaxKind.PlusPlusToken) {
-			statements.push(`${expStr} = ${expStr} + 1`);
-		} else if (opKind === ts.SyntaxKind.MinusMinusToken) {
-			statements.push(`${expStr} = ${expStr} - 1`);
-		}
-		if (useIIFE) {
-			state.popIdStack();
-			const statementsStr = statements.join("; ");
-			return `(function() ${statementsStr}; return ${expStr}; end)()`;
-		} else {
-			return statements.join("; ");
+			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
 		const expStr = compileExpression(state, operand);
@@ -72,41 +86,38 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = node.getParentOrThrow();
-		const useIIFE = useIIFEforUnaryExpression(parent, node);
-		const statements = new Array<string>();
-		if (useIIFE) {
-			state.pushIdStack();
-		}
-		let expStr: string;
-		if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-			const expression = operand.getExpression();
-			const opExpStr = compileExpression(state, expression);
-			const propertyStr = operand.getName();
-			const id = state.getNewId();
-			statements.push(`local ${id} = ${opExpStr}`);
-			expStr = `${id}.${propertyStr}`;
-		} else {
-			expStr = compileExpression(state, operand);
-		}
+		const isNonStatement = isUnaryExpressionNonStatement(parent, node);
+		const expData = getWritableOperandName(state, operand);
+		const { expStr } = expData;
 
-		function getAssignmentExpression() {
-			if (opKind === ts.SyntaxKind.PlusPlusToken) {
-				statements.push(`${expStr} = ${expStr} + 1`);
+		if (isNonStatement) {
+			const declaration = state.declarationContext.get(node);
+			let id: string;
+			if (
+				declaration &&
+				(declaration.isIdentifier || expData.isIdentifier) &&
+				declaration.set !== "return" &&
+				declaration.set !== expStr
+			) {
+				state.declarationContext.delete(node);
+				state.pushPrecedingStatements(
+					node,
+					state.indent + `${declaration.needsLocalizing ? "local " : ""}${declaration.set} = ${expStr};\n`,
+				);
+				// due to this optimization here, this shouldn't be shortened with `state.pushToDeclarationOrNewId`
+				id = expData.isIdentifier ? expStr : declaration.set;
+				const incrStr = getIncrementString(opKind, id, node, expStr);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 			} else {
-				statements.push(`${expStr} = ${expStr} - 1`);
+				id = state.pushPrecedingStatementToReuseableId(node, expStr);
+				const incrStr = getIncrementString(opKind, id, node, expStr);
+				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
+				state.getCurrentPrecedingStatementContext(node).isPushed = true;
 			}
-		}
 
-		if (useIIFE) {
-			const id = state.getNewId();
-			state.popIdStack();
-			statements.push(`local ${id} = ${expStr}`);
-			getAssignmentExpression();
-			const statementsStr = statements.join("; ");
-			return `(function() ${statementsStr}; return ${id}; end)()`;
+			return id;
 		} else {
-			getAssignmentExpression();
-			return statements.join("; ");
+			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
 		/* istanbul ignore next */

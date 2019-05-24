@@ -3,10 +3,12 @@ import { checkReserved, compileCallExpression, compileExpression, concatNamesAnd
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
+	state.enterPrecedingStatementContext();
 	const lhs = node.getNameNode();
-	const rhs = node.getInitializer();
+	const rhs = getNonNullExpressionDownwards(node.getInitializer());
 
 	const parent = node.getParent();
 	const grandParent = parent.getParent();
@@ -15,11 +17,6 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 	let decKind = ts.VariableDeclarationKind.Const;
 	if (ts.TypeGuards.isVariableDeclarationList(parent)) {
 		decKind = parent.getDeclarationKind();
-	}
-
-	let parentName = "";
-	if (isExported) {
-		parentName = state.getExportContextName(grandParent);
 	}
 
 	if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
@@ -44,14 +41,14 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				let returnValue: string | undefined;
 				concatNamesAndValues(state, names, values, false, str => (returnValue = str));
-				return returnValue || "";
+				return state.exitPrecedingStatementContextAndJoin() + returnValue || "";
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					names.forEach(name => state.pushExport(name, grandParent));
 				}
 				let returnValue: string | undefined;
 				concatNamesAndValues(state, names, values, true, str => (returnValue = str));
-				return returnValue || "";
+				return state.exitPrecedingStatementContextAndJoin() + returnValue || "";
 			}
 		}
 	}
@@ -61,18 +58,38 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const name = lhs.getText();
 		checkReserved(name, lhs, true);
 		if (rhs) {
-			const value = compileExpression(state, rhs);
+			const trueRhs = getNonNullUnParenthesizedExpressionDownwards(rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				result += state.indent + `${parentName}.${name} = ${value};\n`;
+				const parentName = state.getExportContextName(grandParent);
+				state.declarationContext.set(trueRhs, {
+					isIdentifier: false,
+					set: `${parentName}.${name}`,
+				});
+				const value = compileExpression(state, rhs);
+				if (state.declarationContext.delete(trueRhs)) {
+					result += state.indent + `${parentName}.${name} = ${value};\n`;
+				}
 			} else {
 				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
 					state.pushExport(name, grandParent);
 				}
 				if (shouldHoist(grandParent, lhs)) {
 					state.pushHoistStack(name);
-					result += state.indent + `${name} = ${value};\n`;
+					state.declarationContext.set(trueRhs, { isIdentifier: true, set: `${name}` });
+					const value = compileExpression(state, rhs);
+					if (state.declarationContext.delete(trueRhs)) {
+						result += state.indent + `${name} = ${value};\n`;
+					}
 				} else {
-					result += state.indent + `local ${name} = ${value};\n`;
+					state.declarationContext.set(trueRhs, {
+						isIdentifier: true,
+						needsLocalizing: true,
+						set: `${name}`,
+					});
+					const value = compileExpression(state, rhs);
+					if (state.declarationContext.delete(trueRhs)) {
+						result += state.indent + `local ${name} = ${value};\n`;
+					}
 				}
 			}
 		} else if (!isExported) {
@@ -88,14 +105,15 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const values = new Array<string>();
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
-		if (ts.TypeGuards.isIdentifier(rhs)) {
-			getBindingData(state, names, values, preStatements, postStatements, lhs, compileExpression(state, rhs));
-		} else {
-			const rootId = state.getNewId();
-			const rhsStr = compileExpression(state, rhs);
-			preStatements.push(`local ${rootId} = ${rhsStr};`);
-			getBindingData(state, names, values, preStatements, postStatements, lhs, rootId);
+		let rhsStr = compileExpression(state, rhs);
+
+		if (!ts.TypeGuards.isIdentifier(rhs) && !ts.TypeGuards.isThisExpression(rhs)) {
+			const id = state.getNewId();
+			preStatements.push(`local ${id} = ${rhsStr};`);
+			rhsStr = id;
 		}
+
+		getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);
 		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		if (values.length > 0) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
@@ -110,7 +128,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 	}
 
-	return result;
+	return state.exitPrecedingStatementContextAndJoin() + result;
 }
 
 export function compileVariableDeclarationList(state: CompilerState, node: ts.VariableDeclarationList) {
@@ -123,11 +141,9 @@ export function compileVariableDeclarationList(state: CompilerState, node: ts.Va
 		);
 	}
 
-	let result = "";
-	for (const declaration of node.getDeclarations()) {
-		result += compileVariableDeclaration(state, declaration);
-	}
-	return result;
+	return node
+		.getDeclarations()
+		.reduce((result, declaration) => result + compileVariableDeclaration(state, declaration), "");
 }
 
 export function compileVariableStatement(state: CompilerState, node: ts.VariableStatement) {

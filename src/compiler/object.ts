@@ -1,21 +1,14 @@
 import * as ts from "ts-morph";
-import {
-	checkReserved,
-	compileExpression,
-	compileIdentifier,
-	compileMethodDeclaration,
-	compileNumericLiteral,
-	compileStringLiteral,
-} from ".";
+import { compileExpression, compileMethodDeclaration } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { joinIndentedLines } from "../utility";
 
 export function compileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();
 	if (properties.length === 0) {
 		return "{}";
 	}
-
 	let isInObject = false;
 	let first = true;
 	let firstIsObj = false;
@@ -26,27 +19,22 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				firstIsObj = true;
 			}
 
-			let lhs: string;
+			let lhs: ts.Expression;
 
 			let n = 0;
 			let child = prop.getChildAtIndex(n);
 			while (ts.TypeGuards.isJSDoc(child)) {
-				n++;
-				child = prop.getChildAtIndex(n);
+				child = prop.getChildAtIndex(++n);
 			}
 
 			if (ts.TypeGuards.isComputedPropertyName(child)) {
-				const expStr = compileExpression(state, child.getExpression());
-				lhs = `[${expStr}]`;
-			} else if (ts.TypeGuards.isStringLiteral(child)) {
-				const expStr = compileStringLiteral(state, child);
-				lhs = `[${expStr}]`;
-			} else if (ts.TypeGuards.isIdentifier(child)) {
-				lhs = child.getText();
-				checkReserved(lhs, child);
-			} else if (ts.TypeGuards.isNumericLiteral(child)) {
-				const expStr = compileNumericLiteral(state, child);
-				lhs = `[${expStr}]`;
+				lhs = child.getExpression();
+			} else if (
+				ts.TypeGuards.isIdentifier(child) ||
+				ts.TypeGuards.isStringLiteral(child) ||
+				ts.TypeGuards.isNumericLiteral(child)
+			) {
+				lhs = child;
 			} else {
 				throw new CompilerError(
 					`Unexpected type of object index! (${child.getKindName()})`,
@@ -60,16 +48,36 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				state.pushIndent();
 			}
 
-			let rhs: string; // You may want to move this around
+			let rhs: ts.Expression; // You may want to move this around
 			if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
-				lhs = prop.getName();
-				rhs = compileIdentifier(state, child);
-				checkReserved(lhs, child);
+				lhs = prop.getNameNode();
+				rhs = child;
 			} else {
-				rhs = compileExpression(state, prop.getInitializerOrThrow());
+				rhs = prop.getInitializerOrThrow();
 			}
 
-			parts[parts.length - 1] += state.indent + `${lhs} = ${rhs};\n`;
+			state.enterPrecedingStatementContext();
+			let lhsStr = compileExpression(state, lhs);
+			const lhsContext = state.exitPrecedingStatementContext();
+
+			if (lhsContext.length > 0) {
+				lhsContext.push(state.indent + `return ${lhsStr};\n`);
+				lhsStr = "(function()\n" + joinIndentedLines(lhsContext, 1) + state.indent + "end)()";
+			}
+
+			state.enterPrecedingStatementContext();
+			let rhsStr = compileExpression(state, rhs);
+			const rhsContext = state.exitPrecedingStatementContext();
+
+			if (rhsContext.length > 0) {
+				rhsContext.push(state.indent + `return ${rhsStr};\n`);
+				rhsStr = "(function()\n" + joinIndentedLines(rhsContext, 1) + state.indent + "end)()";
+			}
+
+			if (!ts.TypeGuards.isIdentifier(lhs)) {
+				lhsStr = `[${lhsStr}]`;
+			}
+			parts[parts.length - 1] += state.indent + `${lhsStr} = ${rhsStr};\n`;
 			isInObject = true;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
 			if (first) {
@@ -93,6 +101,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			parts.push(expStr);
 			isInObject = false;
 		}
+
 		if (first) {
 			first = false;
 		}

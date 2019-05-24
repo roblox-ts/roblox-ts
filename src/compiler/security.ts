@@ -124,7 +124,7 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 			node,
 			CompilerErrorType.InvalidIdentifier,
 		);
-	} else if (name === "_exports" || name === "undefined" || name.match(/^_[0-9]+$/)) {
+	} else if (name === "_exports" || name === "undefined" || name === "TS" || name.match(/^_[0-9]+$/)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
@@ -247,7 +247,7 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	let type = node.getType();
 	if (type.isArray() && checkArrayType) {
-		const arrayType = type.getArrayType();
+		const arrayType = type.getArrayElementType();
 		if (arrayType) {
 			type = arrayType;
 		}

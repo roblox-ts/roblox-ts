@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective } from "./compiler";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
+import { PrecedingStatementContext } from "./CompilerState";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -131,6 +132,16 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 	}
 }
 
+export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.getUnionTypes().every(t => strictTypeConstraint(t, cb));
+	} else if (type.isIntersection()) {
+		return type.getIntersectionTypes().every(t => strictTypeConstraint(t, cb));
+	} else {
+		return cb(type);
+	}
+}
+
 export function isAnyType(type: ts.Type) {
 	return type.getText() === "any";
 }
@@ -158,11 +169,20 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
+export function isObjectType(type: ts.Type) {
+	return typeConstraint(type, t => t.isObject());
+}
+
 export function isIterableIterator(type: ts.Type, node: ts.Node) {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
 	});
+}
+
+export function isIterableFunction(type: ts.Type) {
+	const symbol = type.getAliasSymbol();
+	return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
 }
 
 export function getCompilerDirectiveWithConstraint(
@@ -176,12 +196,20 @@ export function getCompilerDirectiveWithConstraint(
 	});
 }
 
+export function isStringMethodType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
 export function isArrayType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
 }
 
-export function isStringMethodType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+export function isMapType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+}
+
+export function isSetType(type: ts.Type) {
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isMethodType(type: ts.Type) {
@@ -198,14 +226,6 @@ export function isMapMethodType(type: ts.Type) {
 
 export function isSetMethodType(type: ts.Type) {
 	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
-}
-
-export function isMapType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
-}
-
-export function isSetType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
@@ -290,5 +310,49 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 		}
 	}
 
+	return false;
+}
+
+export function shouldPushToPrecedingStatement(
+	arg: ts.Expression,
+	argStr: string,
+	argContext: PrecedingStatementContext,
+) {
+	return !argContext.isPushed && !isConstantExpression(arg);
+}
+
+/** Returns whether or not the given expression is an expression containing only:
+ * - constants
+ * - numeric/string literals
+ * - unary/binary/ternary expressions
+ */
+export function isConstantExpression(node: ts.Expression, maxDepth: number = Number.MAX_VALUE): boolean {
+	if (maxDepth >= 0) {
+		if (ts.TypeGuards.isStringLiteral(node)) {
+			return true;
+		} else if (ts.TypeGuards.isNumericLiteral(node)) {
+			return true;
+		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
+			return true;
+		} else if (
+			ts.TypeGuards.isBinaryExpression(node) &&
+			isConstantExpression(node.getLeft(), maxDepth - 1) &&
+			isConstantExpression(node.getRight(), maxDepth - 1)
+		) {
+			return true;
+		} else if (
+			(ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) &&
+			isConstantExpression(node.getOperand(), maxDepth)
+		) {
+			return true;
+		} else if (
+			ts.TypeGuards.isConditionalExpression(node) &&
+			isConstantExpression(node.getCondition(), maxDepth - 1) &&
+			isConstantExpression(node.getWhenTrue(), maxDepth - 1) &&
+			isConstantExpression(node.getWhenFalse(), maxDepth - 1)
+		) {
+			return true;
+		}
+	}
 	return false;
 }

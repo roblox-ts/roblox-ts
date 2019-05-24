@@ -10,22 +10,98 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom, isArrayType, isNumberType, isTupleReturnTypeCall } from "../typeUtilities";
-import { safeLuaIndex } from "../utility";
+import {
+	inheritsFrom,
+	isArrayType,
+	isMapType,
+	isNumberType,
+	isSetType,
+	isStringType,
+	isTupleReturnTypeCall,
+} from "../typeUtilities";
+import { removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+
+export function isIdentifierDefinedInConst(exp: ts.Identifier) {
+	// I have no idea why, but getDefinitionNodes() cannot replace this
+	for (const def of exp.getDefinitions()) {
+		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+		if (definition && definition.getDeclarationKind() === ts.VariableDeclarationKind.Const) {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
+	// I have no idea why, but getDefinitionNodes() cannot replace this
+	for (const def of exp.getDefinitions()) {
+		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+		if (
+			definition &&
+			definition.hasExportKeyword() &&
+			definition.getDeclarationKind() === ts.VariableDeclarationKind.Let
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
+ * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
+ * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
+ */
+export function getWritableOperandName(state: CompilerState, operand: ts.Expression) {
+	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+		const child = operand.getChildAtIndex(0);
+
+		if (
+			ts.TypeGuards.isPropertyAccessExpression(child) ||
+			(ts.TypeGuards.isIdentifier(child) && isIdentifierDefinedInExportLet(child))
+		) {
+			const expression = operand.getExpression();
+			const opExpStr = compileExpression(state, expression);
+			const propertyStr = operand.getName();
+			const id = state.pushPrecedingStatementToReuseableId(operand, opExpStr);
+			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
+		}
+	}
+
+	return {
+		expStr: compileExpression(state, operand),
+		isIdentifier: ts.TypeGuards.isIdentifier(operand) && !isIdentifierDefinedInExportLet(operand),
+	};
+}
+
+/**
+ * Similar to getWritableOperandName, but should push anything with any depth. This includes export let vars.
+ */
+export function getReadableExpressionName(
+	state: CompilerState,
+	exp: ts.Expression,
+	expStr = compileExpression(state, exp),
+) {
+	if (
+		expStr.match(/^\(*_\d+\)*$/) ||
+		(ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp)) ||
+		// We know that new Sets and Maps are already ALWAYS pushed
+		(ts.TypeGuards.isNewExpression(exp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
+	) {
+		return expStr;
+	} else {
+		return state.pushPrecedingStatementToReuseableId(exp, expStr);
+	}
+}
 
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
 	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
-
+	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if (
-		(propertyAccessExpressionType === PropertyCallExpType.String ||
-			propertyAccessExpressionType === PropertyCallExpType.Array) &&
-		propertyStr === "length"
-	) {
-		return `(#${expStr})`;
+	if ((isArrayType(expType) || isStringType(expType)) && propertyStr === "length") {
+		return `#(${removeBalancedParenthesisFromStringBorders(expStr)})`;
 	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
@@ -82,10 +158,10 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		}
 	}
 
-	return `${expStr}.${propertyStr}`;
+	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
-export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
@@ -117,17 +193,19 @@ export function compileElementAccessExpression(state: CompilerState, node: ts.El
 		argExpStr = compileExpression(state, argExp) + offset;
 	}
 
+	return argExpStr;
+}
+
+export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	const expNode = node.getExpression();
+	const argExp = node.getArgumentExpressionOrThrow();
+
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
 		const expStr = compileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		if (argExpStr === "1") {
-			return `(${expStr})`;
-		} else {
-			return `(select(${argExpStr}, ${expStr}))`;
-		}
+		return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
 	} else {
-		const expStr = compileExpression(state, expNode);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
 		let isArrayLiteral = false;
@@ -140,10 +218,16 @@ export function compileElementAccessExpression(state: CompilerState, node: ts.El
 				isArrayLiteral = true;
 			}
 		}
+		const expStr = compileExpression(state, expNode);
+
 		if (isArrayLiteral) {
-			return `(${expStr})[${argExpStr}]`;
+			return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
 		} else {
-			return `${expStr}[${argExpStr}]`;
+			return (argExpStr: string) => `${expStr}[${argExpStr}]`;
 		}
 	}
+}
+
+export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
 }

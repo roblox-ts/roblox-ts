@@ -12,6 +12,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
 	for (const node of nodes) {
@@ -31,6 +32,8 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 }
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
+	exp = getNonNullUnParenthesizedExpressionDownwards(exp);
+
 	if (func && isTupleReturnType(func)) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = compileExpression(state, exp);
@@ -44,17 +47,22 @@ function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, fu
 			return `return unpack(${expStr});`;
 		}
 	}
-	return `return ${compileExpression(state, exp)};`;
+	{
+		state.declarationContext.set(exp, {
+			isIdentifier: false,
+			set: "return",
+		});
+		const expStr = compileExpression(state, exp);
+		return state.declarationContext.delete(exp) && `return ${expStr};`;
+	}
 }
 
 export function compileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
 	const exp = node.getExpression();
 	if (exp) {
-		return (
-			state.indent +
-			getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors())) +
-			"\n"
-		);
+		state.enterPrecedingStatementContext();
+		const returnStr = getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors()));
+		return state.exitPrecedingStatementContextAndJoin() + (returnStr ? state.indent + returnStr + "\n" : "");
 	} else {
 		return state.indent + `return nil;\n`;
 	}
@@ -71,7 +79,9 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 		if (isBlock) {
 			result += compileBlock(state, body as ts.Block);
 		} else {
-			result += state.indent + getReturnStrFromExpression(state, body as ts.Expression, node) + "\n";
+			state.enterPrecedingStatementContext();
+			const returnStr = getReturnStrFromExpression(state, body as ts.Expression, node);
+			result += state.exitPrecedingStatementContextAndJoin() + (returnStr ? state.indent + returnStr + "\n" : "");
 		}
 		state.popIndent();
 		result += state.indent;
@@ -145,7 +155,7 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 		state.pushIndent();
 		result += state.indent + `next = coroutine.wrap(function()`;
 		result += compileFunctionBody(state, body, node, initializers);
-		result += `\trepeat coroutine.yield({ done = true }) until false;\n`;
+		result += `\twhile true do coroutine.yield({ done = true }) end;\n`;
 		result += state.indent + `end);\n`;
 		state.popIndent();
 		result += state.indent + `};\n`;
@@ -208,8 +218,16 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 }
 
 export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
-	const name = node.getName();
-	checkReserved(name, node);
+	const nameNode: ts.PropertyName = node.getNameNode();
+	let name: string;
+
+	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		name = `[${compileExpression(state, nameNode.getExpression())}]`;
+	} else {
+		name = compileExpression(state, nameNode);
+		checkReserved(name, node);
+	}
+
 	return compileFunction(state, node, name, node.getBodyOrThrow());
 }
 
@@ -265,7 +283,7 @@ export function compileConstructorDeclaration(
 			initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
 
 			if (extraInitializers) {
-				extraInitializers.forEach(initializer => (result += state.indent + initializer));
+				extraInitializers.forEach(initializer => (result += initializer));
 			}
 
 			for (; k < bodyStatements.length; ++k) {
@@ -287,7 +305,7 @@ export function compileConstructorDeclaration(
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {
-			extraInitializers.forEach(initializer => (result += state.indent + initializer));
+			extraInitializers.forEach(initializer => (result += initializer));
 		}
 	}
 	result += state.indent + "return self;\n";
@@ -310,5 +328,25 @@ export function compileAccessorDeclaration(
 }
 
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	return compileFunction(state, node, "", node.getBody());
+	const potentialNameNode = node.getChildAtIndex(1);
+
+	if (
+		ts.TypeGuards.isFunctionExpression(node) &&
+		ts.TypeGuards.isIdentifier(potentialNameNode) &&
+		potentialNameNode.findReferences()[0].getReferences().length > 1
+	) {
+		const name = compileExpression(state, potentialNameNode);
+		const id = state.pushPrecedingStatementToNewId(node, "");
+		state.pushPrecedingStatements(node, state.indent + `do\n`);
+		state.pushIndent();
+		state.pushPrecedingStatements(node, state.indent + `local ${name};\n`);
+		state.pushPrecedingStatements(node, compileFunction(state, node, `${name}`, node.getBody()));
+		state.pushPrecedingStatements(node, state.indent + `${id} = ${name};\n`);
+		state.popIndent();
+		state.pushPrecedingStatements(node, state.indent + `end;\n`);
+		// this should not be classified as isPushed.
+		return id;
+	} else {
+		return compileFunction(state, node, "", node.getBody());
+	}
 }
