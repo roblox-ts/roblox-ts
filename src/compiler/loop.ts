@@ -168,8 +168,8 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 
-		let isExpMapType = isMapType(expType);
-		let isExpSetType = isSetType(expType);
+		let isExpEntriesType = isMapType(expType);
+		let isExpKeysType = isSetType(expType);
 		let isExpValuesType = false;
 
 		if (ts.TypeGuards.isCallExpression(exp)) {
@@ -180,10 +180,10 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 					const firstArg = exp.getArguments()[0] as ts.Expression;
 
 					if (subExpName === "keys") {
-						isExpSetType = true;
+						isExpKeysType = true;
 						exp = firstArg;
 					} else if (subExpName === "entries") {
-						isExpMapType = true;
+						isExpEntriesType = true;
 						exp = firstArg;
 					} else if (subExpName === "values") {
 						isExpValuesType = true;
@@ -195,7 +195,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 		let expStr = compileExpression(state, exp);
 
-		if (isExpMapType) {
+		if (isExpEntriesType) {
 			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 				const syntaxList = lhs.getChildAtIndex(1);
 
@@ -264,7 +264,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				throw new CompilerError(`ForOf Loop empty varName!`, init, CompilerErrorType.ForEmptyVarName);
 			}
 
-			if (isExpSetType) {
+			if (isExpKeysType) {
 				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
 			} else if (isExpValuesType) {
