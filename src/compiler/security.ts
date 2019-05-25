@@ -111,6 +111,8 @@ const LUA_RESERVED_NAMESPACES = [
 	"Ray",
 ];
 
+const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis"];
+
 export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
 	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
 		throw new CompilerError(
@@ -124,7 +126,7 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 			node,
 			CompilerErrorType.InvalidIdentifier,
 		);
-	} else if (name === "_exports" || name === "undefined" || name === "TS" || name.match(/^_[0-9]+$/)) {
+	} else if (TS_RESERVED_KEYWORDS.indexOf(name) !== -1 || name.match(/^_[0-9]+$/)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
 			node,
@@ -246,7 +248,7 @@ export function checkApiAccess(state: CompilerState, node: ts.Node) {
 export function checkNonAny(node: ts.Node, checkArrayType = false) {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	let type = node.getType();
-	if (type.isArray() && checkArrayType) {
+	if (checkArrayType && type.isArray()) {
 		const arrayType = type.getArrayElementType();
 		if (arrayType) {
 			type = arrayType;
