@@ -161,6 +161,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				hasStaticMembers = true;
 				result += "\n";
 			}
+			if (method.getName() === "new") {
+				throw new CompilerError(
+					'Cannot make a static method with name "new"!',
+					method,
+					CompilerErrorType.StaticNew,
+				);
+			}
 			result += compileMethodDeclaration(state, method);
 		});
 

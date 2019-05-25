@@ -102,9 +102,9 @@ function compileSetMapConstructorHelper(
 		if (!hasContext) {
 			id = state.pushToDeclarationOrNewId(
 				exp,
-				lines.reduce((result, line) => result + state.indent + "\t" + line, lines.length > 0 ? "{\n" : "{") +
-					state.indent +
-					"}",
+				lines.length === 0
+					? "{}"
+					: lines.reduce((result, line) => result + state.indent + "\t" + line, "{\n") + state.indent + "}",
 				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
 			);
 		}
