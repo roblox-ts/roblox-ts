@@ -69,6 +69,7 @@ export enum CompilerErrorType {
 	BadEnum,
 	BadLuaTupleStatement,
 	UnexpectedPropType,
+	StaticNew,
 }
 
 export class CompilerError extends Error {
