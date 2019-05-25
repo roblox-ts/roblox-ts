@@ -147,8 +147,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	const statement = node.getStatement();
 	let exp = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
 	const expType = exp.getType();
-	state.enterPrecedingStatementContext();
-	let result = state.exitPrecedingStatementContextAndJoin();
 
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		const declarations = init.getDeclarations();
@@ -178,7 +176,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				if (PropertyCallExpType.ObjectConstructor === getPropertyAccessExpressionType(state, subExp)) {
 					const subExpName = subExp.getName();
 					const firstArg = exp.getArguments()[0] as ts.Expression;
-
 					if (subExpName === "keys") {
 						isExpKeysType = true;
 						exp = firstArg;
@@ -193,7 +190,9 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			}
 		}
 
+		state.enterPrecedingStatementContext();
 		let expStr = compileExpression(state, exp);
+		let result = state.exitPrecedingStatementContextAndJoin();
 
 		if (isExpEntriesType) {
 			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
@@ -270,15 +269,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			} else if (isExpValuesType) {
 				result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
-			} else if (isStringType(expType)) {
-				if (ts.TypeGuards.isStringLiteral(exp)) {
-					expStr = `(${expStr})`;
-				}
-				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
-				state.pushIndent();
-			} else if (isIterableFunction(expType)) {
-				result += state.indent + `for ${varName} in ${expStr} do\n`;
-				state.pushIndent();
 			} else if (isArrayType(expType)) {
 				let varValue: string;
 
@@ -290,6 +280,15 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				state.pushIndent();
 				varValue = `${expStr}[${myInt}]`;
 				result += state.indent + `local ${varName} = ${varValue};\n`;
+			} else if (isStringType(expType)) {
+				if (ts.TypeGuards.isStringLiteral(exp)) {
+					expStr = `(${expStr})`;
+				}
+				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
+				state.pushIndent();
+			} else if (isIterableFunction(expType)) {
+				result += state.indent + `for ${varName} in ${expStr} do\n`;
+				state.pushIndent();
 			} else {
 				state.enterPrecedingStatementContext();
 				if (!isIterableIterator(expType, exp)) {
