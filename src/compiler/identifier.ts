@@ -1,7 +1,6 @@
 import * as ts from "ts-morph";
 import { checkReserved } from ".";
 import { CompilerState } from "../CompilerState";
-import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
 
@@ -19,10 +18,6 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 	if (BUILT_INS.indexOf(name) !== -1) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;
-	}
-
-	if (name === "globalThis") {
-		throw new CompilerError("Cannot use `globalThis`!", node, CompilerErrorType.GlobalThis);
 	}
 
 	const definitions = isDefinition ? [node] : node.getDefinitions().map(def => def.getNode());
