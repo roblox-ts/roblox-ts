@@ -1,11 +1,11 @@
 export = () => {
 	it("should support string methods", () => {
-		expect("Hello, world".sub(1, 1)).to.equal("H");
+		expect("Hello, world".sub(0, 0)).to.equal("H");
 	});
 
 	it("should support string methods on identifiers", () => {
 		const str = "Hello, world";
-		expect(str.sub(1, 1)).to.equal("H");
+		expect(str.sub(0, 0)).to.equal("H");
 	});
 
 	it("should support string.split", () => {
@@ -15,7 +15,7 @@ export = () => {
 		}
 
 		const str = "Hello, world";
-		const chars = [str.byte(1, -1)].map(i => string.char(i));
+		const chars = [str.byte(0, -1)].map(i => string.char(i));
 		const words = ["Hello", "world"];
 		const hSplit = ["", "ello, world"];
 

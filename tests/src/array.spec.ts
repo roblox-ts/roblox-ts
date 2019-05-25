@@ -121,6 +121,12 @@ export = () => {
 		expect(e[0]).to.equal(1);
 		expect(e[1]).to.equal(2);
 		expect(e[2]).to.equal(3);
+
+		const f = a.slice(0, -1);
+		expect(f).never.to.equal(a);
+		expect(f.length).to.equal(2);
+		expect(f[0]).to.equal(1);
+		expect(f[1]).to.equal(2);
 	});
 
 	// TODO issue #98
@@ -455,10 +461,9 @@ export = () => {
 		let i = 2;
 		let value: number;
 
-		expect(arr.unorderedRemove((i *= 2))).to.equal(4);
-		expect(arr.length).to.equal(7);
-		expect(arr[4]).to.equal(7);
-		expect(arr[6]).to.equal(6);
-		expect;
+		// expect(arr.unorderedRemove((i *= 2))).to.equal(4);
+		// expect(arr.length).to.equal(7);
+		// expect(arr[4]).to.equal(7);
+		// expect(arr[6]).to.equal(6);
 	});
 };

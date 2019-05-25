@@ -22,20 +22,7 @@ import {
 import { getNonNullExpressionDownwards } from "../utility";
 import { addOneToArrayIndex, getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
-const STRING_MACRO_METHODS = [
-	"byte",
-	"find",
-	"format",
-	"gmatch",
-	"gsub",
-	"len",
-	"lower",
-	"match",
-	"rep",
-	"reverse",
-	"sub",
-	"upper",
-];
+const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "len", "lower", "rep", "reverse", "upper"];
 
 function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
@@ -71,12 +58,13 @@ function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Ar
 	return [accessPath, compiledArgs.join(", ")];
 }
 
-function compileCallArgumentsAndSeparateAndJoinWrapped(
+function compileCallArgumentsAndSeparateWrapped(
 	state: CompilerState,
 	params: Array<ts.Expression>,
 	strict: boolean = false,
-): [string, string] {
-	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+): [string, Array<string>] {
+	const [accessPath, ...compiledArgs] = compileCallArguments(state, params, undefined, compile);
 
 	// If we compile to a method call, we might need to wrap in parenthesis
 	// We are going to wrap in parenthesis just to be safe,
@@ -93,17 +81,120 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 		accessStr = accessPath;
 	}
 
+	return [accessStr, compiledArgs];
+}
+
+function compileCallArgumentsAndSeparateAndJoinWrapped(
+	state: CompilerState,
+	params: Array<ts.Expression>,
+	strict: boolean = false,
+): [string, string] {
+	const [accessStr, compiledArgs] = compileCallArgumentsAndSeparateWrapped(state, params, strict);
 	return [accessStr, compiledArgs.join(", ")];
 }
 
-const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
-	.set("split", (state, params) => {
-		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
-		return `string.split(${str}, ${args})`;
-	});
+export function addOneToStringIndex(valueStr: string) {
+	if (valueStr === "nil") {
+		return "nil";
+	}
+
+	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+		const valueNumber = Number(valueStr);
+		if (!Number.isNaN(valueNumber)) {
+			return (valueNumber < 0 ? valueNumber : valueNumber + 1).toString();
+		}
+	}
+	return valueStr + " + 1";
+}
+
+/*
+local function string_slice(list, startI, endI)
+	if startI ~= nil and startI < 0 then startI = startI - 1 end
+	if endI ~= nil and endI < 0 then endI = endI - 1 end
+
+	print(startI + 1, endI)
+	return list:sub(startI + 1, endI)
+end
+*/
+
+// TODO: Optimize case where they are the same identifier
+function macroStringIndexFunction(
+	methodName: string,
+	incrementedArgs: Array<number>,
+	decrementedArgs: Array<number> = [],
+): ReplaceFunction {
+	return (state, params) => {
+		let i = -1;
+		const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateWrapped(
+			state,
+			params,
+			false,
+			(subState, param) => {
+				i++;
+				const expStr = compileExpression(subState, param);
+				let incrementing: boolean;
+
+				if (incrementedArgs.indexOf(i) !== -1) {
+					incrementing = true;
+				} else if (decrementedArgs.indexOf(i) !== -1) {
+					incrementing = false;
+				} else {
+					return expStr;
+				}
+
+				if (expStr === "nil") {
+					return "nil";
+				}
+
+				if (expStr.indexOf("e") === -1 && expStr.indexOf("E") === -1) {
+					const valueNumber = Number(expStr);
+					if (!Number.isNaN(valueNumber)) {
+						if (incrementing) {
+							return (valueNumber >= 0 ? valueNumber + 1 : valueNumber).toString();
+						} else {
+							return (valueNumber < 0 ? valueNumber - 1 : valueNumber).toString();
+						}
+					}
+				}
+
+				const currentContext = state.getCurrentPrecedingStatementContext(param);
+				const id = currentContext.isPushed ? expStr : state.pushPrecedingStatementToNewId(param, expStr);
+				if (incrementing) {
+					currentContext.push(state.indent + `if ${id} >= 0 then ${id} = ${id} + 1; end\n`);
+				} else {
+					currentContext.push(state.indent + `if ${id} < 0 then ${id} = ${id} - 1; end\n`);
+				}
+				return id;
+			},
+		);
+		return `${accessPath}:${methodName}(${compiledArgs.join(", ")})`;
+	};
+}
+
+const findMacro = macroStringIndexFunction("find", [2]);
+
+const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
+	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
+	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
+	[
+		"split",
+		(state, params) => {
+			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			return `string.split(${str}, ${args})`;
+		},
+	],
+	["sub", macroStringIndexFunction("sub", [1], [2])],
+	["byte", macroStringIndexFunction("byte", [1, 2])],
+	[
+		"find",
+		(state, params) => {
+			state.usesTSLibrary = true;
+			return `TS.string_find_wrap(${findMacro(state, params)!})`;
+		},
+	],
+	["match", macroStringIndexFunction("match", [2])],
+]);
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
@@ -484,13 +575,18 @@ export function compileList(
 	return argStrs;
 }
 
-export function compileCallArguments(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
+export function compileCallArguments(
+	state: CompilerState,
+	args: Array<ts.Expression>,
+	extraParameter?: string,
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+) {
 	let argStrs: Array<string>;
 
 	if (shouldCompileAsSpreadableList(args)) {
-		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args)})`];
+		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args, true, compile)})`];
 	} else {
-		argStrs = compileList(state, args);
+		argStrs = compileList(state, args, compile);
 	}
 
 	if (extraParameter) {
