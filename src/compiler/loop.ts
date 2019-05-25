@@ -264,17 +264,17 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				throw new CompilerError(`ForOf Loop empty varName!`, init, CompilerErrorType.ForEmptyVarName);
 			}
 
-			if (isStringType(expType)) {
-				if (ts.TypeGuards.isStringLiteral(exp)) {
-					expStr = `(${expStr})`;
-				}
-				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
-				state.pushIndent();
-			} else if (isExpSetType) {
+			if (isExpSetType) {
 				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
 			} else if (isExpValuesType) {
 				result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+				state.pushIndent();
+			} else if (isStringType(expType)) {
+				if (ts.TypeGuards.isStringLiteral(exp)) {
+					expStr = `(${expStr})`;
+				}
+				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
 				state.pushIndent();
 			} else if (isIterableFunction(expType)) {
 				result += state.indent + `for ${varName} in ${expStr} do\n`;
