@@ -9,8 +9,9 @@ export = () => {
 		// issue #213
 		expect(0.0000000000001).never.to.equal(1);
 		expect(100000000000000).never.to.equal(1);
-		expect(tostring(0.0000000000001)).to.equal("1e-13");
-		expect(tostring(100000000000000)).to.equal("1e+14");
+		// We should compare numbers, not strings
+		expect(tonumber(tostring(0.0000000000001))).to.equal(tonumber("1e-13"));
+		expect(tonumber(tostring(100000000000000))).to.equal(tonumber("1e+14"));
 		expect(1_0_0_0_0).to.equal(10000);
 	});
 

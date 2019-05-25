@@ -21,7 +21,12 @@ import {
 	isSetType,
 	isStringType,
 } from "../typeUtilities";
-import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
+import {
+	getNonNullUnParenthesizedExpressionDownwards,
+	isIdentifierWhoseDefinitionMatchesNode,
+	joinIndentedLines,
+} from "../utility";
+import { getPropertyAccessExpressionType, PropertyCallExpType } from "./call";
 import { getReadableExpressionName } from "./indexed";
 
 function hasContinueDescendant(node: ts.Node) {
@@ -140,11 +145,8 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	let lhs: ts.Node<ts.ts.Node> | undefined;
 	let varName = "";
 	const statement = node.getStatement();
-	const exp = node.getExpression();
+	let exp = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
 	const expType = exp.getType();
-	state.enterPrecedingStatementContext();
-	let expStr = compileExpression(state, exp);
-	let result = state.exitPrecedingStatementContextAndJoin();
 
 	if (ts.TypeGuards.isVariableDeclarationList(init)) {
 		const declarations = init.getDeclarations();
@@ -164,7 +166,35 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		const preStatements = new Array<string>();
 		const postStatements = new Array<string>();
 
-		if (isMapType(expType)) {
+		let isExpEntriesType = isMapType(expType);
+		let isExpKeysType = isSetType(expType);
+		let isExpValuesType = false;
+
+		if (ts.TypeGuards.isCallExpression(exp)) {
+			const subExp = exp.getExpression();
+			if (ts.TypeGuards.isPropertyAccessExpression(subExp)) {
+				if (PropertyCallExpType.ObjectConstructor === getPropertyAccessExpressionType(state, subExp)) {
+					const subExpName = subExp.getName();
+					const firstArg = exp.getArguments()[0] as ts.Expression;
+					if (subExpName === "keys") {
+						isExpKeysType = true;
+						exp = firstArg;
+					} else if (subExpName === "entries") {
+						isExpEntriesType = true;
+						exp = firstArg;
+					} else if (subExpName === "values") {
+						isExpValuesType = true;
+						exp = firstArg;
+					}
+				}
+			}
+		}
+
+		state.enterPrecedingStatementContext();
+		let expStr = compileExpression(state, exp);
+		let result = state.exitPrecedingStatementContextAndJoin();
+
+		if (isExpEntriesType) {
 			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 				const syntaxList = lhs.getChildAtIndex(1);
 
@@ -233,7 +263,13 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				throw new CompilerError(`ForOf Loop empty varName!`, init, CompilerErrorType.ForEmptyVarName);
 			}
 
-			if (isArrayType(expType)) {
+			if (isExpKeysType) {
+				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
+				state.pushIndent();
+			} else if (isExpValuesType) {
+				result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
+				state.pushIndent();
+			} else if (isArrayType(expType)) {
 				let varValue: string;
 
 				state.enterPrecedingStatementContext();
@@ -249,9 +285,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 					expStr = `(${expStr})`;
 				}
 				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
-				state.pushIndent();
-			} else if (isSetType(expType)) {
-				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
 				state.pushIndent();
 			} else if (isIterableFunction(expType)) {
 				result += state.indent + `for ${varName} in ${expStr} do\n`;
