@@ -385,6 +385,15 @@ end
 
 TS.array_copy = array_copy
 
+function TS.array_includes(list, item, startingIndex)
+	for i = (startingIndex or 0) + 1, #list do
+		if list[i] == item then
+			return true
+		end
+	end
+	return false
+end
+
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
 		local v = list[i]
