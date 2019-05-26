@@ -91,25 +91,21 @@ export class CompilerState {
 		return context.push(...statements);
 	}
 
-	public pushPrecedingStatementToNewId(node: ts.Node, transpiledSource: string, newId = this.getNewId()) {
+	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId = this.getNewId()) {
 		const currentContext = this.getCurrentPrecedingStatementContext(node);
 		currentContext.push(
 			this.indent +
 				`local ${newId}${
-					transpiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(transpiledSource)}` : ""
+					compiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(compiledSource)}` : ""
 				};\n`,
 		);
 		currentContext.isPushed = true;
 		return newId;
 	}
 
-	public pushPrecedingStatementToReuseableId(
-		node: ts.Node,
-		transpiledSource: string,
-		nextCachedStrs?: Array<string>,
-	) {
+	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
 		if (
-			transpiledSource === "" ||
+			compiledSource === "" ||
 			[node, ...node.getDescendants()].some(
 				exp =>
 					!ts.TypeGuards.isIdentifier(exp) &&
@@ -118,11 +114,11 @@ export class CompilerState {
 					!ts.TypeGuards.isPropertyAccessExpression(exp),
 			)
 		) {
-			return this.pushPrecedingStatementToNewId(node, transpiledSource);
+			return this.pushPrecedingStatementToNewId(node, compiledSource);
 		}
 
 		/** Gets the top PreStatement to compare to */
-		transpiledSource = removeBalancedParenthesisFromStringBorders(transpiledSource);
+		compiledSource = removeBalancedParenthesisFromStringBorders(compiledSource);
 		let previousTop: Array<string> | undefined;
 
 		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
@@ -144,14 +140,14 @@ export class CompilerState {
 						break;
 					}
 					const [, indentation, currentId, data] = matchesRegex;
-					if (indentation === this.indent && data === transpiledSource) {
+					if (indentation === this.indent && data === compiledSource) {
 						return currentId;
 					}
 				}
 			}
 		}
 
-		return this.pushPrecedingStatementToNewId(node, transpiledSource);
+		return this.pushPrecedingStatementToNewId(node, compiledSource);
 	}
 
 	// indent
