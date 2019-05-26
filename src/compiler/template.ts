@@ -9,63 +9,13 @@ export function sanitizeTemplate(str: string) {
 	return str;
 }
 
-interface TemplateParts {
-	literals: Array<string>;
-	expressions: Array<string>;
-}
-
 function wrapQuotes(s: string) {
 	return `"${s}"`;
 }
 
-function getTemplateExpressionParts(
-	state: CompilerState,
-	node: ts.TemplateExpression,
-	tostring: boolean,
-): TemplateParts {
-	const literals = new Array<string>();
-
-	literals.push(
-		wrapQuotes(
-			sanitizeTemplate(
-				node
-					.getHead()
-					.getText()
-					.slice(1, -2),
-			),
-		),
-	);
-
-	for (const span of node.getTemplateSpans()) {
-		const literal = span.getLiteral();
-		literals.push(
-			wrapQuotes(sanitizeTemplate(literal.getText().slice(1, ts.TypeGuards.isTemplateMiddle(literal) ? -2 : -1))),
-		);
-	}
-
-	const expressions = compileList(state, node.getTemplateSpans().map(span => span.getExpression()), (_, exp) => {
-		const expStr = compileExpression(state, exp);
-		if (tostring) {
-			return isStringType(exp.getType()) ? expStr : `tostring(${expStr})`;
-		} else {
-			return expStr;
-		}
-	});
-
-	return {
-		expressions,
-		literals,
-	};
-}
-
-function getNoSubstitutionTemplateLiteralParts(
-	state: CompilerState,
-	node: ts.NoSubstitutionTemplateLiteral,
-): TemplateParts {
-	return {
-		expressions: [],
-		literals: [wrapQuotes(sanitizeTemplate(node.getText().slice(1, -1)))],
-	};
+interface TemplateParts {
+	literals: Array<string>;
+	expressions: Array<string>;
 }
 
 function getTemplateParts(
@@ -74,9 +24,44 @@ function getTemplateParts(
 	tostring: boolean,
 ): TemplateParts {
 	if (ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
-		return getNoSubstitutionTemplateLiteralParts(state, node);
+		return {
+			expressions: [],
+			literals: [wrapQuotes(sanitizeTemplate(node.getText().slice(1, -1)))],
+		};
 	} else {
-		return getTemplateExpressionParts(state, node, tostring);
+		const literals = [
+			wrapQuotes(
+				sanitizeTemplate(
+					node
+						.getHead()
+						.getText()
+						.slice(1, -2),
+				),
+			),
+		];
+
+		for (const span of node.getTemplateSpans()) {
+			const literal = span.getLiteral();
+			literals.push(
+				wrapQuotes(
+					sanitizeTemplate(literal.getText().slice(1, ts.TypeGuards.isTemplateMiddle(literal) ? -2 : -1)),
+				),
+			);
+		}
+
+		const expressions = compileList(state, node.getTemplateSpans().map(span => span.getExpression()), (_, exp) => {
+			const expStr = compileExpression(state, exp);
+			if (tostring) {
+				return isStringType(exp.getType()) ? expStr : `tostring(${expStr})`;
+			} else {
+				return expStr;
+			}
+		});
+
+		return {
+			expressions,
+			literals,
+		};
 	}
 }
 
