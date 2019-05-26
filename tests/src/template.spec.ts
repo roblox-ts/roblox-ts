@@ -1,4 +1,12 @@
 export = () => {
+	it("should understand string templates", () => {
+		const value = "hello";
+		expect(`"${value} world"`).to.equal('"hello world"');
+		expect(`"${value}" world`).to.equal('"hello" world');
+		expect(`${value} "world"`).to.equal('hello "world"');
+		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
+	});
+
 	it("should support tagged template expressions", () => {
 		const OPERATIONS: { [index: string]: (a: Vector3, b: Vector3) => Vector3 } = {
 			"*": (a, b) => a.mul(b),
