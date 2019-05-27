@@ -124,7 +124,6 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 
 	let expStr: string;
 	const expression = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
-	console.log(expression.getKindName(), expression.getText());
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);

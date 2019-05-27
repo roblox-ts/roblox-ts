@@ -40,9 +40,11 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
-		!ts.TypeGuards.isNumericLiteral(subExp) &&
-		!ts.TypeGuards.isStringLiteral(subExp) &&
-		(strict || (!ts.TypeGuards.isCallExpression(subExp) && !ts.TypeGuards.isPropertyAccessExpression(subExp)))
+		(strict ||
+			(!ts.TypeGuards.isCallExpression(subExp) &&
+				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
+				!ts.TypeGuards.isStringLiteral(subExp) &&
+				!ts.TypeGuards.isNumericLiteral(subExp)))
 	);
 }
 
@@ -102,7 +104,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
 	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
 	.set("split", (state, params) => {
-		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 		return `string.split(${str}, ${args})`;
 	});
 
@@ -653,7 +655,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
 		}
 		case PropertyCallExpType.BuiltInStringMethod: {
-			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 			return `${accessPath}:${property}(${compiledArgs})`;
 		}
 		case PropertyCallExpType.PromiseThen: {
