@@ -13,6 +13,7 @@ import {
 	isArrayMethodType,
 	isConstantExpression,
 	isMapMethodType,
+	isNullableType,
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
@@ -20,15 +21,24 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards } from "../utility";
-import { addOneToArrayIndex, getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
+import {
+	addOneToArrayIndex,
+	getReadableExpressionName,
+	isIdentifierDefinedInConst,
+	isIdentifierDefinedInExportLet,
+} from "./indexed";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "len", "lower", "rep", "reverse", "upper"];
 
-function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
+export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
-		(strict || (!ts.TypeGuards.isCallExpression(subExp) && !ts.TypeGuards.isPropertyAccessExpression(subExp)))
+		(strict ||
+			(!ts.TypeGuards.isCallExpression(subExp) &&
+				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
+				!ts.TypeGuards.isStringLiteral(subExp) &&
+				!ts.TypeGuards.isNumericLiteral(subExp)))
 	);
 }
 
@@ -128,7 +138,7 @@ function macroStringIndexFunction(
 		const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateWrapped(
 			state,
 			params,
-			false,
+			true,
 			(subState, param) => {
 				i++;
 				const expStr = compileExpression(subState, param);
@@ -173,6 +183,81 @@ function macroStringIndexFunction(
 
 const findMacro = macroStringIndexFunction("find", [2]);
 
+function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
+	const [strParam, maxLengthParam, fillStringParam] = params;
+	let str: string;
+	let maxLength: string;
+	let fillString: string;
+
+	[str, maxLength, fillString] = compileCallArguments(state, params);
+
+	if (
+		!ts.TypeGuards.isStringLiteral(strParam) &&
+		(!ts.TypeGuards.isIdentifier(strParam) || isIdentifierDefinedInExportLet(strParam))
+	) {
+		str = state.pushPrecedingStatementToNewId(strParam, str);
+	}
+
+	let fillStringLength: string | undefined;
+
+	if (fillStringParam === undefined) {
+		fillString = `(" ")`;
+		fillStringLength = "1";
+	} else {
+		if (ts.TypeGuards.isStringLiteral(fillStringParam)) {
+			fillStringLength = `${fillStringParam.getLiteralText().length}`;
+		} else {
+			fillStringLength = `#${fillString}`;
+		}
+
+		console.log(isNullableType(fillStringParam.getType()), fillStringParam.getType().getText());
+		if (isNullableType(fillStringParam.getType())) {
+			fillString = `(${fillString} or " ")`;
+		} else if (!fillString.match(/^\(*_\d+\)*$/) && shouldWrapExpression(fillStringParam, true)) {
+			fillString = `(${fillString})`;
+		}
+	}
+
+	let targetLength: string;
+	let repititions: string | undefined;
+	let rawRepititions: number | undefined;
+	if (ts.TypeGuards.isStringLiteral(strParam)) {
+		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
+			const literalTargetLength = maxLengthParam.getLiteralValue() - strParam.getLiteralText().length;
+
+			if (fillStringParam === undefined || ts.TypeGuards.isStringLiteral(fillStringParam)) {
+				rawRepititions = literalTargetLength / (fillStringParam ? fillStringParam.getLiteralText().length : 1);
+				repititions = `${Math.ceil(rawRepititions)}`;
+			}
+
+			targetLength = `${literalTargetLength}`;
+		} else {
+			targetLength = `${maxLength} - ${strParam.getLiteralText().length}`;
+			if (fillStringLength !== "1") {
+				targetLength = state.pushPrecedingStatementToNewId(maxLengthParam, `${targetLength}`);
+			}
+		}
+	} else {
+		targetLength = `${maxLength} - #${str}`;
+		if (fillStringLength !== "1") {
+			targetLength = state.pushPrecedingStatementToNewId(maxLengthParam, `${targetLength}`);
+		}
+	}
+
+	const doNotTrim =
+		(rawRepititions !== undefined && rawRepititions === Math.ceil(rawRepititions)) || fillStringLength === "1";
+
+	return [
+		`${fillString}:rep(${repititions ||
+			(fillStringLength === "1"
+				? targetLength
+				: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})${
+			doNotTrim ? "" : `:sub(1, ${targetLength})`
+		}`,
+		str,
+	];
+}
+
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
 	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
@@ -180,7 +265,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"split",
 		(state, params) => {
-			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 			return `string.split(${str}, ${args})`;
 		},
 	],
@@ -194,6 +279,24 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		},
 	],
 	["match", macroStringIndexFunction("match", [2])],
+
+	[
+		"padStart",
+		(state, params) =>
+			appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				padAmbiguous(state, params).join(" .. "),
+			),
+	],
+
+	[
+		"padEnd",
+		(state, params) => {
+			const [a, b] = padAmbiguous(state, params);
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
+		},
+	],
 ]);
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
@@ -790,7 +893,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
 		}
 		case PropertyCallExpType.BuiltInStringMethod: {
-			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 			return `${accessPath}:${property}(${compiledArgs})`;
 		}
 		case PropertyCallExpType.PromiseThen: {
