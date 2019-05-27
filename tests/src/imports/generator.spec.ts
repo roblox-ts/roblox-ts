@@ -109,7 +109,7 @@ export = () => {
 		expect([...it4].every((x, i) => x === array4[i])).to.equal(true);
 	});
 
-	itFOCUS("should suport using yield with a generator", () => {
+	it("should suport using yield with a generator", () => {
 		function* walkDescendants(instance: Instance): IterableIterator<Instance> {
 			yield instance;
 			for (const child of instance.GetChildren()) {
