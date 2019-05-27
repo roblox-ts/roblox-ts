@@ -61,8 +61,12 @@ export function removeBalancedParenthesisFromStringBorders(str: string) {
 
 export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 	if (lines.length > 0) {
-		const sep = "\t".repeat(numTabs);
-		return lines.join("").replace(/.+/g, a => sep + a);
+		if (numTabs > 0) {
+			const sep = "\t".repeat(numTabs);
+			return lines.join("").replace(/.+/g, a => sep + a);
+		} else {
+			return lines.join("");
+		}
 	} else {
 		return "";
 	}

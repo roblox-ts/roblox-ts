@@ -168,4 +168,11 @@ export = () => {
 			),
 		).to.equal(true);
 	});
+
+	it("should support the non-null assertion operator on maps", () => {
+		const a = new Map<number, number>();
+		let c: Map<number, number> | undefined;
+		(c!!! = a!!!).set(1, 2);
+		expect(a!.get(1)).to.equal(2);
+	});
 };

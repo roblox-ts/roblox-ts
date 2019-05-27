@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
@@ -36,10 +36,12 @@ const STRING_MACRO_METHODS = [
 	"upper",
 ];
 
-function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
+export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
+		!ts.TypeGuards.isNumericLiteral(subExp) &&
+		!ts.TypeGuards.isStringLiteral(subExp) &&
 		(strict || (!ts.TypeGuards.isCallExpression(subExp) && !ts.TypeGuards.isPropertyAccessExpression(subExp)))
 	);
 }
@@ -48,7 +50,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
 	for (let i = 0; i < climb; i++) {
-		exp = exp.getParent();
+		exp = getNonNullExpressionUpwards(exp.getParent());
 	}
 
 	return exp;
@@ -189,7 +191,8 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 					);
 
 					let lastStatement: string | undefined;
-					const commentStr = subExp.getParent().getText();
+
+					const commentStr = getLeftHandSideParent(subExp, 1).getText();
 
 					for (let i = 1; i < numParams; i++) {
 						const j = numParams - i - 1;
