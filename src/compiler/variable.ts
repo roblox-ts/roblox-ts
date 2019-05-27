@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isIterableIterator, isObjectType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { isArrayType, isIterableIterator, isObjectType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
 import {
 	getNonNullExpressionDownwards,
 	getNonNullUnParenthesizedExpressionDownwards,
@@ -120,7 +120,11 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 			const rhsType = rhs.getType();
-			if (!isIterableIterator(rhsType, rhs) && (isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))) {
+			if (
+				!isArrayType(rhsType) &&
+				!isIterableIterator(rhsType, rhs) &&
+				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
+			) {
 				state.usesTSLibrary = true;
 				rhsStr = removeBalancedParenthesisFromStringBorders(rhsStr);
 				const id = state.getNewId();
