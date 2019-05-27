@@ -113,7 +113,13 @@ function objectAccessor(
 	state: CompilerState,
 	t: string,
 	node: ts.Node,
-	getAccessor: (state: CompilerState, t: string, key: number, preStatements: Array<string>) => string,
+	getAccessor: (
+		state: CompilerState,
+		t: string,
+		key: number,
+		preStatements: Array<string>,
+		idStack: Array<string>,
+	) => string,
 	nameNode: ts.Node = node,
 ): string {
 	let name: string;
@@ -167,15 +173,59 @@ function stringAccessor(state: CompilerState, t: string, key: number) {
 	return `${t}:sub(${key}, ${key})`;
 }
 
-function setAccessor(state: CompilerState, t: string, key: number) {
-	return "(" + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key + 1);
+function setAccessor(
+	state: CompilerState,
+	t: string,
+	key: number,
+	preStatements: Array<string>,
+	idStack: Array<string>,
+) {
+	const id = state.getNewId();
+	const lastId = idStack[idStack.length - 1] as string | undefined;
+	if (lastId !== undefined) {
+		preStatements.push(`local ${id} = next(${t}, ${lastId})`);
+	} else {
+		preStatements.push(`local ${id} = next(${t})`);
+	}
+	idStack.push(id);
+	return id;
 }
 
-function mapAccessor(state: CompilerState, t: string, key: number) {
-	return "({ " + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key) + " })";
+function mapAccessor(
+	state: CompilerState,
+	t: string,
+	key: number,
+	preStatements: Array<string>,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	const keyId = state.getNewId();
+	const lastId = idStack[idStack.length - 1] as string | undefined;
+
+	let valueId: string;
+	let valueIdStr = "";
+	if (!isHole) {
+		valueId = state.getNewId();
+		valueIdStr = `, ${valueId}`;
+	}
+
+	if (lastId !== undefined) {
+		preStatements.push(`local ${keyId}${valueIdStr} = next(${t}, ${lastId})`);
+	} else {
+		preStatements.push(`local ${keyId}${valueIdStr} = next(${t})`);
+	}
+	idStack.push(keyId);
+	return `{ ${keyId}${valueIdStr} }`;
 }
 
-function iterAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>, isHole = false) {
+function iterAccessor(
+	state: CompilerState,
+	t: string,
+	key: number,
+	preStatements: Array<string>,
+	idStack: Array<string>,
+	isHole = false,
+) {
 	if (isHole) {
 		preStatements.push(`${t}.next()`);
 		return "";
@@ -191,6 +241,7 @@ function iterableFunctionAccessor(
 	t: string,
 	key: number,
 	preStatements: Array<string>,
+	idStack: Array<string>,
 	isHole = false,
 ) {
 	if (isHole) {
@@ -261,6 +312,7 @@ export function getBindingData(
 	parentId: string,
 	getAccessor = getAccessorForBindingPatternType(bindingPattern),
 ) {
+	const idStack = new Array<string>();
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	let childIndex = 1;
 
@@ -285,14 +337,14 @@ export function getBindingData(
 				const childId = state.getNewId();
 				const accessor: string = strKeys
 					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements);
+					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
 			} else if (ts.TypeGuards.isArrayBindingPattern(child)) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys
 					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements);
+					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
@@ -307,13 +359,13 @@ export function getBindingData(
 				}
 				const accessor: string = strKeys
 					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements);
+					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				values.push(accessor);
 			} else if (ts.TypeGuards.isObjectBindingPattern(child)) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys
 					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements);
+					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isComputedPropertyName(child)) {
@@ -341,20 +393,24 @@ export function getBindingData(
 		} else if (ts.TypeGuards.isIdentifier(item)) {
 			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
-			values.push(getAccessor(state, parentId, childIndex, preStatements));
+			values.push(getAccessor(state, parentId, childIndex, preStatements, idStack));
 		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
 			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
-			values.push(getAccessor(state, parentId, childIndex, preStatements));
+			values.push(getAccessor(state, parentId, childIndex, preStatements, idStack));
 		} else if (ts.TypeGuards.isArrayLiteralExpression(item)) {
 			const childId = state.getNewId();
-			preStatements.push(`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements)};`);
+			preStatements.push(
+				`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements, idStack)};`,
+			);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
 			childIndex--;
 		} else if (ts.TypeGuards.isObjectLiteralExpression(item)) {
 			const childId = state.getNewId();
-			preStatements.push(`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements)};`);
+			preStatements.push(
+				`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements, idStack)};`,
+			);
 			getBindingData(state, names, values, preStatements, postStatements, item, childId);
 		} else if (ts.TypeGuards.isShorthandPropertyAssignment(item)) {
 			preStatements.push(`${item.getName()} = ${objectAccessor(state, parentId, item, getAccessor)};`);
@@ -376,7 +432,7 @@ export function getBindingData(
 				preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
 			}
 		} else if (ts.TypeGuards.isOmittedExpression(item)) {
-			getAccessor(state, parentId, childIndex, preStatements, true);
+			getAccessor(state, parentId, childIndex, preStatements, idStack, true);
 		} else {
 			throw new CompilerError(
 				`roblox-ts doesn't know what to do with ${item.getKindName()} [2]. ` +

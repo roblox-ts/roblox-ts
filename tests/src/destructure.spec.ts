@@ -291,4 +291,18 @@ export = () => {
 		expect(b).to.equal("b");
 		expect(c).to.equal("c");
 	});
+
+	it("should properly destruct sets", () => {
+		const [a, , c] = new Set([1, 2, 3]);
+		expect(a).to.equal(1);
+		expect(c).to.equal(3);
+	});
+
+	it("should properly destruct maps", () => {
+		const [a, , c] = new Map([["a", 1], ["b", 2], ["c", 3]]);
+		expect(a[0]).to.equal("a");
+		expect(a[1]).to.equal(1);
+		expect(c[0]).to.equal("b");
+		expect(c[1]).to.equal(2);
+	});
 };

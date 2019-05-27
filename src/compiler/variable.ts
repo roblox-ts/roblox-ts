@@ -9,6 +9,8 @@ import {
 	isObjectType,
 	isTupleReturnTypeCall,
 	shouldHoist,
+	isMapType,
+	isSetType,
 } from "../typeUtilities";
 import {
 	getNonNullExpressionDownwards,
@@ -129,6 +131,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			const rhsType = rhs.getType();
 			if (
 				!isArrayType(rhsType) &&
+				!isMapType(rhsType) &&
+				!isSetType(rhsType) &&
 				!isIterableIterator(rhsType, rhs) &&
 				!isIterableFunction(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
