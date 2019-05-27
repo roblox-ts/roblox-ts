@@ -343,13 +343,23 @@ export class Project {
 					if (ext === ".lua") {
 						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 						const rootPath = path.join(this.rootDirPath, relativeToOut);
-						const baseName = path.basename(filePath, path.extname(filePath));
-						if (
-							!(await fs.pathExists(path.join(rootPath, baseName) + ".ts")) &&
-							!(await fs.pathExists(path.join(rootPath, baseName) + ".tsx")) &&
-							((baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) ||
-								!(await fs.pathExists(path.join(rootPath, baseName) + ".lua")))
-						) {
+
+						let baseName = path.basename(filePath, path.extname(filePath)); // index.server
+						const subext = path.extname(baseName);
+						baseName = path.basename(baseName, subext);
+
+						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
+						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
+						const initLuaFile =
+							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
+						const indexTsFile =
+							baseName === "init" && (await fs.pathExists(path.join(rootPath, "index") + subext + ".ts"));
+						const indexTsxFile =
+							baseName === "init" &&
+							(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx"));
+						const luaFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua");
+
+						if (!tsFile && !tsxFile && !initLuaFile && !indexTsFile && !indexTsxFile && !luaFile) {
 							fs.removeSync(filePath);
 							console.log("remove", filePath);
 						}
