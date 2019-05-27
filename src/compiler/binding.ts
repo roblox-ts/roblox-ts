@@ -205,11 +205,11 @@ function iterAccessor(state: CompilerState, t: string, key: number) {
 function objectIterAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>) {
 	state.usesTSLibrary = true;
 	const newId = state.getNewId();
-	const transpiledSource = t + `[TS.Symbol_iterator](${t})`;
+	const compiledSource = t + `[TS.Symbol_iterator](${t})`;
 	preStatements.push(
 		state.indent +
 			`local ${newId}${
-				transpiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(transpiledSource)}` : ""
+				compiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(compiledSource)}` : ""
 			};`,
 	);
 
