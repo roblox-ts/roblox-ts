@@ -16,11 +16,7 @@ import {
 	isStringType,
 	strictTypeConstraint,
 } from "../typeUtilities";
-import {
-	getNonNullUnParenthesizedExpressionDownwards,
-	joinIndentedLines,
-	removeBalancedParenthesisFromStringBorders,
-} from "../utility";
+import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
 import { isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
@@ -179,44 +175,18 @@ function mapAccessor(state: CompilerState, t: string, key: number) {
 	return "({ " + `next(${t}, `.repeat(key).slice(0, -2) + ")".repeat(key) + " })";
 }
 
-function iterAccessor(state: CompilerState, t: string, key: number) {
-	return `(` + `${t}.next() and `.repeat(key).slice(0, -5) + `.value)`;
+function iterAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>, isHole = false) {
+	if (isHole) {
+		preStatements.push(`${t}.next()`);
+		return "";
+	} else {
+		const id = state.getNewId();
+		preStatements.push(`local ${id} = ${t}.next();`);
+		return `${id}.value`;
+	}
 }
 
-// FIXME: Currently broken is destructuring from TS.Symbol.Iterator more than a single value
-// (same for gmatch/IterableFunctions)
-// We are going to want a system which is aware of which values have already been destructured/used,
-// because we need to reuse them. With the other Accessors we could get away with just recomputing the
-// `next(t, next(t, next(t)))` etc but here we can't because these are stateful
-// With the implementation of this system, the other use cases can be optimized as well
-
-/* Example:
-	const foo = {
-		*[Symbol.iterator]() {
-			yield 1;
-			yield 2;
-			yield 4;
-		},
-	};
-
-	const [a, b, c] = foo;
-*/
-
-function objectIterAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>) {
-	state.usesTSLibrary = true;
-	const newId = state.getNewId();
-	const compiledSource = t + `[TS.Symbol_iterator](${t})`;
-	preStatements.push(
-		state.indent +
-			`local ${newId}${
-				compiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(compiledSource)}` : ""
-			};`,
-	);
-
-	return iterAccessor(state, newId, key);
-}
-
-function iterableFunctionAccessor(state: CompilerState, t: string, key: number, preStatements: Array<string>) {
+function iterableFunctionAccessor(state: CompilerState, t: string, key: number) {
 	return `(` + `${t}() and `.repeat(key).slice(0, -5) + `)`;
 }
 
@@ -232,10 +202,12 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 		return mapAccessor;
 	} else if (isIterableFunction(bindingPatternType)) {
 		return iterableFunctionAccessor;
-	} else if (isIterableIterator(bindingPatternType, bindingPattern)) {
+	} else if (
+		isIterableIterator(bindingPatternType, bindingPattern) ||
+		isObjectType(bindingPatternType) ||
+		ts.TypeGuards.isThisExpression(bindingPattern)
+	) {
 		return iterAccessor;
-	} else if (isObjectType(bindingPatternType) || ts.TypeGuards.isThisExpression(bindingPattern)) {
-		return objectIterAccessor;
 	} else {
 		if (bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern) {
 			return null as never;
@@ -392,7 +364,9 @@ export function getBindingData(
 				alias = item.getName();
 				preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
 			}
-		} else if (!ts.TypeGuards.isOmittedExpression(item)) {
+		} else if (ts.TypeGuards.isOmittedExpression(item)) {
+			getAccessor(state, parentId, childIndex, preStatements, true);
+		} else {
 			throw new CompilerError(
 				`roblox-ts doesn't know what to do with ${item.getKindName()} [2]. ` +
 					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,

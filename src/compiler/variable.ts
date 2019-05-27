@@ -2,8 +2,13 @@ import * as ts from "ts-morph";
 import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
-import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { isIterableIterator, isObjectType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import {
+	getNonNullExpressionDownwards,
+	getNonNullUnParenthesizedExpressionDownwards,
+	isCompiledIdentifier,
+	removeBalancedParenthesisFromStringBorders,
+} from "../utility";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	state.enterPrecedingStatementContext();
@@ -107,10 +112,21 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const postStatements = new Array<string>();
 		let rhsStr = compileExpression(state, rhs);
 
-		if (!ts.TypeGuards.isIdentifier(rhs) && !ts.TypeGuards.isThisExpression(rhs)) {
+		if (!isCompiledIdentifier(rhsStr)) {
 			const id = state.getNewId();
 			preStatements.push(`local ${id} = ${rhsStr};`);
 			rhsStr = id;
+		}
+
+		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
+			const rhsType = rhs.getType();
+			if (!isIterableIterator(rhsType, rhs) && (isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))) {
+				state.usesTSLibrary = true;
+				rhsStr = removeBalancedParenthesisFromStringBorders(rhsStr);
+				const id = state.getNewId();
+				preStatements.push(`local ${id} = ${rhsStr}[TS.Symbol_iterator](${rhsStr});`);
+				rhsStr = id;
+			}
 		}
 
 		getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);
