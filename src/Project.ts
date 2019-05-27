@@ -347,8 +347,10 @@ export class Project {
 						if (
 							!(await fs.pathExists(path.join(rootPath, baseName) + ".ts")) &&
 							!(await fs.pathExists(path.join(rootPath, baseName) + ".tsx")) &&
-							((baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) ||
-								!(await fs.pathExists(path.join(rootPath, baseName) + ".lua")))
+							(baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) &&
+							(baseName === "init" && !(await fs.pathExists(path.join(rootPath, "index") + ".ts"))) &&
+							(baseName === "init" && !(await fs.pathExists(path.join(rootPath, "index") + ".tsx"))) &&
+							!(await fs.pathExists(path.join(rootPath, baseName) + ".lua"))
 						) {
 							fs.removeSync(filePath);
 							console.log("remove", filePath);
