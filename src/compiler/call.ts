@@ -204,17 +204,16 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 		fillString = `(" ")`;
 		fillStringLength = "1";
 	} else {
-		if (ts.TypeGuards.isStringLiteral(fillStringParam)) {
-			fillStringLength = `${fillStringParam.getLiteralText().length}`;
-		} else {
-			fillStringLength = `#${fillString}`;
-		}
-
-		console.log(isNullableType(fillStringParam.getType()), fillStringParam.getType().getText());
 		if (isNullableType(fillStringParam.getType())) {
 			fillString = `(${fillString} or " ")`;
 		} else if (!fillString.match(/^\(*_\d+\)*$/) && shouldWrapExpression(fillStringParam, true)) {
 			fillString = `(${fillString})`;
+		}
+
+		if (ts.TypeGuards.isStringLiteral(fillStringParam)) {
+			fillStringLength = `${fillStringParam.getLiteralText().length}`;
+		} else {
+			fillStringLength = `#${fillString}`;
 		}
 	}
 
