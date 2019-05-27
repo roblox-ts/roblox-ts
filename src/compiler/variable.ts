@@ -2,7 +2,14 @@ import * as ts from "ts-morph";
 import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType, isIterableIterator, isObjectType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import {
+	isArrayType,
+	isIterableFunction,
+	isIterableIterator,
+	isObjectType,
+	isTupleReturnTypeCall,
+	shouldHoist,
+} from "../typeUtilities";
 import {
 	getNonNullExpressionDownwards,
 	getNonNullUnParenthesizedExpressionDownwards,
@@ -123,6 +130,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			if (
 				!isArrayType(rhsType) &&
 				!isIterableIterator(rhsType, rhs) &&
+				!isIterableFunction(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {
 				state.usesTSLibrary = true;

@@ -186,8 +186,19 @@ function iterAccessor(state: CompilerState, t: string, key: number, preStatement
 	}
 }
 
-function iterableFunctionAccessor(state: CompilerState, t: string, key: number) {
-	return `(` + `${t}() and `.repeat(key).slice(0, -5) + `)`;
+function iterableFunctionAccessor(
+	state: CompilerState,
+	t: string,
+	key: number,
+	preStatements: Array<string>,
+	isHole = false,
+) {
+	if (isHole) {
+		preStatements.push(`${t}()`);
+		return "";
+	} else {
+		return `${t}()`;
+	}
 }
 
 export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
