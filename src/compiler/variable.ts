@@ -6,11 +6,11 @@ import {
 	isArrayType,
 	isIterableFunction,
 	isIterableIterator,
+	isMapType,
 	isObjectType,
+	isSetType,
 	isTupleReturnTypeCall,
 	shouldHoist,
-	isMapType,
-	isSetType,
 } from "../typeUtilities";
 import {
 	getNonNullExpressionDownwards,
