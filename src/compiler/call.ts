@@ -375,20 +375,36 @@ const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 
 const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
 
-const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().set("typeIs", (state, params) => {
-	const subExp = params[0];
-	let [obj, type] = compileCallArguments(state, params);
+function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => string): ReplaceFunction {
+	return (state, params) => {
+		const subExp = params[0];
+		let [obj, type] = compileCallArguments(state, params);
 
-	if (ts.TypeGuards.isSpreadElement(subExp)) {
-		const id = state.getNewId();
-		type = state.getNewId();
+		if (ts.TypeGuards.isSpreadElement(subExp)) {
+			const id = state.getNewId();
+			type = state.getNewId();
 
-		state.pushPrecedingStatements(subExp, state.indent + `local ${id}, ${type} = ${obj};\n`);
-		obj = id;
-	}
+			state.pushPrecedingStatements(subExp, state.indent + `local ${id}, ${type} = ${obj};\n`);
+			obj = id;
+		}
 
-	return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(typeof(${obj}) == ${type})`);
-});
+		const compiledStr = compose(
+			obj,
+			type,
+		);
+
+		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(${compiledStr})`);
+	};
+}
+
+const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	// I would prefer if we settled on one of these pairs. I prefer the second.
+	["typeIs", makeGlobalExpressionMacro((obj, type) => `typeof(${obj}) == ${type}`)],
+	["classNameIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
+
+	["isType", makeGlobalExpressionMacro((obj, type) => `typeof(${obj}) == ${type}`)],
+	["isClassName", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
+]);
 
 export function compileList(
 	state: CompilerState,
