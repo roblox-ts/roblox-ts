@@ -268,7 +268,7 @@ export = () => {
 		).to.equal(true);
 	});
 
-	it("should properly destruct gmatch", () => {
+	it("should properly destruct gmatch #1", () => {
 		function catchLetters(...strs: Array<string>) {
 			expect(strs[0]).to.equal("a");
 			expect(strs[1]).to.equal("b");
@@ -276,5 +276,19 @@ export = () => {
 			expect(strs[3]).to.equal("d");
 		}
 		catchLetters(..."abcd".gmatch("."));
+	});
+
+	it("should properly destruct gmatch #2", () => {
+		const [a, b, c] = string.gmatch("a,b,c", "[^,]+");
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
+	});
+
+	it("should properly destruct gmatch #3", () => {
+		const [, a, b, c] = string.gmatch("z,a,b,c", "[^,]+");
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
 	});
 };
