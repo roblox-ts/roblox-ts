@@ -108,4 +108,31 @@ export = () => {
 
 		expect([...it4].every((x, i) => x === array4[i])).to.equal(true);
 	});
+
+	itFOCUS("should suport using yield with a generator", () => {
+		function* walkDescendants(instance: Instance): IterableIterator<Instance> {
+			yield instance;
+			for (const child of instance.GetChildren()) {
+				yield* walkDescendants(child);
+			}
+		}
+
+		function makeFolder(name: string, parent?: Instance) {
+			const folder = new Instance("Folder");
+			folder.Name = name;
+			folder.Parent = parent;
+			return folder;
+		}
+
+		const root = makeFolder("root");
+		const a = makeFolder("a", root);
+		const b = makeFolder("b", a);
+		const c = makeFolder("c", b);
+
+		const [w, x, y, z] = walkDescendants(root);
+		expect(w).to.equal(root);
+		expect(x).to.equal(a);
+		expect(y).to.equal(b);
+		expect(z).to.equal(c);
+	});
 };
