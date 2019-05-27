@@ -58,18 +58,29 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 			const fallThroughValue = "true";
 
 			let lastStatement = statements[statements.length - 1];
-
+			let blockStatements = statements;
 			while (lastStatement && ts.TypeGuards.isBlock(lastStatement)) {
-				const blockStatements = lastStatement.getStatements();
+				blockStatements = lastStatement.getStatements();
 				lastStatement = blockStatements[blockStatements.length - 1];
 			}
 
-			const endsInReturnOrBreakStatement =
-				lastStatement &&
-				(ts.TypeGuards.isReturnStatement(lastStatement) || ts.TypeGuards.isBreakStatement(lastStatement));
+			const finalBreakOrReturn = blockStatements.findIndex(
+				statement => ts.TypeGuards.isBreakStatement(statement) || ts.TypeGuards.isReturnStatement(statement),
+			);
 
-			if (lastStatement && ts.TypeGuards.isBreakStatement(lastStatement) && clause === lastClause) {
-				lastStatement.remove();
+			const endsInReturnOrBreakStatement = finalBreakOrReturn !== -1;
+
+			if (endsInReturnOrBreakStatement) {
+				for (
+					let j =
+						clause === lastClause && ts.TypeGuards.isBreakStatement(blockStatements[finalBreakOrReturn])
+							? finalBreakOrReturn
+							: finalBreakOrReturn + 1;
+					j < blockStatements.length;
+					j++
+				) {
+					blockStatements[j].remove();
+				}
 			}
 
 			const currentCaseFallsThrough =
@@ -110,7 +121,11 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 				if (context.length > 0) {
 					const indent = 1;
 					if (needsIfStatement) {
-						if (previousCaseFallsThrough && fallThroughVar! !== condition) {
+						if (
+							previousCaseFallsThrough &&
+							fallThroughVar! !== condition &&
+							fallThroughConditions[0] !== fallThroughVar!
+						) {
 							fallThroughConditions.unshift(fallThroughVar!);
 						}
 						result += state.indent + `if ${fallThroughConditions.join(" or ")} then\n`;
@@ -118,6 +133,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 						result += state.indent + "else\n";
 						state.pushIndent();
 					} else {
+						console.log(previousCaseFallsThrough);
 						result += state.indent + `if not ${fallThroughVar!} then\n`;
 						state.pushIndent();
 					}
@@ -136,10 +152,14 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 				fallThroughConditions.push(condition);
 
 				if (statements.length === 0) {
-					// previousCaseFallsThrough = false;
+					previousCaseFallsThrough = true;
 					continue;
-				} else if (needsIfStatement) {
-					if (previousCaseFallsThrough && fallThroughVar! !== condition) {
+				} else {
+					if (
+						previousCaseFallsThrough &&
+						fallThroughVar! !== condition &&
+						fallThroughConditions[0] !== fallThroughVar!
+					) {
 						fallThroughConditions.unshift(fallThroughVar!);
 					}
 
