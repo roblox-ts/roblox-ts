@@ -34,11 +34,6 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
 	exp = getNonNullUnParenthesizedExpressionDownwards(exp);
 
-	// @ts-ignore
-	const a = func && func.getText();
-	// @ts-ignore
-	const b = exp.getText();
-
 	if (func && isTupleType(func.getReturnType())) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = compileExpression(state, exp);
