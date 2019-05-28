@@ -10,6 +10,8 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { red, yellow } from "./utility";
 
+const MINIMUM_RBX_TYPES_VERSION = 187;
+
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
@@ -146,6 +148,7 @@ export class Project {
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
 			this.validateCompilerOptions();
+			this.validateRbxTypes();
 		} catch (e) {
 			if (e instanceof ProjectError) {
 				console.log(red("Compiler Error:"), e.message);
@@ -278,6 +281,45 @@ export class Project {
 				ProjectErrorType.BadTsConfig,
 			);
 		}
+	}
+
+	private validateRbxTypes() {
+		const pkgLockJsonPath = path.join(this.projectPath, "package-lock.json");
+		if (fs.pathExistsSync(pkgLockJsonPath)) {
+			const pkgLock = JSON.parse(fs.readFileSync(pkgLockJsonPath).toString());
+			if (pkgLock !== undefined) {
+				const dependencies = pkgLock.dependencies;
+				if (dependencies !== undefined) {
+					const rbxTypes = dependencies["rbx-types"];
+					if (rbxTypes !== undefined) {
+						const rbxTypesVersion = rbxTypes.version;
+						if (typeof rbxTypesVersion === "string") {
+							const regexMatch = rbxTypesVersion.match(/\d+$/g);
+							if (regexMatch !== null) {
+								const patchNumber = Number(regexMatch[0]);
+								if (!isNaN(patchNumber)) {
+									if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+										return;
+									} else {
+										throw new ProjectError(
+											`rbx-types is out of date!\n` +
+												yellow(`Installed version: 1.0.${patchNumber}\n`) +
+												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+												`Run 'npm i rbx-types' to fix this.`,
+											ProjectErrorType.BadRbxTypes,
+										);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		throw new ProjectError(
+			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
+			ProjectErrorType.BadRbxTypes,
+		);
 	}
 
 	private getSyncFilePath() {

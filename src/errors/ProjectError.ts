@@ -11,6 +11,7 @@ export enum ProjectErrorType {
 	NoRojoData,
 	UnexpectedExtensionType,
 	BadTsConfig,
+	BadRbxTypes,
 }
 
 export class ProjectError extends Error {
