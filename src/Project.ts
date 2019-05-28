@@ -317,7 +317,7 @@ export class Project {
 			}
 		}
 		throw new ProjectError(
-			"Could not find rbx-types in package-lock.json! Is rbx-types installed?",
+			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}
