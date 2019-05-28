@@ -15,6 +15,10 @@ export function safeLuaIndex(parent: string, child: string) {
 	}
 }
 
+export function isCompiledIdentifier(s: string) {
+	return isValidLuaIdentifier(removeBalancedParenthesisFromStringBorders(s));
+}
+
 export function removeBalancedParenthesisFromStringBorders(str: string) {
 	let parenDepth = 0;
 	let inOpenParens: number | undefined;

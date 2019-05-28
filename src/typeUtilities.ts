@@ -230,9 +230,13 @@ export function isSetMethodType(type: ts.Type) {
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
 
+export function isTupleType(node: ts.TypeNode | ts.Type) {
+	return LUA_TUPLE_REGEX.test(node.getText());
+}
+
 export function isTupleReturnType(node: ts.ReturnTypedNode) {
 	const returnTypeNode = node.getReturnTypeNode();
-	return returnTypeNode ? LUA_TUPLE_REGEX.test(returnTypeNode.getText()) : false;
+	return returnTypeNode ? isTupleType(returnTypeNode) : false;
 }
 
 export function isTupleReturnTypeCall(node: ts.CallExpression) {
