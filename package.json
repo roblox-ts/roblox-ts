@@ -55,7 +55,7 @@
 		"@types/yargs": "^13.0.0",
 		"coveralls": "^3.0.2",
 		"mocha": "^6.1.4",
-		"nyc": "^13.1.0",
+		"nyc": "^14.1.1",
 		"prettier": "^1.17.1",
 		"prettylint": "^1.0.0",
 		"source-map-support": "^0.5.9",
