@@ -303,7 +303,7 @@ export class Project {
 									} else {
 										throw new ProjectError(
 											`rbx-types is out of date!\n` +
-												yellow(`Installed version: ${rbxTypesVersion}\n`) +
+												yellow(`Installed version: 1.0.${patchNumber}\n`) +
 												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
 												`Run 'npm i rbx-types' to fix this.`,
 											ProjectErrorType.BadRbxTypes,
