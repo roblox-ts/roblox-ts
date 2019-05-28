@@ -11,7 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { isIterableIterator, isTupleReturnType, isTupleReturnTypeCall, shouldHoist } from "../typeUtilities";
+import { isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -34,12 +34,17 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
 	exp = getNonNullUnParenthesizedExpressionDownwards(exp);
 
-	if (func && isTupleReturnType(func)) {
+	// @ts-ignore
+	const a = func && func.getText();
+	// @ts-ignore
+	const b = exp.getText();
+
+	if (func && isTupleType(func.getReturnType())) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
 			let expStr = compileExpression(state, exp);
 			expStr = expStr.substr(2, expStr.length - 4);
 			return `return ${expStr};`;
-		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleReturnTypeCall(exp)) {
+		} else if (ts.TypeGuards.isCallExpression(exp) && isTupleType(exp.getReturnType())) {
 			const expStr = compileCallExpression(state, exp, true);
 			return `return ${expStr};`;
 		} else {
