@@ -14,7 +14,6 @@ import {
 	isSetMethodType,
 	isSetType,
 	isStringType,
-	isTupleType,
 	strictTypeConstraint,
 } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
@@ -108,10 +107,6 @@ export function getParameterData(
 
 function arrayAccessor(state: CompilerState, t: string, key: number) {
 	return `${t}[${key}]`;
-}
-
-function tupleAccessor(state: CompilerState, t: string, key: number) {
-	return `${t}!${key}`;
 }
 
 function objectAccessor(
@@ -261,8 +256,6 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	const bindingPatternType = bindingPattern.getType();
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
-	} else if (isTupleType(bindingPatternType)) {
-		return tupleAccessor;
 	} else if (isStringType(bindingPatternType)) {
 		return stringAccessor;
 	} else if (isSetType(bindingPatternType)) {

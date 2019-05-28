@@ -131,7 +131,6 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			const rhsType = rhs.getType();
 			if (
 				!isArrayType(rhsType) &&
-				!isTupleType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
 				!isIterableIterator(rhsType, rhs) &&
