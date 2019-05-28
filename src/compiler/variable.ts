@@ -9,7 +9,7 @@ import {
 	isMapType,
 	isObjectType,
 	isSetType,
-	isTupleReturnTypeCall,
+	isTupleType,
 	shouldHoist,
 } from "../typeUtilities";
 import {
@@ -38,7 +38,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
-		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
+		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(rhs.getType())) {
 			const names = new Array<string>();
 			const values = new Array<string>();
 			for (const element of lhs.getElements()) {
@@ -131,6 +131,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			const rhsType = rhs.getType();
 			if (
 				!isArrayType(rhsType) &&
+				!isTupleType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
 				!isIterableIterator(rhsType, rhs) &&

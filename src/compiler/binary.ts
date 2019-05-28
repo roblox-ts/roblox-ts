@@ -125,6 +125,9 @@ function compileBinaryLiteral(
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
+	// @ts-ignore;
+	const x = node.getText();
+
 	const nodeParent = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow());
 	const parentKind = nodeParent.getKind();
 	const isStatement = parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
@@ -145,10 +148,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 	// binding patterns
 	if (ts.TypeGuards.isArrayLiteralExpression(lhs)) {
-		const isFlatBinding = lhs
-			.getElements()
-			.filter(v => ts.TypeGuards.isBindingElement(v))
-			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
+		const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
 
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
 			// FIXME: Still broken for nested destructuring of non-arrays.
