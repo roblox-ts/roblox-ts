@@ -28,7 +28,11 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isIdentifierWhoseDefinitionMatchesNode } from "../utility";
+import {
+	getNonNullUnParenthesizedExpressionDownwards,
+	getNonNullUnParenthesizedExpressionUpwards,
+	isIdentifierWhoseDefinitionMatchesNode,
+} from "../utility";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -122,16 +126,12 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	state.enterPrecedingStatementContext();
 
 	let expStr: string;
-	let expression = node.getExpression();
+	const expression = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);
 	} else {
 		expStr = compileExpression(state, expression);
-
-		while (ts.TypeGuards.isParenthesizedExpression(expression)) {
-			expression = expression.getExpression();
-		}
 
 		// big set of rules for expression statements
 		if (
@@ -188,7 +188,10 @@ export function appendDeclarationIfMissing(
 	possibleExpressionStatement: ts.Node,
 	compiledNode: string,
 ) {
-	if (compiledNode.match(/^_d+$/) || ts.TypeGuards.isExpressionStatement(possibleExpressionStatement)) {
+	if (
+		compiledNode.match(/^_d+$/) ||
+		ts.TypeGuards.isExpressionStatement(getNonNullUnParenthesizedExpressionUpwards(possibleExpressionStatement))
+	) {
 		return "local _ = " + compiledNode;
 	} else {
 		return compiledNode;
