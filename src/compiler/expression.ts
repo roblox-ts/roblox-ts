@@ -21,6 +21,7 @@ import {
 	compilePropertyAccessExpression,
 	compileSpreadElement,
 	compileStringLiteral,
+	compileTaggedTemplateExpression,
 	compileTemplateExpression,
 	compileYieldExpression,
 	isSetToken,
@@ -60,6 +61,8 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		return compileParenthesizedExpression(state, node);
 	} else if (ts.TypeGuards.isTemplateExpression(node)) {
 		return compileTemplateExpression(state, node);
+	} else if (ts.TypeGuards.isTaggedTemplateExpression(node)) {
+		return compileTaggedTemplateExpression(state, node);
 	} else if (ts.TypeGuards.isElementAccessExpression(node)) {
 		return compileElementAccessExpression(state, node);
 	} else if (ts.TypeGuards.isAwaitExpression(node)) {

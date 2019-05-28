@@ -25,6 +25,7 @@ export * from "./sourceFile";
 export * from "./spread";
 export * from "./statement";
 export * from "./switch";
+export * from "./template";
 export * from "./try";
 export * from "./unary";
 export * from "./variable";
