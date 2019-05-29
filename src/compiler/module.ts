@@ -32,7 +32,7 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 
 function getRojoUnavailableError(node: ts.Node) {
 	return new CompilerError(
-		`Rojo was not loaded! Cannot compile ${node.getKindName()}`,
+		`Failed to load Rojo configuration! Cannot compile ${node.getKindName()}`,
 		node,
 		CompilerErrorType.BadRojo,
 	);
