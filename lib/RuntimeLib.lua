@@ -387,7 +387,7 @@ TS.array_copy = array_copy
 
 function TS.array_entries(list)
 	local result = {}
-	for key = 1, #object do
+	for key = 1, #list do
 		result[key] = { key - 1, list[key] }
 	end
 	return result

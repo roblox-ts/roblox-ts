@@ -354,4 +354,205 @@ export = () => {
 			expect(++x === tonumber(i)).to.equal(true);
 		}
 	});
+
+	it("should support optimized reversed/entries loops", () => {
+		function array_entries<T>(arr: Array<T>) {
+			return arr.entries();
+		}
+
+		function array_reverse<T>(arr: Array<T>) {
+			return arr.reverse();
+		}
+
+		function compare<T>(results: Array<[number, T]>, array2: Array<[number, T]>) {
+			let x = 0;
+			for (const [i, v] of array2) {
+				const { [x++]: pair } = results;
+				expect(pair[0]).to.equal(i);
+				expect(pair[1]).to.equal(v);
+			}
+		}
+
+		function loop<T>(array: Array<T>) {
+			{
+				const results = new Array<[number, T]>();
+				let i = 0;
+				for (const result of array.reverse()) {
+					results.push([i++, result]);
+				}
+				compare(results, array_entries(array_reverse(array)));
+			}
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array.entries().reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_entries(array)));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array.reverse().entries()) {
+					results.push(result);
+				}
+				compare(results, array_entries(array_reverse(array)));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array
+					.reverse()
+					.entries()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_entries(array_reverse(array))));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array
+					.reverse()
+					.reverse()
+					.entries()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_entries(array_reverse(array_reverse(array)))));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array
+					.reverse()
+					.entries()
+					.reverse()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_reverse(array_entries(array_reverse(array)))));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array
+					.reverse()
+					.reverse()
+					.reverse()
+					.entries()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array))))));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				for (const result of array
+					.reverse()
+					.reverse()
+					.reverse()
+					.entries()
+					.reverse()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array)))))));
+			}
+
+			{
+				const results = new Array<[number, T]>();
+				const i = 0;
+				for (const result of array
+					.reverse()
+					.entries()
+					.reverse()) {
+					results.push(result);
+				}
+				compare(results, array_reverse(array_entries(array_reverse(array))));
+			}
+
+			{
+				const results0 = new Array<[number, T]>();
+				for (const [, v] of array.entries().reverse()) {
+					results0.push([0, v]);
+				}
+
+				const results1 = new Array<[number, T]>();
+				for (const [, v] of array.reverse().entries()) {
+					results1.push([0, v]);
+				}
+
+				const results2 = new Array<[number, T]>();
+				for (const [, v] of array
+					.reverse()
+					.entries()
+					.reverse()
+					.reverse()) {
+					results2.push([0, v]);
+				}
+
+				const results3 = new Array<[number, T]>();
+				for (const [, v] of array
+					.reverse()
+					.reverse()
+					.entries()
+					.reverse()) {
+					results3.push([0, v]);
+				}
+
+				const results4 = new Array<[number, T]>();
+				for (const v of array_reverse(array)) {
+					results4.push([0, v]);
+				}
+				compare(results0, results4);
+				compare(results1, results4);
+				compare(results2, results4);
+				compare(results3, results4);
+			}
+
+			{
+				const results0 = new Array<[number, T]>();
+				for (const [, v] of array.entries()) {
+					results0.push([0, v]);
+				}
+
+				const results1 = new Array<[number, T]>();
+				for (const [, v] of array
+					.reverse()
+					.reverse()
+					.entries()) {
+					results1.push([0, v]);
+				}
+
+				const results2 = new Array<[number, T]>();
+				for (const [, v] of array
+					.entries()
+					.reverse()
+					.reverse()) {
+					results2.push([0, v]);
+				}
+
+				const results3 = new Array<[number, T]>();
+				for (const [, v] of array
+					.reverse()
+					.entries()
+					.reverse()) {
+					results3.push([0, v]);
+				}
+
+				const results4 = new Array<[number, T]>();
+				for (const v of array) {
+					results4.push([0, v]);
+				}
+				compare(results0, results4);
+				compare(results1, results4);
+				compare(results2, results4);
+				compare(results3, results4);
+			}
+		}
+
+		loop([..."abcdef"]);
+
+	});
 };

@@ -87,10 +87,13 @@ enum ForOfLoopType {
 function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
 	while (ts.TypeGuards.isCallExpression(exp)) {
 		const subExp = exp.getExpression();
-		if (ts.TypeGuards.isPropertyAccessExpression(subExp)) {
-			yield { exp: subExp, type: getPropertyAccessExpressionType(state, subExp) };
-			exp = subExp.getExpression();
+
+		if (!ts.TypeGuards.isPropertyAccessExpression(subExp)) {
+			break;
 		}
+
+		yield { exp: subExp, type: getPropertyAccessExpressionType(state, subExp) };
+		exp = subExp.getExpression();
 	}
 }
 
@@ -98,7 +101,8 @@ function getLoopType(
 	state: CompilerState,
 	node: ts.ForOfStatement | ts.PropertyAccessExpression,
 	reversed = false,
-): [ts.Expression, ForOfLoopType, boolean] {
+	backwards = false,
+): [ts.Expression, ForOfLoopType, boolean, boolean] {
 	const exp = node.getExpression();
 	const expType = exp.getType();
 	const iter = propertyAccessExpressionTypeIter(state, exp);
@@ -112,11 +116,11 @@ function getLoopType(
 
 				switch (subExp.getName()) {
 					case "keys":
-						return [iterExp, ForOfLoopType.Keys, reversed];
+						return [iterExp, ForOfLoopType.Keys, reversed, backwards];
 					case "entries":
-						return [iterExp, ForOfLoopType.Entries, reversed];
+						return [iterExp, ForOfLoopType.Entries, reversed, backwards];
 					case "values":
-						return [iterExp, ForOfLoopType.Values, reversed];
+						return [iterExp, ForOfLoopType.Values, reversed, backwards];
 				}
 				break;
 			}
@@ -132,18 +136,23 @@ function getLoopType(
 							(data.value.type === PropertyCallExpType.Array && data.value.exp.getName() === "reverse")
 						);
 
-						return [subExp.getExpression(), ForOfLoopType.ArrayEntries, !reversed];
+						return [subExp.getExpression(), ForOfLoopType.ArrayEntries, !reversed, backwards];
 					}
 					case "reverse": {
-						const [lowerExp, lowerLoopExpType, isReversed] = getLoopType(state, subExp, !reversed);
+						const [lowerExp, lowerLoopExpType, isReversed, isBackwards] = getLoopType(
+							state,
+							subExp,
+							reversed,
+							!backwards,
+						);
 
 						switch (lowerLoopExpType) {
 							case ForOfLoopType.Array:
 							case ForOfLoopType.ArrayEntries:
-								return [lowerExp, lowerLoopExpType, isReversed];
+								return [lowerExp, lowerLoopExpType, isReversed, isBackwards];
 						}
 
-						return [subExp.getExpression(), ForOfLoopType.Array, !reversed];
+						return [subExp.getExpression(), ForOfLoopType.Array, reversed, !backwards];
 					}
 				}
 				break;
@@ -152,17 +161,17 @@ function getLoopType(
 	}
 
 	if (isMapType(expType)) {
-		return [exp, ForOfLoopType.Entries, reversed];
+		return [exp, ForOfLoopType.Entries, reversed, backwards];
 	} else if (isSetType(expType)) {
-		return [exp, ForOfLoopType.Keys, reversed];
+		return [exp, ForOfLoopType.Keys, reversed, backwards];
 	} else if (isArrayType(expType)) {
-		return [exp, ForOfLoopType.Array, reversed];
+		return [exp, ForOfLoopType.Array, reversed, backwards];
 	} else if (isStringType(expType)) {
-		return [exp, ForOfLoopType.String, reversed];
+		return [exp, ForOfLoopType.String, reversed, backwards];
 	} else if (isIterableFunction(expType)) {
-		return [exp, ForOfLoopType.IterableFunction, reversed];
+		return [exp, ForOfLoopType.IterableFunction, reversed, backwards];
 	} else {
-		return [exp, ForOfLoopType.Symbol_iterator, reversed];
+		return [exp, ForOfLoopType.Symbol_iterator, reversed, backwards];
 	}
 }
 
@@ -173,7 +182,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	const initializer = asDeclarationListOrThrow(node.getInitializer());
 	const declaration = getSingleDeclarationOrThrow(initializer);
 	const statement = node.getStatement();
-	const [exp, loopType, isReversed] = getLoopType(state, node);
+	const [exp, loopType, isReversed, isBackwards] = getLoopType(state, node);
 	const lhs: ts.Node<ts.ts.Node> | undefined = declaration.getChildAtIndex(0);
 	let varName: string;
 
@@ -292,16 +301,21 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		let loopEndValue: string = `#${expStr}`;
 
 		if (key) {
+			console.log(isReversed, isBackwards);
 			accessor =
 				value && isReversed
 					? `${(loopEndValue = state.pushPrecedingStatementToNewId(node, loopEndValue))} - ${key}`
 					: `${key} + 1`;
 
-			result += state.indent + `for ${key} = 0, ${loopEndValue} - 1 do\n`;
+			if (isBackwards) {
+				result += state.indent + `for ${key} = ${loopEndValue} - 1, 0, -1 do\n`;
+			} else {
+				result += state.indent + `for ${key} = 0, ${loopEndValue} - 1 do\n`;
+			}
 		} else {
 			accessor = state.getNewId();
 
-			if (isReversed) {
+			if (isReversed ? !isBackwards : isBackwards) {
 				result += state.indent + `for ${accessor} = ${loopEndValue}, 1, -1 do\n`;
 			} else {
 				result += state.indent + `for ${accessor} = 1, ${loopEndValue} do\n`;
