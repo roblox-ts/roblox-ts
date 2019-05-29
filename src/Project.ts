@@ -145,8 +145,6 @@ export class Project {
 			}
 		}
 
-		this.baseUrl = this.compilerOptions.baseUrl;
-
 		const rootDirPath = this.compilerOptions.rootDir;
 		if (!rootDirPath) {
 			throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
