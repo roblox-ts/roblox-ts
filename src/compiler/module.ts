@@ -42,7 +42,7 @@ function getRelativeImportPath(
 	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile | undefined,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
+	node: ts.Node,
 ) {
 	if (!state.rojoProject) {
 		throw getRojoUnavailableError(node);
@@ -79,22 +79,14 @@ function getRelativeImportPath(
 
 const moduleCache = new Map<string, string>();
 
-function getModuleImportPath(
-	state: CompilerState,
-	sourceFile: ts.SourceFile,
-	moduleFile: ts.SourceFile,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
-) {
+function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	const modulesDir = state.modulesDir!;
 	let parts = modulesDir
 		.getRelativePathTo(moduleFile)
 		.split("/")
 		.filter(part => part !== ".");
 
-	const moduleName = parts.shift();
-	if (!moduleName) {
-		throw new ProjectError("Compiler.getImportPath() failed! #1", ProjectErrorType.GetImportPathFail1);
-	}
+	const moduleName = parts.shift()!;
 
 	let mainPath: string;
 	if (moduleCache.has(moduleName)) {
@@ -106,11 +98,7 @@ function getModuleImportPath(
 	}
 
 	parts = mainPath.split(/[\\/]/g);
-	let last = parts.pop();
-	if (!last) {
-		throw new ProjectError("Compiler.getImportPath() failed! #2", ProjectErrorType.GetImportPathFail2);
-	}
-	last = stripExtensions(last);
+	const last = stripExtensions(parts.pop()!);
 	if (last !== "init") {
 		parts.push(last);
 	}
@@ -122,11 +110,7 @@ function getModuleImportPath(
 	return `require(${params})`;
 }
 
-function getAbsoluteImportPath(
-	state: CompilerState,
-	moduleFile: ts.SourceFile,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
-) {
+function getAbsoluteImportPath(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
 	if (!state.rojoProject) {
 		throw getRojoUnavailableError(node);
 	}
@@ -150,14 +134,9 @@ function getAbsoluteImportPath(
 	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
 }
 
-function getImportPathFromFile(
-	state: CompilerState,
-	sourceFile: ts.SourceFile,
-	moduleFile: ts.SourceFile,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
-) {
+function getImportPathFromFile(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
-		return getModuleImportPath(state, sourceFile, moduleFile, node);
+		return getModuleImportPath(state, moduleFile);
 	} else {
 		return getAbsoluteImportPath(state, moduleFile, node);
 	}
@@ -194,7 +173,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	} else {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (moduleFile) {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
+			luaPath = getImportPathFromFile(state, moduleFile, node);
 		} else {
 			const specifierText = node.getModuleSpecifier().getLiteralText();
 			throw new CompilerError(
@@ -307,7 +286,7 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 		if (node.isExternalModuleReferenceRelative()) {
 			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, node);
 		} else {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
+			luaPath = getImportPathFromFile(state, moduleFile, node);
 		}
 	} else {
 		const text = node.getModuleReference().getText();
@@ -331,7 +310,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		} else {
 			const moduleFile = node.getModuleSpecifierSourceFile();
 			if (moduleFile) {
-				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
+				luaImportStr = getImportPathFromFile(state, moduleFile, node);
 			} else {
 				const specifierText = moduleSpecifier.getLiteralText();
 				throw new CompilerError(
