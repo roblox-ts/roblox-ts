@@ -96,7 +96,6 @@ export class Project {
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
 	private readonly modulesPath: string;
-	private readonly baseUrl: string | undefined;
 	private readonly rojoProject?: RojoProject;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;

@@ -285,14 +285,6 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 	const moduleFile = node.getExternalModuleReferenceSourceFile();
 	if (moduleFile) {
 		if (node.isExternalModuleReferenceRelative()) {
-			let specifier: string;
-			const moduleReference = node.getModuleReference();
-			if (ts.TypeGuards.isExternalModuleReference(moduleReference)) {
-				const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
-				specifier = exp.getLiteralText();
-			} else {
-				throw new CompilerError("Bad specifier", node, CompilerErrorType.BadSpecifier);
-			}
 			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, node);
 		} else {
 			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
