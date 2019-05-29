@@ -1,4 +1,4 @@
-import ts from "ts-morph";
+import * as ts from "ts-morph";
 import { compileExpression, compileList } from ".";
 import { CompilerState } from "../CompilerState";
 import { isStringType } from "../typeUtilities";

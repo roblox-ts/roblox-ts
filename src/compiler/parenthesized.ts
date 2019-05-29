@@ -1,4 +1,4 @@
-import ts from "ts-morph";
+import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { getNonNullUnParenthesizedExpressionUpwards } from "../utility";

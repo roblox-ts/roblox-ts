@@ -1,4 +1,4 @@
-import ts from "ts-morph";
+import * as ts from "ts-morph";
 import {
 	checkApiAccess,
 	checkNonAny,

@@ -1,4 +1,4 @@
-import ts from "ts-morph";
+import * as ts from "ts-morph";
 import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

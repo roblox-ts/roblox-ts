@@ -1,4 +1,4 @@
-import ts from "ts-morph";
+import * as ts from "ts-morph";
 
 export enum CompilerErrorType {
 	NoAny,
@@ -71,6 +71,7 @@ export enum CompilerErrorType {
 	UnexpectedPropType,
 	GlobalThis,
 	StaticNew,
+	BadRojo,
 }
 
 export class CompilerError extends Error {

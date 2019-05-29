@@ -1,9 +1,11 @@
 import path from "path";
-import ts from "ts-morph";
+import RojoProject from "rojo-utils";
+import * as ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
+import { transformPathToLua } from "../fsUtilities";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
 import { isValidLuaIdentifier, stripExtensions } from "../utility";
 
@@ -32,38 +34,113 @@ function getRelativeImportPath(
 	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile | undefined,
-	specifier: string,
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
-	const currentPartition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
-
-	if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
-		return getImportPathFromFile(state, sourceFile, moduleFile, node);
+	if (!state.rojoProject) {
+		throw new CompilerError("", node, CompilerErrorType.BadRojo);
 	}
 
-	const parts = path.posix
-		.normalize(specifier)
-		.split("/")
-		.filter(part => part !== ".")
-		.map(part => (part === ".." ? ".Parent" : part));
-	if (parts[parts.length - 1] === ".index") {
-		parts.pop();
-	}
-	let prefix = "script";
-	if (stripExtensions(sourceFile.getBaseName()) !== "index") {
-		prefix += ".Parent";
+	const rbxFrom = state.rojoProject.getRbxFromFile(
+		transformPathToLua(state.rootDirPath, state.outDirPath, sourceFile.getFilePath()),
+	).path;
+	const rbxTo = moduleFile
+		? state.rojoProject.getRbxFromFile(
+				transformPathToLua(state.rootDirPath, state.outDirPath, moduleFile.getFilePath()),
+		  ).path
+		: [];
+
+	if (!rbxFrom) {
+		throw new CompilerError("", node, CompilerErrorType.BadRojo);
 	}
 
-	const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
-	const importParts = parts.filter(p => p !== ".Parent");
-	const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
+	if (!rbxTo) {
+		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+	}
+
+	const rbxRelative = RojoProject.relative(rbxFrom, rbxTo);
+
+	let start = "script";
+	while (rbxRelative[0] === "..") {
+		rbxRelative.shift();
+		start += ".Parent";
+	}
 
 	state.usesTSLibrary = true;
-	return `TS.import(${params})`;
+	return `TS.import(${start}, ${rbxRelative.map(v => `"${v}"`).join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
+
+function getModuleImportPath(
+	state: CompilerState,
+	sourceFile: ts.SourceFile,
+	moduleFile: ts.SourceFile,
+	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
+) {
+	const modulesDir = state.modulesDir!;
+	let parts = modulesDir
+		.getRelativePathTo(moduleFile)
+		.split("/")
+		.filter(part => part !== ".");
+
+	const moduleName = parts.shift();
+	if (!moduleName) {
+		throw new ProjectError("Compiler.getImportPath() failed! #1", ProjectErrorType.GetImportPathFail1);
+	}
+
+	let mainPath: string;
+	if (moduleCache.has(moduleName)) {
+		mainPath = moduleCache.get(moduleName)!;
+	} else {
+		const pkgJson = require(path.join(modulesDir.getPath(), moduleName, "package.json"));
+		mainPath = pkgJson.main as string;
+		moduleCache.set(moduleName, mainPath);
+	}
+
+	parts = mainPath.split(/[\\/]/g);
+	let last = parts.pop();
+	if (!last) {
+		throw new ProjectError("Compiler.getImportPath() failed! #2", ProjectErrorType.GetImportPathFail2);
+	}
+	last = stripExtensions(last);
+	if (last !== "init") {
+		parts.push(last);
+	}
+
+	parts = parts.filter(part => part !== ".").map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
+
+	state.usesTSLibrary = true;
+	const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+	return `require(${params})`;
+}
+
+function getAbsoluteImportPath(
+	state: CompilerState,
+	moduleFile: ts.SourceFile,
+	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
+) {
+	if (!state.rojoProject) {
+		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+	}
+
+	const filePath = moduleFile.getFilePath();
+	const rbx = state.rojoProject.getRbxFromFile(transformPathToLua(state.rootDirPath, state.outDirPath, filePath));
+	if (!rbx.path || rbx.path.length === 0) {
+		throw new CompilerError(`Could not find Rojo data for ${filePath}`, node, CompilerErrorType.BadRojo);
+	}
+
+	const rbxPath = [...rbx.path];
+
+	let service = rbxPath.shift()!;
+	if (isRbxService(service)) {
+		service = `game:GetService("${service}")`;
+	} else {
+		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
+	}
+
+	state.usesTSLibrary = true;
+	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
+}
 
 function getImportPathFromFile(
 	state: CompilerState,
@@ -72,84 +149,9 @@ function getImportPathFromFile(
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
-		let parts = state.modulesDir
-			.getRelativePathTo(moduleFile)
-			.split("/")
-			.filter(part => part !== ".");
-
-		const moduleName = parts.shift();
-		if (!moduleName) {
-			throw new ProjectError("Compiler.getImportPath() failed! #1", ProjectErrorType.GetImportPathFail1);
-		}
-
-		let mainPath: string;
-		if (moduleCache.has(moduleName)) {
-			mainPath = moduleCache.get(moduleName)!;
-		} else {
-			const pkgJson = require(path.join(state.modulesDir.getPath(), moduleName, "package.json"));
-			mainPath = pkgJson.main as string;
-			moduleCache.set(moduleName, mainPath);
-		}
-
-		parts = mainPath.split(/[\\/]/g);
-		let last = parts.pop();
-		if (!last) {
-			throw new ProjectError("Compiler.getImportPath() failed! #2", ProjectErrorType.GetImportPathFail2);
-		}
-		last = stripExtensions(last);
-		if (last !== "init") {
-			parts.push(last);
-		}
-
-		parts = parts
-			.filter(part => part !== ".")
-			.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
-		state.usesTSLibrary = true;
-		const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
-		return `require(${params})`;
+		return getModuleImportPath(state, sourceFile, moduleFile, node);
 	} else {
-		const partition = state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
-		if (!partition) {
-			throw new ProjectError(
-				"Could not compile non-relative import, no data from rojo.json",
-				ProjectErrorType.NoRojoData,
-			);
-		}
-
-		const parts = partition.dir
-			.getRelativePathAsModuleSpecifierTo(moduleFile)
-			.split("/")
-			.filter(part => part !== ".");
-
-		const last = parts.pop();
-		if (!last) {
-			throw new ProjectError("Compiler.getImportPath() failed! #3", ProjectErrorType.GetImportPathFail3);
-		}
-
-		if (last !== "index") {
-			parts.push(last);
-		}
-
-		const params = partition.target
-			.split(".")
-			.concat(parts)
-			.filter(v => v.length > 0)
-			.map((v, i) => (i === 0 ? v : `"${v}"`));
-
-		const rbxService = params[0];
-		if (rbxService && isRbxService(rbxService)) {
-			params[0] = `game:GetService("${params[0]}")`;
-		} else {
-			throw new CompilerError(
-				rbxService + " is not a valid Roblox Service!",
-				node,
-				CompilerErrorType.InvalidService,
-			);
-		}
-
-		state.usesTSLibrary = true;
-		return `TS.import(${params.join(", ")})`;
+		return getAbsoluteImportPath(state, moduleFile, node);
 	}
 }
 
@@ -171,13 +173,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 	let luaPath: string;
 	if (node.isModuleSpecifierRelative()) {
-		luaPath = getRelativeImportPath(
-			state,
-			node.getSourceFile(),
-			node.getModuleSpecifierSourceFile(),
-			node.getModuleSpecifier().getLiteralText(),
-			node,
-		);
+		luaPath = getRelativeImportPath(state, node.getSourceFile(), node.getModuleSpecifierSourceFile(), node);
 	} else {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (moduleFile) {
@@ -297,7 +293,7 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 			} else {
 				throw new CompilerError("Bad specifier", node, CompilerErrorType.BadSpecifier);
 			}
-			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier, node);
+			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, node);
 		} else {
 			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
 		}
@@ -324,7 +320,6 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 				state,
 				node.getSourceFile(),
 				node.getModuleSpecifierSourceFile(),
-				moduleSpecifier.getLiteralText(),
 				node,
 			);
 		} else {
