@@ -1,14 +1,16 @@
-import * as fs from "fs-extra";
-import * as klaw from "klaw";
+import fs from "fs-extra";
+import klaw from "klaw";
 import { minify } from "luamin";
-import * as path from "path";
-import * as ts from "ts-morph";
+import path from "path";
+import ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { red, yellow } from "./utility";
+
+import RojoProject from "rojo-utils";
 
 const MINIMUM_RBX_TYPES_VERSION = 187;
 

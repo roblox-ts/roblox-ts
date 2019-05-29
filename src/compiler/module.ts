@@ -1,5 +1,5 @@
-import * as path from "path";
-import * as ts from "ts-morph";
+import path from "path";
+import ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

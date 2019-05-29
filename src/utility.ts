@@ -1,5 +1,5 @@
-import * as path from "path";
-import * as ts from "ts-morph";
+import path from "path";
+import ts from "ts-morph";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;

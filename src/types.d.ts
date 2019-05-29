@@ -1,4 +1,4 @@
-import * as ts from "ts-morph";
+import ts from "ts-morph";
 
 export type HasParameters =
 	| ts.FunctionExpression

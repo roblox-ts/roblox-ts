@@ -1,4 +1,4 @@
-import * as ts from "ts-morph";
+import ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

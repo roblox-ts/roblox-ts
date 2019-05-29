@@ -1,4 +1,4 @@
-import * as ts from "ts-morph";
+import ts from "ts-morph";
 import { compileSpreadableListAndJoin, compileSpreadExpression, shouldCompileAsSpreadableList } from ".";
 import { CompilerState } from "../CompilerState";
 import { isArrayType } from "../typeUtilities";

@@ -2,7 +2,7 @@ import Vector, { a, b, c, foo, Fruits, letVar } from "./export";
 import export_equals from "./export_equals";
 import export_equals2 = require("./export_equals");
 import { x, y, z } from "./export_dec";
-import * as ns from "./namespaceExport";
+import ns from "./namespaceExport";
 
 export = () => {
 	it("should support import/export equals", () => {

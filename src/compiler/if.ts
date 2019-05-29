@@ -1,4 +1,4 @@
-import * as ts from "ts-morph";
+import ts from "ts-morph";
 import { compileExpression, compileStatement } from ".";
 import { CompilerState } from "../CompilerState";
 import { joinIndentedLines } from "../utility";
