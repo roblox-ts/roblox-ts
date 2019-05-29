@@ -187,7 +187,9 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 	return false;
 }
 
-/** Skips over Null expressions */
+/** Skips over Null expressions.
+ * Be aware that this can change the type of your expression to be potentially undefined.
+ */
 export function getNonNullExpressionDownwards<T extends ts.Node>(exp: T): T;
 export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
 export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T) {
@@ -200,7 +202,9 @@ export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T) {
 	}
 }
 
-/** Skips over Null/Parenthesis expressions */
+/** Skips over Null/Parenthesis expressions.
+ * Be aware that this can change the type of your expression to be potentially undefined.
+ */
 export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp: T): T;
 export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
 export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T) {
@@ -212,7 +216,9 @@ export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(
 	}
 }
 
-/** Skips over Null expressions */
+/** Skips over Null expressions.
+ * Be aware that this can change the type of your expression to be potentially undefined.
+ */
 export function getNonNullExpressionUpwards<T extends ts.Node>(exp: T): T;
 export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
 export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T) {
@@ -225,7 +231,9 @@ export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T) {
 	}
 }
 
-/** Skips over Null/Parenthesis expressions */
+/** Skips over Null/Parenthesis expressions.
+ * Be aware that this can change the type of your expression to be potentially undefined.
+ */
 export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp: T): T;
 export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
 export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T) {

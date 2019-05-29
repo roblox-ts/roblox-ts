@@ -167,6 +167,12 @@ export = () => {
 		expect(hit.difference(new Set(["1", "2", "3", "4"])).isEmpty()).to.equal(true);
 	});
 
+	it("should support for-of loops over computed strings", () => {
+		const i = 0;
+		for (const letter of `${i}s`) {
+		}
+	});
+
 	it("should support for-of loops over Set literals", () => {
 		const hit = new Set<string>();
 		let n = 0;
@@ -333,6 +339,19 @@ export = () => {
 
 		for (const f of fee.values()) {
 			expect(f).to.equal(++i);
+		}
+	});
+
+	it("should support optimized reversed loops", () => {
+		const digits = [..."0123456789"];
+		let x = 9;
+
+		for (const i of digits.reverse()) {
+			expect(x-- === tonumber(i)).to.equal(true);
+		}
+
+		for (const i of digits.reverse().reverse()) {
+			expect(++x === tonumber(i)).to.equal(true);
 		}
 	});
 };

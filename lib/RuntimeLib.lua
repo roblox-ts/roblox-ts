@@ -385,6 +385,14 @@ end
 
 TS.array_copy = array_copy
 
+function TS.array_entries(list)
+	local result = {}
+	for key = 1, #object do
+		result[key] = { key - 1, list[key] }
+	end
+	return result
+end
+
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
 		local v = list[i]

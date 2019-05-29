@@ -18,7 +18,7 @@ import {
 	isSetType,
 	isStringType,
 } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { checkReserved } from "./security";
 
 function getVariableName(
 	state: CompilerState,
@@ -28,89 +28,206 @@ function getVariableName(
 	preStatements: Array<string>,
 	postStatements: Array<string>,
 ) {
-	let varName: string;
-	if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
-		varName = state.getNewId();
-		getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
-	} else if (ts.TypeGuards.isIdentifier(lhs)) {
-		varName = lhs.getText();
-	} else {
-		throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
+	if (lhs) {
+		let varName = "";
+
+		if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
+			varName = state.getNewId();
+			getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
+		} else if (ts.TypeGuards.isIdentifier(lhs)) {
+			varName = lhs.getText();
+			checkReserved(varName, lhs);
+		}
+
+		if (varName) {
+			return varName;
+		}
 	}
 
-	return varName;
+	throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
+}
+
+function asDeclarationListOrThrow(initializer: ts.VariableDeclarationList | ts.Expression) {
+	if (!ts.TypeGuards.isVariableDeclarationList(initializer)) {
+		const initKindName = initializer.getKindName();
+		throw new CompilerError(
+			`ForOf Loop has an unexpected initializer! (${initKindName})`,
+			initializer,
+			CompilerErrorType.UnexpectedInitializer,
+		);
+	}
+
+	return initializer;
+}
+
+function getSingleDeclarationOrThrow(initializer: ts.VariableDeclarationList) {
+	const declarations = initializer.getDeclarations();
+	if (declarations.length !== 1) {
+		throw new CompilerError(
+			"Expected a single declaration in ForOf loop",
+			initializer,
+			CompilerErrorType.BadForOfInitializer,
+		);
+	}
+
+	return declarations[0];
+}
+
+enum ForOfLoopType {
+	Keys,
+	Values,
+	Entries,
+	Array,
+	ArrayEntries,
+	String,
+	IterableFunction,
+	Symbol_iterator,
+}
+
+function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
+	while (ts.TypeGuards.isCallExpression(exp)) {
+		const subExp = exp.getExpression();
+		if (ts.TypeGuards.isPropertyAccessExpression(subExp)) {
+			yield { exp: subExp, type: getPropertyAccessExpressionType(state, subExp) };
+			exp = subExp.getExpression();
+		}
+	}
+}
+
+function getLoopType(
+	state: CompilerState,
+	node: ts.ForOfStatement | ts.PropertyAccessExpression,
+	reversed = false,
+): [ts.Expression, ForOfLoopType, boolean] {
+	const exp = node.getExpression();
+	const expType = exp.getType();
+	const iter = propertyAccessExpressionTypeIter(state, exp);
+	let data = iter.next();
+
+	if (!data.done) {
+		let subExp = data.value.exp;
+		switch (data.value.type) {
+			case PropertyCallExpType.ObjectConstructor: {
+				const iterExp = (exp as ts.CallExpression).getArguments()[0] as ts.Expression;
+
+				switch (subExp.getName()) {
+					case "keys":
+						return [iterExp, ForOfLoopType.Keys, reversed];
+					case "entries":
+						return [iterExp, ForOfLoopType.Entries, reversed];
+					case "values":
+						return [iterExp, ForOfLoopType.Values, reversed];
+				}
+				break;
+			}
+			case PropertyCallExpType.Array: {
+				switch (subExp.getName()) {
+					case "entries": {
+						do {
+							subExp = data.value.exp;
+							reversed = !reversed;
+							data = iter.next();
+						} while (
+							!data.done &&
+							(data.value.type === PropertyCallExpType.Array && data.value.exp.getName() === "reverse")
+						);
+
+						return [subExp.getExpression(), ForOfLoopType.ArrayEntries, !reversed];
+					}
+					case "reverse": {
+						const [lowerExp, lowerLoopExpType, isReversed] = getLoopType(state, subExp, !reversed);
+
+						switch (lowerLoopExpType) {
+							case ForOfLoopType.Array:
+							case ForOfLoopType.ArrayEntries:
+								return [lowerExp, lowerLoopExpType, isReversed];
+						}
+
+						return [subExp.getExpression(), ForOfLoopType.Array, !reversed];
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	if (isMapType(expType)) {
+		return [exp, ForOfLoopType.Entries, reversed];
+	} else if (isSetType(expType)) {
+		return [exp, ForOfLoopType.Keys, reversed];
+	} else if (isArrayType(expType)) {
+		return [exp, ForOfLoopType.Array, reversed];
+	} else if (isStringType(expType)) {
+		return [exp, ForOfLoopType.String, reversed];
+	} else if (isIterableFunction(expType)) {
+		return [exp, ForOfLoopType.IterableFunction, reversed];
+	} else {
+		return [exp, ForOfLoopType.Symbol_iterator, reversed];
+	}
 }
 
 export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatement) {
 	state.pushIdStack();
-	const init = node.getInitializer();
-	let lhs: ts.Node<ts.ts.Node> | undefined;
-	let varName = "";
+	state.enterPrecedingStatementContext();
+
+	const initializer = asDeclarationListOrThrow(node.getInitializer());
+	const declaration = getSingleDeclarationOrThrow(initializer);
 	const statement = node.getStatement();
-	let exp = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
-	const expType = exp.getType();
+	const [exp, loopType, isReversed] = getLoopType(state, node);
+	const lhs: ts.Node<ts.ts.Node> | undefined = declaration.getChildAtIndex(0);
+	let varName: string;
 
-	if (ts.TypeGuards.isVariableDeclarationList(init)) {
-		const declarations = init.getDeclarations();
+	/** The key to be used in the for loop. If it is the empty string, it is irrelevant. */
+	let key: string = "";
+	/** The value to be used in the for loop. If it is the empty string, it is irrelevant. */
+	let value: string = "";
+	/** The expression to iterate through */
+	let expStr = compileExpression(state, exp);
+	let result = "";
 
-		if (declarations.length !== 1) {
-			throw new CompilerError(
-				"Expected a single declaration in ForOf loop",
-				init,
-				CompilerErrorType.BadForOfInitializer,
-			);
+	const names = new Array<string>();
+	const values = new Array<string>();
+	const preStatements = new Array<string>();
+	const postStatements = new Array<string>();
+
+	/** Whether we should iterate as a simple for loop (defaults to a for..in loop) */
+	let isNumericForLoop = false;
+
+	if (loopType === ForOfLoopType.Entries || loopType === ForOfLoopType.ArrayEntries) {
+		if (loopType === ForOfLoopType.ArrayEntries) {
+			expStr = getReadableExpressionName(state, exp, expStr);
+			isNumericForLoop = true;
+		} else {
+			expStr = `pairs(${expStr})`;
 		}
 
-		lhs = declarations[0].getChildAtIndex(0);
+		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
+			const syntaxList = lhs.getChildAtIndex(1);
 
-		const names = new Array<string>();
-		const values = new Array<string>();
-		const preStatements = new Array<string>();
-		const postStatements = new Array<string>();
+			if (ts.TypeGuards.isSyntaxList(syntaxList)) {
+				const syntaxChildren = syntaxList.getChildren();
+				const first = syntaxChildren[0];
 
-		let isExpEntriesType = isMapType(expType);
-		let isExpKeysType = isSetType(expType);
-		let isExpValuesType = false;
-
-		if (ts.TypeGuards.isCallExpression(exp)) {
-			const subExp = exp.getExpression();
-			if (ts.TypeGuards.isPropertyAccessExpression(subExp)) {
-				if (PropertyCallExpType.ObjectConstructor === getPropertyAccessExpressionType(state, subExp)) {
-					const subExpName = subExp.getName();
-					const firstArg = exp.getArguments()[0] as ts.Expression;
-					if (subExpName === "keys") {
-						isExpKeysType = true;
-						exp = firstArg;
-					} else if (subExpName === "entries") {
-						isExpEntriesType = true;
-						exp = firstArg;
-					} else if (subExpName === "values") {
-						isExpValuesType = true;
-						exp = firstArg;
+				if (first) {
+					if (!ts.TypeGuards.isOmittedExpression(first)) {
+						key = getVariableName(
+							state,
+							first.getChildAtIndex(0),
+							names,
+							values,
+							preStatements,
+							postStatements,
+						);
 					}
 				}
-			}
-		}
 
-		state.enterPrecedingStatementContext();
-		let expStr = compileExpression(state, exp);
-		let result = state.exitPrecedingStatementContextAndJoin();
-
-		if (isExpEntriesType) {
-			if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
-				const syntaxList = lhs.getChildAtIndex(1);
-
-				if (ts.TypeGuards.isSyntaxList(syntaxList)) {
-					const syntaxChildren = syntaxList.getChildren();
-					const first = syntaxChildren[0];
-					let key: string | undefined;
-					let value: string | undefined;
-
-					if (first) {
-						if (!ts.TypeGuards.isOmittedExpression(first)) {
-							key = getVariableName(
+				if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
+					const third = syntaxChildren[2];
+					if (third) {
+						if (!ts.TypeGuards.isOmittedExpression(third)) {
+							value = getVariableName(
 								state,
-								first.getChildAtIndex(0),
+								third.getChildAtIndex(0),
 								names,
 								values,
 								preStatements,
@@ -118,113 +235,101 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 							);
 						}
 					}
-
-					if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
-						const third = syntaxChildren[2];
-						if (third) {
-							if (!ts.TypeGuards.isOmittedExpression(third)) {
-								value = getVariableName(
-									state,
-									third.getChildAtIndex(0),
-									names,
-									values,
-									preStatements,
-									postStatements,
-								);
-							}
-						}
-					}
-
-					result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in pairs(${expStr}) do\n`;
-					state.pushIndent();
-				} else {
-					throw new CompilerError(
-						"Unexpected for..of initializer",
-						lhs,
-						CompilerErrorType.BadForOfInitializer,
-					);
 				}
 			} else {
-				if (!ts.TypeGuards.isIdentifier(lhs)) {
-					throw new CompilerError(
-						"Unexpected for..of initializer",
-						lhs,
-						CompilerErrorType.BadForOfInitializer,
-					);
-				}
-				const key = state.getNewId();
-				const value = state.getNewId();
-				result += state.indent + `for ${key}, ${value} in pairs(${expStr}) do\n`;
-				state.pushIndent();
-				result += state.indent + `local ${lhs.getText()} = {${key}, ${value}};\n`;
+				throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
 			}
 		} else {
-			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
-
-			if (varName.length === 0) {
-				throw new CompilerError(`ForOf Loop empty varName!`, init, CompilerErrorType.ForEmptyVarName);
+			if (!ts.TypeGuards.isIdentifier(lhs)) {
+				throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
 			}
+			key = state.getNewId();
+			value = state.getNewId();
+			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+			preStatements.push(`local ${varName} = {${key}, ${value}};`);
+		}
+	} else {
+		varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
 
-			if (isExpKeysType) {
-				result += state.indent + `for ${varName} in pairs(${expStr}) do\n`;
-				state.pushIndent();
-			} else if (isExpValuesType) {
-				result += state.indent + `for _, ${varName} in pairs(${expStr}) do\n`;
-				state.pushIndent();
-			} else if (isArrayType(expType)) {
-				let varValue: string;
-				state.enterPrecedingStatementContext();
+		switch (loopType) {
+			case ForOfLoopType.Keys:
+				key = varName;
+				expStr = `pairs(${expStr})`;
+				break;
+			case ForOfLoopType.Values:
+				value = varName;
+				expStr = `pairs(${expStr})`;
+				break;
+			case ForOfLoopType.Array:
+				value = varName;
 				expStr = getReadableExpressionName(state, exp, expStr);
-				result += state.exitPrecedingStatementContextAndJoin();
-				const myInt = state.getNewId();
-				result += state.indent + `for ${myInt} = 1, #${expStr} do\n`;
-				state.pushIndent();
-				varValue = `${expStr}[${myInt}]`;
-				result += state.indent + `local ${varName} = ${varValue};\n`;
-			} else if (isStringType(expType)) {
-				if (ts.TypeGuards.isStringLiteral(exp)) {
-					expStr = `(${expStr})`;
-				}
-				result += state.indent + `for ${varName} in ${expStr}:gmatch(".") do\n`;
-				state.pushIndent();
-			} else if (isIterableFunction(expType)) {
-				result += state.indent + `for ${varName} in ${expStr} do\n`;
-				state.pushIndent();
-			} else {
-				state.enterPrecedingStatementContext();
-				if (!isIterableIterator(expType, exp)) {
-					const expStrTemp = getReadableExpressionName(state, exp, expStr);
-					expStr = `${expStrTemp}[TS.Symbol_iterator](${expStrTemp})`;
+				isNumericForLoop = true;
+				break;
+			case ForOfLoopType.String:
+				key = varName;
+				expStr = `(${expStr}):gmatch(".")`;
+				break;
+			case ForOfLoopType.IterableFunction:
+				key = varName;
+				break;
+			case ForOfLoopType.Symbol_iterator: {
+				if (!isIterableIterator(exp.getType(), exp)) {
+					expStr = getReadableExpressionName(state, exp, expStr);
+					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}
 				const loopVar = state.getNewId();
-				result += state.exitPrecedingStatementContextAndJoin();
-				result += state.indent + `for ${loopVar} in ${expStr}.next do\n`;
-				state.pushIndent();
-				result += state.indent + `if ${loopVar}.done then break end;\n`;
-				result += state.indent + `local ${varName} = ${loopVar}.value;\n`;
+				key = loopVar;
+				expStr = `${expStr}.next`;
+				preStatements.push(`if ${loopVar}.done then break end;`);
+				preStatements.push(`local ${varName} = ${loopVar}.value;`);
+				break;
+			}
+		}
+	}
+
+	if (isNumericForLoop) {
+		let accessor: string;
+		let loopEndValue: string = `#${expStr}`;
+
+		if (key) {
+			accessor =
+				value && isReversed
+					? `${(loopEndValue = state.pushPrecedingStatementToNewId(node, loopEndValue))} - ${key}`
+					: `${key} + 1`;
+
+			result += state.indent + `for ${key} = 0, ${loopEndValue} - 1 do\n`;
+		} else {
+			accessor = state.getNewId();
+
+			if (isReversed) {
+				result += state.indent + `for ${accessor} = ${loopEndValue}, 1, -1 do\n`;
+			} else {
+				result += state.indent + `for ${accessor} = 1, ${loopEndValue} do\n`;
 			}
 		}
 
-		for (const myStatement of preStatements) {
-			result += state.indent + myStatement + "\n";
+		state.pushIndent();
+
+		if (value) {
+			result += state.indent + `local ${value} = ${expStr}[${accessor}];\n`;
 		}
-		concatNamesAndValues(state, names, values, true, str => {
-			result += str;
-		});
-		for (const myStatement of postStatements) {
-			result += state.indent + myStatement + "\n";
-		}
-		result += compileLoopBody(state, statement);
-		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.popIdStack();
-		return result;
 	} else {
-		const initKindName = init.getKindName();
-		throw new CompilerError(
-			`ForOf Loop has an unexpected initializer! (${initKindName})`,
-			init,
-			CompilerErrorType.UnexpectedInitializer,
-		);
+		result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in ${expStr} do\n`;
+		state.pushIndent();
 	}
+
+	for (const myStatement of preStatements) {
+		result += state.indent + myStatement + "\n";
+	}
+	concatNamesAndValues(state, names, values, true, str => {
+		result += str;
+	});
+	for (const myStatement of postStatements) {
+		result += state.indent + myStatement + "\n";
+	}
+	result += compileLoopBody(state, statement);
+	state.popIndent();
+	result += state.indent + `end;\n`;
+	state.popIdStack();
+	return state.exitPrecedingStatementContextAndJoin() + result;
 }
