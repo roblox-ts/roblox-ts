@@ -4,7 +4,6 @@ import * as ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
 import { transformPathToLua } from "../fsUtilities";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
 import { isValidLuaIdentifier, stripExtensions } from "../utility";
