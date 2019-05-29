@@ -12,6 +12,8 @@ import { red, yellow } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 187;
 
+const unused = "I am unused!";
+
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
