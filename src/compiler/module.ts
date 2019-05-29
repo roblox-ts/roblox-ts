@@ -192,7 +192,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const rhs = new Array<string>();
 	const unlocalizedImports = new Array<string>();
 
-	if (defaultImport && !isUsedAsType(defaultImport)) {
+	if (defaultImport && (isRoact || !isUsedAsType(defaultImport))) {
 		const definitions = defaultImport.getDefinitions();
 		const exportAssignments =
 			definitions.length > 0 &&
@@ -213,7 +213,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		unlocalizedImports.push("");
 	}
 
-	if (namespaceImport && !isUsedAsType(namespaceImport)) {
+	if (namespaceImport && (isRoact || !isUsedAsType(namespaceImport))) {
 		lhs.push(compileExpression(state, namespaceImport));
 		rhs.push("");
 		unlocalizedImports.push("");
