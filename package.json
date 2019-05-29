@@ -43,7 +43,7 @@
 		"fs-extra": "^8.0.1",
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
-		"rojo-utils": "0.0.1",
+		"rojo-utils": "0.0.3",
 		"ts-morph": "^2.2.0",
 		"yargs": "^13.2.4"
 	},
