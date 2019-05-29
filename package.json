@@ -16,7 +16,7 @@
 		"test": "npm run build && nyc --reporter=html _mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
-		"build": "npx tsc",
+		"build": "if [ \"$CI\" = true ]; then npx tsc -p tsconfig.ci.json; else npx tsc; fi",
 		"prepublishOnly": "npm run build",
 		"types": "cd tests && npm install rbx-types"
 	},
