@@ -128,7 +128,7 @@ function getAbsoluteImportPath(
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
 	if (!state.rojoProject) {
-		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+		throw getRojoUnavailableError(node);
 	}
 
 	const filePath = moduleFile.getFilePath();
