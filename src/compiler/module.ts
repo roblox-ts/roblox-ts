@@ -30,6 +30,14 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 	return true;
 }
 
+function getRojoUnavailableError(node: ts.Node) {
+	return new CompilerError(
+		`Rojo was not loaded! Cannot compile ${node.getKindName()}`,
+		node,
+		CompilerErrorType.BadRojo,
+	);
+}
+
 function getRelativeImportPath(
 	state: CompilerState,
 	sourceFile: ts.SourceFile,
@@ -37,7 +45,7 @@ function getRelativeImportPath(
 	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
 ) {
 	if (!state.rojoProject) {
-		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+		throw getRojoUnavailableError(node);
 	}
 
 	const rbxFrom = state.rojoProject.getRbxFromFile(
@@ -50,11 +58,11 @@ function getRelativeImportPath(
 		: [];
 
 	if (!rbxFrom) {
-		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+		throw getRojoUnavailableError(node);
 	}
 
 	if (!rbxTo) {
-		throw new CompilerError("", node, CompilerErrorType.BadRojo);
+		throw getRojoUnavailableError(node);
 	}
 
 	const rbxRelative = RojoProject.relative(rbxFrom, rbxTo);
@@ -160,9 +168,18 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
 
+	const isRoact =
+		(defaultImport && defaultImport.getText() === "Roact") ||
+		(namespaceImport && namespaceImport.getText() === "Roact");
+
+	if (isRoact) {
+		state.hasRoactImport = true;
+	}
+
 	const isSideEffect = !defaultImport && !namespaceImport && namedImports.length === 0;
 
 	if (
+		!isRoact &&
 		!isSideEffect &&
 		(!namespaceImport || isUsedAsType(namespaceImport)) &&
 		(!defaultImport || isUsedAsType(defaultImport)) &&
@@ -265,10 +282,6 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	if (hasVarNames || lhs.length > 0) {
 		const lhsStr = lhs.join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-
-		if (lhsStr === "Roact") {
-			state.hasRoactImport = true;
-		}
 		result += `local ${lhsStr} = ${rhsStr};\n`;
 	}
 
@@ -277,7 +290,14 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 export function compileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
-	if (isUsedAsType(nameNode)) {
+	const name = node.getName();
+
+	const isRoact = name === "Roact";
+	if (isRoact) {
+		state.hasRoactImport = true;
+	}
+
+	if (!isRoact && isUsedAsType(nameNode)) {
 		return "";
 	}
 
@@ -292,12 +312,6 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 	} else {
 		const text = node.getModuleReference().getText();
 		throw new CompilerError(`Could not find file for '${text}'`, node, CompilerErrorType.MissingModuleFile);
-	}
-
-	const name = node.getName();
-
-	if (name === "Roact") {
-		state.hasRoactImport = true;
 	}
 
 	return state.indent + `local ${name} = ${luaPath};\n`;
