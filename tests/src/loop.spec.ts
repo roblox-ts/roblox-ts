@@ -457,7 +457,10 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array)))))));
+				compare(
+					results,
+					array_reverse(array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array)))))),
+				);
 			}
 
 			{
@@ -553,6 +556,5 @@ export = () => {
 		}
 
 		loop([..."abcdef"]);
-
 	});
 };

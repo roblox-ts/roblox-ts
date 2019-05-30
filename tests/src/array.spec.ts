@@ -469,7 +469,7 @@ export = () => {
 			}
 		}
 
-		const arr = [..."Hello, world!"]
+		const arr = [..."Hello, world!"];
 		compare(array_entries(arr), arr.entries());
 	});
 };
