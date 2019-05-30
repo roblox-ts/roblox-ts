@@ -11,7 +11,7 @@ env:
 before_install:
   - wget https://raw.githubusercontent.com/creationix/nvm/v0.33.11/nvm.sh -O ~/.nvm/nvm.sh # Node.js
   - source ~/.nvm/nvm.sh
-  - nvm install 8
+  - nvm install 10
   - node --version
   - pip install hererocks # Lua
   - hererocks lua_install -r^ --$LUA
