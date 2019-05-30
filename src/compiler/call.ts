@@ -145,7 +145,7 @@ function macroStringIndexFunction(
 					ts.TypeGuards.isIdentifier(previousParam)
 				) {
 					const definitions = param.getDefinitions().map(def => def.getNode());
-					if (previousParam.getDefinitions().every((def, i) => definitions[i] === def.getNode())) {
+					if (previousParam.getDefinitions().every((def, j) => definitions[j] === def.getNode())) {
 						wasIncrementing = incrementing;
 						return "";
 					}
@@ -189,7 +189,7 @@ function macroStringIndexFunction(
 			},
 		);
 		return `${accessPath}:${methodName}(${compiledArgs
-			.map((arg, i, args) => (arg === "" ? args[i - 1] : arg))
+			.map((arg, j, args) => (arg === "" ? args[j - 1] : arg))
 			.join(", ")})`;
 	};
 }

@@ -9,16 +9,8 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import {
-	inheritsFrom,
-	isArrayType,
-	isMapType,
-	isNumberType,
-	isSetType,
-	isStringType,
-	isTupleReturnTypeCall,
-} from "../typeUtilities";
-import { removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+import { inheritsFrom, isArrayType, isMapType, isNumberType, isSetType, isTupleReturnTypeCall } from "../typeUtilities";
+import { safeLuaIndex } from "../utility";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -123,7 +115,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
 	}
 
-	const symbol = exp.getType().getSymbol();
+	const symbol = expType.getSymbol();
 	if (symbol) {
 		const valDec = symbol.getValueDeclaration();
 		if (valDec) {
