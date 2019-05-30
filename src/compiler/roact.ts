@@ -642,7 +642,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 	if (!state.hasRoactImport) {
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
-				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				suggest('To fix this, put `import Roact from "rbx-roact"` at the top of this file.'),
 			node,
 			CompilerErrorType.RoactJsxWithoutImport,
 		);
@@ -669,7 +669,7 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 	if (!state.hasRoactImport) {
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
-				suggest('To fix this, put `import * as Roact from "rbx-roact"` at the top of this file.'),
+				suggest('To fix this, put `import Roact from "rbx-roact"` at the top of this file.'),
 			node,
 			CompilerErrorType.RoactJsxWithoutImport,
 		);

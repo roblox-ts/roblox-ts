@@ -71,6 +71,7 @@ export enum CompilerErrorType {
 	UnexpectedPropType,
 	GlobalThis,
 	StaticNew,
+	BadRojo,
 }
 
 export class CompilerError extends Error {

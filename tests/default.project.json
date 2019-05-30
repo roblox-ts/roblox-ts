@@ -1,0 +1,15 @@
+{
+	"name": "roblox-ts-tests",
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"Tests": {
+				"$className": "Folder",
+				"out": {
+					"$path": "out"
+				}
+			}
+		}
+	}
+}

@@ -1,4 +1,4 @@
-import * as path from "path";
+import path from "path";
 import * as ts from "ts-morph";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 

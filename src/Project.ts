@@ -1,39 +1,27 @@
-import * as fs from "fs-extra";
-import * as klaw from "klaw";
+import fs from "fs-extra";
+import klaw from "klaw";
 import { minify } from "luamin";
-import * as path from "path";
+import path from "path";
+import RojoProject, { RojoProjectError } from "rojo-utils";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
+import { transformPathToLua } from "./fsUtilities";
 import { red, yellow } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 189;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
-const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
+const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const MODULE_PREFIX = "rbx-";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
 ];
-
-interface RojoJson {
-	partitions: {
-		[index: string]: {
-			target: string;
-			path: string;
-		};
-	};
-}
-
-interface Partition {
-	dir: ts.Directory;
-	target: string;
-}
 
 const LUA_EXT = ".lua";
 function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
@@ -108,12 +96,11 @@ export class Project {
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
 	private readonly modulesPath: string;
-	private readonly baseUrl: string | undefined;
+	private readonly rojoProject?: RojoProject;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly compilerOptions: ts.CompilerOptions;
-	private readonly syncInfo = new Array<Partition>();
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
 
@@ -158,8 +145,6 @@ export class Project {
 			}
 		}
 
-		this.baseUrl = this.compilerOptions.baseUrl;
-
 		const rootDirPath = this.compilerOptions.rootDir;
 		if (!rootDirPath) {
 			throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
@@ -184,42 +169,17 @@ export class Project {
 
 		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
-		const syncFilePath = this.getSyncFilePath();
-		if (syncFilePath) {
-			const rojoJson = JSON.parse(fs.readFileSync(syncFilePath).toString()) as RojoJson;
-			for (const key in rojoJson.partitions) {
-				const part = rojoJson.partitions[key];
-				const partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
-				if (partPath.startsWith(this.outDirPath)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.rootDirPath, path.relative(this.outDirPath, partPath)),
+		const rojoFilePath = this.getRojoFilePath();
+		if (rojoFilePath) {
+			try {
+				this.rojoProject = RojoProject.fromPathSync(rojoFilePath);
+			} catch (e) {
+				if (e instanceof RojoProjectError) {
+					console.log(
+						"Warning!",
+						"Failed to load Rojo configuration. Import and export statements will not compile.",
+						e.message,
 					);
-					if (directory) {
-						this.syncInfo.push({
-							dir: directory,
-							target: part.target,
-						});
-					} else {
-						throw new ProjectError(
-							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							ProjectErrorType.MissingPartitionDir,
-						);
-					}
-				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.baseUrl, path.relative(this.baseUrl, partPath)),
-					);
-					if (directory) {
-						this.syncInfo.push({
-							dir: directory,
-							target: part.target,
-						});
-					} else {
-						throw new ProjectError(
-							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							ProjectErrorType.MissingPartitionDir,
-						);
-					}
 				}
 			}
 		}
@@ -322,36 +282,12 @@ export class Project {
 		);
 	}
 
-	private getSyncFilePath() {
-		for (const name of SYNC_FILE_NAMES) {
-			const filePath = path.resolve(this.projectPath, name);
-			if (fs.existsSync(filePath)) {
-				return filePath;
+	private getRojoFilePath() {
+		for (const fileName of fs.readdirSync(this.projectPath)) {
+			if (ROJO_FILE_REGEX.test(fileName)) {
+				return path.join(this.projectPath, fileName);
 			}
 		}
-	}
-
-	private transformPathToLua(filePath: string) {
-		const relativeToRoot = path.dirname(path.relative(this.rootDirPath, filePath));
-		let name = path.basename(filePath, path.extname(filePath));
-		const exts = new Array<string>();
-		while (true) {
-			const ext = path.extname(name);
-			if (ext.length > 0) {
-				exts.unshift(ext);
-				name = path.basename(name, ext);
-			} else {
-				break;
-			}
-		}
-		if (exts[exts.length - 1] === ".d") {
-			exts.pop();
-		}
-		if (name === "index") {
-			name = "init";
-		}
-		const luaName = name + exts.join("") + ".lua";
-		return path.join(this.outDirPath, relativeToRoot, luaName);
 	}
 
 	public addFile(filePath: string) {
@@ -519,8 +455,11 @@ export class Project {
 			for (const sourceFile of files) {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
-					const outPath = this.transformPathToLua(filePath);
-					let source = compileSourceFile(new CompilerState(this.syncInfo, this.modulesDir), sourceFile);
+					const outPath = transformPathToLua(this.rootDirPath, this.outDirPath, filePath);
+					let source = compileSourceFile(
+						new CompilerState(this.rootDirPath, this.outDirPath, this.rojoProject, this.modulesDir),
+						sourceFile,
+					);
 
 					if (this.luaSourceTransformer) {
 						source = this.luaSourceTransformer(source);

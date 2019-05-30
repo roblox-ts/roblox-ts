@@ -1,11 +1,7 @@
+import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
-
-interface Partition {
-	dir: ts.Directory;
-	target: string;
-}
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -16,7 +12,12 @@ interface DeclarationContext {
 }
 
 export class CompilerState {
-	constructor(public readonly syncInfo: Array<Partition>, public readonly modulesDir?: ts.Directory) {}
+	constructor(
+		public readonly rootDirPath: string,
+		public readonly outDirPath: string,
+		public readonly rojoProject?: RojoProject,
+		public readonly modulesDir?: ts.Directory,
+	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
 	public pushToDeclarationOrNewId(
