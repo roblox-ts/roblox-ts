@@ -17,7 +17,6 @@ stds.roblox = {
         "unpack",
         "getfenv",
         "setfenv",
-        "shared",
         "workspace",
         "plugin",
 

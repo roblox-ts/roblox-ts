@@ -124,8 +124,8 @@ function TS.import(module, ...)
 				end
 			end
 
-			assert(shared[module] == nil, "Invalid module access!")
-			shared[module] = TS
+			assert(_G[module] == nil, "Invalid module access!")
+			_G[module] = TS
 			data = require(module)
 
 			if currentlyLoading[caller] == module then -- Thread-safe cleanup!
