@@ -534,9 +534,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 function getPropertyAccessExpressionRoot(root: ts.Expression) {
 	while (ts.TypeGuards.isCallExpression(root)) {
 		const exp = root.getExpression();
-		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-			root = exp.getExpression();
+		if (!ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			break;
 		}
+		root = exp.getExpression();
 	}
 	return root;
 }
