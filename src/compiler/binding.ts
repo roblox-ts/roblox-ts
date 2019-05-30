@@ -16,10 +16,7 @@ import {
 	isStringType,
 	strictTypeConstraint,
 } from "../typeUtilities";
-import {
-	getNonNullUnParenthesizedExpressionDownwards,
-	joinIndentedLines,
-} from "../utility";
+import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
 import { addOneToArrayIndex, isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
