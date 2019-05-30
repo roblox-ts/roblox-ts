@@ -7,7 +7,7 @@
 			"include": {
 				"$path": "../lib"
 			},
-			"out": {
+			"src": {
 				"$className": "Folder",
 				"out": {
 					"$path": "out"

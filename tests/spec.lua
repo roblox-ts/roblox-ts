@@ -35,7 +35,7 @@ newFolder("rbx-roact", modulesFolder, "tests/node_modules/rbx-roact");
 local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
 
 -- Testing code
-local testsFolder = newFolder("out", ReplicatedStorage)
+local testsFolder = newFolder("src", ReplicatedStorage)
 local outFolder = newFolder("out", testsFolder, "tests/out")
 
 -- Load TestEZ and run our tests
