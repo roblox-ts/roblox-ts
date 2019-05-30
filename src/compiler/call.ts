@@ -140,6 +140,7 @@ function macroStringIndexFunction(
 				}
 
 				if (
+					previousParam &&
 					incrementing === wasIncrementing &&
 					ts.TypeGuards.isIdentifier(param) &&
 					ts.TypeGuards.isIdentifier(previousParam)
