@@ -20,7 +20,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
 import {
 	addOneToArrayIndex,
 	getReadableExpressionName,
@@ -103,7 +103,6 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 	return [accessStr, compiledArgs.join(", ")];
 }
 
-<<<<<<< HEAD
 export function addOneToStringIndex(valueStr: string) {
 	if (valueStr === "nil") {
 		return "nil";
@@ -176,10 +175,15 @@ function macroStringIndexFunction(
 
 				const currentContext = state.getCurrentPrecedingStatementContext(param);
 				const id = currentContext.isPushed ? expStr : state.pushPrecedingStatementToNewId(param, expStr);
+				const isNullable = isNullableType(param.getType());
 				if (incrementing) {
-					currentContext.push(state.indent + `if ${id} >= 0 then ${id} = ${id} + 1; end\n`);
+					currentContext.push(
+						state.indent + `if ${isNullable ? `${id} and ` : ""}${id} >= 0 then ${id} = ${id} + 1; end\n`,
+					);
 				} else {
-					currentContext.push(state.indent + `if ${id} < 0 then ${id} = ${id} - 1; end\n`);
+					currentContext.push(
+						state.indent + `if ${isNullable ? `${id} and ` : ""}${id} < 0 then ${id} = ${id} - 1; end\n`,
+					);
 				}
 				return id;
 			},
@@ -308,16 +312,6 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		},
 	],
 ]);
-=======
-const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
-	.set("split", (state, params) => {
-		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
-		return `string.split(${str}, ${args})`;
-	});
->>>>>>> 6c4d7f91dc595f000bd82f795b54b93852b9115f
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
