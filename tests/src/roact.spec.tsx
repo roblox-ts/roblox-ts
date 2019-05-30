@@ -173,9 +173,9 @@ export = () => {
 			});
 
 			it("should handle function references properly", () => {
-				let currentRbx: Rbx_Frame;
+				let currentRbx: Frame;
 
-				function ref(rbx: Rbx_Frame) {
+				function ref(rbx: Frame) {
 					currentRbx = rbx;
 				}
 
@@ -186,7 +186,7 @@ export = () => {
 
 			it("should handle class references properly", () => {
 				class RoactRefTest extends Roact.Component {
-					public ref: Roact.Ref<Rbx_ScreenGui>;
+					public ref: Roact.Ref<ScreenGui>;
 
 					constructor(p: {}) {
 						super(p);
@@ -208,7 +208,7 @@ export = () => {
 			it("should handle class function references properly", () => {
 				let worked = false;
 				class RoactRefTest extends Roact.Component {
-					public onScreenGuiRender = (rbx: Rbx_ScreenGui) => {
+					public onScreenGuiRender = (rbx: ScreenGui) => {
 						worked = true;
 					}
 					public render(): Roact.Element {

@@ -39,14 +39,6 @@ export = () => {
 	});
 	/* tslint:enable */
 
-	it("should understand string templates", () => {
-		const value = "hello";
-		expect(`"${value} world"`).to.equal('"hello world"');
-		expect(`"${value}" world`).to.equal('"hello" world');
-		expect(`${value} "world"`).to.equal('hello "world"');
-		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
-	});
-
 	it("should add strings", () => {
 		expect("a" + "b").to.equal("ab");
 		const a = "a";

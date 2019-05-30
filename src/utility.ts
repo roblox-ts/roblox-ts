@@ -15,6 +15,10 @@ export function safeLuaIndex(parent: string, child: string) {
 	}
 }
 
+export function isCompiledIdentifier(s: string) {
+	return isValidLuaIdentifier(removeBalancedParenthesisFromStringBorders(s));
+}
+
 export function removeBalancedParenthesisFromStringBorders(str: string) {
 	let parenDepth = 0;
 	let inOpenParens: number | undefined;
@@ -61,8 +65,12 @@ export function removeBalancedParenthesisFromStringBorders(str: string) {
 
 export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 	if (lines.length > 0) {
-		const sep = "\t".repeat(numTabs);
-		return lines.join("").replace(/.+/g, a => sep + a);
+		if (numTabs > 0) {
+			const sep = "\t".repeat(numTabs);
+			return lines.join("").replace(/.+/g, a => sep + a);
+		} else {
+			return lines.join("");
+		}
 	} else {
 		return "";
 	}

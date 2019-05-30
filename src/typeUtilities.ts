@@ -230,9 +230,13 @@ export function isSetMethodType(type: ts.Type) {
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
 
+export function isTupleType(node: ts.TypeNode | ts.Type) {
+	return LUA_TUPLE_REGEX.test(node.getText());
+}
+
 export function isTupleReturnType(node: ts.ReturnTypedNode) {
 	const returnTypeNode = node.getReturnTypeNode();
-	return returnTypeNode ? LUA_TUPLE_REGEX.test(returnTypeNode.getText()) : false;
+	return returnTypeNode ? isTupleType(returnTypeNode) : false;
 }
 
 export function isTupleReturnTypeCall(node: ts.CallExpression) {
@@ -274,7 +278,7 @@ function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
 	return false;
 }
 
-export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
+export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor = true): boolean {
 	if (ts.TypeGuards.isForStatement(ancestor)) {
 		return false;
 	}
@@ -294,23 +298,39 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier) {
 
 	const ancestorParent = ancestor.getParent();
 	const ancestorChildIndex = ancestor.getChildIndex();
-	for (const ref of refs) {
-		if (ref !== id) {
-			if (isAncestorOf(ancestor, ref)) {
+
+	const checkCallback = (ref: ts.Node) => {
+		// if ever ref is in front
+		if (ref === id) {
+			return true;
+		}
+
+		if (checkAncestor && isAncestorOf(ancestor, ref)) {
+			return false;
+		} else {
+			let refAncestor: ts.Node | undefined = ref;
+			while (refAncestor && refAncestor.getParent() !== ancestorParent) {
+				refAncestor = refAncestor.getParent();
+			}
+			if (refAncestor && refAncestor.getChildIndex() >= ancestorChildIndex) {
 				return true;
-			} else {
-				let refAncestor: ts.Node | undefined = ref;
-				while (refAncestor && refAncestor.getParent() !== ancestorParent) {
-					refAncestor = refAncestor.getParent();
-				}
-				if (refAncestor && refAncestor.getChildIndex() < ancestorChildIndex) {
-					return true;
-				}
 			}
 		}
-	}
 
-	return false;
+		return false;
+	};
+
+	if (checkAncestor ? refs.every(checkCallback) : !refs.some(checkCallback)) {
+		return false;
+	} else {
+		const caseClauseAncestor = ancestor.getFirstAncestorByKind(ts.SyntaxKind.CaseClause);
+
+		if (caseClauseAncestor) {
+			return shouldHoist(caseClauseAncestor, id, false);
+		}
+
+		return true;
+	}
 }
 
 export function shouldPushToPrecedingStatement(

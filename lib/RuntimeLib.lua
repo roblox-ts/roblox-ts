@@ -570,12 +570,17 @@ function TS.array_every(list, callback)
 	return true
 end
 
-function TS.array_indexOf(list, value, fromIndex)
-	if fromIndex == nil then
-		fromIndex = 0
+function TS.array_includes(list, item, startingIndex)
+	for i = (startingIndex or 0) + 1, #list do
+		if list[i] == item then
+			return true
+		end
 	end
-	fromIndex = fromIndex + 1
-	for i = fromIndex, #list do
+	return false
+end
+
+function TS.array_indexOf(list, value, fromIndex)
+	for i = (fromIndex or 0) + 1, #list do
 		if value == list[i] then
 			return i - 1
 		end
@@ -584,11 +589,7 @@ function TS.array_indexOf(list, value, fromIndex)
 end
 
 function TS.array_lastIndexOf(list, value, fromIndex)
-	if fromIndex == nil then
-		fromIndex = #list - 1
-	end
-	fromIndex = fromIndex + 1
-	for i = fromIndex, 1, -1 do
+	for i = (fromIndex or #list - 1) + 1, 1, -1 do
 		if value == list[i] then
 			return i - 1
 		end

@@ -18,7 +18,7 @@ import {
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
 import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
 
 const STRING_MACRO_METHODS = [
@@ -36,11 +36,15 @@ const STRING_MACRO_METHODS = [
 	"upper",
 ];
 
-function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
+export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
-		(strict || (!ts.TypeGuards.isCallExpression(subExp) && !ts.TypeGuards.isPropertyAccessExpression(subExp)))
+		(strict ||
+			(!ts.TypeGuards.isCallExpression(subExp) &&
+				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
+				!ts.TypeGuards.isStringLiteral(subExp) &&
+				!ts.TypeGuards.isNumericLiteral(subExp)))
 	);
 }
 
@@ -48,7 +52,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
 	for (let i = 0; i < climb; i++) {
-		exp = exp.getParent();
+		exp = getNonNullExpressionUpwards(exp.getParent());
 	}
 
 	return exp;
@@ -100,7 +104,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
 	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
 	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
 	.set("split", (state, params) => {
-		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 		return `string.split(${str}, ${args})`;
 	});
 
@@ -189,7 +193,8 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 					);
 
 					let lastStatement: string | undefined;
-					const commentStr = subExp.getParent().getText();
+
+					const commentStr = getLeftHandSideParent(subExp, 1).getText();
 
 					for (let i = 1; i < numParams; i++) {
 						const j = numParams - i - 1;
@@ -650,7 +655,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			return compilePropertyMethod(state, property, params, "Object", OBJECT_REPLACE_METHODS);
 		}
 		case PropertyCallExpType.BuiltInStringMethod: {
-			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params);
+			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 			return `${accessPath}:${property}(${compiledArgs})`;
 		}
 		case PropertyCallExpType.PromiseThen: {
