@@ -449,4 +449,27 @@ export = () => {
 		arr.push("Nope");
 		expect(arr.isEmpty()).to.equal(false);
 	});
+
+	it("should support array.entries", () => {
+		function array_entries<T>(arr: Array<T>) {
+			let i = 0;
+			const results = new Array<[number, T]>();
+			for (const v of arr) {
+				results.push([i++, v]);
+			}
+			return results;
+		}
+
+		function compare<T>(results: Array<[number, T]>, array2: Array<[number, T]>) {
+			let x = 0;
+			for (const [i, v] of array2) {
+				const { [x++]: pair } = results;
+				expect(pair[0]).to.equal(i);
+				expect(pair[1]).to.equal(v);
+			}
+		}
+
+		const arr = [..."Hello, world!"];
+		compare(array_entries(arr), arr.entries());
+	});
 };

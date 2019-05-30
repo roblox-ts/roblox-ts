@@ -19,7 +19,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
-import { removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+import { getNonNullExpressionDownwards, removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -81,15 +81,16 @@ export function getReadableExpressionName(
 	exp: ts.Expression,
 	expStr = compileExpression(state, exp),
 ) {
+	const nonNullExp = getNonNullExpressionDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
-		(ts.TypeGuards.isIdentifier(exp) && !isIdentifierDefinedInExportLet(exp)) ||
+		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
-		(ts.TypeGuards.isNewExpression(exp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
+		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
 	) {
 		return expStr;
 	} else {
-		return state.pushPrecedingStatementToReuseableId(exp, expStr);
+		return state.pushPrecedingStatementToReuseableId(nonNullExp, expStr);
 	}
 }
 

@@ -268,6 +268,26 @@ export = () => {
 		).to.equal(true);
 	});
 
+	it("should properly destructure optimized strings", () => {
+		const truth = ["a", "b", "c", "d", "e", "f", "g"];
+		expect([..."abcdefg"].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure optimized strings with a ' as quotes", () => {
+		const truth = ["a", "b", "c", '"', "d", "e", "f", "g"];
+		expect([...'abc"defg'].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure optimized strings with backslashes", () => {
+		const truth = ["a", "\n", "b", "c", '"', "d", "e", "\t", "f", "\\", "g"];
+		expect([...'a\nbc"de\tf\\g'].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure strings with a ` as quotes", () => {
+		const truth = ["'", "a", "b", "c", '"', "d", "e", "f", "g", "'"];
+		expect([...`'abc"defg'`].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
 	it("should properly destruct gmatch #1", () => {
 		function catchLetters(...strs: Array<string>) {
 			expect(strs[0]).to.equal("a");
