@@ -456,17 +456,17 @@ export = () => {
 		expect(arr.isEmpty()).to.equal(false);
 	});
 
-<<<<<<< HEAD
 	it("should support unorderedRemove", () => {
 		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
 		const i = 2;
 		let value: number;
 
-		// expect(arr.unorderedRemove((i *= 2))).to.equal(4);
-		// expect(arr.length()).to.equal(7);
-		// expect(arr[4]).to.equal(7);
-		// expect(arr[6]).to.equal(6);
-=======
+		expect(arr.unorderedRemove((i *= 2))).to.equal(4);
+		expect(arr.length()).to.equal(7);
+		expect(arr[4]).to.equal(7);
+		expect(arr[6]).to.equal(6);
+	});
+
 	it("should support array.entries", () => {
 		function array_entries<T>(arr: Array<T>) {
 			let i = 0;
@@ -488,6 +488,5 @@ export = () => {
 
 		const arr = [..."Hello, world!"];
 		compare(array_entries(arr), arr.entries());
->>>>>>> fcf56e28f6a2314d66a9982de2cf50052fe0d325
 	});
 };
