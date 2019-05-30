@@ -207,9 +207,9 @@ export = () => {
 		expect(bar()[2]).to.equal(6);
 	});
 
-	it("should support destructuring the length property", () => {
-		const { length: len } = [1, 2, 3];
-		expect(len).to.equal(3);
+	it("should support accessing the length property", () => {
+		[1, 2, 3].length();
+		expect([1, 2, 3].length()).to.equal(3);
 	});
 
 	it("should destructure properly into already declared variables", () => {
@@ -218,7 +218,7 @@ export = () => {
 		expect(a).to.equal(4);
 
 		let len: number;
-		({ length: len } = [1, 2, 3]);
+		({ [2]: len } = [1, 2, 3]);
 		expect(len).to.equal(3);
 
 		let y = 0;
@@ -266,6 +266,26 @@ export = () => {
 				.union(set2.difference(set1))
 				.isEmpty(),
 		).to.equal(true);
+	});
+
+	it("should properly destructure optimized strings", () => {
+		const truth = ["a", "b", "c", "d", "e", "f", "g"];
+		expect([..."abcdefg"].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure optimized strings with a ' as quotes", () => {
+		const truth = ["a", "b", "c", '"', "d", "e", "f", "g"];
+		expect([...'abc"defg'].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure optimized strings with backslashes", () => {
+		const truth = ["a", "\n", "b", "c", '"', "d", "e", "\t", "f", "\\", "g"];
+		expect([...'a\nbc"de\tf\\g'].every((x, i) => truth[i] === x)).to.equal(true);
+	});
+
+	it("should properly destructure strings with a ` as quotes", () => {
+		const truth = ["'", "a", "b", "c", '"', "d", "e", "f", "g", "'"];
+		expect([...`'abc"defg'`].every((x, i) => truth[i] === x)).to.equal(true);
 	});
 
 	it("should properly destruct gmatch #1", () => {

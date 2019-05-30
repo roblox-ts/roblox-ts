@@ -132,6 +132,16 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 	}
 }
 
+export function laxTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.getUnionTypes().some(t => strictTypeConstraint(t, cb));
+	} else if (type.isIntersection()) {
+		return type.getIntersectionTypes().some(t => strictTypeConstraint(t, cb));
+	} else {
+		return cb(type);
+	}
+}
+
 export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
 		return type.getUnionTypes().every(t => strictTypeConstraint(t, cb));
@@ -147,7 +157,7 @@ export function isAnyType(type: ts.Type) {
 }
 
 export function isNullableType(type: ts.Type) {
-	return typeConstraint(type, t => t.isNullable() || t.isUndefined());
+	return laxTypeConstraint(type, t => t.isNullable() || t.isUndefined());
 }
 
 export function isBooleanType(type: ts.Type) {

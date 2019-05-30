@@ -374,6 +374,13 @@ end
 
 TS.Object_toString = toString
 
+-- string macro functions
+function TS.string_find_wrap(a, b, ...)
+	if a then
+		return a + 1, b + 1, ...
+	end
+end
+
 -- array macro functions
 local function array_copy(list)
 	local result = {}
@@ -384,6 +391,14 @@ local function array_copy(list)
 end
 
 TS.array_copy = array_copy
+
+function TS.array_entries(list)
+	local result = {}
+	for key = 1, #list do
+		result[key] = { key - 1, list[key] }
+	end
+	return result
+end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
@@ -438,24 +453,19 @@ TS.array_toString = toString
 
 function TS.array_slice(list, startI, endI)
 	local length = #list
-	if startI == nil then
-		startI = 0
-	end
-	if endI == nil then
-		endI = length
-	end
-	if startI < 0 then
-		startI = length + startI
-	end
-	if endI < 0 then
-		endI = length + endI
-	end
-	startI = startI + 1
-	endI = endI + 1
+
+	if startI == nil then startI = 0 end
+	if endI == nil then endI = length end
+
+	if startI < 0 then startI = length + startI end
+	if endI < 0 then endI = length + endI end
+
 	local result = {}
-	for i = startI, endI - 1 do
-		result[i - startI + 1] = list[i]
+
+	for i = startI + 1, endI do
+		result[i - startI] = list[i]
 	end
+
 	return result
 end
 
