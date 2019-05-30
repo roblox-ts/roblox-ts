@@ -17,6 +17,8 @@ const MINIMUM_RBX_TYPES_VERSION = 189;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
+const ROJO_DEFAULT_NAME = "default.project.json";
+const ROJO_OLD_NAME = "roblox-project.json";
 const MODULE_PREFIX = "rbx-";
 
 const IGNORED_DIAGNOSTIC_CODES = [
@@ -316,14 +318,13 @@ export class Project {
 	private getRojoFilePath() {
 		const candidates = new Array<string | undefined>();
 
-		const defaultName = "default.project.json";
-		const defaultPath = path.join(this.projectPath, defaultName);
+		const defaultPath = path.join(this.projectPath, ROJO_DEFAULT_NAME);
 		if (fs.pathExistsSync(defaultPath)) {
 			candidates.push(defaultPath);
 		}
 
 		for (const fileName of fs.readdirSync(this.projectPath)) {
-			if (fileName !== defaultName && ROJO_FILE_REGEX.test(fileName)) {
+			if (fileName !== ROJO_DEFAULT_NAME && (fileName === ROJO_OLD_NAME || ROJO_FILE_REGEX.test(fileName))) {
 				candidates.push(path.join(this.projectPath, fileName));
 			}
 		}
