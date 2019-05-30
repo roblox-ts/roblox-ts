@@ -268,17 +268,6 @@ export = () => {
 		).to.equal(true);
 	});
 
-	it("should properly destruct gmatch #1", () => {
-		function catchLetters(...strs: Array<string>) {
-			expect(strs[0]).to.equal("a");
-			expect(strs[1]).to.equal("b");
-			expect(strs[2]).to.equal("c");
-			expect(strs[3]).to.equal("d");
-		}
-		catchLetters(..."abcd".gmatch("."));
-	});
-
-<<<<<<< HEAD
 	it("should properly destructure optimized strings", () => {
 		const truth = ["a", "b", "c", "d", "e", "f", "g"];
 		expect([..."abcdefg"].every((x, i) => truth[i] === x)).to.equal(true);
@@ -297,7 +286,18 @@ export = () => {
 	it("should properly destructure strings with a ` as quotes", () => {
 		const truth = ["'", "a", "b", "c", '"', "d", "e", "f", "g", "'"];
 		expect([...`'abc"defg'`].every((x, i) => truth[i] === x)).to.equal(true);
-=======
+	});
+
+	it("should properly destruct gmatch #1", () => {
+		function catchLetters(...strs: Array<string>) {
+			expect(strs[0]).to.equal("a");
+			expect(strs[1]).to.equal("b");
+			expect(strs[2]).to.equal("c");
+			expect(strs[3]).to.equal("d");
+		}
+		catchLetters(..."abcd".gmatch("."));
+	});
+
 	it("should properly destruct gmatch #2", () => {
 		const [a, b, c] = string.gmatch("a,b,c", "[^,]+");
 		expect(a).to.equal("a");
@@ -324,6 +324,5 @@ export = () => {
 		expect(a[1]).to.equal(1);
 		expect(c[0]).to.equal("b");
 		expect(c[1]).to.equal(2);
->>>>>>> 9ae0dee9ab769915b4595925220d42a57be8b42f
 	});
 };

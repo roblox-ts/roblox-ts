@@ -10,7 +10,7 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { red, yellow } from "./utility";
 
-const MINIMUM_RBX_TYPES_VERSION = 187;
+const MINIMUM_RBX_TYPES_VERSION = 188;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
