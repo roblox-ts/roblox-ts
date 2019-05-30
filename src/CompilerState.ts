@@ -1,6 +1,7 @@
 import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { ProjectInfo } from "./types";
 import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
@@ -15,6 +16,7 @@ export class CompilerState {
 	constructor(
 		public readonly rootDirPath: string,
 		public readonly outDirPath: string,
+		public readonly projectInfo: ProjectInfo,
 		public readonly rojoProject?: RojoProject,
 		public readonly modulesDir?: ts.Directory,
 	) {}

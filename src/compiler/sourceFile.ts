@@ -3,6 +3,11 @@ import { compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getScriptContext, getScriptType, ScriptType } from "../utility";
+import { ProjectType } from "../Project";
+import { isRbxService } from "../typeUtilities";
+import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
+import RojoProject from "rojo-utils";
+import { transformPathToLua } from "../fsUtilities";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
@@ -42,14 +47,42 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 			result += state.indent + "return nil;\n";
 		}
 	}
+
 	if (state.usesTSLibrary) {
-		result =
-			`local TS = require(
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("RobloxTS")
-		:WaitForChild("Include")
-		:WaitForChild("RuntimeLib")
-);\n` + result;
+		let link: string;
+		if (state.projectInfo.type === ProjectType.Package) {
+			link = `shared[script];`;
+		} else if (state.projectInfo.type === ProjectType.Game) {
+			const runtimeLibPath = [...state.projectInfo.runtimeLibPath];
+			const service = runtimeLibPath.shift()!;
+			if (!isRbxService(service)) {
+				throw new CompilerError(
+					`"${service}" is not a valid Roblox Service!`,
+					node,
+					CompilerErrorType.InvalidService,
+				);
+			}
+			link = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
+		} else if (state.projectInfo.type === ProjectType.Bundle) {
+			const rbxPath = state.rojoProject!.getRbxFromFile(
+				transformPathToLua(state.rootDirPath, state.outDirPath, node.getFilePath()),
+			).path;
+			if (!rbxPath) {
+				throw new CompilerError(
+					`Bundle could not resolve runtime library location!`,
+					node,
+					CompilerErrorType.BadRojo,
+				);
+			}
+			const rbxRelative = RojoProject.relative(rbxPath, state.projectInfo.runtimeLibPath);
+			let start = "script";
+			while (rbxRelative[0] === "..") {
+				rbxRelative.shift();
+				start += ".Parent";
+			}
+			link = [start, ...rbxRelative].join(".");
+		}
+		result = `local TS = require(${link!});\n` + result;
 	}
 
 	const CURRENT_TIME = new Date().toLocaleString("en-US", {

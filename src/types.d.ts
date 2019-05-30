@@ -1,4 +1,5 @@
 import * as ts from "ts-morph";
+import { ProjectType } from "./Project";
 
 export type HasParameters =
 	| ts.FunctionExpression
@@ -8,3 +9,7 @@ export type HasParameters =
 	| ts.MethodDeclaration
 	| ts.GetAccessorDeclaration
 	| ts.SetAccessorDeclaration;
+
+type ProjectInfo =
+	| { type: ProjectType.Package }
+	| { type: ProjectType.Game | ProjectType.Bundle; runtimeLibPath: Array<string> };

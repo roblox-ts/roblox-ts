@@ -12,6 +12,7 @@ export enum ProjectErrorType {
 	UnexpectedExtensionType,
 	BadTsConfig,
 	BadRbxTypes,
+	BadRojoInclude,
 }
 
 export class ProjectError extends Error {

@@ -57,6 +57,7 @@ const LUA_RESERVED_NAMESPACES = [
 	"select",
 	"math",
 	"_G",
+	"shared",
 	"string",
 	"require",
 	"debug",
