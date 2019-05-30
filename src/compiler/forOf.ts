@@ -301,7 +301,6 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		let loopEndValue: string = `#${expStr}`;
 
 		if (key) {
-			console.log(isReversed, isBackwards);
 			accessor =
 				value && isReversed
 					? `${(loopEndValue = state.pushPrecedingStatementToNewId(node, loopEndValue))} - ${key}`
