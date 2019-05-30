@@ -10,6 +10,8 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { red, yellow } from "./utility";
 
+const MINIMUM_RBX_TYPES_VERSION = 187;
+
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
 const MODULE_PREFIX = "rbx-";
@@ -146,6 +148,7 @@ export class Project {
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
 			this.validateCompilerOptions();
+			this.validateRbxTypes();
 		} catch (e) {
 			if (e instanceof ProjectError) {
 				console.log(red("Compiler Error:"), e.message);
@@ -280,6 +283,45 @@ export class Project {
 		}
 	}
 
+	private validateRbxTypes() {
+		const pkgLockJsonPath = path.join(this.projectPath, "package-lock.json");
+		if (fs.pathExistsSync(pkgLockJsonPath)) {
+			const pkgLock = JSON.parse(fs.readFileSync(pkgLockJsonPath).toString());
+			if (pkgLock !== undefined) {
+				const dependencies = pkgLock.dependencies;
+				if (dependencies !== undefined) {
+					const rbxTypes = dependencies["rbx-types"];
+					if (rbxTypes !== undefined) {
+						const rbxTypesVersion = rbxTypes.version;
+						if (typeof rbxTypesVersion === "string") {
+							const regexMatch = rbxTypesVersion.match(/\d+$/g);
+							if (regexMatch !== null) {
+								const patchNumber = Number(regexMatch[0]);
+								if (!isNaN(patchNumber)) {
+									if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+										return;
+									} else {
+										throw new ProjectError(
+											`rbx-types is out of date!\n` +
+												yellow(`Installed version: 1.0.${patchNumber}\n`) +
+												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+												`Run 'npm i rbx-types' to fix this.`,
+											ProjectErrorType.BadRbxTypes,
+										);
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		throw new ProjectError(
+			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
+			ProjectErrorType.BadRbxTypes,
+		);
+	}
+
 	private getSyncFilePath() {
 		for (const name of SYNC_FILE_NAMES) {
 			const filePath = path.resolve(this.projectPath, name);
@@ -343,13 +385,23 @@ export class Project {
 					if (ext === ".lua") {
 						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 						const rootPath = path.join(this.rootDirPath, relativeToOut);
-						const baseName = path.basename(filePath, path.extname(filePath));
-						if (
-							!(await fs.pathExists(path.join(rootPath, baseName) + ".ts")) &&
-							!(await fs.pathExists(path.join(rootPath, baseName) + ".tsx")) &&
-							((baseName === "init" && !(await fs.pathExists(path.join(rootPath, "init") + ".lua"))) ||
-								!(await fs.pathExists(path.join(rootPath, baseName) + ".lua")))
-						) {
+
+						let baseName = path.basename(filePath, path.extname(filePath)); // index.server
+						const subext = path.extname(baseName);
+						baseName = path.basename(baseName, subext);
+
+						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
+						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
+						const initLuaFile =
+							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
+						const indexTsFile =
+							baseName === "init" && (await fs.pathExists(path.join(rootPath, "index") + subext + ".ts"));
+						const indexTsxFile =
+							baseName === "init" &&
+							(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx"));
+						const luaFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua");
+
+						if (!tsFile && !tsxFile && !initLuaFile && !indexTsFile && !indexTsxFile && !luaFile) {
 							fs.removeSync(filePath);
 							console.log("remove", filePath);
 						}

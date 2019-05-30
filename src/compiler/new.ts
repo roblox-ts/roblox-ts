@@ -3,7 +3,7 @@ import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpress
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom } from "../typeUtilities";
-import { suggest } from "../utility";
+import { getNonNullUnParenthesizedExpressionUpwards, suggest } from "../utility";
 import { compileCallArguments } from "./call";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
@@ -64,14 +64,14 @@ function compileSetMapConstructorHelper(
 		const compileElement = compileMapSetElement.get(type)!;
 
 		let exp: ts.Node = node;
-		let parent = node.getParent();
+		let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
 		const addMethodName = addKeyMethodNames.get(type)!;
 
 		while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
-			const grandparent = parent.getParent();
+			const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
 			if (ts.TypeGuards.isCallExpression(grandparent)) {
 				exp = grandparent;
-				parent = grandparent.getParent();
+				parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
 			}
 		}
 
