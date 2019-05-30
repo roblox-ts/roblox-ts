@@ -1,16 +1,23 @@
 export = () => {
 	it("should support string methods", () => {
-		expect("Hello, world".sub(0, 1)).to.equal("H");
+		expect("Hello, world".sub(0, 0)).to.equal("H");
 	});
 
 	it("should support string methods on identifiers", () => {
 		const str = "Hello, world";
-		expect(str.sub(0, 1)).to.equal("H");
+		expect(str.sub(0, 0)).to.equal("H");
+	});
+
+	it("should support string.slice", () => {
+		const str = "Hello, world";
+		expect(str.slice(0, 1)).to.equal("H");
+
+		expect("Hello, world".slice(0, 1)).to.equal("H");
 	});
 
 	it("should support string.split", () => {
 		function checkLen<T>(len: number, arr: Array<T>) {
-			expect(arr.length).to.equal(len);
+			expect(arr.length()).to.equal(len);
 			return arr;
 		}
 
@@ -27,7 +34,7 @@ export = () => {
 		for (let i = 2; i < 10; i++) {
 			const str = "d".rep(i - 1);
 			const str1 = str.split("d");
-			expect(str1.length).to.equal(i);
+			expect(str1.length()).to.equal(i);
 			expect(str1.every(c => c === "")).to.equal(true);
 		}
 

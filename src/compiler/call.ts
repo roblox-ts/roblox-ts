@@ -117,17 +117,6 @@ export function addOneToStringIndex(valueStr: string) {
 	return valueStr + " + 1";
 }
 
-/*
-local function string_slice(list, startI, endI)
-	if startI ~= nil and startI < 0 then startI = startI - 1 end
-	if endI ~= nil and endI < 0 then endI = endI - 1 end
-
-	print(startI + 1, endI)
-	return list:sub(startI + 1, endI)
-end
-*/
-
-// TODO: Optimize case where they are the same identifier
 function macroStringIndexFunction(
 	methodName: string,
 	incrementedArgs: Array<number>,
@@ -135,20 +124,37 @@ function macroStringIndexFunction(
 ): ReplaceFunction {
 	return (state, params) => {
 		let i = -1;
+		let wasIncrementing: boolean | undefined;
 		const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateWrapped(
 			state,
 			params,
 			true,
 			(subState, param) => {
-				i++;
-				const expStr = compileExpression(subState, param);
-				let incrementing: boolean;
+				const previousParam = params[i++];
+				let incrementing: boolean | undefined;
 
 				if (incrementedArgs.indexOf(i) !== -1) {
 					incrementing = true;
 				} else if (decrementedArgs.indexOf(i) !== -1) {
 					incrementing = false;
-				} else {
+				}
+
+				if (
+					incrementing === wasIncrementing &&
+					ts.TypeGuards.isIdentifier(param) &&
+					ts.TypeGuards.isIdentifier(previousParam)
+				) {
+					const definitions = param.getDefinitions().map(def => def.getNode());
+					if (previousParam.getDefinitions().every((def, i) => definitions[i] === def.getNode())) {
+						wasIncrementing = incrementing;
+						return "";
+					}
+				}
+
+				wasIncrementing = incrementing;
+				const expStr = compileExpression(subState, param);
+
+				if (incrementing === undefined) {
 					return expStr;
 				}
 
@@ -177,7 +183,9 @@ function macroStringIndexFunction(
 				return id;
 			},
 		);
-		return `${accessPath}:${methodName}(${compiledArgs.join(", ")})`;
+		return `${accessPath}:${methodName}(${compiledArgs
+			.map((arg, i, args) => (arg === "" ? args[i - 1] : arg))
+			.join(", ")})`;
 	};
 }
 
@@ -258,6 +266,7 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["length", wrapExpFunc(accessPath => `#${accessPath})`)],
 	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
 	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
 	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
@@ -268,7 +277,8 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			return `string.split(${str}, ${args})`;
 		},
 	],
-	["sub", macroStringIndexFunction("sub", [1], [2])],
+	["slice", macroStringIndexFunction("sub", [1], [2])],
+	["sub", macroStringIndexFunction("sub", [1, 2])],
 	["byte", macroStringIndexFunction("byte", [1, 2])],
 	[
 		"find",
@@ -309,6 +319,7 @@ const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 	);
 
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	["length", wrapExpFunc(accessPath => `#${accessPath})`)],
 	[
 		"pop",
 		(state, params) => {

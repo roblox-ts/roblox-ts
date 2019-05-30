@@ -99,9 +99,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if ((isArrayType(expType) || isStringType(expType)) && propertyStr === "length") {
-		return `#(${removeBalancedParenthesisFromStringBorders(expStr)})`;
-	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,

@@ -17,11 +17,11 @@ export = () => {
 		expect(foo()[2]).to.equal(3);
 	});
 
-	it("should support length", () => {
-		expect([].length).to.equal(0);
-		expect([1].length).to.equal(1);
-		expect([1, 2].length).to.equal(2);
-		expect([1, 2, 3].length).to.equal(3);
+	it("should support.length()", () => {
+		expect([].length()).to.equal(0);
+		expect([1].length()).to.equal(1);
+		expect([1, 2].length()).to.equal(2);
+		expect([1, 2, 3].length()).to.equal(3);
 	});
 
 	it("should support push", () => {
@@ -52,7 +52,7 @@ export = () => {
 		const a = [456];
 		const b = a.pop();
 		expect(b).to.equal(456);
-		expect(a.length).to.equal(0);
+		expect(a.length()).to.equal(0);
 		expect(a[0]).never.to.be.ok();
 	});
 
@@ -89,7 +89,7 @@ export = () => {
 		const a = [1, 2, 3];
 		const b = a.shift();
 		expect(b).to.equal(1);
-		expect(a.length).to.equal(2);
+		expect(a.length()).to.equal(2);
 		expect(a[0]).to.equal(2);
 		expect(a[1]).to.equal(3);
 	});
@@ -99,32 +99,32 @@ export = () => {
 
 		const b = a.slice();
 		expect(b).never.to.equal(a);
-		expect(b.length).to.equal(3);
+		expect(b.length()).to.equal(3);
 		expect(b[0]).to.equal(1);
 		expect(b[1]).to.equal(2);
 		expect(b[2]).to.equal(3);
 
 		const c = a.slice(0, 1);
 		expect(c).never.to.equal(a);
-		expect(c.length).to.equal(1);
+		expect(c.length()).to.equal(1);
 		expect(c[0]).to.equal(1);
 
 		const d = a.slice(-2);
 		expect(d).never.to.equal(a);
-		expect(d.length).to.equal(2);
+		expect(d.length()).to.equal(2);
 		expect(d[0]).to.equal(2);
 		expect(d[1]).to.equal(3);
 
 		const e = a.slice();
 		expect(e).never.to.equal(a);
-		expect(e.length).to.equal(3);
+		expect(e.length()).to.equal(3);
 		expect(e[0]).to.equal(1);
 		expect(e[1]).to.equal(2);
 		expect(e[2]).to.equal(3);
 
 		const f = a.slice(0, -1);
 		expect(f).never.to.equal(a);
-		expect(f.length).to.equal(2);
+		expect(f.length()).to.equal(2);
 		expect(f[0]).to.equal(1);
 		expect(f[1]).to.equal(2);
 	});
@@ -134,10 +134,10 @@ export = () => {
 
 	it("should support splice", () => {
 		function equal<T>(a: Array<T>, b: Array<T>) {
-			if (a.length !== b.length) {
+			if (a.length() !== b.length()) {
 				return false;
 			}
-			for (let i = 0; i < a.length; i++) {
+			for (let i = 0; i < a.length(); i++) {
 				if (a[i] !== b[i]) {
 					return false;
 				}
@@ -226,7 +226,7 @@ export = () => {
 		const a = [1, 2, 3, 4, 5];
 		const b = a.filter(v => v % 2 === 0);
 		expect(b).never.to.equal(a);
-		expect(b.length).to.equal(2);
+		expect(b.length()).to.equal(2);
 		expect(b[0]).to.equal(2);
 		expect(b[1]).to.equal(4);
 	});
@@ -279,7 +279,7 @@ export = () => {
 		expect(b[3]).to.equal(4);
 		expect(b[4]).to.equal(5);
 		expect(b[5]).to.equal(6);
-		expect(b.length).to.equal(6);
+		expect(b.length()).to.equal(6);
 		const c = [...[1], ...[2]];
 		expect(c[0]).to.equal(1);
 		expect(c[1]).to.equal(2);
@@ -289,8 +289,8 @@ export = () => {
 		const a = [1, 2, 3];
 		const b = [...a];
 		expect(a).never.to.equal(b);
-		expect(a.length).to.equal(b.length);
-		for (let i = 0; i < a.length; i++) {
+		expect(a.length()).to.equal(b.length());
+		for (let i = 0; i < a.length(); i++) {
 			expect(b[i]).to.equal(a[i]);
 		}
 	});
@@ -458,11 +458,11 @@ export = () => {
 
 	it("should support unorderedRemove", () => {
 		const arr = [0, 1, 2, 3, 4, 5, 6, 7];
-		let i = 2;
+		const i = 2;
 		let value: number;
 
 		// expect(arr.unorderedRemove((i *= 2))).to.equal(4);
-		// expect(arr.length).to.equal(7);
+		// expect(arr.length()).to.equal(7);
 		// expect(arr[4]).to.equal(7);
 		// expect(arr[6]).to.equal(6);
 	});

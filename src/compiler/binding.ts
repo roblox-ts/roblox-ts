@@ -158,10 +158,6 @@ function objectAccessor(
 				CompilerErrorType.BadDestructuringType,
 			);
 		}
-
-		if (name === "length") {
-			return `#${t}`;
-		}
 	}
 
 	return `${t}.${name}`;
