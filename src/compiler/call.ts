@@ -272,7 +272,7 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
-	["length", wrapExpFunc(accessPath => `#${accessPath})`)],
+	["length", wrapExpFunc(accessPath => `#${accessPath}`)],
 	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
 	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
 	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
@@ -325,7 +325,7 @@ const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 	);
 
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
-	["length", wrapExpFunc(accessPath => `#${accessPath})`)],
+	["length", wrapExpFunc(accessPath => `#${accessPath}`)],
 	[
 		"pop",
 		(state, params) => {
