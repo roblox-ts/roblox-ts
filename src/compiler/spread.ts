@@ -23,7 +23,11 @@ export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	return false;
 }
 
-export function compileSpreadableList(state: CompilerState, elements: Array<ts.Expression>) {
+export function compileSpreadableList(
+	state: CompilerState,
+	elements: Array<ts.Expression>,
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+) {
 	// The logic here is equivalent to the compileList logic, although it looks a bit more complicated
 	let isInArray = false;
 	const parts = new Array<Array<string> | string>();
@@ -67,7 +71,7 @@ export function compileSpreadableList(state: CompilerState, elements: Array<ts.E
 				args.push(lastElement);
 			}
 			state.enterPrecedingStatementContext();
-			const expStr = compileExpression(state, element);
+			const expStr = compile(state, element);
 			const context = state.exitPrecedingStatementContext() as PrecedingStatementContext;
 
 			if (context.length > 0) {
@@ -159,8 +163,9 @@ export function compileSpreadableListAndJoin(
 	state: CompilerState,
 	elements: Array<ts.Expression>,
 	shouldWrapInConcat: boolean = true,
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
 ) {
-	let params = compileSpreadableList(state, elements)
+	let params = compileSpreadableList(state, elements, compile)
 		.map(v => {
 			if (typeof v === "string") {
 				return v;

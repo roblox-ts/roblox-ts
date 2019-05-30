@@ -207,9 +207,9 @@ export = () => {
 		expect(bar()[2]).to.equal(6);
 	});
 
-	it("should support destructuring the length property", () => {
-		const { length: len } = [1, 2, 3];
-		expect(len).to.equal(3);
+	it("should support accessing the length property", () => {
+		[1, 2, 3].length();
+		expect([1, 2, 3].length()).to.equal(3);
 	});
 
 	it("should destructure properly into already declared variables", () => {
@@ -218,7 +218,7 @@ export = () => {
 		expect(a).to.equal(4);
 
 		let len: number;
-		({ length: len } = [1, 2, 3]);
+		({ [2]: len } = [1, 2, 3]);
 		expect(len).to.equal(3);
 
 		let y = 0;

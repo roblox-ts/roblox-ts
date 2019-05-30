@@ -15,13 +15,13 @@ export = () => {
 			"-": (a, b) => a.sub(b),
 		};
 
-		function m(strings: TemplateStringsArray, ...operands: Vector3[]): Vector3 {
+		function m(strings: TemplateStringsArray, ...operands: Array<Vector3>): Vector3 {
 			const operators = strings.map(v => v.trim());
 
 			let value = operands.shift()!;
 			operators.shift();
 
-			for (let i = 0; i < operands.length; i++) {
+			for (let i = 0; i < operands.length(); i++) {
 				const operator = operators[i].trim();
 				if (operator in OPERATIONS) {
 					const operation = OPERATIONS[operator];

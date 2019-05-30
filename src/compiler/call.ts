@@ -11,7 +11,9 @@ import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	isArrayMethodType,
+	isConstantExpression,
 	isMapMethodType,
+	isNullableType,
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
@@ -19,22 +21,14 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
-import { getReadableExpressionName, isIdentifierDefinedInConst } from "./indexed";
+import {
+	addOneToArrayIndex,
+	getReadableExpressionName,
+	isIdentifierDefinedInConst,
+	isIdentifierDefinedInExportLet,
+} from "./indexed";
 
-const STRING_MACRO_METHODS = [
-	"byte",
-	"find",
-	"format",
-	"gmatch",
-	"gsub",
-	"len",
-	"lower",
-	"match",
-	"rep",
-	"reverse",
-	"sub",
-	"upper",
-];
+const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "len", "lower", "rep", "reverse", "upper"];
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
@@ -74,12 +68,13 @@ function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Ar
 	return [accessPath, compiledArgs.join(", ")];
 }
 
-function compileCallArgumentsAndSeparateAndJoinWrapped(
+function compileCallArgumentsAndSeparateWrapped(
 	state: CompilerState,
 	params: Array<ts.Expression>,
 	strict: boolean = false,
-): [string, string] {
-	const [accessPath, ...compiledArgs] = compileCallArguments(state, params);
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+): [string, Array<string>] {
+	const [accessPath, ...compiledArgs] = compileCallArguments(state, params, undefined, compile);
 
 	// If we compile to a method call, we might need to wrap in parenthesis
 	// We are going to wrap in parenthesis just to be safe,
@@ -96,17 +91,237 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 		accessStr = accessPath;
 	}
 
+	return [accessStr, compiledArgs];
+}
+
+function compileCallArgumentsAndSeparateAndJoinWrapped(
+	state: CompilerState,
+	params: Array<ts.Expression>,
+	strict: boolean = false,
+): [string, string] {
+	const [accessStr, compiledArgs] = compileCallArgumentsAndSeparateWrapped(state, params, strict);
 	return [accessStr, compiledArgs.join(", ")];
 }
 
-const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
-	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
-	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
-	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
-	.set("split", (state, params) => {
-		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
-		return `string.split(${str}, ${args})`;
-	});
+export function addOneToStringIndex(valueStr: string) {
+	if (valueStr === "nil") {
+		return "nil";
+	}
+
+	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+		const valueNumber = Number(valueStr);
+		if (!Number.isNaN(valueNumber)) {
+			return (valueNumber < 0 ? valueNumber : valueNumber + 1).toString();
+		}
+	}
+	return valueStr + " + 1";
+}
+
+function macroStringIndexFunction(
+	methodName: string,
+	incrementedArgs: Array<number>,
+	decrementedArgs: Array<number> = [],
+): ReplaceFunction {
+	return (state, params) => {
+		let i = -1;
+		let wasIncrementing: boolean | undefined;
+		const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateWrapped(
+			state,
+			params,
+			true,
+			(subState, param) => {
+				const previousParam = params[i++];
+				let incrementing: boolean | undefined;
+
+				if (incrementedArgs.indexOf(i) !== -1) {
+					incrementing = true;
+				} else if (decrementedArgs.indexOf(i) !== -1) {
+					incrementing = false;
+				}
+
+				if (
+					previousParam &&
+					incrementing === wasIncrementing &&
+					ts.TypeGuards.isIdentifier(param) &&
+					ts.TypeGuards.isIdentifier(previousParam)
+				) {
+					const definitions = param.getDefinitions().map(def => def.getNode());
+					if (previousParam.getDefinitions().every((def, j) => definitions[j] === def.getNode())) {
+						wasIncrementing = incrementing;
+						return "";
+					}
+				}
+
+				wasIncrementing = incrementing;
+				const expStr = compileExpression(subState, param);
+
+				if (incrementing === undefined) {
+					return expStr;
+				}
+
+				if (expStr === "nil") {
+					return "nil";
+				}
+
+				if (expStr.indexOf("e") === -1 && expStr.indexOf("E") === -1) {
+					const valueNumber = Number(expStr);
+					if (!Number.isNaN(valueNumber)) {
+						if (incrementing) {
+							return (valueNumber >= 0 ? valueNumber + 1 : valueNumber).toString();
+						} else {
+							return (valueNumber < 0 ? valueNumber - 1 : valueNumber).toString();
+						}
+					}
+				}
+
+				const currentContext = state.getCurrentPrecedingStatementContext(param);
+				const id = currentContext.isPushed ? expStr : state.pushPrecedingStatementToNewId(param, expStr);
+				const isNullable = isNullableType(param.getType());
+				if (incrementing) {
+					currentContext.push(
+						state.indent + `if ${isNullable ? `${id} and ` : ""}${id} >= 0 then ${id} = ${id} + 1; end\n`,
+					);
+				} else {
+					currentContext.push(
+						state.indent + `if ${isNullable ? `${id} and ` : ""}${id} < 0 then ${id} = ${id} - 1; end\n`,
+					);
+				}
+				return id;
+			},
+		);
+		return `${accessPath}:${methodName}(${compiledArgs
+			.map((arg, j, args) => (arg === "" ? args[j - 1] : arg))
+			.join(", ")})`;
+	};
+}
+
+const findMacro = macroStringIndexFunction("find", [2]);
+
+function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
+	const [strParam, maxLengthParam, fillStringParam] = params;
+	let str: string;
+	let maxLength: string;
+	let fillString: string;
+
+	[str, maxLength, fillString] = compileCallArguments(state, params);
+
+	if (
+		!ts.TypeGuards.isStringLiteral(strParam) &&
+		(!ts.TypeGuards.isIdentifier(strParam) || isIdentifierDefinedInExportLet(strParam))
+	) {
+		str = state.pushPrecedingStatementToNewId(strParam, str);
+	}
+
+	let fillStringLength: string | undefined;
+
+	if (fillStringParam === undefined) {
+		fillString = `(" ")`;
+		fillStringLength = "1";
+	} else {
+		if (isNullableType(fillStringParam.getType())) {
+			fillString = `(${fillString} or " ")`;
+		} else if (!fillString.match(/^\(*_\d+\)*$/) && shouldWrapExpression(fillStringParam, true)) {
+			fillString = `(${fillString})`;
+		}
+
+		if (ts.TypeGuards.isStringLiteral(fillStringParam)) {
+			fillStringLength = `${fillStringParam.getLiteralText().length}`;
+		} else {
+			fillStringLength = `#${fillString}`;
+		}
+	}
+
+	let targetLength: string;
+	let repititions: string | undefined;
+	let rawRepititions: number | undefined;
+	if (ts.TypeGuards.isStringLiteral(strParam)) {
+		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
+			const literalTargetLength = maxLengthParam.getLiteralValue() - strParam.getLiteralText().length;
+
+			if (fillStringParam === undefined || ts.TypeGuards.isStringLiteral(fillStringParam)) {
+				rawRepititions = literalTargetLength / (fillStringParam ? fillStringParam.getLiteralText().length : 1);
+				repititions = `${Math.ceil(rawRepititions)}`;
+			}
+
+			targetLength = `${literalTargetLength}`;
+		} else {
+			targetLength = `${maxLength} - ${strParam.getLiteralText().length}`;
+			if (fillStringLength !== "1") {
+				targetLength = state.pushPrecedingStatementToNewId(maxLengthParam, `${targetLength}`);
+			}
+		}
+	} else {
+		targetLength = `${maxLength} - #${str}`;
+		if (fillStringLength !== "1") {
+			targetLength = state.pushPrecedingStatementToNewId(maxLengthParam, `${targetLength}`);
+		}
+	}
+
+	const doNotTrim =
+		(rawRepititions !== undefined && rawRepititions === Math.ceil(rawRepititions)) || fillStringLength === "1";
+
+	return [
+		`${fillString}:rep(${repititions ||
+			(fillStringLength === "1"
+				? targetLength
+				: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})${
+			doNotTrim ? "" : `:sub(1, ${targetLength})`
+		}`,
+		str,
+	];
+}
+
+const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	[
+		"length",
+		(state, params) => {
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`#${compileCallArgumentsAndSeparateAndJoinWrapped(state, params)[0]}`,
+			);
+		},
+	],
+	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
+	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
+	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
+	[
+		"split",
+		(state, params) => {
+			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
+			return `string.split(${str}, ${args})`;
+		},
+	],
+	["slice", macroStringIndexFunction("sub", [1], [2])],
+	["sub", macroStringIndexFunction("sub", [1, 2])],
+	["byte", macroStringIndexFunction("byte", [1, 2])],
+	[
+		"find",
+		(state, params) => {
+			state.usesTSLibrary = true;
+			return `TS.string_find_wrap(${findMacro(state, params)!})`;
+		},
+	],
+	["match", macroStringIndexFunction("match", [2])],
+
+	[
+		"padStart",
+		(state, params) =>
+			appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				padAmbiguous(state, params).join(" .. "),
+			),
+	],
+
+	[
+		"padEnd",
+		(state, params) => {
+			const [a, b] = padAmbiguous(state, params);
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
+		},
+	],
+]);
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
@@ -119,6 +334,16 @@ const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 	);
 
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
+	[
+		"length",
+		(state, params) => {
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`#${compileCallArgumentsAndSeparateAndJoinWrapped(state, params)[0]}`,
+			);
+		},
+	],
 	[
 		"pop",
 		(state, params) => {
@@ -140,6 +365,49 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				context.isPushed = isPushed;
 				return id;
 			}
+		},
+	],
+
+	[
+		"unorderedRemove",
+		(state, params) => {
+			const subExp = params[0];
+			const node = getLeftHandSideParent(subExp, 2);
+			const accessPath = getReadableExpressionName(state, subExp);
+			let id: string;
+
+			const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+			const lastPlace = `${accessPath}[${len}]`;
+
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			let removingIndex = addOneToArrayIndex(compileCallArguments(state, params.slice(1))[0]);
+
+			if (!isStatement && !isConstantExpression(params[1], 0)) {
+				removingIndex = state.pushPrecedingStatementToNewId(subExp, removingIndex);
+			}
+
+			const removingPlace = `${accessPath}[${removingIndex}]`;
+
+			if (!isStatement) {
+				id = state.pushToDeclarationOrNewId(node, removingPlace);
+			}
+
+			const context = state.getCurrentPrecedingStatementContext(subExp);
+			const { isPushed } = context;
+
+			state.pushPrecedingStatements(
+				subExp,
+				`${removingPlace} = ${lastPlace}; -- ${subExp.getText()}.unorderedRemove\n`,
+			);
+
+			const nullSet = state.indent + `${lastPlace} = nil`;
+
+			if (!isStatement) {
+				state.pushPrecedingStatements(subExp, nullSet + ";\n");
+			}
+
+			context.isPushed = isPushed;
+			return isStatement ? nullSet : id!;
 		},
 	],
 
@@ -267,7 +535,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"insert",
 		(state, params) => {
 			const [accessPath, indexParamStr, valueParamStr] = compileCallArguments(state, params);
-			return `table.insert(${accessPath}, ${indexParamStr} + 1, ${valueParamStr})`;
+			return `table.insert(${accessPath}, ${addOneToArrayIndex(indexParamStr)}, ${valueParamStr})`;
 		},
 	],
 
@@ -275,7 +543,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"remove",
 		(state, params) => {
 			const [accessPath, indexParamStr] = compileCallArguments(state, params);
-			return `table.remove(${accessPath}, ${indexParamStr} + 1)`;
+			return `table.remove(${accessPath}, ${addOneToArrayIndex(indexParamStr)})`;
 		},
 	],
 
@@ -285,9 +553,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 function getPropertyAccessExpressionRoot(root: ts.Expression) {
 	while (ts.TypeGuards.isCallExpression(root)) {
 		const exp = root.getExpression();
-		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-			root = exp.getExpression();
+		if (!ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			break;
 		}
+		root = exp.getExpression();
 	}
 	return root;
 }
@@ -457,13 +726,18 @@ export function compileList(
 	return argStrs;
 }
 
-export function compileCallArguments(state: CompilerState, args: Array<ts.Expression>, extraParameter?: string) {
+export function compileCallArguments(
+	state: CompilerState,
+	args: Array<ts.Expression>,
+	extraParameter?: string,
+	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
+) {
 	let argStrs: Array<string>;
 
 	if (shouldCompileAsSpreadableList(args)) {
-		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args)})`];
+		argStrs = [`unpack(${compileSpreadableListAndJoin(state, args, true, compile)})`];
 	} else {
-		argStrs = compileList(state, args);
+		argStrs = compileList(state, args, compile);
 	}
 
 	if (extraParameter) {

@@ -28,9 +28,9 @@ export = () => {
 		expect("foo").to.equal("foo");
 		expect('foo').to.equal("foo");
 		expect(`foo`).to.equal("foo");
-		expect("foo".length).to.equal(3);
-		expect('foo'.length).to.equal(3);
-		expect(`foo`.length).to.equal(3);
+		expect("foo".length()).to.equal(3);
+		expect('foo'.length()).to.equal(3);
+		expect(`foo`.length()).to.equal(3);
 		expect("\"").to.equal("\"");
 		expect(`\"`).to.equal("\"");
 		expect('\"').to.equal("\"");
@@ -136,8 +136,8 @@ export = () => {
 	it("should support string methods", () => {
 		const foo = " foo ";
 		expect(foo.trim()).to.equal("foo");
-		expect(foo.trimLeft()).to.equal("foo ");
-		expect(foo.trimRight()).to.equal(" foo");
+		expect(foo.trimStart()).to.equal("foo ");
+		expect(foo.trimEnd()).to.equal(" foo");
 	});
 
 	it("should allow postfix operators on properties", () => {

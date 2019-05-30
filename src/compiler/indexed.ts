@@ -4,22 +4,13 @@ import {
 	checkNonAny,
 	compileCallExpression,
 	compileExpression,
-	compileNumericLiteral,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import {
-	inheritsFrom,
-	isArrayType,
-	isMapType,
-	isNumberType,
-	isSetType,
-	isStringType,
-	isTupleReturnTypeCall,
-} from "../typeUtilities";
-import { getNonNullExpressionDownwards, removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+import { inheritsFrom, isArrayType, isMapType, isNumberType, isSetType, isTupleReturnTypeCall } from "../typeUtilities";
+import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -101,9 +92,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if ((isArrayType(expType) || isStringType(expType)) && propertyStr === "length") {
-		return `#(${removeBalancedParenthesisFromStringBorders(expStr)})`;
-	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
@@ -127,7 +116,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
 	}
 
-	const symbol = exp.getType().getSymbol();
+	const symbol = expType.getSymbol();
 	if (symbol) {
 		const valDec = symbol.getValueDeclaration();
 		if (valDec) {
@@ -162,39 +151,33 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
+export function addOneToArrayIndex(valueStr: string) {
+	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+		const valueNumber = Number(valueStr);
+		if (!Number.isNaN(valueNumber)) {
+			return (valueNumber + 1).toString();
+		}
+	}
+	return valueStr + " + 1";
+}
+
 export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	const expNode = node.getExpression();
 	const expType = expNode.getType();
 	const argExp = node.getArgumentExpressionOrThrow();
 
-	let addOne = false;
+	const valueStr = compileExpression(state, argExp);
+
 	if (isNumberType(argExp.getType())) {
-		if (isArrayType(expType)) {
-			addOne = true;
-		} else if (
-			ts.TypeGuards.isCallExpression(expNode) &&
-			(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType()))
+		if (
+			isArrayType(expType) ||
+			(ts.TypeGuards.isCallExpression(expNode) &&
+				(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType())))
 		) {
-			addOne = true;
+			return addOneToArrayIndex(valueStr);
 		}
 	}
-
-	let offset = "";
-	let argExpStr: string;
-	if (ts.TypeGuards.isNumericLiteral(argExp) && argExp.getText().indexOf("e") === -1) {
-		let value = Number(compileNumericLiteral(state, argExp));
-		if (addOne) {
-			value++;
-		}
-		argExpStr = value.toString();
-	} else {
-		if (addOne) {
-			offset = " + 1";
-		}
-		argExpStr = compileExpression(state, argExp) + offset;
-	}
-
-	return argExpStr;
+	return valueStr;
 }
 
 export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {
