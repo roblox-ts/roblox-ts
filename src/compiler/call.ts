@@ -398,12 +398,8 @@ function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => stri
 }
 
 const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
-	// I would prefer if we settled on one of these pairs. I prefer the second.
 	["typeIs", makeGlobalExpressionMacro((obj, type) => `typeof(${obj}) == ${type}`)],
-	["classNameIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
-
-	["isType", makeGlobalExpressionMacro((obj, type) => `typeof(${obj}) == ${type}`)],
-	["isClassName", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
+	["classIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
 ]);
 
 export function compileList(
