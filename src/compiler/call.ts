@@ -46,7 +46,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = subExp;
 
 	for (let i = 0; i < climb; i++) {
-		exp = exp.getParent();
+		exp = getNonNullExpressionUpwards(exp.getParent());
 	}
 
 	return exp;
@@ -103,6 +103,7 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 	return [accessStr, compiledArgs.join(", ")];
 }
 
+<<<<<<< HEAD
 export function addOneToStringIndex(valueStr: string) {
 	if (valueStr === "nil") {
 		return "nil";
@@ -307,6 +308,16 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		},
 	],
 ]);
+=======
+const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>()
+	.set("trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`))
+	.set("trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`))
+	.set("trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`))
+	.set("split", (state, params) => {
+		const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
+		return `string.split(${str}, ${args})`;
+	});
+>>>>>>> 6c4d7f91dc595f000bd82f795b54b93852b9115f
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
@@ -437,7 +448,8 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 					);
 
 					let lastStatement: string | undefined;
-					const commentStr = subExp.getParent().getText();
+
+					const commentStr = getLeftHandSideParent(subExp, 1).getText();
 
 					for (let i = 1; i < numParams; i++) {
 						const j = numParams - i - 1;

@@ -98,15 +98,23 @@ export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.
 	state.pushIdStack();
 	state.exportStack.push(new Set<string>());
 	let result = "";
-	state.hoistStack.push(new Set<string>());
+
+	const shouldMakeHoistStack = !ts.TypeGuards.isCaseClause(node);
+
+	if (shouldMakeHoistStack) {
+		state.hoistStack.push(new Set<string>());
+	}
+
 	for (const child of node.getStatements()) {
 		result += compileStatement(state, child);
-		if (child.getKind() === ts.SyntaxKind.ReturnStatement) {
+		if (ts.TypeGuards.isReturnStatement(child) || ts.TypeGuards.isBreakStatement(child)) {
 			break;
 		}
 	}
 
-	result = state.popHoistStack(result);
+	if (shouldMakeHoistStack) {
+		result = state.popHoistStack(result);
+	}
 
 	const scopeExports = state.exportStack.pop();
 	if (scopeExports && scopeExports.size > 0) {

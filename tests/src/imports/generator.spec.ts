@@ -1,3 +1,22 @@
+function* walkDescendants(instance: Instance): IterableIterator<Instance> {
+	yield instance;
+	for (const child of instance.GetChildren()) {
+		yield* walkDescendants(child);
+	}
+}
+
+function makeFolder(name: string, parent?: Instance) {
+	const folder = new Instance("Folder");
+	folder.Name = name;
+	folder.Parent = parent;
+	return folder;
+}
+
+const root = makeFolder("root");
+const a = makeFolder("a", root);
+const b = makeFolder("b", a);
+const c = makeFolder("c", b);
+
 export = () => {
 	it("should support generator functions", () => {
 		function* arrayIterator<T>(arr: Array<T>) {
@@ -107,5 +126,20 @@ export = () => {
 		const it4 = arrayIterator(array4);
 
 		expect([...it4].every((x, i) => x === array4[i])).to.equal(true);
+	});
+
+	it("should suport using yield with a generator", () => {
+		const [w, x, y, z] = walkDescendants(root);
+		expect(w).to.equal(root);
+		expect(x).to.equal(a);
+		expect(y).to.equal(b);
+		expect(z).to.equal(c);
+	});
+
+	it("should suport using yield with a generator with omitted expression", () => {
+		const [, x, y, z] = walkDescendants(root);
+		expect(x).to.equal(a);
+		expect(y).to.equal(b);
+		expect(z).to.equal(c);
 	});
 };

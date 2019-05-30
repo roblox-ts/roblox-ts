@@ -11,7 +11,6 @@ export = () => {
 	it("should support string.slice", () => {
 		const str = "Hello, world";
 		expect(str.slice(0, 1)).to.equal("H");
-
 		expect("Hello, world".slice(0, 1)).to.equal("H");
 	});
 
@@ -22,7 +21,7 @@ export = () => {
 		}
 
 		const str = "Hello, world";
-		const chars = [str.byte(0, -1)].map(i => string.char(i));
+		const chars = str.byte(0, -1).map(i => string.char(i));
 		const words = ["Hello", "world"];
 		const hSplit = ["", "ello, world"];
 
