@@ -1,13 +1,12 @@
+import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getScriptContext, getScriptType, ScriptType } from "../utility";
+import { transformPathToLua } from "../fsUtilities";
 import { ProjectType } from "../Project";
 import { isRbxService } from "../typeUtilities";
-import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
-import RojoProject from "rojo-utils";
-import { transformPathToLua } from "../fsUtilities";
+import { getScriptContext, getScriptType, ScriptType } from "../utility";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
