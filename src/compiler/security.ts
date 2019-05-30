@@ -111,7 +111,7 @@ const LUA_RESERVED_NAMESPACES = [
 	"Ray",
 ];
 
-const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis"];
+const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis", "table"];
 
 export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
 	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {

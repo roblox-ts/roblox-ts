@@ -194,7 +194,13 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 	} else if (isArrayType(expType)) {
 		return compileExpression(state, expression);
 	} else if (isStringType(expType)) {
-		return `string.split(${compileExpression(state, expression)}, "")`;
+		if (ts.TypeGuards.isStringLiteral(expression)) {
+			const text = expression.getText();
+			const quote = text.slice(-1);
+			return "{" + text.replace(/\\?./g, a => `${quote}${a}${quote}, `).slice(4, -7) + " }";
+		} else {
+			return `string.split(${compileExpression(state, expression)}, "")`;
+		}
 	} else if (isIterableFunction(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
