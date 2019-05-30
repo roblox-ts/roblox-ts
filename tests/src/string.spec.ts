@@ -15,7 +15,7 @@ export = () => {
 		}
 
 		const str = "Hello, world";
-		const chars = [str.byte(1, -1)].map(i => string.char(i));
+		const chars = [...str.byte(1, -1)].map(i => string.char(i));
 		const words = ["Hello", "world"];
 		const hSplit = ["", "ello, world"];
 

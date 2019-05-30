@@ -7,8 +7,7 @@
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
-		"sourceMap": true,
-		"noUnusedLocals": true
+		"sourceMap": true
 	},
 	"include": [
 		"src/**/*"
