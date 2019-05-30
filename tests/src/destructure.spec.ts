@@ -218,7 +218,7 @@ export = () => {
 		expect(a).to.equal(4);
 
 		let len: number;
-		({ length: len } = [1, 2, 3]);
+		({ [2]: len } = [1, 2, 3]);
 		expect(len).to.equal(3);
 
 		let y = 0;
