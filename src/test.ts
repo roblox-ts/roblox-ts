@@ -227,6 +227,7 @@ const compilerArgs = {
 	modulesPath: "modules",
 	noInclude: true,
 	project: "tests",
+	rojo: "",
 };
 
 const srcFolder = path.resolve("tests", "src");
