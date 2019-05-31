@@ -72,6 +72,13 @@ const argv = yargs
 		describe: "Command to run on watch success",
 	})
 
+	// rojo
+	.option("rojo", {
+		alias: "r",
+		default: "",
+		describe: "Manually select Rojo configuration file",
+	})
+
 	// parse
 	.parse();
 

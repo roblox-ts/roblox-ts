@@ -41,6 +41,14 @@ function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
 	});
 }
 
+function joinIfNotAbsolute(basePath: string, relativePath: string) {
+	if (path.isAbsolute(relativePath)) {
+		return relativePath;
+	} else {
+		return path.join(basePath, relativePath);
+	}
+}
+
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
 		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
@@ -59,7 +67,7 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	const searchForDeadFiles = async (dir: string) => {
+	async function searchForDeadFiles(dir: string) {
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
 				const filePath = path.join(dir, fileName);
@@ -79,7 +87,7 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				}
 			}
 		}
-	};
+	}
 	await searchForDeadFiles(destinationFolder);
 }
 
@@ -105,11 +113,12 @@ export class Project {
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
 	private readonly modulesPath: string;
-	private readonly rojoProject?: RojoProject;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
+	private readonly rojoProject?: RojoProject;
 	private readonly compilerOptions: ts.CompilerOptions;
+	private readonly rojoOverridePath: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
 
@@ -137,10 +146,12 @@ export class Project {
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
-		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.includePath = joinIfNotAbsolute(this.projectPath, argv.includePath);
 		this.minify = argv.minify;
 		this.luaSourceTransformer = this.minify ? minify : undefined;
-		this.modulesPath = path.resolve(this.includePath, "node_modules");
+		this.modulesPath = path.join(this.includePath, "node_modules");
+		this.rojoOverridePath = argv.rojo !== "" ? joinIfNotAbsolute(this.projectPath, argv.rojo) : undefined;
+
 		this.ci = argv.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -316,24 +327,30 @@ export class Project {
 	}
 
 	private getRojoFilePath() {
-		const candidates = new Array<string | undefined>();
-
-		const defaultPath = path.join(this.projectPath, ROJO_DEFAULT_NAME);
-		if (fs.pathExistsSync(defaultPath)) {
-			candidates.push(defaultPath);
-		}
-
-		for (const fileName of fs.readdirSync(this.projectPath)) {
-			if (fileName !== ROJO_DEFAULT_NAME && (fileName === ROJO_OLD_NAME || ROJO_FILE_REGEX.test(fileName))) {
-				candidates.push(path.join(this.projectPath, fileName));
+		if (this.rojoOverridePath) {
+			if (fs.pathExistsSync(this.rojoOverridePath)) {
+				return this.rojoOverridePath;
 			}
-		}
+		} else {
+			const candidates = new Array<string | undefined>();
 
-		if (candidates.length > 1) {
-			// TODO: allow override via CLI flag / tsconfig.json option
-			console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
+			const defaultPath = path.join(this.projectPath, ROJO_DEFAULT_NAME);
+			if (fs.pathExistsSync(defaultPath)) {
+				candidates.push(defaultPath);
+			}
+
+			for (const fileName of fs.readdirSync(this.projectPath)) {
+				if (fileName !== ROJO_DEFAULT_NAME && (fileName === ROJO_OLD_NAME || ROJO_FILE_REGEX.test(fileName))) {
+					candidates.push(path.join(this.projectPath, fileName));
+				}
+			}
+
+			if (candidates.length > 1) {
+				// TODO: allow override via CLI flag / tsconfig.json option
+				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
+			}
+			return candidates[0];
 		}
-		return candidates[0];
 	}
 
 	public addFile(filePath: string) {
