@@ -3,6 +3,7 @@
 		// required
 		"allowSyntheticDefaultImports": true,
 		"downlevelIteration": true,
+		"isolatedModules": true,
 		"module": "commonjs",
 		"noLib": true,
 		"strict": true,
