@@ -9,9 +9,7 @@ import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { transformPathToLua } from "./fsUtilities";
-import { ProjectInfo } from "./types";
-import { red, yellow } from "./utility";
+import { red, transformPathToLua, yellow } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 189;
 
@@ -433,7 +431,7 @@ export class Project {
 
 	public async copyIncludeFiles() {
 		if (!this.noInclude) {
-			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
+			await copyLuaFiles(LIB_PATH, this.includePath, this.luaSourceTransformer);
 		}
 	}
 
