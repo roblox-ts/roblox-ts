@@ -4,9 +4,8 @@ import * as ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { transformPathToLua } from "../fsUtilities";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import { isValidLuaIdentifier, stripExtensions } from "../utility";
+import { isValidLuaIdentifier, stripExtensions, transformPathToLua } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
