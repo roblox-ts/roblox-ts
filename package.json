@@ -13,8 +13,8 @@
 	"scripts": {
 		"tslint": "npx tslint -p tsconfig.json",
 		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
-		"test": "npm run build && nyc --reporter=html _mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
-		"coverage": "nyc report --reporter=text-lcov | coveralls",
+		"test": "npm run build && mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
+		"coverage": "nyc npm test && nyc report --reporter=text-lcov | coveralls",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"build": "if [ \"$CI\" = true ]; then npx tsc -p tsconfig.ci.json; else npx tsc; fi",
 		"prepublishOnly": "npm run build",
