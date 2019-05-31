@@ -3,10 +3,9 @@ import * as ts from "ts-morph";
 import { compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { transformPathToLua } from "../fsUtilities";
 import { ProjectType } from "../Project";
 import { isRbxService } from "../typeUtilities";
-import { getScriptContext, getScriptType, ScriptType } from "../utility";
+import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;

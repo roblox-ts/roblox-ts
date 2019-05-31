@@ -9,6 +9,7 @@ import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
+import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 189;
