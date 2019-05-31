@@ -4,7 +4,10 @@
 		"$className": "DataModel",
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
-			"Tests": {
+			"include": {
+				"$path": "../lib"
+			},
+			"src": {
 				"$className": "Folder",
 				"out": {
 					"$path": "out"

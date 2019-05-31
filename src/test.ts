@@ -223,8 +223,9 @@ const errorMatrix: ErrorMatrix = {
 
 const compilerArgs = {
 	ci: true,
-	includePath: "include",
+	includePath: "../lib",
 	modulesPath: "modules",
+	noInclude: true,
 	project: "tests",
 };
 

@@ -55,7 +55,7 @@ TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
-local globalModules = script.Parent.Parent:FindFirstChild("Modules")
+local globalModules = script.Parent:FindFirstChild("node_modules")
 
 function TS.getModule(moduleName, object)
 	if not globalModules then
@@ -63,7 +63,7 @@ function TS.getModule(moduleName, object)
 	end
 	if object:IsDescendantOf(globalModules) then
 		while object.Parent do
-			local modules = object == globalModules and object or object:FindFirstChild("node_modules")
+			local modules = object:FindFirstChild("node_modules")
 			if modules then
 				local module = modules:FindFirstChild(moduleName)
 				if module then
@@ -124,6 +124,8 @@ function TS.import(module, ...)
 				end
 			end
 
+			assert(_G[module] == nil, "Invalid module access!")
+			_G[module] = TS
 			data = require(module)
 
 			if currentlyLoading[caller] == module then -- Thread-safe cleanup!

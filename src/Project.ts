@@ -15,6 +15,8 @@ const MINIMUM_RBX_TYPES_VERSION = 189;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
+const ROJO_DEFAULT_NAME = "default.project.json";
+const ROJO_OLD_NAME = "roblox-project.json";
 const MODULE_PREFIX = "rbx-";
 
 const IGNORED_DIAGNOSTIC_CODES = [
@@ -37,6 +39,14 @@ function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
 	});
 }
 
+function joinIfNotAbsolute(basePath: string, relativePath: string) {
+	if (path.isAbsolute(relativePath)) {
+		return relativePath;
+	} else {
+		return path.join(basePath, relativePath);
+	}
+}
+
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
 		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
@@ -55,7 +65,7 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	const searchForDeadFiles = async (dir: string) => {
+	async function searchForDeadFiles(dir: string) {
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
 				const filePath = path.join(dir, fileName);
@@ -75,7 +85,7 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				}
 			}
 		}
-	};
+	}
 	await searchForDeadFiles(destinationFolder);
 }
 
@@ -88,6 +98,12 @@ async function copyAndCleanDeadLuaFiles(
 	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
+export enum ProjectType {
+	Game,
+	Bundle,
+	Package,
+}
+
 export class Project {
 	private readonly project: ts.Project;
 	private readonly projectPath: string;
@@ -95,13 +111,16 @@ export class Project {
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
 	private readonly modulesPath: string;
-	private readonly rojoProject?: RojoProject;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
+	private readonly rojoProject?: RojoProject;
 	private readonly compilerOptions: ts.CompilerOptions;
+	private readonly rojoOverridePath: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
+
+	private readonly projectInfo: ProjectInfo;
 
 	constructor(argv: { [argName: string]: any }) {
 		let configFilePath = path.resolve(argv.project as string);
@@ -125,10 +144,12 @@ export class Project {
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
-		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.includePath = joinIfNotAbsolute(this.projectPath, argv.includePath);
 		this.minify = argv.minify;
 		this.luaSourceTransformer = this.minify ? minify : undefined;
-		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
+		this.modulesPath = path.join(this.includePath, "node_modules");
+		this.rojoOverridePath = argv.rojo !== "" ? joinIfNotAbsolute(this.projectPath, argv.rojo) : undefined;
+
 		this.ci = argv.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -181,6 +202,28 @@ export class Project {
 					);
 				}
 			}
+		}
+
+		if (this.rojoProject) {
+			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
+			if (!runtimeLibPath) {
+				throw new ProjectError(
+					`A Rojo project file was found ( ${rojoFilePath!} ), but contained no data for the include folder!`,
+					ProjectErrorType.BadRojoInclude,
+				);
+			}
+			let type: ProjectType.Game | ProjectType.Bundle;
+			if (this.rojoProject.isGame()) {
+				type = ProjectType.Game;
+			} else {
+				type = ProjectType.Bundle;
+			}
+			this.projectInfo = {
+				runtimeLibPath,
+				type,
+			};
+		} else {
+			this.projectInfo = { type: ProjectType.Package };
 		}
 	}
 
@@ -282,10 +325,29 @@ export class Project {
 	}
 
 	private getRojoFilePath() {
-		for (const fileName of fs.readdirSync(this.projectPath)) {
-			if (ROJO_FILE_REGEX.test(fileName)) {
-				return path.join(this.projectPath, fileName);
+		if (this.rojoOverridePath) {
+			if (fs.pathExistsSync(this.rojoOverridePath)) {
+				return this.rojoOverridePath;
 			}
+		} else {
+			const candidates = new Array<string | undefined>();
+
+			const defaultPath = path.join(this.projectPath, ROJO_DEFAULT_NAME);
+			if (fs.pathExistsSync(defaultPath)) {
+				candidates.push(defaultPath);
+			}
+
+			for (const fileName of fs.readdirSync(this.projectPath)) {
+				if (fileName !== ROJO_DEFAULT_NAME && (fileName === ROJO_OLD_NAME || ROJO_FILE_REGEX.test(fileName))) {
+					candidates.push(path.join(this.projectPath, fileName));
+				}
+			}
+
+			if (candidates.length > 1) {
+				// TODO: allow override via CLI flag / tsconfig.json option
+				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
+			}
+			return candidates[0];
 		}
 	}
 
@@ -456,7 +518,13 @@ export class Project {
 					const filePath = sourceFile.getFilePath();
 					const outPath = transformPathToLua(this.rootDirPath, this.outDirPath, filePath);
 					let source = compileSourceFile(
-						new CompilerState(this.rootDirPath, this.outDirPath, this.rojoProject, this.modulesDir),
+						new CompilerState(
+							this.rootDirPath,
+							this.outDirPath,
+							this.projectInfo,
+							this.rojoProject,
+							this.modulesDir,
+						),
 						sourceFile,
 					);
 
@@ -484,14 +552,24 @@ export class Project {
 				throw e;
 			}
 			if (e instanceof CompilerError) {
-				console.log(
-					"%s:%d:%d - %s %s",
-					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-					e.node.getStartLineNumber(),
-					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-					red("Compiler Error:"),
-					e.message,
-				);
+				const node = e.node;
+				if (ts.TypeGuards.isSourceFile(node)) {
+					console.log(
+						"%s - %s %s",
+						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
+						red("Compiler Error:"),
+						e.message,
+					);
+				} else {
+					console.log(
+						"%s:%d:%d - %s %s",
+						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
+						e.node.getStartLineNumber(),
+						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+						red("Compiler Error:"),
+						e.message,
+					);
+				}
 			} else if (e instanceof ProjectError) {
 				console.log(red("Project Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
