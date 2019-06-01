@@ -17,7 +17,7 @@ export = () => {
 	});
 
 	it("should work with generic types", () => {
-		function f<T extends Array<any>>(...args: T) {
+		function f<T extends Array<unknown>>(...args: T) {
 			expect(args[0]).to.equal("Hi!");
 		}
 
