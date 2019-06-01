@@ -471,11 +471,39 @@ export class Project {
 		}
 	}
 
+	private async getEmittedDtsFiles() {
+		return new Promise<Array<string>>(resolve => {
+			const result = new Array<string>();
+			klaw(this.outDirPath)
+				.on("data", item => {
+					if (item.stats.isFile() && item.path.endsWith(".d.ts")) {
+						result.push(item.path);
+					}
+				})
+				.on("end", () => resolve(result));
+		});
+	}
+
+	private async postProcessDtsFiles() {
+		return Promise.all(
+			(await this.getEmittedDtsFiles()).map(
+				filePath =>
+					new Promise(resolve => {
+						fs.readFile(filePath).then(contentsBuffer => {
+							let fileContents = contentsBuffer.toString();
+							fileContents = fileContents.replace(
+								/<reference types="(\w+)" \/>/g,
+								'<reference types="@rbxts/$1" />',
+							);
+							fs.writeFile(filePath, fileContents).then(() => resolve());
+						});
+					}),
+			),
+		);
+	}
+
 	public async compileFiles(files: Array<ts.SourceFile>) {
 		await this.cleanDirRecursive(this.outDirPath);
-		if (this.compilerOptions.declaration === true) {
-			this.project.emit({ emitOnlyDtsFiles: true });
-		}
 
 		const errors = new Array<string>();
 		for (const file of files) {
@@ -554,6 +582,11 @@ export class Project {
 				}
 				await fs.ensureFile(filePath);
 				await fs.writeFile(filePath, contents);
+			}
+
+			if (this.compilerOptions.declaration === true) {
+				await this.project.emit({ emitOnlyDtsFiles: true });
+				await this.postProcessDtsFiles();
 			}
 		} catch (e) {
 			// do not silence errors for CI tests
