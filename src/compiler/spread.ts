@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getCompilerDirectiveWithConstraint,
 	isArrayType,
 	isIterableFunction,
 	isIterableIterator,
@@ -12,6 +13,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
+import { CompilerDirective } from "./security";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;

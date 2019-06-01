@@ -15,4 +15,12 @@ export = () => {
 		};
 		check(...a1, ...a1, ++i, ++i, ++i, ++i);
 	});
+
+	it("should work with generic types", () => {
+		function f<T extends Array<any>>(...args: T) {
+			expect(args[0]).to.equal("Hi!");
+		}
+
+		f("Hi!");
+	});
 };
