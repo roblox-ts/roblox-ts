@@ -29,7 +29,7 @@ local robloxTsFolder = newFolder("include", ReplicatedStorage, "lib")
 local modulesFolder = newFolder("node_modules", robloxTsFolder)
 
 -- Roact
-newFolder("@rbxts/roact", modulesFolder, "tests/node_modules/@rbxts/roact");
+newFolder("roact", modulesFolder, "tests/node_modules/@rbxts/roact");
 
 -- TestEZ
 local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
