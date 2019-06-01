@@ -345,7 +345,6 @@ export class Project {
 			}
 
 			if (candidates.length > 1) {
-				// TODO: allow override via CLI flag / tsconfig.json option
 				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
 			}
 			return candidates[0];
