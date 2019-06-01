@@ -1,4 +1,4 @@
-import fs, { outputFile } from "fs-extra";
+import fs from "fs-extra";
 import klaw from "klaw";
 import { minify } from "luamin";
 import path from "path";
