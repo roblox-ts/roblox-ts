@@ -253,7 +253,10 @@ export class Project {
 		}
 
 		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
-		if (opts.typeRoots === undefined || opts.typeRoots.find(v => v === rbxTsModulesPath) === undefined) {
+		if (
+			opts.typeRoots === undefined ||
+			opts.typeRoots.find(v => path.normalize(v) === rbxTsModulesPath) === undefined
+		) {
 			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "node_modules/@rbxts" ]`)}`);
 		}
 
