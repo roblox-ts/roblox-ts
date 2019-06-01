@@ -49,7 +49,7 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 	if (state.usesTSLibrary) {
 		let link: string;
 		if (state.projectInfo.type === ProjectType.Package) {
-			link = `_G[script];`;
+			link = `_G[script]`;
 		} else if (state.projectInfo.type === ProjectType.Game) {
 			const runtimeLibPath = [...state.projectInfo.runtimeLibPath];
 			const service = runtimeLibPath.shift()!;

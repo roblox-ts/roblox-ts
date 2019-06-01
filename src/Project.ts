@@ -449,8 +449,8 @@ export class Project {
 	}
 
 	public async compileAll() {
-		await this.copyLuaSourceFiles();
 		await this.compileFiles(this.project.getSourceFiles());
+		await this.copyLuaSourceFiles();
 		await this.copyIncludeFiles();
 		await this.copyModuleFiles();
 	}
