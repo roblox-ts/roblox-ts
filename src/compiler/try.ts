@@ -9,7 +9,9 @@ export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatem
 	if (!expression || !isStringType(expression.getType())) {
 		throw new CompilerError("Non-string throws are not supported!", node, CompilerErrorType.NonStringThrow);
 	}
-	return state.indent + `error(${compileExpression(state, expression)});\n`;
+	state.enterPrecedingStatementContext();
+	const err = compileExpression(state, expression);
+	return state.exitPrecedingStatementContextAndJoin() + state.indent + `error(${err});\n`;
 }
 
 export function compileTryStatement(state: CompilerState, node: ts.TryStatement) {
