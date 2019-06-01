@@ -47,7 +47,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 	}
 
 	const last = stripExtensions(relative.pop()!);
-	if (last !== "init") {
+	if (last !== "index" && last !== "init") {
 		relative.push(last);
 	}
 
