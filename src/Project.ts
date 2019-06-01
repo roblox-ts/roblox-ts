@@ -253,10 +253,8 @@ export class Project {
 		}
 
 		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
-		if (opts.typeRoots === undefined) {
-			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "@rbxts/types" ]`)}`);
-		} else if (opts.typeRoots.find(v => v === rbxTsModulesPath) === undefined) {
-			errors.push(`${yellow(`"typeRoots"`)} must include ${yellow(`"node_modules/@rbxts"`)}`);
+		if (opts.typeRoots === undefined || opts.typeRoots.find(v => v === rbxTsModulesPath) === undefined) {
+			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "node_modules/@rbxts" ]`)}`);
 		}
 
 		if (opts.types !== undefined) {
