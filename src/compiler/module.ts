@@ -127,7 +127,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 
 	state.usesTSLibrary = true;
 	const params = `TS.getModule("${moduleName}")` + parts.join("");
-	return `require(${params})`;
+	return `TS.import(${params})`;
 }
 
 function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
