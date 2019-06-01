@@ -87,7 +87,12 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 		result += state.indent;
 	} else {
 		/* istanbul ignore next */
-		throw new CompilerError(`Bad function body (${body.getKindName()})`, node, CompilerErrorType.BadFunctionBody);
+		throw new CompilerError(
+			`Unexpected function body ( ${body.getKindName()} ) in compileFunctionBody`,
+			node,
+			CompilerErrorType.BadFunctionBody,
+			true,
+		);
 	}
 	return result;
 }
