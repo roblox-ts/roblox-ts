@@ -251,6 +251,9 @@ export class Project {
 		if (opts.allowSyntheticDefaultImports !== true) {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
+		if (opts.declaration !== true && opts.isolatedModules !== true) {
+			errors.push(`${yellow(`"isolatedModules"`)} must be ${yellow(`true`)}`);
+		}
 
 		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
 		if (
@@ -422,7 +425,7 @@ export class Project {
 	}
 
 	public async copyModuleFiles() {
-		if (this.modulesDir) {
+		if (this.modulesDir && this.projectInfo.type !== ProjectType.Package) {
 			const modulesPath = this.modulesPath;
 			const rbxTsModulesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
 			if (await fs.pathExists(rbxTsModulesPath)) {
@@ -436,7 +439,7 @@ export class Project {
 	}
 
 	public async copyIncludeFiles() {
-		if (!this.noInclude) {
+		if (!this.noInclude && this.projectInfo.type !== ProjectType.Package) {
 			await copyLuaFiles(LIB_PATH, this.includePath, this.luaSourceTransformer);
 		}
 	}
