@@ -1,5 +1,5 @@
-function stringThrow(): void {
-	throw "foo";
+function stringThrow(param?: string): void {
+	throw "Invalid param: " + (param || "undefined");
 }
 
 export = () => {
