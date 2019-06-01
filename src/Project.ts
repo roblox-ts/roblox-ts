@@ -384,7 +384,7 @@ export class Project {
 						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 						const rootPath = path.join(this.rootDirPath, relativeToOut);
 
-						let baseName = path.basename(filePath, path.extname(filePath)); // index.server
+						let baseName = path.basename(filePath, path.extname(filePath));
 						const subext = path.extname(baseName);
 						baseName = path.basename(baseName, subext);
 
