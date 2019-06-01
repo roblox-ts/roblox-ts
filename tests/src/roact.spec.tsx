@@ -1,4 +1,4 @@
-import Roact from "rbx-roact";
+import Roact from "@rbxts/roact";
 
 export = () => {
 	describe("should support Roact.Component", () => {

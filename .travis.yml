@@ -21,7 +21,7 @@ install:
   - luarocks install luafilesystem
   - luarocks install dkjson
   - npm install
-  - pushd tests && npm install && npm install rbx-types && popd
+  - pushd tests && npm install && npm install @rbxts/types && popd
 
 script:
   - npm run tslint

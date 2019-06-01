@@ -57,7 +57,8 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 -- module resolution
 local globalModules = script.Parent:FindFirstChild("node_modules")
 
-function TS.getModule(moduleName, object)
+function TS.getModule(moduleName)
+	local object = getfenv(2).script.Parent
 	if not globalModules then
 		error("Could not find any modules!", 2)
 	end

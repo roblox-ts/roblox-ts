@@ -1,4 +1,4 @@
-import Roact from "rbx-roact";
+import Roact from "@rbxts/roact";
 
 const jsxText = <frame>
 	This text should error since it's not allowed.

@@ -84,13 +84,22 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 		.split("/")
 		.filter(part => part !== ".");
 
+	const scope = parts.shift()!;
+	if (scope !== "@rbxts") {
+		throw new CompilerError(
+			"Imported packages must have the @rbxts scope!",
+			moduleFile,
+			CompilerErrorType.BadPackageScope,
+		);
+	}
+
 	const moduleName = parts.shift()!;
 
 	let mainPath: string;
 	if (moduleCache.has(moduleName)) {
 		mainPath = moduleCache.get(moduleName)!;
 	} else {
-		const pkgJson = require(path.join(modulesDir.getPath(), moduleName, "package.json"));
+		const pkgJson = require(path.join(modulesDir.getPath(), scope, moduleName, "package.json"));
 		mainPath = pkgJson.main as string;
 		moduleCache.set(moduleName, mainPath);
 	}
@@ -104,7 +113,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	parts = parts.filter(part => part !== ".").map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
 
 	state.usesTSLibrary = true;
-	const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
+	const params = `TS.getModule("${moduleName}")` + parts.join("");
 	return `require(${params})`;
 }
 

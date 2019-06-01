@@ -18,7 +18,6 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
-const MODULE_PREFIX = "rbx-";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."
@@ -252,10 +251,16 @@ export class Project {
 		if (opts.allowSyntheticDefaultImports !== true) {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
-		if (opts.types === undefined) {
-			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
-		} else if (opts.types.indexOf("rbx-types") === -1) {
-			errors.push(`${yellow(`"types"`)} must include ${yellow(`"rbx-types"`)}`);
+
+		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
+		if (opts.typeRoots === undefined) {
+			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "@rbxts/types" ]`)}`);
+		} else if (opts.typeRoots.find(v => v === rbxTsModulesPath) === undefined) {
+			errors.push(`${yellow(`"typeRoots"`)} must include ${yellow(`"node_modules/@rbxts"`)}`);
+		}
+
+		if (opts.types !== undefined) {
+			errors.push(`${yellow(`"types"`)} must be ${yellow(`undefined`)}`);
 		}
 
 		// configurable compiler options
@@ -293,7 +298,7 @@ export class Project {
 			if (pkgLock !== undefined) {
 				const dependencies = pkgLock.dependencies;
 				if (dependencies !== undefined) {
-					const rbxTypes = dependencies["rbx-types"];
+					const rbxTypes = dependencies["@rbxts/types"];
 					if (rbxTypes !== undefined) {
 						const rbxTypesVersion = rbxTypes.version;
 						if (typeof rbxTypesVersion === "string") {
@@ -305,10 +310,10 @@ export class Project {
 										return;
 									} else {
 										throw new ProjectError(
-											`rbx-types is out of date!\n` +
+											`@rbxts/types is out of date!\n` +
 												yellow(`Installed version: 1.0.${patchNumber}\n`) +
 												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-												`Run 'npm i rbx-types' to fix this.`,
+												`Run 'npm i @rbxts/types' to fix this.`,
 											ProjectErrorType.BadRbxTypes,
 										);
 									}
@@ -320,7 +325,7 @@ export class Project {
 			}
 		}
 		throw new ProjectError(
-			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
+			`Could not find @rbxts/types in package-lock.json!\n` + `Run 'npm i @rbxts/types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}
@@ -345,7 +350,6 @@ export class Project {
 			}
 
 			if (candidates.length > 1) {
-				// TODO: allow override via CLI flag / tsconfig.json option
 				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
 			}
 			return candidates[0];
@@ -384,7 +388,7 @@ export class Project {
 						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 						const rootPath = path.join(this.rootDirPath, relativeToOut);
 
-						let baseName = path.basename(filePath, path.extname(filePath)); // index.server
+						let baseName = path.basename(filePath, path.extname(filePath));
 						const subext = path.extname(baseName);
 						baseName = path.basename(baseName, subext);
 
@@ -418,11 +422,11 @@ export class Project {
 
 	public async copyModuleFiles() {
 		if (this.modulesDir) {
-			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
 			const modulesPath = this.modulesPath;
-			for (const name of await fs.readdir(nodeModulesPath)) {
-				if (name.startsWith(MODULE_PREFIX)) {
-					const oldModulePath = path.join(nodeModulesPath, name);
+			const rbxTsModulesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+			if (await fs.pathExists(rbxTsModulesPath)) {
+				for (const name of await fs.readdir(rbxTsModulesPath)) {
+					const oldModulePath = path.join(rbxTsModulesPath, name);
 					const newModulePath = path.join(modulesPath, name);
 					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath, this.luaSourceTransformer);
 				}

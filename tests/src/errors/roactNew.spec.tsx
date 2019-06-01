@@ -1,4 +1,4 @@
-import Roact from "rbx-roact";
+import Roact from "@rbxts/roact";
 
 class FailedRoactClass extends Roact.Component<{}, {}> {
 	public render(): Roact.Element {
