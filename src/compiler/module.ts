@@ -328,15 +328,18 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 }
 
 export function compileExportDeclaration(state: CompilerState, node: ts.ExportDeclaration) {
-	const moduleFile = node.getModuleSpecifierSourceFile();
-	if (!moduleFile) {
-		throw new CompilerError(
-			`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
-			node,
-			CompilerErrorType.MissingModuleFile,
-		);
+	let luaPath = "";
+	if (node.hasModuleSpecifier()) {
+		const moduleFile = node.getModuleSpecifierSourceFile();
+		if (!moduleFile) {
+			throw new CompilerError(
+				`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
+				node,
+				CompilerErrorType.MissingModuleFile,
+			);
+		}
+		luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
 	}
-	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
 
 	const ancestor =
 		node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration) ||
