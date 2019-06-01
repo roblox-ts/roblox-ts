@@ -203,8 +203,10 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 	const moduleFile = node.getModuleSpecifierSourceFile();
 	if (!moduleFile) {
+		const specifier = node.getModuleSpecifier();
+		const text = specifier ? specifier.getText : "unknown";
 		throw new CompilerError(
-			`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
+			`Could not find file for '${text}'. Did you forget to "npm install"?`,
 			node,
 			CompilerErrorType.MissingModuleFile,
 		);
@@ -332,8 +334,10 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 	if (node.hasModuleSpecifier()) {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (!moduleFile) {
+			const specifier = node.getModuleSpecifier();
+			const text = specifier ? specifier.getText : "unknown";
 			throw new CompilerError(
-				`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
+				`Could not find file for '${text}'. Did you forget to "npm install"?`,
 				node,
 				CompilerErrorType.MissingModuleFile,
 			);
