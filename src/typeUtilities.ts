@@ -199,10 +199,21 @@ export function getCompilerDirectiveWithConstraint(
 	type: ts.Type,
 	directive: CompilerDirective,
 	orCallback = (t: ts.Type) => false,
-) {
+): boolean {
 	return typeConstraint(type, t => {
 		const symbol = t.getSymbol();
-		return (symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t);
+
+		if ((symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t)) {
+			return true;
+		} else {
+			if (type.isTypeParameter()) {
+				const constraint = type.getConstraint();
+				if (constraint) {
+					return getCompilerDirectiveWithConstraint(constraint, directive, orCallback);
+				}
+			}
+			return false;
+		}
 	});
 }
 
