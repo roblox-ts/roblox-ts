@@ -18,7 +18,6 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
-const MODULE_PREFIX = "@rbxts/";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."

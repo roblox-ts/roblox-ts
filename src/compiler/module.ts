@@ -78,7 +78,6 @@ function getRelativeImportPath(
 const moduleCache = new Map<string, string>();
 
 function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
-	const x = moduleFile.getFilePath();
 	const modulesDir = state.modulesDir!;
 	let parts = modulesDir
 		.getRelativePathTo(moduleFile)
