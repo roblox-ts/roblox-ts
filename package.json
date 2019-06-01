@@ -18,7 +18,7 @@
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"build": "if [ \"$CI\" = true ]; then npx tsc -p tsconfig.ci.json; else npx tsc; fi",
 		"prepublishOnly": "npm run build",
-		"types": "cd tests && npm install rbx-types"
+		"types": "cd tests && npm install @rbxts/types"
 	},
 	"nyc": {
 		"extension": [

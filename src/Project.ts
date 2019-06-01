@@ -18,7 +18,7 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
-const MODULE_PREFIX = "rbx-";
+const MODULE_PREFIX = "@rbxts/";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."
@@ -253,9 +253,9 @@ export class Project {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
 		if (opts.types === undefined) {
-			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
-		} else if (opts.types.indexOf("rbx-types") === -1) {
-			errors.push(`${yellow(`"types"`)} must include ${yellow(`"rbx-types"`)}`);
+			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "@rbxts/types" ]`)}`);
+		} else if (opts.types.indexOf("@rbxts/types") === -1) {
+			errors.push(`${yellow(`"types"`)} must include ${yellow(`"@rbxts/types"`)}`);
 		}
 
 		// configurable compiler options
@@ -293,7 +293,7 @@ export class Project {
 			if (pkgLock !== undefined) {
 				const dependencies = pkgLock.dependencies;
 				if (dependencies !== undefined) {
-					const rbxTypes = dependencies["rbx-types"];
+					const rbxTypes = dependencies["@rbxts/types"];
 					if (rbxTypes !== undefined) {
 						const rbxTypesVersion = rbxTypes.version;
 						if (typeof rbxTypesVersion === "string") {
@@ -305,10 +305,10 @@ export class Project {
 										return;
 									} else {
 										throw new ProjectError(
-											`rbx-types is out of date!\n` +
+											`@rbxts/types is out of date!\n` +
 												yellow(`Installed version: 1.0.${patchNumber}\n`) +
 												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-												`Run 'npm i rbx-types' to fix this.`,
+												`Run 'npm i @rbxts/types' to fix this.`,
 											ProjectErrorType.BadRbxTypes,
 										);
 									}
@@ -320,7 +320,7 @@ export class Project {
 			}
 		}
 		throw new ProjectError(
-			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
+			`Could not find @rbxts/types in package-lock.json!\n` + `Run 'npm i @rbxts/types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}

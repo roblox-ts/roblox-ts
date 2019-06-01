@@ -9,7 +9,7 @@
 		"strict": true,
 		"target": "es6",
 		"types": [
-			"rbx-types"
+			"@rbxts/types"
 		],
 		// required, configurable
 		"rootDir": "src",
