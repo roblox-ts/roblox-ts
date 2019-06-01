@@ -38,8 +38,8 @@ function getRojoUnavailableError(node: ts.Node) {
 }
 
 function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	let sourcePath = sourceFile.getFilePath();
-	let modulePath = moduleFile.getFilePath();
+	let sourcePath = path.normalize(sourceFile.getFilePath());
+	let modulePath = path.normalize(moduleFile.getFilePath());
 
 	const sourceBaseName = stripExtensions(sourceFile.getBaseName());
 	const sourceInit = sourceBaseName === "index" || sourceBaseName === "init";
@@ -53,7 +53,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		modulePath = path.resolve(modulePath, "..");
 	}
 
-	const relative = path.relative(sourcePath, modulePath).split(path.posix.sep);
+	const relative = path.relative(sourcePath, modulePath).split(path.sep);
 
 	let start = "script";
 
