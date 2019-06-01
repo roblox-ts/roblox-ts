@@ -38,19 +38,32 @@ function getRojoUnavailableError(node: ts.Node) {
 }
 
 function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	const relative = sourceFile.getRelativePathTo(moduleFile).split(path.posix.sep);
+	let sourcePath = sourceFile.getFilePath();
+	let modulePath = moduleFile.getFilePath();
+
+	const sourceBaseName = stripExtensions(sourceFile.getBaseName());
+	const sourceInit = sourceBaseName === "index" || sourceBaseName === "init";
+	if (sourceInit) {
+		sourcePath = path.resolve(sourcePath, "..");
+	}
+
+	const moduleBaseName = stripExtensions(moduleFile.getBaseName());
+	const moduleInit = moduleBaseName === "index" || moduleBaseName === "init";
+	if (moduleInit) {
+		modulePath = path.resolve(modulePath, "..");
+	}
+
+	const relative = path.relative(sourcePath, modulePath).split(path.posix.sep);
 
 	let start = "script";
+
 	while (relative[0] === "..") {
 		relative.shift();
 		start += ".Parent";
 	}
 
-	const last = stripExtensions(relative.pop()!);
-	if (last !== "index" && last !== "init") {
-		relative.push(last);
-	} else {
-		start += ".Parent";
+	if (!moduleInit) {
+		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
 	state.usesTSLibrary = true;
