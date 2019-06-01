@@ -251,10 +251,16 @@ export class Project {
 		if (opts.allowSyntheticDefaultImports !== true) {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
-		if (opts.types === undefined) {
-			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "@rbxts/types" ]`)}`);
-		} else if (opts.types.indexOf("@rbxts/types") === -1) {
-			errors.push(`${yellow(`"types"`)} must include ${yellow(`"@rbxts/types"`)}`);
+
+		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
+		if (opts.typeRoots === undefined) {
+			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "@rbxts/types" ]`)}`);
+		} else if (opts.typeRoots.find(v => v === rbxTsModulesPath) === undefined) {
+			errors.push(`${yellow(`"typeRoots"`)} must include ${yellow(`"node_modules/@rbxts"`)}`);
+		}
+
+		if (opts.types !== undefined) {
+			errors.push(`${yellow(`"types"`)} must be ${yellow(`undefined`)}`);
 		}
 
 		// configurable compiler options
