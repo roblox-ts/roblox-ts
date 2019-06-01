@@ -3,24 +3,23 @@
 		// required
 		"allowSyntheticDefaultImports": true,
 		"downlevelIteration": true,
+		"isolatedModules": true,
 		"module": "commonjs",
 		"noLib": true,
 		"strict": true,
 		"target": "es6",
-		"types": [
-			"rbx-types"
-		],
+		"typeRoots": ["node_modules/@rbxts"],
+
 		// required, configurable
 		"rootDir": "src",
 		"outDir": "out",
+
 		// optional
 		"baseUrl": "src",
 		"declaration": false,
+
 		// optional, non-configurable
 		"jsx": "react",
 		"jsxFactory": "Roact.createElement"
-	},
-	"typeAcquisition": {
-		"enable": true
 	}
 }

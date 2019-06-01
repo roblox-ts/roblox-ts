@@ -1,7 +1,7 @@
-import * as fs from "fs-extra";
+import fs from "fs-extra";
 import { describe, it } from "mocha";
-import * as path from "path";
-import * as util from "util";
+import path from "path";
+import util from "util";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
@@ -223,9 +223,11 @@ const errorMatrix: ErrorMatrix = {
 
 const compilerArgs = {
 	ci: true,
-	includePath: "include",
+	includePath: "../lib",
 	modulesPath: "modules",
+	noInclude: true,
 	project: "tests",
+	rojo: "",
 };
 
 const srcFolder = path.resolve("tests", "src");

@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
-import * as chokidar from "chokidar";
-import * as spawn from "cross-spawn";
-import * as fs from "fs";
-import * as path from "path";
-import * as yargs from "yargs";
+import chokidar from "chokidar";
+import spawn from "cross-spawn";
+import fs from "fs";
+import path from "path";
+import yargs from "yargs";
 import { CompilerError } from "./errors/CompilerError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
@@ -70,6 +70,13 @@ const argv = yargs
 	.option("onSuccess", {
 		default: "",
 		describe: "Command to run on watch success",
+	})
+
+	// rojo
+	.option("rojo", {
+		alias: "r",
+		default: "",
+		describe: "Manually select Rojo configuration file",
 	})
 
 	// parse

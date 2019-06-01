@@ -1,39 +1,28 @@
-import * as fs from "fs-extra";
-import * as klaw from "klaw";
+import fs from "fs-extra";
+import klaw from "klaw";
 import { minify } from "luamin";
-import * as path from "path";
+import path from "path";
+import RojoProject, { RojoProjectError } from "rojo-utils";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { red, yellow } from "./utility";
+import { ProjectInfo } from "./types";
+import { red, transformPathToLua, yellow } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 189;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
-const SYNC_FILE_NAMES = ["rojo.json", "rofresh.json"];
-const MODULE_PREFIX = "rbx-";
+const ROJO_FILE_REGEX = /^.+\.project\.json$/;
+const ROJO_DEFAULT_NAME = "default.project.json";
+const ROJO_OLD_NAME = "roblox-project.json";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
 ];
-
-interface RojoJson {
-	partitions: {
-		[index: string]: {
-			target: string;
-			path: string;
-		};
-	};
-}
-
-interface Partition {
-	dir: ts.Directory;
-	target: string;
-}
 
 const LUA_EXT = ".lua";
 function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
@@ -48,6 +37,14 @@ function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
 			.on("end", () => resolve(result))
 			.on("error", reject);
 	});
+}
+
+function joinIfNotAbsolute(basePath: string, relativePath: string) {
+	if (path.isAbsolute(relativePath)) {
+		return relativePath;
+	} else {
+		return path.join(basePath, relativePath);
+	}
 }
 
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
@@ -68,7 +65,7 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	const searchForDeadFiles = async (dir: string) => {
+	async function searchForDeadFiles(dir: string) {
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
 				const filePath = path.join(dir, fileName);
@@ -88,7 +85,7 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				}
 			}
 		}
-	};
+	}
 	await searchForDeadFiles(destinationFolder);
 }
 
@@ -101,6 +98,12 @@ async function copyAndCleanDeadLuaFiles(
 	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
+export enum ProjectType {
+	Game,
+	Bundle,
+	Package,
+}
+
 export class Project {
 	private readonly project: ts.Project;
 	private readonly projectPath: string;
@@ -108,14 +111,16 @@ export class Project {
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
 	private readonly modulesPath: string;
-	private readonly baseUrl: string | undefined;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
+	private readonly rojoProject?: RojoProject;
 	private readonly compilerOptions: ts.CompilerOptions;
-	private readonly syncInfo = new Array<Partition>();
+	private readonly rojoOverridePath: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
+
+	private readonly projectInfo: ProjectInfo;
 
 	constructor(argv: { [argName: string]: any }) {
 		let configFilePath = path.resolve(argv.project as string);
@@ -139,10 +144,12 @@ export class Project {
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
-		this.includePath = path.resolve(this.projectPath, argv.includePath);
+		this.includePath = joinIfNotAbsolute(this.projectPath, argv.includePath);
 		this.minify = argv.minify;
 		this.luaSourceTransformer = this.minify ? minify : undefined;
-		this.modulesPath = path.resolve(this.projectPath, argv.modulesPath);
+		this.modulesPath = path.join(this.includePath, "node_modules");
+		this.rojoOverridePath = argv.rojo !== "" ? joinIfNotAbsolute(this.projectPath, argv.rojo) : undefined;
+
 		this.ci = argv.ci;
 
 		this.compilerOptions = this.project.getCompilerOptions();
@@ -157,8 +164,6 @@ export class Project {
 				throw e;
 			}
 		}
-
-		this.baseUrl = this.compilerOptions.baseUrl;
 
 		const rootDirPath = this.compilerOptions.rootDir;
 		if (!rootDirPath) {
@@ -184,44 +189,41 @@ export class Project {
 
 		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
-		const syncFilePath = this.getSyncFilePath();
-		if (syncFilePath) {
-			const rojoJson = JSON.parse(fs.readFileSync(syncFilePath).toString()) as RojoJson;
-			for (const key in rojoJson.partitions) {
-				const part = rojoJson.partitions[key];
-				const partPath = path.resolve(this.projectPath, part.path).replace(/\\/g, "/");
-				if (partPath.startsWith(this.outDirPath)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.rootDirPath, path.relative(this.outDirPath, partPath)),
+		const rojoFilePath = this.getRojoFilePath();
+		if (rojoFilePath) {
+			try {
+				this.rojoProject = RojoProject.fromPathSync(rojoFilePath);
+			} catch (e) {
+				if (e instanceof RojoProjectError) {
+					console.log(
+						"Warning!",
+						"Failed to load Rojo configuration. Import and export statements will not compile.",
+						e.message,
 					);
-					if (directory) {
-						this.syncInfo.push({
-							dir: directory,
-							target: part.target,
-						});
-					} else {
-						throw new ProjectError(
-							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							ProjectErrorType.MissingPartitionDir,
-						);
-					}
-				} else if (this.baseUrl && partPath.startsWith(this.baseUrl)) {
-					const directory = this.project.getDirectory(
-						path.resolve(this.baseUrl, path.relative(this.baseUrl, partPath)),
-					);
-					if (directory) {
-						this.syncInfo.push({
-							dir: directory,
-							target: part.target,
-						});
-					} else {
-						throw new ProjectError(
-							`Could not find directory for partition: ${JSON.stringify(part)}`,
-							ProjectErrorType.MissingPartitionDir,
-						);
-					}
 				}
 			}
+		}
+
+		if (this.rojoProject) {
+			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
+			if (!runtimeLibPath) {
+				throw new ProjectError(
+					`A Rojo project file was found ( ${rojoFilePath!} ), but contained no data for the include folder!`,
+					ProjectErrorType.BadRojoInclude,
+				);
+			}
+			let type: ProjectType.Game | ProjectType.Bundle;
+			if (this.rojoProject.isGame()) {
+				type = ProjectType.Game;
+			} else {
+				type = ProjectType.Bundle;
+			}
+			this.projectInfo = {
+				runtimeLibPath,
+				type,
+			};
+		} else {
+			this.projectInfo = { type: ProjectType.Package };
 		}
 	}
 
@@ -249,10 +251,20 @@ export class Project {
 		if (opts.allowSyntheticDefaultImports !== true) {
 			errors.push(`${yellow(`"allowSyntheticDefaultImports"`)} must be ${yellow(`true`)}`);
 		}
-		if (opts.types === undefined) {
-			errors.push(`${yellow(`"types"`)} must be ${yellow(`[ "rbx-types" ]`)}`);
-		} else if (opts.types.indexOf("rbx-types") === -1) {
-			errors.push(`${yellow(`"types"`)} must include ${yellow(`"rbx-types"`)}`);
+		if (opts.declaration !== true && opts.isolatedModules !== true) {
+			errors.push(`${yellow(`"isolatedModules"`)} must be ${yellow(`true`)}`);
+		}
+
+		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
+		if (
+			opts.typeRoots === undefined ||
+			opts.typeRoots.find(v => path.normalize(v) === rbxTsModulesPath) === undefined
+		) {
+			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "node_modules/@rbxts" ]`)}`);
+		}
+
+		if (opts.types !== undefined) {
+			errors.push(`${yellow(`"types"`)} must be ${yellow(`undefined`)}`);
 		}
 
 		// configurable compiler options
@@ -290,7 +302,7 @@ export class Project {
 			if (pkgLock !== undefined) {
 				const dependencies = pkgLock.dependencies;
 				if (dependencies !== undefined) {
-					const rbxTypes = dependencies["rbx-types"];
+					const rbxTypes = dependencies["@rbxts/types"];
 					if (rbxTypes !== undefined) {
 						const rbxTypesVersion = rbxTypes.version;
 						if (typeof rbxTypesVersion === "string") {
@@ -302,10 +314,10 @@ export class Project {
 										return;
 									} else {
 										throw new ProjectError(
-											`rbx-types is out of date!\n` +
+											`@rbxts/types is out of date!\n` +
 												yellow(`Installed version: 1.0.${patchNumber}\n`) +
 												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-												`Run 'npm i rbx-types' to fix this.`,
+												`Run 'npm i @rbxts/types' to fix this.`,
 											ProjectErrorType.BadRbxTypes,
 										);
 									}
@@ -317,41 +329,35 @@ export class Project {
 			}
 		}
 		throw new ProjectError(
-			`Could not find rbx-types in package-lock.json!\n` + `Run 'npm i rbx-types' to fix this.`,
+			`Could not find @rbxts/types in package-lock.json!\n` + `Run 'npm i @rbxts/types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}
 
-	private getSyncFilePath() {
-		for (const name of SYNC_FILE_NAMES) {
-			const filePath = path.resolve(this.projectPath, name);
-			if (fs.existsSync(filePath)) {
-				return filePath;
+	private getRojoFilePath() {
+		if (this.rojoOverridePath) {
+			if (fs.pathExistsSync(this.rojoOverridePath)) {
+				return this.rojoOverridePath;
 			}
-		}
-	}
+		} else {
+			const candidates = new Array<string | undefined>();
 
-	private transformPathToLua(filePath: string) {
-		const relativeToRoot = path.dirname(path.relative(this.rootDirPath, filePath));
-		let name = path.basename(filePath, path.extname(filePath));
-		const exts = new Array<string>();
-		while (true) {
-			const ext = path.extname(name);
-			if (ext.length > 0) {
-				exts.unshift(ext);
-				name = path.basename(name, ext);
-			} else {
-				break;
+			const defaultPath = path.join(this.projectPath, ROJO_DEFAULT_NAME);
+			if (fs.pathExistsSync(defaultPath)) {
+				candidates.push(defaultPath);
 			}
+
+			for (const fileName of fs.readdirSync(this.projectPath)) {
+				if (fileName !== ROJO_DEFAULT_NAME && (fileName === ROJO_OLD_NAME || ROJO_FILE_REGEX.test(fileName))) {
+					candidates.push(path.join(this.projectPath, fileName));
+				}
+			}
+
+			if (candidates.length > 1) {
+				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
+			}
+			return candidates[0];
 		}
-		if (exts[exts.length - 1] === ".d") {
-			exts.pop();
-		}
-		if (name === "index") {
-			name = "init";
-		}
-		const luaName = name + exts.join("") + ".lua";
-		return path.join(this.outDirPath, relativeToRoot, luaName);
 	}
 
 	public addFile(filePath: string) {
@@ -386,12 +392,13 @@ export class Project {
 						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
 						const rootPath = path.join(this.rootDirPath, relativeToOut);
 
-						let baseName = path.basename(filePath, path.extname(filePath)); // index.server
+						let baseName = path.basename(filePath, path.extname(filePath));
 						const subext = path.extname(baseName);
 						baseName = path.basename(baseName, subext);
 
 						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
 						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
+						const dtsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts");
 						const initLuaFile =
 							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
 						const indexTsFile =
@@ -401,7 +408,15 @@ export class Project {
 							(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx"));
 						const luaFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua");
 
-						if (!tsFile && !tsxFile && !initLuaFile && !indexTsFile && !indexTsxFile && !luaFile) {
+						if (
+							!tsFile &&
+							!tsxFile &&
+							!dtsFile &&
+							!initLuaFile &&
+							!indexTsFile &&
+							!indexTsxFile &&
+							!luaFile
+						) {
 							fs.removeSync(filePath);
 							console.log("remove", filePath);
 						}
@@ -419,12 +434,12 @@ export class Project {
 	}
 
 	public async copyModuleFiles() {
-		if (this.modulesDir) {
-			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
+		if (this.modulesDir && this.projectInfo.type !== ProjectType.Package) {
 			const modulesPath = this.modulesPath;
-			for (const name of await fs.readdir(nodeModulesPath)) {
-				if (name.startsWith(MODULE_PREFIX)) {
-					const oldModulePath = path.join(nodeModulesPath, name);
+			const rbxTsModulesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+			if (await fs.pathExists(rbxTsModulesPath)) {
+				for (const name of await fs.readdir(rbxTsModulesPath)) {
+					const oldModulePath = path.join(rbxTsModulesPath, name);
 					const newModulePath = path.join(modulesPath, name);
 					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath, this.luaSourceTransformer);
 				}
@@ -433,20 +448,51 @@ export class Project {
 	}
 
 	public async copyIncludeFiles() {
-		if (!this.noInclude) {
-			await copyAndCleanDeadLuaFiles(LIB_PATH, this.includePath);
+		if (!this.noInclude && this.projectInfo.type !== ProjectType.Package) {
+			await copyLuaFiles(LIB_PATH, this.includePath, this.luaSourceTransformer);
 		}
 	}
 
-	public async copyLuaSourceFiles() {
+	public async copyLuaFiles() {
 		await copyLuaFiles(this.rootDirPath, this.outDirPath, this.luaSourceTransformer);
 	}
 
+	public async copyDtsFiles() {
+		const dtsFiles = new Array<string>();
+		await new Promise(resolve => {
+			klaw(this.rootDirPath)
+				.on("data", item => {
+					if (item.path.endsWith(".d.ts")) {
+						dtsFiles.push(item.path);
+					}
+				})
+				.on("end", () => resolve());
+		});
+		return Promise.all(
+			dtsFiles.map(filePath => {
+				return new Promise(resolve => {
+					const outPath = path.join(this.outDirPath, path.relative(this.rootDirPath, filePath));
+					fs.readFile(filePath).then(buffer => {
+						const contents = buffer.toString();
+						fs.ensureFile(outPath).then(() => {
+							fs.writeFile(outPath, contents).then(() => resolve());
+						});
+					});
+				});
+			}),
+		);
+	}
+
 	public async compileAll() {
-		await this.copyLuaSourceFiles();
 		await this.compileFiles(this.project.getSourceFiles());
-		await this.copyIncludeFiles();
-		await this.copyModuleFiles();
+		if (process.exitCode === 0) {
+			await this.copyLuaFiles();
+			if (this.compilerOptions.declaration) {
+				await this.copyDtsFiles();
+			}
+			await this.copyIncludeFiles();
+			await this.copyModuleFiles();
+		}
 	}
 
 	public async compileFileByPath(filePath: string) {
@@ -461,15 +507,43 @@ export class Project {
 			}
 			return this.compileFiles([sourceFile]);
 		} else if (ext === ".lua") {
-			await this.copyLuaSourceFiles();
+			await this.copyLuaFiles();
 		}
+	}
+
+	private async getEmittedDtsFiles() {
+		return new Promise<Array<string>>(resolve => {
+			const result = new Array<string>();
+			klaw(this.outDirPath)
+				.on("data", item => {
+					if (item.stats.isFile() && item.path.endsWith(".d.ts")) {
+						result.push(item.path);
+					}
+				})
+				.on("end", () => resolve(result));
+		});
+	}
+
+	private async postProcessDtsFiles() {
+		return Promise.all(
+			(await this.getEmittedDtsFiles()).map(
+				filePath =>
+					new Promise(resolve => {
+						fs.readFile(filePath).then(contentsBuffer => {
+							let fileContents = contentsBuffer.toString();
+							fileContents = fileContents.replace(
+								/<reference types="([^."]+)" \/>/g,
+								'<reference types="@rbxts/$1" />',
+							);
+							fs.writeFile(filePath, fileContents).then(() => resolve());
+						});
+					}),
+			),
+		);
 	}
 
 	public async compileFiles(files: Array<ts.SourceFile>) {
 		await this.cleanDirRecursive(this.outDirPath);
-		if (this.compilerOptions.declaration === true) {
-			this.project.emit({ emitOnlyDtsFiles: true });
-		}
 
 		const errors = new Array<string>();
 		for (const file of files) {
@@ -519,8 +593,17 @@ export class Project {
 			for (const sourceFile of files) {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
-					const outPath = this.transformPathToLua(filePath);
-					let source = compileSourceFile(new CompilerState(this.syncInfo, this.modulesDir), sourceFile);
+					const outPath = transformPathToLua(this.rootDirPath, this.outDirPath, filePath);
+					let source = compileSourceFile(
+						new CompilerState(
+							this.rootDirPath,
+							this.outDirPath,
+							this.projectInfo,
+							this.rojoProject,
+							this.modulesDir,
+						),
+						sourceFile,
+					);
 
 					if (this.luaSourceTransformer) {
 						source = this.luaSourceTransformer(source);
@@ -540,20 +623,35 @@ export class Project {
 				await fs.ensureFile(filePath);
 				await fs.writeFile(filePath, contents);
 			}
+
+			if (this.compilerOptions.declaration === true) {
+				await this.project.emit({ emitOnlyDtsFiles: true });
+				await this.postProcessDtsFiles();
+			}
 		} catch (e) {
 			// do not silence errors for CI tests
 			if (this.ci) {
 				throw e;
 			}
 			if (e instanceof CompilerError) {
-				console.log(
-					"%s:%d:%d - %s %s",
-					path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-					e.node.getStartLineNumber(),
-					e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-					red("Compiler Error:"),
-					e.message,
-				);
+				const node = e.node;
+				if (ts.TypeGuards.isSourceFile(node)) {
+					console.log(
+						"%s - %s %s",
+						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
+						red("Compiler Error:"),
+						e.message,
+					);
+				} else {
+					console.log(
+						"%s:%d:%d - %s %s",
+						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
+						e.node.getStartLineNumber(),
+						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
+						red("Compiler Error:"),
+						e.message,
+					);
+				}
 			} else if (e instanceof ProjectError) {
 				console.log(red("Project Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {

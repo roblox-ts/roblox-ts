@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.0.34",
+	"version": "0.1.2",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -13,12 +13,12 @@
 	"scripts": {
 		"tslint": "npx tslint -p tsconfig.json",
 		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
-		"test": "npm run build && nyc --reporter=html _mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
+		"test": "npm run build && nyc _mocha --timeout 0 --recursive out/test.js && lua tests/spec.lua",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"build": "if [ \"$CI\" = true ]; then npx tsc -p tsconfig.ci.json; else npx tsc; fi",
 		"prepublishOnly": "npm run build",
-		"types": "cd tests && npm install rbx-types"
+		"types": "cd tests && npm install @rbxts/types"
 	},
 	"nyc": {
 		"extension": [
@@ -43,15 +43,16 @@
 		"fs-extra": "^8.0.1",
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
-		"ts-morph": "^2.2.0",
+		"rojo-utils": "0.0.6",
+		"ts-morph": "^2.3.0",
 		"yargs": "^13.2.4"
 	},
 	"devDependencies": {
 		"@types/cross-spawn": "^6.0.0",
 		"@types/fs-extra": "^7.0.0",
 		"@types/klaw": "^3.0.0",
-		"@types/mocha": "^5.2.6",
-		"@types/node": "^12.0.3",
+		"@types/mocha": "^5.2.7",
+		"@types/node": "^12.0.4",
 		"@types/yargs": "^13.0.0",
 		"coveralls": "^3.0.3",
 		"mocha": "^6.1.4",
@@ -60,6 +61,6 @@
 		"prettylint": "^1.0.0",
 		"source-map-support": "^0.5.9",
 		"ts-node": "^8.2.0",
-		"tslint": "^5.16.0"
+		"tslint": "^5.17.0"
 	}
 }

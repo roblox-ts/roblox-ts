@@ -1,4 +1,4 @@
-import * as Roact from "rbx-roact";
+import Roact from "@rbxts/roact";
 
 class RoactClass extends Roact.Component {
 	public render(): Roact.Element | undefined {

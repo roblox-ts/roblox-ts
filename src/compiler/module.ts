@@ -1,11 +1,12 @@
-import * as path from "path";
+import path from "path";
+import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { ProjectError, ProjectErrorType } from "../errors/ProjectError";
+import { ProjectType } from "../Project";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import { isValidLuaIdentifier, stripExtensions } from "../utility";
+import { isValidLuaIdentifier, stripExtensions, transformPathToLua } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = def.getNode().getParent();
@@ -28,128 +29,150 @@ function shouldLocalizeImport(namedImport: ts.Identifier) {
 	return true;
 }
 
-function getRelativeImportPath(
-	state: CompilerState,
-	sourceFile: ts.SourceFile,
-	moduleFile: ts.SourceFile | undefined,
-	specifier: string,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
-) {
-	const currentPartition = state.syncInfo.find(part => part.dir.isAncestorOf(sourceFile));
-	const modulePartition = moduleFile && state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
+function getRojoUnavailableError(node: ts.Node) {
+	return new CompilerError(
+		`Failed to load Rojo configuration! Cannot compile ${node.getKindName()}`,
+		node,
+		CompilerErrorType.BadRojo,
+	);
+}
 
-	if (moduleFile && currentPartition && currentPartition.target !== (modulePartition && modulePartition.target)) {
-		return getImportPathFromFile(state, sourceFile, moduleFile, node);
+function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
+	const relative = sourceFile.getRelativePathTo(moduleFile).split(path.posix.sep);
+
+	let start = "script";
+	while (relative[0] === "..") {
+		relative.shift();
+		start += ".Parent";
 	}
 
-	const parts = path.posix
-		.normalize(specifier)
-		.split("/")
-		.filter(part => part !== ".")
-		.map(part => (part === ".." ? ".Parent" : part));
-	if (parts[parts.length - 1] === ".index") {
-		parts.pop();
+	const last = stripExtensions(relative.pop()!);
+	if (last !== "init") {
+		relative.push(last);
 	}
-	let prefix = "script";
-	if (stripExtensions(sourceFile.getBaseName()) !== "index") {
-		prefix += ".Parent";
-	}
-
-	const importRoot = prefix + parts.filter(p => p === ".Parent").join("");
-	const importParts = parts.filter(p => p !== ".Parent");
-	const params = importRoot + (importParts.length > 0 ? `, "${importParts.join(`", "`)}"` : "");
 
 	state.usesTSLibrary = true;
-	return `TS.import(${params})`;
+	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+}
+
+function getRelativeImportPathRojo(
+	state: CompilerState,
+	sourceFile: ts.SourceFile,
+	moduleFile: ts.SourceFile,
+	node: ts.Node,
+) {
+	const rbxFrom = state.rojoProject!.getRbxFromFile(
+		transformPathToLua(state.rootDirPath, state.outDirPath, sourceFile.getFilePath()),
+	).path;
+	const rbxTo = state.rojoProject!.getRbxFromFile(
+		transformPathToLua(state.rootDirPath, state.outDirPath, moduleFile.getFilePath()),
+	).path;
+
+	if (!rbxFrom) {
+		throw getRojoUnavailableError(node);
+	}
+
+	if (!rbxTo) {
+		throw getRojoUnavailableError(node);
+	}
+
+	const relative = RojoProject.relative(rbxFrom, rbxTo);
+
+	let start = "script";
+	while (relative[0] === "..") {
+		relative.shift();
+		start += ".Parent";
+	}
+
+	state.usesTSLibrary = true;
+	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
 
-function getImportPathFromFile(
+function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
+	const modulesDir = state.modulesDir!;
+	let parts = modulesDir
+		.getRelativePathTo(moduleFile)
+		.split("/")
+		.filter(part => part !== ".");
+
+	const scope = parts.shift()!;
+	if (scope !== "@rbxts") {
+		throw new CompilerError(
+			"Imported packages must have the @rbxts scope!",
+			moduleFile,
+			CompilerErrorType.BadPackageScope,
+		);
+	}
+
+	const moduleName = parts.shift()!;
+
+	let mainPath: string;
+	if (moduleCache.has(moduleName)) {
+		mainPath = moduleCache.get(moduleName)!;
+	} else {
+		const pkgJson = require(path.join(modulesDir.getPath(), scope, moduleName, "package.json"));
+		mainPath = pkgJson.main as string;
+		moduleCache.set(moduleName, mainPath);
+	}
+
+	parts = mainPath.split(/[\\/]/g);
+	const last = stripExtensions(parts.pop()!);
+	if (last !== "init") {
+		parts.push(last);
+	}
+
+	parts = parts.filter(part => part !== ".").map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
+
+	state.usesTSLibrary = true;
+	const params = `TS.getModule("${moduleName}")` + parts.join("");
+	return `require(${params})`;
+}
+
+function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
+	if (!state.rojoProject) {
+		throw getRojoUnavailableError(node);
+	}
+
+	const filePath = moduleFile.getFilePath();
+	const rbx = state.rojoProject.getRbxFromFile(transformPathToLua(state.rootDirPath, state.outDirPath, filePath));
+	if (!rbx.path || rbx.path.length === 0) {
+		throw new CompilerError(`Could not find Rojo data for ${filePath}`, node, CompilerErrorType.BadRojo);
+	}
+
+	const rbxPath = [...rbx.path];
+
+	let service = rbxPath.shift()!;
+	if (isRbxService(service)) {
+		service = `game:GetService("${service}")`;
+	} else {
+		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
+	}
+
+	state.usesTSLibrary = true;
+	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
+}
+
+function getImportPath(
 	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile,
-	node: ts.ImportDeclaration | ts.ExportDeclaration | ts.ImportEqualsDeclaration,
-) {
+	isRelative: boolean,
+	node: ts.Node,
+): string {
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
-		let parts = state.modulesDir
-			.getRelativePathTo(moduleFile)
-			.split("/")
-			.filter(part => part !== ".");
+		return getModuleImportPath(state, moduleFile);
+	}
 
-		const moduleName = parts.shift();
-		if (!moduleName) {
-			throw new ProjectError("Compiler.getImportPath() failed! #1", ProjectErrorType.GetImportPathFail1);
-		}
-
-		let mainPath: string;
-		if (moduleCache.has(moduleName)) {
-			mainPath = moduleCache.get(moduleName)!;
-		} else {
-			const pkgJson = require(path.join(state.modulesDir.getPath(), moduleName, "package.json"));
-			mainPath = pkgJson.main as string;
-			moduleCache.set(moduleName, mainPath);
-		}
-
-		parts = mainPath.split(/[\\/]/g);
-		let last = parts.pop();
-		if (!last) {
-			throw new ProjectError("Compiler.getImportPath() failed! #2", ProjectErrorType.GetImportPathFail2);
-		}
-		last = stripExtensions(last);
-		if (last !== "init") {
-			parts.push(last);
-		}
-
-		parts = parts
-			.filter(part => part !== ".")
-			.map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
-		state.usesTSLibrary = true;
-		const params = `TS.getModule("${moduleName}", script.Parent)` + parts.join("");
-		return `require(${params})`;
+	if (state.projectInfo.type === ProjectType.Game && !isRelative) {
+		return getAbsoluteImportPathRojo(state, moduleFile, node);
 	} else {
-		const partition = state.syncInfo.find(part => part.dir.isAncestorOf(moduleFile));
-		if (!partition) {
-			throw new ProjectError(
-				"Could not compile non-relative import, no data from rojo.json",
-				ProjectErrorType.NoRojoData,
-			);
-		}
-
-		const parts = partition.dir
-			.getRelativePathAsModuleSpecifierTo(moduleFile)
-			.split("/")
-			.filter(part => part !== ".");
-
-		const last = parts.pop();
-		if (!last) {
-			throw new ProjectError("Compiler.getImportPath() failed! #3", ProjectErrorType.GetImportPathFail3);
-		}
-
-		if (last !== "index") {
-			parts.push(last);
-		}
-
-		const params = partition.target
-			.split(".")
-			.concat(parts)
-			.filter(v => v.length > 0)
-			.map((v, i) => (i === 0 ? v : `"${v}"`));
-
-		const rbxService = params[0];
-		if (rbxService && isRbxService(rbxService)) {
-			params[0] = `game:GetService("${params[0]}")`;
+		if (state.rojoProject) {
+			return getRelativeImportPathRojo(state, sourceFile, moduleFile, node);
 		} else {
-			throw new CompilerError(
-				rbxService + " is not a valid Roblox Service!",
-				node,
-				CompilerErrorType.InvalidService,
-			);
+			return getRelativeImportPath(state, sourceFile, moduleFile);
 		}
-
-		state.usesTSLibrary = true;
-		return `TS.import(${params.join(", ")})`;
 	}
 }
 
@@ -158,9 +181,18 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const namespaceImport = node.getNamespaceImport();
 	const namedImports = node.getNamedImports();
 
+	const isRoact =
+		(defaultImport && defaultImport.getText() === "Roact") ||
+		(namespaceImport && namespaceImport.getText() === "Roact");
+
+	if (isRoact) {
+		state.hasRoactImport = true;
+	}
+
 	const isSideEffect = !defaultImport && !namespaceImport && namedImports.length === 0;
 
 	if (
+		!isRoact &&
 		!isSideEffect &&
 		(!namespaceImport || isUsedAsType(namespaceImport)) &&
 		(!defaultImport || isUsedAsType(defaultImport)) &&
@@ -169,28 +201,15 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		return "";
 	}
 
-	let luaPath: string;
-	if (node.isModuleSpecifierRelative()) {
-		luaPath = getRelativeImportPath(
-			state,
-			node.getSourceFile(),
-			node.getModuleSpecifierSourceFile(),
-			node.getModuleSpecifier().getLiteralText(),
+	const moduleFile = node.getModuleSpecifierSourceFile();
+	if (!moduleFile) {
+		throw new CompilerError(
+			`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
 			node,
+			CompilerErrorType.MissingModuleFile,
 		);
-	} else {
-		const moduleFile = node.getModuleSpecifierSourceFile();
-		if (moduleFile) {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
-		} else {
-			const specifierText = node.getModuleSpecifier().getLiteralText();
-			throw new CompilerError(
-				`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
-				node,
-				CompilerErrorType.MissingModuleFile,
-			);
-		}
 	}
+	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
 
 	let result = "";
 	if (isSideEffect) {
@@ -201,7 +220,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const rhs = new Array<string>();
 	const unlocalizedImports = new Array<string>();
 
-	if (defaultImport && !isUsedAsType(defaultImport)) {
+	if (defaultImport && (isRoact || !isUsedAsType(defaultImport))) {
 		const definitions = defaultImport.getDefinitions();
 		const exportAssignments =
 			definitions.length > 0 &&
@@ -222,7 +241,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		unlocalizedImports.push("");
 	}
 
-	if (namespaceImport && !isUsedAsType(namespaceImport)) {
+	if (namespaceImport && (isRoact || !isUsedAsType(namespaceImport))) {
 		lhs.push(compileExpression(state, namespaceImport));
 		rhs.push("");
 		unlocalizedImports.push("");
@@ -269,10 +288,6 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	if (hasVarNames || lhs.length > 0) {
 		const lhsStr = lhs.join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
-
-		if (lhsStr === "Roact") {
-			state.hasRoactImport = true;
-		}
 		result += `local ${lhsStr} = ${rhsStr};\n`;
 	}
 
@@ -281,65 +296,49 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 export function compileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
-	if (isUsedAsType(nameNode)) {
-		return "";
-	}
-
-	let luaPath: string;
-	const moduleFile = node.getExternalModuleReferenceSourceFile();
-	if (moduleFile) {
-		if (node.isExternalModuleReferenceRelative()) {
-			let specifier: string;
-			const moduleReference = node.getModuleReference();
-			if (ts.TypeGuards.isExternalModuleReference(moduleReference)) {
-				const exp = moduleReference.getExpressionOrThrow() as ts.StringLiteral;
-				specifier = exp.getLiteralText();
-			} else {
-				throw new CompilerError("Bad specifier", node, CompilerErrorType.BadSpecifier);
-			}
-			luaPath = getRelativeImportPath(state, node.getSourceFile(), moduleFile, specifier, node);
-		} else {
-			luaPath = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
-		}
-	} else {
-		const text = node.getModuleReference().getText();
-		throw new CompilerError(`Could not find file for '${text}'`, node, CompilerErrorType.MissingModuleFile);
-	}
-
 	const name = node.getName();
 
-	if (name === "Roact") {
+	const isRoact = name === "Roact";
+	if (isRoact) {
 		state.hasRoactImport = true;
 	}
 
+	if (!isRoact && isUsedAsType(nameNode)) {
+		return "";
+	}
+
+	const moduleFile = node.getExternalModuleReferenceSourceFile();
+	if (!moduleFile) {
+		const text = node.getModuleReference().getText();
+		throw new CompilerError(
+			`Could not find file for '${text}'. Did you forget to "npm install"?`,
+			node,
+			CompilerErrorType.MissingModuleFile,
+		);
+	}
+
+	const luaPath = getImportPath(
+		state,
+		node.getSourceFile(),
+		moduleFile,
+		node.isExternalModuleReferenceRelative(),
+		node,
+	);
 	return state.indent + `local ${name} = ${luaPath};\n`;
 }
 
 export function compileExportDeclaration(state: CompilerState, node: ts.ExportDeclaration) {
-	let luaImportStr = "";
-	const moduleSpecifier = node.getModuleSpecifier();
-	if (moduleSpecifier) {
-		if (node.isModuleSpecifierRelative()) {
-			luaImportStr = getRelativeImportPath(
-				state,
-				node.getSourceFile(),
-				node.getModuleSpecifierSourceFile(),
-				moduleSpecifier.getLiteralText(),
+	let luaPath = "";
+	if (node.hasModuleSpecifier()) {
+		const moduleFile = node.getModuleSpecifierSourceFile();
+		if (!moduleFile) {
+			throw new CompilerError(
+				`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
 				node,
+				CompilerErrorType.MissingModuleFile,
 			);
-		} else {
-			const moduleFile = node.getModuleSpecifierSourceFile();
-			if (moduleFile) {
-				luaImportStr = getImportPathFromFile(state, node.getSourceFile(), moduleFile, node);
-			} else {
-				const specifierText = moduleSpecifier.getLiteralText();
-				throw new CompilerError(
-					`Could not find file for '${specifierText}'. Did you forget to "npm install"?`,
-					node,
-					CompilerErrorType.MissingModuleFile,
-				);
-			}
 		}
+		luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
 	}
 
 	const ancestor =
@@ -362,7 +361,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			state.isModule = true;
 			ancestorName = "_exports";
 		}
-		return state.indent + `TS.exportNamespace(${luaImportStr}, ${ancestorName});\n`;
+		return state.indent + `TS.exportNamespace(${luaPath}, ${ancestorName});\n`;
 	} else {
 		const namedExports = node.getNamedExports().filter(namedExport => !isUsedAsType(namedExport.getNameNode()));
 		if (namedExports.length === 0) {
@@ -386,7 +385,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			const alias = aliasNode ? aliasNode.getText() : name;
 			checkReserved(alias, node);
 			lhs.push(alias);
-			if (luaImportStr !== "") {
+			if (luaPath !== "") {
 				rhs.push(`.${name}`);
 			} else {
 				rhs.push(state.getAlias(name));
@@ -396,12 +395,12 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		let result = "";
 		let rhsPrefix = "";
 		const lhsPrefix = ancestorName + ".";
-		if (luaImportStr !== "") {
+		if (luaPath !== "") {
 			if (rhs.length <= 1) {
-				rhsPrefix = `${luaImportStr}`;
+				rhsPrefix = `${luaPath}`;
 			} else {
 				rhsPrefix = state.getNewId();
-				result += state.indent + `local ${rhsPrefix} = ${luaImportStr};\n`;
+				result += state.indent + `local ${rhsPrefix} = ${luaPath};\n`;
 			}
 		}
 		const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");

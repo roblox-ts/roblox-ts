@@ -23,20 +23,19 @@ local function newFolder(name, parent, content)
 end
 
 -- Roblox TS Stuff
-local robloxTsFolder = newFolder("RobloxTS", ReplicatedStorage)
-newFolder("Include", robloxTsFolder, "lib")
+local robloxTsFolder = newFolder("include", ReplicatedStorage, "lib")
 
 -- Modules
-local modulesFolder = newFolder("Modules", robloxTsFolder)
+local modulesFolder = newFolder("node_modules", robloxTsFolder)
 
 -- Roact
-newFolder("rbx-roact", modulesFolder, "tests/node_modules/rbx-roact");
+newFolder("roact", modulesFolder, "tests/node_modules/@rbxts/roact");
 
 -- TestEZ
 local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
 
 -- Testing code
-local testsFolder = newFolder("Tests", ReplicatedStorage)
+local testsFolder = newFolder("src", ReplicatedStorage)
 local outFolder = newFolder("out", testsFolder, "tests/out")
 
 -- Load TestEZ and run our tests

@@ -1,4 +1,4 @@
-import * as Roact from "rbx-roact";
+import Roact from "@rbxts/roact";
 
 export = () => {
 	describe("Roact Spread operator", () => {
