@@ -27,4 +27,12 @@ export = () => {
 		expect((arr[f()] *= ++x)).to.equal(8);
 		expect(x).to.equal(2);
 	});
+
+	it("should push WritableOperandNames", () => {
+		let numItems = 0;
+		new (class {
+			public id = numItems++;
+		})().id++;
+		expect(numItems).to.equal(1);
+	});
 };

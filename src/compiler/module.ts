@@ -38,17 +38,32 @@ function getRojoUnavailableError(node: ts.Node) {
 }
 
 function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
-	const relative = sourceFile.getRelativePathTo(moduleFile).split(path.posix.sep);
+	let sourcePath = path.normalize(sourceFile.getFilePath());
+	let modulePath = path.normalize(moduleFile.getFilePath());
+
+	const sourceBaseName = stripExtensions(sourceFile.getBaseName());
+	const sourceInit = sourceBaseName === "index" || sourceBaseName === "init";
+	if (sourceInit) {
+		sourcePath = path.resolve(sourcePath, "..");
+	}
+
+	const moduleBaseName = stripExtensions(moduleFile.getBaseName());
+	const moduleInit = moduleBaseName === "index" || moduleBaseName === "init";
+	if (moduleInit) {
+		modulePath = path.resolve(modulePath, "..");
+	}
+
+	const relative = path.relative(sourcePath, modulePath).split(path.sep);
 
 	let start = "script";
+
 	while (relative[0] === "..") {
 		relative.shift();
 		start += ".Parent";
 	}
 
-	const last = stripExtensions(relative.pop()!);
-	if (last !== "init") {
-		relative.push(last);
+	if (!moduleInit) {
+		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
 	state.usesTSLibrary = true;
@@ -127,7 +142,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 
 	state.usesTSLibrary = true;
 	const params = `TS.getModule("${moduleName}")` + parts.join("");
-	return `require(${params})`;
+	return `TS.import(${params})`;
 }
 
 function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
@@ -203,8 +218,10 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 	const moduleFile = node.getModuleSpecifierSourceFile();
 	if (!moduleFile) {
+		const specifier = node.getModuleSpecifier();
+		const text = specifier ? specifier.getText : "unknown";
 		throw new CompilerError(
-			`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
+			`Could not find file for '${text}'. Did you forget to "npm install"?`,
 			node,
 			CompilerErrorType.MissingModuleFile,
 		);
@@ -332,8 +349,10 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 	if (node.hasModuleSpecifier()) {
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (!moduleFile) {
+			const specifier = node.getModuleSpecifier();
+			const text = specifier ? specifier.getText : "unknown";
 			throw new CompilerError(
-				`Could not find file for '${node.getModuleSpecifier()}'. Did you forget to "npm install"?`,
+				`Could not find file for '${text}'. Did you forget to "npm install"?`,
 				node,
 				CompilerErrorType.MissingModuleFile,
 			);
@@ -346,7 +365,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
 
 	if (!ancestor) {
-		throw new CompilerError("Could not find export ancestor!", node, CompilerErrorType.BadAncestor);
+		throw new CompilerError("Could not find export ancestor!", node, CompilerErrorType.BadAncestor, true);
 	}
 
 	const lhs = new Array<string>();

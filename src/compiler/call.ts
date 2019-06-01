@@ -914,6 +914,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			"Expected PropertyAccessExpression",
 			node,
 			CompilerErrorType.ExpectedPropertyAccessExpression,
+			true,
 		);
 	}
 

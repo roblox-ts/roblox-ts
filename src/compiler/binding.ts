@@ -144,10 +144,10 @@ function objectAccessor(
 		}
 	} else {
 		throw new CompilerError(
-			`Cannot index an object with type ${nameNode.getKindName()}.` +
-				` Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
+			`Cannot index an object with type ${nameNode.getKindName()}.`,
 			nameNode,
 			CompilerErrorType.BadExpression,
+			true,
 		);
 	}
 
@@ -373,17 +373,18 @@ export function getBindingData(
 					preStatements.push(`local ${childId} = ${accessor};`);
 				} else {
 					throw new CompilerError(
-						`Cannot index an object with type ${exp.getType().getText()}.`,
+						`Unexpected ${exp.getKindName()} in getBindingData.`,
 						child,
 						CompilerErrorType.BadExpression,
+						true,
 					);
 				}
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
-					`roblox-ts doesn't know what to do with ${child.getKindName()} [1]. ` +
-						`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
+					`Unexpected ${child.getKindName()} in getBindingData`,
 					child,
 					CompilerErrorType.UnexpectedBindingPattern,
+					true,
 				);
 			}
 		} else if (ts.TypeGuards.isIdentifier(item)) {
@@ -431,10 +432,10 @@ export function getBindingData(
 			getAccessor(state, parentId, childIndex, preStatements, idStack, true);
 		} else {
 			throw new CompilerError(
-				`roblox-ts doesn't know what to do with ${item.getKindName()} [2]. ` +
-					`Please report this at https://github.com/roblox-ts/roblox-ts/issues`,
+				`Unexpected ${item.getKindName()} in getBindingData`,
 				item,
 				CompilerErrorType.UnexpectedBindingPattern,
+				true,
 			);
 		}
 

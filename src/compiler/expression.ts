@@ -118,7 +118,12 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		);
 	} else {
 		/* istanbul ignore next */
-		throw new CompilerError(`Bad expression! (${node.getKindName()})`, node, CompilerErrorType.BadExpression);
+		throw new CompilerError(
+			`Unexpected expression ( ${node.getKindName()} ) in compileExpression`,
+			node,
+			CompilerErrorType.BadExpression,
+			true,
+		);
 	}
 }
 

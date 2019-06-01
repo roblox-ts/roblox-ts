@@ -398,7 +398,9 @@ export class Project {
 
 						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
 						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
-						const dtsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts");
+						const dtsFile =
+							this.compilerOptions.declaration &&
+							(await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts"));
 						const initLuaFile =
 							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
 						const indexTsFile =

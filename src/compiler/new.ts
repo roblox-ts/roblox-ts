@@ -15,6 +15,7 @@ function compileMapElement(state: CompilerState, element: ts.Expression) {
 			"Bad arguments to Map constructor",
 			element,
 			CompilerErrorType.BadBuiltinConstructorCall,
+			true,
 		);
 	}
 }

@@ -60,7 +60,8 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 					CompilerErrorType.InvalidService,
 				);
 			}
-			link = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
+			const path = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
+			link = `require(${path})`;
 		} else if (state.projectInfo.type === ProjectType.Bundle) {
 			const rbxPath = state.rojoProject!.getRbxFromFile(
 				transformPathToLua(state.rootDirPath, state.outDirPath, node.getFilePath()),
@@ -78,9 +79,10 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 				rbxRelative.shift();
 				start += ".Parent";
 			}
-			link = [start, ...rbxRelative].join(".");
+			const path = [start, ...rbxRelative].join(".");
+			link = `require(${path})`;
 		}
-		result = `local TS = require(${link!});\n` + result;
+		result = `local TS = ${link!};\n` + result;
 	}
 
 	const CURRENT_TIME = new Date().toLocaleString("en-US", {

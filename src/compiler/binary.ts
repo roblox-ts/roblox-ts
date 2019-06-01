@@ -51,6 +51,7 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
 			node,
 			CompilerErrorType.BadAddition,
+			true,
 		);
 	}
 }
@@ -312,11 +313,10 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			rhsStr = `${previouslhs} % (${rhsStr})`;
 		} else if (!isEqualsOperation) {
 			throw new CompilerError(
-				"You just discovered a new kind of BinaryExpression! (" +
-					opToken.getText() +
-					") Please submit an issue request at https://github.com/roblox-ts/roblox-ts/issues",
+				`Unexpected BinaryExpression ( ${opToken.getText()} ) in compileBinaryExpression #1`,
 				opToken,
 				CompilerErrorType.BadBinaryExpression,
+				true,
 			);
 		}
 
@@ -447,9 +447,10 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else {
 		/* istanbul ignore next */
 		throw new CompilerError(
-			`Bad binary expression! (${node.getOperatorToken().getKindName()})`,
+			`Unexpected BinaryExpression (${node.getOperatorToken().getKindName()})  in compileBinaryExpression #2`,
 			opToken,
 			CompilerErrorType.BadBinaryExpression,
+			true,
 		);
 	}
 }
