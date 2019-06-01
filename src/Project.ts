@@ -418,11 +418,11 @@ export class Project {
 
 	public async copyModuleFiles() {
 		if (this.modulesDir) {
-			const nodeModulesPath = path.resolve(this.modulesDir.getPath());
 			const modulesPath = this.modulesPath;
-			for (const name of await fs.readdir(nodeModulesPath)) {
-				if (name.startsWith(MODULE_PREFIX)) {
-					const oldModulePath = path.join(nodeModulesPath, name);
+			const rbxTsModulesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+			if (await fs.pathExists(rbxTsModulesPath)) {
+				for (const name of await fs.readdir(rbxTsModulesPath)) {
+					const oldModulePath = path.join(rbxTsModulesPath, name);
 					const newModulePath = path.join(modulesPath, name);
 					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath, this.luaSourceTransformer);
 				}

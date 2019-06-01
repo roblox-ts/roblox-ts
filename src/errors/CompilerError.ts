@@ -72,6 +72,7 @@ export enum CompilerErrorType {
 	GlobalThis,
 	StaticNew,
 	BadRojo,
+	BadPackageScope,
 }
 
 export class CompilerError extends Error {
