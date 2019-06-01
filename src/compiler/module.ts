@@ -40,7 +40,7 @@ function getRojoUnavailableError(node: ts.Node) {
 function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
 	const relative = sourceFile.getRelativePathTo(moduleFile).split(path.posix.sep);
 
-	let start = "script";
+	let start = "script.Parent";
 	while (relative[0] === "..") {
 		relative.shift();
 		start += ".Parent";
