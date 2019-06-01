@@ -2,6 +2,10 @@ function stringThrow(): void {
 	throw "foo";
 }
 
+function canCompileExpressionThrowStatements(param?: string): void {
+	throw "Invalid param: " + (param || "undefined");
+}
+
 export = () => {
 	it("should throw", () => {
 		expect(stringThrow).to.throw();
