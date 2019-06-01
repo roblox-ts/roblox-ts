@@ -40,7 +40,7 @@ function getRojoUnavailableError(node: ts.Node) {
 function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, moduleFile: ts.SourceFile) {
 	const relative = sourceFile.getRelativePathTo(moduleFile).split(path.posix.sep);
 
-	let start = "script.Parent";
+	let start = "script";
 	while (relative[0] === "..") {
 		relative.shift();
 		start += ".Parent";
@@ -49,6 +49,8 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 	const last = stripExtensions(relative.pop()!);
 	if (last !== "index" && last !== "init") {
 		relative.push(last);
+	} else {
+		start += ".Parent";
 	}
 
 	state.usesTSLibrary = true;
