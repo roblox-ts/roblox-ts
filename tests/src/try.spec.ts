@@ -1,4 +1,8 @@
-function stringThrow(param?: string): void {
+function stringThrow(): void {
+	throw "foo";
+}
+
+function canCompileExpressionThrowStatements(param?: string): void {
 	throw "Invalid param: " + (param || "undefined");
 }
 
