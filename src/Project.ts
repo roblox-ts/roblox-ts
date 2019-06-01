@@ -1,4 +1,4 @@
-import fs from "fs-extra";
+import fs, { outputFile } from "fs-extra";
 import klaw from "klaw";
 import { minify } from "luamin";
 import path from "path";
@@ -398,6 +398,7 @@ export class Project {
 
 						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
 						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
+						const dtsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts");
 						const initLuaFile =
 							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
 						const indexTsFile =
@@ -407,7 +408,15 @@ export class Project {
 							(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx"));
 						const luaFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua");
 
-						if (!tsFile && !tsxFile && !initLuaFile && !indexTsFile && !indexTsxFile && !luaFile) {
+						if (
+							!tsFile &&
+							!tsxFile &&
+							!dtsFile &&
+							!initLuaFile &&
+							!indexTsFile &&
+							!indexTsxFile &&
+							!luaFile
+						) {
 							fs.removeSync(filePath);
 							console.log("remove", filePath);
 						}
@@ -444,15 +453,44 @@ export class Project {
 		}
 	}
 
-	public async copyLuaSourceFiles() {
+	public async copyLuaFiles() {
 		await copyLuaFiles(this.rootDirPath, this.outDirPath, this.luaSourceTransformer);
+	}
+
+	public async copyDtsFiles() {
+		const dtsFiles = new Array<string>();
+		await new Promise(resolve => {
+			klaw(this.rootDirPath)
+				.on("data", item => {
+					if (item.path.endsWith(".d.ts")) {
+						dtsFiles.push(item.path);
+					}
+				})
+				.on("end", () => resolve());
+		});
+		return Promise.all(
+			dtsFiles.map(filePath => {
+				return new Promise(resolve => {
+					const outPath = path.join(this.outDirPath, path.relative(this.rootDirPath, filePath));
+					fs.readFile(filePath).then(buffer => {
+						const contents = buffer.toString();
+						fs.ensureFile(outPath).then(() => {
+							fs.writeFile(outPath, contents).then(() => resolve());
+						});
+					});
+				});
+			}),
+		);
 	}
 
 	public async compileAll() {
 		await this.compileFiles(this.project.getSourceFiles());
-		await this.copyLuaSourceFiles();
-		await this.copyIncludeFiles();
-		await this.copyModuleFiles();
+		if (process.exitCode === 0) {
+			await this.copyLuaFiles();
+			await this.copyDtsFiles();
+			await this.copyIncludeFiles();
+			await this.copyModuleFiles();
+		}
 	}
 
 	public async compileFileByPath(filePath: string) {
@@ -467,7 +505,7 @@ export class Project {
 			}
 			return this.compileFiles([sourceFile]);
 		} else if (ext === ".lua") {
-			await this.copyLuaSourceFiles();
+			await this.copyLuaFiles();
 		}
 	}
 
