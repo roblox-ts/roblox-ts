@@ -22,9 +22,10 @@ function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, n
 			? " - "
 			: (() => {
 					throw new CompilerError(
-						`Bad unary expression! (${opKind})`,
+						`Unexpected UnaryExpression ( ${opKind} ) in getIncrementString`,
 						node,
 						CompilerErrorType.BadPrefixUnaryExpression,
+						true,
 					);
 			  })();
 
@@ -73,9 +74,10 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		} else {
 			/* istanbul ignore next */
 			throw new CompilerError(
-				`Bad prefix unary expression! (${tokenKind})`,
+				`Unexpected prefix UnaryExpression ( ${tokenKind} ) in compilePrefixUnaryExpression`,
 				node,
 				CompilerErrorType.BadPrefixUnaryExpression,
+				true,
 			);
 		}
 	}
@@ -122,9 +124,10 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 	} else {
 		/* istanbul ignore next */
 		throw new CompilerError(
-			`Bad postfix unary expression! (${opKind})`,
+			`Unexpected postfix UnaryExpression! ( ${opKind} ) in compilePostfixUnaryExpression`,
 			node,
 			CompilerErrorType.BadPostfixUnaryExpression,
+			true,
 		);
 	}
 }

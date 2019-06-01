@@ -76,7 +76,15 @@ export enum CompilerErrorType {
 }
 
 export class CompilerError extends Error {
-	constructor(message: string, public readonly node: ts.Node, public readonly type: CompilerErrorType) {
-		super(message);
+	constructor(
+		message: string,
+		public readonly node: ts.Node,
+		public readonly type: CompilerErrorType,
+		shouldNotHappen = false,
+	) {
+		super(
+			message +
+				(shouldNotHappen ? "\nPlease submit an issue at https://github.com/roblox-ts/roblox-ts/issues" : ""),
+		);
 	}
 }

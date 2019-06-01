@@ -221,9 +221,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				propStr = `[${computedExpStr}]`;
 			} else {
 				throw new CompilerError(
-					`Unexpected prop type: ${prop.getKindName()}`,
+					`Unexpected prop type ${prop.getKindName()} in compileClass`,
 					prop,
 					CompilerErrorType.UnexpectedPropType,
+					true,
 				);
 			}
 

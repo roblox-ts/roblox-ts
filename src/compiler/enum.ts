@@ -40,12 +40,7 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 			result += state.indent + `${safeIndex} = ${expStr};\n`;
 			result += state.indent + `${name}[${expStr}] = "${memberName}";\n`;
 		} else {
-			throw new CompilerError(
-				"You discovered a new kind of enum declaration!" +
-					" Please submit an issue at https://github.com/roblox-ts/roblox-ts/issues",
-				node,
-				CompilerErrorType.BadEnum,
-			);
+			throw new CompilerError("Unexpected enum structure.", node, CompilerErrorType.BadEnum, true);
 		}
 	}
 	state.popIndent();
