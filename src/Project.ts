@@ -487,7 +487,9 @@ export class Project {
 		await this.compileFiles(this.project.getSourceFiles());
 		if (process.exitCode === 0) {
 			await this.copyLuaFiles();
-			await this.copyDtsFiles();
+			if (this.compilerOptions.declaration) {
+				await this.copyDtsFiles();
+			}
 			await this.copyIncludeFiles();
 			await this.copyModuleFiles();
 		}
