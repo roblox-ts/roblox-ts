@@ -58,15 +58,15 @@ export class CompilerState {
 
 		if (!currentContext) {
 			const kind = node.getKindName();
-
+			const ancestorName = node
+				.getAncestors()
+				.find(ancestor => ts.TypeGuards.isStatement(ancestor) || ts.TypeGuards.isStatementedNode(ancestor))!
+				.getKindName();
 			throw new CompilerError(
-				`roblox-ts accidentally does not support using a ${kind} which requires preceding statements in a ${node
-					.getAncestors()
-					.find(ancestor => ts.TypeGuards.isStatement(ancestor) || ts.TypeGuards.isStatementedNode(ancestor))!
-					.getKindName()}.` +
-					" Please submit an issue report to https://github.com/roblox-ts/roblox-ts/issues",
+				`roblox-ts does not support using a ${kind} which requires preceding statements in a ${ancestorName}.`,
 				node,
 				CompilerErrorType.BadExpression,
+				true,
 			);
 		}
 

@@ -350,7 +350,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		node.getFirstAncestorByKind(ts.SyntaxKind.SourceFile);
 
 	if (!ancestor) {
-		throw new CompilerError("Could not find export ancestor!", node, CompilerErrorType.BadAncestor);
+		throw new CompilerError("Could not find export ancestor!", node, CompilerErrorType.BadAncestor, true);
 	}
 
 	const lhs = new Array<string>();

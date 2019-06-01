@@ -91,7 +91,12 @@ export function compileStatement(state: CompilerState, node: ts.Statement): stri
 	}
 
 	/* istanbul ignore next */
-	throw new CompilerError(`Bad statement! (${node.getKindName()})`, node, CompilerErrorType.BadStatement);
+	throw new CompilerError(
+		`Unexpected statement ( ${node.getKindName()} ) in compiledStatement`,
+		node,
+		CompilerErrorType.BadStatement,
+		true,
+	);
 }
 
 export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.StatementedNode) {

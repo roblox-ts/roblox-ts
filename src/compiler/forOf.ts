@@ -44,7 +44,7 @@ function getVariableName(
 		}
 	}
 
-	throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
+	throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer, true);
 }
 
 function asDeclarationListOrThrow(initializer: ts.VariableDeclarationList | ts.Expression) {
@@ -54,6 +54,7 @@ function asDeclarationListOrThrow(initializer: ts.VariableDeclarationList | ts.E
 			`ForOf Loop has an unexpected initializer! (${initKindName})`,
 			initializer,
 			CompilerErrorType.UnexpectedInitializer,
+			true,
 		);
 	}
 
@@ -67,6 +68,7 @@ function getSingleDeclarationOrThrow(initializer: ts.VariableDeclarationList) {
 			"Expected a single declaration in ForOf loop",
 			initializer,
 			CompilerErrorType.BadForOfInitializer,
+			true,
 		);
 	}
 
@@ -246,11 +248,21 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 					}
 				}
 			} else {
-				throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
+				throw new CompilerError(
+					"Unexpected for..of initializer",
+					lhs,
+					CompilerErrorType.BadForOfInitializer,
+					true,
+				);
 			}
 		} else {
 			if (!ts.TypeGuards.isIdentifier(lhs)) {
-				throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
+				throw new CompilerError(
+					"Unexpected for..of initializer",
+					lhs,
+					CompilerErrorType.BadForOfInitializer,
+					true,
+				);
 			}
 			key = state.getNewId();
 			value = state.getNewId();
