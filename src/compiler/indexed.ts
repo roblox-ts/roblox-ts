@@ -47,13 +47,14 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 		const child = operand.getChildAtIndex(0);
 
 		if (
-			ts.TypeGuards.isPropertyAccessExpression(child) ||
-			(ts.TypeGuards.isIdentifier(child) && isIdentifierDefinedInExportLet(child))
+			!ts.TypeGuards.isThisExpression(child) &&
+			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
-			const expression = operand.getExpression();
-			const opExpStr = compileExpression(state, expression);
 			const propertyStr = operand.getName();
-			const id = state.pushPrecedingStatementToReuseableId(operand, opExpStr);
+			const id = state.pushPrecedingStatementToReuseableId(
+				operand,
+				compileExpression(state, operand.getExpression()),
+			);
 			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
 		}
 	}
