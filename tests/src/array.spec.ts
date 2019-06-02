@@ -500,35 +500,4 @@ export = () => {
 		const arr = [..."Hello, world!"];
 		compare(array_entries(arr), arr.entries());
 	});
-
-	it("should disallow method indexing without calling", () => {
-		const arr = [1, 2, 3, 4];
-		let i: "isEmpty" = "isEmpty";
-
-		expect(() => arr[i]).to.throw();
-		expect(() => {
-			const a = arr[i];
-		}).to.throw();
-		expect(() => {
-			// tslint:disable
-			// prettier-ignore
-			const b = arr["isEmpty"];
-			// tslint:enable
-		}).to.throw();
-		expect(() => {
-			const c = arr.isEmpty;
-		}).to.throw();
-		expect(() => {
-			const { [i]: d } = arr;
-		}).to.throw();
-		expect(() => {
-			const { ["isEmpty"]: e } = arr;
-		}).to.throw();
-		expect(() => {
-			const { isEmpty: f } = arr;
-		}).to.throw();
-		expect(() => {
-			const { isEmpty } = arr;
-		}).to.throw();
-	});
 };

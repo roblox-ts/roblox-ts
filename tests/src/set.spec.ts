@@ -230,35 +230,4 @@ export = () => {
 		const foo = new Set(["a", "b", "c"]);
 		expect(new Set([...foo]).difference(foo).isEmpty()).to.equal(true);
 	});
-
-	it("should disallow method indexing without calling", () => {
-		const set = new Set([1, 2, 3, 4]);
-		let i: "isEmpty" = "isEmpty";
-
-		expect(() => set[i]).to.throw();
-		expect(() => {
-			const a = set[i];
-		}).to.throw();
-		expect(() => {
-			// tslint:disable
-			// prettier-ignore
-			const b = set["isEmpty"];
-			// tslint:enable
-		}).to.throw();
-		expect(() => {
-			const c = set.isEmpty;
-		}).to.throw();
-		expect(() => {
-			const { [i]: d } = set;
-		}).to.throw();
-		expect(() => {
-			const { ["isEmpty"]: e } = set;
-		}).to.throw();
-		expect(() => {
-			const { isEmpty: f } = set;
-		}).to.throw();
-		expect(() => {
-			const { isEmpty } = set;
-		}).to.throw();
-	});
 };
