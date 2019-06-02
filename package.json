@@ -26,8 +26,9 @@
 		"types": "cd tests && npm install @rbxts/types"
 	},
 	"nyc": {
+		"all": true,
 		"extends": "@istanbuljs/nyc-config-typescript",
-		"all": true
+		"include": [ "src/compiler/**" ]
 	},
 	"author": "",
 	"license": "MIT",
