@@ -28,7 +28,7 @@
 	"nyc": {
 		"all": true,
 		"extends": "@istanbuljs/nyc-config-typescript",
-		"include": [ "out/compiler/**" ]
+		"include": [ "src/compiler/**" ]
 	},
 	"author": "",
 	"license": "MIT",
