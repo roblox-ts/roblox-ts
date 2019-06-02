@@ -41,6 +41,7 @@ const argv = yargs
 
 	// noInclude
 	.option("noInclude", {
+		boolean: true,
 		default: false,
 		describe: "do not copy runtime files",
 	})
@@ -62,6 +63,7 @@ const argv = yargs
 	// minify
 	.option("minify", {
 		alias: "min",
+		boolean: true,
 		default: false,
 		describe: "minify emitted Lua code",
 	})
