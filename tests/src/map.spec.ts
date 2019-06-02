@@ -175,4 +175,35 @@ export = () => {
 		(c!!! = a!!!).set(1, 2);
 		expect(a!.get(1)).to.equal(2);
 	});
+
+	it("should disallow method indexing without calling", () => {
+		const map = new Map([[1, 2], [3, 4]]);
+		let i: "isEmpty" = "isEmpty";
+
+		expect(() => map[i]).to.throw();
+		expect(() => {
+			const a = map[i];
+		}).to.throw();
+		expect(() => {
+			// tslint:disable
+			// prettier-ignore
+			const b = map["isEmpty"];
+			// tslint:enable
+		}).to.throw();
+		expect(() => {
+			const c = map.isEmpty;
+		}).to.throw();
+		expect(() => {
+			const { [i]: d } = map;
+		}).to.throw();
+		expect(() => {
+			const { ["isEmpty"]: e } = map;
+		}).to.throw();
+		expect(() => {
+			const { isEmpty: f } = map;
+		}).to.throw();
+		expect(() => {
+			const { isEmpty } = map;
+		}).to.throw();
+	});
 };

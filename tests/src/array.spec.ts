@@ -1,9 +1,9 @@
 export = () => {
 	it("should support element access", () => {
-		const a = [1, 2, 3];
-		expect(a[0]).to.equal(1);
-		expect(a[1]).to.equal(2);
-		expect(a[2]).to.equal(3);
+		const arr = [1, 2, 3];
+		expect(arr[0]).to.equal(1);
+		expect(arr[1]).to.equal(2);
+		expect(arr[2]).to.equal(3);
 		expect([1, 2, 3][0]).to.equal(1);
 		expect([1, 2, 3][1]).to.equal(2);
 		expect([1, 2, 3][2]).to.equal(3);
@@ -15,6 +15,17 @@ export = () => {
 		expect(foo()[0]).to.equal(1);
 		expect(foo()[1]).to.equal(2);
 		expect(foo()[2]).to.equal(3);
+
+		let i = 2;
+		const a = arr[i];
+		const b = arr[2];
+		const { [i]: c } = arr;
+		const { [2]: d } = arr;
+
+		expect(a).to.equal(3);
+		expect(b).to.equal(3);
+		expect(c).to.equal(3);
+		expect(d).to.equal(3);
 	});
 
 	it("should support.length()", () => {
@@ -488,5 +499,36 @@ export = () => {
 
 		const arr = [..."Hello, world!"];
 		compare(array_entries(arr), arr.entries());
+	});
+
+	it("should disallow method indexing without calling", () => {
+		const arr = [1, 2, 3, 4];
+		let i: "isEmpty" = "isEmpty";
+
+		expect(() => arr[i]).to.throw();
+		expect(() => {
+			const a = arr[i];
+		}).to.throw();
+		expect(() => {
+			// tslint:disable
+			// prettier-ignore
+			const b = arr["isEmpty"];
+			// tslint:enable
+		}).to.throw();
+		expect(() => {
+			const c = arr.isEmpty;
+		}).to.throw();
+		expect(() => {
+			const { [i]: d } = arr;
+		}).to.throw();
+		expect(() => {
+			const { ["isEmpty"]: e } = arr;
+		}).to.throw();
+		expect(() => {
+			const { isEmpty: f } = arr;
+		}).to.throw();
+		expect(() => {
+			const { isEmpty } = arr;
+		}).to.throw();
 	});
 };

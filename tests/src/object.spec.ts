@@ -14,6 +14,22 @@ export = () => {
 		expect(obj[1]).to.equal(3);
 	});
 
+	it("should support numeric indexing", () => {
+		const obj: { [key: number]: number } = {
+			2: 1,
+		};
+
+		let i = 2;
+		const a = obj[i];
+		const b = obj[2];
+		const { [i]: c } = obj;
+		const { [2]: d } = obj;
+		expect(a).to.equal(1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
+		expect(d).to.equal(1);
+	});
+
 	it("should support bracket index definitions", () => {
 		const a = { [1]: "foo", [2]: "bar" };
 		// prettier-ignore
