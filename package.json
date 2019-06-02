@@ -14,18 +14,14 @@
 		"tslint": "npx tslint -p tsconfig.json",
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
-
 		"build": "npx tsc",
 		"build-ci": "npx tsc -p tsconfig.ci.json",
-
 		"test-compile": "mocha --timeout 0 --recursive out/test.js",
 		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
 		"test-run": "lua tests/spec.lua",
 		"test": "npm run build && npm run test-compile && npm run-test-run",
-
 		"ci": "npm run build-ci && npm run test-compile-ci && npm run test-run",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
-
 		"prepublishOnly": "npm run build",
 		"types": "cd tests && npm install @rbxts/types"
 	},
@@ -47,6 +43,7 @@
 		"yargs": "^13.2.4"
 	},
 	"devDependencies": {
+		"@istanbuljs/nyc-config-typescript": "^0.1.3",
 		"@types/cross-spawn": "^6.0.0",
 		"@types/fs-extra": "^7.0.0",
 		"@types/klaw": "^3.0.0",
@@ -58,7 +55,7 @@
 		"nyc": "^14.1.1",
 		"prettier": "^1.17.1",
 		"prettylint": "^1.0.0",
-		"source-map-support": "^0.5.9",
+		"source-map-support": "^0.5.12",
 		"ts-node": "^8.2.0",
 		"tslint": "^5.17.0"
 	}
