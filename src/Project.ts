@@ -143,7 +143,7 @@ export class Project {
 		this.project = new ts.Project({
 			compilerOptions: {
 				configFilePath,
-			} as any,
+			},
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
