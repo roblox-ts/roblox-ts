@@ -14,10 +14,9 @@ import {
 	isSetMethodType,
 	isSetType,
 	isStringType,
-	strictTypeConstraint,
 } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
-import { addOneToArrayIndex, getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
+import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
 	state.enterPrecedingStatementContext();
@@ -131,24 +130,6 @@ function objectAccessor(
 
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
-		// } else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
-		// 	const exp = nameNode.getExpression();
-		// 	const expType = exp.getType();
-		// 	let expStr = compileExpression(state, exp);
-		// 	console.log(aliasNode.getKindName(), aliasNode.getText(), aliasNode.getType().getText());
-		// 	if (isArrayType()) {
-		// 		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
-		// 			expStr = addOneToArrayIndex(expStr);
-		// 		} else {
-		// 			throw new CompilerError(
-		// 				`Cannot index an object with type ${exp.getType().getText()}.`,
-		// 				nameNode,
-		// 				CompilerErrorType.BadExpression,
-		// 			);
-		// 		}
-		// 	}
-
-		// 	return `${t}[${expStr}]`;
 	} else {
 		throw new CompilerError(
 			`Cannot index an object with type ${nameNode.getKindName()}.`,
@@ -360,7 +341,6 @@ export function getBindingData(
 					? objectAccessor(state, parentId, child, getAccessor, child, idNode)
 					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				values.push(accessor);
-				console.log(id, accessor, strKeys);
 			} else if (ts.TypeGuards.isObjectBindingPattern(child)) {
 				const childId = state.getNewId();
 				const accessor: string = strKeys

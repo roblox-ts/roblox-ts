@@ -13,7 +13,6 @@ import {
 	inheritsFrom,
 	isArrayType,
 	isMapType,
-	isNumberType,
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
