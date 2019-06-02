@@ -30,19 +30,9 @@
 		"types": "cd tests && npm install @rbxts/types"
 	},
 	"nyc": {
-		"extension": [
-			".js"
-		],
-		"include": [
-			"out/compiler"
-		],
-		"exclude": [
-			"out/compiler/await.js"
-		],
-		"reporter": [
-			"text-lcov"
-		],
-		"all": true
+		"extends": "@istanbuljs/nyc-config-typescript",
+		"all": true,
+		"check-coverage": true
 	},
 	"author": "",
 	"license": "MIT",
