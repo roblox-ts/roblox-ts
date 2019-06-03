@@ -35,7 +35,7 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"chokidar": "^3.0.0",
+		"chokidar": "^3.0.1",
 		"cross-spawn": "^6.0.5",
 		"fs-extra": "^8.0.1",
 		"klaw": "^3.0.0",
