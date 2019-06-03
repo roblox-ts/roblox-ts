@@ -11,6 +11,6 @@
 	"license": "MIT",
 	"dependencies": {
 		"@rbxts/roact": "^1.0.2",
-		"@rbxts/types": "^1.0.192"
+		"@rbxts/types": "^1.0.198"
 	}
 }
