@@ -110,7 +110,11 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"
 	) {
-		throw new CompilerError("Cannot access the `length` property of a tuple!", node, CompilerErrorType.TupleLength);
+		throw new CompilerError(
+			`Cannot access the \`length\` property of a tuple! Instead use \`${exp.getText()}.size()\``,
+			node,
+			CompilerErrorType.TupleLength,
+		);
 	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,

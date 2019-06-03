@@ -972,6 +972,15 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 	}
 
 	const expType = expression.getType();
+
+	if (expType.getSymbol() === undefined) {
+		throw new CompilerError(
+			`Attempt to call non-method \`${node.getText()}\``,
+			expression,
+			CompilerErrorType.BadMethodCall,
+		);
+	}
+
 	const allMethods = typeConstraint(expType, t =>
 		t
 			.getSymbolOrThrow()

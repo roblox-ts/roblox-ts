@@ -169,7 +169,7 @@ function objectAccessor(
 		name === "length"
 	) {
 		throw new CompilerError(
-			`Cannot access the \`length\` property of a tuple! (Use ${rhs.getText()}.size())`,
+			`Cannot access the \`length\` property of a tuple! Instead use \`${rhs.getText()}.size()\``,
 			node,
 			CompilerErrorType.TupleLength,
 		);
