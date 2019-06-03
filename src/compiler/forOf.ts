@@ -178,7 +178,6 @@ function getLoopType(
 }
 
 export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatement) {
-	state.pushIdStack();
 	state.enterPrecedingStatementContext();
 
 	const initializer = asDeclarationListOrThrow(node.getInitializer());
@@ -352,6 +351,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	for (const myStatement of postStatements) {
 		result += state.indent + myStatement + "\n";
 	}
+	state.pushIdStack();
 	result += compileLoopBody(state, statement);
 	state.popIndent();
 	result += state.indent + `end;\n`;
