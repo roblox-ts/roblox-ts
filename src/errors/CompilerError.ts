@@ -73,6 +73,7 @@ export enum CompilerErrorType {
 	StaticNew,
 	BadRojo,
 	BadPackageScope,
+	LuaTupleInConditional,
 	InvalidComputedIndex,
 	TupleLength,
 	BadMethodCall,
