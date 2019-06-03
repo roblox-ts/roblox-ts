@@ -11,7 +11,6 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getCompilerDirectiveWithLaxConstraint,
-	getCompilerDirectiveWithStrictConstraint,
 	inheritsFrom,
 	isArrayType,
 	isArrayTypeLax,
@@ -20,9 +19,8 @@ import {
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
-	isTupleType,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
 import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
