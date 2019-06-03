@@ -40,7 +40,6 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
 
-	/* istanbul ignore else */
 	if (isStringType(leftType) || isStringType(rightType)) {
 		return `(${lhsStr}) .. ${rhsStr}`;
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
@@ -285,7 +284,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		let { isPushed } = rhsStrContext;
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);
 
-		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.BarEqualsToken) {
 			rhsStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
 		} else if (opKind === ts.SyntaxKind.AmpersandEqualsToken) {
@@ -384,7 +382,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		}
 	}
 
-	/* istanbul ignore else */
 	if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
 		throw new CompilerError(
 			"operator '==' is not supported! Use '===' instead.",

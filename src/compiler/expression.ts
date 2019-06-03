@@ -35,7 +35,6 @@ import {
 } from "../utility";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
-	/* istanbul ignore else */
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 		return compileStringLiteral(state, node);
 	} else if (ts.TypeGuards.isNumericLiteral(node)) {
