@@ -194,7 +194,7 @@ export = () => {
 				c: 3,
 			};
 			const keys = Object.keys(obj);
-			expect(keys.length()).to.equal(3);
+			expect(keys.size()).to.equal(3);
 			expect(keys.some(v => v === "a")).to.equal(true);
 			expect(keys.some(v => v === "b")).to.equal(true);
 			expect(keys.some(v => v === "c")).to.equal(true);
@@ -207,7 +207,7 @@ export = () => {
 				c: 3,
 			};
 			const values = Object.values(obj);
-			expect(values.length()).to.equal(3);
+			expect(values.size()).to.equal(3);
 			expect(values.some(v => v === 1)).to.equal(true);
 			expect(values.some(v => v === 2)).to.equal(true);
 			expect(values.some(v => v === 3)).to.equal(true);

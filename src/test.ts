@@ -258,10 +258,30 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
+	"methodDestructure/union.spec.ts": {
+		message: "should not allow Array and Object unions to be indexed from",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
 	"roactInitMethod.spec.ts": {
 		message: "should not allow init in Roact class",
 		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
+	},
+	"tupleLength1.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength2.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength3.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

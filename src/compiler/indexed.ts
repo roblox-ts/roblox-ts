@@ -10,15 +10,18 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getCompilerDirectiveWithLaxConstraint,
 	inheritsFrom,
 	isArrayType,
+	isArrayTypeLax,
 	isMapType,
+	isNumberTypeStrict,
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
-	strictTypeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -101,7 +104,16 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	if (
+		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
+		propertyStr === "length"
+	) {
+		throw new CompilerError(
+			`Cannot access the \`length\` property of a tuple! Instead use \`${exp.getText()}.size()\``,
+			node,
+			CompilerErrorType.TupleLength,
+		);
+	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
@@ -176,7 +188,7 @@ export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expressi
 	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : fromNode.getType();
 
 	if (isArrayType(fromType)) {
-		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
+		if (isNumberTypeStrict(expType)) {
 			expStr = addOneToArrayIndex(expStr);
 		} else {
 			throw new CompilerError(
@@ -185,7 +197,7 @@ export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expressi
 				CompilerErrorType.InvalidComputedIndex,
 			);
 		}
-	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType)) {
+	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType) || isArrayTypeLax(fromType)) {
 		throw new CompilerError(
 			`Invalid index type: ${expType.getText()}.` + ` Type ${fromType.getText()} is not indexable.`,
 			exp,

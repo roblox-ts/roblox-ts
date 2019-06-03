@@ -21,7 +21,7 @@ export = () => {
 			let value = operands.shift()!;
 			operators.shift();
 
-			for (let i = 0; i < operands.length(); i++) {
+			for (let i = 0; i < operands.size(); i++) {
 				const operator = operators[i].trim();
 				if (operator in OPERATIONS) {
 					const operation = OPERATIONS[operator];
