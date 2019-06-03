@@ -165,7 +165,6 @@ if (argv.watch === true) {
 		.on("add", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("Add", filePath);
 				project.addFile(filePath);
 				await update(filePath);
 				isCompiling = false;
@@ -174,7 +173,6 @@ if (argv.watch === true) {
 		.on("unlink", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("remove", filePath);
 				await project.removeFile(filePath);
 				isCompiling = false;
 			}
