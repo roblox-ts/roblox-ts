@@ -1,9 +1,9 @@
 export = () => {
 	it("should support element access", () => {
-		const a = [1, 2, 3];
-		expect(a[0]).to.equal(1);
-		expect(a[1]).to.equal(2);
-		expect(a[2]).to.equal(3);
+		const arr = [1, 2, 3];
+		expect(arr[0]).to.equal(1);
+		expect(arr[1]).to.equal(2);
+		expect(arr[2]).to.equal(3);
 		expect([1, 2, 3][0]).to.equal(1);
 		expect([1, 2, 3][1]).to.equal(2);
 		expect([1, 2, 3][2]).to.equal(3);
@@ -15,6 +15,27 @@ export = () => {
 		expect(foo()[0]).to.equal(1);
 		expect(foo()[1]).to.equal(2);
 		expect(foo()[2]).to.equal(3);
+
+		let i = 2;
+		let a = arr[i];
+		let b = arr[2];
+		let { [i]: c } = arr;
+		let { [2]: d } = arr;
+
+		expect(a).to.equal(3);
+		expect(b).to.equal(3);
+		expect(c).to.equal(3);
+		expect(d).to.equal(3);
+
+		a = arr[i];
+		b = arr[2];
+		({ [i]: c } = arr);
+		({ [2]: d } = arr);
+
+		expect(a).to.equal(3);
+		expect(b).to.equal(3);
+		expect(c).to.equal(3);
+		expect(d).to.equal(3);
 	});
 
 	it("should support.length()", () => {

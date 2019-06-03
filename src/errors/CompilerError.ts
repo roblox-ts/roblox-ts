@@ -74,6 +74,7 @@ export enum CompilerErrorType {
 	BadRojo,
 	BadPackageScope,
 	LuaTupleInConditional,
+	InvalidComputedIndex,
 }
 
 export class CompilerError extends Error {

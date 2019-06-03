@@ -141,6 +141,9 @@ export class Project {
 
 		this.projectPath = path.resolve(configFilePath, "..");
 		this.project = new ts.Project({
+			compilerOptions: {
+				configFilePath,
+			},
 			tsConfigFilePath: configFilePath,
 		});
 		this.noInclude = argv.noInclude === true;
