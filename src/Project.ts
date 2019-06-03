@@ -69,19 +69,23 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
 				const filePath = path.join(dir, fileName);
-				const stats = await fs.stat(filePath);
-				if (stats.isDirectory()) {
-					searchForDeadFiles(filePath);
-					if ((await fs.readdir(dir)).length === 0) {
-						fs.remove(filePath);
-						console.log("delete", "dir", filePath);
+				try {
+					const stats = await fs.stat(filePath);
+					if (stats.isDirectory()) {
+						searchForDeadFiles(filePath);
+						if ((await fs.readdir(dir)).length === 0) {
+							fs.remove(filePath);
+							console.log("delete", "dir", filePath);
+						}
+					} else if (stats.isFile()) {
+						const relativeToDestFolder = path.relative(destinationFolder, filePath);
+						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
+							fs.remove(filePath);
+							console.log("delete", "file", filePath);
+						}
 					}
-				} else if (stats.isFile()) {
-					const relativeToDestFolder = path.relative(destinationFolder, filePath);
-					if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-						fs.remove(filePath);
-						console.log("delete", "file", filePath);
-					}
+				} catch (e) {
+					console.log("failed to clean", filePath);
 				}
 			}
 		}
