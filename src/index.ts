@@ -10,6 +10,17 @@ import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
 
+const CHOKIDAR_OPTIONS = {
+	awaitWriteFinish: {
+		pollInterval: 10,
+		stabilityThreshold: 50,
+	},
+	ignoreInitial: true,
+	ignorePermissionErrors: true,
+	interval: 100,
+	usePolling: true,
+};
+
 // cli interface
 const argv = yargs
 	.usage("Usage: rbxtsc [options]")
@@ -111,9 +122,9 @@ if (argv.watch === true) {
 		console.log(`Done, took ${Date.now() - start} ms!`);
 	};
 
-	const update = async (filePath: string) => {
+	async function update(filePath: string) {
 		console.log("Change detected, compiling..");
-		await project.refresh();
+		await project.refreshFile(filePath);
 		clearContextCache();
 		await time(async () => {
 			try {
@@ -126,19 +137,24 @@ if (argv.watch === true) {
 		if (process.exitCode === 0) {
 			await onSuccess();
 		}
-	};
+	}
+
+	async function updateAll() {
+		await time(async () => {
+			try {
+				await project.compileAll();
+			} catch (e) {
+				console.log(e);
+				process.exit();
+			}
+		});
+		if (process.exitCode === 0) {
+			await onSuccess();
+		}
+	}
 
 	chokidar
-		.watch(rootDir, {
-			awaitWriteFinish: {
-				pollInterval: 10,
-				stabilityThreshold: 50,
-			},
-			ignoreInitial: true,
-			ignorePermissionErrors: true,
-			interval: 100,
-			usePolling: true,
-		})
+		.watch(rootDir, CHOKIDAR_OPTIONS)
 		.on("change", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
@@ -149,7 +165,6 @@ if (argv.watch === true) {
 		.on("add", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("Add", filePath);
 				project.addFile(filePath);
 				await update(filePath);
 				isCompiling = false;
@@ -158,11 +173,26 @@ if (argv.watch === true) {
 		.on("unlink", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				console.log("remove", filePath);
 				await project.removeFile(filePath);
 				isCompiling = false;
 			}
 		});
+
+	if (project.configFilePath) {
+		chokidar.watch(project.configFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
+			console.log("tsconfig.json changed! Recompiling project..");
+			project.reloadProject();
+			await updateAll();
+		});
+	}
+
+	if (project.rojoFilePath) {
+		chokidar.watch(project.rojoFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
+			console.log("Rojo configuration changed! Recompiling project..");
+			project.reloadRojo();
+			await updateAll();
+		});
+	}
 
 	const pkgLockJsonPath = path.resolve("package-lock.json");
 	if (fs.existsSync(pkgLockJsonPath)) {
@@ -174,17 +204,7 @@ if (argv.watch === true) {
 
 	console.log("Running in watch mode..");
 	console.log("Starting initial compile..");
-	time(async () => {
-		try {
-			await project.compileAll();
-		} catch (e) {
-			console.log(e);
-			process.exit();
-		}
-		if (process.exitCode === 0) {
-			await onSuccess();
-		}
-	});
+	updateAll();
 } else {
 	project.compileAll();
 }

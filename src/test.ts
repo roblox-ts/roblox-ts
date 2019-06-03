@@ -92,6 +92,21 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
+	"luaTupleInConditional.spec.ts": {
+		message: "should not allow LuaTuples in conditionals",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
+	"luaTupleInIf.spec.ts": {
+		message: "should not allow LuaTuples in if statements",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
+	"luaTupleInElseIf.spec.ts": {
+		message: "should not allow LuaTuples in else if statements",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
 	"reservedId.spec.ts": {
 		message: "should not allow reserved identifiers to be used",
 		instance: CompilerError,
@@ -213,10 +228,75 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
+	"methodDestructure/arr.spec.1.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.2.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.3.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidMacroIndex,
+	},
+	"methodDestructure/arr.spec.4.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.5.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.6.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.BadDestructuringType,
+	},
+	"methodDestructure/arr.spec.7.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.BadDestructuringType,
+	},
+	"methodDestructure/map.spec.1.ts": {
+		message: "should not allow indexing from Maps",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/map.spec.2.ts": {
+		message: "should not allow indexing from Maps",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/union.spec.ts": {
+		message: "should not allow Array and Object unions to be indexed from",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
 	"roactInitMethod.spec.ts": {
 		message: "should not allow init in Roact class",
 		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
+	},
+	"tupleLength1.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength2.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength3.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

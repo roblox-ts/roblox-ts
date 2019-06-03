@@ -18,12 +18,10 @@ If you're interested in contributing to the compiler's source code, please conti
 The compiler is split into three primary files currently.
 - `src/index.ts` - controls the CLI part of the compiler and creates new `Project` objects.
 - `src/class/Project.ts` - a class that represents the entire project structure. Handles module resoltuion, emitting files, copying include files, and copying module files. Creates a `Compiler` for each file.
-- `src/class/Compiler.ts` - a class consisting mostly of methods which take TypeScript AST Node objects, and return strings of emitted Lua source code.
+- `src/compiler/*.ts` - a folder consisting mostly of functions which take TypeScript AST Node objects, and return strings of emitted Lua source code.
+- `src/CompilerState.ts` - a class which holds the global state for a single file's compilation.
 
-To summarize,\
-`src/index.ts` creates a `Project`, and `src/class/Project.ts` creates a `Compiler` for each file in your project.
-
-Most of the code for the project exists inside of the `Compiler` class. The dependancy [`ts-morph`](https://github.com/dsherret/ts-morph) provides the TypeScript node classes. [You can find some documentation on those classes here.](https://dsherret.github.io/ts-morph/) The nodes are converted to strings of Lua source code that is functionally identical to their TypeScript equivalents.
+Most of the code for the project exists inside of the `src/compiler` folder. The dependancy [`ts-morph`](https://github.com/dsherret/ts-morph) provides the TypeScript node classes. [You can find some documentation on those classes here.](https://dsherret.github.io/ts-morph/) The nodes are converted to strings of Lua source code that is functionally identical to their TypeScript equivalents.
 
 ### Local Testing
 Usually, it's inconvenient to continuously sync code to Roblox Studio when working on the compiler.
@@ -37,3 +35,13 @@ To ensure code quality, we use **[tslint](https://palantir.github.io/tslint/)** 
 If you prefer to not install these globally or use extensions, you can simply run:\
 `npm run tslint` to check linting and\
 `npm run prettier` to clean up code formatting
+
+### Unit Tests
+The unit tests are written in TypeScript, compiled into Lua and then run in TravisCI using Lemur + TestEZ.\
+The tests are located in the `tests/src` folder.\
+All tests must be in the form of `export = () => { /* test code */ }`\
+
+
+To run the tests locally, you'll need Lua 5.1, luarocks, luafilesystem, and dkjson installed.\
+Then simply run, `npm test` to compile and run the tests.
+

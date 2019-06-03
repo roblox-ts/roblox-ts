@@ -14,6 +14,33 @@ export = () => {
 		expect(obj[1]).to.equal(3);
 	});
 
+	it("should support numeric indexing", () => {
+		const obj: { [key: number]: number } = {
+			2: 1,
+		};
+
+		let i = 2;
+		let a = obj[i];
+		let b = obj[2];
+		let { [i]: c } = obj;
+		let { [2]: d } = obj;
+
+		expect(a).to.equal(1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
+		expect(d).to.equal(1);
+
+		a = obj[i];
+		b = obj[2];
+		({ [i]: c } = obj);
+		({ [2]: d } = obj);
+
+		expect(a).to.equal(1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
+		expect(d).to.equal(1);
+	});
+
 	it("should support bracket index definitions", () => {
 		const a = { [1]: "foo", [2]: "bar" };
 		// prettier-ignore
@@ -167,7 +194,7 @@ export = () => {
 				c: 3,
 			};
 			const keys = Object.keys(obj);
-			expect(keys.length()).to.equal(3);
+			expect(keys.size()).to.equal(3);
 			expect(keys.some(v => v === "a")).to.equal(true);
 			expect(keys.some(v => v === "b")).to.equal(true);
 			expect(keys.some(v => v === "c")).to.equal(true);
@@ -180,7 +207,7 @@ export = () => {
 				c: 3,
 			};
 			const values = Object.values(obj);
-			expect(values.length()).to.equal(3);
+			expect(values.size()).to.equal(3);
 			expect(values.some(v => v === 1)).to.equal(true);
 			expect(values.some(v => v === 2)).to.equal(true);
 			expect(values.some(v => v === 3)).to.equal(true);

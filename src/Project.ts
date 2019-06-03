@@ -12,7 +12,7 @@ import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
-const MINIMUM_RBX_TYPES_VERSION = 189;
+const MINIMUM_RBX_TYPES_VERSION = 198;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
@@ -69,19 +69,23 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 		if (await fs.pathExists(dir)) {
 			for (const fileName of await fs.readdir(dir)) {
 				const filePath = path.join(dir, fileName);
-				const stats = await fs.stat(filePath);
-				if (stats.isDirectory()) {
-					searchForDeadFiles(filePath);
-					if ((await fs.readdir(dir)).length === 0) {
-						fs.remove(filePath);
-						console.log("delete", "dir", filePath);
+				try {
+					const stats = await fs.stat(filePath);
+					if (stats.isDirectory()) {
+						searchForDeadFiles(filePath);
+						if ((await fs.readdir(dir)).length === 0) {
+							fs.remove(filePath);
+							console.log("delete", "dir", filePath);
+						}
+					} else if (stats.isFile()) {
+						const relativeToDestFolder = path.relative(destinationFolder, filePath);
+						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
+							fs.remove(filePath);
+							console.log("delete", "file", filePath);
+						}
 					}
-				} else if (stats.isFile()) {
-					const relativeToDestFolder = path.relative(destinationFolder, filePath);
-					if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-						fs.remove(filePath);
-						console.log("delete", "file", filePath);
-					}
+				} catch (e) {
+					console.log("failed to clean", filePath);
 				}
 			}
 		}
@@ -105,8 +109,16 @@ export enum ProjectType {
 }
 
 export class Project {
-	private readonly project: ts.Project;
-	private readonly projectPath: string;
+	public configFilePath: string;
+	public rojoFilePath: string | undefined;
+
+	private project: ts.Project = {} as ts.Project;
+	private compilerOptions: ts.CompilerOptions = {};
+	private projectPath: string = "";
+
+	private rojoProject?: RojoProject;
+	private projectInfo: ProjectInfo = { type: ProjectType.Package };
+
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
@@ -114,35 +126,90 @@ export class Project {
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
-	private readonly rojoProject?: RojoProject;
-	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly rojoOverridePath: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
 
-	private readonly projectInfo: ProjectInfo;
-
-	constructor(argv: { [argName: string]: any }) {
-		let configFilePath = path.resolve(argv.project as string);
-
+	public reloadProject() {
 		try {
-			fs.accessSync(configFilePath, fs.constants.R_OK | fs.constants.W_OK);
+			fs.accessSync(this.configFilePath, fs.constants.R_OK | fs.constants.W_OK);
 		} catch (e) {
 			throw new Error("Project path does not exist!");
 		}
 
-		if (fs.statSync(configFilePath).isDirectory()) {
-			configFilePath = path.resolve(configFilePath, "tsconfig.json");
+		if (fs.statSync(this.configFilePath).isDirectory()) {
+			this.configFilePath = path.resolve(this.configFilePath, "tsconfig.json");
 		}
 
-		if (!fs.existsSync(configFilePath) || !fs.statSync(configFilePath).isFile()) {
+		if (!fs.existsSync(this.configFilePath) || !fs.statSync(this.configFilePath).isFile()) {
 			throw new Error("Cannot find tsconfig.json!");
 		}
 
-		this.projectPath = path.resolve(configFilePath, "..");
+		this.projectPath = path.resolve(this.configFilePath, "..");
+
 		this.project = new ts.Project({
-			tsConfigFilePath: configFilePath,
+			compilerOptions: {
+				configFilePath: this.configFilePath,
+			},
+			tsConfigFilePath: this.configFilePath,
 		});
+
+		this.compilerOptions = this.project.getCompilerOptions();
+		try {
+			this.validateCompilerOptions();
+		} catch (e) {
+			if (e instanceof ProjectError) {
+				console.log(red("Compiler Error:"), e.message);
+				process.exit(1);
+			} else {
+				throw e;
+			}
+		}
+	}
+
+	public reloadRojo() {
+		if (this.rojoFilePath) {
+			try {
+				this.rojoProject = RojoProject.fromPathSync(this.rojoFilePath);
+			} catch (e) {
+				if (e instanceof RojoProjectError) {
+					console.log(
+						"Warning!",
+						"Failed to load Rojo configuration. Import and export statements will not compile.",
+						e.message,
+					);
+				}
+			}
+		}
+
+		if (this.rojoProject) {
+			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
+			if (!runtimeLibPath) {
+				throw new ProjectError(
+					`A Rojo project file was found ( ${this
+						.rojoFilePath!} ), but contained no data for the include folder!`,
+					ProjectErrorType.BadRojoInclude,
+				);
+			}
+			let type: ProjectType.Game | ProjectType.Bundle;
+			if (this.rojoProject.isGame()) {
+				type = ProjectType.Game;
+			} else {
+				type = ProjectType.Bundle;
+			}
+			this.projectInfo = {
+				runtimeLibPath,
+				type,
+			};
+		} else {
+			this.projectInfo = { type: ProjectType.Package };
+		}
+	}
+
+	constructor(argv: { [argName: string]: any }) {
+		this.configFilePath = path.resolve(argv.project as string);
+		this.reloadProject();
+
 		this.noInclude = argv.noInclude === true;
 		this.includePath = joinIfNotAbsolute(this.projectPath, argv.includePath);
 		this.minify = argv.minify;
@@ -152,9 +219,7 @@ export class Project {
 
 		this.ci = argv.ci;
 
-		this.compilerOptions = this.project.getCompilerOptions();
 		try {
-			this.validateCompilerOptions();
 			this.validateRbxTypes();
 		} catch (e) {
 			if (e instanceof ProjectError) {
@@ -189,42 +254,8 @@ export class Project {
 
 		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
 
-		const rojoFilePath = this.getRojoFilePath();
-		if (rojoFilePath) {
-			try {
-				this.rojoProject = RojoProject.fromPathSync(rojoFilePath);
-			} catch (e) {
-				if (e instanceof RojoProjectError) {
-					console.log(
-						"Warning!",
-						"Failed to load Rojo configuration. Import and export statements will not compile.",
-						e.message,
-					);
-				}
-			}
-		}
-
-		if (this.rojoProject) {
-			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
-			if (!runtimeLibPath) {
-				throw new ProjectError(
-					`A Rojo project file was found ( ${rojoFilePath!} ), but contained no data for the include folder!`,
-					ProjectErrorType.BadRojoInclude,
-				);
-			}
-			let type: ProjectType.Game | ProjectType.Bundle;
-			if (this.rojoProject.isGame()) {
-				type = ProjectType.Game;
-			} else {
-				type = ProjectType.Bundle;
-			}
-			this.projectInfo = {
-				runtimeLibPath,
-				type,
-			};
-		} else {
-			this.projectInfo = { type: ProjectType.Package };
-		}
+		this.rojoFilePath = this.getRojoFilePath();
+		this.reloadRojo();
 	}
 
 	private validateCompilerOptions() {
@@ -296,40 +327,35 @@ export class Project {
 	}
 
 	private validateRbxTypes() {
-		const pkgLockJsonPath = path.join(this.projectPath, "package-lock.json");
-		if (fs.pathExistsSync(pkgLockJsonPath)) {
-			const pkgLock = JSON.parse(fs.readFileSync(pkgLockJsonPath).toString());
-			if (pkgLock !== undefined) {
-				const dependencies = pkgLock.dependencies;
-				if (dependencies !== undefined) {
-					const rbxTypes = dependencies["@rbxts/types"];
-					if (rbxTypes !== undefined) {
-						const rbxTypesVersion = rbxTypes.version;
-						if (typeof rbxTypesVersion === "string") {
-							const regexMatch = rbxTypesVersion.match(/\d+$/g);
-							if (regexMatch !== null) {
-								const patchNumber = Number(regexMatch[0]);
-								if (!isNaN(patchNumber)) {
-									if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
-										return;
-									} else {
-										throw new ProjectError(
-											`@rbxts/types is out of date!\n` +
-												yellow(`Installed version: 1.0.${patchNumber}\n`) +
-												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-												`Run 'npm i @rbxts/types' to fix this.`,
-											ProjectErrorType.BadRbxTypes,
-										);
-									}
-								}
+		const pkgJsonPath = path.join(this.projectPath, "node_modules", "@rbxts", "types", "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			if (pkgJson !== undefined) {
+				const versionStr = pkgJson.version;
+				if (versionStr !== undefined) {
+					const regexMatch = versionStr.match(/\d+$/g);
+					if (regexMatch !== null) {
+						const patchNumber = Number(regexMatch[0]);
+						if (!isNaN(patchNumber)) {
+							if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+								return;
+							} else {
+								throw new ProjectError(
+									`@rbxts/types is out of date!\n` +
+										yellow(`Installed version: 1.0.${patchNumber}\n`) +
+										yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+										`Run 'npm i @rbxts/types' to fix this.`,
+									ProjectErrorType.BadRbxTypes,
+								);
 							}
 						}
 					}
 				}
 			}
 		}
+
 		throw new ProjectError(
-			`Could not find @rbxts/types in package-lock.json!\n` + `Run 'npm i @rbxts/types' to fix this.`,
+			`Could not find @rbxts/types!\n` + `Run 'npm i @rbxts/types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}
@@ -372,55 +398,72 @@ export class Project {
 		await this.cleanDirRecursive(this.outDirPath);
 	}
 
-	public refresh(): Promise<Array<ts.FileSystemRefreshResult>> {
-		return Promise.all(this.project.getSourceFiles().map(sourceFile => sourceFile.refreshFromFileSystem()));
+	public async refreshFile(filePath: string) {
+		const file = this.project.getSourceFile(filePath);
+		if (file) {
+			file.refreshFromFileSystem();
+		} else {
+			this.project.addExistingSourceFile(filePath);
+		}
 	}
 
 	public async cleanDirRecursive(dir: string) {
-		if (fs.existsSync(dir)) {
-			const contents = fs.readdirSync(dir);
-			for (const name of contents) {
+		if (await fs.pathExists(dir)) {
+			for (const name of await fs.readdir(dir)) {
 				const filePath = path.join(dir, name);
-				if (fs.statSync(filePath).isDirectory()) {
+				if ((await fs.stat(filePath)).isDirectory()) {
 					await this.cleanDirRecursive(filePath);
-					if (fs.readdirSync(filePath).length === 0) {
-						fs.rmdirSync(filePath);
+					if ((await fs.readdir(filePath)).length === 0) {
+						await fs.rmdir(filePath);
 					}
 				} else {
-					const ext = path.extname(filePath);
+					let ext = path.extname(filePath);
+					let baseName = path.basename(filePath, ext);
+					let subext = path.extname(baseName);
+					baseName = path.basename(baseName, subext);
+					const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
+					const rootPath = path.join(this.rootDirPath, relativeToOut);
 					if (ext === ".lua") {
-						const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
-						const rootPath = path.join(this.rootDirPath, relativeToOut);
+						let exists = false;
+						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
+						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx"));
+						exists =
+							exists ||
+							(baseName === "init" &&
+								(await fs.pathExists(path.join(rootPath, "init") + subext + ".lua")));
+						exists =
+							exists ||
+							(baseName === "init" &&
+								(await fs.pathExists(path.join(rootPath, "index") + subext + ".ts")));
+						exists =
+							exists ||
+							(baseName === "init" &&
+								(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx")));
+						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua"));
 
-						let baseName = path.basename(filePath, path.extname(filePath));
-						const subext = path.extname(baseName);
-						baseName = path.basename(baseName, subext);
-
-						const tsFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts");
-						const tsxFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx");
-						const dtsFile =
-							this.compilerOptions.declaration &&
-							(await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts"));
-						const initLuaFile =
-							baseName === "init" && (await fs.pathExists(path.join(rootPath, "init") + subext + ".lua"));
-						const indexTsFile =
-							baseName === "init" && (await fs.pathExists(path.join(rootPath, "index") + subext + ".ts"));
-						const indexTsxFile =
-							baseName === "init" &&
-							(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx"));
-						const luaFile = await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua");
-
-						if (
-							!tsFile &&
-							!tsxFile &&
-							!dtsFile &&
-							!initLuaFile &&
-							!indexTsFile &&
-							!indexTsxFile &&
-							!luaFile
-						) {
-							fs.removeSync(filePath);
+						if (!exists) {
+							await fs.remove(filePath);
 							console.log("remove", filePath);
+						}
+					} else if (subext === ".d" && ext === ".ts") {
+						if (!this.compilerOptions.declaration) {
+							await fs.remove(filePath);
+							console.log("remove", filePath);
+						} else {
+							ext = subext + ext;
+							baseName = path.basename(filePath, ext);
+							subext = path.extname(baseName);
+							baseName = path.basename(baseName, subext);
+
+							let exists = false;
+							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts"));
+							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
+							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx"));
+
+							if (!exists) {
+								await fs.remove(filePath);
+								console.log("remove", filePath);
+							}
 						}
 					}
 				}

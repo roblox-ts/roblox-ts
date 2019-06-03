@@ -40,13 +40,11 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	const leftType = node.getLeft().getType();
 	const rightType = node.getRight().getType();
 
-	/* istanbul ignore else */
 	if (isStringType(leftType) || isStringType(rightType)) {
 		return `(${lhsStr}) .. ${rhsStr}`;
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
-		/* istanbul ignore next */
 		throw new CompilerError(
 			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
 			node,
@@ -286,7 +284,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		let { isPushed } = rhsStrContext;
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);
 
-		/* istanbul ignore else */
 		if (opKind === ts.SyntaxKind.BarEqualsToken) {
 			rhsStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
 		} else if (opKind === ts.SyntaxKind.AmpersandEqualsToken) {
@@ -385,7 +382,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		}
 	}
 
-	/* istanbul ignore else */
 	if (opKind === ts.SyntaxKind.EqualsEqualsToken) {
 		throw new CompilerError(
 			"operator '==' is not supported! Use '===' instead.",
@@ -445,7 +441,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		state.usesTSLibrary = true;
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 	} else {
-		/* istanbul ignore next */
 		throw new CompilerError(
 			`Unexpected BinaryExpression (${node.getOperatorToken().getKindName()})  in compileBinaryExpression #2`,
 			opToken,

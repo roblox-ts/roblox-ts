@@ -71,15 +71,15 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
 			state.usesTSLibrary = true;
 			return `TS.bit_not(${expStr})`;
-		} else {
-			/* istanbul ignore next */
-			throw new CompilerError(
-				`Unexpected prefix UnaryExpression ( ${tokenKind} ) in compilePrefixUnaryExpression`,
-				node,
-				CompilerErrorType.BadPrefixUnaryExpression,
-				true,
-			);
 		}
+
+		/* istanbul ignore next */
+		throw new CompilerError(
+			`Unexpected prefix UnaryExpression ( ${tokenKind} ) in compilePrefixUnaryExpression`,
+			node,
+			CompilerErrorType.BadPrefixUnaryExpression,
+			true,
+		);
 	}
 }
 
@@ -121,13 +121,13 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 		} else {
 			return getIncrementString(opKind, expStr, node, expStr);
 		}
-	} else {
-		/* istanbul ignore next */
-		throw new CompilerError(
-			`Unexpected postfix UnaryExpression! ( ${opKind} ) in compilePostfixUnaryExpression`,
-			node,
-			CompilerErrorType.BadPostfixUnaryExpression,
-			true,
-		);
 	}
+
+	/* istanbul ignore next */
+	throw new CompilerError(
+		`Unexpected postfix UnaryExpression! ( ${opKind} ) in compilePostfixUnaryExpression`,
+		node,
+		CompilerErrorType.BadPostfixUnaryExpression,
+		true,
+	);
 }

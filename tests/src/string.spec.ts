@@ -16,7 +16,7 @@ export = () => {
 
 	it("should support string.split", () => {
 		function checkLen<T>(len: number, arr: Array<T>) {
-			expect(arr.length()).to.equal(len);
+			expect(arr.size()).to.equal(len);
 			return arr;
 		}
 
@@ -33,7 +33,7 @@ export = () => {
 		for (let i = 2; i < 10; i++) {
 			const str = "d".rep(i - 1);
 			const str1 = str.split("d");
-			expect(str1.length()).to.equal(i);
+			expect(str1.size()).to.equal(i);
 			expect(str1.every(c => c === "")).to.equal(true);
 		}
 

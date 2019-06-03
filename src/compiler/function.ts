@@ -141,6 +141,7 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 		!ts.TypeGuards.isSetAccessorDeclaration(node) &&
 		!ts.TypeGuards.isConstructorDeclaration(node)
 	) {
+		/* istanbul ignore next */
 		if (node.isAsync()) {
 			state.usesTSLibrary = true;
 			result += "TS.async(";
