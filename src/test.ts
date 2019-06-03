@@ -268,6 +268,21 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
 	},
+	"tupleLength1.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength2.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
+	"tupleLength3.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		instance: CompilerError,
+		type: CompilerErrorType.TupleLength,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
