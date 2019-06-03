@@ -6,6 +6,7 @@ import {
 	makeSetStatement,
 	removeBalancedParenthesisFromStringBorders,
 } from "../utility";
+import { assertNonLuaTuple } from "./if";
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
@@ -13,7 +14,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	const declaration = state.declarationContext.get(node);
 
-	const condition = node.getCondition();
+	const condition = assertNonLuaTuple(node.getCondition());
 	const whenTrue = getNonNullUnParenthesizedExpressionDownwards(node.getWhenTrue());
 	const whenFalse = getNonNullUnParenthesizedExpressionDownwards(node.getWhenFalse());
 	let conditionStr: string;

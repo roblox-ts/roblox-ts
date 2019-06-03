@@ -92,6 +92,21 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
+	"luaTupleInConditional.spec.ts": {
+		message: "should not allow LuaTuples in conditionals",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
+	"luaTupleInIf.spec.ts": {
+		message: "should not allow LuaTuples in if statements",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
+	"luaTupleInElseIf.spec.ts": {
+		message: "should not allow LuaTuples in else if statements",
+		instance: CompilerError,
+		type: CompilerErrorType.LuaTupleInConditional,
+	},
 	"reservedId.spec.ts": {
 		message: "should not allow reserved identifiers to be used",
 		instance: CompilerError,
