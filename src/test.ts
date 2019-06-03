@@ -213,6 +213,51 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
+	"methodDestructure/arr.spec.1.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.2.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.3.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidMacroIndex,
+	},
+	"methodDestructure/arr.spec.4.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.5.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/arr.spec.6.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.BadDestructuringType,
+	},
+	"methodDestructure/arr.spec.7.ts": {
+		message: "should not allow method indexing from arrays",
+		instance: CompilerError,
+		type: CompilerErrorType.BadDestructuringType,
+	},
+	"methodDestructure/map.spec.1.ts": {
+		message: "should not allow indexing from Maps",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"methodDestructure/map.spec.2.ts": {
+		message: "should not allow indexing from Maps",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
 	"roactInitMethod.spec.ts": {
 		message: "should not allow init in Roact class",
 		instance: CompilerError,

@@ -9,7 +9,15 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom, isArrayType, isMapType, isNumberType, isSetType, isTupleReturnTypeCall } from "../typeUtilities";
+import {
+	inheritsFrom,
+	isArrayType,
+	isMapType,
+	isSetType,
+	isStringType,
+	isTupleReturnTypeCall,
+	strictTypeConstraint,
+} from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
@@ -162,23 +170,34 @@ export function addOneToArrayIndex(valueStr: string) {
 	return valueStr + " + 1";
 }
 
-export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
-	const expNode = node.getExpression();
-	const expType = expNode.getType();
-	const argExp = node.getArgumentExpressionOrThrow();
+export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expression, fromNode: ts.Node) {
+	const expType = exp.getType();
+	let expStr = compileExpression(state, exp);
+	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : fromNode.getType();
 
-	const valueStr = compileExpression(state, argExp);
-
-	if (isNumberType(argExp.getType())) {
-		if (
-			isArrayType(expType) ||
-			(ts.TypeGuards.isCallExpression(expNode) &&
-				(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType())))
-		) {
-			return addOneToArrayIndex(valueStr);
+	if (isArrayType(fromType)) {
+		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
+			expStr = addOneToArrayIndex(expStr);
+		} else {
+			throw new CompilerError(
+				`Invalid indexing of ${fromType.getText()}. Got ${expType.getText()}, expected number`,
+				exp,
+				CompilerErrorType.InvalidComputedIndex,
+			);
 		}
+	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType)) {
+		throw new CompilerError(
+			`Invalid index type: ${expType.getText()}.` + ` Type ${fromType.getText()} is not indexable.`,
+			exp,
+			CompilerErrorType.InvalidComputedIndex,
+		);
 	}
-	return valueStr;
+
+	return expStr;
+}
+
+export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	return getComputedPropertyAccess(state, node.getArgumentExpressionOrThrow(), node.getExpression());
 }
 
 export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {

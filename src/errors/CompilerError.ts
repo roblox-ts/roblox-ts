@@ -73,6 +73,7 @@ export enum CompilerErrorType {
 	StaticNew,
 	BadRojo,
 	BadPackageScope,
+	InvalidComputedIndex,
 }
 
 export class CompilerError extends Error {
