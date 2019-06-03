@@ -33,6 +33,14 @@ const enum Animal {
 	Snake = "SNAKE",
 }
 
+function getValue() {
+	return 123;
+}
+
+enum WithInitializer {
+	value = getValue(),
+}
+
 export = () => {
 	it("should expose enums by number", () => {
 		expect(Fruits[0]).to.equal("Apple");
@@ -65,4 +73,20 @@ export = () => {
 		expect(Animal.Dog).to.equal("DOG");
 		expect(Animal.Snake).to.equal("SNAKE");
 	});
+
+	it("should support members with initializers", () => {
+		expect(WithInitializer.value).to.equal(123);
+	});
+
+	it("should support hoisted enums", () => {
+		expect(Animal2.Bear).to.equal("BEAR");
+		expect(Animal2.Dog).to.equal("DOG");
+		expect(Animal2.Snake).to.equal("SNAKE");
+	});
+
+	const enum Animal2 {
+		Bear = "BEAR",
+		Dog = "DOG",
+		Snake = "SNAKE",
+	}
 };

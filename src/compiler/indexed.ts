@@ -9,8 +9,19 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom, isArrayType, isMapType, isNumberType, isSetType, isTupleReturnTypeCall } from "../typeUtilities";
+import {
+	getCompilerDirectiveWithLaxConstraint,
+	inheritsFrom,
+	isArrayType,
+	isArrayTypeLax,
+	isMapType,
+	isNumberTypeStrict,
+	isSetType,
+	isStringType,
+	isTupleReturnTypeCall,
+} from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -93,7 +104,16 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	if (
+		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
+		propertyStr === "length"
+	) {
+		throw new CompilerError(
+			`Cannot access the \`length\` property of a tuple! Instead use \`${exp.getText()}.size()\``,
+			node,
+			CompilerErrorType.TupleLength,
+		);
+	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
@@ -162,23 +182,34 @@ export function addOneToArrayIndex(valueStr: string) {
 	return valueStr + " + 1";
 }
 
-export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
-	const expNode = node.getExpression();
-	const expType = expNode.getType();
-	const argExp = node.getArgumentExpressionOrThrow();
+export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expression, fromNode: ts.Node) {
+	const expType = exp.getType();
+	let expStr = compileExpression(state, exp);
+	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : fromNode.getType();
 
-	const valueStr = compileExpression(state, argExp);
-
-	if (isNumberType(argExp.getType())) {
-		if (
-			isArrayType(expType) ||
-			(ts.TypeGuards.isCallExpression(expNode) &&
-				(isTupleReturnTypeCall(expNode) || isArrayType(expNode.getReturnType())))
-		) {
-			return addOneToArrayIndex(valueStr);
+	if (isArrayType(fromType)) {
+		if (isNumberTypeStrict(expType)) {
+			expStr = addOneToArrayIndex(expStr);
+		} else {
+			throw new CompilerError(
+				`Invalid indexing of ${fromType.getText()}. Got ${expType.getText()}, expected number`,
+				exp,
+				CompilerErrorType.InvalidComputedIndex,
+			);
 		}
+	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType) || isArrayTypeLax(fromType)) {
+		throw new CompilerError(
+			`Invalid index type: ${expType.getText()}.` + ` Type ${fromType.getText()} is not indexable.`,
+			exp,
+			CompilerErrorType.InvalidComputedIndex,
+		);
 	}
-	return valueStr;
+
+	return expStr;
+}
+
+export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	return getComputedPropertyAccess(state, node.getArgumentExpressionOrThrow(), node.getExpression());
 }
 
 export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {

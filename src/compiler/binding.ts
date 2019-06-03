@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import {
+	getCompilerDirectiveWithLaxConstraint,
 	isArrayMethodType,
 	isArrayType,
 	isIterableFunction,
@@ -14,10 +15,10 @@ import {
 	isSetMethodType,
 	isSetType,
 	isStringType,
-	strictTypeConstraint,
 } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
-import { addOneToArrayIndex, isIdentifierDefinedInExportLet } from "./indexed";
+import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
+import { CompilerDirective } from "./security";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
 	state.enterPrecedingStatementContext();
@@ -63,7 +64,12 @@ export function getParameterData(
 
 		/* istanbul ignore next */
 		if (child === undefined) {
-			throw new CompilerError("Child missing from parameter!", param, CompilerErrorType.ParameterChildMissing);
+			throw new CompilerError(
+				"Child missing from parameter!",
+				param,
+				CompilerErrorType.ParameterChildMissing,
+				true,
+			);
 		}
 
 		let name: string;
@@ -121,6 +127,7 @@ function objectAccessor(
 		idStack: Array<string>,
 	) => string,
 	nameNode: ts.Node = node,
+	aliasNode: ts.Node = node,
 ): string {
 	let name: string;
 
@@ -128,20 +135,20 @@ function objectAccessor(
 		nameNode = nameNode.getNameNode();
 	}
 
+	const rhs = node
+		.getFirstAncestorOrThrow(
+			ancestor =>
+				ts.TypeGuards.isObjectLiteralExpression(ancestor) || ts.TypeGuards.isObjectBindingPattern(ancestor),
+		)
+		.getParentOrThrow()
+		.getLastChildOrThrow(() => true);
+
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
 	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
 		const exp = nameNode.getExpression();
-		const expType = exp.getType();
-		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
-			return `${t}[${addOneToArrayIndex(compileExpression(state, exp))}]`;
-		} else {
-			throw new CompilerError(
-				`Cannot index an object with type ${exp.getType().getText()}.`,
-				nameNode,
-				CompilerErrorType.BadExpression,
-			);
-		}
+		name = getComputedPropertyAccess(state, exp, rhs);
+		return `${t}[${name}]`;
 	} else {
 		throw new CompilerError(
 			`Cannot index an object with type ${nameNode.getKindName()}.`,
@@ -152,14 +159,25 @@ function objectAccessor(
 	}
 
 	if (getAccessor) {
-		const type = node.getType();
+		const type = aliasNode.getType();
 		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type)) {
 			throw new CompilerError(
 				`Cannot index method ${name} (a roblox-ts internal)`,
-				node,
+				aliasNode,
 				CompilerErrorType.BadDestructuringType,
 			);
 		}
+	}
+
+	if (
+		getCompilerDirectiveWithLaxConstraint(rhs.getType(), CompilerDirective.Array, r => r.isTuple()) &&
+		name === "length"
+	) {
+		throw new CompilerError(
+			`Cannot access the \`length\` property of a tuple! Instead use \`${rhs.getText()}.size()\``,
+			node,
+			CompilerErrorType.TupleLength,
+		);
 	}
 
 	return `${t}.${name}`;
@@ -311,9 +329,7 @@ export function getBindingData(
 	const idStack = new Array<string>();
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	let childIndex = 1;
-
 	for (const item of bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
-		/* istanbul ignore else */
 		if (ts.TypeGuards.isBindingElement(item)) {
 			const [child, op, pattern] = item.getChildren();
 
@@ -325,7 +341,6 @@ export function getBindingData(
 				);
 			}
 
-			/* istanbul ignore else */
 			if (
 				pattern &&
 				(ts.TypeGuards.isArrayBindingPattern(pattern) || ts.TypeGuards.isObjectBindingPattern(pattern))
@@ -344,17 +359,14 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
-				const id: string = compileIdentifier(
-					state,
-					pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child,
-					true,
-				);
+				const idNode = pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child;
+				const id: string = compileIdentifier(state, idNode, true);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					postStatements.push(compileParamDefault(state, pattern as ts.Expression, id));
 				}
 				const accessor: string = strKeys
-					? objectAccessor(state, parentId, child, getAccessor)
+					? objectAccessor(state, parentId, child, getAccessor, child, idNode)
 					: getAccessor(state, parentId, childIndex, preStatements, idStack);
 				values.push(accessor);
 			} else if (ts.TypeGuards.isObjectBindingPattern(child)) {
@@ -365,23 +377,13 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isComputedPropertyName(child)) {
-				const exp = child.getExpression();
-				const expType = exp.getType();
-				if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
-					const accessor = `${parentId}[${addOneToArrayIndex(compileExpression(state, exp))}]`;
-					const childId: string = compileExpression(state, pattern as ts.Expression);
-					preStatements.push(`local ${childId} = ${accessor};`);
-				} else {
-					throw new CompilerError(
-						`Unexpected ${exp.getKindName()} in getBindingData.`,
-						child,
-						CompilerErrorType.BadExpression,
-						true,
-					);
-				}
+				const expStr = getComputedPropertyAccess(state, child.getExpression(), bindingPattern);
+				const accessor = `${parentId}[${expStr}]`;
+				const childId: string = compileExpression(state, pattern as ts.Expression);
+				preStatements.push(`local ${childId} = ${accessor};`);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
-					`Unexpected ${child.getKindName()} in getBindingData`,
+					`Unexpected ${child.getKindName()} in getBindingData.`,
 					child,
 					CompilerErrorType.UnexpectedBindingPattern,
 					true,
@@ -432,7 +434,7 @@ export function getBindingData(
 			getAccessor(state, parentId, childIndex, preStatements, idStack, true);
 		} else {
 			throw new CompilerError(
-				`Unexpected ${item.getKindName()} in getBindingData`,
+				`Unexpected ${item.getKindName()} in getBindingData.`,
 				item,
 				CompilerErrorType.UnexpectedBindingPattern,
 				true,

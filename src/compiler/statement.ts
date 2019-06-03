@@ -28,7 +28,6 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../typeUtilities";
 
 export function compileStatement(state: CompilerState, node: ts.Statement): string {
-	/* istanbul ignore else  */
 	if (isTypeStatement(node)) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {

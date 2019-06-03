@@ -17,6 +17,7 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 	state.scriptContext = getScriptContext(node);
 	const scriptType = getScriptType(node);
 	let result = compileStatementedNode(state, node);
+	/* istanbul ignore else */
 	if (state.isModule) {
 		if (scriptType !== ScriptType.Module) {
 			throw new CompilerError(
@@ -28,6 +29,7 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 
 		let hasExportEquals = false;
 		for (const descendant of node.getDescendantsOfKind(ts.SyntaxKind.ExportAssignment)) {
+			/* istanbul ignore else */
 			if (descendant.isExportEquals()) {
 				hasExportEquals = true;
 				break;
@@ -46,6 +48,7 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		}
 	}
 
+	/* istanbul ignore next */
 	if (state.usesTSLibrary) {
 		let link: string;
 		if (state.projectInfo.type === ProjectType.Package) {
