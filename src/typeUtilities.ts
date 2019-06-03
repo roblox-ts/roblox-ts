@@ -228,6 +228,14 @@ export function getCompilerDirectiveWithConstraint(
 	return typeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
 }
 
+export function getCompilerDirectiveWithStrictConstraint(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => false,
+): boolean {
+	return strictTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+}
+
 export function getCompilerDirectiveWithLaxConstraint(
 	type: ts.Type,
 	directive: CompilerDirective,

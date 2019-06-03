@@ -273,7 +273,7 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
-		"length",
+		"size",
 		(state, params) => {
 			return appendDeclarationIfMissing(
 				state,
@@ -335,7 +335,7 @@ const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 
 const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
-		"length",
+		"size",
 		(state, params) => {
 			return appendDeclarationIfMissing(
 				state,

@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import {
+	getCompilerDirectiveWithLaxConstraint,
 	isArrayMethodType,
 	isArrayType,
 	isIterableFunction,
@@ -17,6 +18,7 @@ import {
 } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
 import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
+import { CompilerDirective } from "./security";
 
 function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
 	state.enterPrecedingStatementContext();
@@ -128,17 +130,19 @@ function objectAccessor(
 		nameNode = nameNode.getNameNode();
 	}
 
+	const rhs = node
+		.getFirstAncestorOrThrow(
+			ancestor =>
+				ts.TypeGuards.isObjectLiteralExpression(ancestor) || ts.TypeGuards.isObjectBindingPattern(ancestor),
+		)
+		.getParentOrThrow()
+		.getLastChildOrThrow(() => true);
+
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
 	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
 		const exp = nameNode.getExpression();
-
-		name = getComputedPropertyAccess(
-			state,
-			exp,
-			aliasNode.getFirstAncestorByKindOrThrow(ts.SyntaxKind.ObjectLiteralExpression).getParent(),
-		);
-
+		name = getComputedPropertyAccess(state, exp, rhs);
 		return `${t}[${name}]`;
 	} else {
 		throw new CompilerError(
@@ -158,6 +162,17 @@ function objectAccessor(
 				CompilerErrorType.BadDestructuringType,
 			);
 		}
+	}
+
+	if (
+		getCompilerDirectiveWithLaxConstraint(rhs.getType(), CompilerDirective.Array, r => r.isTuple()) &&
+		name === "length"
+	) {
+		throw new CompilerError(
+			`Cannot access the \`length\` property of a tuple! (Use ${rhs.getText()}.size())`,
+			node,
+			CompilerErrorType.TupleLength,
+		);
 	}
 
 	return `${t}.${name}`;

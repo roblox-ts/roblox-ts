@@ -10,6 +10,8 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getCompilerDirectiveWithLaxConstraint,
+	getCompilerDirectiveWithStrictConstraint,
 	inheritsFrom,
 	isArrayType,
 	isArrayTypeLax,
@@ -18,8 +20,10 @@ import {
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
+	isTupleType,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { getNonNullExpressionDownwards, removeBalancedParenthesisFromStringBorders, safeLuaIndex } from "../utility";
+import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -102,7 +106,12 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
-	if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	if (
+		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
+		propertyStr === "length"
+	) {
+		throw new CompilerError("Cannot access the `length` property of a tuple!", node, CompilerErrorType.TupleLength);
+	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
