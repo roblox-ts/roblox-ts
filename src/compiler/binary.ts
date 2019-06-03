@@ -46,7 +46,6 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
-		/* istanbul ignore next */
 		throw new CompilerError(
 			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
 			node,
@@ -445,7 +444,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		state.usesTSLibrary = true;
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
 	} else {
-		/* istanbul ignore next */
 		throw new CompilerError(
 			`Unexpected BinaryExpression (${node.getOperatorToken().getKindName()})  in compileBinaryExpression #2`,
 			opToken,

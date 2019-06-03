@@ -62,7 +62,12 @@ export function getParameterData(
 
 		/* istanbul ignore next */
 		if (child === undefined) {
-			throw new CompilerError("Child missing from parameter!", param, CompilerErrorType.ParameterChildMissing);
+			throw new CompilerError(
+				"Child missing from parameter!",
+				param,
+				CompilerErrorType.ParameterChildMissing,
+				true,
+			);
 		}
 
 		let name: string;
