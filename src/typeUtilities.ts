@@ -168,6 +168,10 @@ export function isNumberType(type: ts.Type) {
 	return typeConstraint(type, t => t.isNumber() || t.isNumberLiteral());
 }
 
+export function isNumberTypeStrict(type: ts.Type) {
+	return strictTypeConstraint(type, t => t.isNumber() || t.isNumberLiteral());
+}
+
 export function isStringType(type: ts.Type) {
 	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
 }
@@ -195,26 +199,45 @@ export function isIterableFunction(type: ts.Type) {
 	return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
 }
 
+function getCompilerDirectiveHelper(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback: (t: ts.Type) => boolean,
+	t: ts.Type,
+) {
+	const symbol = t.getSymbol();
+
+	if ((symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t)) {
+		return true;
+	} else {
+		if (type.isTypeParameter()) {
+			const constraint = type.getConstraint();
+			if (constraint) {
+				return getCompilerDirectiveWithConstraint(constraint, directive, orCallback);
+			}
+		}
+		return false;
+	}
+}
+
 export function getCompilerDirectiveWithConstraint(
 	type: ts.Type,
 	directive: CompilerDirective,
 	orCallback = (t: ts.Type) => false,
 ): boolean {
-	return typeConstraint(type, t => {
-		const symbol = t.getSymbol();
+	return typeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+}
 
-		if ((symbol !== undefined && getCompilerDirective(symbol, [directive]) === directive) || orCallback(t)) {
-			return true;
-		} else {
-			if (type.isTypeParameter()) {
-				const constraint = type.getConstraint();
-				if (constraint) {
-					return getCompilerDirectiveWithConstraint(constraint, directive, orCallback);
-				}
-			}
-			return false;
-		}
-	});
+export function getCompilerDirectiveWithLaxConstraint(
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => false,
+): boolean {
+	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+}
+
+export function isArrayTypeLax(type: ts.Type) {
+	return getCompilerDirectiveWithLaxConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
 }
 
 export function isStringMethodType(type: ts.Type) {

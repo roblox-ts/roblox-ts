@@ -258,6 +258,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
+	"methodDestructure/union.spec.ts": {
+		message: "should not allow Array and Object unions to be indexed from",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
 	"roactInitMethod.spec.ts": {
 		message: "should not allow init in Roact class",
 		instance: CompilerError,

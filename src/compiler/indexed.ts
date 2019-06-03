@@ -12,11 +12,12 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	inheritsFrom,
 	isArrayType,
+	isArrayTypeLax,
 	isMapType,
+	isNumberTypeStrict,
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
-	strictTypeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
 
@@ -176,7 +177,7 @@ export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expressi
 	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : fromNode.getType();
 
 	if (isArrayType(fromType)) {
-		if (strictTypeConstraint(expType, r => r.isNumber() || r.isNumberLiteral())) {
+		if (isNumberTypeStrict(expType)) {
 			expStr = addOneToArrayIndex(expStr);
 		} else {
 			throw new CompilerError(
@@ -185,7 +186,7 @@ export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expressi
 				CompilerErrorType.InvalidComputedIndex,
 			);
 		}
-	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType)) {
+	} else if (isSetType(fromType) || isMapType(fromType) || isStringType(fromType) || isArrayTypeLax(fromType)) {
 		throw new CompilerError(
 			`Invalid index type: ${expType.getText()}.` + ` Type ${fromType.getText()} is not indexable.`,
 			exp,
