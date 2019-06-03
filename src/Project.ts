@@ -327,40 +327,35 @@ export class Project {
 	}
 
 	private validateRbxTypes() {
-		const pkgLockJsonPath = path.join(this.projectPath, "package-lock.json");
-		if (fs.pathExistsSync(pkgLockJsonPath)) {
-			const pkgLock = JSON.parse(fs.readFileSync(pkgLockJsonPath).toString());
-			if (pkgLock !== undefined) {
-				const dependencies = pkgLock.dependencies;
-				if (dependencies !== undefined) {
-					const rbxTypes = dependencies["@rbxts/types"];
-					if (rbxTypes !== undefined) {
-						const rbxTypesVersion = rbxTypes.version;
-						if (typeof rbxTypesVersion === "string") {
-							const regexMatch = rbxTypesVersion.match(/\d+$/g);
-							if (regexMatch !== null) {
-								const patchNumber = Number(regexMatch[0]);
-								if (!isNaN(patchNumber)) {
-									if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
-										return;
-									} else {
-										throw new ProjectError(
-											`@rbxts/types is out of date!\n` +
-												yellow(`Installed version: 1.0.${patchNumber}\n`) +
-												yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-												`Run 'npm i @rbxts/types' to fix this.`,
-											ProjectErrorType.BadRbxTypes,
-										);
-									}
-								}
+		const pkgJsonPath = path.join(this.projectPath, "node_modules", "@rbxts", "types", "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			if (pkgJson !== undefined) {
+				const versionStr = pkgJson.version;
+				if (versionStr !== undefined) {
+					const regexMatch = versionStr.match(/\d+$/g);
+					if (regexMatch !== null) {
+						const patchNumber = Number(regexMatch[0]);
+						if (!isNaN(patchNumber)) {
+							if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+								return;
+							} else {
+								throw new ProjectError(
+									`@rbxts/types is out of date!\n` +
+										yellow(`Installed version: 1.0.${patchNumber}\n`) +
+										yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+										`Run 'npm i @rbxts/types' to fix this.`,
+									ProjectErrorType.BadRbxTypes,
+								);
 							}
 						}
 					}
 				}
 			}
 		}
+
 		throw new ProjectError(
-			`Could not find @rbxts/types in package-lock.json!\n` + `Run 'npm i @rbxts/types' to fix this.`,
+			`Could not find @rbxts/types!\n` + `Run 'npm i @rbxts/types' to fix this.`,
 			ProjectErrorType.BadRbxTypes,
 		);
 	}
