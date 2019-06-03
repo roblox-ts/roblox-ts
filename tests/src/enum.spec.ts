@@ -77,4 +77,16 @@ export = () => {
 	it("should support members with initializers", () => {
 		expect(WithInitializer.value).to.equal(123);
 	});
+
+	it("should support hoisted enums", () => {
+		expect(Animal2.Bear).to.equal("BEAR");
+		expect(Animal2.Dog).to.equal("DOG");
+		expect(Animal2.Snake).to.equal("SNAKE");
+	});
+
+	const enum Animal2 {
+		Bear = "BEAR",
+		Dog = "DOG",
+		Snake = "SNAKE",
+	}
 };
