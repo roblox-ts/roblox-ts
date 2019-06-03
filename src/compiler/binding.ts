@@ -130,6 +130,16 @@ function objectAccessor(
 
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
+	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		const exp = nameNode.getExpression();
+
+		name = getComputedPropertyAccess(
+			state,
+			exp,
+			aliasNode.getFirstAncestorByKindOrThrow(ts.SyntaxKind.ObjectLiteralExpression).getParent(),
+		);
+
+		return `${t}[${name}]`;
 	} else {
 		throw new CompilerError(
 			`Cannot index an object with type ${nameNode.getKindName()}.`,

@@ -20,10 +20,21 @@ export = () => {
 		};
 
 		let i = 2;
-		const a = obj[i];
-		const b = obj[2];
-		const { [i]: c } = obj;
-		const { [2]: d } = obj;
+		let a = obj[i];
+		let b = obj[2];
+		let { [i]: c } = obj;
+		let { [2]: d } = obj;
+
+		expect(a).to.equal(1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
+		expect(d).to.equal(1);
+
+		a = obj[i];
+		b = obj[2];
+		({ [i]: c } = obj);
+		({ [2]: d } = obj);
+
 		expect(a).to.equal(1);
 		expect(b).to.equal(1);
 		expect(c).to.equal(1);

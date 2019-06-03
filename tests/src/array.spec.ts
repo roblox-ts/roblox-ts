@@ -17,10 +17,20 @@ export = () => {
 		expect(foo()[2]).to.equal(3);
 
 		let i = 2;
-		const a = arr[i];
-		const b = arr[2];
-		const { [i]: c } = arr;
-		const { [2]: d } = arr;
+		let a = arr[i];
+		let b = arr[2];
+		let { [i]: c } = arr;
+		let { [2]: d } = arr;
+
+		expect(a).to.equal(3);
+		expect(b).to.equal(3);
+		expect(c).to.equal(3);
+		expect(d).to.equal(3);
+
+		a = arr[i];
+		b = arr[2];
+		({ [i]: c } = arr);
+		({ [2]: d } = arr);
 
 		expect(a).to.equal(3);
 		expect(b).to.equal(3);
