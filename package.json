@@ -15,12 +15,11 @@
 		"prettier": "npx prettier --config ./.prettierrc.json --write \"**/*.ts\"",
 		"prettylint": "npx prettylint --config ./.prettierrc.json \"**/*.ts\"",
 		"build": "npx tsc",
-		"build-ci": "npx tsc -p tsconfig.ci.json",
 		"test-compile": "mocha --timeout 0 --recursive out/test.js",
 		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
 		"test-run": "lua tests/spec.lua",
 		"test": "npm run build && npm run test-compile && npm run-test-run",
-		"ci": "npm run build-ci && npm run test-compile-ci && npm run test-run",
+		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
 		"coverage": "nyc report --reporter=text-lcov | coveralls",
 		"prepublishOnly": "npm run build",
 		"types": "cd tests && npm install @rbxts/types"
