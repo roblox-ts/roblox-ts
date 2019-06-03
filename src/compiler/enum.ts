@@ -32,7 +32,7 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		} else if (typeof memberValue === "number") {
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${name}[${memberValue}] = "${memberName}";\n`;
-		} else if (member.hasInitializer()) {
+		} /* istanbul ignore else */ else if (member.hasInitializer()) {
 			const initializer = member.getInitializer()!;
 			state.enterPrecedingStatementContext();
 			const expStr = getReadableExpressionName(state, initializer);
