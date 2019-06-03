@@ -7,7 +7,7 @@ export = () => {
 		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
 	});
 
-	it("should support tagged template expressions", () => {
+	it("should support tagged TemplateExpression", () => {
 		const OPERATIONS: { [index: string]: (a: Vector3, b: Vector3) => Vector3 } = {
 			"*": (a, b) => a.mul(b),
 			"/": (a, b) => a.div(b),
@@ -39,5 +39,12 @@ export = () => {
 		expect(pos.X).to.equal(3);
 		expect(pos.Y).to.equal(8);
 		expect(pos.Z).to.equal(15);
+	});
+
+	it("should support tagged NoSubstitutionTemplateLiteral", () => {
+		function foo(strings: TemplateStringsArray) {
+			return "baz";
+		}
+		expect(foo`bar`).to.equal("baz");
 	});
 };

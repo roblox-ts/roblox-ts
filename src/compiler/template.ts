@@ -81,5 +81,9 @@ export function compileTemplateExpression(state: CompilerState, node: ts.Templat
 export function compileTaggedTemplateExpression(state: CompilerState, node: ts.TaggedTemplateExpression) {
 	const tagStr = compileExpression(state, node.getTag());
 	const parts = getTemplateParts(state, node.getTemplate(), false);
-	return `${tagStr}({ ${parts.literals.join(", ")} }, ${parts.expressions.join(", ")})`;
+	if (parts.expressions.length > 0) {
+		return `${tagStr}({ ${parts.literals.join(", ")} }, ${parts.expressions.join(", ")})`;
+	} else {
+		return `${tagStr}({ ${parts.literals.join(", ")} })`;
+	}
 }

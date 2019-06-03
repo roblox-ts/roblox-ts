@@ -17,10 +17,7 @@ export function compileArrayLiteralExpression(state: CompilerState, node: ts.Arr
 			const exp = element.getExpression();
 			const expType = exp.getType();
 			if (!isArrayType(expType)) {
-				const spreadResult = compileSpreadExpression(state, exp);
-				if (spreadResult) {
-					return spreadResult;
-				}
+				return compileSpreadExpression(state, exp);
 			}
 		}
 	}

@@ -117,7 +117,6 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 			CompilerErrorType.NoTypeOf,
 		);
 	} else {
-		/* istanbul ignore next */
 		throw new CompilerError(
 			`Unexpected expression ( ${node.getKindName()} ) in compileExpression`,
 			node,

@@ -910,6 +910,7 @@ export function getPropertyAccessExpressionType(
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
 	const expression = getNonNullExpressionDownwards(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
+		/* istanbul ignore next */
 		throw new CompilerError(
 			"Expected PropertyAccessExpression",
 			node,

@@ -64,7 +64,12 @@ export function getParameterData(
 
 		/* istanbul ignore next */
 		if (child === undefined) {
-			throw new CompilerError("Child missing from parameter!", param, CompilerErrorType.ParameterChildMissing);
+			throw new CompilerError(
+				"Child missing from parameter!",
+				param,
+				CompilerErrorType.ParameterChildMissing,
+				true,
+			);
 		}
 
 		let name: string;
@@ -325,7 +330,6 @@ export function getBindingData(
 	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	let childIndex = 1;
 	for (const item of bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
-		/* istanbul ignore else */
 		if (ts.TypeGuards.isBindingElement(item)) {
 			const [child, op, pattern] = item.getChildren();
 
@@ -337,7 +341,6 @@ export function getBindingData(
 				);
 			}
 
-			/* istanbul ignore else */
 			if (
 				pattern &&
 				(ts.TypeGuards.isArrayBindingPattern(pattern) || ts.TypeGuards.isObjectBindingPattern(pattern))
