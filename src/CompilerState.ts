@@ -257,7 +257,6 @@ export class CompilerState {
 	public continueId = -1;
 	public isModule = false;
 	public scriptContext = ScriptContext.None;
-	public roactIndent: number = 0;
 	public hasRoactImport: boolean = false;
 	public usesTSLibrary = false;
 }

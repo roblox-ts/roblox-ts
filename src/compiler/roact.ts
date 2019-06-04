@@ -144,7 +144,7 @@ export function compileRoactClassDeclaration(
 	className: string,
 	node: ts.ClassDeclaration | ts.ClassExpression,
 ) {
-	let declaration = `${state.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
+	let declaration = state.indent + `local ${className} = Roact.${type}:extend("${className}");\n`;
 
 	const instanceProps = node
 		.getInstanceProperties()
@@ -181,7 +181,7 @@ export function compileRoactClassDeclaration(
 
 		getParameterData(state, paramNames, initializers, constructor, defaults);
 
-		declaration += `${state.indent}function ${className}:init(${paramNames.join(", ")})\n`;
+		declaration += state.indent + `function ${className}:init(${paramNames.join(", ")})\n`;
 
 		state.pushIndent();
 
@@ -221,7 +221,7 @@ export function compileRoactClassDeclaration(
 
 		state.popIndent();
 
-		declaration += `${state.indent}end;\n`;
+		declaration += state.indent + `end;\n`;
 	}
 
 	const staticFields = node.getStaticProperties();
@@ -230,10 +230,9 @@ export function compileRoactClassDeclaration(
 			const initializer = staticField.getInitializer();
 			if (initializer) {
 				checkRoactReserved(className, staticField.getName(), staticField);
-				declaration += `${state.indent}${className}.${staticField.getName()} = ${compileExpression(
-					state,
-					initializer,
-				)};\n`;
+				declaration +=
+					state.indent +
+					`${className}.${staticField.getName()} = ${compileExpression(state, initializer)};\n`;
 			}
 		}
 	}
@@ -251,7 +250,7 @@ export function compileRoactClassDeclaration(
 		getParameterData(state, paramNames, initializers, staticMethod);
 		const paramStr = paramNames.join(", ");
 
-		declaration += `${state.indent}function ${className}.${name}(${paramStr})\n`;
+		declaration += state.indent + `function ${className}.${name}(${paramStr})\n`;
 
 		state.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
@@ -260,7 +259,7 @@ export function compileRoactClassDeclaration(
 		}
 		state.popIndent();
 
-		declaration += `${state.indent}end;\n`;
+		declaration += state.indent + `end;\n`;
 	}
 
 	// Now we'll get the methods, and make them into the special roact format
@@ -279,7 +278,7 @@ export function compileRoactClassDeclaration(
 		getParameterData(state, paramNames, initializers, method);
 		const paramStr = paramNames.join(", ");
 
-		declaration += `${state.indent}function ${className}:${name}(${paramStr})\n`;
+		declaration += state.indent + `function ${className}:${name}(${paramStr})\n`;
 
 		state.pushIndent();
 		if (ts.TypeGuards.isBlock(body)) {
@@ -288,7 +287,7 @@ export function compileRoactClassDeclaration(
 		}
 		state.popIndent();
 
-		declaration += `${state.indent}end;\n`;
+		declaration += state.indent + `end;\n`;
 	}
 
 	const getters = node
@@ -355,13 +354,13 @@ export function generateRoactSymbolProperty(
 						value = compileSymbolPropertyCallback(state, rhs);
 					} else {
 						if (hasExtraAttributes) {
-							state.pushIndent(); // fix indentation with extra props
+							state.pushIndent();
 						}
 						value = compileExpression(state, rhs);
 					}
 
 					if (hasExtraAttributes) {
-						state.popIndent(); // fix indentation with extra props
+						state.popIndent();
 					}
 
 					attributeCollection.push(`[Roact.${roactSymbol}.${propName}] = ${value}`);
@@ -376,13 +375,13 @@ export function generateRoactSymbolProperty(
 					value = compileSymbolPropertyCallback(state, innerExpression);
 				} else {
 					if (hasExtraAttributes) {
-						state.pushIndent(); // fix indentation with extra props
+						state.pushIndent();
 					}
 					value = compileExpression(state, getAccessExpression);
 				}
 			} else {
 				if (hasExtraAttributes) {
-					state.pushIndent(); // fix indentation with extra props
+					state.pushIndent();
 				}
 				value = compileExpression(state, innerExpression);
 			}
@@ -404,7 +403,7 @@ export function generateRoactSymbolProperty(
 
 export function generateRoactElement(
 	state: CompilerState,
-	// name: string,
+	node: ts.JsxElement | ts.JsxSelfClosingElement,
 	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
 	children: Array<ts.JsxChild>,
@@ -416,8 +415,6 @@ export function generateRoactElement(
 	const extraChildrenCollection = new Array<string>();
 	const childCollection = new Array<string>();
 	let key: string | undefined;
-
-	state.roactIndent++;
 
 	if (name.match(/^[a-z]+$/)) {
 		// if lowercase
@@ -491,7 +488,7 @@ export function generateRoactElement(
 
 		// use Object.assign if we have extra attributes
 		if (extraAttributeCollections.length > 0) {
-			str += ", \n";
+			str += ",\n";
 			state.pushIndent();
 
 			state.usesTSLibrary = true;
@@ -500,25 +497,24 @@ export function generateRoactElement(
 			// If it has other attributes
 			if (attributeCollection.length > 0) {
 				str += "{\n";
-
 				state.pushIndent();
-				str += state.indent + attributeCollection.join(",\n" + state.indent);
+				str += attributeCollection.map(v => state.indent + `${v},\n`).join("");
 				state.popIndent();
-				str += ` \n${state.indent}},\n${state.indent}`;
+				str += state.indent + `}, `;
 			} else {
 				str += `{}, `;
 			}
 
-			str += extraAttributeCollections.join(",\n" + state.indent);
+			str += extraAttributeCollections.join(", ");
 			str += ")\n";
 
 			state.popIndent();
 		} else {
 			str += ", {\n";
 			state.pushIndent();
-			str += state.indent + attributeCollection.join(",\n" + state.indent);
+			str += attributeCollection.map(v => state.indent + `${v},\n`).join("");
 			state.popIndent();
-			str += ` \n${state.indent}}`;
+			str += state.indent + `}`;
 		}
 	} else {
 		str += ", {}";
@@ -530,7 +526,7 @@ export function generateRoactElement(
 		for (const child of children) {
 			if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
 				const value = compileExpression(state, child);
-				childCollection.push(`${state.indent}${value}`);
+				childCollection.push(state.indent + value);
 			} else if (ts.TypeGuards.isJsxText(child)) {
 				// If the inner text isn't just indentation/spaces
 				if (child.getText().match(/[^\s]/)) {
@@ -617,7 +613,6 @@ export function generateRoactElement(
 			str += state.indent + ")";
 			str += ")";
 		} else {
-			// state.pushIndent();
 			str += state.indent + ", {\n";
 			str += childCollection.join(",\n") + `\n${state.indent}})`;
 		}
@@ -629,9 +624,7 @@ export function generateRoactElement(
 		}
 	}
 
-	state.roactIndent--;
-
-	if (key && state.roactIndent > 0) {
+	if (key && ts.TypeGuards.isJsxElement(node.getParent())) {
 		return `[${key}] = ${str}`;
 	} else {
 		return str;
@@ -647,22 +640,8 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 			CompilerErrorType.RoactJsxWithoutImport,
 		);
 	}
-	const open = node.getOpeningElement() as ts.JsxOpeningElement;
-	const tagNameNode = open.getTagNameNode();
-	const children = node.getJsxChildren();
-	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
-
-	if (isArrayExpressionParent) {
-		state.roactIndent++;
-	}
-
-	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
-
-	if (isArrayExpressionParent) {
-		state.roactIndent--;
-	}
-
-	return element;
+	const open = node.getOpeningElement();
+	return generateRoactElement(state, node, open.getTagNameNode(), open.getAttributes(), node.getJsxChildren());
 }
 
 export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxSelfClosingElement): string {
@@ -674,19 +653,5 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 			CompilerErrorType.RoactJsxWithoutImport,
 		);
 	}
-
-	const tagNameNode = node.getTagNameNode();
-	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
-
-	if (isArrayExpressionParent) {
-		state.roactIndent++;
-	}
-
-	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
-
-	if (isArrayExpressionParent) {
-		state.roactIndent--;
-	}
-
-	return element;
+	return generateRoactElement(state, node, node.getTagNameNode(), node.getAttributes(), []);
 }
