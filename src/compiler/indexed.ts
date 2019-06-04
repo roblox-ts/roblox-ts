@@ -57,11 +57,11 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 		const child = operand.getNameNode();
 		if (!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child)) {
-			const propertyStr = compileExpression(state, child);
 			const id = state.pushPrecedingStatementToReuseableId(
 				operand,
 				compileExpression(state, operand.getExpression()),
 			);
+			const propertyStr = compileExpression(state, child);
 			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
 		}
 	}
@@ -83,6 +83,7 @@ export function getReadableExpressionName(
 	const nonNullExp = getNonNullExpressionDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
+		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
 		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))

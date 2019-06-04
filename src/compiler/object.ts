@@ -10,19 +10,18 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 		return "{}";
 	}
 	let isInObject = false;
-	let first = true;
-	let firstIsObj = false;
-	const parts = new Array<string>();
+
+	const lines = new Array<string>();
+	let hasContext = false;
+	let id = "";
+	state.pushIndent();
+
 	for (const prop of properties) {
 		if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
-			if (first) {
-				firstIsObj = true;
-			}
-
 			let lhs: ts.Expression;
-
 			let n = 0;
 			let child = prop.getChildAtIndex(n);
+
 			while (ts.TypeGuards.isJSDoc(child)) {
 				child = prop.getChildAtIndex(++n);
 			}
@@ -43,11 +42,6 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				);
 			}
 
-			if (!isInObject) {
-				parts.push("{\n");
-				state.pushIndent();
-			}
-
 			let rhs: ts.Expression; // You may want to move this around
 			if (ts.TypeGuards.isShorthandPropertyAssignment(prop) && ts.TypeGuards.isIdentifier(child)) {
 				lhs = prop.getNameNode();
@@ -57,70 +51,51 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			}
 
 			state.enterPrecedingStatementContext();
-			let lhsStr = compileExpression(state, lhs);
-			const lhsContext = state.exitPrecedingStatementContext();
+			const lhsStr = compileExpression(state, lhs);
+			const rhsStr = compileExpression(state, rhs);
+			const context = state.exitPrecedingStatementContext();
 
-			if (lhsContext.length > 0) {
-				lhsContext.push(state.indent + `return ${lhsStr};\n`);
-				lhsStr = "(function()\n" + joinIndentedLines(lhsContext, 1) + state.indent + "end)()";
+			const line = state.indent + `${ts.TypeGuards.isIdentifier(lhs) ? lhsStr : `[${lhsStr}]`} = ${rhsStr};\n`;
+
+			if (hasContext) {
+				state.pushPrecedingStatements(lhs, id + (line.startsWith("[") ? "" : ".") + line);
+			} else if (context.length > 0) {
+				hasContext = true;
+				state.popIndent();
+				id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
+				state.pushPrecedingStatements(
+					lhs,
+					...lines.map(current => {
+						console.log((current = current.trimLeft()));
+						return state.indent + id + (current.startsWith("[") ? "" : ".") + current;
+					}),
+					...context,
+					state.indent + id + line,
+				);
+			} else {
+				lines.push(line);
 			}
 
-			state.enterPrecedingStatementContext();
-			let rhsStr = compileExpression(state, rhs);
-			const rhsContext = state.exitPrecedingStatementContext();
-
-			if (rhsContext.length > 0) {
-				rhsContext.push(state.indent + `return ${rhsStr};\n`);
-				rhsStr = "(function()\n" + joinIndentedLines(rhsContext, 1) + state.indent + "end)()";
-			}
-
-			if (!ts.TypeGuards.isIdentifier(lhs)) {
-				lhsStr = `[${lhsStr}]`;
-			}
-			parts[parts.length - 1] += state.indent + `${lhsStr} = ${rhsStr};\n`;
 			isInObject = true;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
-			if (first) {
-				firstIsObj = true;
-			}
-			if (!isInObject) {
-				parts.push("{\n");
-				state.pushIndent();
-			}
-			parts[parts.length - 1] += compileMethodDeclaration(state, prop);
+			lines.push(compileMethodDeclaration(state, prop));
 			isInObject = true;
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
-			if (first) {
-				firstIsObj = false;
-			}
-			if (isInObject) {
-				state.popIndent();
-				parts[parts.length - 1] += state.indent + "}";
-			}
 			const expStr = compileExpression(state, prop.getExpression());
-			parts.push(expStr);
+			lines.push(expStr);
 			isInObject = false;
 		}
-
-		if (first) {
-			first = false;
-		}
 	}
-
-	if (isInObject) {
-		state.popIndent();
-		parts[parts.length - 1] += state.indent + "}";
-	}
-
+	state.popIndent();
 	if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
-		const params = parts.join(", ");
+		const params = lines.join(", ");
 		state.usesTSLibrary = true;
-		if (!firstIsObj) {
+		if (ts.TypeGuards.isSpreadAssignment(properties[0])) {
 			return `TS.Object_assign({}, ${params})`;
 		} else {
 			return `TS.Object_assign(${params})`;
 		}
 	} else {
-		return parts.join(", ");
+		return `{\n${lines.join("")}${state.indent}}`;
 	}
 }

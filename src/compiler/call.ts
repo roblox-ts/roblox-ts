@@ -17,6 +17,7 @@ import {
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
+	isTupleType,
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
@@ -29,7 +30,7 @@ import {
 	isIdentifierDefinedInExportLet,
 } from "./indexed";
 
-const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "len", "lower", "rep", "reverse", "upper"];
+const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
@@ -417,11 +418,17 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"join",
 		(state, params) => {
-			const subExp = params[0];
-			const arrayType = subExp.getType().getArrayElementType()!;
-			const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
+			const subType = params[0].getType();
+			const arrayType = subType.getArrayElementType();
 
-			if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
+			if (
+				(arrayType
+					? arrayType.isUnion()
+						? arrayType.getUnionTypes()
+						: [arrayType]
+					: subType.getTupleElements()
+				).every(validType => validType.isNumber() || validType.isString())
+			) {
 				const argStrs = compileCallArguments(state, params);
 				return `table.concat(${argStrs[0]}, ${params[1] ? argStrs[1] : `","`})`;
 			}
@@ -788,8 +795,6 @@ export function compileCallExpression(
 			}
 		}
 
-		let pushedFirstParam: string | undefined;
-
 		if (ts.TypeGuards.isIdentifier(exp)) {
 			for (const def of exp.getDefinitions()) {
 				const definitionParent = def.getNode().getParent();
@@ -798,13 +803,18 @@ export function compileCallExpression(
 					ts.TypeGuards.isFunctionExpression(definitionParent) &&
 					isFunctionExpressionMethod(definitionParent)
 				) {
-					pushedFirstParam = "nil";
+					const alternative = "this." + (definitionParent.getParent() as ts.PropertyAssignment).getName();
+					throw new CompilerError(
+						`Cannot call local function expression \`${exp.getText()}\` (this is a foot-gun). Prefer \`${alternative}\``,
+						exp,
+						CompilerErrorType.BadFunctionExpressionMethodCall,
+					);
 				}
 			}
 		}
 
 		const callPath = compileExpression(state, exp);
-		result = `${callPath}(${compileCallArgumentsAndJoin(state, params, pushedFirstParam)})`;
+		result = `${callPath}(${compileCallArgumentsAndJoin(state, params)})`;
 	}
 
 	if (!doNotWrapTupleReturn) {
@@ -923,6 +933,18 @@ export function getPropertyAccessExpressionType(
 	return PropertyCallExpType.None;
 }
 
+function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
+	const symbol = t.getSymbol();
+	if (symbol === undefined) {
+		throw new CompilerError(
+			`Attempt to call non-method \`${node.getText()}\``,
+			node,
+			CompilerErrorType.BadMethodCall,
+		);
+	}
+	return symbol;
+}
+
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
 	const expression = getNonNullExpressionDownwards(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
@@ -990,17 +1012,8 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	const expType = expression.getType();
 
-	if (expType.getSymbol() === undefined) {
-		throw new CompilerError(
-			`Attempt to call non-method \`${node.getText()}\``,
-			expression,
-			CompilerErrorType.BadMethodCall,
-		);
-	}
-
 	const allMethods = typeConstraint(expType, t =>
-		t
-			.getSymbolOrThrow()
+		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
 				if (ts.TypeGuards.isParameteredNode(dec)) {
@@ -1022,8 +1035,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 	);
 
 	const allCallbacks = typeConstraint(expType, t =>
-		t
-			.getSymbolOrThrow()
+		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
 				if (ts.TypeGuards.isParameteredNode(dec)) {

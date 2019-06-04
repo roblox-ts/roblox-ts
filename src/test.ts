@@ -298,6 +298,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
+	"funcExpMethodCall.spec.ts": {
+		message: "should not allow calling from function method expressions",
+		instance: CompilerError,
+		type: CompilerErrorType.BadFunctionExpressionMethodCall,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
