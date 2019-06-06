@@ -227,53 +227,55 @@ export = () => {
 		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
 	});
 
-	it("should be able to have Roact.Element[] expressions", () => {
-		const test = [<frame Key="One" />, <frame Key="Two" />];
+	// TODO: find a better way to test Roact.Element[]
 
-		const test2 = (
-			<screengui>
-				{test}
-				<frame Key="Three" />
-			</screengui>
-		);
+	// it("should be able to have Roact.Element[] expressions", () => {
+	// 	const test = [<frame Key="One" />, <frame Key="Two" />];
 
-		const handle = Roact.mount(test2);
-		expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
-	});
+	// 	const test2 = (
+	// 		<screengui>
+	// 			{test}
+	// 			<frame Key="Three" />
+	// 		</screengui>
+	// 	);
 
-	it("should be able to use Roact.Element[] expressions inside classes", () => {
-		class TestComponent extends Roact.Component {
-			public render(): Roact.Element {
-				const innerFrames = [<frame Key="Frame1" />, <frame Key="Frame2" />];
+	// 	const handle = Roact.mount(test2);
+	// 	expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
+	// 	expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
+	// 	expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
+	// });
 
-				return <frame>{innerFrames}</frame>;
-			}
-		}
+	// it("should be able to use Roact.Element[] expressions inside classes", () => {
+	// 	class TestComponent extends Roact.Component {
+	// 		public render(): Roact.Element {
+	// 			const innerFrames = [<frame Key="Frame1" />, <frame Key="Frame2" />];
 
-		const test = <TestComponent />;
+	// 			return <frame>{innerFrames}</frame>;
+	// 		}
+	// 	}
 
-		const handle = Roact.mount(test);
-		const returned = handle._child;
+	// 	const test = <TestComponent />;
 
-		// expect the returned child to be a frame
-		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
-		expect(returned!._rbx!.FindFirstChild("Frame1")).to.be.ok();
-		expect(returned!._rbx!.FindFirstChild("Frame2")).to.be.ok();
-	});
+	// 	const handle = Roact.mount(test);
+	// 	const returned = handle._child;
 
-	it("should allow using results from functions in expressions", () => {
-		function multipleElements(): Array<Roact.Element> {
-			return [<frame Key="Frame57" />, <frame Key="Frame103" />];
-		}
+	// 	// expect the returned child to be a frame
+	// 	expect(returned!._rbx!.IsA("Frame")).to.be.ok();
+	// 	expect(returned!._rbx!.FindFirstChild("Frame1")).to.be.ok();
+	// 	expect(returned!._rbx!.FindFirstChild("Frame2")).to.be.ok();
+	// });
 
-		const test = <screengui>{multipleElements()}</screengui>;
+	// it("should allow using results from functions in expressions", () => {
+	// 	function multipleElements(): Array<Roact.Element> {
+	// 		return [<frame Key="Frame57" />, <frame Key="Frame103" />];
+	// 	}
 
-		const handle = Roact.mount(test);
-		expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
-	});
+	// 	const test = <screengui>{multipleElements()}</screengui>;
+
+	// 	const handle = Roact.mount(test);
+	// 	expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
+	// 	expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
+	// });
 
 	it("should be able to use this.props[Roact.Children] expressions", () => {
 		class TestComponent extends Roact.Component {
