@@ -222,7 +222,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		let stashedInnerStr: (() => string) | undefined;
 
 		const upperContext = state.getCurrentPrecedingStatementContext(node);
-
 		if (ts.TypeGuards.isElementAccessExpression(lhs)) {
 			const compileLhsStr = compileElementAccessDataTypeExpression(state, lhs);
 			let innerStr = compileElementAccessBracketExpression(state, lhs);

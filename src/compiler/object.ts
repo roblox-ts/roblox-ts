@@ -6,17 +6,19 @@ import { joinIndentedLines } from "../utility";
 
 export function compileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();
+
 	if (properties.length === 0) {
 		return "{}";
 	}
-	let isInObject = false;
 
 	const lines = new Array<string>();
 	let hasContext = false;
 	let id = "";
-	state.pushIndent();
+	let line: string;
 
 	for (const prop of properties) {
+		state.enterPrecedingStatementContext();
+
 		if (ts.TypeGuards.isPropertyAssignment(prop) || ts.TypeGuards.isShorthandPropertyAssignment(prop)) {
 			let lhs: ts.Expression;
 			let n = 0;
@@ -50,44 +52,48 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				rhs = prop.getInitializerOrThrow();
 			}
 
-			state.enterPrecedingStatementContext();
 			const lhsStr = compileExpression(state, lhs);
 			const rhsStr = compileExpression(state, rhs);
-			const context = state.exitPrecedingStatementContext();
 
-			const line = state.indent + `${ts.TypeGuards.isIdentifier(lhs) ? lhsStr : `[${lhsStr}]`} = ${rhsStr};\n`;
-
-			if (hasContext) {
-				state.pushPrecedingStatements(lhs, id + (line.startsWith("[") ? "" : ".") + line);
-			} else if (context.length > 0) {
-				hasContext = true;
-				state.popIndent();
-				id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
-				state.pushPrecedingStatements(
-					lhs,
-					...lines.map(current => {
-						console.log((current = current.trimLeft()));
-						return state.indent + id + (current.startsWith("[") ? "" : ".") + current;
-					}),
-					...context,
-					state.indent + id + line,
-				);
-			} else {
-				lines.push(line);
-			}
-
-			isInObject = true;
+			line = `${ts.TypeGuards.isIdentifier(lhs) ? lhsStr : `[${lhsStr}]`} = ${rhsStr};\n`;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
-			lines.push(compileMethodDeclaration(state, prop));
-			isInObject = true;
+			line = compileMethodDeclaration(state, prop).trimLeft();
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
-			const expStr = compileExpression(state, prop.getExpression());
-			lines.push(expStr);
-			isInObject = false;
+			line = compileExpression(state, prop.getExpression());
+		} else {
+			throw new CompilerError(
+				`Unexpected property type in object! Got ${prop.getKindName()}`,
+				prop,
+				CompilerErrorType.BadObjectPropertyType,
+				true,
+			);
+		}
+
+		const context = state.exitPrecedingStatementContext();
+
+		if (hasContext) {
+			state.pushPrecedingStatements(
+				node,
+				...context,
+				state.indent + id + (line.startsWith("[") ? "" : ".") + line,
+			);
+		} else if (context.length > 0) {
+			id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
+			state.pushPrecedingStatements(
+				node,
+				...lines.map(current => state.indent + id + (current.startsWith("[") ? "" : ".") + current),
+				...context,
+				state.indent + id + (line.startsWith("[") ? "" : ".") + line,
+			);
+			hasContext = true;
+		} else {
+			lines.push(line);
 		}
 	}
-	state.popIndent();
-	if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
+
+	if (id) {
+		return id;
+	} else if (properties.some(v => ts.TypeGuards.isSpreadAssignment(v))) {
 		const params = lines.join(", ");
 		state.usesTSLibrary = true;
 		if (ts.TypeGuards.isSpreadAssignment(properties[0])) {
@@ -96,6 +102,6 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			return `TS.Object_assign(${params})`;
 		}
 	} else {
-		return `{\n${lines.join("")}${state.indent}}`;
+		return `{\n${lines.map(myLine => state.indent + joinIndentedLines([myLine], 1)).join("")}${state.indent}}`;
 	}
 }

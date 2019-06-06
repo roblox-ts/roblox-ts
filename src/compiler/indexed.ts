@@ -56,6 +56,7 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
 export function getWritableOperandName(state: CompilerState, operand: ts.Expression) {
 	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 		const child = operand.getNameNode();
+
 		if (!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child)) {
 			const id = state.pushPrecedingStatementToReuseableId(
 				operand,
@@ -63,6 +64,18 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			);
 			const propertyStr = compileExpression(state, child);
 			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
+		}
+	} else if (ts.TypeGuards.isElementAccessExpression(operand)) {
+		const child = operand.getExpression();
+
+		if (
+			!ts.TypeGuards.isThisExpression(child) &&
+			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
+		) {
+			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
+			const propertyStr = compileExpression(state, operand.getArgumentExpressionOrThrow());
+
+			return { expStr: `${id}[${propertyStr}]`, isIdentifier: false };
 		}
 	}
 

@@ -17,7 +17,6 @@ import {
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
-	isTupleType,
 	shouldPushToPrecedingStatement,
 	typeConstraint,
 } from "../typeUtilities";
@@ -1077,21 +1076,6 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		}
 	} else if (!allMethods && allCallbacks) {
 		sep = ".";
-
-		// If it is an Enum, make it a method. We have to manually check because Enums are implemented via namespaces
-		let [firstParam] = params;
-		while (ts.TypeGuards.isPropertyAccessExpression(firstParam)) {
-			firstParam = firstParam.getExpression();
-		}
-
-		if (ts.TypeGuards.isIdentifier(firstParam)) {
-			for (const def of firstParam.getDefinitions()) {
-				const definition = def.getNode();
-				if (definition.getSourceFile().getBaseName() === "generated_enums.d.ts") {
-					sep = ":";
-				}
-			}
-		}
 	} else {
 		// mixed methods and callbacks
 		throw new CompilerError(
@@ -1099,6 +1083,10 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			node,
 			CompilerErrorType.MixedMethodCall,
 		);
+	}
+
+	if (shouldWrapExpression(params[0], false)) {
+		accessedPath = `(${accessedPath})`;
 	}
 
 	return `${accessedPath}${sep}${property}(${paramsStr})`;

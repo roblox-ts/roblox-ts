@@ -78,6 +78,7 @@ export enum CompilerErrorType {
 	TupleLength,
 	BadMethodCall,
 	BadFunctionExpressionMethodCall,
+	BadObjectPropertyType,
 }
 
 export class CompilerError extends Error {
