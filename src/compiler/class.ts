@@ -84,12 +84,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 		// Handle the special case where we have a roact class
 		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE) || baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			return compileRoactClassDeclaration(
-				state,
-				baseTypeText.slice(6) as "Component" | "PureComponent",
-				name,
-				node,
-			);
+			const type = baseTypeText.slice(6) as "Component" | "PureComponent";
+			return compileRoactClassDeclaration(state, type, name, node);
 		}
 
 		if (inheritsFromRoact(baseType)) {
@@ -103,18 +99,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	const extendExp = node.getExtends();
-	let baseClassName = "";
 	let hasSuper = false;
-	let results: Array<string>;
-
-	if (extendExp) {
-		hasSuper = true;
-		state.enterPrecedingStatementContext();
-		baseClassName = compileExpression(state, extendExp.getExpression());
-		results = state.exitPrecedingStatementContext();
-	} else {
-		results = [];
-	}
+	const results = new Array<string>();
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
@@ -130,8 +116,11 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(state.indent + `do\n`);
 	state.pushIndent();
 
-	if (hasSuper) {
-		results.push(state.indent + `local super = ${baseClassName};\n`);
+	if (extendExp) {
+		hasSuper = true;
+		state.enterPrecedingStatementContext(results);
+		results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+		state.exitPrecedingStatementContext();
 	}
 
 	let hasStaticMethods = false;
@@ -165,7 +154,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	state.popIndent();
 	results.push((hasStaticMethods ? state.indent : "") + "}" + (hasSuper ? ", { __index = super })" : "") + ";\n");
-
 	results.push(state.indent + `${name}.__index = ${hasSuper ? "setmetatable(" : ""}{`);
 	state.pushIndent();
 	let hasIndexMembers = false;
