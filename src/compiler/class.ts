@@ -79,8 +79,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	// Roact checks
-	const baseTypes = node.getBaseTypes();
-	for (const baseType of baseTypes) {
+	for (const baseType of node.getBaseTypes()) {
 		const baseTypeText = baseType.getText();
 
 		// Handle the special case where we have a roact class
@@ -118,50 +117,38 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
 	if (isExpression) {
-		if (nameNode) {
-			expAlias = state.getNewId();
-			result += state.indent + `local ${expAlias};\n`;
-			result += state.indent + `do\n`;
-		} else {
-			result += state.indent + `local ${name};\n`;
-			result += state.indent + `do\n`;
-		}
+		result += state.indent + `local ${nameNode ? (expAlias = state.getNewId()) : name};\n`;
 	} else {
 		if (nameNode && shouldHoist(node, nameNode)) {
 			state.pushHoistStack(name);
 		} else {
 			result += state.indent + `local ${name};\n`;
 		}
-		result += state.indent + `do\n`;
 	}
+	result += state.indent + `do\n`;
 	state.pushIndent();
 
 	if (hasSuper) {
 		result += state.indent + `local super = ${baseClassName};\n`;
 	}
 
-	let hasStaticMembers = false;
+	let hasStaticMethods = false;
 
-	let prefix = "";
-	if (isExpression) {
-		if (nameNode) {
-			prefix = `local `;
-		}
-	}
-
-	if (hasSuper) {
-		result += state.indent + prefix + `${name} = setmetatable({`;
-	} else {
-		result += state.indent + prefix + `${name} = {`;
-	}
+	result +=
+		state.indent +
+		(isExpression && nameNode ? "local " : "") +
+		name +
+		" = " +
+		(hasSuper ? "setmetatable(" : "") +
+		"{";
 
 	state.pushIndent();
 
 	node.getStaticMethods()
 		.filter(method => method.getBody() !== undefined)
 		.forEach(method => {
-			if (!hasStaticMembers) {
-				hasStaticMembers = true;
+			if (!hasStaticMethods) {
+				hasStaticMethods = true;
 				result += "\n";
 			}
 			if (method.getName() === "new") {
@@ -175,19 +162,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		});
 
 	state.popIndent();
-
-	if (hasSuper) {
-		result += `${hasStaticMembers ? state.indent : ""}}, { __index = super });\n`;
-	} else {
-		result += `${hasStaticMembers ? state.indent : ""}};\n`;
-	}
-
-	if (hasSuper) {
-		result += state.indent + `${name}.__index = setmetatable({`;
-	} else {
-		result += state.indent + `${name}.__index = {`;
-	}
-
+	result += (hasStaticMethods ? state.indent : "") + "}" + (hasSuper ? ", { __index = super })" : "") + ";\n";
+	result += state.indent + `${name}.__index = ${hasSuper ? "setmetatable(" : ""}{`;
 	state.pushIndent();
 	let hasIndexMembers = false;
 
