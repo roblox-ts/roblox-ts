@@ -117,6 +117,6 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 	if (id) {
 		return id;
 	} else {
-		return `{\n${lines.map(myLine => state.indent + joinIndentedLines([myLine], 1)).join("")}${state.indent}}`;
+		return "{\n" + lines.map(myLine => state.indent + joinIndentedLines([myLine], 1)).join("") + state.indent + "}";
 	}
 }
