@@ -432,7 +432,6 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const subExp = params[0];
 			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
-			const node = getLeftHandSideParent(subExp, 2);
 			const { length: numParams } = params;
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
@@ -453,46 +452,8 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				if (isStatement && numParams === 2) {
 					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
 				} else {
-					const returnVal = `#${accessPath}${numParams - 1 ? ` + ${numParams - 1}` : ""}`;
-					const finalLength = state.pushToDeclarationOrNewId(
-						node,
-						returnVal,
-						declaration => declaration.isIdentifier,
-					);
-
-					let lastStatement: string | undefined;
-
-					const commentStr = getLeftHandSideParent(subExp, 1).getText();
-
-					for (let i = 1; i < numParams; i++) {
-						const j = numParams - i - 1;
-
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + `; -- ${commentStr}\n`);
-						}
-
-						lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${compileExpression(
-							state,
-							params[i],
-						)}`;
-					}
-
-					if (isStatement) {
-						return (
-							lastStatement ||
-							state
-								.getCurrentPrecedingStatementContext(node)
-								// just returns finalLength from above
-								.pop()!
-								// removes ;\n from the back
-								.slice(0, -2)
-						);
-					} else {
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
-						}
-						return finalLength;
-					}
+					state.usesTSLibrary = true;
+					return `TS.array_push_stack(${accessPath}, ${compileList(state, params.slice(1)).join(", ")})`;
 				}
 			}
 		},
