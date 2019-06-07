@@ -59,4 +59,18 @@ export = () => {
 		const array4 = ["H", "i", "y", "a"];
 		expect([..."Hiya"].every((x, i) => x === array4[i])).to.equal(true);
 	});
+
+	it("should support string.find", () => {
+		const data = "Hello".find("H", 0, true);
+		if (data[0]) {
+			expect(data[0]).to.equal(0);
+			expect(data[1]).to.equal(0);
+		}
+
+		const data2 = "Hello".find("e", 1, true);
+		if (data2[0]) {
+			expect(data2[0]).to.equal(1);
+			expect(data2[1]).to.equal(1);
+		}
+	});
 };
