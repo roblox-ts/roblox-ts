@@ -53,19 +53,8 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
  */
-export function getWritableOperandName(state: CompilerState, operand: ts.Expression) {
-	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-		const child = operand.getNameNode();
-
-		if (!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child)) {
-			const id = state.pushPrecedingStatementToReuseableId(
-				operand,
-				compileExpression(state, operand.getExpression()),
-			);
-			const propertyStr = compileExpression(state, child);
-			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
-		}
-	} else if (ts.TypeGuards.isElementAccessExpression(operand)) {
+export function getWritableOperandName(state: CompilerState, operand: ts.Expression, doNotCompileAccess = false) {
+	if (ts.TypeGuards.isPropertyAccessExpression(operand) || ts.TypeGuards.isElementAccessExpression(operand)) {
 		const child = operand.getExpression();
 
 		if (
@@ -73,9 +62,14 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
 			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
-			const propertyStr = compileExpression(state, operand.getArgumentExpressionOrThrow());
-
-			return { expStr: `${id}[${propertyStr}]`, isIdentifier: false };
+			const propertyStr = doNotCompileAccess
+				? ""
+				: ts.TypeGuards.isPropertyAccessExpression(operand)
+				? "." + compileExpression(state, operand.getNameNode())
+				: "[" + compileExpression(state, operand.getArgumentExpressionOrThrow()) + "]";
+			return { expStr: id + propertyStr, isIdentifier: false };
+		} else if (doNotCompileAccess) {
+			return { expStr: compileExpression(state, child), isIdentifier: false };
 		}
 	}
 
@@ -222,35 +216,44 @@ export function compileElementAccessBracketExpression(state: CompilerState, node
 	return getComputedPropertyAccess(state, node.getArgumentExpressionOrThrow(), node.getExpression());
 }
 
-export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+export function compileElementAccessDataTypeExpression(
+	state: CompilerState,
+	node: ts.ElementAccessExpression,
+	expStr = "",
+) {
+	console.log("exp", expStr);
 	const expNode = node.getExpression();
 	const argExp = node.getArgumentExpressionOrThrow();
+	let shouldWrap = false;
 
 	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-		const expStr = compileCallExpression(state, expNode, true);
+		expStr = expStr || compileCallExpression(state, expNode, true);
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
+		if (expStr === "") {
+			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
+		}
 	} else {
 		checkNonAny(expNode);
 		checkNonAny(argExp);
-		let isArrayLiteral = false;
-		if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
-			isArrayLiteral = true;
-		} else if (ts.TypeGuards.isNewExpression(expNode)) {
+		shouldWrap =
+			ts.TypeGuards.isArrayLiteralExpression(expNode) || ts.TypeGuards.isObjectLiteralExpression(expNode);
+
+		if (!shouldWrap && ts.TypeGuards.isNewExpression(expNode)) {
 			const subExpNode = expNode.getExpression();
 			const subExpType = subExpNode.getType();
 			if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
-				isArrayLiteral = true;
+				shouldWrap = true;
 			}
 		}
-		const expStr = compileExpression(state, expNode);
 
-		if (isArrayLiteral) {
-			return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
-		} else {
-			return (argExpStr: string) => `${expStr}[${argExpStr}]`;
-		}
+		expStr = expStr || compileExpression(state, expNode);
+	}
+
+	if (shouldWrap && expStr === "") {
+		return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
+	} else {
+		return (argExpStr: string) => `${expStr}[${argExpStr}]`;
 	}
 }
 

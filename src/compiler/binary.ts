@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndVa
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	isArrayType,
 	isConstantExpression,
 	isNumberType,
 	isStringType,
@@ -223,9 +224,18 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 		const upperContext = state.getCurrentPrecedingStatementContext(node);
 		if (ts.TypeGuards.isElementAccessExpression(lhs)) {
-			const compileLhsStr = compileElementAccessDataTypeExpression(state, lhs);
+			const compileLhsStr = compileElementAccessDataTypeExpression(
+				state,
+				lhs,
+				getWritableOperandName(state, lhs, true).expStr,
+			);
 			let innerStr = compileElementAccessBracketExpression(state, lhs);
-			if (!isConstantExpression(lhs.getArgumentExpressionOrThrow(), 0)) {
+
+			if (
+				!isConstantExpression(lhs.getArgumentExpressionOrThrow(), 0) &&
+				// Always push array values, even when isPushed, because we need to increment by 1
+				(!upperContext.isPushed || isArrayType(lhs.getExpression().getType()))
+			) {
 				const previousInner = innerStr;
 				const previouslyPushed = upperContext.isPushed;
 				stashedInnerStr = () => {
@@ -238,6 +248,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			}
 
 			lhsStr = compileLhsStr(innerStr);
+			console.log(innerStr);
 		} else if (!isEqualsOperation) {
 			const newLhsStrData = getWritableOperandName(state, lhs);
 			lhsStr = newLhsStrData.expStr;

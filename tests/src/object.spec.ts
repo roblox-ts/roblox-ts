@@ -233,6 +233,7 @@ export = () => {
 			};
 			expect(object1[1]).to.equal(1);
 			expect(object1[2]).to.equal(1);
+			expect({ [0]: 1 }[0]).to.equal(1);
 		});
 
 		it("should support isEmpty", () => {
