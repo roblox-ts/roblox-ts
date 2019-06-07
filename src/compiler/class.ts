@@ -15,7 +15,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
-import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { bold, getNonNullUnParenthesizedExpressionDownwards, multifilter } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -38,7 +38,7 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
+const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
 
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
@@ -171,12 +171,22 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	let hasIndexMembers = false;
 
 	const extraInitializers = new Array<string>();
-	const instanceProps = node
-		.getInstanceProperties()
-		// @ts-ignore
-		.filter(prop => prop.getParent() === node)
-		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
-		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
+	const [instanceProps, getters, setters] = multifilter(
+		node
+			.getInstanceProperties()
+			// @ts-ignore
+			.filter(prop => prop.getParent() === node),
+		3,
+		element => {
+			if (ts.TypeGuards.isGetAccessorDeclaration(element)) {
+				return 1;
+			} else if (ts.TypeGuards.isSetAccessorDeclaration(element)) {
+				return 2;
+			} else {
+				return 0;
+			}
+		},
+	) as [Array<ts.ClassInstancePropertyTypes>, Array<ts.GetAccessorDeclaration>, Array<ts.SetAccessorDeclaration>];
 
 	for (const prop of instanceProps) {
 		const propNameNode = prop.getNameNode();
@@ -213,14 +223,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
 				const initializer = prop.getInitializer();
 				if (initializer) {
-					state.enterPrecedingStatementContext();
+					state.enterPrecedingStatementContext(extraInitializers);
 					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
 					state.declarationContext.set(fullInitializer, {
 						isIdentifier: false,
 						set: `self${propStr}`,
 					});
 					const expStr = compileExpression(state, initializer);
-					extraInitializers.push(...state.exitPrecedingStatementContext());
+					state.exitPrecedingStatementContext();
 					if (state.declarationContext.delete(fullInitializer)) {
 						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
 					}
@@ -229,22 +239,22 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		}
 	}
 
-	node.getInstanceMethods()
-		.filter(method => method.getBody() !== undefined)
-		.forEach(method => {
+	for (const method of node.getInstanceMethods()) {
+		if (method.getBody() !== undefined) {
 			if (!hasIndexMembers) {
 				hasIndexMembers = true;
 				results.push("\n");
 			}
 			results.push(compileMethodDeclaration(state, method));
-		});
+		}
+	}
 
 	state.popIndent();
 	results.push(`${hasIndexMembers ? state.indent : ""}}${hasSuper ? ", super)" : ""};\n`);
 
-	LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
-			if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
 				throw new CompilerError(
 					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
 					node,
@@ -256,14 +266,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`,
 			);
 		}
-	});
+	}
 
 	if (!node.isAbstract()) {
-		results.push(state.indent + `${name}.new = function(...)\n`);
-		state.pushIndent();
-		results.push(state.indent + `return ${name}.constructor(setmetatable({}, ${name}), ...);\n`);
-		state.popIndent();
-		results.push(state.indent + `end;\n`);
+		results.push(
+			state.indent + `${name}.new = function(...)\n`,
+			state.indent + `\treturn ${name}.constructor(setmetatable({}, ${name}), ...);\n`,
+			state.indent + `end;\n`,
+		);
 	}
 
 	results.push(compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper));
@@ -305,10 +315,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			results.push(state.indent, name, propStr, " = ", propValue, ";\n");
 		}
 	}
-
-	const getters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
 
 	let ancestorHasGetters = false;
 	let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
@@ -361,9 +367,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		results.push(state.indent + `end;\n`);
 	}
 
-	const setters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
 	let ancestorHasSetters = false;
 	ancestorClass = node;
 	while (!ancestorHasSetters && ancestorClass !== undefined) {
@@ -371,7 +374,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		if (ancestorClass !== undefined) {
 			const ancestorSetters = ancestorClass
 				.getInstanceProperties()
-				.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
+				.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
 			if (ancestorSetters.length > 0) {
 				ancestorHasSetters = true;
 			}

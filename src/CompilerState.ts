@@ -73,9 +73,8 @@ export class CompilerState {
 		return currentContext;
 	}
 
-	public enterPrecedingStatementContext() {
-		const newContext = new Array<string>() as PrecedingStatementContext;
-		newContext.isPushed = false;
+	public enterPrecedingStatementContext(newContext = new Array<string>()) {
+		(newContext as PrecedingStatementContext).isPushed = false;
 		this.precedingStatementContexts.push(newContext as PrecedingStatementContext);
 		return newContext;
 	}
