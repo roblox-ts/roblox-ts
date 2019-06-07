@@ -432,6 +432,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const subExp = params[0];
 			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			const node = getLeftHandSideParent(subExp, 2);
 			const { length: numParams } = params;
 
 			if (params.some(param => ts.TypeGuards.isSpreadElement(param))) {
@@ -449,11 +450,25 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
-				if (numParams === 2) {
-					const accessor = `#${accessPath} + 1`;
-					if (!isStatement) {
+
+				if (numParams <= 2) {
+					let accessor = `#${accessPath} + 1`;
+					if (isStatement) {
+						return params[1]
+							? `${accessPath}[${accessor}] = ${compileExpression(state, params[1])}`
+							: `local _ = ${accessor}`;
+					} else {
+						accessor = state.pushToDeclarationOrNewId(node, accessor);
+
+						if (params[1]) {
+							state.pushPrecedingStatements(
+								subExp,
+								state.indent + `${accessPath}[${accessor}] = ${compileExpression(state, params[1])};\n`,
+							);
+						}
+
+						return accessor;
 					}
-					return `${accessPath}[${accessor}] = ${compileExpression(state, params[1])}`;
 				} else {
 					state.usesTSLibrary = true;
 					return `TS.array_push_stack(${accessPath}, ${compileList(state, params.slice(1)).join(", ")})`;
