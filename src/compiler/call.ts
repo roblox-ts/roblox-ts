@@ -759,21 +759,23 @@ export function compileCallArgumentsAndJoin(state: CompilerState, args: Array<ts
 	return compileCallArguments(state, args, extraParameter).join(", ");
 }
 
+function checkNonImportExpression(exp: ts.LeftHandSideExpression) {
+	if (ts.TypeGuards.isImportExpression(exp)) {
+		throw new CompilerError(
+			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
+			exp,
+			CompilerErrorType.NoDynamicImport,
+		);
+	}
+	return exp;
+}
+
 export function compileCallExpression(
 	state: CompilerState,
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
-	const exp = node.getExpression();
-	if (exp.getKindName() === "ImportKeyword") {
-		throw new CompilerError(
-			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
-			node,
-			CompilerErrorType.NoDynamicImport,
-		);
-	}
-	checkNonAny(exp);
-
+	const exp = checkNonAny(checkNonImportExpression(node.getExpression()));
 	let result: string;
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
