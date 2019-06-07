@@ -397,7 +397,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 
 			state.pushPrecedingStatements(
 				subExp,
-				`${removingPlace} = ${lastPlace}; -- ${subExp.getText()}.unorderedRemove\n`,
+				state.indent + `${removingPlace} = ${lastPlace}; -- ${subExp.getText()}.unorderedRemove\n`,
 			);
 
 			const nullSet = state.indent + `${lastPlace} = nil`;
