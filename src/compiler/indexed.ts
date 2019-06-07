@@ -229,11 +229,10 @@ export function compileElementAccessDataTypeExpression(
 
 	if (expStr === "") {
 		if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-			expStr = expStr || compileCallExpression(state, expNode, true);
-
+			expStr = compileCallExpression(state, expNode, true);
 			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
 		} else {
-			expStr = expStr || compileExpression(state, expNode);
+			expStr = compileExpression(state, expNode);
 		}
 	}
 
