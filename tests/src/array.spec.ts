@@ -75,6 +75,8 @@ export = () => {
 		expect(arr[1]).to.equal(1);
 		expect(arr[2]).to.equal(2);
 		expect(arr[3]).to.equal(undefined);
+
+		expect([1, 2].push()).to.equal(2);
 	});
 
 	it("should support pop", () => {

@@ -449,8 +449,11 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
-				if (isStatement && numParams === 2) {
-					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
+				if (numParams === 2) {
+					const accessor = `#${accessPath} + 1`;
+					if (!isStatement) {
+					}
+					return `${accessPath}[${accessor}] = ${compileExpression(state, params[1])}`;
 				} else {
 					state.usesTSLibrary = true;
 					return `TS.array_push_stack(${accessPath}, ${compileList(state, params.slice(1)).join(", ")})`;
