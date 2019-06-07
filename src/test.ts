@@ -201,7 +201,7 @@ const errorMatrix: ErrorMatrix = {
 	"any/computedAccess2.spec.ts": {
 		message: "should not allow computed accessing type any #2",
 		instance: CompilerError,
-		type: CompilerErrorType.NoAny,
+		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"any/func.spec.ts": {
 		message: "should not allow functions that return type any",
