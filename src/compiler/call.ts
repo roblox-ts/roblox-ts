@@ -452,18 +452,20 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const accessPath = getReadableExpressionName(state, subExp);
 
 				if (numParams <= 2) {
-					let accessor = `#${accessPath} + 1`;
+					const firstParam = params[1];
+					let accessor = `#${accessPath}${firstParam ? " + 1" : ""}`;
 					if (isStatement) {
-						return params[1]
-							? `${accessPath}[${accessor}] = ${compileExpression(state, params[1])}`
+						return firstParam
+							? `${accessPath}[${accessor}] = ${compileExpression(state, firstParam)}`
 							: `local _ = ${accessor}`;
 					} else {
 						accessor = state.pushToDeclarationOrNewId(node, accessor);
 
-						if (params[1]) {
+						if (firstParam) {
 							state.pushPrecedingStatements(
 								subExp,
-								state.indent + `${accessPath}[${accessor}] = ${compileExpression(state, params[1])};\n`,
+								state.indent +
+									`${accessPath}[${accessor}] = ${compileExpression(state, firstParam)};\n`,
 							);
 						}
 
