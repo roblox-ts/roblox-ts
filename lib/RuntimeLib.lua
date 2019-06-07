@@ -380,7 +380,7 @@ TS.Object_toString = toString
 -- string macro functions
 function TS.string_find_wrap(a, b, ...)
 	if a then
-		return a + 1, b + 1, ...
+		return a - 1, b - 1, ...
 	end
 end
 
