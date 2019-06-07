@@ -248,7 +248,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			}
 
 			lhsStr = compileLhsStr(innerStr);
-			console.log(innerStr);
 		} else if (!isEqualsOperation) {
 			const newLhsStrData = getWritableOperandName(state, lhs);
 			lhsStr = newLhsStrData.expStr;

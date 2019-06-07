@@ -246,7 +246,7 @@ export function checkApiAccess(state: CompilerState, node: ts.Node) {
 	}
 }
 
-export function checkNonAny(node: ts.Node, checkArrayType = false) {
+export function checkNonAny<T extends ts.Node>(node: T, checkArrayType = false): T {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
 	let type = node.getType();
 	if (checkArrayType && type.isArray()) {
@@ -275,6 +275,7 @@ export function checkNonAny(node: ts.Node, checkArrayType = false) {
 			);
 		}
 	}
+	return node;
 }
 
 export function checkReturnsNonAny(node: HasParameters) {

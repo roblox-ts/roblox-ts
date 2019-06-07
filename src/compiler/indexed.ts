@@ -11,7 +11,6 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getCompilerDirectiveWithLaxConstraint,
-	inheritsFrom,
 	isArrayType,
 	isArrayTypeLax,
 	isMapType,
@@ -21,6 +20,7 @@ import {
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { shouldWrapExpression } from "./call";
 import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
@@ -103,7 +103,6 @@ export function getReadableExpressionName(
 
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
-	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
@@ -173,6 +172,11 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		}
 	}
 
+	let expStr = compileExpression(state, exp);
+
+	if (shouldWrapExpression(exp, false)) {
+		expStr = `(${expStr})`;
+	}
 	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
@@ -221,36 +225,19 @@ export function compileElementAccessDataTypeExpression(
 	node: ts.ElementAccessExpression,
 	expStr = "",
 ) {
-	console.log("exp", expStr);
-	const expNode = node.getExpression();
-	const argExp = node.getArgumentExpressionOrThrow();
-	let shouldWrap = false;
+	const expNode = checkNonAny(node.getExpression());
 
-	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-		expStr = expStr || compileCallExpression(state, expNode, true);
-		checkNonAny(expNode);
-		checkNonAny(argExp);
-		if (expStr === "") {
+	if (expStr === "") {
+		if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
+			expStr = expStr || compileCallExpression(state, expNode, true);
+
 			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
+		} else {
+			expStr = expStr || compileExpression(state, expNode);
 		}
-	} else {
-		checkNonAny(expNode);
-		checkNonAny(argExp);
-		shouldWrap =
-			ts.TypeGuards.isArrayLiteralExpression(expNode) || ts.TypeGuards.isObjectLiteralExpression(expNode);
-
-		if (!shouldWrap && ts.TypeGuards.isNewExpression(expNode)) {
-			const subExpNode = expNode.getExpression();
-			const subExpType = subExpNode.getType();
-			if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
-				shouldWrap = true;
-			}
-		}
-
-		expStr = expStr || compileExpression(state, expNode);
 	}
 
-	if (shouldWrap && expStr === "") {
+	if (shouldWrapExpression(expNode, false)) {
 		return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
 	} else {
 		return (argExpStr: string) => `${expStr}[${argExpStr}]`;
