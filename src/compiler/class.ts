@@ -105,51 +105,53 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extendExp = node.getExtends();
 	let baseClassName = "";
 	let hasSuper = false;
-	let result = "";
+	let results: Array<string>;
 
 	if (extendExp) {
 		hasSuper = true;
 		state.enterPrecedingStatementContext();
 		baseClassName = compileExpression(state, extendExp.getExpression());
-		result += state.exitPrecedingStatementContextAndJoin();
+		results = state.exitPrecedingStatementContext();
+	} else {
+		results = [];
 	}
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
 	if (isExpression) {
-		result += state.indent + `local ${nameNode ? (expAlias = state.getNewId()) : name};\n`;
+		results.push(state.indent + `local ${nameNode ? (expAlias = state.getNewId()) : name};\n`);
 	} else {
 		if (nameNode && shouldHoist(node, nameNode)) {
 			state.pushHoistStack(name);
 		} else {
-			result += state.indent + `local ${name};\n`;
+			results.push(state.indent + `local ${name};\n`);
 		}
 	}
-	result += state.indent + `do\n`;
+	results.push(state.indent + `do\n`);
 	state.pushIndent();
 
 	if (hasSuper) {
-		result += state.indent + `local super = ${baseClassName};\n`;
+		results.push(state.indent + `local super = ${baseClassName};\n`);
 	}
 
 	let hasStaticMethods = false;
 
-	result +=
+	results.push(
 		state.indent +
-		(isExpression && nameNode ? "local " : "") +
-		name +
-		" = " +
-		(hasSuper ? "setmetatable(" : "") +
-		"{";
+			(isExpression && nameNode ? "local " : "") +
+			name +
+			" = " +
+			(hasSuper ? "setmetatable(" : "") +
+			"{",
+	);
 
 	state.pushIndent();
-
 	node.getStaticMethods()
 		.filter(method => method.getBody() !== undefined)
 		.forEach(method => {
 			if (!hasStaticMethods) {
 				hasStaticMethods = true;
-				result += "\n";
+				results.push("\n");
 			}
 			if (method.getName() === "new") {
 				throw new CompilerError(
@@ -158,12 +160,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.StaticNew,
 				);
 			}
-			result += compileMethodDeclaration(state, method);
+			results.push(compileMethodDeclaration(state, method));
 		});
 
 	state.popIndent();
-	result += (hasStaticMethods ? state.indent : "") + "}" + (hasSuper ? ", { __index = super })" : "") + ";\n";
-	result += state.indent + `${name}.__index = ${hasSuper ? "setmetatable(" : ""}{`;
+	results.push((hasStaticMethods ? state.indent : "") + "}" + (hasSuper ? ", { __index = super })" : "") + ";\n");
+
+	results.push(state.indent + `${name}.__index = ${hasSuper ? "setmetatable(" : ""}{`);
 	state.pushIndent();
 	let hasIndexMembers = false;
 
@@ -231,18 +234,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		.forEach(method => {
 			if (!hasIndexMembers) {
 				hasIndexMembers = true;
-				result += "\n";
+				results.push("\n");
 			}
-			result += compileMethodDeclaration(state, method);
+			results.push(compileMethodDeclaration(state, method));
 		});
 
 	state.popIndent();
-
-	if (hasSuper) {
-		result += `${hasIndexMembers ? state.indent : ""}}, super);\n`;
-	} else {
-		result += `${hasIndexMembers ? state.indent : ""}};\n`;
-	}
+	results.push(`${hasIndexMembers ? state.indent : ""}}${hasSuper ? ", super)" : ""};\n`);
 
 	LUA_RESERVED_METAMETHODS.forEach(metamethod => {
 		if (getClassMethod(node, metamethod)) {
@@ -253,20 +251,22 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.UndefinableMetamethod,
 				);
 			}
-			result +=
-				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+
+			results.push(
+				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`,
+			);
 		}
 	});
 
 	if (!node.isAbstract()) {
-		result += state.indent + `${name}.new = function(...)\n`;
+		results.push(state.indent + `${name}.new = function(...)\n`);
 		state.pushIndent();
-		result += state.indent + `return ${name}.constructor(setmetatable({}, ${name}), ...);\n`;
+		results.push(state.indent + `return ${name}.constructor(setmetatable({}, ${name}), ...);\n`);
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 	}
 
-	result += compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper);
+	results.push(compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
 		const propNameNode = prop.getNameNode();
@@ -299,16 +299,17 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				if (initializer) {
 					state.enterPrecedingStatementContext();
 					propValue = compileExpression(state, initializer);
-					result += state.exitPrecedingStatementContextAndJoin();
+					results.push(state.exitPrecedingStatementContextAndJoin());
 				}
 			}
-			result += state.indent + `${name}${propStr} = ${propValue};\n`;
+			results.push(state.indent, name, propStr, " = ", propValue, ";\n");
 		}
 	}
 
 	const getters = node
 		.getInstanceProperties()
 		.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
+
 	let ancestorHasGetters = false;
 	let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
 	while (!ancestorHasGetters && ancestorClass !== undefined) {
@@ -333,30 +334,31 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			state.popIndent();
 			getterContent += state.indent;
 			if (ancestorHasGetters) {
-				result +=
+				results.push(
 					state.indent +
-					`${name}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`;
+						`${name}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`,
+				);
 			} else {
-				result += state.indent + `${name}._getters = {${getterContent}};\n`;
+				results.push(state.indent + `${name}._getters = {${getterContent}};\n`);
 			}
 		} else {
-			result += state.indent + `${name}._getters = super._getters;\n`;
+			results.push(state.indent + `${name}._getters = super._getters;\n`);
 		}
-		result += state.indent + `local __index = ${name}.__index;\n`;
-		result += state.indent + `${name}.__index = function(self, index)\n`;
+		results.push(state.indent + `local __index = ${name}.__index;\n`);
+		results.push(state.indent + `${name}.__index = function(self, index)\n`);
 		state.pushIndent();
-		result += state.indent + `local getter = ${name}._getters[index];\n`;
-		result += state.indent + `if getter then\n`;
+		results.push(state.indent + `local getter = ${name}._getters[index];\n`);
+		results.push(state.indent + `if getter then\n`);
 		state.pushIndent();
-		result += state.indent + `return getter(self);\n`;
+		results.push(state.indent + `return getter(self);\n`);
 		state.popIndent();
-		result += state.indent + `else\n`;
+		results.push(state.indent + `else\n`);
 		state.pushIndent();
-		result += state.indent + `return __index[index];\n`;
+		results.push(state.indent + `return __index[index];\n`);
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 	}
 
 	const setters = node
@@ -385,46 +387,47 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			state.popIndent();
 			setterContent += state.indent;
 			if (ancestorHasSetters) {
-				result +=
+				results.push(
 					state.indent +
-					`${name}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`;
+						`${name}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`,
+				);
 			} else {
-				result += state.indent + `${name}._setters = {${setterContent}};\n`;
+				results.push(state.indent + `${name}._setters = {${setterContent}};\n`);
 			}
 		} else {
-			result += state.indent + `${name}._setters = super._setters;\n`;
+			results.push(state.indent + `${name}._setters = super._setters;\n`);
 		}
-		result += state.indent + `${name}.__newindex = function(self, index, value)\n`;
+		results.push(state.indent + `${name}.__newindex = function(self, index, value)\n`);
 		state.pushIndent();
-		result += state.indent + `local setter = ${name}._setters[index];\n`;
-		result += state.indent + `if setter then\n`;
+		results.push(state.indent + `local setter = ${name}._setters[index];\n`);
+		results.push(state.indent + `if setter then\n`);
 		state.pushIndent();
-		result += state.indent + `setter(self, value);\n`;
+		results.push(state.indent + `setter(self, value);\n`);
 		state.popIndent();
-		result += state.indent + `else\n`;
+		results.push(state.indent + `else\n`);
 		state.pushIndent();
-		result += state.indent + `rawset(self, index, value);\n`;
+		results.push(state.indent + `rawset(self, index, value);\n`);
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 	}
 
 	if (isExpression) {
 		if (nameNode) {
-			result += state.indent + `${expAlias} = ${name};\n`;
+			results.push(state.indent + `${expAlias} = ${name};\n`);
 		}
 		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.pushPrecedingStatements(node, result);
+		results.push(state.indent + `end;\n`);
+		state.pushPrecedingStatements(node, ...results);
 		// Do not classify this as isPushed here.
 		return expAlias || name;
 	} else {
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 	}
 
-	return result;
+	return results.join("");
 }
 
 export function compileClassDeclaration(state: CompilerState, node: ts.ClassDeclaration) {
