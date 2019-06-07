@@ -82,31 +82,28 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 		state.exitPrecedingStatementContext();
 
 		if (hasContext) {
-			let fullLine: string;
-
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
 				state.usesTSLibrary = true;
-				fullLine = state.indent + `TS.Object_assign(${id}, ${line});\n`;
+				line = state.indent + `TS.Object_assign(${id}, ${line});\n`;
 			} else {
-				fullLine = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
+				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}
-			state.pushPrecedingStatements(node, ...context, fullLine);
+			state.pushPrecedingStatements(node, ...context, line);
 		} else if (context.length > 0 || ts.TypeGuards.isSpreadAssignment(prop)) {
 			id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
-			let fullLine: string;
 
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
 				state.usesTSLibrary = true;
-				fullLine = state.indent + `TS.Object_assign(${id}, ${line});\n`;
+				line = state.indent + `TS.Object_assign(${id}, ${line});\n`;
 			} else {
-				fullLine = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
+				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}
 
 			state.pushPrecedingStatements(
 				node,
 				...lines.map(current => state.indent + id + (current.startsWith("[") ? "" : ".") + current),
 				...context,
-				fullLine,
+				line,
 			);
 			hasContext = true;
 		} else {

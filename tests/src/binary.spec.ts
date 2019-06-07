@@ -54,11 +54,9 @@ export = () => {
 									this.b++;
 								},
 
-								// tslint:disable
-								// prettier-ignore
-								no: function () {
-							return this[5] *= 7
-						},
+								no: function() {
+									return (this[5] *= 7);
+								},
 
 								5: 3,
 							},
