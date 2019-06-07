@@ -84,10 +84,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		const baseTypeText = baseType.getText();
 
 		// Handle the special case where we have a roact class
-		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
-			return compileRoactClassDeclaration(state, "Component", name, node);
-		} else if (baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			return compileRoactClassDeclaration(state, "PureComponent", name, node);
+		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE) || baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+			return compileRoactClassDeclaration(
+				state,
+				baseTypeText.slice(6) as "Component" | "PureComponent",
+				name,
+				node,
+			);
 		}
 
 		if (inheritsFromRoact(baseType)) {
