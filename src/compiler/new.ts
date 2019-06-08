@@ -2,21 +2,27 @@ import * as ts from "ts-morph";
 import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionUpwards, suggest } from "../utility";
+import { inheritsFrom, isTupleType } from "../typeUtilities";
+import { getNonNullUnParenthesizedExpressionUpwards, joinIndentedLines, suggest } from "../utility";
 import { compileCallArguments } from "./call";
+import { getReadableExpressionName } from "./indexed";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
 		const [key, value] = compileCallArguments(state, element.getElements());
 		return `[${key}] = ${value};\n`;
-	} else {
-		throw new CompilerError(
-			"Bad arguments to Map constructor",
+	} else if (ts.TypeGuards.isCallExpression(element) && isTupleType(element.getReturnType())) {
+		const key = state.getNewId();
+		const value = state.getNewId();
+		state.pushPrecedingStatementToNewId(
 			element,
-			CompilerErrorType.BadBuiltinConstructorCall,
-			true,
+			compileExpression(state, element).slice(2, -2),
+			`${key}, ${value}`,
 		);
+		return `[${key}] = ${value};\n`;
+	} else {
+		const id = getReadableExpressionName(state, element, compileExpression(state, element));
+		return `[${id}[1]] = ${id}[2];\n`;
 	}
 }
 
@@ -25,12 +31,13 @@ function compileSetElement(state: CompilerState, element: ts.Expression) {
 	return `[${key}] = true;\n`;
 }
 
-const compileMapSetElement = new Map<"set" | "map", (state: CompilerState, element: ts.Expression) => string>([
-	["map", compileMapElement],
-	["set", compileSetElement],
+const compileMapSetElement = new Map<
+	"set" | "map",
+	{ addMethodName: string; compile: (state: CompilerState, element: ts.Expression) => string }
+>([
+	["map", { compile: compileMapElement, addMethodName: "set" }],
+	["set", { compile: compileSetElement, addMethodName: "add" }],
 ]);
-
-const addKeyMethodNames = new Map<"set" | "map", "add" | "set">([["map", "set"], ["set", "add"]]);
 
 function compileSetMapConstructorHelper(
 	state: CompilerState,
@@ -62,17 +69,18 @@ function compileSetMapConstructorHelper(
 		const lines = new Array<string>();
 		let hasContext = false;
 
-		const compileElement = compileMapSetElement.get(type)!;
+		const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
 
 		let exp: ts.Node = node;
 		let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
-		const addMethodName = addKeyMethodNames.get(type)!;
 
 		while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
 			const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
 			if (ts.TypeGuards.isCallExpression(grandparent)) {
 				exp = grandparent;
 				parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
+			} else {
+				break;
 			}
 		}
 
@@ -84,12 +92,13 @@ function compileSetMapConstructorHelper(
 					state.enterPrecedingStatementContext();
 					const line = compileElement(state, element);
 					const context = state.exitPrecedingStatementContext();
+
 					if (context.length > 0) {
 						hasContext = true;
 						id = state.pushToDeclarationOrNewId(exp, "{}", declaration => declaration.isIdentifier);
 						state.pushPrecedingStatements(
 							exp,
-							...lines.map(current => id + current),
+							...lines.map(current => state.indent + id + current),
 							...context,
 							state.indent + id + line,
 						);
@@ -105,7 +114,10 @@ function compileSetMapConstructorHelper(
 				exp,
 				lines.length === 0
 					? "{}"
-					: lines.reduce((result, line) => result + state.indent + "\t" + line, "{\n") + state.indent + "}",
+					: lines.reduce((result, line) => result + state.indent + joinIndentedLines([line], 1), "{\n") +
+							state.indent +
+							"}",
+
 				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
 			);
 		}

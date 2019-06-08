@@ -11,7 +11,6 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getCompilerDirectiveWithLaxConstraint,
-	inheritsFrom,
 	isArrayType,
 	isArrayTypeLax,
 	isMapType,
@@ -21,6 +20,7 @@ import {
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { shouldWrapExpression } from "./call";
 import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
@@ -53,20 +53,23 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
  */
-export function getWritableOperandName(state: CompilerState, operand: ts.Expression) {
-	if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-		const child = operand.getChildAtIndex(0);
+export function getWritableOperandName(state: CompilerState, operand: ts.Expression, doNotCompileAccess = false) {
+	if (ts.TypeGuards.isPropertyAccessExpression(operand) || ts.TypeGuards.isElementAccessExpression(operand)) {
+		const child = operand.getExpression();
 
 		if (
 			!ts.TypeGuards.isThisExpression(child) &&
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
-			const propertyStr = operand.getName();
-			const id = state.pushPrecedingStatementToReuseableId(
-				operand,
-				compileExpression(state, operand.getExpression()),
-			);
-			return { expStr: `${id}.${propertyStr}`, isIdentifier: false };
+			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
+			const propertyStr = doNotCompileAccess
+				? ""
+				: ts.TypeGuards.isPropertyAccessExpression(operand)
+				? "." + compileExpression(state, operand.getNameNode())
+				: "[" + compileExpression(state, operand.getArgumentExpressionOrThrow()) + "]";
+			return { expStr: id + propertyStr, isIdentifier: false };
+		} else if (doNotCompileAccess) {
+			return { expStr: compileExpression(state, child), isIdentifier: false };
 		}
 	}
 
@@ -87,6 +90,7 @@ export function getReadableExpressionName(
 	const nonNullExp = getNonNullExpressionDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
+		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
 		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
@@ -99,7 +103,6 @@ export function getReadableExpressionName(
 
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
 	const exp = node.getExpression();
-	const expStr = compileExpression(state, exp);
 	const propertyStr = node.getName();
 	const expType = exp.getType();
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
@@ -169,6 +172,11 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		}
 	}
 
+	let expStr = compileExpression(state, exp);
+
+	if (shouldWrapExpression(exp, false)) {
+		expStr = `(${expStr})`;
+	}
 	return expStr === "TS.Symbol" ? `${expStr}_${propertyStr}` : `${expStr}.${propertyStr}`;
 }
 
@@ -212,35 +220,26 @@ export function compileElementAccessBracketExpression(state: CompilerState, node
 	return getComputedPropertyAccess(state, node.getArgumentExpressionOrThrow(), node.getExpression());
 }
 
-export function compileElementAccessDataTypeExpression(state: CompilerState, node: ts.ElementAccessExpression) {
-	const expNode = node.getExpression();
-	const argExp = node.getArgumentExpressionOrThrow();
+export function compileElementAccessDataTypeExpression(
+	state: CompilerState,
+	node: ts.ElementAccessExpression,
+	expStr = "",
+) {
+	const expNode = checkNonAny(node.getExpression());
 
-	if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-		const expStr = compileCallExpression(state, expNode, true);
-		checkNonAny(expNode);
-		checkNonAny(argExp);
-		return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
-	} else {
-		checkNonAny(expNode);
-		checkNonAny(argExp);
-		let isArrayLiteral = false;
-		if (ts.TypeGuards.isArrayLiteralExpression(expNode)) {
-			isArrayLiteral = true;
-		} else if (ts.TypeGuards.isNewExpression(expNode)) {
-			const subExpNode = expNode.getExpression();
-			const subExpType = subExpNode.getType();
-			if (subExpType.isObject() && inheritsFrom(subExpType, "ArrayConstructor")) {
-				isArrayLiteral = true;
-			}
-		}
-		const expStr = compileExpression(state, expNode);
-
-		if (isArrayLiteral) {
-			return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
+	if (expStr === "") {
+		if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
+			expStr = compileCallExpression(state, expNode, true);
+			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
 		} else {
-			return (argExpStr: string) => `${expStr}[${argExpStr}]`;
+			expStr = compileExpression(state, expNode);
 		}
+	}
+
+	if (shouldWrapExpression(expNode, false)) {
+		return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
+	} else {
+		return (argExpStr: string) => `${expStr}[${argExpStr}]`;
 	}
 }
 
