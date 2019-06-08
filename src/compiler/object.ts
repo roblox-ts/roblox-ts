@@ -4,6 +4,15 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { joinIndentedLines } from "../utility";
 
+function assignMembers(state: CompilerState, from: string, target: string) {
+	state.pushIdStack();
+	const i = state.getNewId();
+	const v = state.getNewId();
+	const str = `for ${i}, ${v} in pairs(${from}) do ${target}[${i}] = ${v}; end;\n`;
+	state.popIdStack();
+	return str;
+}
+
 export function compileObjectLiteralExpression(state: CompilerState, node: ts.ObjectLiteralExpression) {
 	const properties = node.getProperties();
 
@@ -83,8 +92,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 
 		if (hasContext) {
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
-				state.usesTSLibrary = true;
-				line = state.indent + `TS.Object_assign(${id}, ${line});\n`;
+				line = assignMembers(state, line, id);
 			} else {
 				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}
@@ -93,8 +101,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
 
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
-				state.usesTSLibrary = true;
-				line = state.indent + `TS.Object_assign(${id}, ${line});\n`;
+				line = assignMembers(state, line, id);
 			} else {
 				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}
