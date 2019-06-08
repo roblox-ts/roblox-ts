@@ -238,7 +238,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	state.popIndent();
-	results.push(`${hasIndexMembers ? state.indent : ""}}${hasSuper ? ", super)" : ""};\n`);
+	results.push(hasIndexMembers ? state.indent : "", "}", hasSuper ? ", super)" : "", ";\n");
 
 	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
