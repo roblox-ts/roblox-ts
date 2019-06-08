@@ -671,6 +671,15 @@ end
 
 TS.array_push_apply = array_push_apply
 
+function TS.array_push_stack(list, ...)
+	local len = #list
+	local len2 = select("#", ...)
+	for i = 1, len2 do
+		list[len + i] = select(i, ...)
+	end
+	return len + len2
+end
+
 function TS.array_concat(...)
 	local result = {}
 	array_push_apply(result, ...)

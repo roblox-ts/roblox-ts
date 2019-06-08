@@ -450,49 +450,30 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
-				if (isStatement && numParams === 2) {
-					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
-				} else {
-					const returnVal = `#${accessPath}${numParams - 1 ? ` + ${numParams - 1}` : ""}`;
-					const finalLength = state.pushToDeclarationOrNewId(
-						node,
-						returnVal,
-						declaration => declaration.isIdentifier,
-					);
 
-					let lastStatement: string | undefined;
-
-					const commentStr = getLeftHandSideParent(subExp, 1).getText();
-
-					for (let i = 1; i < numParams; i++) {
-						const j = numParams - i - 1;
-
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + `; -- ${commentStr}\n`);
-						}
-
-						lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${compileExpression(
-							state,
-							params[i],
-						)}`;
-					}
-
+				if (numParams <= 2) {
+					const firstParam = params[1];
+					let accessor = `#${accessPath}${firstParam ? " + 1" : ""}`;
 					if (isStatement) {
-						return (
-							lastStatement ||
-							state
-								.getCurrentPrecedingStatementContext(node)
-								// just returns finalLength from above
-								.pop()!
-								// removes ;\n from the back
-								.slice(0, -2)
-						);
+						return firstParam
+							? `${accessPath}[${accessor}] = ${compileExpression(state, firstParam)}`
+							: `local _ = ${accessor}`;
 					} else {
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+						accessor = state.pushToDeclarationOrNewId(node, accessor);
+
+						if (firstParam) {
+							state.pushPrecedingStatements(
+								subExp,
+								state.indent +
+									`${accessPath}[${accessor}] = ${compileExpression(state, firstParam)};\n`,
+							);
 						}
-						return finalLength;
+
+						return accessor;
 					}
+				} else {
+					state.usesTSLibrary = true;
+					return `TS.array_push_stack(${accessPath}, ${compileList(state, params.slice(1)).join(", ")})`;
 				}
 			}
 		},
