@@ -22,19 +22,25 @@ export = () => {
 
 			let i = 0;
 
-			new Set([1, 2, i++]);
-			new Set([1, 2, i++]).add(4);
-			new Set([1, 2, i++]).add(4).add(5);
+			new Set([1, 2, () => i++]);
+			new Set([1, 2, () => i++]).add(4);
+			new Set([1, 2, () => i++]).add(4).add(5);
 
-			const a = new Set([1, 2, i++]);
-			const b = new Set([1, 2, i++]).add(4);
-			const c = new Set([1, 2, i++]).add(4).add(5);
+			const a = new Set([1, 2, () => i++]);
+			const b = new Set([1, 2, () => i++]).add(4);
+			const c = new Set([1, 2, () => i++]).add(4).add(5);
 
-			const d = () => new Set([1, 2, i++]);
-			const e = () => new Set([1, 2, i++]).add(4);
-			const f = () => new Set([1, 2, i++]).add(4).add(5);
+			const d = () => new Set([1, 2, () => i++]);
+			const e = () => new Set([1, 2, () => i++]).add(4);
+			const f = () => new Set([1, 2, () => i++]).add(4).add(5);
 
 			expect(i).to.equal(6);
+			d();
+			expect(i).to.equal(7);
+			e();
+			expect(i).to.equal(8);
+			f();
+			expect(i).to.equal(9);
 		}
 
 		{
@@ -52,19 +58,25 @@ export = () => {
 
 			let i = 0;
 
-			new Set([...[1, 2, i++]]);
-			new Set([...[1, 2, i++]]).add(4);
-			new Set([...[1, 2, i++]]).add(4).add(5);
+			new Set([...[1, 2, () => i++]]);
+			new Set([...[1, 2, () => i++]]).add(4);
+			new Set([...[1, 2, () => i++]]).add(4).add(5);
 
-			const a = new Set([...[1, 2, i++]]);
-			const b = new Set([...[1, 2, i++]]).add(4);
-			const c = new Set([...[1, 2, i++]]).add(4).add(5);
+			const a = new Set([...[1, 2, () => i++]]);
+			const b = new Set([...[1, 2, () => i++]]).add(4);
+			const c = new Set([...[1, 2, () => i++]]).add(4).add(5);
 
-			const d = () => new Set([...[1, 2, i++]]);
-			const e = () => new Set([...[1, 2, i++]]).add(4);
-			const f = () => new Set([...[1, 2, i++]]).add(4).add(5);
+			const d = () => new Set([...[1, 2, () => i++]]);
+			const e = () => new Set([...[1, 2, () => i++]]).add(4);
+			const f = () => new Set([...[1, 2, () => i++]]).add(4).add(5);
 
 			expect(i).to.equal(6);
+			d();
+			expect(i).to.equal(7);
+			e();
+			expect(i).to.equal(8);
+			f();
+			expect(i).to.equal(9);
 		}
 	});
 
