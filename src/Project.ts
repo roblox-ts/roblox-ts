@@ -12,7 +12,7 @@ import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
-const MINIMUM_RBX_TYPES_VERSION = 198;
+const MINIMUM_RBX_TYPES_VERSION = 203;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;

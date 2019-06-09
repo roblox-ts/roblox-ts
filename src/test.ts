@@ -201,7 +201,7 @@ const errorMatrix: ErrorMatrix = {
 	"any/computedAccess2.spec.ts": {
 		message: "should not allow computed accessing type any #2",
 		instance: CompilerError,
-		type: CompilerErrorType.NoAny,
+		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"any/func.spec.ts": {
 		message: "should not allow functions that return type any",
@@ -297,6 +297,11 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow indexing the length property of tuples",
 		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
+	},
+	"funcExpMethodCall.spec.ts": {
+		message: "should not allow calling from function method expressions",
+		instance: CompilerError,
+		type: CompilerErrorType.BadFunctionExpressionMethodCall,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

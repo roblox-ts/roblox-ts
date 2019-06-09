@@ -12,6 +12,20 @@ interface DeclarationContext {
 	set: string;
 }
 
+function canBePushedToReusableId(node: ts.Node): boolean {
+	if (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isIdentifier(node)) {
+		return true;
+	} else if (ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) {
+		return canBePushedToReusableId(node.getOperand());
+	} else if (ts.TypeGuards.isPropertyAccessExpression(node)) {
+		return canBePushedToReusableId(node.getNameNode());
+	} else if (ts.TypeGuards.isElementAccessExpression(node)) {
+		return canBePushedToReusableId(node.getArgumentExpressionOrThrow());
+	} else {
+		return false;
+	}
+}
+
 export class CompilerState {
 	constructor(
 		public readonly rootDirPath: string,
@@ -107,16 +121,7 @@ export class CompilerState {
 	}
 
 	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
-		if (
-			compiledSource === "" ||
-			[node, ...node.getDescendants()].some(
-				exp =>
-					!ts.TypeGuards.isIdentifier(exp) &&
-					!ts.TypeGuards.isBinaryExpression(exp) &&
-					!ts.TypeGuards.isUnaryExpression(exp) &&
-					!ts.TypeGuards.isPropertyAccessExpression(exp),
-			)
-		) {
+		if (compiledSource === "" || !canBePushedToReusableId(node)) {
 			return this.pushPrecedingStatementToNewId(node, compiledSource);
 		}
 
