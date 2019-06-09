@@ -44,7 +44,11 @@ function compileSetMapConstructorHelper(
 	node: ts.NewExpression,
 	args: Array<ts.Expression>,
 	type: "set" | "map",
+	mode: "" | "k" | "v" | "kv" = "",
 ) {
+	const preDeclaration = mode ? "setmetatable(" : "";
+	const postDeclaration = mode ? `, { __mode = ${mode} })` : "";
+
 	const typeArgument = node.getType().getTypeArguments()[0];
 
 	if (typeArgument.isNullable() || typeArgument.isUndefined()) {
@@ -63,7 +67,7 @@ function compileSetMapConstructorHelper(
 			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
 	) {
 		state.usesTSLibrary = true;
-		return `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})`;
+		return preDeclaration + `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})` + postDeclaration;
 	} else {
 		let id = "";
 		const lines = new Array<string>();
@@ -95,7 +99,11 @@ function compileSetMapConstructorHelper(
 
 					if (context.length > 0) {
 						hasContext = true;
-						id = state.pushToDeclarationOrNewId(exp, "{}", declaration => declaration.isIdentifier);
+						id = state.pushToDeclarationOrNewId(
+							exp,
+							preDeclaration + "{}" + postDeclaration,
+							declaration => declaration.isIdentifier,
+						);
 						state.pushPrecedingStatements(
 							exp,
 							...lines.map(current => state.indent + id + current),
@@ -113,10 +121,15 @@ function compileSetMapConstructorHelper(
 			id = state.pushToDeclarationOrNewId(
 				exp,
 				lines.length === 0
-					? "{}"
-					: lines.reduce((result, line) => result + state.indent + joinIndentedLines([line], 1), "{\n") +
+					? preDeclaration + "{}" + postDeclaration
+					: preDeclaration +
+							lines.reduce(
+								(result, line) => result + state.indent + joinIndentedLines([line], 1),
+								"{\n",
+							) +
 							state.indent +
-							"}",
+							"}" +
+							postDeclaration,
 
 				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
 			);
@@ -200,11 +213,19 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	}
 
 	if (inheritsFrom(expressionType, "WeakMapConstructor")) {
-		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "map")}, { __mode = "k" })`;
+		return appendDeclarationIfMissing(
+			state,
+			node.getParent(),
+			compileSetMapConstructorHelper(state, node, args, "map", "k"),
+		);
 	}
 
 	if (inheritsFrom(expressionType, "WeakSetConstructor")) {
-		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "set")}, { __mode = "k" })`;
+		return appendDeclarationIfMissing(
+			state,
+			node.getParent(),
+			compileSetMapConstructorHelper(state, node, args, "set", "k"),
+		);
 	}
 
 	return `${name}.new(${compileCallArgumentsAndJoin(state, args)})`;
