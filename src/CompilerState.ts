@@ -6,7 +6,7 @@ import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptCo
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
-interface DeclarationContext {
+export interface DeclarationContext {
 	isIdentifier: boolean;
 	needsLocalizing?: boolean;
 	set: string;
