@@ -8,7 +8,7 @@ function assignMembers(state: CompilerState, from: string, target: string) {
 	state.pushIdStack();
 	const i = state.getNewId();
 	const v = state.getNewId();
-	const str = `for ${i}, ${v} in pairs(${from}) do ${target}[${i}] = ${v}; end;\n`;
+	const str = state.indent + `for ${i}, ${v} in pairs(${from}) do ${target}[${i}] = ${v}; end;\n`;
 	state.popIdStack();
 	return str;
 }

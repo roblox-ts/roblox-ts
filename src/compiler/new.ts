@@ -47,7 +47,7 @@ function compileSetMapConstructorHelper(
 	mode: "" | "k" | "v" | "kv" = "",
 ) {
 	const preDeclaration = mode ? "setmetatable(" : "";
-	const postDeclaration = mode ? `, { __mode = ${mode} })` : "";
+	const postDeclaration = mode ? `, { __mode = "${mode}" })` : "";
 
 	const typeArgument = node.getType().getTypeArguments()[0];
 
