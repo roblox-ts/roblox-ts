@@ -90,7 +90,6 @@ function compileSetMapConstructorHelper(
 			preDeclaration + `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})` + postDeclaration,
 			pushCondition,
 		);
-		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	} else {
 		let id = "";
@@ -144,7 +143,6 @@ function compileSetMapConstructorHelper(
 			);
 		}
 
-		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	}
 }

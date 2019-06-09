@@ -48,13 +48,17 @@ export class CompilerState {
 		if (declaration && condition(declaration)) {
 			this.declarationContext.delete(node);
 			({ set: id } = declaration);
-			this.pushPrecedingStatements(
-				node,
+
+			const context = this.getCurrentPrecedingStatementContext(node);
+
+			context.push(
 				this.indent +
 					`${declaration.needsLocalizing ? "local " : ""}${id}${
 						expStr ? ` ${isReturn ? "" : "= "}${expStr}` : ""
 					};\n`,
 			);
+
+			context.isPushed = declaration.isIdentifier;
 		} else {
 			id = this.pushPrecedingStatementToReuseableId(node, expStr);
 		}
@@ -149,6 +153,8 @@ export class CompilerState {
 					}
 					const [, indentation, currentId, data] = matchesRegex;
 					if (indentation === this.indent && data === compiledSource) {
+						const currentContext = this.getCurrentPrecedingStatementContext(node);
+						currentContext.isPushed = true;
 						return currentId;
 					}
 				}
