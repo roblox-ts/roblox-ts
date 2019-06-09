@@ -153,8 +153,7 @@ export class CompilerState {
 					}
 					const [, indentation, currentId, data] = matchesRegex;
 					if (indentation === this.indent && data === compiledSource) {
-						const currentContext = this.getCurrentPrecedingStatementContext(node);
-						currentContext.isPushed = true;
+						this.getCurrentPrecedingStatementContext(node).isPushed = true;
 						return currentId;
 					}
 				}
