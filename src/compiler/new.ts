@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { inheritsFrom, isTupleType } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionUpwards, joinIndentedLines, suggest } from "../utility";
@@ -61,32 +61,40 @@ function compileSetMapConstructorHelper(
 
 	const firstParam = args[0];
 
+	let exp: ts.Node = node;
+	let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
+	const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
+
+	while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
+		const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
+		if (ts.TypeGuards.isCallExpression(grandparent)) {
+			exp = grandparent;
+			parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
+		} else {
+			break;
+		}
+	}
+
+	const pushCondition = ts.TypeGuards.isNewExpression(exp)
+		? () => true
+		: (declaration: DeclarationContext) => declaration.isIdentifier;
+
 	if (
 		firstParam &&
 		(!ts.TypeGuards.isArrayLiteralExpression(firstParam) ||
 			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
 	) {
 		state.usesTSLibrary = true;
-		return preDeclaration + `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})` + postDeclaration;
+		const id = state.pushToDeclarationOrNewId(
+			exp,
+			preDeclaration + `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})` + postDeclaration,
+			pushCondition,
+		);
+		return id;
 	} else {
 		let id = "";
 		const lines = new Array<string>();
 		let hasContext = false;
-
-		const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
-
-		let exp: ts.Node = node;
-		let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
-
-		while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
-			const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
-			if (ts.TypeGuards.isCallExpression(grandparent)) {
-				exp = grandparent;
-				parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
-			} else {
-				break;
-			}
-		}
 
 		if (firstParam) {
 			for (const element of firstParam.getElements()) {
@@ -131,11 +139,10 @@ function compileSetMapConstructorHelper(
 							"}" +
 							postDeclaration,
 
-				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
+				pushCondition,
 			);
 		}
 
-		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	}
 }

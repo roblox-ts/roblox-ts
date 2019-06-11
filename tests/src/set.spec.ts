@@ -6,6 +6,78 @@ export = () => {
 		expect(set.has("foo")).to.equal(true);
 		expect(set.has("bar")).to.equal(true);
 		expect(set.has("baz")).to.equal(true);
+
+		{
+			new Set([1, 2, 3]);
+			new Set([1, 2, 3]).add(4);
+			new Set([1, 2, 3]).add(4).add(5);
+
+			const u = new Set([1, 2, 3]);
+			const v = new Set([1, 2, 3]).add(4);
+			const w = new Set([1, 2, 3]).add(4).add(5);
+
+			const x = () => new Set([1, 2, 3]);
+			const y = () => new Set([1, 2, 3]).add(4);
+			const z = () => new Set([1, 2, 3]).add(4).add(5);
+
+			let i = 0;
+
+			new Set([1, 2, (() => i++)()]);
+			new Set([1, 2, (() => i++)()]).add(4);
+			new Set([1, 2, (() => i++)()]).add(4).add(5);
+
+			const a = new Set([1, 2, (() => i++)()]);
+			const b = new Set([1, 2, (() => i++)()]).add(4);
+			const c = new Set([1, 2, (() => i++)()]).add(4).add(5);
+
+			const d = () => new Set([1, 2, (() => i++)()]);
+			const e = () => new Set([1, 2, (() => i++)()]).add(4);
+			const f = () => new Set([1, 2, (() => i++)()]).add(4).add(5);
+
+			expect(i).to.equal(6);
+			d();
+			expect(i).to.equal(7);
+			e();
+			expect(i).to.equal(8);
+			f();
+			expect(i).to.equal(9);
+		}
+
+		{
+			new Set([...[1, 2, 3]]);
+			new Set([...[1, 2, 3]]).add(4);
+			new Set([...[1, 2, 3]]).add(4).add(5);
+
+			const u = new Set([...[1, 2, 3]]);
+			const v = new Set([...[1, 2, 3]]).add(4);
+			const w = new Set([...[1, 2, 3]]).add(4).add(5);
+
+			const x = () => new Set([...[1, 2, 3]]);
+			const y = () => new Set([...[1, 2, 3]]).add(4);
+			const z = () => new Set([...[1, 2, 3]]).add(4).add(5);
+
+			let i = 0;
+
+			new Set([...[1, 2, (() => i++)()]]);
+			new Set([...[1, 2, (() => i++)()]]).add(4);
+			new Set([...[1, 2, (() => i++)()]]).add(4).add(5);
+
+			const a = new Set([...[1, 2, (() => i++)()]]);
+			const b = new Set([...[1, 2, (() => i++)()]]).add(4);
+			const c = new Set([...[1, 2, (() => i++)()]]).add(4).add(5);
+
+			const d = () => new Set([...[1, 2, (() => i++)()]]);
+			const e = () => new Set([...[1, 2, (() => i++)()]]).add(4);
+			const f = () => new Set([...[1, 2, (() => i++)()]]).add(4).add(5);
+
+			expect(i).to.equal(6);
+			d();
+			expect(i).to.equal(7);
+			e();
+			expect(i).to.equal(8);
+			f();
+			expect(i).to.equal(9);
+		}
 	});
 
 	it("should support weak sets", () => {
