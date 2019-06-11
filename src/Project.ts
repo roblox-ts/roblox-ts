@@ -196,9 +196,7 @@ export class Project {
 			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
 			if (!runtimeLibPath) {
 				throw new ProjectError(
-					`A Rojo project file was found ( ${
-						this.rojoFilePath
-					} ), but contained no data for the include folder!`,
+					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
