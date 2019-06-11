@@ -192,12 +192,13 @@ export class Project {
 			}
 		}
 
-		if (this.rojoProject) {
+		if (this.rojoFilePath && this.rojoProject) {
 			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
 			if (!runtimeLibPath) {
 				throw new ProjectError(
-					`A Rojo project file was found ( ${this
-						.rojoFilePath!} ), but contained no data for the include folder!`,
+					`A Rojo project file was found ( ${
+						this.rojoFilePath
+					} ), but contained no data for the include folder!`,
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
@@ -297,6 +298,7 @@ export class Project {
 					target: ts.ts.ScriptTarget.ES2015,
 					typeRoots: ["node_modules/@rbxts"],
 				},
+				useVirtualFileSystem: true,
 			});
 		}
 	}
