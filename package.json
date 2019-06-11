@@ -8,7 +8,7 @@
 		"url": "https://github.com/roblox-ts/roblox-ts.git"
 	},
 	"bin": {
-		"rbxtsc": "out/index.js"
+		"rbxtsc": "out/cli.js"
 	},
 	"scripts": {
 		"tslint": "npx tslint -p tsconfig.json",

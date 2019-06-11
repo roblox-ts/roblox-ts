@@ -108,6 +108,15 @@ export enum ProjectType {
 	Package,
 }
 
+interface ProjectOptions {
+	project?: string;
+	includePath?: string;
+	rojo?: string;
+	noInclude?: boolean;
+	minify?: boolean;
+	ci?: boolean;
+}
+
 export class Project {
 	public configFilePath: string;
 	public rojoFilePath: string | undefined;
@@ -127,6 +136,7 @@ export class Project {
 	private readonly outDirPath: string;
 	private readonly modulesDir?: ts.Directory;
 	private readonly rojoOverridePath: string | undefined;
+	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
 
@@ -206,56 +216,89 @@ export class Project {
 		}
 	}
 
-	constructor(argv: { [argName: string]: any }) {
-		this.configFilePath = path.resolve(argv.project as string);
-		this.reloadProject();
+	constructor(opts: ProjectOptions = {}) {
+		// cli mode
+		if (opts.project !== undefined && opts.includePath !== undefined && opts.rojo !== undefined) {
+			this.configFilePath = path.resolve(opts.project);
+			this.reloadProject();
 
-		this.noInclude = argv.noInclude === true;
-		this.includePath = joinIfNotAbsolute(this.projectPath, argv.includePath);
-		this.minify = argv.minify;
-		this.luaSourceTransformer = this.minify ? minify : undefined;
-		this.modulesPath = path.join(this.includePath, "node_modules");
-		this.rojoOverridePath = argv.rojo !== "" ? joinIfNotAbsolute(this.projectPath, argv.rojo) : undefined;
+			this.noInclude = opts.noInclude === true;
+			this.includePath = joinIfNotAbsolute(this.projectPath, opts.includePath);
+			this.minify = opts.minify === true;
+			this.luaSourceTransformer = this.minify ? minify : undefined;
+			this.modulesPath = path.join(this.includePath, "node_modules");
+			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
-		this.ci = argv.ci;
+			this.ci = opts.ci === true;
 
-		try {
-			this.validateRbxTypes();
-		} catch (e) {
-			if (e instanceof ProjectError) {
-				console.log(red("Compiler Error:"), e.message);
-				process.exit(1);
-			} else {
-				throw e;
-			}
-		}
-
-		const rootDirPath = this.compilerOptions.rootDir;
-		if (!rootDirPath) {
-			throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
-		}
-		this.rootDirPath = rootDirPath;
-
-		const outDirPath = this.compilerOptions.outDir;
-		if (!outDirPath) {
-			throw new ProjectError("Expected 'outDir' option in tsconfig.json!", ProjectErrorType.MissingOutDir);
-		}
-		this.outDirPath = outDirPath;
-
-		// filter out outDir .d.ts files
-		const outDir = this.project.getDirectory(outDirPath);
-		if (outDir) {
-			this.project.getSourceFiles().forEach(sourceFile => {
-				if (outDir.isAncestorOf(sourceFile)) {
-					this.project.removeSourceFile(sourceFile);
+			try {
+				this.validateRbxTypes();
+			} catch (e) {
+				if (e instanceof ProjectError) {
+					console.log(red("Compiler Error:"), e.message);
+					process.exit(1);
+				} else {
+					throw e;
 				}
+			}
+
+			const rootDirPath = this.compilerOptions.rootDir;
+			if (!rootDirPath) {
+				throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
+			}
+			this.rootDirPath = rootDirPath;
+
+			const outDirPath = this.compilerOptions.outDir;
+			if (!outDirPath) {
+				throw new ProjectError("Expected 'outDir' option in tsconfig.json!", ProjectErrorType.MissingOutDir);
+			}
+			this.outDirPath = outDirPath;
+
+			// filter out outDir .d.ts files
+			const outDir = this.project.getDirectory(outDirPath);
+			if (outDir) {
+				this.project.getSourceFiles().forEach(sourceFile => {
+					if (outDir.isAncestorOf(sourceFile)) {
+						this.project.removeSourceFile(sourceFile);
+					}
+				});
+			}
+
+			this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
+
+			this.rojoFilePath = this.getRojoFilePath();
+			this.reloadRojo();
+		} else {
+			this.configFilePath = "";
+			this.includePath = "";
+			this.noInclude = true;
+			this.minify = false;
+			this.modulesPath = "";
+			this.rootDirPath = "";
+			this.outDirPath = "";
+			this.ci = false;
+
+			this.runtimeOverride = "local TS = ...; -- link to runtime library";
+
+			this.project = new ts.Project({
+				compilerOptions: {
+					allowSyntheticDefaultImports: true,
+					baseUrl: "src",
+					declaration: false,
+					downlevelIteration: true,
+					isolatedModules: true,
+					jsx: ts.ts.JsxEmit.React,
+					jsxFactory: "Roact.createElement",
+					module: ts.ts.ModuleKind.CommonJS,
+					noLib: true,
+					outDir: "out",
+					rootDir: "src",
+					strict: true,
+					target: ts.ts.ScriptTarget.ES2015,
+					typeRoots: ["node_modules/@rbxts"],
+				},
 			});
 		}
-
-		this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
-
-		this.rojoFilePath = this.getRojoFilePath();
-		this.reloadRojo();
 	}
 
 	private validateCompilerOptions() {
@@ -556,6 +599,25 @@ export class Project {
 		}
 	}
 
+	public async compileSource(source: string) {
+		const existing = this.project.getSourceFile("playground.ts");
+		if (existing) {
+			this.project.removeSourceFile(existing);
+		}
+		const sourceFile = this.project.createSourceFile("playground.ts", source);
+		return compileSourceFile(
+			new CompilerState(
+				this.rootDirPath,
+				this.outDirPath,
+				this.projectInfo,
+				this.rojoProject,
+				this.modulesDir,
+				this.runtimeOverride,
+			),
+			sourceFile,
+		);
+	}
+
 	private async getEmittedDtsFiles() {
 		return new Promise<Array<string>>(resolve => {
 			const result = new Array<string>();
@@ -646,6 +708,7 @@ export class Project {
 							this.projectInfo,
 							this.rojoProject,
 							this.modulesDir,
+							this.runtimeOverride,
 						),
 						sourceFile,
 					);

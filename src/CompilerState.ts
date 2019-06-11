@@ -33,6 +33,7 @@ export class CompilerState {
 		public readonly projectInfo: ProjectInfo,
 		public readonly rojoProject?: RojoProject,
 		public readonly modulesDir?: ts.Directory,
+		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
