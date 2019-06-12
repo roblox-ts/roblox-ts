@@ -599,19 +599,20 @@ export class Project {
 		}
 	}
 
+	private createCompilerState() {
+		return new CompilerState(
+			this.rootDirPath,
+			this.outDirPath,
+			this.projectInfo,
+			this.rojoProject,
+			this.modulesDir,
+			this.runtimeOverride,
+		);
+	}
+
 	public async compileSource(source: string) {
 		const sourceFile = this.project.createSourceFile("playground.ts", source);
-		const compiledSource = compileSourceFile(
-			new CompilerState(
-				this.rootDirPath,
-				this.outDirPath,
-				this.projectInfo,
-				this.rojoProject,
-				this.modulesDir,
-				this.runtimeOverride,
-			),
-			sourceFile,
-		);
+		const compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
 		this.project.removeSourceFile(sourceFile);
 		return compiledSource;
 	}
@@ -699,17 +700,7 @@ export class Project {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
 					const outPath = transformPathToLua(this.rootDirPath, this.outDirPath, filePath);
-					let source = compileSourceFile(
-						new CompilerState(
-							this.rootDirPath,
-							this.outDirPath,
-							this.projectInfo,
-							this.rojoProject,
-							this.modulesDir,
-							this.runtimeOverride,
-						),
-						sourceFile,
-					);
+					let source = compileSourceFile(this.createCompilerState(), sourceFile);
 
 					if (this.luaSourceTransformer) {
 						source = this.luaSourceTransformer(source);
