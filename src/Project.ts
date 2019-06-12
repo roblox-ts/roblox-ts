@@ -600,12 +600,8 @@ export class Project {
 	}
 
 	public async compileSource(source: string) {
-		const existing = this.project.getSourceFile("playground.ts");
-		if (existing) {
-			this.project.removeSourceFile(existing);
-		}
 		const sourceFile = this.project.createSourceFile("playground.ts", source);
-		return compileSourceFile(
+		const compiledSource = compileSourceFile(
 			new CompilerState(
 				this.rootDirPath,
 				this.outDirPath,
@@ -616,6 +612,8 @@ export class Project {
 			),
 			sourceFile,
 		);
+		this.project.removeSourceFile(sourceFile);
+		return compiledSource;
 	}
 
 	private async getEmittedDtsFiles() {
