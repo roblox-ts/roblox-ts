@@ -11,6 +11,49 @@ const { version: VERSION } = require("./../../package.json") as {
 	version: string;
 };
 
+function getRuntimeLibraryStatement(state: CompilerState, node: ts.SourceFile) {
+	if (state.runtimeOverride) {
+		return state.runtimeOverride.trim() + "\n";
+	}
+
+	let link: string;
+	if (state.projectInfo.type === ProjectType.Package) {
+		link = `_G[script]`;
+	} else if (state.projectInfo.type === ProjectType.Game) {
+		const runtimeLibPath = [...state.projectInfo.runtimeLibPath];
+		const service = runtimeLibPath.shift()!;
+		if (!isRbxService(service)) {
+			throw new CompilerError(
+				`"${service}" is not a valid Roblox Service!`,
+				node,
+				CompilerErrorType.InvalidService,
+			);
+		}
+		const path = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
+		link = `require(${path})`;
+	} else if (state.projectInfo.type === ProjectType.Bundle) {
+		const rbxPath = state.rojoProject!.getRbxFromFile(
+			transformPathToLua(state.rootDirPath, state.outDirPath, node.getFilePath()),
+		).path;
+		if (!rbxPath) {
+			throw new CompilerError(
+				`Bundle could not resolve runtime library location!`,
+				node,
+				CompilerErrorType.BadRojo,
+			);
+		}
+		const rbxRelative = RojoProject.relative(rbxPath, state.projectInfo.runtimeLibPath);
+		let start = "script";
+		while (rbxRelative[0] === "..") {
+			rbxRelative.shift();
+			start += ".Parent";
+		}
+		const path = [start, ...rbxRelative].join(".");
+		link = `require(${path})`;
+	}
+	return `local TS = ${link!};\n`;
+}
+
 export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 	console.profile(node.getBaseName());
 
@@ -50,42 +93,7 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 
 	/* istanbul ignore next */
 	if (state.usesTSLibrary) {
-		let link: string;
-		if (state.projectInfo.type === ProjectType.Package) {
-			link = `_G[script]`;
-		} else if (state.projectInfo.type === ProjectType.Game) {
-			const runtimeLibPath = [...state.projectInfo.runtimeLibPath];
-			const service = runtimeLibPath.shift()!;
-			if (!isRbxService(service)) {
-				throw new CompilerError(
-					`"${service}" is not a valid Roblox Service!`,
-					node,
-					CompilerErrorType.InvalidService,
-				);
-			}
-			const path = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
-			link = `require(${path})`;
-		} else if (state.projectInfo.type === ProjectType.Bundle) {
-			const rbxPath = state.rojoProject!.getRbxFromFile(
-				transformPathToLua(state.rootDirPath, state.outDirPath, node.getFilePath()),
-			).path;
-			if (!rbxPath) {
-				throw new CompilerError(
-					`Bundle could not resolve runtime library location!`,
-					node,
-					CompilerErrorType.BadRojo,
-				);
-			}
-			const rbxRelative = RojoProject.relative(rbxPath, state.projectInfo.runtimeLibPath);
-			let start = "script";
-			while (rbxRelative[0] === "..") {
-				rbxRelative.shift();
-				start += ".Parent";
-			}
-			const path = [start, ...rbxRelative].join(".");
-			link = `require(${path})`;
-		}
-		result = `local TS = ${link!};\n` + result;
+		result = getRuntimeLibraryStatement(state, node) + result;
 	}
 
 	const CURRENT_TIME = new Date().toLocaleString("en-US", {

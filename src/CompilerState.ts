@@ -6,7 +6,7 @@ import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptCo
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
-interface DeclarationContext {
+export interface DeclarationContext {
 	isIdentifier: boolean;
 	needsLocalizing?: boolean;
 	set: string;
@@ -33,6 +33,7 @@ export class CompilerState {
 		public readonly projectInfo: ProjectInfo,
 		public readonly rojoProject?: RojoProject,
 		public readonly modulesDir?: ts.Directory,
+		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
@@ -48,13 +49,17 @@ export class CompilerState {
 		if (declaration && condition(declaration)) {
 			this.declarationContext.delete(node);
 			({ set: id } = declaration);
-			this.pushPrecedingStatements(
-				node,
+
+			const context = this.getCurrentPrecedingStatementContext(node);
+
+			context.push(
 				this.indent +
 					`${declaration.needsLocalizing ? "local " : ""}${id}${
 						expStr ? ` ${isReturn ? "" : "= "}${expStr}` : ""
 					};\n`,
 			);
+
+			context.isPushed = declaration.isIdentifier;
 		} else {
 			id = this.pushPrecedingStatementToReuseableId(node, expStr);
 		}
@@ -149,6 +154,7 @@ export class CompilerState {
 					}
 					const [, indentation, currentId, data] = matchesRegex;
 					if (indentation === this.indent && data === compiledSource) {
+						this.getCurrentPrecedingStatementContext(node).isPushed = true;
 						return currentId;
 					}
 				}
