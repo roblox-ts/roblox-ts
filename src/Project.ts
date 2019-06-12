@@ -610,7 +610,7 @@ export class Project {
 		);
 	}
 
-	public async compileSource(source: string) {
+	public compileSource(source: string) {
 		const sourceFile = this.project.createSourceFile("playground.ts", source);
 		const compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
 		this.project.removeSourceFile(sourceFile);
