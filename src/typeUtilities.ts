@@ -177,11 +177,11 @@ export function isBooleanType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
 }
 
-export function isNumberType(type: ts.Type): boolean {
+export function isNumberType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
-export function isNumberTypeStrict(type: ts.Type): boolean {
+export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
