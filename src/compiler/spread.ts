@@ -186,6 +186,7 @@ export function compileSpreadableListAndJoin(
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
 	const expType = expression.getType();
+
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.set_values(${compileExpression(state, expression)})`;
