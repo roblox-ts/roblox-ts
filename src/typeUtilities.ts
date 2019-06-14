@@ -425,6 +425,8 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 			return true;
 		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
 			return true;
+		} else if (ts.TypeGuards.isThisExpression(node)) {
+			return true;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(node) &&
 			isConstantExpression(node.getLeft(), maxDepth - 1) &&
