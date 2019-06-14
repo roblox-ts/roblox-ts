@@ -88,6 +88,8 @@ export function getReadableExpressionName(
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
+		ts.TypeGuards.isThisExpression(nonNullExp) ||
+		ts.TypeGuards.isSuperExpression(nonNullExp) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
 		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
 	) {

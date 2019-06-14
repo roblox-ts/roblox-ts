@@ -11,7 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
+import { classDeclarationInheritsFromArray, isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -103,7 +103,6 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 	const initializers = new Array<string>();
 
 	getParameterData(state, paramNames, initializers, node);
-
 	checkReturnsNonAny(node);
 
 	if (
@@ -252,20 +251,21 @@ function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
 
 export function compileConstructorDeclaration(
 	state: CompilerState,
+	classExp: ts.ClassDeclaration | ts.ClassExpression,
 	className: string,
 	node?: ts.ConstructorDeclaration,
 	extraInitializers?: Array<string>,
 	hasSuper?: boolean,
 ) {
-	const paramNames = new Array<string>();
-	paramNames.push("self");
+	const paramNames = ["self"];
 	const initializers = new Array<string>();
 	const defaults = new Array<string>();
+	const inheritsFromArray = classDeclarationInheritsFromArray(classExp);
 
 	state.pushIdStack();
 	if (node) {
 		getParameterData(state, paramNames, initializers, node, defaults);
-	} else {
+	} else if (!inheritsFromArray) {
 		paramNames.push("...");
 	}
 	const paramStr = paramNames.join(", ");
@@ -307,14 +307,13 @@ export function compileConstructorDeclaration(
 			}
 		}
 	} else {
-		if (hasSuper) {
+		if (hasSuper && !inheritsFromArray) {
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {
 			extraInitializers.forEach(initializer => (result += initializer));
 		}
 	}
-	result += state.indent + "return self;\n";
 	state.popIndent();
 	state.popIdStack();
 	result += state.indent + "end;\n";

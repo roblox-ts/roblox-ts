@@ -14,7 +14,11 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { shouldHoist } from "../typeUtilities";
+import {
+	shouldHoist,
+	superExpressionClassInheritsFromArray,
+	superExpressionClassInheritsFromSetOrMap,
+} from "../typeUtilities";
 import { bold, getNonNullUnParenthesizedExpressionDownwards, multifilter } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
@@ -117,9 +121,21 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	state.pushIndent();
 
 	if (extendExp) {
-		hasSuper = true;
+		const extendExpExp = extendExp.getExpression();
+		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp);
+
+		if (superExpressionClassInheritsFromSetOrMap(extendExpExp)) {
+			throw new CompilerError(
+				"Cannot create a class which inherits from Map or Set!",
+				extendExpExp,
+				CompilerErrorType.BadClassExtends,
+			);
+		}
+
 		state.enterPrecedingStatementContext(results);
-		results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+		if (hasSuper) {
+			results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+		}
 		state.exitPrecedingStatementContext();
 	}
 
@@ -259,12 +275,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	if (!node.isAbstract()) {
 		results.push(
 			state.indent + `${name}.new = function(...)\n`,
-			state.indent + `\treturn ${name}.constructor(setmetatable({}, ${name}), ...);\n`,
+			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
+			state.indent + `\t${name}.constructor(self, ...);\n`,
+			state.indent + `\treturn self;\n`,
 			state.indent + `end;\n`,
 		);
 	}
 
-	results.push(compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper));
+	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
 		const propNameNode = prop.getNameNode();

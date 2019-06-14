@@ -18,6 +18,7 @@ import {
 	isStringMethodType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
+	superExpressionClassInheritsFromArray,
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
@@ -774,7 +775,11 @@ export function compileCallExpression(
 		const params = node.getArguments() as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
-			return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
+			if (superExpressionClassInheritsFromArray(exp)) {
+				return params.length > 0 ? `local _ = ${compileCallArgumentsAndJoin(state, params)}` : "";
+			} else {
+				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
+			}
 		}
 
 		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());

@@ -28,6 +28,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { isArrayType } from "../typeUtilities";
 import {
 	getNonNullUnParenthesizedExpressionDownwards,
 	getNonNullUnParenthesizedExpressionUpwards,
@@ -101,7 +102,7 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		}
 		return "self";
 	} else if (ts.TypeGuards.isSuperExpression(node)) {
-		return "super";
+		return isArrayType(node.getType()) ? "self" : "super";
 	} else if (
 		ts.TypeGuards.isAsExpression(node) ||
 		ts.TypeGuards.isTypeAssertion(node) ||

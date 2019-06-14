@@ -77,6 +77,7 @@ export enum CompilerErrorType {
 	InvalidComputedIndex,
 	TupleLength,
 	BadMethodCall,
+	BadClassExtends,
 }
 
 export class CompilerError extends Error {

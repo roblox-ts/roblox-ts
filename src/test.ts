@@ -298,6 +298,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
+	"extendedMapClass.spec.ts": {
+		message: "should not allow creating classes which extend Map",
+		instance: CompilerError,
+		type: CompilerErrorType.BadClassExtends,
+	},
+	"extendedSetClass.spec.ts": {
+		message: "should not allow creating classes which extend Set",
+		instance: CompilerError,
+		type: CompilerErrorType.BadClassExtends,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

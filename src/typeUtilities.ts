@@ -244,32 +244,50 @@ export function getCompilerDirectiveWithLaxConstraint(
 	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
 }
 
+export function superExpressionClassInheritsFromArray(node: ts.Expression) {
+	for (const constructSignature of node.getType().getConstructSignatures()) {
+		if (
+			getCompilerDirectiveWithConstraint(
+				constructSignature.getReturnType(),
+				CompilerDirective.Array,
+				t => t.isArray() || t.isTuple(),
+			)
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
+	for (const constructSignature of node.getType().getConstructSignatures()) {
+		const returnType = constructSignature.getReturnType();
+		if (
+			getCompilerDirectiveWithConstraint(returnType, CompilerDirective.Set) ||
+			getCompilerDirectiveWithConstraint(returnType, CompilerDirective.Map)
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function classDeclarationInheritsFromArray(classExp: ts.ClassDeclaration | ts.ClassExpression) {
+	const extendsExp = classExp.getExtends();
+	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression()) : false;
+}
+
 function inheritsFromArray(type: ts.Type) {
 	const symbol = type.getSymbol();
 
 	if (symbol) {
 		for (const declaration of symbol.getDeclarations()) {
-			if (ts.TypeGuards.isClassDeclaration(declaration)) {
-				const extendsExp = declaration.getExtends();
-				if (extendsExp) {
-					for (const constructSignature of extendsExp
-						.getExpression()
-						.getType()
-						.getConstructSignatures()) {
-						if (
-							getCompilerDirectiveWithConstraint(
-								constructSignature.getReturnType(),
-								CompilerDirective.Array,
-								t => t.isArray() || t.isTuple(),
-							)
-						) {
-							return true;
-						}
-					}
-				}
+			if (ts.TypeGuards.isClassDeclaration(declaration) && classDeclarationInheritsFromArray(declaration)) {
+				return true;
 			}
 		}
 	}
+
 	return false;
 }
 
