@@ -244,8 +244,41 @@ export function getCompilerDirectiveWithLaxConstraint(
 	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
 }
 
+function inheritsFromArray(type: ts.Type) {
+	const symbol = type.getSymbol();
+
+	if (symbol) {
+		for (const declaration of symbol.getDeclarations()) {
+			if (ts.TypeGuards.isClassDeclaration(declaration)) {
+				const extendsExp = declaration.getExtends();
+				if (extendsExp) {
+					for (const constructSignature of extendsExp
+						.getExpression()
+						.getType()
+						.getConstructSignatures()) {
+						if (
+							getCompilerDirectiveWithConstraint(
+								constructSignature.getReturnType(),
+								CompilerDirective.Array,
+								t => t.isArray() || t.isTuple(),
+							)
+						) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 export function isArrayTypeLax(type: ts.Type) {
-	return getCompilerDirectiveWithLaxConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+	return getCompilerDirectiveWithLaxConstraint(
+		type,
+		CompilerDirective.Array,
+		t => t.isArray() || t.isTuple() || t.is,
+	);
 }
 
 export function isStringMethodType(type: ts.Type) {
@@ -253,7 +286,7 @@ export function isStringMethodType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple() || t.is);
 }
 
 export function isMapType(type: ts.Type) {
