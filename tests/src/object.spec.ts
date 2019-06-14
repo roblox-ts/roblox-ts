@@ -122,15 +122,41 @@ export = () => {
 		expect(obj1.c).to.equal(3);
 		expect(obj1.d).to.equal(2);
 
-		const k = { o: 1, b: 2 };
-		const o = {
-			o: 3,
-			...k,
-			b: k.o++,
-		};
+		{
+			const k = { o: 1, b: 2 };
+			const o = {
+				...k,
+				o: 3,
+				b: k.o++,
+			};
 
-		expect(o.o).to.equal(1);
-		expect(o.b).to.equal(1);
+			expect(o.o).to.equal(3);
+			expect(o.b).to.equal(1);
+		}
+
+		{
+			const k = { o: 1, b: 2 };
+			const o = {
+				o: 3,
+				...k,
+				b: k.o++,
+			};
+
+			expect(o.o).to.equal(1);
+			expect(o.b).to.equal(1);
+		}
+
+		{
+			const k = { o: 1, b: 2 };
+			const o = {
+				o: 3,
+				b: k.o++,
+				...k,
+			};
+
+			expect(o.o).to.equal(2);
+			expect(o.b).to.equal(2);
+		}
 	});
 
 	it("should support Object.entries", () => {

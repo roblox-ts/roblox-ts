@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.1.8",
+	"version": "0.1.10",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -8,7 +8,7 @@
 		"url": "https://github.com/roblox-ts/roblox-ts.git"
 	},
 	"bin": {
-		"rbxtsc": "out/index.js"
+		"rbxtsc": "out/cli.js"
 	},
 	"scripts": {
 		"tslint": "npx tslint -p tsconfig.json",
@@ -50,12 +50,12 @@
 		"@types/fs-extra": "^7.0.0",
 		"@types/klaw": "^3.0.0",
 		"@types/mocha": "^5.2.7",
-		"@types/node": "^12.0.7",
+		"@types/node": "^12.0.8",
 		"@types/yargs": "^13.0.0",
 		"coveralls": "^3.0.4",
 		"mocha": "^6.1.4",
 		"nyc": "^14.1.1",
-		"prettier": "^1.18.0",
+		"prettier": "^1.18.2",
 		"prettylint": "^1.0.0",
 		"source-map-support": "^0.5.12",
 		"ts-node": "^8.2.0",

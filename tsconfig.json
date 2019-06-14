@@ -1,5 +1,6 @@
 {
 	"compilerOptions": {
+		"declaration": true,
 		"outDir": "out",
 		"rootDir": "src",
 		"target": "es6",
