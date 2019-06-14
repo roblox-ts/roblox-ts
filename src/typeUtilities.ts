@@ -165,8 +165,10 @@ function isSomeType(
 	}
 }
 
+const check = (t: ts.Type, c: (t: ts.Type) => boolean) => c(t);
+
 export function isAnyType(type: ts.Type) {
-	return isSomeType(type, (t, c) => c(t), t => t.getText() === "any");
+	return isSomeType(type, check, t => t.getText() === "any");
 }
 
 export function isNullableType(type: ts.Type) {
@@ -208,14 +210,10 @@ export function isIterableIterator(type: ts.Type, node: ts.Node) {
 }
 
 export function isIterableFunction(type: ts.Type) {
-	return isSomeType(
-		type,
-		(t, c) => c(t),
-		t => {
-			const symbol = t.getAliasSymbol();
-			return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
-		},
-	);
+	return isSomeType(type, check, t => {
+		const symbol = t.getAliasSymbol();
+		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
+	});
 }
 
 function getCompilerDirectiveHelper(
