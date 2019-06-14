@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		"module": "commonjs",
 		"outDir": "out",
 		"rootDir": "src",
 		"target": "es6",
