@@ -292,7 +292,7 @@ export class Project {
 					module: ts.ts.ModuleKind.CommonJS,
 					noLib: true,
 					outDir: "out",
-					rootDir: "src",
+					rootDir: ".",
 					strict: true,
 					target: ts.ts.ScriptTarget.ES2015,
 					typeRoots: ["node_modules/@rbxts"],
@@ -616,10 +616,14 @@ export class Project {
 		if (existing) {
 			this.project.removeSourceFile(existing);
 		}
-		return compileSourceFile(
-			this.createCompilerState(),
-			this.project.createSourceFile(PLAYGROUND_FILE_NAME, source),
-		);
+		const sourceFile = this.project.createSourceFile(PLAYGROUND_FILE_NAME, source);
+
+		const errors = this.getDiagnosticErrors([sourceFile]);
+		if (errors.length > 0) {
+			throw new DiagnosticError(errors);
+		}
+
+		return compileSourceFile(this.createCompilerState(), sourceFile);
 	}
 
 	private async getEmittedDtsFiles() {
@@ -653,9 +657,7 @@ export class Project {
 		);
 	}
 
-	public async compileFiles(files: Array<ts.SourceFile>) {
-		await this.cleanDirRecursive(this.outDirPath);
-
+	private getDiagnosticErrors(files: Array<ts.SourceFile>) {
 		const errors = new Array<string>();
 		for (const file of files) {
 			const diagnostics = file
@@ -684,16 +686,18 @@ export class Project {
 					}
 					messageText = textSegments.join("\n");
 				}
-				const str = prefix + red("Diagnostic Error: ") + messageText;
-				if (!this.ci) {
-					console.log(str);
-				}
-				errors.push(str);
+				errors.push(prefix + red("Diagnostic Error: ") + messageText);
 			}
 		}
+		return errors;
+	}
+
+	public async compileFiles(files: Array<ts.SourceFile>) {
+		await this.cleanDirRecursive(this.outDirPath);
 
 		process.exitCode = 0;
 
+		const errors = this.getDiagnosticErrors(files);
 		try {
 			if (errors.length > 0) {
 				process.exitCode = 1;
@@ -757,7 +761,7 @@ export class Project {
 			} else if (e instanceof ProjectError) {
 				console.log(red("Project Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
-				// log above
+				console.log(e.toString());
 			} else {
 				throw e;
 			}
