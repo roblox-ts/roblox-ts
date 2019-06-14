@@ -277,7 +277,7 @@ export function isArrayTypeLax(type: ts.Type) {
 	return getCompilerDirectiveWithLaxConstraint(
 		type,
 		CompilerDirective.Array,
-		t => t.isArray() || t.isTuple() || t.is,
+		t => t.isArray() || t.isTuple() || inheritsFromArray(type),
 	);
 }
 
@@ -286,7 +286,11 @@ export function isStringMethodType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple() || t.is);
+	return getCompilerDirectiveWithConstraint(
+		type,
+		CompilerDirective.Array,
+		t => t.isArray() || t.isTuple() || inheritsFromArray(type),
+	);
 }
 
 export function isMapType(type: ts.Type) {
