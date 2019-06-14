@@ -612,8 +612,20 @@ export class Project {
 
 	public compileSource(source: string) {
 		const sourceFile = this.project.createSourceFile("playground.ts", source);
-		const compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+
+		let compiledSource = "";
+		let exception;
+		try {
+			compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+		} catch (e) {
+			exception = e;
+		}
 		this.project.removeSourceFile(sourceFile);
+
+		if (exception) {
+			throw exception;
+		}
+
 		return compiledSource;
 	}
 
