@@ -36,6 +36,22 @@ export = () => {
 		expect(b).to.equal(3);
 		expect(c).to.equal(3);
 		expect(d).to.equal(3);
+
+		function f<T extends 0 | 1 | 2 | number>(v: T) {
+			let a = [];
+			a[v] = 3; // shouldn't make a compiler error
+		}
+
+		enum Foo {
+			A,
+			B,
+			C,
+		}
+
+		function g<T extends Foo>(v: T) {
+			const a = [];
+			a[v] = 3; // shouldn't make a compiler error
+		}
 	});
 
 	it("should support.size()", () => {
