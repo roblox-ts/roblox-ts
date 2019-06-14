@@ -160,9 +160,14 @@ function isSomeType(
 	if (typeConstraintChecker(type, cb)) {
 		return true;
 	} else {
-		const constraint = type.getConstraint();
-		return constraint ? typeConstraintChecker(constraint, cb) : false;
+		if (type.isTypeParameter()) {
+			const constraint = type.getConstraint();
+			if (constraint) {
+				return typeConstraintChecker(constraint, cb);
+			}
+		}
 	}
+	return false;
 }
 
 const check = (t: ts.Type, c: (t: ts.Type) => boolean) => c(t);
