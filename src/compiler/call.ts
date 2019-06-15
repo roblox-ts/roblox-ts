@@ -504,11 +504,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			let accessPath: string;
 			let paramStr: string;
 			[accessPath, paramStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
-			if (length === 1) {
-				return `#${accessPath}`;
-			} else if (length === 2) {
-				const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
 
+			if (length === 1) {
+				const result = `#${accessPath}`;
+				return isStatement ? `local _ = ${result}` : result;
+			} else if (length === 2) {
 				if (isStatement) {
 					const expStr = `table.insert(${accessPath}, 1, ${paramStr})`;
 					return expStr;

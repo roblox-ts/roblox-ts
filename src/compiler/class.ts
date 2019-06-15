@@ -159,7 +159,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.StaticNew,
 				);
 			}
-			results.push(compileMethodDeclaration(state, method, "FIXME"));
+			state.enterPrecedingStatementContext(results);
+			results.push(compileMethodDeclaration(state, method, name + ":"));
+			state.exitPrecedingStatementContext();
 		}
 	}
 
@@ -243,7 +245,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
+			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
+			state.exitPrecedingStatementContext();
 		}
 	}
 
