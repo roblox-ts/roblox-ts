@@ -18,7 +18,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, getNonNullUnParenthesizedExpressionDownwards, multifilter } from "../utility";
+import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -121,7 +121,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	if (extendExp) {
 		const extendExpExp = extendExp.getExpression();
-		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp);
+		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
 
 		if (superExpressionClassInheritsFromSetOrMap(extendExpExp)) {
 			throw new CompilerError(
@@ -138,124 +138,114 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.exitPrecedingStatementContext();
 	}
 
-	let hasStaticMethods = false;
-
 	results.push(
-		state.indent +
-			(isExpression && nameNode ? "local " : "") +
-			name +
-			" = " +
-			(hasSuper ? "setmetatable(" : "") +
-			"{",
+		state.indent,
+		isExpression && nameNode ? "local " : "",
+		name,
+		" = ",
+		hasSuper ? "setmetatable(" : "",
+		"{}",
+		hasSuper ? ", { __index = super })" : "",
+		";\n",
 	);
 
-	state.pushIndent();
-	node.getStaticMethods()
-		.filter(method => method.getBody() !== undefined)
-		.forEach(method => {
-			if (!hasStaticMethods) {
-				hasStaticMethods = true;
-				results.push("\n");
-			}
-			if (method.getName() === "new") {
+	for (const method of node.getStaticMethods()) {
+		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
 				throw new CompilerError(
-					'Cannot make a static method with name "new"!',
+					`Cannot make a static method with name "${methodName}"!`,
 					method,
 					CompilerErrorType.StaticNew,
 				);
 			}
 			results.push(compileMethodDeclaration(state, method));
-		});
+		}
+	}
 
-	state.popIndent();
-	results.push((hasStaticMethods ? state.indent : "") + "}" + (hasSuper ? ", { __index = super })" : "") + ";\n");
-	results.push(state.indent + `${name}.__index = ${hasSuper ? "setmetatable(" : ""}{`);
+	results.push(
+		state.indent,
+		name,
+		".__index = ",
+		hasSuper ? "setmetatable(" : "",
+		"{}",
+		hasSuper ? ", super)" : "",
+		";\n",
+	);
+
 	state.pushIndent();
-	let hasIndexMembers = false;
 
 	const extraInitializers = new Array<string>();
-	const [instanceProps, getters, setters] = multifilter(
-		node
-			.getInstanceProperties()
-			// @ts-ignore
-			.filter(prop => prop.getParent() === node),
-		3,
-		element => {
-			if (ts.TypeGuards.isGetAccessorDeclaration(element)) {
-				return 1;
-			} else if (ts.TypeGuards.isSetAccessorDeclaration(element)) {
-				return 2;
-			} else {
-				return 0;
-			}
-		},
-	) as [Array<ts.ClassInstancePropertyTypes>, Array<ts.GetAccessorDeclaration>, Array<ts.SetAccessorDeclaration>];
 
-	for (const prop of instanceProps) {
-		const propNameNode = prop.getNameNode();
-		if (propNameNode) {
-			let propStr: string;
-			if (ts.TypeGuards.isIdentifier(propNameNode)) {
-				const propName = propNameNode.getText();
-				propStr = "." + propName;
-				checkMethodReserved(propName, prop);
-			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				checkMethodReserved(propNameNode.getLiteralText(), prop);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
-				// ComputedPropertyName
-				const computedExp = propNameNode.getExpression();
-				if (ts.TypeGuards.isStringLiteral(computedExp)) {
-					checkMethodReserved(computedExp.getLiteralText(), prop);
+	for (const prop of node.getInstanceProperties()) {
+		if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
+			throw new CompilerError(
+				"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+				node,
+				CompilerErrorType.GettersSettersDisallowed,
+			);
+		} else if (prop.getParent()! === node) {
+			const propNameNode = prop.getNameNode();
+
+			if (propNameNode) {
+				let propStr: string;
+				if (ts.TypeGuards.isIdentifier(propNameNode)) {
+					const propName = propNameNode.getText();
+					propStr = "." + propName;
+					checkMethodReserved(propName, prop);
+				} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
+					const expStr = compileExpression(state, propNameNode);
+					checkMethodReserved(propNameNode.getLiteralText(), prop);
+					propStr = `[${expStr}]`;
+				} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
+					const expStr = compileExpression(state, propNameNode);
+					propStr = `[${expStr}]`;
+				} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
+					// ComputedPropertyName
+					const computedExp = propNameNode.getExpression();
+					if (ts.TypeGuards.isStringLiteral(computedExp)) {
+						checkMethodReserved(computedExp.getLiteralText(), prop);
+					}
+					const computedExpStr = compileExpression(state, computedExp);
+					propStr = `[${computedExpStr}]`;
+				} else {
+					throw new CompilerError(
+						`Unexpected prop type ${prop.getKindName()} in compileClass`,
+						prop,
+						CompilerErrorType.UnexpectedPropType,
+						true,
+					);
 				}
-				const computedExpStr = compileExpression(state, computedExp);
-				propStr = `[${computedExpStr}]`;
-			} else {
-				throw new CompilerError(
-					`Unexpected prop type ${prop.getKindName()} in compileClass`,
-					prop,
-					CompilerErrorType.UnexpectedPropType,
-					true,
-				);
-			}
 
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					state.enterPrecedingStatementContext(extraInitializers);
-					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-					state.declarationContext.set(fullInitializer, {
-						isIdentifier: false,
-						set: `self${propStr}`,
-					});
-					const expStr = compileExpression(state, initializer);
-					state.exitPrecedingStatementContext();
-					if (state.declarationContext.delete(fullInitializer)) {
-						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
+				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
+					const initializer = prop.getInitializer();
+					if (initializer) {
+						state.enterPrecedingStatementContext(extraInitializers);
+						const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
+						state.declarationContext.set(fullInitializer, {
+							isIdentifier: false,
+							set: `self${propStr}`,
+						});
+						const expStr = compileExpression(state, initializer);
+						state.exitPrecedingStatementContext();
+						if (state.declarationContext.delete(fullInitializer)) {
+							extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
+						}
 					}
 				}
 			}
 		}
 	}
+	state.popIndent();
 
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
-			if (!hasIndexMembers) {
-				hasIndexMembers = true;
-				results.push("\n");
-			}
-			results.push(compileMethodDeclaration(state, method));
+			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
 		}
 	}
 
-	state.popIndent();
-	results.push(hasIndexMembers ? state.indent : "", "}", hasSuper ? ", super)" : "", ";\n");
-
 	for (const metamethod of LUA_RESERVED_METAMETHODS) {
+		// TODO: fix static vs non-static __tostring method
 		if (getClassMethod(node, metamethod)) {
 			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
 				throw new CompilerError(
@@ -265,15 +255,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				);
 			}
 
-			results.push(
-				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`,
-			);
+			results.push(state.indent + `function ${name}:${metamethod}(...) return self:${metamethod}(...); end;\n`);
 		}
 	}
 
 	if (!node.isAbstract()) {
 		results.push(
-			state.indent + `${name}.new = function(...)\n`,
+			state.indent + `function ${name}.new(...)\n`,
 			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
 			state.indent + `\t${name}.constructor(self, ...);\n`,
 			state.indent + `\treturn self;\n`,
@@ -284,6 +272,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
+		if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
+			throw new CompilerError(
+				"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+				node,
+				CompilerErrorType.GettersSettersDisallowed,
+			);
+		}
 		const propNameNode = prop.getNameNode();
 		if (propNameNode) {
 			let propStr: string;
@@ -319,14 +314,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			}
 			results.push(state.indent, name, propStr, " = ", propValue, ";\n");
 		}
-	}
-
-	if (getters.length > 0 || setters.length > 0) {
-		throw new CompilerError(
-			"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
-			node,
-			CompilerErrorType.GettersSettersDisallowed,
-		);
 	}
 
 	if (isExpression) {

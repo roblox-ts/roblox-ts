@@ -21,9 +21,7 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 			ts.TypeGuards.isArrowFunction(node) ||
 			ts.TypeGuards.isFunctionDeclaration(node) ||
 			ts.TypeGuards.isConstructorDeclaration(node) ||
-			ts.TypeGuards.isMethodDeclaration(node) ||
-			ts.TypeGuards.isGetAccessorDeclaration(node) ||
-			ts.TypeGuards.isSetAccessorDeclaration(node)
+			ts.TypeGuards.isMethodDeclaration(node)
 		) {
 			return node;
 		}
@@ -97,9 +95,25 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 	return result;
 }
 
-function canSugaryCompileFunction(node: HasParameters) {}
+function canSugaryCompileFunction(node: HasParameters) {
+	if (
+		ts.TypeGuards.isFunctionDeclaration(node) ||
+		ts.TypeGuards.isConstructorDeclaration(node) ||
+		ts.TypeGuards.isMethodDeclaration(node)
+	) {
+		// console.log(node.getKindName(), node.getText());
+		return true;
+	}
+	return false;
+}
 
-function compileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
+function compileFunction(
+	state: CompilerState,
+	node: HasParameters,
+	name: string,
+	body: ts.Node<ts.ts.Node>,
+	namePrefix = "",
+) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
@@ -107,18 +121,15 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 	getParameterData(state, paramNames, initializers, node);
 	checkReturnsNonAny(node);
 
-	if (
-		ts.TypeGuards.isMethodDeclaration(node) ||
-		ts.TypeGuards.isGetAccessorDeclaration(node) ||
-		ts.TypeGuards.isSetAccessorDeclaration(node)
-	) {
+	if (ts.TypeGuards.isMethodDeclaration(node) && !namePrefix) {
 		giveInitialSelfParameter(node, paramNames);
 	}
 
 	let result: string;
+	let frontWrap = "";
 	let backWrap = "";
-
 	let prefix = "";
+
 	if (ts.TypeGuards.isFunctionDeclaration(node)) {
 		const nameNode = node.getNameNode();
 		if (nameNode && shouldHoist(node, nameNode)) {
@@ -128,30 +139,33 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 		}
 	}
 
-	if (name) {
-		result = state.indent + prefix + name + " = ";
-		backWrap = ";\n";
-	} else {
-		result = "";
-	}
-
 	let isGenerator = false;
 
-	if (
-		!ts.TypeGuards.isGetAccessorDeclaration(node) &&
-		!ts.TypeGuards.isSetAccessorDeclaration(node) &&
-		!ts.TypeGuards.isConstructorDeclaration(node)
-	) {
+	if (!ts.TypeGuards.isConstructorDeclaration(node)) {
 		/* istanbul ignore next */
 		if (node.isAsync()) {
 			state.usesTSLibrary = true;
-			result += "TS.async(";
+			frontWrap = "TS.async(";
 			backWrap = ")" + backWrap;
 		}
 		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
-	result += "function(" + paramNames.join(", ") + ")";
+	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
+
+	if (name) {
+		name = namePrefix + name;
+		if (sugarcoat) {
+			result = state.indent + prefix;
+		} else {
+			result = state.indent + prefix + name + " = ";
+		}
+		backWrap = ";\n";
+	} else {
+		result = "";
+	}
+
+	result += frontWrap + "function" + (sugarcoat ? " " + name : "") + "(" + paramNames.join(", ") + ")";
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
@@ -175,10 +189,7 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 	return result + "end" + backWrap;
 }
 
-function giveInitialSelfParameter(
-	node: ts.MethodDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
-	paramNames: Array<string>,
-) {
+function giveInitialSelfParameter(node: ts.MethodDeclaration, paramNames: Array<string>) {
 	const parameters = node.getParameters();
 	let replacedThis = false;
 
@@ -224,7 +235,7 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 	}
 }
 
-export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
+export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration, namePrefix = "") {
 	const nameNode: ts.PropertyName = node.getNameNode();
 	let name: string;
 
@@ -235,7 +246,7 @@ export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDe
 		checkReserved(name, node);
 	}
 
-	return compileFunction(state, node, name, node.getBodyOrThrow());
+	return compileFunction(state, node, name, node.getBodyOrThrow(), namePrefix);
 }
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
@@ -273,7 +284,7 @@ export function compileConstructorDeclaration(
 	const paramStr = paramNames.join(", ");
 
 	let result = "";
-	result += state.indent + `${className}.constructor = function(${paramStr})\n`;
+	result += state.indent + `function ${className}.constructor(${paramStr})\n`;
 	state.pushIndent();
 
 	if (node) {

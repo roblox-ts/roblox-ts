@@ -318,6 +318,16 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.GettersSettersDisallowed,
 	},
+	"staticGetters.spec.ts": {
+		message: "should not allow getters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
+	"staticSetters.spec.ts": {
+		message: "should not allow setters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

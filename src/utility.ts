@@ -283,18 +283,3 @@ export function transformPathToLua(rootPath: string, outPath: string, filePath: 
 	const luaName = name + exts.join("") + ".lua";
 	return path.join(outPath, relativeToRoot, luaName);
 }
-
-export function multifilter<T>(list: Array<T>, numResultArrays: number, condition: (element: T) => number) {
-	const results = new Array<Array<T>>();
-	const numResults = numResultArrays - 1;
-
-	for (let i = 0; i <= numResults; i++) {
-		results[i] = new Array<T>();
-	}
-
-	for (const element of list) {
-		results[condition(element)]!.push(element);
-	}
-
-	return results;
-}

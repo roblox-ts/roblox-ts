@@ -244,21 +244,6 @@ export function getCompilerDirectiveWithLaxConstraint(
 	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
 }
 
-export function superExpressionClassInheritsFromArray(node: ts.Expression) {
-	for (const constructSignature of node.getType().getConstructSignatures()) {
-		if (
-			getCompilerDirectiveWithConstraint(
-				constructSignature.getReturnType(),
-				CompilerDirective.Array,
-				t => t.isArray() || t.isTuple(),
-			)
-		) {
-			return true;
-		}
-	}
-	return false;
-}
-
 export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
 	for (const constructSignature of node.getType().getConstructSignatures()) {
 		const returnType = constructSignature.getReturnType();
@@ -270,6 +255,23 @@ export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
 		}
 	}
 	return false;
+}
+
+export function superExpressionClassInheritsFromArray(node: ts.Expression, recursive = true) {
+	const type = node.getType();
+	for (const constructSignature of type.getConstructSignatures()) {
+		if (
+			getCompilerDirectiveWithConstraint(
+				constructSignature.getReturnType(),
+				CompilerDirective.Array,
+				t => t.isArray() || t.isTuple(),
+			)
+		) {
+			return true;
+		}
+	}
+
+	return recursive && inheritsFromArray(type);
 }
 
 export function classDeclarationInheritsFromArray(classExp: ts.ClassDeclaration | ts.ClassExpression) {
