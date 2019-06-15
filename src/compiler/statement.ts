@@ -27,8 +27,8 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../typeUtilities";
 
-const SINGLE_LINE_COMMENT = /^\s*\/\/\s*(.+)$/;
-const MULTI_LINE_COMMENT_SHORT = /^\s*\/\*(.+)\*\/\s*$/;
+const SINGLE_LINE_COMMENT = /^\s*\/\/(.*)$/;
+const MULTI_LINE_COMMENT_SHORT = /^\s*\/\*(.*)\*\/$/;
 const MULTI_LINE_COMMENT_LONG = /^\/\*+((?:[^*]|[\r\n]|(?:\*+(?:[^*\/]|[\r\n])))*)\*+\/$/;
 
 export function compileComment(state: CompilerState, node: ts.CommentStatement) {
@@ -37,13 +37,13 @@ export function compileComment(state: CompilerState, node: ts.CommentStatement) 
 	// single line comment
 	let result = SINGLE_LINE_COMMENT.exec(nodeText);
 	if (result) {
-		return `-- ${result[1].trim()}\n`;
+		return `--${result[1]}\n`;
 	}
 
 	/* multi line comment short */
 	result = MULTI_LINE_COMMENT_SHORT.exec(nodeText);
 	if (result) {
-		return `-- ${result[1].trim()}\n`;
+		return `--${result[1]}\n`;
 	}
 
 	/*
