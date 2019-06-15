@@ -3,3 +3,4 @@
 		static set x(y: number) {}
 	}
 }
+export {};

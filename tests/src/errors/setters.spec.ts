@@ -1,3 +1,6 @@
-class B {
-	set x(y: number) {}
+{
+	class B {
+		set x(y: number) {}
+	}
 }
+export {};
