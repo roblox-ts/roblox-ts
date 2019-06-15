@@ -13,7 +13,11 @@ export interface DeclarationContext {
 }
 
 function canBePushedToReusableId(node: ts.Node): boolean {
-	if (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isIdentifier(node)) {
+	if (
+		ts.TypeGuards.isThisExpression(node) ||
+		ts.TypeGuards.isIdentifier(node) ||
+		ts.TypeGuards.isSuperExpression(node)
+	) {
 		return true;
 	} else if (ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) {
 		return canBePushedToReusableId(node.getOperand());

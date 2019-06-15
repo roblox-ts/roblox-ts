@@ -108,13 +108,13 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 }
 
 function canSugaryCompileFunction(node: HasParameters) {
-	if (
-		ts.TypeGuards.isFunctionDeclaration(node) ||
-		ts.TypeGuards.isConstructorDeclaration(node) ||
-		ts.TypeGuards.isMethodDeclaration(node)
-	) {
-		// console.log(node.getKindName(), node.getText());
+	if (ts.TypeGuards.isConstructorDeclaration(node)) {
 		return true;
+	} else if (ts.TypeGuards.isFunctionDeclaration(node) || ts.TypeGuards.isMethodDeclaration(node)) {
+		const nameNode = node.getNameNode();
+		if (nameNode && ts.TypeGuards.isIdentifier(nameNode)) {
+			return true;
+		}
 	}
 	return false;
 }
@@ -133,7 +133,7 @@ function compileFunction(
 	getParameterData(state, paramNames, initializers, node);
 	checkReturnsNonAny(node);
 
-	if (ts.TypeGuards.isMethodDeclaration(node) && !namePrefix) {
+	if (ts.TypeGuards.isMethodDeclaration(node) && ts.TypeGuards.isComputedPropertyName(node.getNameNode())) {
 		giveInitialSelfParameter(node, paramNames);
 	}
 
@@ -247,11 +247,12 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 	}
 }
 
-export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration, namePrefix = "") {
+export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration, namePrefix: string) {
 	const nameNode: ts.PropertyName = node.getNameNode();
 	let name: string;
 
 	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		namePrefix = namePrefix.slice(0, -1);
 		name = `[${compileExpression(state, nameNode.getExpression())}]`;
 	} else {
 		name = compileExpression(state, nameNode);

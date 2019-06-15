@@ -485,7 +485,7 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 			return true;
 		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
 			return true;
-		} else if (ts.TypeGuards.isThisExpression(node)) {
+		} else if (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)) {
 			return true;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(node) &&

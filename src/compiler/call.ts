@@ -36,6 +36,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
+		!ts.TypeGuards.isSuperExpression(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
 		(strict ||
 			(!ts.TypeGuards.isCallExpression(subExp) &&
@@ -762,6 +763,8 @@ export function compileCallExpression(
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
 		result = compilePropertyCallExpression(state, node);
+	} else if (ts.TypeGuards.isComputedPropertyName(exp)) {
+		result = compileComputedPropertyExpression(state, node);
 	} else {
 		const params = node.getArguments() as Array<ts.Expression>;
 
@@ -931,6 +934,9 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 		);
 	}
 	return symbol;
+}
+export function compileComputedPropertyExpression(state: CompilerState, node: ts.CallExpression) {
+	return "";
 }
 
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {

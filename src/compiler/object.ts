@@ -76,7 +76,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 
 			line = `${ts.TypeGuards.isIdentifier(lhs) ? lhsStr : `[${lhsStr}]`} = ${rhsStr};\n`;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
-			line = compileMethodDeclaration(state, prop).trimLeft();
+			line = "";
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
 			line = compileExpression(state, prop.getExpression());
 		} else {
@@ -90,29 +90,35 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 
 		state.exitPrecedingStatementContext();
 
-		if (hasContext) {
+		if (
+			hasContext ||
+			context.length > 0 ||
+			ts.TypeGuards.isSpreadAssignment(prop) ||
+			ts.TypeGuards.isMethodDeclaration(prop)
+		) {
+			if (!hasContext) {
+				id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
+			}
+
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
 				line = assignMembers(state, line, id);
+			} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
+				line = state.indent + compileMethodDeclaration(state, prop, id + ":").trimLeft();
 			} else {
 				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}
-			state.pushPrecedingStatements(node, ...context, line);
-		} else if (context.length > 0 || ts.TypeGuards.isSpreadAssignment(prop)) {
-			id = state.pushToDeclarationOrNewId(node, "{}", declaration => declaration.isIdentifier);
 
-			if (ts.TypeGuards.isSpreadAssignment(prop)) {
-				line = assignMembers(state, line, id);
+			if (hasContext) {
+				state.pushPrecedingStatements(node, ...context, line);
 			} else {
-				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
+				state.pushPrecedingStatements(
+					node,
+					...lines.map(current => state.indent + id + (current.startsWith("[") ? "" : ".") + current),
+					...context,
+					line,
+				);
+				hasContext = true;
 			}
-
-			state.pushPrecedingStatements(
-				node,
-				...lines.map(current => state.indent + id + (current.startsWith("[") ? "" : ".") + current),
-				...context,
-				line,
-			);
-			hasContext = true;
 		} else {
 			lines.push(line);
 		}

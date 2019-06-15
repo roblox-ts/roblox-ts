@@ -159,7 +159,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.StaticNew,
 				);
 			}
-			results.push(compileMethodDeclaration(state, method));
+			results.push(compileMethodDeclaration(state, method, "FIXME"));
 		}
 	}
 
@@ -186,7 +186,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			);
 		}
 
-		if (prop.getParent()! === node) {
+		// @ts-ignore
+		if (prop.getParent() === node) {
 			const propNameNode = prop.getNameNode();
 
 			if (propNameNode) {

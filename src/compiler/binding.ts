@@ -281,7 +281,8 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	} else if (
 		isIterableIterator(bindingPatternType, bindingPattern) ||
 		isObjectType(bindingPatternType) ||
-		ts.TypeGuards.isThisExpression(bindingPattern)
+		ts.TypeGuards.isThisExpression(bindingPattern) ||
+		ts.TypeGuards.isSuperExpression(bindingPattern)
 	) {
 		return iterAccessor;
 	} else {

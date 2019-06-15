@@ -59,6 +59,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 
 		if (
 			!ts.TypeGuards.isThisExpression(child) &&
+			!ts.TypeGuards.isSuperExpression(child) &&
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
 			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
@@ -90,7 +91,6 @@ export function getReadableExpressionName(
 	const nonNullExp = getNonNullExpressionDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
-		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
 		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		ts.TypeGuards.isSuperExpression(nonNullExp) ||
@@ -133,13 +133,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	checkNonAny(nameNode);
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
-		const baseClassName = exp
-			.getType()
-			.getSymbolOrThrow()
-			.getName();
-		const indexA = safeLuaIndex(`${baseClassName}._getters`, propertyStr);
-		const indexB = safeLuaIndex("self", propertyStr);
-		return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
+		return safeLuaIndex("self", propertyStr);
 	}
 
 	const symbol = expType.getSymbol();
