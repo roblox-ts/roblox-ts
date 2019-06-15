@@ -133,7 +133,7 @@ function compileFunction(
 	getParameterData(state, paramNames, initializers, node);
 	checkReturnsNonAny(node);
 
-	if (ts.TypeGuards.isMethodDeclaration(node) && ts.TypeGuards.isComputedPropertyName(node.getNameNode())) {
+	if (isMethodDeclaration(node) && !namePrefix.endsWith(":")) {
 		giveInitialSelfParameter(node, paramNames);
 	}
 
@@ -201,7 +201,7 @@ function compileFunction(
 	return result + "end" + backWrap;
 }
 
-function giveInitialSelfParameter(node: ts.MethodDeclaration, paramNames: Array<string>) {
+function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpression, paramNames: Array<string>) {
 	const parameters = node.getParameters();
 	let replacedThis = false;
 

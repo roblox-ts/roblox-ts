@@ -21,7 +21,6 @@ export enum CompilerErrorType {
 	NoNull,
 	BadExpression,
 	BadFunctionBody,
-	ExpectedPropertyAccessExpression,
 	NoEqualsEquals,
 	NoExclamationEquals,
 	BadBinaryExpression,

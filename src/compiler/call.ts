@@ -25,6 +25,8 @@ import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../u
 import { isFunctionExpressionMethod, isMethodDeclaration } from "./function";
 import {
 	addOneToArrayIndex,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
 	getReadableExpressionName,
 	isIdentifierDefinedInConst,
 	isIdentifierDefinedInExportLet,
@@ -758,13 +760,14 @@ export function compileCallExpression(
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
+	// getNonNullExpressionDownwards
 	const exp = checkNonAny(checkNonImportExpression(node.getExpression()));
 	let result: string;
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-		result = compilePropertyCallExpression(state, node);
-	} else if (ts.TypeGuards.isComputedPropertyName(exp)) {
-		result = compileComputedPropertyExpression(state, node);
+		result = compilePropertyCallExpression(state, node, exp);
+	} else if (ts.TypeGuards.isElementAccessExpression(exp)) {
+		result = compileElementAccessCallExpression(state, node, exp);
 	} else {
 		const params = node.getArguments() as Array<ts.Expression>;
 
@@ -935,22 +938,100 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 	}
 	return symbol;
 }
-export function compileComputedPropertyExpression(state: CompilerState, node: ts.CallExpression) {
-	return "";
-}
+export function compileElementAccessCallExpression(
+	state: CompilerState,
+	node: ts.CallExpression,
+	expression: ts.ElementAccessExpression,
+) {
+	const expExp = getNonNullExpressionDownwards(expression.getExpression());
+	const accessor = getReadableExpressionName(state, expExp);
+	const property = compileElementAccessDataTypeExpression(state, expression, accessor)(
+		compileElementAccessBracketExpression(state, expression),
+	);
+	const params = node.getArguments() as Array<ts.Expression>;
+	const expType = expression.getType();
 
-export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
-	const expression = getNonNullExpressionDownwards(node.getExpression());
-	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
-		/* istanbul ignore next */
+	const allMethods = typeConstraint(expType, t =>
+		getSymbolOrThrow(node, t)
+			.getDeclarations()
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return false;
+						} else {
+							return true;
+						}
+					}
+				}
+				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
+					return true;
+				}
+				return false;
+			}),
+	);
+
+	const allCallbacks = typeConstraint(expType, t =>
+		getSymbolOrThrow(node, t)
+			.getDeclarations()
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return true;
+						} else {
+							return false;
+						}
+					}
+				}
+
+				if (
+					ts.TypeGuards.isFunctionTypeNode(dec) ||
+					ts.TypeGuards.isPropertySignature(dec) ||
+					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
+					ts.TypeGuards.isArrowFunction(dec) ||
+					ts.TypeGuards.isFunctionDeclaration(dec)
+				) {
+					return true;
+				}
+				return false;
+			}),
+	);
+
+	let accessedPath: string;
+	let paramsStr: string;
+	[accessedPath, paramsStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
+	if (allMethods && !allCallbacks) {
+		if (ts.TypeGuards.isSuperExpression(expExp)) {
+			accessedPath = "super.__index";
+		}
+		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
+	} else if (!allMethods && allCallbacks) {
+	} else {
+		// mixed methods and callbacks
 		throw new CompilerError(
-			"Expected PropertyAccessExpression",
+			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 			node,
-			CompilerErrorType.ExpectedPropertyAccessExpression,
-			true,
+			CompilerErrorType.MixedMethodCall,
 		);
 	}
 
+	if (shouldWrapExpression(expExp, false)) {
+		accessedPath = `(${accessedPath})`;
+	}
+
+	return `${property}(${paramsStr})`;
+}
+
+export function compilePropertyCallExpression(
+	state: CompilerState,
+	node: ts.CallExpression,
+	expression: ts.PropertyAccessExpression,
+) {
 	checkApiAccess(state, expression.getNameNode());
 
 	const property = expression.getName();
