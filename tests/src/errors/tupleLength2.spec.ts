@@ -3,3 +3,4 @@
 	let len: number;
 	({ length: len } = c);
 }
+export {};
