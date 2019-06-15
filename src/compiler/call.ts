@@ -1154,7 +1154,7 @@ export function compilePropertyCallExpression(
 
 		if (ts.TypeGuards.isSuperExpression(params[0])) {
 			throw new CompilerError(
-				`\`super.${property}\` is not a function! Prefer \`this.${property}\` instead.`,
+				`\`super.${property}\` is not a real method! Prefer \`this.${property}\` instead.`,
 				params[0],
 				CompilerErrorType.BadSuperCall,
 			);
