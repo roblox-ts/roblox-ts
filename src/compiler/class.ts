@@ -2,7 +2,6 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
-	compileAccessorDeclaration,
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
@@ -322,104 +321,12 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		}
 	}
 
-	let ancestorHasGetters = false;
-	let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
-	while (!ancestorHasGetters && ancestorClass !== undefined) {
-		ancestorClass = ancestorClass.getBaseClass();
-		if (ancestorClass !== undefined) {
-			const ancestorGetters = ancestorClass
-				.getInstanceProperties()
-				.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-			if (ancestorGetters.length > 0) {
-				ancestorHasGetters = true;
-			}
-		}
-	}
-
-	if (getters.length > 0 || ancestorHasGetters) {
-		if (getters.length > 0) {
-			let getterContent = "\n";
-			state.pushIndent();
-			for (const getter of getters) {
-				getterContent += compileAccessorDeclaration(state, getter, getter.getName());
-			}
-			state.popIndent();
-			getterContent += state.indent;
-			if (ancestorHasGetters) {
-				results.push(
-					state.indent +
-						`${name}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`,
-				);
-			} else {
-				results.push(state.indent + `${name}._getters = {${getterContent}};\n`);
-			}
-		} else {
-			results.push(state.indent + `${name}._getters = super._getters;\n`);
-		}
-		results.push(state.indent + `local __index = ${name}.__index;\n`);
-		results.push(state.indent + `${name}.__index = function(self, index)\n`);
-		state.pushIndent();
-		results.push(state.indent + `local getter = ${name}._getters[index];\n`);
-		results.push(state.indent + `if getter then\n`);
-		state.pushIndent();
-		results.push(state.indent + `return getter(self);\n`);
-		state.popIndent();
-		results.push(state.indent + `else\n`);
-		state.pushIndent();
-		results.push(state.indent + `return __index[index];\n`);
-		state.popIndent();
-		results.push(state.indent + `end;\n`);
-		state.popIndent();
-		results.push(state.indent + `end;\n`);
-	}
-
-	let ancestorHasSetters = false;
-	ancestorClass = node;
-	while (!ancestorHasSetters && ancestorClass !== undefined) {
-		ancestorClass = ancestorClass.getBaseClass();
-		if (ancestorClass !== undefined) {
-			const ancestorSetters = ancestorClass
-				.getInstanceProperties()
-				.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-			if (ancestorSetters.length > 0) {
-				ancestorHasSetters = true;
-			}
-		}
-	}
-	if (setters.length > 0 || ancestorHasSetters) {
-		if (setters.length > 0) {
-			let setterContent = "\n";
-			state.pushIndent();
-			for (const setter of setters) {
-				setterContent += compileAccessorDeclaration(state, setter, setter.getName());
-			}
-			state.popIndent();
-			setterContent += state.indent;
-			if (ancestorHasSetters) {
-				results.push(
-					state.indent +
-						`${name}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`,
-				);
-			} else {
-				results.push(state.indent + `${name}._setters = {${setterContent}};\n`);
-			}
-		} else {
-			results.push(state.indent + `${name}._setters = super._setters;\n`);
-		}
-		results.push(state.indent + `${name}.__newindex = function(self, index, value)\n`);
-		state.pushIndent();
-		results.push(state.indent + `local setter = ${name}._setters[index];\n`);
-		results.push(state.indent + `if setter then\n`);
-		state.pushIndent();
-		results.push(state.indent + `setter(self, value);\n`);
-		state.popIndent();
-		results.push(state.indent + `else\n`);
-		state.pushIndent();
-		results.push(state.indent + `rawset(self, index, value);\n`);
-		state.popIndent();
-		results.push(state.indent + `end;\n`);
-		state.popIndent();
-		results.push(state.indent + `end;\n`);
+	if (getters.length > 0 || setters.length > 0) {
+		throw new CompilerError(
+			"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+			node,
+			CompilerErrorType.GettersSettersDisallowed,
+		);
 	}
 
 	if (isExpression) {

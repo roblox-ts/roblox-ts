@@ -97,6 +97,8 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 	return result;
 }
 
+function canSugaryCompileFunction(node: HasParameters) {}
+
 function compileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
@@ -318,18 +320,6 @@ export function compileConstructorDeclaration(
 	state.popIdStack();
 	result += state.indent + "end;\n";
 	return result;
-}
-
-export function compileAccessorDeclaration(
-	state: CompilerState,
-	node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
-	name: string,
-) {
-	const body = node.getBody();
-	if (!body) {
-		return "";
-	}
-	return compileFunction(state, node, name, body);
 }
 
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
