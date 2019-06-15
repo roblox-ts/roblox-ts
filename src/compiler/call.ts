@@ -1152,9 +1152,8 @@ export function compilePropertyCallExpression(
 	} else if (!allMethods && allCallbacks) {
 		sep = ".";
 
-		// In regular JS, this will fail instead of correctly drawing from `self` instead.
 		if (ts.TypeGuards.isSuperExpression(params[0])) {
-			accessedPath = "self";
+			throw new CompilerError(`super.${property} is not a function!`, params[0], CompilerErrorType.BadSuperCall);
 		}
 	} else {
 		// mixed methods and callbacks

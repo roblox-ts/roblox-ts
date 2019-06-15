@@ -80,6 +80,7 @@ export enum CompilerErrorType {
 	GettersSettersDisallowed,
 	BadFunctionExpressionMethodCall,
 	BadObjectPropertyType,
+	BadSuperCall,
 }
 
 export class CompilerError extends Error {
