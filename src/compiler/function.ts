@@ -174,7 +174,7 @@ function compileFunction(
 		} else {
 			result = state.indent + prefix + name + " = ";
 		}
-		backWrap = ";\n";
+		backWrap += ";\n";
 	} else {
 		result = "";
 	}

@@ -43,6 +43,17 @@ const LUA_RESERVED_METAMETHODS = [
 
 const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
 
+function nonGetterOrSetter(prop: ts.ClassInstancePropertyTypes) {
+	if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
+		throw new CompilerError(
+			"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+			prop,
+			CompilerErrorType.GettersSettersDisallowed,
+		);
+	}
+	return prop;
+}
+
 function compileClassProperty(
 	state: CompilerState,
 	prop: ts.PropertyDeclaration | ts.ParameterDeclaration,
@@ -236,14 +247,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	const extraInitializers = new Array<string>();
 
-	for (const prop of node.getInstanceProperties()) {
-		if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
-			throw new CompilerError(
-				"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
-				node,
-				CompilerErrorType.GettersSettersDisallowed,
-			);
-		}
+	for (let prop of node.getInstanceProperties()) {
+		prop = nonGetterOrSetter(prop);
 
 		// @ts-ignore
 		if (prop.getParent() === node) {
@@ -261,7 +266,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	for (const metamethod of LUA_RESERVED_METAMETHODS) {
-		// TODO: fix static vs non-static __tostring method
 		if (getClassMethod(node, metamethod)) {
 			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
 				throw new CompilerError(
@@ -288,14 +292,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
-		if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
-			throw new CompilerError(
-				"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
-				node,
-				CompilerErrorType.GettersSettersDisallowed,
-			);
-		}
-		compileClassProperty(state, prop, name, results);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
 
 	if (isExpression) {

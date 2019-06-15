@@ -235,4 +235,38 @@ export = () => {
 			}
 		})().f("Go!");
 	});
+
+	it("should support extending from Array", () => {
+		/** A very bad implementation of a SortedArray class. Just for testing purposes. */
+		class SortedArray extends Array<number> {
+			constructor(arr?: ReadonlyArray<number>) {
+				super();
+				if (arr) {
+					super.push(...arr.sort((a, b) => b - a));
+				}
+			}
+			public unshift() {
+				return error("Bad!");
+			}
+
+			public push(...args: Array<number>) {
+				let size = this.size();
+				for (const arg of args) {
+					// insert each element in place.
+					const index = this.findIndex(element => element > arg);
+					this.insert(index === -1 ? size : index, arg);
+					size++;
+				}
+				return size;
+			}
+		}
+
+		const sorted = new SortedArray([3, 2, 5, 6, 1]);
+		expect(sorted.push(7, 0, 4)).to.equal(8);
+		for (const [i, x] of sorted.entries()) {
+			expect(i).to.equal(x);
+		}
+		expect(sorted.pop()).to.equal(7);
+		expect(() => sorted.unshift()).to.throw();
+	});
 };
