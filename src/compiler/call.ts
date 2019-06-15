@@ -1153,7 +1153,11 @@ export function compilePropertyCallExpression(
 		sep = ".";
 
 		if (ts.TypeGuards.isSuperExpression(params[0])) {
-			throw new CompilerError(`super.${property} is not a function!`, params[0], CompilerErrorType.BadSuperCall);
+			throw new CompilerError(
+				`\`super.${property}\` is not a function! Prefer \`this.${property}\` instead.`,
+				params[0],
+				CompilerErrorType.BadSuperCall,
+			);
 		}
 	} else {
 		// mixed methods and callbacks
