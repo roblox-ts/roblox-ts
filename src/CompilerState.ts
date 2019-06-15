@@ -6,10 +6,24 @@ import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptCo
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
-interface DeclarationContext {
+export interface DeclarationContext {
 	isIdentifier: boolean;
 	needsLocalizing?: boolean;
 	set: string;
+}
+
+function canBePushedToReusableId(node: ts.Node): boolean {
+	if (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isIdentifier(node)) {
+		return true;
+	} else if (ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) {
+		return canBePushedToReusableId(node.getOperand());
+	} else if (ts.TypeGuards.isPropertyAccessExpression(node)) {
+		return canBePushedToReusableId(node.getNameNode());
+	} else if (ts.TypeGuards.isElementAccessExpression(node)) {
+		return canBePushedToReusableId(node.getArgumentExpressionOrThrow());
+	} else {
+		return false;
+	}
 }
 
 export class CompilerState {
@@ -19,6 +33,7 @@ export class CompilerState {
 		public readonly projectInfo: ProjectInfo,
 		public readonly rojoProject?: RojoProject,
 		public readonly modulesDir?: ts.Directory,
+		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 
@@ -34,13 +49,17 @@ export class CompilerState {
 		if (declaration && condition(declaration)) {
 			this.declarationContext.delete(node);
 			({ set: id } = declaration);
-			this.pushPrecedingStatements(
-				node,
+
+			const context = this.getCurrentPrecedingStatementContext(node);
+
+			context.push(
 				this.indent +
 					`${declaration.needsLocalizing ? "local " : ""}${id}${
 						expStr ? ` ${isReturn ? "" : "= "}${expStr}` : ""
 					};\n`,
 			);
+
+			context.isPushed = declaration.isIdentifier;
 		} else {
 			id = this.pushPrecedingStatementToReuseableId(node, expStr);
 		}
@@ -76,7 +95,7 @@ export class CompilerState {
 	public enterPrecedingStatementContext(newContext = new Array<string>()) {
 		(newContext as PrecedingStatementContext).isPushed = false;
 		this.precedingStatementContexts.push(newContext as PrecedingStatementContext);
-		return newContext;
+		return newContext as PrecedingStatementContext;
 	}
 
 	public exitPrecedingStatementContext() {
@@ -106,16 +125,7 @@ export class CompilerState {
 	}
 
 	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
-		if (
-			compiledSource === "" ||
-			[node, ...node.getDescendants()].some(
-				exp =>
-					!ts.TypeGuards.isIdentifier(exp) &&
-					!ts.TypeGuards.isBinaryExpression(exp) &&
-					!ts.TypeGuards.isUnaryExpression(exp) &&
-					!ts.TypeGuards.isPropertyAccessExpression(exp),
-			)
-		) {
+		if (compiledSource === "" || !canBePushedToReusableId(node)) {
 			return this.pushPrecedingStatementToNewId(node, compiledSource);
 		}
 
@@ -143,6 +153,7 @@ export class CompilerState {
 					}
 					const [, indentation, currentId, data] = matchesRegex;
 					if (indentation === this.indent && data === compiledSource) {
+						this.getCurrentPrecedingStatementContext(node).isPushed = true;
 						return currentId;
 					}
 				}

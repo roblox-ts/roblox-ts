@@ -152,51 +152,73 @@ export function strictTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boole
 	}
 }
 
+function isSomeType(
+	type: ts.Type,
+	typeConstraintChecker: (type: ts.Type, cb: (type: ts.Type) => boolean) => boolean,
+	cb: (type: ts.Type) => boolean,
+) {
+	if (typeConstraintChecker(type, cb)) {
+		return true;
+	} else {
+		if (type.isTypeParameter()) {
+			const constraint = type.getConstraint();
+			if (constraint) {
+				return typeConstraintChecker(constraint, cb);
+			}
+		}
+	}
+	return false;
+}
+
+const check = (t: ts.Type, c: (t: ts.Type) => boolean) => c(t);
+
 export function isAnyType(type: ts.Type) {
-	return type.getText() === "any";
+	return isSomeType(type, check, t => t.getText() === "any");
 }
 
 export function isNullableType(type: ts.Type) {
-	return laxTypeConstraint(type, t => t.isNullable() || t.isUndefined());
+	return isSomeType(type, laxTypeConstraint, t => t.isNullable() || t.isUndefined());
 }
 
 export function isBooleanType(type: ts.Type) {
-	return typeConstraint(type, t => t.isBoolean() || t.isBooleanLiteral());
+	return isSomeType(type, typeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
 }
 
 export function isNumberType(type: ts.Type) {
-	return typeConstraint(type, t => t.isNumber() || t.isNumberLiteral());
+	return isSomeType(type, typeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
 export function isNumberTypeStrict(type: ts.Type) {
-	return strictTypeConstraint(type, t => t.isNumber() || t.isNumberLiteral());
+	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
 export function isStringType(type: ts.Type) {
-	return typeConstraint(type, t => t.isString() || t.isStringLiteral());
+	return isSomeType(type, typeConstraint, t => t.isString() || t.isStringLiteral());
+}
+
+export function isObjectType(type: ts.Type) {
+	return isSomeType(type, typeConstraint, t => t.isObject());
 }
 
 export function isEnumType(type: ts.Type) {
-	return typeConstraint(type, t => {
+	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
 		return symbol !== undefined && symbol.getDeclarations().some(d => ts.TypeGuards.isEnumDeclaration(d));
 	});
 }
 
-export function isObjectType(type: ts.Type) {
-	return typeConstraint(type, t => t.isObject());
-}
-
 export function isIterableIterator(type: ts.Type, node: ts.Node) {
-	return typeConstraint(type, t => {
+	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
 	});
 }
 
 export function isIterableFunction(type: ts.Type) {
-	const symbol = type.getAliasSymbol();
-	return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
+	return isSomeType(type, check, t => {
+		const symbol = t.getAliasSymbol();
+		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
+	});
 }
 
 function getCompilerDirectiveHelper(
@@ -462,6 +484,8 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 		} else if (ts.TypeGuards.isNumericLiteral(node)) {
 			return true;
 		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
+			return true;
+		} else if (ts.TypeGuards.isThisExpression(node)) {
 			return true;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(node) &&

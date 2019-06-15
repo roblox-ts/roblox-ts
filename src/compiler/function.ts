@@ -66,6 +66,18 @@ export function compileReturnStatement(state: CompilerState, node: ts.ReturnStat
 	}
 }
 
+export function isFunctionExpressionMethod(node: ts.FunctionExpression) {
+	const parent = node.getParent();
+	return ts.TypeGuards.isPropertyAssignment(parent) && ts.TypeGuards.isObjectLiteralExpression(parent.getParent());
+}
+
+export function isMethodDeclaration(node: ts.Node<ts.ts.Node>): node is ts.MethodDeclaration | ts.FunctionExpression {
+	return (
+		ts.TypeGuards.isMethodDeclaration(node) ||
+		(ts.TypeGuards.isFunctionExpression(node) && isFunctionExpressionMethod(node))
+	);
+}
+
 function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParameters, initializers: Array<string>) {
 	const isBlock = ts.TypeGuards.isBlock(body);
 	const isExpression = ts.TypeGuards.isExpression(body);

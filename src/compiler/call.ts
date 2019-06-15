@@ -22,6 +22,7 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
+import { isFunctionExpressionMethod, isMethodDeclaration } from "./function";
 import {
 	addOneToArrayIndex,
 	getReadableExpressionName,
@@ -29,11 +30,12 @@ import {
 	isIdentifierDefinedInExportLet,
 } from "./indexed";
 
-const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "len", "lower", "rep", "reverse", "upper"];
+const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
+		!ts.TypeGuards.isThisExpression(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
 		(strict ||
 			(!ts.TypeGuards.isCallExpression(subExp) &&
@@ -417,11 +419,17 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"join",
 		(state, params) => {
-			const subExp = params[0];
-			const arrayType = subExp.getType().getArrayElementType()!;
-			const validTypes = arrayType.isUnion() ? arrayType.getUnionTypes() : [arrayType];
+			const subType = params[0].getType();
+			const arrayType = subType.getArrayElementType();
 
-			if (validTypes.every(validType => validType.isNumber() || validType.isString())) {
+			if (
+				(arrayType
+					? arrayType.isUnion()
+						? arrayType.getUnionTypes()
+						: [arrayType]
+					: subType.getTupleElements()
+				).every(validType => validType.isNumber() || validType.isString())
+			) {
 				const argStrs = compileCallArguments(state, params);
 				return `table.concat(${argStrs[0]}, ${params[1] ? argStrs[1] : `","`})`;
 			}
@@ -451,49 +459,30 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `TS.array_push_apply(${arrayStr}, ${listStr})`;
 			} else {
 				const accessPath = getReadableExpressionName(state, subExp);
-				if (isStatement && numParams === 2) {
-					return `${accessPath}[#${accessPath} + 1] = ${compileExpression(state, params[1])}`;
-				} else {
-					const returnVal = `#${accessPath}${numParams - 1 ? ` + ${numParams - 1}` : ""}`;
-					const finalLength = state.pushToDeclarationOrNewId(
-						node,
-						returnVal,
-						declaration => declaration.isIdentifier,
-					);
 
-					let lastStatement: string | undefined;
-
-					const commentStr = getLeftHandSideParent(subExp, 1).getText();
-
-					for (let i = 1; i < numParams; i++) {
-						const j = numParams - i - 1;
-
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + `; -- ${commentStr}\n`);
-						}
-
-						lastStatement = `${accessPath}[${finalLength}${j ? ` - ${j}` : ""}] = ${compileExpression(
-							state,
-							params[i],
-						)}`;
-					}
-
+				if (numParams <= 2) {
+					const firstParam = params[1];
+					let accessor = `#${accessPath}${firstParam ? " + 1" : ""}`;
 					if (isStatement) {
-						return (
-							lastStatement ||
-							state
-								.getCurrentPrecedingStatementContext(node)
-								// just returns finalLength from above
-								.pop()!
-								// removes ;\n from the back
-								.slice(0, -2)
-						);
+						return firstParam
+							? `${accessPath}[${accessor}] = ${compileExpression(state, firstParam)}`
+							: `local _ = ${accessor}`;
 					} else {
-						if (lastStatement) {
-							state.pushPrecedingStatements(node, state.indent + lastStatement + ";\n");
+						accessor = state.pushToDeclarationOrNewId(node, accessor);
+
+						if (firstParam) {
+							state.pushPrecedingStatements(
+								subExp,
+								state.indent +
+									`${accessPath}[${accessor}] = ${compileExpression(state, firstParam)};\n`,
+							);
 						}
-						return finalLength;
+
+						return accessor;
 					}
+				} else {
+					state.usesTSLibrary = true;
+					return `TS.array_push_stack(${accessPath}, ${compileList(state, params.slice(1)).join(", ")})`;
 				}
 			}
 		},
@@ -752,21 +741,23 @@ export function compileCallArgumentsAndJoin(state: CompilerState, args: Array<ts
 	return compileCallArguments(state, args, extraParameter).join(", ");
 }
 
+function checkNonImportExpression(exp: ts.LeftHandSideExpression) {
+	if (ts.TypeGuards.isImportExpression(exp)) {
+		throw new CompilerError(
+			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
+			exp,
+			CompilerErrorType.NoDynamicImport,
+		);
+	}
+	return exp;
+}
+
 export function compileCallExpression(
 	state: CompilerState,
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
-	const exp = node.getExpression();
-	if (exp.getKindName() === "ImportKeyword") {
-		throw new CompilerError(
-			"Dynamic import expressions are not supported! Use 'require()' instead and assert the type.",
-			node,
-			CompilerErrorType.NoDynamicImport,
-		);
-	}
-	checkNonAny(exp);
-
+	const exp = checkNonAny(checkNonImportExpression(node.getExpression()));
 	let result: string;
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
@@ -789,6 +780,24 @@ export function compileCallExpression(
 
 			if (str) {
 				return str;
+			}
+		}
+
+		if (ts.TypeGuards.isIdentifier(exp)) {
+			for (const def of exp.getDefinitions()) {
+				const definitionParent = def.getNode().getParent();
+				if (
+					definitionParent &&
+					ts.TypeGuards.isFunctionExpression(definitionParent) &&
+					isFunctionExpressionMethod(definitionParent)
+				) {
+					const alternative = "this." + (definitionParent.getParent() as ts.PropertyAssignment).getName();
+					throw new CompilerError(
+						`Cannot call local function expression \`${exp.getText()}\` (this is a foot-gun). Prefer \`${alternative}\``,
+						exp,
+						CompilerErrorType.BadFunctionExpressionMethodCall,
+					);
+				}
 			}
 		}
 
@@ -912,6 +921,18 @@ export function getPropertyAccessExpressionType(
 	return PropertyCallExpType.None;
 }
 
+function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
+	const symbol = t.getSymbol();
+	if (symbol === undefined) {
+		throw new CompilerError(
+			`Attempt to call non-method \`${node.getText()}\``,
+			node,
+			CompilerErrorType.BadMethodCall,
+		);
+	}
+	return symbol;
+}
+
 export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
 	const expression = getNonNullExpressionDownwards(node.getExpression());
 	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
@@ -979,17 +1000,8 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 
 	const expType = expression.getType();
 
-	if (expType.getSymbol() === undefined) {
-		throw new CompilerError(
-			`Attempt to call non-method \`${node.getText()}\``,
-			expression,
-			CompilerErrorType.BadMethodCall,
-		);
-	}
-
 	const allMethods = typeConstraint(expType, t =>
-		t
-			.getSymbolOrThrow()
+		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
 				if (ts.TypeGuards.isParameteredNode(dec)) {
@@ -1003,7 +1015,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 						}
 					}
 				}
-				if (ts.TypeGuards.isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
+				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
 					return true;
 				}
 				return false;
@@ -1011,8 +1023,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 	);
 
 	const allCallbacks = typeConstraint(expType, t =>
-		t
-			.getSymbolOrThrow()
+		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
 				if (ts.TypeGuards.isParameteredNode(dec)) {
@@ -1030,7 +1041,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 				if (
 					ts.TypeGuards.isFunctionTypeNode(dec) ||
 					ts.TypeGuards.isPropertySignature(dec) ||
-					ts.TypeGuards.isFunctionExpression(dec) ||
+					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
 					ts.TypeGuards.isArrowFunction(dec) ||
 					ts.TypeGuards.isFunctionDeclaration(dec)
 				) {
@@ -1054,21 +1065,6 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		}
 	} else if (!allMethods && allCallbacks) {
 		sep = ".";
-
-		// If it is an Enum, make it a method. We have to manually check because Enums are implemented via namespaces
-		let [firstParam] = params;
-		while (ts.TypeGuards.isPropertyAccessExpression(firstParam)) {
-			firstParam = firstParam.getExpression();
-		}
-
-		if (ts.TypeGuards.isIdentifier(firstParam)) {
-			for (const def of firstParam.getDefinitions()) {
-				const definition = def.getNode();
-				if (definition.getSourceFile().getBaseName() === "generated_enums.d.ts") {
-					sep = ":";
-				}
-			}
-		}
 	} else {
 		// mixed methods and callbacks
 		throw new CompilerError(
@@ -1076,6 +1072,10 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 			node,
 			CompilerErrorType.MixedMethodCall,
 		);
+	}
+
+	if (shouldWrapExpression(params[0], false)) {
+		accessedPath = `(${accessedPath})`;
 	}
 
 	return `${accessedPath}${sep}${property}(${paramsStr})`;

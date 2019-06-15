@@ -184,7 +184,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				node,
 				CompilerErrorType.GettersSettersDisallowed,
 			);
-		} else if (prop.getParent()! === node) {
+		}
+
+		if (prop.getParent()! === node) {
 			const propNameNode = prop.getNameNode();
 
 			if (propNameNode) {

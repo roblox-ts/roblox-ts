@@ -26,6 +26,61 @@ export = () => {
 
 		expect((arr[f()] *= ++x)).to.equal(8);
 		expect(x).to.equal(2);
+
+		let numCalls = 0;
+		function g(): { [k: number]: number } {
+			return { [2]: ++numCalls };
+		}
+
+		let i = 2;
+		expect((g()[i++] *= i)).to.equal(3);
+		expect(numCalls).to.equal(1);
+
+		i = 0;
+		expect(({ [++i]: ++i }[i++ - 1] *= ++i)).to.equal(8);
+
+		{
+			{
+				{
+					let i = 0;
+					expect(
+						{
+							jk: {
+								o: 3,
+								b: i++,
+								a4: { 2: i, k: 4 },
+
+								g() {
+									this.b++;
+								},
+
+								no: function() {
+									return (this[5] *= 7);
+								},
+
+								5: 3,
+							},
+						}.jk.no(),
+					).to.equal(21);
+
+					expect(
+						{
+							o: 8,
+							a() {
+								++this.o;
+								return this;
+							},
+
+							e() {
+								return ++this.o;
+							},
+						}
+							.a()
+							.e(),
+					).to.equal(10);
+				}
+			}
+		}
 	});
 
 	it("should push WritableOperandNames", () => {

@@ -1,22 +1,28 @@
 import * as ts from "ts-morph";
 import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionUpwards, suggest } from "../utility";
+import { inheritsFrom, isTupleType } from "../typeUtilities";
+import { getNonNullUnParenthesizedExpressionUpwards, joinIndentedLines, suggest } from "../utility";
 import { compileCallArguments } from "./call";
+import { getReadableExpressionName } from "./indexed";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
 		const [key, value] = compileCallArguments(state, element.getElements());
 		return `[${key}] = ${value};\n`;
-	} else {
-		throw new CompilerError(
-			"Bad arguments to Map constructor",
+	} else if (ts.TypeGuards.isCallExpression(element) && isTupleType(element.getReturnType())) {
+		const key = state.getNewId();
+		const value = state.getNewId();
+		state.pushPrecedingStatementToNewId(
 			element,
-			CompilerErrorType.BadBuiltinConstructorCall,
-			true,
+			compileExpression(state, element).slice(2, -2),
+			`${key}, ${value}`,
 		);
+		return `[${key}] = ${value};\n`;
+	} else {
+		const id = getReadableExpressionName(state, element, compileExpression(state, element));
+		return `[${id}[1]] = ${id}[2];\n`;
 	}
 }
 
@@ -25,19 +31,24 @@ function compileSetElement(state: CompilerState, element: ts.Expression) {
 	return `[${key}] = true;\n`;
 }
 
-const compileMapSetElement = new Map<"set" | "map", (state: CompilerState, element: ts.Expression) => string>([
-	["map", compileMapElement],
-	["set", compileSetElement],
+const compileMapSetElement = new Map<
+	"set" | "map",
+	{ addMethodName: string; compile: (state: CompilerState, element: ts.Expression) => string }
+>([
+	["map", { compile: compileMapElement, addMethodName: "set" }],
+	["set", { compile: compileSetElement, addMethodName: "add" }],
 ]);
-
-const addKeyMethodNames = new Map<"set" | "map", "add" | "set">([["map", "set"], ["set", "add"]]);
 
 function compileSetMapConstructorHelper(
 	state: CompilerState,
 	node: ts.NewExpression,
 	args: Array<ts.Expression>,
 	type: "set" | "map",
+	mode: "" | "k" | "v" | "kv" = "",
 ) {
+	const preDeclaration = mode ? "setmetatable(" : "";
+	const postDeclaration = mode ? `, { __mode = "${mode}" })` : "";
+
 	const typeArgument = node.getType().getTypeArguments()[0];
 
 	if (typeArgument.isNullable() || typeArgument.isUndefined()) {
@@ -50,31 +61,40 @@ function compileSetMapConstructorHelper(
 
 	const firstParam = args[0];
 
+	let exp: ts.Node = node;
+	let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
+	const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
+
+	while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
+		const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
+		if (ts.TypeGuards.isCallExpression(grandparent)) {
+			exp = grandparent;
+			parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
+		} else {
+			break;
+		}
+	}
+
+	const pushCondition = ts.TypeGuards.isNewExpression(exp)
+		? () => true
+		: (declaration: DeclarationContext) => declaration.isIdentifier;
+
 	if (
 		firstParam &&
 		(!ts.TypeGuards.isArrayLiteralExpression(firstParam) ||
 			firstParam.getChildrenOfKind(ts.SyntaxKind.SpreadElement).length > 0)
 	) {
 		state.usesTSLibrary = true;
-		return `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})`;
+		const id = state.pushToDeclarationOrNewId(
+			exp,
+			preDeclaration + `TS.${type}_new(${compileCallArgumentsAndJoin(state, args)})` + postDeclaration,
+			pushCondition,
+		);
+		return id;
 	} else {
 		let id = "";
 		const lines = new Array<string>();
 		let hasContext = false;
-
-		const compileElement = compileMapSetElement.get(type)!;
-
-		let exp: ts.Node = node;
-		let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
-		const addMethodName = addKeyMethodNames.get(type)!;
-
-		while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
-			const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
-			if (ts.TypeGuards.isCallExpression(grandparent)) {
-				exp = grandparent;
-				parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
-			}
-		}
 
 		if (firstParam) {
 			for (const element of firstParam.getElements()) {
@@ -84,12 +104,17 @@ function compileSetMapConstructorHelper(
 					state.enterPrecedingStatementContext();
 					const line = compileElement(state, element);
 					const context = state.exitPrecedingStatementContext();
+
 					if (context.length > 0) {
 						hasContext = true;
-						id = state.pushToDeclarationOrNewId(exp, "{}", declaration => declaration.isIdentifier);
+						id = state.pushToDeclarationOrNewId(
+							exp,
+							preDeclaration + "{}" + postDeclaration,
+							declaration => declaration.isIdentifier,
+						);
 						state.pushPrecedingStatements(
 							exp,
-							...lines.map(current => id + current),
+							...lines.map(current => state.indent + id + current),
 							...context,
 							state.indent + id + line,
 						);
@@ -104,13 +129,20 @@ function compileSetMapConstructorHelper(
 			id = state.pushToDeclarationOrNewId(
 				exp,
 				lines.length === 0
-					? "{}"
-					: lines.reduce((result, line) => result + state.indent + "\t" + line, "{\n") + state.indent + "}",
-				ts.TypeGuards.isNewExpression(exp) ? () => true : declaration => declaration.isIdentifier,
+					? preDeclaration + "{}" + postDeclaration
+					: preDeclaration +
+							lines.reduce(
+								(result, line) => result + state.indent + joinIndentedLines([line], 1),
+								"{\n",
+							) +
+							state.indent +
+							"}" +
+							postDeclaration,
+
+				pushCondition,
 			);
 		}
 
-		state.getCurrentPrecedingStatementContext(node).isPushed = true;
 		return id;
 	}
 }
@@ -188,11 +220,19 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	}
 
 	if (inheritsFrom(expressionType, "WeakMapConstructor")) {
-		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "map")}, { __mode = "k" })`;
+		return appendDeclarationIfMissing(
+			state,
+			node.getParent(),
+			compileSetMapConstructorHelper(state, node, args, "map", "k"),
+		);
 	}
 
 	if (inheritsFrom(expressionType, "WeakSetConstructor")) {
-		return `setmetatable(${compileSetMapConstructorHelper(state, node, args, "set")}, { __mode = "k" })`;
+		return appendDeclarationIfMissing(
+			state,
+			node.getParent(),
+			compileSetMapConstructorHelper(state, node, args, "set", "k"),
+		);
 	}
 
 	return `${name}.new(${compileCallArgumentsAndJoin(state, args)})`;

@@ -36,6 +36,22 @@ export = () => {
 		expect(b).to.equal(3);
 		expect(c).to.equal(3);
 		expect(d).to.equal(3);
+
+		function f<T extends 0 | 1 | 2 | number>(v: T) {
+			let a = [];
+			a[v] = 3; // shouldn't make a compiler error
+		}
+
+		enum Foo {
+			A,
+			B,
+			C,
+		}
+
+		function g<T extends Foo>(v: T) {
+			const a = [];
+			a[v] = 3; // shouldn't make a compiler error
+		}
 	});
 
 	it("should support.size()", () => {
@@ -67,6 +83,16 @@ export = () => {
 		expect(noodle.strings[1]).to.equal("Spaghetti");
 		expect(noodle.strings[2]).to.equal("Lasagna");
 		expect(noodle.strings[3]).to.equal("Penne");
+
+		let arr = [0];
+		arr.push(1, 2, arr[1]);
+
+		expect(arr[0]).to.equal(0);
+		expect(arr[1]).to.equal(1);
+		expect(arr[2]).to.equal(2);
+		expect(arr[3]).to.equal(undefined);
+
+		expect([1, 2].push()).to.equal(2);
 	});
 
 	it("should support pop", () => {

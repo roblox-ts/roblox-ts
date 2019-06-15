@@ -380,7 +380,7 @@ TS.Object_toString = toString
 -- string macro functions
 function TS.string_find_wrap(a, b, ...)
 	if a then
-		return a + 1, b + 1, ...
+		return a - 1, b - 1, ...
 	end
 end
 
@@ -670,6 +670,15 @@ local function array_push_apply(list, ...)
 end
 
 TS.array_push_apply = array_push_apply
+
+function TS.array_push_stack(list, ...)
+	local len = #list
+	local len2 = select("#", ...)
+	for i = 1, len2 do
+		list[len + i] = select(i, ...)
+	end
+	return len + len2
+end
 
 function TS.array_concat(...)
 	local result = {}

@@ -79,6 +79,8 @@ export enum CompilerErrorType {
 	BadMethodCall,
 	BadClassExtends,
 	GettersSettersDisallowed,
+	BadFunctionExpressionMethodCall,
+	BadObjectPropertyType,
 }
 
 export class CompilerError extends Error {
