@@ -43,6 +43,63 @@ const LUA_RESERVED_METAMETHODS = [
 
 const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
 
+function compileClassProperty(
+	state: CompilerState,
+	prop: ts.PropertyDeclaration | ts.ParameterDeclaration,
+	name: string,
+	precedingStatementContext: Array<string>,
+) {
+	const propNameNode = prop.getNameNode();
+
+	if (propNameNode) {
+		let propStr: string;
+		if (ts.TypeGuards.isIdentifier(propNameNode)) {
+			const propName = propNameNode.getText();
+			propStr = "." + propName;
+			checkMethodReserved(propName, prop);
+		} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
+			const expStr = compileExpression(state, propNameNode);
+			checkMethodReserved(propNameNode.getLiteralText(), prop);
+			propStr = `[${expStr}]`;
+		} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
+			const expStr = compileExpression(state, propNameNode);
+			propStr = `[${expStr}]`;
+		} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
+			// ComputedPropertyName
+			const computedExp = propNameNode.getExpression();
+			if (ts.TypeGuards.isStringLiteral(computedExp)) {
+				checkMethodReserved(computedExp.getLiteralText(), prop);
+			}
+			const computedExpStr = compileExpression(state, computedExp);
+			propStr = `[${computedExpStr}]`;
+		} else {
+			throw new CompilerError(
+				`Unexpected prop type ${prop.getKindName()} in compileClass`,
+				prop,
+				CompilerErrorType.UnexpectedPropType,
+				true,
+			);
+		}
+
+		if (ts.TypeGuards.isInitializerExpressionableNode(prop) && prop.hasInitializer()) {
+			const initializer = prop.getInitializer()!;
+			state.enterPrecedingStatementContext(precedingStatementContext);
+			const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
+			state.declarationContext.set(fullInitializer, {
+				isIdentifier: false,
+				set: `${name}${propStr}`,
+			});
+			const expStr = compileExpression(state, initializer);
+			state.exitPrecedingStatementContext();
+			if (state.declarationContext.delete(fullInitializer)) {
+				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
+			}
+		} else {
+			precedingStatementContext.push(state.indent, name, propStr, " = nil;\n");
+		}
+	}
+}
+
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
 	methodName: string,
@@ -190,55 +247,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 		// @ts-ignore
 		if (prop.getParent() === node) {
-			const propNameNode = prop.getNameNode();
-
-			if (propNameNode) {
-				let propStr: string;
-				if (ts.TypeGuards.isIdentifier(propNameNode)) {
-					const propName = propNameNode.getText();
-					propStr = "." + propName;
-					checkMethodReserved(propName, prop);
-				} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-					const expStr = compileExpression(state, propNameNode);
-					checkMethodReserved(propNameNode.getLiteralText(), prop);
-					propStr = `[${expStr}]`;
-				} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-					const expStr = compileExpression(state, propNameNode);
-					propStr = `[${expStr}]`;
-				} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
-					// ComputedPropertyName
-					const computedExp = propNameNode.getExpression();
-					if (ts.TypeGuards.isStringLiteral(computedExp)) {
-						checkMethodReserved(computedExp.getLiteralText(), prop);
-					}
-					const computedExpStr = compileExpression(state, computedExp);
-					propStr = `[${computedExpStr}]`;
-				} else {
-					throw new CompilerError(
-						`Unexpected prop type ${prop.getKindName()} in compileClass`,
-						prop,
-						CompilerErrorType.UnexpectedPropType,
-						true,
-					);
-				}
-
-				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-					const initializer = prop.getInitializer();
-					if (initializer) {
-						state.enterPrecedingStatementContext(extraInitializers);
-						const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-						state.declarationContext.set(fullInitializer, {
-							isIdentifier: false,
-							set: `self${propStr}`,
-						});
-						const expStr = compileExpression(state, initializer);
-						state.exitPrecedingStatementContext();
-						if (state.declarationContext.delete(fullInitializer)) {
-							extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
-						}
-					}
-				}
-			}
+			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}
 	state.popIndent();
@@ -286,41 +295,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				CompilerErrorType.GettersSettersDisallowed,
 			);
 		}
-		const propNameNode = prop.getNameNode();
-		if (propNameNode) {
-			let propStr: string;
-			if (ts.TypeGuards.isIdentifier(propNameNode)) {
-				const propName = propNameNode.getText();
-				propStr = "." + propName;
-				checkMethodReserved(propName, prop);
-			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				checkMethodReserved(propNameNode.getLiteralText(), prop);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				propStr = `[${expStr}]`;
-			} else {
-				// ComputedPropertyName
-				const computedExp = propNameNode.getExpression();
-				if (ts.TypeGuards.isStringLiteral(computedExp)) {
-					checkMethodReserved(computedExp.getLiteralText(), prop);
-				}
-				const computedExpStr = compileExpression(state, computedExp);
-				propStr = `[${computedExpStr}]`;
-			}
-
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					state.enterPrecedingStatementContext();
-					propValue = compileExpression(state, initializer);
-					results.push(state.exitPrecedingStatementContextAndJoin());
-				}
-			}
-			results.push(state.indent, name, propStr, " = ", propValue, ";\n");
-		}
+		compileClassProperty(state, prop, name, results);
 	}
 
 	if (isExpression) {
