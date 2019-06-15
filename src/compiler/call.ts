@@ -945,7 +945,7 @@ export function compileElementAccessCallExpression(
 ) {
 	const expExp = getNonNullExpressionDownwards(expression.getExpression());
 	const accessor = getReadableExpressionName(state, expExp);
-	const property = compileElementAccessDataTypeExpression(state, expression, accessor)(
+	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
 		compileElementAccessBracketExpression(state, expression),
 	);
 	const params = node.getArguments() as Array<ts.Expression>;
@@ -1002,9 +1002,8 @@ export function compileElementAccessCallExpression(
 			}),
 	);
 
-	let accessedPath: string;
-	let paramsStr: string;
-	[accessedPath, paramsStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
+	let paramsStr = compileCallArgumentsAndJoin(state, params);
+
 	if (allMethods && !allCallbacks) {
 		if (ts.TypeGuards.isSuperExpression(expExp)) {
 			accessedPath = "super.__index";
@@ -1024,7 +1023,7 @@ export function compileElementAccessCallExpression(
 		accessedPath = `(${accessedPath})`;
 	}
 
-	return `${property}(${paramsStr})`;
+	return `${accessedPath}(${paramsStr})`;
 }
 
 export function compilePropertyCallExpression(
