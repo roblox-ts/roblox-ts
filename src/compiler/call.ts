@@ -944,7 +944,10 @@ export function compileElementAccessCallExpression(
 	expression: ts.ElementAccessExpression,
 ) {
 	const expExp = getNonNullExpressionDownwards(expression.getExpression());
-	const accessor = getReadableExpressionName(state, expExp);
+	const accessor = ts.TypeGuards.isSuperExpression(expExp)
+		? "super.__index"
+		: getReadableExpressionName(state, expExp);
+
 	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
 		compileElementAccessBracketExpression(state, expression),
 	);
@@ -1005,9 +1008,6 @@ export function compileElementAccessCallExpression(
 	let paramsStr = compileCallArgumentsAndJoin(state, params);
 
 	if (allMethods && !allCallbacks) {
-		if (ts.TypeGuards.isSuperExpression(expExp)) {
-			accessedPath = "super.__index";
-		}
 		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
 	} else if (!allMethods && allCallbacks) {
 	} else {
@@ -1151,6 +1151,11 @@ export function compilePropertyCallExpression(
 		}
 	} else if (!allMethods && allCallbacks) {
 		sep = ".";
+
+		// In regular JS, this will fail instead of correctly drawing from `self` instead.
+		if (ts.TypeGuards.isSuperExpression(params[0])) {
+			accessedPath = "self";
+		}
 	} else {
 		// mixed methods and callbacks
 		throw new CompilerError(
