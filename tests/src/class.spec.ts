@@ -216,4 +216,23 @@ export = () => {
 		expect(foo instanceof Foo).to.equal(true);
 		expect(foo.bar).to.equal(1);
 	});
+
+	it("should support computed element access methods", () => {
+		let i = 0;
+		new (class Boat extends class Goat {
+			[key: number]: () => number;
+
+			public [++i]() {
+				return 5;
+			}
+		} {
+			public [i]() {
+				return 10;
+			}
+			public f(s: string, b?: boolean) {
+				expect(super[i]()).to.equal(5);
+				expect(this[i]()).to.equal(10);
+			}
+		})().f("Go!");
+	});
 };

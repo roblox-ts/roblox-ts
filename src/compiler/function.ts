@@ -108,7 +108,9 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 }
 
 function canSugaryCompileFunction(node: HasParameters) {
-	if (ts.TypeGuards.isConstructorDeclaration(node)) {
+	if (node.getSourceFile().getExtension() === "tsx") {
+		return false;
+	} else if (ts.TypeGuards.isConstructorDeclaration(node)) {
 		return true;
 	} else if (ts.TypeGuards.isFunctionDeclaration(node) || ts.TypeGuards.isMethodDeclaration(node)) {
 		const nameNode = node.getNameNode();
