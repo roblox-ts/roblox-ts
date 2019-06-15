@@ -3,3 +3,4 @@
 	const i: "isEmpty" = "isEmpty";
 	const { [i]: d } = arr;
 }
+export {};

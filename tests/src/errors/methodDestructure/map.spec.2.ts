@@ -5,3 +5,4 @@
 	const b = arr["isEmpty"];
 	// tslint:enable
 }
+export {};

@@ -333,6 +333,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.BadFunctionExpressionMethodCall,
 	},
+	"superCallback.spec.ts": {
+		message: "should not allow super callback calls!",
+		instance: CompilerError,
+		type: CompilerErrorType.BadSuperCall,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
