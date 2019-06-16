@@ -947,23 +947,10 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 	}
 	return symbol;
 }
-export function compileElementAccessCallExpression(
-	state: CompilerState,
-	node: ts.CallExpression,
-	expression: ts.ElementAccessExpression,
-) {
-	const expExp = getNonNullExpressionDownwards(expression.getExpression());
-	const accessor = ts.TypeGuards.isSuperExpression(expExp)
-		? "super.__index"
-		: getReadableExpressionName(state, expExp);
 
-	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
-		compileElementAccessBracketExpression(state, expression),
-	);
-	const params = node.getArguments() as Array<ts.Expression>;
-	const expType = expression.getType();
-
-	const allMethods = typeConstraint(expType, t =>
+function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAccessExpression) {
+	const type = node.getType();
+	const allMethods = typeConstraint(type, t =>
 		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
@@ -985,7 +972,7 @@ export function compileElementAccessCallExpression(
 			}),
 	);
 
-	const allCallbacks = typeConstraint(expType, t =>
+	const allCallbacks = typeConstraint(type, t =>
 		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
@@ -1013,6 +1000,25 @@ export function compileElementAccessCallExpression(
 				return false;
 			}),
 	);
+
+	return [allMethods, allCallbacks];
+}
+
+export function compileElementAccessCallExpression(
+	state: CompilerState,
+	node: ts.CallExpression,
+	expression: ts.ElementAccessExpression,
+) {
+	const expExp = getNonNullExpressionDownwards(expression.getExpression());
+	const accessor = ts.TypeGuards.isSuperExpression(expExp)
+		? "super.__index"
+		: getReadableExpressionName(state, expExp);
+
+	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
+		compileElementAccessBracketExpression(state, expression),
+	);
+	const params = node.getArguments() as Array<ts.Expression>;
+	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
 
 	let paramsStr = compileCallArgumentsAndJoin(state, params);
 
@@ -1093,58 +1099,7 @@ export function compilePropertyCallExpression(
 		}
 	}
 
-	const expType = expression.getType();
-
-	const allMethods = typeConstraint(expType, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return false;
-						} else {
-							return true;
-						}
-					}
-				}
-				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
-					return true;
-				}
-				return false;
-			}),
-	);
-
-	const allCallbacks = typeConstraint(expType, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return true;
-						} else {
-							return false;
-						}
-					}
-				}
-
-				if (
-					ts.TypeGuards.isFunctionTypeNode(dec) ||
-					ts.TypeGuards.isPropertySignature(dec) ||
-					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
-					ts.TypeGuards.isArrowFunction(dec) ||
-					ts.TypeGuards.isFunctionDeclaration(dec)
-				) {
-					return true;
-				}
-				return false;
-			}),
-	);
+	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
 
 	let accessedPath: string;
 	let paramsStr: string;
