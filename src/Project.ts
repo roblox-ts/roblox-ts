@@ -18,7 +18,6 @@ const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
-const PLAYGROUND_FILE_NAME = "playground.ts";
 
 const IGNORED_DIAGNOSTIC_CODES = [
 	2688, // "Cannot find type definition file for '{0}'."
@@ -611,19 +610,29 @@ export class Project {
 		);
 	}
 
+	private virtualFileNum = 1;
 	public compileSource(source: string) {
-		const existing = this.project.getSourceFile(PLAYGROUND_FILE_NAME);
-		if (existing) {
-			this.project.removeSourceFile(existing);
-		}
-		const sourceFile = this.project.createSourceFile(PLAYGROUND_FILE_NAME, source);
+		const sourceFile = this.project.createSourceFile(`file_${this.virtualFileNum++}.ts`, source);
 
+		let exception: Error | undefined;
+		let compiledSource = "";
+		try {
+			compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+		} catch (e) {
+			exception = e;
+		}
 		const errors = this.getDiagnosticErrors([sourceFile]);
+		sourceFile.deleteImmediately();
+
 		if (errors.length > 0) {
 			throw new DiagnosticError(errors);
 		}
 
-		return compileSourceFile(this.createCompilerState(), sourceFile);
+		if (exception) {
+			throw exception;
+		}
+
+		return compiledSource;
 	}
 
 	private async getEmittedDtsFiles() {
