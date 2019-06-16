@@ -69,7 +69,7 @@ export enum CompilerErrorType {
 	BadLuaTupleStatement,
 	UnexpectedPropType,
 	GlobalThis,
-	StaticNew,
+	BadStaticMethod,
 	BadRojo,
 	BadPackageScope,
 	LuaTupleInConditional,
@@ -81,6 +81,7 @@ export enum CompilerErrorType {
 	BadFunctionExpressionMethodCall,
 	BadObjectPropertyType,
 	BadSuperCall,
+	DefaultIteratorOnArrayExtension,
 }
 
 export class CompilerError extends Error {

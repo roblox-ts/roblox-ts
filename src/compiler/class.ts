@@ -136,6 +136,22 @@ function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	}
 }
 
+function checkDefaultIterator<
+	T extends ts.PropertyDeclaration | ts.ParameterDeclaration | ts.MethodDeclaration | ts.ClassStaticPropertyTypes
+>(extendsArray: boolean, prop: T) {
+	if (extendsArray && prop.getName() === "[Symbol.iterator]") {
+		// This check is sufficient because TS only considers something as having an iterator when it is
+		// literally `Symbol.iterator`. At present, writing Symbol or Symbol.iterator to another variable
+		// is not considered valid by TS
+		throw new CompilerError(
+			`Cannot declare [Symbol.iterator] on class which extends from Array<T>`,
+			prop,
+			CompilerErrorType.DefaultIteratorOnArrayExtension,
+		);
+	}
+	return prop;
+}
+
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
@@ -187,8 +203,11 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(state.indent + `do\n`);
 	state.pushIndent();
 
+	let extendsArray = false;
+
 	if (extendExp) {
 		const extendExpExp = extendExp.getExpression();
+		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
 
 		if (superExpressionClassInheritsFromSetOrMap(extendExpExp)) {
@@ -220,13 +239,16 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	for (const method of node.getStaticMethods()) {
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
+
 			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
 				throw new CompilerError(
 					`Cannot make a static method with name "${methodName}"!`,
 					method,
-					CompilerErrorType.StaticNew,
+					CompilerErrorType.BadStaticMethod,
 				);
 			}
+
+			checkDefaultIterator(extendsArray, method);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
@@ -248,7 +270,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extraInitializers = new Array<string>();
 
 	for (let prop of node.getInstanceProperties()) {
-		prop = nonGetterOrSetter(prop);
+		prop = nonGetterOrSetter(checkDefaultIterator(extendsArray, prop));
 
 		// @ts-ignore
 		if (prop.getParent() === node) {
@@ -258,6 +280,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	state.popIndent();
 
 	for (const method of node.getInstanceMethods()) {
+		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
@@ -292,7 +315,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
-		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
+		compileClassProperty(state, nonGetterOrSetter(checkDefaultIterator(extendsArray, prop)), name, results);
 	}
 
 	if (isExpression) {
