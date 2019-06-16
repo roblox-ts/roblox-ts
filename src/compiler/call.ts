@@ -781,7 +781,8 @@ export function compileCallExpression(
 						CompilerErrorType.SuperArrayCall,
 					);
 				}
-				return "nil";
+
+				return ts.TypeGuards.isExpressionStatement(node.getParent()) ? "" : "nil";
 			} else {
 				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
 			}

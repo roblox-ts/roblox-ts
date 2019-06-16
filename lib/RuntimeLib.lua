@@ -53,7 +53,6 @@ end
 
 TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
-TS.Symbol.iterator = TS.Symbol_iterator
 
 -- module resolution
 local globalModules = script.Parent:FindFirstChild("node_modules")
