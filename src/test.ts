@@ -298,10 +298,65 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
+	"extendedMapClass.spec.ts": {
+		message: "should not allow creating classes which extend Map",
+		instance: CompilerError,
+		type: CompilerErrorType.BadClassExtends,
+	},
+	"extendedSetClass.spec.ts": {
+		message: "should not allow creating classes which extend Set",
+		instance: CompilerError,
+		type: CompilerErrorType.BadClassExtends,
+	},
+	"getters.spec.ts": {
+		message: "should not allow getters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
+	"setters.spec.ts": {
+		message: "should not allow setters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
+	"staticGetters.spec.ts": {
+		message: "should not allow getters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
+	"staticSetters.spec.ts": {
+		message: "should not allow setters",
+		instance: CompilerError,
+		type: CompilerErrorType.GettersSettersDisallowed,
+	},
 	"funcExpMethodCall.spec.ts": {
 		message: "should not allow calling from function method expressions",
 		instance: CompilerError,
 		type: CompilerErrorType.BadFunctionExpressionMethodCall,
+	},
+	"superCallback.spec.ts": {
+		message: "should not allow super callback calls!",
+		instance: CompilerError,
+		type: CompilerErrorType.BadSuperCall,
+	},
+	"extendArrayIterator.spec.ts": {
+		message: "should not allow Symbol.iterator on classes which extend from Array",
+		instance: CompilerError,
+		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
+	},
+	"extendArrayIterator.spec.1.ts": {
+		message: "should not allow Symbol.iterator on classes which extend from Array",
+		instance: CompilerError,
+		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
+	},
+	"extendArrayIterator.spec.2.ts": {
+		message: "should not allow Symbol.iterator on classes which extend from Array",
+		instance: CompilerError,
+		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
+	},
+	"extendArrayIterator.spec.3.ts": {
+		message: "should not allow Symbol.iterator on classes which extend from Array",
+		instance: CompilerError,
+		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

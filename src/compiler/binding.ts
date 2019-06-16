@@ -14,6 +14,7 @@ import {
 	isObjectType,
 	isSetMethodType,
 	isSetType,
+	isStringMethodType,
 	isStringType,
 } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
@@ -160,7 +161,7 @@ function objectAccessor(
 
 	if (getAccessor) {
 		const type = aliasNode.getType();
-		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type)) {
+		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type) || isStringMethodType(type)) {
 			throw new CompilerError(
 				`Cannot index method ${name} (a roblox-ts internal)`,
 				aliasNode,
@@ -281,7 +282,8 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	} else if (
 		isIterableIterator(bindingPatternType, bindingPattern) ||
 		isObjectType(bindingPatternType) ||
-		ts.TypeGuards.isThisExpression(bindingPattern)
+		ts.TypeGuards.isThisExpression(bindingPattern) ||
+		ts.TypeGuards.isSuperExpression(bindingPattern)
 	) {
 		return iterAccessor;
 	} else {

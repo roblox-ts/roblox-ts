@@ -38,6 +38,8 @@ export = () => {
 			public greet() {
 				return "Hello, " + this.greeting;
 			}
+
+			async f() {}
 		}
 
 		const artemis = new Greeter("artemis");
@@ -76,6 +78,10 @@ export = () => {
 			static bar() {
 				return "bar";
 			}
+
+			static async barf() {
+				return "barf";
+			}
 		}
 		expect(Foo.bar()).to.equal("bar");
 	});
@@ -97,32 +103,6 @@ export = () => {
 		}
 		const foo = new Foo();
 		expect(foo.bar).to.equal("baz");
-	});
-
-	it("should support getters", () => {
-		class Foo {
-			get bar() {
-				return "baz";
-			}
-		}
-		expect(new Foo().bar).to.equal("baz");
-	});
-
-	it("should support setters", () => {
-		class Foo {
-			private baz = "";
-			set bar(value: string) {
-				this.baz = value;
-			}
-			get bar() {
-				return this.baz;
-			}
-		}
-		const foo = new Foo();
-		foo.bar = "a";
-		expect(foo.bar).to.equal("a");
-		foo.bar = "b";
-		expect(foo.bar).to.equal("b");
 	});
 
 	it("should support __tostring", () => {
@@ -187,6 +167,28 @@ export = () => {
 
 		const bar = new Bar();
 		expect(bar.baz()).to.equal("AB");
+
+		class A<T> extends Array<T> {
+			constructor(s: string = "") {
+				expect(super()).to.equal(undefined);
+			}
+		}
+
+		class B<T> extends A<T> {
+			constructor() {
+				expect(super("hey")).to.equal(undefined);
+			}
+		}
+
+		class C extends class {} {
+			constructor() {
+				expect(super()).to.equal(undefined);
+			}
+		}
+
+		const a = new A();
+		const b = new B();
+		const c = new C();
 	});
 
 	it("should support class expressions", () => {
@@ -241,5 +243,58 @@ export = () => {
 		expect(foo).to.be.ok();
 		expect(foo instanceof Foo).to.equal(true);
 		expect(foo.bar).to.equal(1);
+	});
+
+	it("should support computed element access methods", () => {
+		let i = 0;
+		new (class Boat extends class Goat {
+			[key: number]: () => number;
+
+			public [++i]() {
+				return 5;
+			}
+		} {
+			public [i]() {
+				return 10;
+			}
+			public f(s: string, b?: boolean) {
+				expect(super[i]()).to.equal(5);
+				expect(this[i]()).to.equal(10);
+			}
+		})().f("Go!");
+	});
+
+	it("should support extending from Array", () => {
+		/** A very bad implementation of a SortedArray class. Just for testing purposes. */
+		class SortedArray extends Array<number> {
+			constructor(arr?: ReadonlyArray<number>) {
+				super();
+				if (arr) {
+					super.push(...arr.sort((a, b) => b - a));
+				}
+			}
+			public unshift() {
+				return error("Bad!");
+			}
+
+			public push(...args: Array<number>) {
+				let size = this.size();
+				for (const arg of args) {
+					// insert each element in place.
+					const index = this.findIndex(element => element > arg);
+					this.insert(index === -1 ? size : index, arg);
+					size++;
+				}
+				return size;
+			}
+		}
+
+		const sorted = new SortedArray([3, 2, 5, 6, 1]);
+		expect(sorted.push(7, 0, 4)).to.equal(8);
+		for (const [i, x] of sorted.entries()) {
+			expect(i).to.equal(x);
+		}
+		expect(sorted.pop()).to.equal(7);
+		expect(() => sorted.unshift()).to.throw();
 	});
 };

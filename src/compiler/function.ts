@@ -11,7 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
+import { classDeclarationInheritsFromArray, isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
 import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
@@ -21,9 +21,7 @@ export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>):
 			ts.TypeGuards.isArrowFunction(node) ||
 			ts.TypeGuards.isFunctionDeclaration(node) ||
 			ts.TypeGuards.isConstructorDeclaration(node) ||
-			ts.TypeGuards.isMethodDeclaration(node) ||
-			ts.TypeGuards.isGetAccessorDeclaration(node) ||
-			ts.TypeGuards.isSetAccessorDeclaration(node)
+			ts.TypeGuards.isMethodDeclaration(node)
 		) {
 			return node;
 		}
@@ -109,27 +107,39 @@ function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParam
 	return result;
 }
 
-function compileFunction(state: CompilerState, node: HasParameters, name: string, body: ts.Node<ts.ts.Node>) {
+function canSugaryCompileFunction(node: HasParameters) {
+	if (node.getSourceFile().getExtension() === "tsx") {
+		return false;
+	} else if (ts.TypeGuards.isConstructorDeclaration(node)) {
+		return true;
+	} else if (ts.TypeGuards.isFunctionDeclaration(node) || ts.TypeGuards.isMethodDeclaration(node)) {
+		const nameNode = node.getNameNode();
+		if (nameNode && ts.TypeGuards.isIdentifier(nameNode)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function compileFunction(
+	state: CompilerState,
+	node: HasParameters,
+	name: string,
+	body: ts.Node<ts.ts.Node>,
+	namePrefix = "",
+) {
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
 
 	getParameterData(state, paramNames, initializers, node);
-
 	checkReturnsNonAny(node);
 
-	if (
-		isMethodDeclaration(node) ||
-		ts.TypeGuards.isGetAccessorDeclaration(node) ||
-		ts.TypeGuards.isSetAccessorDeclaration(node)
-	) {
-		giveInitialSelfParameter(node, paramNames);
-	}
-
 	let result: string;
+	let frontWrap = "";
 	let backWrap = "";
-
 	let prefix = "";
+
 	if (ts.TypeGuards.isFunctionDeclaration(node)) {
 		const nameNode = node.getNameNode();
 		if (nameNode && shouldHoist(node, nameNode)) {
@@ -139,30 +149,41 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 		}
 	}
 
-	if (name) {
-		result = state.indent + prefix + name + " = ";
-		backWrap = ";\n";
-	} else {
-		result = "";
-	}
-
 	let isGenerator = false;
 
-	if (
-		!ts.TypeGuards.isGetAccessorDeclaration(node) &&
-		!ts.TypeGuards.isSetAccessorDeclaration(node) &&
-		!ts.TypeGuards.isConstructorDeclaration(node)
-	) {
+	if (!ts.TypeGuards.isConstructorDeclaration(node)) {
 		/* istanbul ignore next */
 		if (node.isAsync()) {
 			state.usesTSLibrary = true;
-			result += "TS.async(";
+			frontWrap = "TS.async(";
 			backWrap = ")" + backWrap;
 		}
 		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
-	result += "function(" + paramNames.join(", ") + ")";
+	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
+	let namePrefixEndsInColon = namePrefix.endsWith(":");
+
+	if (name) {
+		if (sugarcoat) {
+			result = state.indent + prefix;
+		} else {
+			if (namePrefix && namePrefixEndsInColon) {
+				namePrefix = namePrefix.slice(0, -1) + ".";
+				namePrefixEndsInColon = false;
+			}
+			result = state.indent + prefix + namePrefix + name + " = ";
+		}
+		backWrap += ";\n";
+	} else {
+		result = "";
+	}
+
+	if (isMethodDeclaration(node) && !namePrefixEndsInColon) {
+		giveInitialSelfParameter(node, paramNames);
+	}
+
+	result += frontWrap + "function" + (sugarcoat ? " " + namePrefix + name : "") + "(" + paramNames.join(", ") + ")";
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
@@ -186,7 +207,7 @@ function compileFunction(state: CompilerState, node: HasParameters, name: string
 	return result + "end" + backWrap;
 }
 
-function giveInitialSelfParameter(node: HasParameters, paramNames: Array<string>) {
+function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpression, paramNames: Array<string>) {
 	const parameters = node.getParameters();
 	let replacedThis = false;
 
@@ -232,18 +253,19 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 	}
 }
 
-export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration) {
+export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration, namePrefix: string) {
 	const nameNode: ts.PropertyName = node.getNameNode();
 	let name: string;
 
 	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		namePrefix = namePrefix.slice(0, -1);
 		name = `[${compileExpression(state, nameNode.getExpression())}]`;
 	} else {
 		name = compileExpression(state, nameNode);
 		checkReserved(name, node);
 	}
 
-	return compileFunction(state, node, name, node.getBodyOrThrow());
+	return compileFunction(state, node, name, node.getBodyOrThrow(), namePrefix);
 }
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
@@ -261,26 +283,27 @@ function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
 
 export function compileConstructorDeclaration(
 	state: CompilerState,
+	classExp: ts.ClassDeclaration | ts.ClassExpression,
 	className: string,
 	node?: ts.ConstructorDeclaration,
 	extraInitializers?: Array<string>,
 	hasSuper?: boolean,
 ) {
-	const paramNames = new Array<string>();
-	paramNames.push("self");
+	const paramNames = ["self"];
 	const initializers = new Array<string>();
 	const defaults = new Array<string>();
+	const inheritsFromArray = classDeclarationInheritsFromArray(classExp);
 
 	state.pushIdStack();
 	if (node) {
 		getParameterData(state, paramNames, initializers, node, defaults);
-	} else {
+	} else if (!inheritsFromArray) {
 		paramNames.push("...");
 	}
 	const paramStr = paramNames.join(", ");
 
 	let result = "";
-	result += state.indent + `${className}.constructor = function(${paramStr})\n`;
+	result += state.indent + `function ${className}.constructor(${paramStr})\n`;
 	state.pushIndent();
 
 	if (node) {
@@ -316,30 +339,17 @@ export function compileConstructorDeclaration(
 			}
 		}
 	} else {
-		if (hasSuper) {
+		if (hasSuper && !inheritsFromArray) {
 			result += state.indent + `super.constructor(self, ...);\n`;
 		}
 		if (extraInitializers) {
 			extraInitializers.forEach(initializer => (result += initializer));
 		}
 	}
-	result += state.indent + "return self;\n";
 	state.popIndent();
 	state.popIdStack();
 	result += state.indent + "end;\n";
 	return result;
-}
-
-export function compileAccessorDeclaration(
-	state: CompilerState,
-	node: ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
-	name: string,
-) {
-	const body = node.getBody();
-	if (!body) {
-		return "";
-	}
-	return compileFunction(state, node, name, body);
 }
 
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {

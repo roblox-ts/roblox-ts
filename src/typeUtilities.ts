@@ -266,8 +266,61 @@ export function getCompilerDirectiveWithLaxConstraint(
 	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
 }
 
+export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
+	for (const constructSignature of node.getType().getConstructSignatures()) {
+		const returnType = constructSignature.getReturnType();
+		if (
+			getCompilerDirectiveWithConstraint(returnType, CompilerDirective.Set) ||
+			getCompilerDirectiveWithConstraint(returnType, CompilerDirective.Map)
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
+export function superExpressionClassInheritsFromArray(node: ts.Expression, recursive = true) {
+	const type = node.getType();
+	for (const constructSignature of type.getConstructSignatures()) {
+		if (
+			getCompilerDirectiveWithConstraint(
+				constructSignature.getReturnType(),
+				CompilerDirective.Array,
+				t => t.isArray() || t.isTuple(),
+			)
+		) {
+			return true;
+		}
+	}
+
+	return recursive && inheritsFromArray(type);
+}
+
+export function classDeclarationInheritsFromArray(classExp: ts.ClassDeclaration | ts.ClassExpression) {
+	const extendsExp = classExp.getExtends();
+	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression()) : false;
+}
+
+function inheritsFromArray(type: ts.Type) {
+	const symbol = type.getSymbol();
+
+	if (symbol) {
+		for (const declaration of symbol.getDeclarations()) {
+			if (ts.TypeGuards.isClassDeclaration(declaration) && classDeclarationInheritsFromArray(declaration)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 export function isArrayTypeLax(type: ts.Type) {
-	return getCompilerDirectiveWithLaxConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+	return getCompilerDirectiveWithLaxConstraint(
+		type,
+		CompilerDirective.Array,
+		t => t.isArray() || t.isTuple() || inheritsFromArray(type),
+	);
 }
 
 export function isStringMethodType(type: ts.Type) {
@@ -275,7 +328,11 @@ export function isStringMethodType(type: ts.Type) {
 }
 
 export function isArrayType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Array, t => t.isArray() || t.isTuple());
+	return getCompilerDirectiveWithConstraint(
+		type,
+		CompilerDirective.Array,
+		t => t.isArray() || t.isTuple() || inheritsFromArray(type),
+	);
 }
 
 export function isMapType(type: ts.Type) {
@@ -428,7 +485,7 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 			return true;
 		} else if (ts.TypeGuards.isIdentifier(node) && isIdentifierDefinedInConst(node)) {
 			return true;
-		} else if (ts.TypeGuards.isThisExpression(node)) {
+		} else if (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)) {
 			return true;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(node) &&

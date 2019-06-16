@@ -6,3 +6,4 @@ class RoactClass extends Roact.Component {
 	}
 	public init() {}
 }
+export {};

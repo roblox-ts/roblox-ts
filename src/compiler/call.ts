@@ -18,12 +18,15 @@ import {
 	isStringMethodType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
+	superExpressionClassInheritsFromArray,
 	typeConstraint,
 } from "../typeUtilities";
 import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
 import { isFunctionExpressionMethod, isMethodDeclaration } from "./function";
 import {
 	addOneToArrayIndex,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
 	getReadableExpressionName,
 	isIdentifierDefinedInConst,
 	isIdentifierDefinedInExportLet,
@@ -35,6 +38,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
+		!ts.TypeGuards.isSuperExpression(subExp) &&
 		!ts.TypeGuards.isElementAccessExpression(subExp) &&
 		(strict ||
 			(!ts.TypeGuards.isCallExpression(subExp) &&
@@ -500,11 +504,12 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			let accessPath: string;
 			let paramStr: string;
 			[accessPath, paramStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
-			if (length === 1) {
-				return `#${accessPath}`;
-			} else if (length === 2) {
-				const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
+			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
 
+			if (length === 1) {
+				const result = `#${accessPath}`;
+				return isStatement ? `local _ = ${result}` : result;
+			} else if (length === 2) {
 				if (isStatement) {
 					const expStr = `table.insert(${accessPath}, 1, ${paramStr})`;
 					return expStr;
@@ -756,16 +761,31 @@ export function compileCallExpression(
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
+	// getNonNullExpressionDownwards
 	const exp = checkNonAny(checkNonImportExpression(node.getExpression()));
 	let result: string;
 
 	if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-		result = compilePropertyCallExpression(state, node);
+		result = compilePropertyCallExpression(state, node, exp);
+	} else if (ts.TypeGuards.isElementAccessExpression(exp)) {
+		result = compileElementAccessCallExpression(state, node, exp);
 	} else {
 		const params = node.getArguments() as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
-			return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
+			if (superExpressionClassInheritsFromArray(exp, false)) {
+				if (params.length > 0) {
+					throw new CompilerError(
+						"Cannot call super() with arguments when extending from Array",
+						exp,
+						CompilerErrorType.SuperArrayCall,
+					);
+				}
+
+				return ts.TypeGuards.isExpressionStatement(node.getParent()) ? "" : "nil";
+			} else {
+				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
+			}
 		}
 
 		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());
@@ -928,18 +948,104 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 	return symbol;
 }
 
-export function compilePropertyCallExpression(state: CompilerState, node: ts.CallExpression) {
-	const expression = getNonNullExpressionDownwards(node.getExpression());
-	if (!ts.TypeGuards.isPropertyAccessExpression(expression)) {
-		/* istanbul ignore next */
+function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAccessExpression) {
+	const type = node.getType();
+	const allMethods = typeConstraint(type, t =>
+		getSymbolOrThrow(node, t)
+			.getDeclarations()
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return false;
+						} else {
+							return true;
+						}
+					}
+				}
+				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
+					return true;
+				}
+				return false;
+			}),
+	);
+
+	const allCallbacks = typeConstraint(type, t =>
+		getSymbolOrThrow(node, t)
+			.getDeclarations()
+			.every(dec => {
+				if (ts.TypeGuards.isParameteredNode(dec)) {
+					const thisParam = dec.getParameter("this");
+					if (thisParam) {
+						const structure = thisParam.getStructure();
+						if (structure.type === "void") {
+							return true;
+						} else {
+							return false;
+						}
+					}
+				}
+
+				if (
+					ts.TypeGuards.isFunctionTypeNode(dec) ||
+					ts.TypeGuards.isPropertySignature(dec) ||
+					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
+					ts.TypeGuards.isArrowFunction(dec) ||
+					ts.TypeGuards.isFunctionDeclaration(dec)
+				) {
+					return true;
+				}
+				return false;
+			}),
+	);
+
+	return [allMethods, allCallbacks];
+}
+
+export function compileElementAccessCallExpression(
+	state: CompilerState,
+	node: ts.CallExpression,
+	expression: ts.ElementAccessExpression,
+) {
+	const expExp = getNonNullExpressionDownwards(expression.getExpression());
+	const accessor = ts.TypeGuards.isSuperExpression(expExp)
+		? "super.__index"
+		: getReadableExpressionName(state, expExp);
+
+	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
+		compileElementAccessBracketExpression(state, expression),
+	);
+	const params = node.getArguments() as Array<ts.Expression>;
+	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
+
+	let paramsStr = compileCallArgumentsAndJoin(state, params);
+
+	if (allMethods && !allCallbacks) {
+		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
+	} else if (!allMethods && allCallbacks) {
+	} else {
+		// mixed methods and callbacks
 		throw new CompilerError(
-			"Expected PropertyAccessExpression",
+			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 			node,
-			CompilerErrorType.ExpectedPropertyAccessExpression,
-			true,
+			CompilerErrorType.MixedMethodCall,
 		);
 	}
 
+	if (shouldWrapExpression(expExp, false)) {
+		accessedPath = `(${accessedPath})`;
+	}
+
+	return `${accessedPath}(${paramsStr})`;
+}
+
+export function compilePropertyCallExpression(
+	state: CompilerState,
+	node: ts.CallExpression,
+	expression: ts.PropertyAccessExpression,
+) {
 	checkApiAccess(state, expression.getNameNode());
 
 	const property = expression.getName();
@@ -993,58 +1099,7 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		}
 	}
 
-	const expType = expression.getType();
-
-	const allMethods = typeConstraint(expType, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return false;
-						} else {
-							return true;
-						}
-					}
-				}
-				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
-					return true;
-				}
-				return false;
-			}),
-	);
-
-	const allCallbacks = typeConstraint(expType, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return true;
-						} else {
-							return false;
-						}
-					}
-				}
-
-				if (
-					ts.TypeGuards.isFunctionTypeNode(dec) ||
-					ts.TypeGuards.isPropertySignature(dec) ||
-					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
-					ts.TypeGuards.isArrowFunction(dec) ||
-					ts.TypeGuards.isFunctionDeclaration(dec)
-				) {
-					return true;
-				}
-				return false;
-			}),
-	);
+	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
 
 	let accessedPath: string;
 	let paramsStr: string;
@@ -1060,6 +1115,14 @@ export function compilePropertyCallExpression(state: CompilerState, node: ts.Cal
 		}
 	} else if (!allMethods && allCallbacks) {
 		sep = ".";
+
+		if (ts.TypeGuards.isSuperExpression(params[0])) {
+			throw new CompilerError(
+				`\`super.${property}\` is not a real method! Prefer \`this.${property}\` instead.`,
+				params[0],
+				CompilerErrorType.BadSuperCall,
+			);
+		}
 	} else {
 		// mixed methods and callbacks
 		throw new CompilerError(
