@@ -38,6 +38,8 @@ export = () => {
 			public greet() {
 				return "Hello, " + this.greeting;
 			}
+
+			async f() {}
 		}
 
 		const artemis = new Greeter("artemis");
@@ -75,6 +77,10 @@ export = () => {
 		class Foo {
 			static bar() {
 				return "bar";
+			}
+
+			static async barf() {
+				return "barf";
 			}
 		}
 		expect(Foo.bar()).to.equal("bar");

@@ -59,6 +59,19 @@ export = () => {
 			},
 		};
 		expect(foo.bar()).to.equal(foo.baz);
+
+		let i = 0;
+		const o = {
+			count: 1,
+			async [++i]() {},
+			[++i]: () => 1,
+			async [`${++i}`]() {},
+			async [++i]() {},
+			[++i]: () => 1,
+			async [`${++i}`]() {},
+			f() {},
+			async g() {},
+		}.f();
 	});
 
 	it("should support object spread", () => {
