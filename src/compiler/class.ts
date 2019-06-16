@@ -129,6 +129,19 @@ function getClassMethod(
 	return undefined;
 }
 
+function checkDecorators(
+	node:
+		| ts.ClassDeclaration
+		| ts.ClassExpression
+		| ts.ClassStaticPropertyTypes
+		| ts.MethodDeclaration
+		| ts.ClassInstancePropertyTypes,
+) {
+	if (node.getDecorators().length > 1) {
+		throw new CompilerError("Decorators are not yet implemented!", node, CompilerErrorType.Decorator);
+	}
+}
+
 // TODO: remove
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
@@ -149,7 +162,6 @@ function checkDefaultIterator<
 			CompilerErrorType.DefaultIteratorOnArrayExtension,
 		);
 	}
-	return prop;
 }
 
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
@@ -237,6 +249,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	);
 
 	for (const method of node.getStaticMethods()) {
+		checkDecorators(method);
+		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
@@ -248,7 +262,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				);
 			}
 
-			checkDefaultIterator(extendsArray, method);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
@@ -270,16 +283,18 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extraInitializers = new Array<string>();
 
 	for (let prop of node.getInstanceProperties()) {
-		prop = nonGetterOrSetter(checkDefaultIterator(extendsArray, prop));
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		prop = nonGetterOrSetter(prop);
 
-		// @ts-ignore
-		if (prop.getParent() === node) {
+		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
 			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}
 	state.popIndent();
 
 	for (const method of node.getInstanceMethods()) {
+		checkDecorators(method);
 		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			state.enterPrecedingStatementContext(results);
@@ -315,8 +330,12 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
-		compileClassProperty(state, nonGetterOrSetter(checkDefaultIterator(extendsArray, prop)), name, results);
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
+
+	checkDecorators(node);
 
 	if (isExpression) {
 		if (nameNode) {

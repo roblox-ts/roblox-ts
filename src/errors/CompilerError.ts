@@ -82,6 +82,8 @@ export enum CompilerErrorType {
 	BadObjectPropertyType,
 	BadSuperCall,
 	DefaultIteratorOnArrayExtension,
+	SuperArrayCall,
+	Decorator,
 }
 
 export class CompilerError extends Error {

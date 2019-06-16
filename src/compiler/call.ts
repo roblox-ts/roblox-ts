@@ -773,8 +773,15 @@ export function compileCallExpression(
 		const params = node.getArguments() as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
-			if (superExpressionClassInheritsFromArray(exp)) {
-				return params.length > 0 ? `local _ = ${compileCallArgumentsAndJoin(state, params)}` : "";
+			if (superExpressionClassInheritsFromArray(exp, false)) {
+				if (params.length > 0) {
+					throw new CompilerError(
+						"Cannot call super() with arguments when extending from Array",
+						exp,
+						CompilerErrorType.SuperArrayCall,
+					);
+				}
+				return "nil";
 			} else {
 				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
 			}

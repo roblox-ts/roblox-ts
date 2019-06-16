@@ -167,6 +167,28 @@ export = () => {
 
 		const bar = new Bar();
 		expect(bar.baz()).to.equal("AB");
+
+		class A<T> extends Array<T> {
+			constructor(s: string = "") {
+				expect(super()).to.equal(undefined);
+			}
+		}
+
+		class B<T> extends A<T> {
+			constructor() {
+				expect(super("hey")).to.equal(undefined);
+			}
+		}
+
+		class C extends class {} {
+			constructor() {
+				expect(super()).to.equal(undefined);
+			}
+		}
+
+		const a = new A();
+		const b = new B();
+		const c = new C();
 	});
 
 	it("should support class expressions", () => {
