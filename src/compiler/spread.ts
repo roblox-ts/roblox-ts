@@ -12,6 +12,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
+import { getReadableExpressionName } from "./indexed";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;
@@ -185,6 +186,7 @@ export function compileSpreadableListAndJoin(
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
 	const expType = expression.getType();
+
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.set_values(${compileExpression(state, expression)})`;
@@ -209,7 +211,7 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {
 		state.usesTSLibrary = true;
-		const arrName = compileExpression(state, expression);
+		const arrName = getReadableExpressionName(state, expression);
 		return `TS.iterableCache(${arrName}[TS.Symbol_iterator](${arrName}))`;
 	}
 }
