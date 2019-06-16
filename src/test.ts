@@ -343,17 +343,17 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
-	"extendArrayIterator.spec1.ts": {
+	"extendArrayIterator.spec.1.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
 		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
-	"extendArrayIterator.spec2.ts": {
+	"extendArrayIterator.spec.2.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
 		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
-	"extendArrayIterator.spec3.ts": {
+	"extendArrayIterator.spec.3.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
 		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
