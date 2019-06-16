@@ -135,10 +135,6 @@ function compileFunction(
 	getParameterData(state, paramNames, initializers, node);
 	checkReturnsNonAny(node);
 
-	if (isMethodDeclaration(node) && !namePrefix.endsWith(":")) {
-		giveInitialSelfParameter(node, paramNames);
-	}
-
 	let result: string;
 	let frontWrap = "";
 	let backWrap = "";
@@ -166,20 +162,28 @@ function compileFunction(
 	}
 
 	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
+	let namePrefixEndsInColon = namePrefix.endsWith(":");
 
 	if (name) {
-		name = namePrefix + name;
 		if (sugarcoat) {
 			result = state.indent + prefix;
 		} else {
-			result = state.indent + prefix + name + " = ";
+			if (namePrefix && namePrefixEndsInColon) {
+				namePrefix = namePrefix.slice(0, -1) + ".";
+				namePrefixEndsInColon = false;
+			}
+			result = state.indent + prefix + namePrefix + name + " = ";
 		}
 		backWrap += ";\n";
 	} else {
 		result = "";
 	}
 
-	result += frontWrap + "function" + (sugarcoat ? " " + name : "") + "(" + paramNames.join(", ") + ")";
+	if (isMethodDeclaration(node) && !namePrefixEndsInColon) {
+		giveInitialSelfParameter(node, paramNames);
+	}
+
+	result += frontWrap + "function" + (sugarcoat ? " " + namePrefix + name : "") + "(" + paramNames.join(", ") + ")";
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
