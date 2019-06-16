@@ -1,3 +1,5 @@
+declare const self: undefined;
+
 export = () => {
 	it("should support object literal brackets", () => {
 		/* prettier-ignore */
@@ -61,7 +63,7 @@ export = () => {
 		expect(foo.bar()).to.equal(foo.baz);
 
 		let i = 0;
-		const o = {
+		const qq = {
 			count: 1,
 			async [++i]() {},
 			[++i]: () => 1,
@@ -289,5 +291,34 @@ export = () => {
 				}),
 			).to.equal(false);
 		});
+	});
+
+	it("should support computedMethodNames", () => {
+		{
+			function g(n: 5) {
+				expect(self).to.equal(undefined);
+				return o.f(n);
+			}
+			let i = 0;
+			const o = {
+				g,
+				id: ++i,
+				calls: 0,
+
+				[++i](n: 5) {
+					return this.f(n);
+				},
+
+				f(n: 5) {
+					return ++this.calls;
+				},
+			};
+			const b = { k: o };
+			expect(b.k[i](5)).to.equal(1);
+			expect(o[i](5)).to.equal(2);
+			expect(o.f(5)).to.equal(3);
+			expect(o.g(5)).to.equal(4);
+			expect(++o.calls).to.equal(5);
+		}
 	});
 };
