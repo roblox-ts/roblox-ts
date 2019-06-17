@@ -27,51 +27,9 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../typeUtilities";
 
-const SINGLE_LINE_COMMENT = /^\s*\/\/(.*)$/;
-const MULTI_LINE_COMMENT_SHORT = /^\s*\/\*(.*)\*\/$/;
-const MULTI_LINE_COMMENT_LONG = /^\/\*+((?:[^*]|[\r\n]|(?:\*+(?:[^*\/]|[\r\n])))*)\*+\/$/;
-
-export function compileComment(state: CompilerState, node: ts.CommentStatement) {
-	const nodeText = node.getText();
-
-	// single line comment
-	let result = SINGLE_LINE_COMMENT.exec(nodeText);
-	if (result) {
-		return `--${result[1]}\n`;
-	}
-
-	/* multi line comment short */
-	result = MULTI_LINE_COMMENT_SHORT.exec(nodeText);
-	if (result) {
-		return `--${result[1]}\n`;
-	}
-
-	/*
-	multi
-	line
-	comment
-	long
-	*/
-	result = MULTI_LINE_COMMENT_LONG.exec(nodeText);
-	if (result) {
-		const inner = result[1];
-		let delim = "";
-		while (inner.indexOf(`]${delim}]`) !== -1) {
-			delim += "=";
-		}
-
-		return `--[${delim}[${inner}]${delim}]\n`;
-	}
-
-	// fallback
-	return `-- ${nodeText}\n`;
-}
-
 export function compileStatement(state: CompilerState, node: ts.Statement): string {
 	if (isTypeStatement(node)) {
 		return "";
-	} else if (ts.TypeGuards.isCommentStatement(node)) {
-		return compileComment(state, node);
 	} else if (ts.TypeGuards.isBlock(node)) {
 		return compileBlock(state, node);
 	} else if (ts.TypeGuards.isImportDeclaration(node)) {
@@ -151,7 +109,7 @@ export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.
 		state.hoistStack.push(new Set<string>());
 	}
 
-	for (const child of node.getStatementsWithComments()) {
+	for (const child of node.getStatements()) {
 		result += compileStatement(state, child);
 		if (ts.TypeGuards.isReturnStatement(child) || ts.TypeGuards.isBreakStatement(child)) {
 			break;
