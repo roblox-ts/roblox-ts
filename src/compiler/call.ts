@@ -47,6 +47,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
 				!ts.TypeGuards.isStringLiteral(subExp) &&
 				!ts.TypeGuards.isNewExpression(subExp) &&
+				!ts.TypeGuards.isClassExpression(subExp) &&
 				!ts.TypeGuards.isNumericLiteral(subExp)))
 	);
 }

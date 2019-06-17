@@ -19,6 +19,7 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { checkPropertyCollision } from "./class";
 import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
 import { CompilerDirective } from "./security";
 
@@ -113,6 +114,10 @@ export function getParameterData(
 		}
 
 		if (param.hasScopeKeyword() || param.isReadonly()) {
+			const classDec = node.getParent();
+			if (ts.TypeGuards.isClassDeclaration(classDec) || ts.TypeGuards.isClassExpression(classDec)) {
+				checkPropertyCollision(classDec, param);
+			}
 			initializers.push(`self.${name} = ${name};`);
 		}
 
