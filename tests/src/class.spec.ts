@@ -105,24 +105,33 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should support __tostring", () => {
+	it("should support toString", () => {
 		class Foo {
-			public __tostring() {
+			public toString() {
 				return "Foo";
 			}
 		}
 		expect(tostring(new Foo())).to.equal("Foo");
 	});
 
-	it("should support __tostring inheritance", () => {
+	it("should support toString inheritance", () => {
 		class Foo {
-			public __tostring() {
+			public toString() {
 				return "Foo";
 			}
 		}
 
 		class Bar extends Foo {}
 		expect(tostring(new Bar())).to.equal("Foo");
+	});
+
+	it("should support toString inheritance with ClassExpression", () => {
+		class A extends class B {
+			toString() {
+				return "B";
+			}
+		} {}
+		expect(tostring(new A())).to.equal("B");
 	});
 
 	it("should support multiple constructors", () => {
