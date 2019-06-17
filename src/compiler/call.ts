@@ -21,7 +21,11 @@ import {
 	superExpressionClassInheritsFromArray,
 	typeConstraint,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, getNonNullExpressionUpwards } from "../utility";
+import {
+	getNonNullExpressionDownwards,
+	getNonNullExpressionUpwards,
+	getNonNullUnParenthesizedExpressionDownwards,
+} from "../utility";
 import { isFunctionExpressionMethod, isMethodDeclaration } from "./function";
 import {
 	addOneToArrayIndex,
@@ -35,6 +39,7 @@ import {
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
+	subExp = getNonNullUnParenthesizedExpressionDownwards(subExp);
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
