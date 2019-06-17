@@ -2,7 +2,7 @@ import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { ProjectInfo } from "./types";
-import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
+import { joinIndentedLines, ScriptContext } from "./utility";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -118,12 +118,7 @@ export class CompilerState {
 
 	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId = this.getNewId()) {
 		const currentContext = this.getCurrentPrecedingStatementContext(node);
-		currentContext.push(
-			this.indent +
-				`local ${newId}${
-					compiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(compiledSource)}` : ""
-				};\n`,
-		);
+		currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
 		currentContext.isPushed = true;
 		return newId;
 	}
@@ -134,7 +129,6 @@ export class CompilerState {
 		}
 
 		/** Gets the top PreStatement to compare to */
-		compiledSource = removeBalancedParenthesisFromStringBorders(compiledSource);
 		let previousTop: Array<string> | undefined;
 
 		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {

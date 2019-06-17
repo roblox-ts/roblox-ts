@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndVa
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
 	isArrayType,
 	isConstantExpression,
 	isNumberType,
@@ -10,7 +11,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionUpwards } from "../utility";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { getAccessorForBindingPatternType } from "./binding";
 import {
 	compileElementAccessBracketExpression,
@@ -21,7 +22,7 @@ import {
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
-	const rhs = node.getRight();
+	const rhs = skipNodesDownwards(node.getRight());
 	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
 		return `TS.bit_truncate(${lhsStr})`;
 	} else {
@@ -38,11 +39,11 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
-	const leftType = node.getLeft().getType();
-	const rightType = node.getRight().getType();
+	const leftType = getType(node.getLeft());
+	const rightType = getType(node.getRight());
 
 	if (isStringType(leftType) || isStringType(rightType)) {
-		return `(${lhsStr}) .. ${rhsStr}`;
+		return `${lhsStr} .. ${rhsStr}`;
 	} else if (isNumberType(leftType) && isNumberType(rightType)) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
@@ -107,7 +108,7 @@ function compileBinaryLiteral(
 		getAccessorForBindingPatternType(rhs),
 	);
 
-	const parent = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow());
+	const parent = skipNodesUpwards(node.getParentOrThrow());
 
 	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
 		let result = "";
@@ -129,7 +130,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	// @ts-ignore;
 	const x = node.getText();
 
-	const nodeParent = getNonNullUnParenthesizedExpressionUpwards(node.getParentOrThrow());
+	const nodeParent = skipNodesUpwards(node.getParentOrThrow());
 	const parentKind = nodeParent.getKind();
 	const isStatement = parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
 
@@ -137,8 +138,10 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	const opKind = opToken.getKind();
 	const isEqualsOperation = opKind === ts.SyntaxKind.EqualsToken;
 
-	const lhs = node.getLeft();
-	const rhs = getNonNullExpressionDownwards(node.getRight());
+	const rawRhs = node.getRight();
+
+	const lhs = skipNodesDownwards(node.getLeft(), true);
+	const rhs = skipNodesDownwards(rawRhs, true);
 	let lhsStr: string;
 	let rhsStr: string;
 
@@ -235,7 +238,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			if (
 				!isConstantExpression(lhs.getArgumentExpressionOrThrow(), 0) &&
 				// Always push array values, even when isPushed, because we need to increment by 1
-				(!upperContext.isPushed || isArrayType(lhs.getExpression().getType()))
+				(!upperContext.isPushed || isArrayType(getType(lhs.getExpression())))
 			) {
 				const previousInner = innerStr;
 				const previouslyPushed = upperContext.isPushed;
@@ -260,9 +263,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		const currentContext = state.enterPrecedingStatementContext();
 
 		if (isEqualsOperation) {
-			const upperRhs = getNonNullUnParenthesizedExpressionUpwards(rhs);
 			if (isStatement) {
-				state.declarationContext.set(upperRhs, {
+				state.declarationContext.set(rawRhs, {
 					isIdentifier: isLhsIdentifier,
 					set: lhsStr,
 				});
@@ -272,7 +274,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			const previousLength = currentContext.length;
 			rhsStr = compileExpression(state, rhs);
 
-			if (state.declarationContext.delete(upperRhs)) {
+			if (state.declarationContext.delete(rawRhs)) {
 				hasOpenContext = false;
 			}
 

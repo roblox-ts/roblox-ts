@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, compileMethodDeclaration } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { joinIndentedLines } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility";
 
 function assignMembers(state: CompilerState, from: string, target: string) {
 	state.pushIdStack();
@@ -37,8 +37,10 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				child = prop.getChildAtIndex(++n);
 			}
 
+			child = skipNodesDownwards(child);
+
 			if (ts.TypeGuards.isComputedPropertyName(child)) {
-				lhs = child.getExpression();
+				lhs = skipNodesDownwards(child.getExpression());
 			} else if (
 				ts.TypeGuards.isIdentifier(child) ||
 				ts.TypeGuards.isStringLiteral(child) ||
@@ -58,7 +60,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				lhs = prop.getNameNode();
 				rhs = child;
 			} else {
-				rhs = prop.getInitializerOrThrow();
+				rhs = skipNodesDownwards(prop.getInitializerOrThrow());
 			}
 
 			let lhsStr = compileExpression(state, lhs);
@@ -78,7 +80,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
 			line = "";
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
-			line = compileExpression(state, prop.getExpression());
+			line = compileExpression(state, skipNodesDownwards(prop.getExpression()));
 		} else {
 			throw new CompilerError(
 				`Unexpected property type in object! Got ${prop.getKindName()}`,

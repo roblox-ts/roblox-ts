@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { isAnyType } from "../typeUtilities";
+import { getType, isAnyType } from "../typeUtilities";
 import { bold, ScriptContext, yellow } from "../utility";
 
 const LUA_RESERVED_KEYWORDS = [
@@ -248,7 +248,7 @@ export function checkApiAccess(state: CompilerState, node: ts.Node) {
 
 export function checkNonAny<T extends ts.Node>(node: T, checkArrayType = false): T {
 	const isInCatch = node.getFirstAncestorByKind(ts.SyntaxKind.CatchClause) !== undefined;
-	let type = node.getType();
+	let type = getType(node);
 	if (checkArrayType && type.isArray()) {
 		const arrayType = type.getArrayElementType();
 		if (arrayType) {

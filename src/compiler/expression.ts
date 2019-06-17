@@ -28,12 +28,8 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType } from "../typeUtilities";
-import {
-	getNonNullUnParenthesizedExpressionDownwards,
-	getNonNullUnParenthesizedExpressionUpwards,
-	isIdentifierWhoseDefinitionMatchesNode,
-} from "../utility";
+import { getType, isArrayType } from "../typeUtilities";
+import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUpwards } from "../utility";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -102,13 +98,13 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		}
 		return "self";
 	} else if (ts.TypeGuards.isSuperExpression(node)) {
-		return isArrayType(node.getType()) ? "self" : "super";
+		return isArrayType(getType(node)) ? "self" : "super";
 	} else if (
 		ts.TypeGuards.isAsExpression(node) ||
 		ts.TypeGuards.isTypeAssertion(node) ||
 		ts.TypeGuards.isNonNullExpression(node)
 	) {
-		return compileExpression(state, node.getExpression());
+		return compileExpression(state, skipNodesDownwards(node.getExpression()));
 	} else if (ts.TypeGuards.isNullLiteral(node)) {
 		throw new CompilerError("'null' is not supported! Use 'undefined' instead.", node, CompilerErrorType.NoNull);
 	} else if (ts.TypeGuards.isTypeOfExpression(node)) {
@@ -131,7 +127,7 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 	state.enterPrecedingStatementContext();
 
 	let expStr: string;
-	const expression = getNonNullUnParenthesizedExpressionDownwards(node.getExpression());
+	const expression = skipNodesDownwards(node.getExpression());
 
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		expStr = compileCallExpression(state, expression, true);
@@ -195,7 +191,7 @@ export function appendDeclarationIfMissing(
 ) {
 	if (
 		compiledNode.match(/^_d+$/) ||
-		ts.TypeGuards.isExpressionStatement(getNonNullUnParenthesizedExpressionUpwards(possibleExpressionStatement))
+		ts.TypeGuards.isExpressionStatement(skipNodesUpwards(possibleExpressionStatement))
 	) {
 		return "local _ = " + compiledNode;
 	} else {

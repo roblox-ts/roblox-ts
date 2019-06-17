@@ -3,6 +3,7 @@ import { checkNonAny, compileCallExpression, compileExpression } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
 	isArrayType,
 	isIterableFunction,
 	isIterableIterator,
@@ -12,6 +13,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
+import { skipNodesDownwards } from "../utility";
 import { getReadableExpressionName } from "./indexed";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
@@ -41,7 +43,7 @@ export function compileSpreadableList(
 	for (const element of elements) {
 		if (ts.TypeGuards.isSpreadElement(element)) {
 			state.enterPrecedingStatementContext();
-			const expStr = compileSpreadExpressionOrThrow(state, element.getExpression());
+			const expStr = compileSpreadExpressionOrThrow(state, skipNodesDownwards(element.getExpression()));
 			const context = state.exitPrecedingStatementContext() as PrecedingStatementContext;
 
 			if (context.length > 0) {
@@ -185,7 +187,7 @@ export function compileSpreadableListAndJoin(
 }
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
-	const expType = expression.getType();
+	const expType = getType(expression);
 
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
@@ -222,7 +224,7 @@ export function compileSpreadExpressionOrThrow(state: CompilerState, expression:
 		return result;
 	} else {
 		throw new CompilerError(
-			`Unable to spread expression of type ${expression.getType().getText()}`,
+			`Unable to spread expression of type ${getType(expression).getText()}`,
 			expression,
 			CompilerErrorType.BadSpreadType,
 		);

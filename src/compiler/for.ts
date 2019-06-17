@@ -2,20 +2,19 @@ import * as ts from "ts-morph";
 import {
 	compileExpression,
 	compileLoopBody,
-	compileNumericLiteral,
 	compileVariableDeclarationList,
 	expressionModifiesVariable,
-	getFirstMemberWithParameters,
+	nodeHasParameters,
 	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
-import { isNumberType } from "../typeUtilities";
-import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines } from "../utility";
+import { getType, isNumberType } from "../typeUtilities";
+import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines, skipNodesDownwards } from "../utility";
 
 function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	return (
 		ts.TypeGuards.isNumericLiteral(condValue) ||
-		(isNumberType(condValue.getType()) &&
+		(isNumberType(getType(condValue)) &&
 			ts.TypeGuards.isIdentifier(condValue) &&
 			condValue.getDefinitions().every(a => {
 				const declNode = a.getDeclarationNode();
@@ -31,7 +30,7 @@ function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 }
 
 function isExpressionConstantNumbers(node: ts.Node): boolean {
-	const children = node.getChildren();
+	const children = node.getChildren().map(child => skipNodesDownwards(child));
 	return (
 		children.length > 0 &&
 		children.every(
@@ -53,74 +52,63 @@ function isExpressionConstantNumbers(node: ts.Node): boolean {
 function getSignAndIncrementorForStatement(
 	state: CompilerState,
 	incrementor: ts.BinaryExpression | ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
-	lhs: ts.Identifier,
+	id: ts.Identifier,
 ) {
 	let forIntervalStr = "";
 	let sign: "" | "+" | "-" = "";
 
 	if (ts.TypeGuards.isBinaryExpression(incrementor)) {
-		const sibling = incrementor.getChildAtIndex(0).getNextSibling();
-		if (sibling) {
-			let rhsIncr = sibling.getNextSibling();
+		// const lhs = skipNodesDownwards(incrementor.getLeft());
+		let rhs = skipNodesDownwards(incrementor.getRight());
+		const operator = skipNodesDownwards(incrementor.getOperatorToken());
 
-			if (rhsIncr) {
-				if (
-					isNumberType(rhsIncr.getType()) &&
-					sibling.getKind() === ts.SyntaxKind.EqualsToken &&
-					ts.TypeGuards.isBinaryExpression(rhsIncr)
-				) {
-					const sib0 = rhsIncr.getChildAtIndex(0);
-					const sib1 = rhsIncr.getChildAtIndex(1);
+		if (
+			isNumberType(getType(rhs)) &&
+			operator.getKind() === ts.SyntaxKind.EqualsToken &&
+			ts.TypeGuards.isBinaryExpression(rhs)
+		) {
+			const rhsLhs = skipNodesDownwards(rhs.getLeft());
+			const rhsOp = skipNodesDownwards(rhs.getOperatorToken());
 
-					if (
-						sib0 &&
-						ts.TypeGuards.isIdentifier(sib0) &&
-						isIdentifierWhoseDefinitionMatchesNode(sib0, lhs) &&
-						sib1
-					) {
-						if (sib1.getKind() === ts.SyntaxKind.MinusToken) {
-							sign = "-";
-						} else if (sib1.getKind() === ts.SyntaxKind.PlusToken) {
-							sign = "+";
-						}
-						rhsIncr = sib1.getNextSibling();
-						if (rhsIncr && rhsIncr.getNextSibling()) {
-							rhsIncr = undefined;
-						}
-					}
-				} else {
-					switch (sibling.getKind()) {
-						case ts.SyntaxKind.PlusEqualsToken:
-							sign = "+";
-							break;
-						case ts.SyntaxKind.MinusEqualsToken:
-							sign = "-";
-							break;
-						default:
-							break;
-					}
-				}
-
-				if (rhsIncr && ts.TypeGuards.isPrefixUnaryExpression(rhsIncr)) {
-					if (rhsIncr.getOperatorToken() === ts.SyntaxKind.MinusToken) {
-						switch (sign) {
-							case "+":
-								sign = "-";
-								break;
-							case "-":
-								sign = "+";
-								break;
-							case "":
-								return ["", ""];
-						}
-						rhsIncr = rhsIncr.getChildAtIndex(1);
-					}
-				}
-
-				if (rhsIncr && ts.TypeGuards.isNumericLiteral(rhsIncr)) {
-					forIntervalStr = compileNumericLiteral(state, rhsIncr);
+			if (ts.TypeGuards.isIdentifier(rhsLhs) && isIdentifierWhoseDefinitionMatchesNode(rhsLhs, id)) {
+				switch (rhsOp.getKind()) {
+					case ts.SyntaxKind.MinusToken:
+						sign = "-";
+						break;
+					case ts.SyntaxKind.PlusToken:
+						sign = "+";
+						break;
 				}
 			}
+		} else {
+			switch (operator.getKind()) {
+				case ts.SyntaxKind.PlusEqualsToken:
+					sign = "+";
+					break;
+				case ts.SyntaxKind.MinusEqualsToken:
+					sign = "-";
+					break;
+			}
+		}
+
+		if (rhs && ts.TypeGuards.isPrefixUnaryExpression(rhs)) {
+			if (rhs.getOperatorToken() === ts.SyntaxKind.MinusToken) {
+				switch (sign) {
+					case "+":
+						sign = "-";
+						break;
+					case "-":
+						sign = "+";
+						break;
+					case "":
+						return ["", ""];
+				}
+				rhs = rhs.getOperand();
+			}
+		}
+
+		if (ts.TypeGuards.isNumericLiteral(rhs)) {
+			forIntervalStr = compileExpression(state, rhs);
 		}
 	} else if (incrementor.getOperatorToken() === ts.SyntaxKind.MinusMinusToken) {
 		forIntervalStr = "1";
@@ -135,34 +123,26 @@ function getSignAndIncrementorForStatement(
 function getLimitInForStatement(
 	state: CompilerState,
 	condition: ts.Expression<ts.ts.Expression>,
-	lhs: ts.Identifier,
+	id: ts.Identifier,
 ): [string, ts.Node<ts.ts.Node> | undefined] {
 	if (ts.TypeGuards.isBinaryExpression(condition)) {
-		const lhsCond = condition.getChildAtIndex(0);
-		const sibling = lhsCond.getNextSibling();
-		if (sibling) {
-			const rhsCond = sibling.getNextSibling();
+		const lhs = skipNodesDownwards(condition.getLeft());
+		const operator = condition.getOperatorToken();
+		const rhs = skipNodesDownwards(condition.getRight());
 
-			if (rhsCond) {
-				let other: ts.Node<ts.ts.Node>;
-
-				if (isIdentifierWhoseDefinitionMatchesNode(lhsCond, lhs)) {
-					other = rhsCond;
-					switch (sibling.getKind()) {
-						case ts.SyntaxKind.GreaterThanEqualsToken: // >=
-							return [">=", other];
-						case ts.SyntaxKind.LessThanEqualsToken: // <=
-							return ["<=", other];
-					}
-				} else {
-					other = lhsCond;
-					switch (sibling.getKind()) {
-						case ts.SyntaxKind.GreaterThanEqualsToken: // >=
-							return ["<=", other];
-						case ts.SyntaxKind.LessThanEqualsToken: // <=
-							return [">=", other];
-					}
-				}
+		if (isIdentifierWhoseDefinitionMatchesNode(lhs, id)) {
+			switch (operator.getKind()) {
+				case ts.SyntaxKind.GreaterThanEqualsToken: // >=
+					return [">=", rhs];
+				case ts.SyntaxKind.LessThanEqualsToken: // <=
+					return ["<=", rhs];
+			}
+		} else if (isIdentifierWhoseDefinitionMatchesNode(rhs, id)) {
+			switch (operator.getKind()) {
+				case ts.SyntaxKind.GreaterThanEqualsToken: // >=
+					return ["<=", lhs];
+				case ts.SyntaxKind.LessThanEqualsToken: // <=
+					return [">=", lhs];
 			}
 		}
 	}
@@ -209,14 +189,14 @@ function getSimpleForLoopString(
 export function compileForStatement(state: CompilerState, node: ts.ForStatement) {
 	state.pushIdStack();
 	const statement = node.getStatement();
-	const condition = node.getCondition();
-	const incrementor = node.getIncrementor();
+	const condition = skipNodesDownwards(node.getCondition());
+	const incrementor = skipNodesDownwards(node.getIncrementor());
 
 	const localizations = new Array<string>();
 	const cleanups = new Array<() => void>();
 	let result = state.indent + "do\n";
 	state.pushIndent();
-	const initializer = node.getInitializer();
+	const initializer = skipNodesDownwards(node.getInitializer());
 	let conditionStr: string | undefined;
 	let incrementorStr: string | undefined;
 
@@ -230,61 +210,58 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 			const statementDescendants = statement.getDescendants();
 			if (initializer.getDeclarationKind() === ts.VariableDeclarationKind.Let) {
 				if (declarations.length === 1) {
-					const lhs = declarations[0].getChildAtIndex(0);
-					if (ts.TypeGuards.isIdentifier(lhs)) {
-						const nextSibling = lhs.getNextSibling();
+					const [declaration] = declarations;
+					const lhs = skipNodesDownwards(declaration.getNameNode());
+					const rhs = skipNodesDownwards(declaration.getInitializer());
 
-						if (
-							!statementDescendants.some(statementDescendant =>
-								expressionModifiesVariable(statementDescendant, lhs),
-							) &&
-							incrementor &&
-							nextSibling &&
-							condition
-						) {
-							// check if we can convert to a simple for loop
-							// IF there aren't any in-loop modifications to the let variable
-							// AND the let variable is a single numeric variable
-							// AND the incrementor is a simple +/- expression of the let var
-							// AND the conditional expression is a binary expression
-							// with one of these operators: <= >= < >
-							// AND the conditional expression compares the let var to a numeric literal
-							// OR the conditional expression compares the let var to an unchanging number
+					if (
+						ts.TypeGuards.isIdentifier(lhs) &&
+						!statementDescendants.some(statementDescendant =>
+							expressionModifiesVariable(statementDescendant, lhs),
+						) &&
+						incrementor &&
+						condition &&
+						rhs
+					) {
+						// check if we can convert to a simple for loop
+						// IF there aren't any in-loop modifications to the let variable
+						// AND the let variable is a single numeric variable
+						// AND the incrementor is a simple +/- expression of the let var
+						// AND the conditional expression is a binary expression
+						// with one of these operators: <= >= < >
+						// AND the conditional expression compares the let var to a numeric literal
+						// OR the conditional expression compares the let var to an unchanging number
 
-							const rhs = nextSibling.getNextSibling();
-							if (rhs) {
-								const rhsType = rhs.getType();
-								if (isNumberType(rhsType)) {
-									if (expressionModifiesVariable(incrementor, lhs)) {
-										const [incrSign, incrValue] = getSignAndIncrementorForStatement(
-											state,
-											incrementor,
-											lhs,
-										);
-										if (incrSign && incrValue) {
-											const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
-											// numeric literals, or constant number identifiers are safe
-											if (
-												condValue &&
-												ts.TypeGuards.isExpression(condValue) &&
-												(isConstantNumberVariableOrLiteral(condValue) ||
-													isExpressionConstantNumbers(condValue))
-											) {
-												if (
-													(incrSign === "+" && condSign === "<=") ||
-													(incrSign === "-" && condSign === ">=")
-												) {
-													const incrStr = incrSign === "-" ? incrSign + incrValue : incrValue;
+						const rhsType = getType(rhs);
+						if (isNumberType(rhsType)) {
+							if (expressionModifiesVariable(incrementor, lhs)) {
+								const [incrSign, incrValue] = getSignAndIncrementorForStatement(
+									state,
+									incrementor,
+									lhs,
+								);
+								if (incrSign && incrValue) {
+									const [condSign, condValue] = getLimitInForStatement(state, condition, lhs);
+									// numeric literals, or constant number identifiers are safe
+									if (
+										condValue &&
+										ts.TypeGuards.isExpression(condValue) &&
+										(isConstantNumberVariableOrLiteral(condValue) ||
+											isExpressionConstantNumbers(condValue))
+									) {
+										if (
+											(incrSign === "+" && condSign === "<=") ||
+											(incrSign === "-" && condSign === ">=")
+										) {
+											const incrStr = incrSign === "-" ? incrSign + incrValue : incrValue;
 
-													return getSimpleForLoopString(
-														state,
-														initializer,
-														compileExpression(state, condValue) +
-															(incrStr === "1" ? "" : ", " + incrStr),
-														statement,
-													);
-												}
-											}
+											return getSimpleForLoopString(
+												state,
+												initializer,
+												compileExpression(state, condValue) +
+													(incrStr === "1" ? "" : ", " + incrStr),
+												statement,
+											);
 										}
 									}
 								}
@@ -300,7 +277,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 
 			// if we can't convert to a simple for loop:
 			// if it has any internal function declarations, make sure to locally scope variables
-			if (getFirstMemberWithParameters(statementDescendants)) {
+			if (statementDescendants.some(nodeHasParameters)) {
 				state.enterPrecedingStatementContext();
 				conditionStr = condition ? compileExpression(state, condition) : "true";
 				conditionContext = state.exitPrecedingStatementContext();

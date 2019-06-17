@@ -18,7 +18,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { bold, skipNodesDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -93,16 +93,15 @@ function compileClassProperty(
 		}
 
 		if (ts.TypeGuards.isInitializerExpressionableNode(prop) && prop.hasInitializer()) {
-			const initializer = prop.getInitializer()!;
 			state.enterPrecedingStatementContext(precedingStatementContext);
-			const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-			state.declarationContext.set(fullInitializer, {
+			const initializer = skipNodesDownwards(prop.getInitializer()!);
+			state.declarationContext.set(initializer, {
 				isIdentifier: false,
 				set: `${name}${propStr}`,
 			});
 			const expStr = compileExpression(state, initializer);
 			state.exitPrecedingStatementContext();
-			if (state.declarationContext.delete(fullInitializer)) {
+			if (state.declarationContext.delete(initializer)) {
 				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
 			}
 		} else {
@@ -218,7 +217,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	let extendsArray = false;
 
 	if (extendExp) {
-		const extendExpExp = extendExp.getExpression();
+		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
 
@@ -232,7 +231,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 		state.enterPrecedingStatementContext(results);
 		if (hasSuper) {
-			results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+			results.push(
+				state.indent +
+					`local super = ${compileExpression(state, skipNodesDownwards(extendExp.getExpression()))};\n`,
+			);
 		}
 		state.exitPrecedingStatementContext();
 	}
@@ -283,11 +285,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const extraInitializers = new Array<string>();
 
 	for (let prop of node.getInstanceProperties()) {
-		checkDecorators(prop);
-		checkDefaultIterator(extendsArray, prop);
-		prop = nonGetterOrSetter(prop);
-
 		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
+			checkDecorators(prop);
+			checkDefaultIterator(extendsArray, prop);
+			prop = nonGetterOrSetter(prop);
 			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}

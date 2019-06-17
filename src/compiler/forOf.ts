@@ -11,6 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
 	isArrayType,
 	isIterableFunction,
 	isIterableIterator,
@@ -18,6 +19,7 @@ import {
 	isSetType,
 	isStringType,
 } from "../typeUtilities";
+import { skipNodesDownwards } from "../utility";
 import { checkReserved } from "./security";
 
 function getVariableName(
@@ -88,14 +90,14 @@ enum ForOfLoopType {
 
 function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
 	while (ts.TypeGuards.isCallExpression(exp)) {
-		const subExp = exp.getExpression();
+		const subExp = skipNodesDownwards(exp.getExpression());
 
 		if (!ts.TypeGuards.isPropertyAccessExpression(subExp)) {
 			break;
 		}
 
 		yield { exp: subExp, type: getPropertyAccessExpressionType(state, subExp) };
-		exp = subExp.getExpression();
+		exp = skipNodesDownwards(subExp.getExpression());
 	}
 }
 
@@ -105,8 +107,8 @@ function getLoopType(
 	reversed = false,
 	backwards = false,
 ): [ts.Expression, ForOfLoopType, boolean, boolean] {
-	const exp = node.getExpression();
-	const expType = exp.getType();
+	const exp = skipNodesDownwards(node.getExpression());
+	const expType = getType(exp);
 	const iter = propertyAccessExpressionTypeIter(state, exp);
 	let data = iter.next();
 
@@ -114,7 +116,7 @@ function getLoopType(
 		let subExp = data.value.exp;
 		switch (data.value.type) {
 			case PropertyCallExpType.ObjectConstructor: {
-				const iterExp = (exp as ts.CallExpression).getArguments()[0] as ts.Expression;
+				const iterExp = skipNodesDownwards((exp as ts.CallExpression).getArguments()[0] as ts.Expression);
 
 				switch (subExp.getName()) {
 					case "keys":
@@ -138,7 +140,12 @@ function getLoopType(
 							(data.value.type === PropertyCallExpType.Array && data.value.exp.getName() === "reverse")
 						);
 
-						return [subExp.getExpression(), ForOfLoopType.ArrayEntries, !reversed, backwards];
+						return [
+							skipNodesDownwards(subExp.getExpression()),
+							ForOfLoopType.ArrayEntries,
+							!reversed,
+							backwards,
+						];
 					}
 					case "reverse": {
 						const [lowerExp, lowerLoopExpType, isReversed, isBackwards] = getLoopType(
@@ -154,7 +161,7 @@ function getLoopType(
 								return [lowerExp, lowerLoopExpType, isReversed, isBackwards];
 						}
 
-						return [subExp.getExpression(), ForOfLoopType.Array, reversed, !backwards];
+						return [skipNodesDownwards(subExp.getExpression()), ForOfLoopType.Array, reversed, !backwards];
 					}
 				}
 				break;
@@ -184,7 +191,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	const declaration = getSingleDeclarationOrThrow(initializer);
 	const statement = node.getStatement();
 	const [exp, loopType, isReversed, isBackwards] = getLoopType(state, node);
-	const lhs: ts.Node<ts.ts.Node> | undefined = declaration.getChildAtIndex(0);
+	const lhs = declaration.getNameNode();
 	let varName: string;
 
 	/** The key to be used in the for loop. If it is the empty string, it is irrelevant. */
@@ -212,47 +219,17 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
-			const syntaxList = lhs.getChildAtIndex(1);
+			const [first, second] = lhs.getElements() as [
+				ts.BindingElement | ts.OmittedExpression | undefined,
+				ts.BindingElement | ts.OmittedExpression | undefined,
+			];
 
-			if (ts.TypeGuards.isSyntaxList(syntaxList)) {
-				const syntaxChildren = syntaxList.getChildren();
-				const first = syntaxChildren[0];
+			if (first && ts.TypeGuards.isBindingElement(first)) {
+				key = getVariableName(state, first.getNameNode(), names, values, preStatements, postStatements);
+			}
 
-				if (first) {
-					if (!ts.TypeGuards.isOmittedExpression(first)) {
-						key = getVariableName(
-							state,
-							first.getChildAtIndex(0),
-							names,
-							values,
-							preStatements,
-							postStatements,
-						);
-					}
-				}
-
-				if (syntaxChildren[1] && syntaxChildren[1].getKind() === ts.SyntaxKind.CommaToken) {
-					const third = syntaxChildren[2];
-					if (third) {
-						if (!ts.TypeGuards.isOmittedExpression(third)) {
-							value = getVariableName(
-								state,
-								third.getChildAtIndex(0),
-								names,
-								values,
-								preStatements,
-								postStatements,
-							);
-						}
-					}
-				}
-			} else {
-				throw new CompilerError(
-					"Unexpected for..of initializer",
-					lhs,
-					CompilerErrorType.BadForOfInitializer,
-					true,
-				);
+			if (second && ts.TypeGuards.isBindingElement(second)) {
+				value = getVariableName(state, second.getNameNode(), names, values, preStatements, postStatements);
 			}
 		} else {
 			if (!ts.TypeGuards.isIdentifier(lhs)) {
@@ -293,7 +270,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				key = varName;
 				break;
 			case ForOfLoopType.Symbol_iterator: {
-				if (!isIterableIterator(exp.getType(), exp)) {
+				if (!isIterableIterator(getType(exp), exp)) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}
