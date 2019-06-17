@@ -1021,7 +1021,7 @@ export function compileElementAccessCallExpression(
 ) {
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp)
-		? "super.__index"
+		? "super"
 		: getReadableExpressionName(state, expExp);
 
 	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
@@ -1136,7 +1136,7 @@ export function compilePropertyCallExpression(
 
 	if (allMethods && !allCallbacks) {
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
-			accessedPath = "super.__index";
+			accessedPath = "super";
 			paramsStr = paramsStr ? "self, " + paramsStr : "self";
 			sep = ".";
 		} else {
