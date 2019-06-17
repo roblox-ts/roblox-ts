@@ -818,7 +818,11 @@ export function compileCallExpression(
 		}
 
 		let callPath = compileExpression(state, exp);
-		if (ts.TypeGuards.isArrowFunction(exp) || (ts.TypeGuards.isFunctionExpression(exp) && !exp.getNameNode())) {
+		if (
+			ts.TypeGuards.isBinaryExpression(exp) ||
+			ts.TypeGuards.isArrowFunction(exp) ||
+			(ts.TypeGuards.isFunctionExpression(exp) && !exp.getNameNode())
+		) {
 			callPath = `(${callPath})`;
 		}
 		result = `${callPath}(${compileCallArgumentsAndJoin(state, params)})`;
