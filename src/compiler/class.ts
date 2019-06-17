@@ -124,6 +124,17 @@ function getClassMethod(
 		if (baseMethod) {
 			return baseMethod;
 		}
+	} else {
+		const extendsClass = classDec.getExtends();
+		if (extendsClass) {
+			const exp = extendsClass.getExpression();
+			if (exp && ts.TypeGuards.isClassExpression(exp)) {
+				const baseMethod = getClassMethod(exp, methodName, getter);
+				if (baseMethod) {
+					return baseMethod;
+				}
+			}
+		}
 	}
 	return undefined;
 }

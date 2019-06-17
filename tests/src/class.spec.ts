@@ -125,6 +125,15 @@ export = () => {
 		expect(tostring(new Bar())).to.equal("Foo");
 	});
 
+	it("should support toString inheritance with ClassExpression", () => {
+		class A extends class B {
+			toString() {
+				return "B";
+			}
+		} {}
+		expect(tostring(new A())).to.equal("B");
+	});
+
 	it("should support multiple constructors", () => {
 		class Foo {
 			public name: string | undefined;
