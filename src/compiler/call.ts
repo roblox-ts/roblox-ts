@@ -37,7 +37,6 @@ const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "rever
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	subExp = skipNodesDownwards(subExp);
-
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
@@ -47,6 +46,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 			(!ts.TypeGuards.isCallExpression(subExp) &&
 				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
 				!ts.TypeGuards.isStringLiteral(subExp) &&
+				!ts.TypeGuards.isNewExpression(subExp) &&
 				!ts.TypeGuards.isNumericLiteral(subExp)))
 	);
 }
