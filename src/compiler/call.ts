@@ -817,7 +817,10 @@ export function compileCallExpression(
 			}
 		}
 
-		const callPath = compileExpression(state, exp);
+		let callPath = compileExpression(state, exp);
+		if (ts.TypeGuards.isArrowFunction(exp) || (ts.TypeGuards.isFunctionExpression(exp) && !exp.getNameNode())) {
+			callPath = `(${callPath})`;
+		}
 		result = `${callPath}(${compileCallArgumentsAndJoin(state, params)})`;
 	}
 
