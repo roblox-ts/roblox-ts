@@ -90,4 +90,21 @@ export = () => {
 		})().id++;
 		expect(numItems).to.equal(1);
 	});
+
+	it("should support unary expressions on indexed parenthesized expressions", () => {
+		// issue #470
+		const array = [0];
+		// prettier-ignore
+		(array)[0]++;
+		expect(array[0]).to.equal(1);
+	});
+
+	it("should support unary expressions on indexed call expressions", () => {
+		const array = [0];
+		function getArray() {
+			return array;
+		}
+		getArray()[0]++;
+		expect(array[0]).to.equal(1);
+	});
 };
