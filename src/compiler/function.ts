@@ -291,6 +291,10 @@ export function compileConstructorDeclaration(
 	hasSuper: boolean,
 	isRoact: boolean,
 ) {
+	if (isRoact && !node) {
+		return "";
+	}
+
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
 	const defaults = new Array<string>();
@@ -319,11 +323,7 @@ export function compileConstructorDeclaration(
 			let k = 0;
 
 			if (containsSuperExpression(bodyStatements[k])) {
-				if (isRoact) {
-					k++;
-				} else {
-					result += compileStatement(state, bodyStatements[k++]);
-				}
+				result += compileStatement(state, bodyStatements[k++]);
 			}
 
 			initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
