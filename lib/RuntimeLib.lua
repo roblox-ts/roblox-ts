@@ -127,7 +127,7 @@ function TS.import(module, ...)
 
 			assert(_G[module] == nil, "Invalid module access!")
 			_G[module] = TS
-			data = require(module)
+			data = { value = require(module) }
 
 			if currentlyLoading[caller] == module then -- Thread-safe cleanup!
 				currentlyLoading[caller] = nil
@@ -136,7 +136,7 @@ function TS.import(module, ...)
 			loadedLibraries[module] = data -- Cache for subsequent calls
 		end
 
-		return data
+		return data.value
 	else
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
