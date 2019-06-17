@@ -114,19 +114,49 @@ function compileClassProperty(
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
 	methodName: string,
+	getter = (c: ts.ClassDeclaration | ts.ClassExpression, name: string) => c.getMethod(name),
 ): ts.MethodDeclaration | undefined {
-	const method = classDec.getMethod(methodName);
+	const method = getter(classDec, methodName);
 	if (method) {
 		return method;
 	}
 	const baseClass = classDec.getBaseClass();
 	if (baseClass) {
-		const baseMethod = getClassMethod(baseClass, methodName);
+		const baseMethod = getClassMethod(baseClass, methodName, getter);
 		if (baseMethod) {
 			return baseMethod;
 		}
 	}
 	return undefined;
+}
+
+function getClassStaticMethod(classDec: ts.ClassDeclaration | ts.ClassExpression, methodName: string) {
+	return getClassMethod(classDec, methodName, (c, n) => c.getStaticMethod(n));
+}
+
+function getClassInstanceMethod(classDec: ts.ClassDeclaration | ts.ClassExpression, methodName: string) {
+	return getClassMethod(classDec, methodName, (c, n) => c.getInstanceMethod(n));
+}
+
+function checkMethodCollision(node: ts.ClassDeclaration | ts.ClassExpression, method: ts.MethodDeclaration) {
+	const methodName = method.getName();
+	if (method.isStatic()) {
+		if (getClassInstanceMethod(node, methodName)) {
+			throw new CompilerError(
+				`An instance method already exists with the name ${methodName}`,
+				node,
+				CompilerErrorType.MethodCollision,
+			);
+		}
+	} else {
+		if (getClassStaticMethod(node, methodName)) {
+			throw new CompilerError(
+				`A static method already exists with the name ${methodName}`,
+				node,
+				CompilerErrorType.MethodCollision,
+			);
+		}
+	}
 }
 
 function checkDecorators(
@@ -168,6 +198,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	let expAlias: string | undefined;
+
+	checkDecorators(node);
 
 	if (nameNode) {
 		checkReserved(name, nameNode, true);
@@ -248,8 +280,39 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		";\n",
 	);
 
+	results.push(state.indent + `${name}.__index = ${name};\n`);
+
+	if (!node.isAbstract()) {
+		results.push(
+			state.indent + `function ${name}.new(...)\n`,
+			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
+			state.indent + `\t${name}.constructor(self, ...);\n`,
+			state.indent + `\treturn self;\n`,
+			state.indent + `end;\n`,
+		);
+	}
+
+	const extraInitializers = new Array<string>();
+	for (let prop of node.getInstanceProperties()) {
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		prop = nonGetterOrSetter(prop);
+
+		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
+			compileClassProperty(state, prop, "self", extraInitializers);
+		}
+	}
+	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
+
+	for (const prop of node.getStaticProperties()) {
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
+	}
+
 	for (const method of node.getStaticMethods()) {
 		checkDecorators(method);
+		checkMethodCollision(node, method);
 		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
@@ -263,42 +326,18 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			}
 
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + ":"));
+			results.push(compileMethodDeclaration(state, method, name + "."));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
-	results.push(
-		state.indent,
-		name,
-		".__index = ",
-		hasSuper ? "setmetatable(" : "",
-		"{}",
-		hasSuper ? ", super)" : "",
-		";\n",
-	);
-
-	state.pushIndent();
-
-	const extraInitializers = new Array<string>();
-
-	for (let prop of node.getInstanceProperties()) {
-		checkDecorators(prop);
-		checkDefaultIterator(extendsArray, prop);
-		prop = nonGetterOrSetter(prop);
-
-		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
-			compileClassProperty(state, prop, "self", extraInitializers);
-		}
-	}
-	state.popIndent();
-
 	for (const method of node.getInstanceMethods()) {
 		checkDecorators(method);
+		checkMethodCollision(node, method);
 		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
+			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
 		}
 	}
@@ -316,26 +355,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			results.push(state.indent + `function ${name}:${metamethod}(...) return self:${metamethod}(...); end;\n`);
 		}
 	}
-
-	if (!node.isAbstract()) {
-		results.push(
-			state.indent + `function ${name}.new(...)\n`,
-			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
-			state.indent + `\t${name}.constructor(self, ...);\n`,
-			state.indent + `\treturn self;\n`,
-			state.indent + `end;\n`,
-		);
-	}
-
-	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
-
-	for (const prop of node.getStaticProperties()) {
-		checkDecorators(prop);
-		checkDefaultIterator(extendsArray, prop);
-		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
-	}
-
-	checkDecorators(node);
 
 	if (isExpression) {
 		if (nameNode) {
