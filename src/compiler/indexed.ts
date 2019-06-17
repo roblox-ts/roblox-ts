@@ -19,7 +19,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionDownwards, safeLuaIndex } from "../utility";
 import { shouldWrapExpression } from "./call";
 import { CompilerDirective } from "./security";
 
@@ -55,7 +55,7 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
  */
 export function getWritableOperandName(state: CompilerState, operand: ts.Expression, doNotCompileAccess = false) {
 	if (ts.TypeGuards.isPropertyAccessExpression(operand) || ts.TypeGuards.isElementAccessExpression(operand)) {
-		const child = operand.getExpression();
+		const child = getNonNullUnParenthesizedExpressionDownwards(operand.getExpression());
 
 		if (
 			!ts.TypeGuards.isThisExpression(child) &&
@@ -63,11 +63,21 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
 			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
-			const propertyStr = doNotCompileAccess
-				? ""
-				: ts.TypeGuards.isPropertyAccessExpression(operand)
-				? "." + compileExpression(state, operand.getNameNode())
-				: "[" + compileExpression(state, operand.getArgumentExpressionOrThrow()) + "]";
+
+			let propertyStr: string;
+			if (doNotCompileAccess) {
+				propertyStr = "";
+			} else if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+				propertyStr = "." + compileExpression(state, operand.getNameNode());
+			} else {
+				const access = getComputedPropertyAccess(
+					state,
+					operand.getArgumentExpressionOrThrow(),
+					operand.getExpression(),
+				);
+				propertyStr = `[${access}]`;
+			}
+
 			return { expStr: id + propertyStr, isIdentifier: false };
 		} else if (doNotCompileAccess) {
 			return { expStr: compileExpression(state, child), isIdentifier: false };
