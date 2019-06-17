@@ -148,6 +148,7 @@ export function compileRoactClassDeclaration(
 
 	const instanceProps = node
 		.getInstanceProperties()
+		// @ts-ignore
 		.filter(prop => prop.getParent() === node)
 		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
 		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
