@@ -1020,9 +1020,7 @@ export function compileElementAccessCallExpression(
 	expression: ts.ElementAccessExpression,
 ) {
 	const expExp = skipNodesDownwards(expression.getExpression());
-	const accessor = ts.TypeGuards.isSuperExpression(expExp)
-		? "super"
-		: getReadableExpressionName(state, expExp);
+	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
 	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
 		compileElementAccessBracketExpression(state, expression),
@@ -1035,6 +1033,13 @@ export function compileElementAccessCallExpression(
 	if (allMethods && !allCallbacks) {
 		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
 	} else if (!allMethods && allCallbacks) {
+		if (ts.TypeGuards.isSuperExpression(expExp)) {
+			throw new CompilerError(
+				`\`${accessedPath}\` is not a real method! Prefer \`this${accessedPath.slice(5)}\` instead.`,
+				expExp,
+				CompilerErrorType.BadSuperCall,
+			);
+		}
 	} else {
 		// mixed methods and callbacks
 		throw new CompilerError(
