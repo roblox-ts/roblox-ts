@@ -358,31 +358,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	results.push(state.indent + `${name}.__index = ${name};\n`);
 
-	if (!node.isAbstract()) {
-		results.push(
-			state.indent + `function ${name}.new(...)\n`,
-			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
-			state.indent + `\tself:constructor(...);\n`,
-			state.indent + `\treturn self;\n`,
-			state.indent + `end;\n`,
-		);
-	}
-
-	const extraInitializers = new Array<string>();
-	state.pushIndent();
-	for (let prop of node.getInstanceProperties()) {
-		checkDecorators(prop);
-		checkPropertyCollision(node, prop);
-		checkDefaultIterator(extendsArray, prop);
-		prop = nonGetterOrSetter(prop);
-
-		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
-			compileClassProperty(state, prop, "self", extraInitializers);
-		}
-	}
-	state.popIndent();
-	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
-
 	for (const prop of node.getStaticProperties()) {
 		checkDecorators(prop);
 		checkPropertyCollision(node, prop);
@@ -410,6 +385,32 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			state.exitPrecedingStatementContext();
 		}
 	}
+
+	if (!node.isAbstract()) {
+		results.push(
+			state.indent + `function ${name}.new(...)\n`,
+			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
+			state.indent + `\tself:constructor(...);\n`,
+			state.indent + `\treturn self;\n`,
+			state.indent + `end;\n`,
+		);
+	}
+
+	const extraInitializers = new Array<string>();
+
+	state.pushIndent();
+	for (let prop of node.getInstanceProperties()) {
+		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
+		checkDefaultIterator(extendsArray, prop);
+		prop = nonGetterOrSetter(prop);
+
+		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
+			compileClassProperty(state, prop, "self", extraInitializers);
+		}
+	}
+	state.popIndent();
+	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const method of node.getInstanceMethods()) {
 		checkDecorators(method);
