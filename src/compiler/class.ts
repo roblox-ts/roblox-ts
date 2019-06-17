@@ -362,7 +362,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		results.push(
 			state.indent + `function ${name}.new(...)\n`,
 			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
-			state.indent + `\t${name}.constructor(self, ...);\n`,
+			state.indent + `\tself:constructor(...);\n`,
 			state.indent + `\treturn self;\n`,
 			state.indent + `end;\n`,
 		);
