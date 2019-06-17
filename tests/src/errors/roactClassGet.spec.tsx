@@ -6,6 +6,7 @@ class FailedRoactClass extends Roact.Component {
 	}
 
 	public render(): Roact.Element {
-		return <frame/>;
+		return <frame />;
 	}
 }
+export {};

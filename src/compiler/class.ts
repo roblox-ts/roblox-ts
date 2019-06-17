@@ -2,7 +2,6 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
-	compileAccessorDeclaration,
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
@@ -14,7 +13,11 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { shouldHoist } from "../typeUtilities";
+import {
+	shouldHoist,
+	superExpressionClassInheritsFromArray,
+	superExpressionClassInheritsFromSetOrMap,
+} from "../typeUtilities";
 import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
@@ -38,7 +41,75 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-const LUA_UNDEFINABLE_METAMETHODS = ["__index", "__newindex", "__mode"];
+const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
+
+function nonGetterOrSetter(prop: ts.ClassInstancePropertyTypes) {
+	if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
+		throw new CompilerError(
+			"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+			prop,
+			CompilerErrorType.GettersSettersDisallowed,
+		);
+	}
+	return prop;
+}
+
+function compileClassProperty(
+	state: CompilerState,
+	prop: ts.PropertyDeclaration | ts.ParameterDeclaration,
+	name: string,
+	precedingStatementContext: Array<string>,
+) {
+	const propNameNode = prop.getNameNode();
+
+	if (propNameNode) {
+		let propStr: string;
+		if (ts.TypeGuards.isIdentifier(propNameNode)) {
+			const propName = propNameNode.getText();
+			propStr = "." + propName;
+			checkMethodReserved(propName, prop);
+		} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
+			const expStr = compileExpression(state, propNameNode);
+			checkMethodReserved(propNameNode.getLiteralText(), prop);
+			propStr = `[${expStr}]`;
+		} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
+			const expStr = compileExpression(state, propNameNode);
+			propStr = `[${expStr}]`;
+		} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
+			// ComputedPropertyName
+			const computedExp = propNameNode.getExpression();
+			if (ts.TypeGuards.isStringLiteral(computedExp)) {
+				checkMethodReserved(computedExp.getLiteralText(), prop);
+			}
+			const computedExpStr = compileExpression(state, computedExp);
+			propStr = `[${computedExpStr}]`;
+		} else {
+			throw new CompilerError(
+				`Unexpected prop type ${prop.getKindName()} in compileClass`,
+				prop,
+				CompilerErrorType.UnexpectedPropType,
+				true,
+			);
+		}
+
+		if (ts.TypeGuards.isInitializerExpressionableNode(prop) && prop.hasInitializer()) {
+			const initializer = prop.getInitializer()!;
+			state.enterPrecedingStatementContext(precedingStatementContext);
+			const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
+			state.declarationContext.set(fullInitializer, {
+				isIdentifier: false,
+				set: `${name}${propStr}`,
+			});
+			const expStr = compileExpression(state, initializer);
+			state.exitPrecedingStatementContext();
+			if (state.declarationContext.delete(fullInitializer)) {
+				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
+			}
+		} else {
+			precedingStatementContext.push(state.indent, name, propStr, " = nil;\n");
+		}
+	}
+}
 
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
@@ -58,10 +129,38 @@ function getClassMethod(
 	return undefined;
 }
 
+function checkDecorators(
+	node:
+		| ts.ClassDeclaration
+		| ts.ClassExpression
+		| ts.ClassStaticPropertyTypes
+		| ts.MethodDeclaration
+		| ts.ClassInstancePropertyTypes,
+) {
+	if (node.getDecorators().length > 1) {
+		throw new CompilerError("Decorators are not yet implemented!", node, CompilerErrorType.Decorator);
+	}
+}
+
 // TODO: remove
 function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
 	for (const constructor of node.getConstructors()) {
 		return constructor;
+	}
+}
+
+function checkDefaultIterator<
+	T extends ts.PropertyDeclaration | ts.ParameterDeclaration | ts.MethodDeclaration | ts.ClassStaticPropertyTypes
+>(extendsArray: boolean, prop: T) {
+	if (extendsArray && prop.getName() === "[Symbol.iterator]") {
+		// This check is sufficient because TS only considers something as having an iterator when it is
+		// literally `Symbol.iterator`. At present, writing Symbol or Symbol.iterator to another variable
+		// is not considered valid by TS
+		throw new CompilerError(
+			`Cannot declare [Symbol.iterator] on class which extends from Array<T>`,
+			prop,
+			CompilerErrorType.DefaultIteratorOnArrayExtension,
+		);
 	}
 }
 
@@ -79,15 +178,13 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	// Roact checks
-	const baseTypes = node.getBaseTypes();
-	for (const baseType of baseTypes) {
+	for (const baseType of node.getBaseTypes()) {
 		const baseTypeText = baseType.getText();
-
+		const isComponent = baseTypeText.startsWith(ROACT_COMPONENT_TYPE);
 		// Handle the special case where we have a roact class
-		if (baseTypeText.startsWith(ROACT_COMPONENT_TYPE)) {
-			return compileRoactClassDeclaration(state, "Component", name, node);
-		} else if (baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			return compileRoactClassDeclaration(state, "PureComponent", name, node);
+		if (isComponent || baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+			const type = isComponent ? "Component" : "PureComponent";
+			return compileRoactClassDeclaration(state, type, name, node);
 		}
 
 		if (inheritsFromRoact(baseType)) {
@@ -101,351 +198,160 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	const extendExp = node.getExtends();
-	let baseClassName = "";
 	let hasSuper = false;
-	let result = "";
-
-	if (extendExp) {
-		hasSuper = true;
-		state.enterPrecedingStatementContext();
-		baseClassName = compileExpression(state, extendExp.getExpression());
-		result += state.exitPrecedingStatementContextAndJoin();
-	}
+	const results = new Array<string>();
 
 	const isExpression = ts.TypeGuards.isClassExpression(node);
 
 	if (isExpression) {
-		if (nameNode) {
-			expAlias = state.getNewId();
-			result += state.indent + `local ${expAlias};\n`;
-			result += state.indent + `do\n`;
-		} else {
-			result += state.indent + `local ${name};\n`;
-			result += state.indent + `do\n`;
-		}
+		results.push(state.indent + `local ${nameNode ? (expAlias = state.getNewId()) : name};\n`);
 	} else {
 		if (nameNode && shouldHoist(node, nameNode)) {
 			state.pushHoistStack(name);
 		} else {
-			result += state.indent + `local ${name};\n`;
-		}
-		result += state.indent + `do\n`;
-	}
-	state.pushIndent();
-
-	if (hasSuper) {
-		result += state.indent + `local super = ${baseClassName};\n`;
-	}
-
-	let hasStaticMembers = false;
-
-	let prefix = "";
-	if (isExpression) {
-		if (nameNode) {
-			prefix = `local `;
+			results.push(state.indent + `local ${name};\n`);
 		}
 	}
-
-	if (hasSuper) {
-		result += state.indent + prefix + `${name} = setmetatable({`;
-	} else {
-		result += state.indent + prefix + `${name} = {`;
-	}
-
+	results.push(state.indent + `do\n`);
 	state.pushIndent();
 
-	node.getStaticMethods()
-		.filter(method => method.getBody() !== undefined)
-		.forEach(method => {
-			if (!hasStaticMembers) {
-				hasStaticMembers = true;
-				result += "\n";
-			}
-			if (method.getName() === "new") {
+	let extendsArray = false;
+
+	if (extendExp) {
+		const extendExpExp = extendExp.getExpression();
+		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
+		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
+
+		if (superExpressionClassInheritsFromSetOrMap(extendExpExp)) {
+			throw new CompilerError(
+				"Cannot create a class which inherits from Map or Set!",
+				extendExpExp,
+				CompilerErrorType.BadClassExtends,
+			);
+		}
+
+		state.enterPrecedingStatementContext(results);
+		if (hasSuper) {
+			results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+		}
+		state.exitPrecedingStatementContext();
+	}
+
+	results.push(
+		state.indent,
+		isExpression && nameNode ? "local " : "",
+		name,
+		" = ",
+		hasSuper ? "setmetatable(" : "",
+		"{}",
+		hasSuper ? ", { __index = super })" : "",
+		";\n",
+	);
+
+	for (const method of node.getStaticMethods()) {
+		checkDecorators(method);
+		checkDefaultIterator(extendsArray, method);
+		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+
+			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
 				throw new CompilerError(
-					'Cannot make a static method with name "new"!',
+					`Cannot make a static method with name "${methodName}"!`,
 					method,
-					CompilerErrorType.StaticNew,
+					CompilerErrorType.BadStaticMethod,
 				);
 			}
-			result += compileMethodDeclaration(state, method);
-		});
 
-	state.popIndent();
-
-	if (hasSuper) {
-		result += `${hasStaticMembers ? state.indent : ""}}, { __index = super });\n`;
-	} else {
-		result += `${hasStaticMembers ? state.indent : ""}};\n`;
+			state.enterPrecedingStatementContext(results);
+			results.push(compileMethodDeclaration(state, method, name + ":"));
+			state.exitPrecedingStatementContext();
+		}
 	}
 
-	if (hasSuper) {
-		result += state.indent + `${name}.__index = setmetatable({`;
-	} else {
-		result += state.indent + `${name}.__index = {`;
-	}
+	results.push(
+		state.indent,
+		name,
+		".__index = ",
+		hasSuper ? "setmetatable(" : "",
+		"{}",
+		hasSuper ? ", super)" : "",
+		";\n",
+	);
 
 	state.pushIndent();
-	let hasIndexMembers = false;
 
 	const extraInitializers = new Array<string>();
-	const instanceProps = node
-		.getInstanceProperties()
-		// @ts-ignore
-		.filter(prop => prop.getParent() === node)
-		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
-		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
 
-	for (const prop of instanceProps) {
-		const propNameNode = prop.getNameNode();
-		if (propNameNode) {
-			let propStr: string;
-			if (ts.TypeGuards.isIdentifier(propNameNode)) {
-				const propName = propNameNode.getText();
-				propStr = "." + propName;
-				checkMethodReserved(propName, prop);
-			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				checkMethodReserved(propNameNode.getLiteralText(), prop);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
-				// ComputedPropertyName
-				const computedExp = propNameNode.getExpression();
-				if (ts.TypeGuards.isStringLiteral(computedExp)) {
-					checkMethodReserved(computedExp.getLiteralText(), prop);
-				}
-				const computedExpStr = compileExpression(state, computedExp);
-				propStr = `[${computedExpStr}]`;
-			} else {
-				throw new CompilerError(
-					`Unexpected prop type ${prop.getKindName()} in compileClass`,
-					prop,
-					CompilerErrorType.UnexpectedPropType,
-					true,
-				);
-			}
+	for (let prop of node.getInstanceProperties()) {
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		prop = nonGetterOrSetter(prop);
 
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					state.enterPrecedingStatementContext();
-					const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-					state.declarationContext.set(fullInitializer, {
-						isIdentifier: false,
-						set: `self${propStr}`,
-					});
-					const expStr = compileExpression(state, initializer);
-					extraInitializers.push(...state.exitPrecedingStatementContext());
-					if (state.declarationContext.delete(fullInitializer)) {
-						extraInitializers.push(state.indent + `self${propStr} = ${expStr};\n`);
-					}
-				}
-			}
+		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
+			compileClassProperty(state, prop, "self", extraInitializers);
+		}
+	}
+	state.popIndent();
+
+	for (const method of node.getInstanceMethods()) {
+		checkDecorators(method);
+		checkDefaultIterator(extendsArray, method);
+		if (method.getBody() !== undefined) {
+			state.enterPrecedingStatementContext(results);
+			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
+			state.exitPrecedingStatementContext();
 		}
 	}
 
-	node.getInstanceMethods()
-		.filter(method => method.getBody() !== undefined)
-		.forEach(method => {
-			if (!hasIndexMembers) {
-				hasIndexMembers = true;
-				result += "\n";
-			}
-			result += compileMethodDeclaration(state, method);
-		});
-
-	state.popIndent();
-
-	if (hasSuper) {
-		result += `${hasIndexMembers ? state.indent : ""}}, super);\n`;
-	} else {
-		result += `${hasIndexMembers ? state.indent : ""}};\n`;
-	}
-
-	LUA_RESERVED_METAMETHODS.forEach(metamethod => {
+	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
-			if (LUA_UNDEFINABLE_METAMETHODS.indexOf(metamethod) !== -1) {
+			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
 				throw new CompilerError(
 					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
 					node,
 					CompilerErrorType.UndefinableMetamethod,
 				);
 			}
-			result +=
-				state.indent + `${name}.${metamethod} = function(self, ...) return self:${metamethod}(...); end;\n`;
+
+			results.push(state.indent + `function ${name}:${metamethod}(...) return self:${metamethod}(...); end;\n`);
 		}
-	});
+	}
 
 	if (!node.isAbstract()) {
-		result += state.indent + `${name}.new = function(...)\n`;
-		state.pushIndent();
-		result += state.indent + `return ${name}.constructor(setmetatable({}, ${name}), ...);\n`;
-		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(
+			state.indent + `function ${name}.new(...)\n`,
+			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
+			state.indent + `\t${name}.constructor(self, ...);\n`,
+			state.indent + `\treturn self;\n`,
+			state.indent + `end;\n`,
+		);
 	}
 
-	result += compileConstructorDeclaration(state, name, getConstructor(node), extraInitializers, hasSuper);
+	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
-		const propNameNode = prop.getNameNode();
-		if (propNameNode) {
-			let propStr: string;
-			if (ts.TypeGuards.isIdentifier(propNameNode)) {
-				const propName = propNameNode.getText();
-				propStr = "." + propName;
-				checkMethodReserved(propName, prop);
-			} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				checkMethodReserved(propNameNode.getLiteralText(), prop);
-				propStr = `[${expStr}]`;
-			} else if (ts.TypeGuards.isNumericLiteral(propNameNode)) {
-				const expStr = compileExpression(state, propNameNode);
-				propStr = `[${expStr}]`;
-			} else {
-				// ComputedPropertyName
-				const computedExp = propNameNode.getExpression();
-				if (ts.TypeGuards.isStringLiteral(computedExp)) {
-					checkMethodReserved(computedExp.getLiteralText(), prop);
-				}
-				const computedExpStr = compileExpression(state, computedExp);
-				propStr = `[${computedExpStr}]`;
-			}
-
-			let propValue = "nil";
-			if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-				const initializer = prop.getInitializer();
-				if (initializer) {
-					state.enterPrecedingStatementContext();
-					propValue = compileExpression(state, initializer);
-					result += state.exitPrecedingStatementContextAndJoin();
-				}
-			}
-			result += state.indent + `${name}${propStr} = ${propValue};\n`;
-		}
+		checkDecorators(prop);
+		checkDefaultIterator(extendsArray, prop);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
 
-	const getters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-	let ancestorHasGetters = false;
-	let ancestorClass: ts.ClassDeclaration | ts.ClassExpression | undefined = node;
-	while (!ancestorHasGetters && ancestorClass !== undefined) {
-		ancestorClass = ancestorClass.getBaseClass();
-		if (ancestorClass !== undefined) {
-			const ancestorGetters = ancestorClass
-				.getInstanceProperties()
-				.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-			if (ancestorGetters.length > 0) {
-				ancestorHasGetters = true;
-			}
-		}
-	}
-
-	if (getters.length > 0 || ancestorHasGetters) {
-		if (getters.length > 0) {
-			let getterContent = "\n";
-			state.pushIndent();
-			for (const getter of getters) {
-				getterContent += compileAccessorDeclaration(state, getter, getter.getName());
-			}
-			state.popIndent();
-			getterContent += state.indent;
-			if (ancestorHasGetters) {
-				result +=
-					state.indent +
-					`${name}._getters = setmetatable({${getterContent}}, { __index = super._getters });\n`;
-			} else {
-				result += state.indent + `${name}._getters = {${getterContent}};\n`;
-			}
-		} else {
-			result += state.indent + `${name}._getters = super._getters;\n`;
-		}
-		result += state.indent + `local __index = ${name}.__index;\n`;
-		result += state.indent + `${name}.__index = function(self, index)\n`;
-		state.pushIndent();
-		result += state.indent + `local getter = ${name}._getters[index];\n`;
-		result += state.indent + `if getter then\n`;
-		state.pushIndent();
-		result += state.indent + `return getter(self);\n`;
-		state.popIndent();
-		result += state.indent + `else\n`;
-		state.pushIndent();
-		result += state.indent + `return __index[index];\n`;
-		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.popIndent();
-		result += state.indent + `end;\n`;
-	}
-
-	const setters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-	let ancestorHasSetters = false;
-	ancestorClass = node;
-	while (!ancestorHasSetters && ancestorClass !== undefined) {
-		ancestorClass = ancestorClass.getBaseClass();
-		if (ancestorClass !== undefined) {
-			const ancestorSetters = ancestorClass
-				.getInstanceProperties()
-				.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-			if (ancestorSetters.length > 0) {
-				ancestorHasSetters = true;
-			}
-		}
-	}
-	if (setters.length > 0 || ancestorHasSetters) {
-		if (setters.length > 0) {
-			let setterContent = "\n";
-			state.pushIndent();
-			for (const setter of setters) {
-				setterContent += compileAccessorDeclaration(state, setter, setter.getName());
-			}
-			state.popIndent();
-			setterContent += state.indent;
-			if (ancestorHasSetters) {
-				result +=
-					state.indent +
-					`${name}._setters = setmetatable({${setterContent}}, { __index = super._setters });\n`;
-			} else {
-				result += state.indent + `${name}._setters = {${setterContent}};\n`;
-			}
-		} else {
-			result += state.indent + `${name}._setters = super._setters;\n`;
-		}
-		result += state.indent + `${name}.__newindex = function(self, index, value)\n`;
-		state.pushIndent();
-		result += state.indent + `local setter = ${name}._setters[index];\n`;
-		result += state.indent + `if setter then\n`;
-		state.pushIndent();
-		result += state.indent + `setter(self, value);\n`;
-		state.popIndent();
-		result += state.indent + `else\n`;
-		state.pushIndent();
-		result += state.indent + `rawset(self, index, value);\n`;
-		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.popIndent();
-		result += state.indent + `end;\n`;
-	}
+	checkDecorators(node);
 
 	if (isExpression) {
 		if (nameNode) {
-			result += state.indent + `${expAlias} = ${name};\n`;
+			results.push(state.indent + `${expAlias} = ${name};\n`);
 		}
 		state.popIndent();
-		result += state.indent + `end;\n`;
-		state.pushPrecedingStatements(node, result);
+		results.push(state.indent + `end;\n`);
+		state.pushPrecedingStatements(node, ...results);
 		// Do not classify this as isPushed here.
 		return expAlias || name;
 	} else {
 		state.popIndent();
-		result += state.indent + `end;\n`;
+		results.push(state.indent + `end;\n`);
 	}
 
-	return result;
+	return results.join("");
 }
 
 export function compileClassDeclaration(state: CompilerState, node: ts.ClassDeclaration) {

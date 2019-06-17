@@ -87,7 +87,8 @@ function compileBinaryLiteral(
 	let rootId: string;
 	if (
 		(ts.TypeGuards.isIdentifier(rhs) && !isIdentifierDefinedInExportLet(rhs)) ||
-		ts.TypeGuards.isThisExpression(rhs)
+		ts.TypeGuards.isThisExpression(rhs) ||
+		ts.TypeGuards.isSuperExpression(rhs)
 	) {
 		rootId = compileExpression(state, rhs);
 	} else {

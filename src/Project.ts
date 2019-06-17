@@ -121,7 +121,7 @@ export class Project {
 	public configFilePath: string;
 	public rojoFilePath: string | undefined;
 
-	private project: ts.Project = {} as ts.Project;
+	public project: ts.Project = {} as ts.Project;
 	private compilerOptions: ts.CompilerOptions = {};
 	private projectPath: string = "";
 
@@ -291,7 +291,7 @@ export class Project {
 					module: ts.ts.ModuleKind.CommonJS,
 					noLib: true,
 					outDir: "out",
-					rootDir: "src",
+					rootDir: ".",
 					strict: true,
 					target: ts.ts.ScriptTarget.ES2015,
 					typeRoots: ["node_modules/@rbxts"],
@@ -610,10 +610,28 @@ export class Project {
 		);
 	}
 
+	private virtualFileNum = 1;
 	public compileSource(source: string) {
-		const sourceFile = this.project.createSourceFile("playground.ts", source);
-		const compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
-		this.project.removeSourceFile(sourceFile);
+		const sourceFile = this.project.createSourceFile(`file_${this.virtualFileNum++}.ts`, source);
+
+		let exception: Error | undefined;
+		let compiledSource = "";
+		try {
+			compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+		} catch (e) {
+			exception = e;
+		}
+		const errors = this.getDiagnosticErrors([sourceFile]);
+		sourceFile.deleteImmediately();
+
+		if (errors.length > 0) {
+			throw new DiagnosticError(errors);
+		}
+
+		if (exception) {
+			throw exception;
+		}
+
 		return compiledSource;
 	}
 
@@ -648,9 +666,7 @@ export class Project {
 		);
 	}
 
-	public async compileFiles(files: Array<ts.SourceFile>) {
-		await this.cleanDirRecursive(this.outDirPath);
-
+	private getDiagnosticErrors(files: Array<ts.SourceFile>) {
 		const errors = new Array<string>();
 		for (const file of files) {
 			const diagnostics = file
@@ -679,16 +695,18 @@ export class Project {
 					}
 					messageText = textSegments.join("\n");
 				}
-				const str = prefix + red("Diagnostic Error: ") + messageText;
-				if (!this.ci) {
-					console.log(str);
-				}
-				errors.push(str);
+				errors.push(prefix + red("Diagnostic Error: ") + messageText);
 			}
 		}
+		return errors;
+	}
+
+	public async compileFiles(files: Array<ts.SourceFile>) {
+		await this.cleanDirRecursive(this.outDirPath);
 
 		process.exitCode = 0;
 
+		const errors = this.getDiagnosticErrors(files);
 		try {
 			if (errors.length > 0) {
 				process.exitCode = 1;
@@ -752,7 +770,7 @@ export class Project {
 			} else if (e instanceof ProjectError) {
 				console.log(red("Project Error:"), e.message);
 			} else if (e instanceof DiagnosticError) {
-				// log above
+				console.log(e.toString());
 			} else {
 				throw e;
 			}

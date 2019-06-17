@@ -6,9 +6,7 @@ export type HasParameters =
 	| ts.ArrowFunction
 	| ts.FunctionDeclaration
 	| ts.ConstructorDeclaration
-	| ts.MethodDeclaration
-	| ts.GetAccessorDeclaration
-	| ts.SetAccessorDeclaration;
+	| ts.MethodDeclaration;
 
 type ProjectInfo =
 	| { type: ProjectType.Package }

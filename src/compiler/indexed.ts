@@ -19,7 +19,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, safeLuaIndex } from "../utility";
+import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionDownwards, safeLuaIndex } from "../utility";
 import { shouldWrapExpression } from "./call";
 import { CompilerDirective } from "./security";
 
@@ -55,18 +55,29 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
  */
 export function getWritableOperandName(state: CompilerState, operand: ts.Expression, doNotCompileAccess = false) {
 	if (ts.TypeGuards.isPropertyAccessExpression(operand) || ts.TypeGuards.isElementAccessExpression(operand)) {
-		const child = operand.getExpression();
+		const child = getNonNullUnParenthesizedExpressionDownwards(operand.getExpression());
 
 		if (
 			!ts.TypeGuards.isThisExpression(child) &&
+			!ts.TypeGuards.isSuperExpression(child) &&
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
 			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
-			const propertyStr = doNotCompileAccess
-				? ""
-				: ts.TypeGuards.isPropertyAccessExpression(operand)
-				? "." + compileExpression(state, operand.getNameNode())
-				: "[" + compileExpression(state, operand.getArgumentExpressionOrThrow()) + "]";
+
+			let propertyStr: string;
+			if (doNotCompileAccess) {
+				propertyStr = "";
+			} else if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
+				propertyStr = "." + compileExpression(state, operand.getNameNode());
+			} else {
+				const access = getComputedPropertyAccess(
+					state,
+					operand.getArgumentExpressionOrThrow(),
+					operand.getExpression(),
+				);
+				propertyStr = `[${access}]`;
+			}
+
 			return { expStr: id + propertyStr, isIdentifier: false };
 		} else if (doNotCompileAccess) {
 			return { expStr: compileExpression(state, child), isIdentifier: false };
@@ -90,8 +101,9 @@ export function getReadableExpressionName(
 	const nonNullExp = getNonNullExpressionDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
-		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
+		ts.TypeGuards.isThisExpression(nonNullExp) ||
+		ts.TypeGuards.isSuperExpression(nonNullExp) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
 		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
 	) {
@@ -131,13 +143,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	checkNonAny(nameNode);
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
-		const baseClassName = exp
-			.getType()
-			.getSymbolOrThrow()
-			.getName();
-		const indexA = safeLuaIndex(`${baseClassName}._getters`, propertyStr);
-		const indexB = safeLuaIndex("self", propertyStr);
-		return `(${indexA} and function(self) return ${indexA}(self) end or function() return ${indexB} end)(self)`;
+		return safeLuaIndex("self", propertyStr);
 	}
 
 	const symbol = expType.getSymbol();
