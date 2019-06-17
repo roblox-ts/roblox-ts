@@ -41,8 +41,6 @@ const LUA_RESERVED_METAMETHODS = [
 	"__mode",
 ];
 
-const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
-
 function nonGetterOrSetter(prop: ts.ClassInstancePropertyTypes) {
 	if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
 		throw new CompilerError(
@@ -293,6 +291,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	const extraInitializers = new Array<string>();
+	state.pushIndent();
 	for (let prop of node.getInstanceProperties()) {
 		checkDecorators(prop);
 		checkDefaultIterator(extendsArray, prop);
@@ -302,6 +301,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}
+	state.popIndent();
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const prop of node.getStaticProperties()) {
@@ -344,16 +344,17 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
-			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
-				throw new CompilerError(
-					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
-					node,
-					CompilerErrorType.UndefinableMetamethod,
-				);
-			}
-
-			results.push(state.indent + `function ${name}:${metamethod}(...) return self:${metamethod}(...); end;\n`);
+			throw new CompilerError(
+				`Cannot use Lua metamethod as identifier '${metamethod}' for a class`,
+				node,
+				CompilerErrorType.UndefinableMetamethod,
+			);
 		}
+	}
+
+	if (getClassMethod(node, "toString")) {
+		results.push(state.indent + `function ${name}:__tostring() return self:toString(); end;\n`);
+		results.push(state.indent + `function ${name}.__concat(a, b) return tostring(a) .. tostring(b) end;\n`);
 	}
 
 	if (isExpression) {
