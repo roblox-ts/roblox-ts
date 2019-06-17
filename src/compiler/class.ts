@@ -168,6 +168,72 @@ function checkMethodCollision(node: ts.ClassDeclaration | ts.ClassExpression, me
 	}
 }
 
+function getClassProperty(
+	classDec: ts.ClassDeclaration | ts.ClassExpression,
+	propName: string,
+	getter: (c: ts.ClassDeclaration | ts.ClassExpression, n: string) => ts.ClassInstancePropertyTypes | undefined = (
+		c,
+		n,
+	) => c.getProperty(n),
+): ts.ClassInstancePropertyTypes | undefined {
+	const property = getter(classDec, propName);
+	if (property) {
+		return property;
+	}
+	const baseClass = classDec.getBaseClass();
+	if (baseClass) {
+		const baseProp = getClassProperty(baseClass, propName, getter);
+		if (baseProp) {
+			return baseProp;
+		}
+	} else {
+		const extendsClass = classDec.getExtends();
+		if (extendsClass) {
+			const exp = extendsClass.getExpression();
+			if (exp && ts.TypeGuards.isClassExpression(exp)) {
+				const baseProp = getClassProperty(exp, propName, getter);
+				if (baseProp) {
+					return baseProp;
+				}
+			}
+		}
+	}
+	return undefined;
+}
+
+function getClassStaticProperty(classDec: ts.ClassDeclaration | ts.ClassExpression, propName: string) {
+	return getClassProperty(classDec, propName, (c, n) => c.getStaticProperty(n));
+}
+
+function getClassInstanceProperty(classDec: ts.ClassDeclaration | ts.ClassExpression, propName: string) {
+	return getClassProperty(classDec, propName, (c, n) => c.getInstanceProperty(n));
+}
+
+export function checkPropertyCollision(
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	prop: ts.ClassInstancePropertyTypes,
+) {
+	const propName = prop.getName();
+	console.log("checkPropertyCollision", propName, !ts.TypeGuards.isParameterDeclaration(prop) && prop.isStatic());
+	if (!ts.TypeGuards.isParameterDeclaration(prop) && prop.isStatic()) {
+		if (getClassInstanceProperty(node, propName)) {
+			throw new CompilerError(
+				`An instance property already exists with the name ${propName}`,
+				node,
+				CompilerErrorType.PropertyCollision,
+			);
+		}
+	} else {
+		if (getClassStaticProperty(node, propName)) {
+			throw new CompilerError(
+				`A static property already exists with the name ${propName}`,
+				node,
+				CompilerErrorType.PropertyCollision,
+			);
+		}
+	}
+}
+
 function checkDecorators(
 	node:
 		| ts.ClassDeclaration
@@ -305,6 +371,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	state.pushIndent();
 	for (let prop of node.getInstanceProperties()) {
 		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
 		checkDefaultIterator(extendsArray, prop);
 		prop = nonGetterOrSetter(prop);
 
@@ -317,6 +384,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	for (const prop of node.getStaticProperties()) {
 		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
 		checkDefaultIterator(extendsArray, prop);
 		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
