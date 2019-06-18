@@ -37,6 +37,7 @@ const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "rever
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	subExp = skipNodesDownwards(subExp);
+	console.log(subExp.getKindName());
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
@@ -1022,7 +1023,7 @@ export function compileElementAccessCallExpression(
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
-	let accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
+	const accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
 		compileElementAccessBracketExpression(state, expression),
 	);
 	const params = node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>;
@@ -1047,10 +1048,6 @@ export function compileElementAccessCallExpression(
 			node,
 			CompilerErrorType.MixedMethodCall,
 		);
-	}
-
-	if (shouldWrapExpression(expExp, false)) {
-		accessedPath = `(${accessedPath})`;
 	}
 
 	return `${accessedPath}(${paramsStr})`;
