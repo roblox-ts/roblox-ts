@@ -1,4 +1,5 @@
 {
+	let i = 0;
 	new (class Boat extends class Goat {
 		[key: number]: () => number;
 	} {
