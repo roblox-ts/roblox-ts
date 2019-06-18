@@ -258,6 +258,7 @@ export = () => {
 		let i = 0;
 		new (class Boat extends class Goat {
 			[key: number]: () => number;
+			[Symbol.iterator]() {}
 		} {
 			public f(s: string, b?: boolean) {
 				this[i] = () => 10;
