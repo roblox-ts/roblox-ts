@@ -280,7 +280,7 @@ function validateMethod(
 		let isSymbolPropAccess = false;
 		const exp = skipNodesDownwards(nameNode.getExpression());
 		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
-			const subExp = exp.getExpression();
+			const subExp = skipNodesDownwards(exp.getExpression());
 			if (ts.TypeGuards.isIdentifier(subExp) && subExp.getText() === "Symbol") {
 				isSymbolPropAccess = true;
 			}
