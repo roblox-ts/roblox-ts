@@ -258,16 +258,9 @@ export = () => {
 		let i = 0;
 		new (class Boat extends class Goat {
 			[key: number]: () => number;
-
-			public [++i]() {
-				return 5;
-			}
 		} {
-			public [i]() {
-				return 10;
-			}
 			public f(s: string, b?: boolean) {
-				expect(super[i]()).to.equal(5);
+				this[i] = () => 10;
 				expect(this[i]()).to.equal(10);
 			}
 		})().f("Go!");
