@@ -73,4 +73,8 @@ export = () => {
 			expect(data2[1]).to.equal(1);
 		}
 	});
+
+	it("should support concatenating strings", () => {
+		expect("a" + 1 + true + false).to.equal("a1truefalse");
+	});
 };

@@ -172,6 +172,9 @@ function objectAccessor(
 		const exp = skipNodesDownwards(nameNode.getExpression());
 		name = getComputedPropertyAccess(state, exp, rhs);
 		return `${t}[${name}]`;
+	} else if (ts.TypeGuards.isNumericLiteral(nameNode) || ts.TypeGuards.isStringLiteral(nameNode)) {
+		name = compileExpression(state, nameNode);
+		return `${t}[${name}]`;
 	} else {
 		throw new CompilerError(
 			`Cannot index an object with type ${nameNode.getKindName()}.`,
@@ -447,7 +450,11 @@ export function getBindingData(
 			const nameNode = item.getNameNode();
 			if (item.hasInitializer()) {
 				const initializer = skipNodesDownwards(item.getInitializer()!);
-				if (ts.TypeGuards.isIdentifier(initializer)) {
+				if (
+					ts.TypeGuards.isIdentifier(initializer) ||
+					ts.TypeGuards.isPropertyAccessExpression(initializer) ||
+					ts.TypeGuards.isElementAccessExpression(initializer)
+				) {
 					alias = compileExpression(state, initializer);
 					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
 				} else {

@@ -39,16 +39,31 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
-	const leftType = getType(node.getLeft());
-	const rightType = getType(node.getRight());
 
-	if (isStringType(leftType) || isStringType(rightType)) {
+	const lhsType = getType(node.getLeft());
+	const rhsType = getType(node.getRight());
+
+	const lhsIsStr = isStringType(lhsType);
+	const lhsIsNum = isNumberType(lhsType);
+
+	const rhsIsStr = isStringType(rhsType);
+	const rhsIsNum = isNumberType(rhsType);
+
+	if (lhsIsStr || rhsIsStr) {
+		if (!lhsIsStr && !lhsIsNum) {
+			lhsStr = "tostring(" + lhsStr + ")";
+		}
+
+		if (!rhsIsStr && !rhsIsNum) {
+			rhsStr = "tostring(" + rhsStr + ")";
+		}
+
 		return `${lhsStr} .. ${rhsStr}`;
-	} else if (isNumberType(leftType) && isNumberType(rightType)) {
+	} else if (lhsIsNum && rhsIsNum) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
 		throw new CompilerError(
-			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
+			`Unexpected types for addition: ${lhsType.getText()} + ${rhsType.getText()}`,
 			node,
 			CompilerErrorType.BadAddition,
 			true,
