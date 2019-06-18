@@ -267,6 +267,23 @@ function checkDefaultIterator<
 	}
 }
 
+function validateMethod(
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	method: ts.MethodDeclaration,
+	extendsArray: boolean,
+) {
+	checkDecorators(method);
+	checkMethodCollision(node, method);
+	checkDefaultIterator(extendsArray, method);
+	if (ts.TypeGuards.isComputedPropertyName(method.getNameNode())) {
+		throw new CompilerError(
+			"Cannot make a class with computed method names!",
+			method,
+			CompilerErrorType.ClassWithComputedMethodNames,
+		);
+	}
+}
+
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
@@ -366,9 +383,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	for (const method of node.getStaticMethods()) {
-		checkDecorators(method);
-		checkMethodCollision(node, method);
-		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
@@ -379,7 +393,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.BadStaticMethod,
 				);
 			}
-
+			validateMethod(node, method, extendsArray);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + "."));
 			state.exitPrecedingStatementContext();
@@ -413,10 +427,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const method of node.getInstanceMethods()) {
-		checkDecorators(method);
-		checkMethodCollision(node, method);
-		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
+			validateMethod(node, method, extendsArray);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
