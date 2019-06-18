@@ -37,7 +37,7 @@ const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "rever
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	subExp = skipNodesDownwards(subExp);
-	console.log(subExp.getKindName());
+
 	return (
 		!ts.TypeGuards.isIdentifier(subExp) &&
 		!ts.TypeGuards.isThisExpression(subExp) &&
