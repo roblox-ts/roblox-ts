@@ -86,6 +86,7 @@ export enum CompilerErrorType {
 	Decorator,
 	MethodCollision,
 	PropertyCollision,
+	ClassWithComputedMethodNames,
 }
 
 export class CompilerError extends Error {

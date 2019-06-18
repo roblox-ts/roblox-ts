@@ -2,11 +2,12 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isStringType } from "../typeUtilities";
+import { getType, isStringType } from "../typeUtilities";
+import { skipNodesDownwards } from "../utility";
 
 export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
-	const expression = node.getExpression();
-	if (!expression || !isStringType(expression.getType())) {
+	const expression = skipNodesDownwards(node.getExpression());
+	if (!expression || !isStringType(getType(expression))) {
 		throw new CompilerError("Non-string throws are not supported!", node, CompilerErrorType.NonStringThrow);
 	}
 	state.enterPrecedingStatementContext();

@@ -3,6 +3,7 @@ import { checkReserved, compileCallExpression, compileExpression, concatNamesAnd
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
 	isArrayType,
 	isIterableFunction,
 	isIterableIterator,
@@ -12,20 +13,15 @@ import {
 	isTupleType,
 	shouldHoist,
 } from "../typeUtilities";
-import {
-	getNonNullExpressionDownwards,
-	getNonNullUnParenthesizedExpressionDownwards,
-	isCompiledIdentifier,
-	removeBalancedParenthesisFromStringBorders,
-} from "../utility";
+import { isCompiledIdentifier, skipNodesDownwards, skipNodesUpwards } from "../utility";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	state.enterPrecedingStatementContext();
 	const lhs = node.getNameNode();
-	const rhs = getNonNullExpressionDownwards(node.getInitializer());
+	const rhs = skipNodesDownwards(node.getInitializer());
 
-	const parent = node.getParent();
-	const grandParent = parent.getParent();
+	const parent = skipNodesUpwards(node.getParent());
+	const grandParent = skipNodesUpwards(parent.getParent());
 	const isExported = ts.TypeGuards.isVariableStatement(grandParent) && grandParent.isExported();
 
 	let decKind = ts.VariableDeclarationKind.Const;
@@ -38,7 +34,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
-		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(rhs.getType())) {
+		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(getType(rhs))) {
 			const names = new Array<string>();
 			const values = new Array<string>();
 			for (const element of lhs.getElements()) {
@@ -72,15 +68,14 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const name = lhs.getText();
 		checkReserved(name, lhs, true);
 		if (rhs) {
-			const trueRhs = getNonNullUnParenthesizedExpressionDownwards(rhs);
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				const parentName = state.getExportContextName(grandParent);
-				state.declarationContext.set(trueRhs, {
+				state.declarationContext.set(rhs, {
 					isIdentifier: false,
 					set: `${parentName}.${name}`,
 				});
 				const value = compileExpression(state, rhs);
-				if (state.declarationContext.delete(trueRhs)) {
+				if (state.declarationContext.delete(rhs)) {
 					result += state.indent + `${parentName}.${name} = ${value};\n`;
 				}
 			} else {
@@ -89,19 +84,19 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				}
 				if (shouldHoist(grandParent, lhs)) {
 					state.pushHoistStack(name);
-					state.declarationContext.set(trueRhs, { isIdentifier: true, set: `${name}` });
+					state.declarationContext.set(rhs, { isIdentifier: true, set: `${name}` });
 					const value = compileExpression(state, rhs);
-					if (state.declarationContext.delete(trueRhs)) {
+					if (state.declarationContext.delete(rhs)) {
 						result += state.indent + `${name} = ${value};\n`;
 					}
 				} else {
-					state.declarationContext.set(trueRhs, {
+					state.declarationContext.set(rhs, {
 						isIdentifier: true,
 						needsLocalizing: true,
 						set: `${name}`,
 					});
 					const value = compileExpression(state, rhs);
-					if (state.declarationContext.delete(trueRhs)) {
+					if (state.declarationContext.delete(rhs)) {
 						result += state.indent + `local ${name} = ${value};\n`;
 					}
 				}
@@ -128,7 +123,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
-			const rhsType = rhs.getType();
+			const rhsType = getType(rhs);
 			if (
 				!isArrayType(rhsType) &&
 				!isMapType(rhsType) &&
@@ -138,7 +133,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {
 				state.usesTSLibrary = true;
-				rhsStr = removeBalancedParenthesisFromStringBorders(rhsStr);
+				rhsStr = rhsStr;
 				const id = state.getNewId();
 				preStatements.push(`local ${id} = ${rhsStr}[TS.Symbol_iterator](${rhsStr});`);
 				rhsStr = id;

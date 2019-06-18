@@ -11,26 +11,24 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
-import { classDeclarationInheritsFromArray, isIterableIterator, isTupleType, shouldHoist } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import {
+	classDeclarationInheritsFromArray,
+	getType,
+	isIterableIterator,
+	isTupleType,
+	shouldHoist,
+} from "../typeUtilities";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 
-export function getFirstMemberWithParameters(nodes: Array<ts.Node<ts.ts.Node>>): HasParameters | undefined {
-	for (const node of nodes) {
-		if (
-			ts.TypeGuards.isFunctionExpression(node) ||
-			ts.TypeGuards.isArrowFunction(node) ||
-			ts.TypeGuards.isFunctionDeclaration(node) ||
-			ts.TypeGuards.isConstructorDeclaration(node) ||
-			ts.TypeGuards.isMethodDeclaration(node)
-		) {
-			return node;
-		}
-	}
-	return undefined;
-}
+export const nodeHasParameters = (ancestor: ts.Node): ancestor is HasParameters =>
+	ts.TypeGuards.isFunctionExpression(ancestor) ||
+	ts.TypeGuards.isArrowFunction(ancestor) ||
+	ts.TypeGuards.isFunctionDeclaration(ancestor) ||
+	ts.TypeGuards.isConstructorDeclaration(ancestor) ||
+	ts.TypeGuards.isMethodDeclaration(ancestor);
 
 function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, func?: HasParameters) {
-	exp = getNonNullUnParenthesizedExpressionDownwards(exp);
+	exp = skipNodesDownwards(exp);
 
 	if (func && isTupleType(func.getReturnType())) {
 		if (ts.TypeGuards.isArrayLiteralExpression(exp)) {
@@ -56,10 +54,11 @@ function getReturnStrFromExpression(state: CompilerState, exp: ts.Expression, fu
 }
 
 export function compileReturnStatement(state: CompilerState, node: ts.ReturnStatement) {
-	const exp = node.getExpression();
+	const exp = skipNodesDownwards(node.getExpression());
 	if (exp) {
 		state.enterPrecedingStatementContext();
-		const returnStr = getReturnStrFromExpression(state, exp, getFirstMemberWithParameters(node.getAncestors()));
+		const funcNode = node.getFirstAncestor(nodeHasParameters);
+		const returnStr = getReturnStrFromExpression(state, exp, funcNode);
 		return state.exitPrecedingStatementContextAndJoin() + (returnStr ? state.indent + returnStr + "\n" : "");
 	} else {
 		return state.indent + `return nil;\n`;
@@ -67,7 +66,7 @@ export function compileReturnStatement(state: CompilerState, node: ts.ReturnStat
 }
 
 export function isFunctionExpressionMethod(node: ts.FunctionExpression) {
-	const parent = node.getParent();
+	const parent = skipNodesUpwards(node.getParent());
 	return ts.TypeGuards.isPropertyAssignment(parent) && ts.TypeGuards.isObjectLiteralExpression(parent.getParent());
 }
 
@@ -213,14 +212,16 @@ function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpres
 
 	if (parameters.length > 0) {
 		const child = parameters[0].getFirstChildByKind(ts.SyntaxKind.Identifier);
-		const classParent =
-			node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) ||
-			node.getFirstAncestorByKind(ts.SyntaxKind.ClassExpression);
+		const classParent = node.getFirstAncestor(
+			(ancestor): ancestor is ts.ClassDeclaration | ts.ClassExpression =>
+				ts.TypeGuards.isClassDeclaration(ancestor) || ts.TypeGuards.isClassExpression(ancestor),
+		);
+
 		if (
 			classParent &&
 			child &&
 			child.getText() === "this" &&
-			(child.getType().getText() === "this" || child.getType() === classParent.getType())
+			(getType(child).getText() === "this" || getType(child) === getType(classParent))
 		) {
 			paramNames[0] = "self";
 			replacedThis = true;
@@ -229,7 +230,7 @@ function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpres
 
 	if (!replacedThis) {
 		const thisParam = node.getParameter("this");
-		if (!thisParam || thisParam.getType().getText() !== "void") {
+		if (!thisParam || getType(thisParam).getText() !== "void") {
 			paramNames.unshift("self");
 		}
 	}
@@ -254,12 +255,12 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 }
 
 export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDeclaration, namePrefix: string) {
-	const nameNode: ts.PropertyName = node.getNameNode();
+	const nameNode = node.getNameNode();
 	let name: string;
 
 	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
 		namePrefix = namePrefix.slice(0, -1);
-		name = `[${compileExpression(state, nameNode.getExpression())}]`;
+		name = `[${compileExpression(state, skipNodesDownwards(nameNode.getExpression()))}]`;
 	} else {
 		name = compileExpression(state, nameNode);
 		checkReserved(name, node);
@@ -270,9 +271,9 @@ export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDe
 
 function containsSuperExpression(child?: ts.Statement<ts.ts.Statement>) {
 	if (child && ts.TypeGuards.isExpressionStatement(child)) {
-		const exp = child.getExpression();
+		const exp = skipNodesDownwards(child.getExpression());
 		if (ts.TypeGuards.isCallExpression(exp)) {
-			const superExp = exp.getExpression();
+			const superExp = skipNodesDownwards(exp.getExpression());
 			if (ts.TypeGuards.isSuperExpression(superExp)) {
 				return true;
 			}

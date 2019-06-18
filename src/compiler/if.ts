@@ -2,11 +2,11 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatement } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isTupleType } from "../typeUtilities";
-import { joinIndentedLines } from "../utility";
+import { getType, isTupleType } from "../typeUtilities";
+import { joinIndentedLines, skipNodesDownwards } from "../utility";
 
 export function assertNonLuaTuple(exp: ts.Expression) {
-	if (isTupleType(exp.getType())) {
+	if (isTupleType(getType(exp))) {
 		throw new CompilerError(
 			`Cannot check a LuaTuple in a conditional! Change this to:\n\t${exp.getText()}[0]`,
 			exp,
@@ -19,7 +19,7 @@ export function assertNonLuaTuple(exp: ts.Expression) {
 export function compileIfStatement(state: CompilerState, node: ts.IfStatement) {
 	let result = "";
 	state.enterPrecedingStatementContext();
-	const expStr = compileExpression(state, assertNonLuaTuple(node.getExpression()));
+	const expStr = compileExpression(state, skipNodesDownwards(assertNonLuaTuple(node.getExpression())));
 	result += state.exitPrecedingStatementContextAndJoin();
 	result += state.indent + `if ${expStr} then\n`;
 	state.pushIndent();
@@ -31,7 +31,7 @@ export function compileIfStatement(state: CompilerState, node: ts.IfStatement) {
 	while (elseStatement && ts.TypeGuards.isIfStatement(elseStatement)) {
 		state.enterPrecedingStatementContext();
 		state.pushIndent();
-		const exp = assertNonLuaTuple(elseStatement.getExpression());
+		const exp = skipNodesDownwards(assertNonLuaTuple(elseStatement.getExpression()));
 		const elseIfExpression = compileExpression(state, exp);
 		const context = state.exitPrecedingStatementContext();
 

@@ -1,11 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import {
-	getNonNullUnParenthesizedExpressionDownwards,
-	makeSetStatement,
-	removeBalancedParenthesisFromStringBorders,
-} from "../utility";
+import { makeSetStatement, skipNodesDownwards } from "../utility";
 import { assertNonLuaTuple } from "./if";
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
@@ -14,9 +10,9 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	const declaration = state.declarationContext.get(node);
 
-	const condition = assertNonLuaTuple(node.getCondition());
-	const whenTrue = getNonNullUnParenthesizedExpressionDownwards(node.getWhenTrue());
-	const whenFalse = getNonNullUnParenthesizedExpressionDownwards(node.getWhenFalse());
+	const condition = assertNonLuaTuple(skipNodesDownwards(node.getCondition()));
+	const whenTrue = skipNodesDownwards(node.getWhenTrue());
+	const whenFalse = skipNodesDownwards(node.getWhenFalse());
 	let conditionStr: string;
 	let isPushed = false;
 
@@ -43,7 +39,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	state.declarationContext.set(whenTrue, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
 	state.pushIdStack();
-	const whenTrueStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenTrue));
+	const whenTrueStr = compileExpression(state, whenTrue);
 	if (state.declarationContext.delete(whenTrue) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + ";\n");
 	}
@@ -54,7 +50,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.pushIdStack();
 
 	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
-	const whenFalseStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, whenFalse));
+	const whenFalseStr = compileExpression(state, whenFalse);
 	if (state.declarationContext.delete(whenFalse) && id !== whenFalseStr) {
 		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + ";\n");
 	}

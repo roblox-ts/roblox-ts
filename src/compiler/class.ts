@@ -18,7 +18,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { bold, skipNodesDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -91,16 +91,15 @@ function compileClassProperty(
 		}
 
 		if (ts.TypeGuards.isInitializerExpressionableNode(prop) && prop.hasInitializer()) {
-			const initializer = prop.getInitializer()!;
 			state.enterPrecedingStatementContext(precedingStatementContext);
-			const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-			state.declarationContext.set(fullInitializer, {
+			const initializer = skipNodesDownwards(prop.getInitializer()!);
+			state.declarationContext.set(initializer, {
 				isIdentifier: false,
 				set: `${name}${propStr}`,
 			});
 			const expStr = compileExpression(state, initializer);
 			state.exitPrecedingStatementContext();
-			if (state.declarationContext.delete(fullInitializer)) {
+			if (state.declarationContext.delete(initializer)) {
 				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
 			}
 		} else {
@@ -214,7 +213,6 @@ export function checkPropertyCollision(
 	prop: ts.ClassInstancePropertyTypes,
 ) {
 	const propName = prop.getName();
-	console.log("checkPropertyCollision", propName, !ts.TypeGuards.isParameterDeclaration(prop) && prop.isStatic());
 	if (!ts.TypeGuards.isParameterDeclaration(prop) && prop.isStatic()) {
 		if (getClassInstanceProperty(node, propName)) {
 			throw new CompilerError(
@@ -265,6 +263,23 @@ function checkDefaultIterator<
 			`Cannot declare [Symbol.iterator] on class which extends from Array<T>`,
 			prop,
 			CompilerErrorType.DefaultIteratorOnArrayExtension,
+		);
+	}
+}
+
+function validateMethod(
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	method: ts.MethodDeclaration,
+	extendsArray: boolean,
+) {
+	checkDecorators(method);
+	checkMethodCollision(node, method);
+	checkDefaultIterator(extendsArray, method);
+	if (ts.TypeGuards.isComputedPropertyName(method.getNameNode())) {
+		throw new CompilerError(
+			"Cannot make a class with computed method names!",
+			method,
+			CompilerErrorType.ClassWithComputedMethodNames,
 		);
 	}
 }
@@ -325,7 +340,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	let extendsArray = false;
 
 	if (extendExp) {
-		const extendExpExp = extendExp.getExpression();
+		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
 
@@ -339,7 +354,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 		state.enterPrecedingStatementContext(results);
 		if (hasSuper) {
-			results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+			results.push(
+				state.indent +
+					`local super = ${compileExpression(state, skipNodesDownwards(extendExp.getExpression()))};\n`,
+			);
 		}
 		state.exitPrecedingStatementContext();
 	}
@@ -357,17 +375,43 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	results.push(state.indent + `${name}.__index = ${name};\n`);
 
+	for (const prop of node.getStaticProperties()) {
+		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
+		checkDefaultIterator(extendsArray, prop);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
+	}
+
+	for (const method of node.getStaticMethods()) {
+		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+
+			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
+				throw new CompilerError(
+					`Cannot make a static method with name "${methodName}"!`,
+					method,
+					CompilerErrorType.BadStaticMethod,
+				);
+			}
+			validateMethod(node, method, extendsArray);
+			state.enterPrecedingStatementContext(results);
+			results.push(compileMethodDeclaration(state, method, name + "."));
+			state.exitPrecedingStatementContext();
+		}
+	}
+
 	if (!node.isAbstract()) {
 		results.push(
 			state.indent + `function ${name}.new(...)\n`,
 			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
-			state.indent + `\t${name}.constructor(self, ...);\n`,
+			state.indent + `\tself:constructor(...);\n`,
 			state.indent + `\treturn self;\n`,
 			state.indent + `end;\n`,
 		);
 	}
 
 	const extraInitializers = new Array<string>();
+
 	state.pushIndent();
 	for (let prop of node.getInstanceProperties()) {
 		checkDecorators(prop);
@@ -382,39 +426,9 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	state.popIndent();
 	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
-	for (const prop of node.getStaticProperties()) {
-		checkDecorators(prop);
-		checkPropertyCollision(node, prop);
-		checkDefaultIterator(extendsArray, prop);
-		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
-	}
-
-	for (const method of node.getStaticMethods()) {
-		checkDecorators(method);
-		checkMethodCollision(node, method);
-		checkDefaultIterator(extendsArray, method);
-		if (method.getBody() !== undefined) {
-			const methodName = method.getName();
-
-			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
-				throw new CompilerError(
-					`Cannot make a static method with name "${methodName}"!`,
-					method,
-					CompilerErrorType.BadStaticMethod,
-				);
-			}
-
-			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + "."));
-			state.exitPrecedingStatementContext();
-		}
-	}
-
 	for (const method of node.getInstanceMethods()) {
-		checkDecorators(method);
-		checkMethodCollision(node, method);
-		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
+			validateMethod(node, method, extendsArray);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();

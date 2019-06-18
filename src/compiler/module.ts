@@ -6,12 +6,18 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import { isValidLuaIdentifier, stripExtensions, transformPathToLua } from "../utility";
+import {
+	isValidLuaIdentifier,
+	skipNodesDownwards,
+	skipNodesUpwards,
+	stripExtensions,
+	transformPathToLua,
+} from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
-	const parent = def.getNode().getParent();
+	const parent = skipNodesUpwards(def.getNode().getParent());
 	if (parent && ts.TypeGuards.isVariableDeclaration(parent)) {
-		const grandparent = parent.getParent();
+		const grandparent = skipNodesUpwards(parent.getParent());
 		return (
 			ts.TypeGuards.isVariableDeclarationList(grandparent) &&
 			grandparent.getDeclarationKind() === ts.VariableDeclarationKind.Let
@@ -430,7 +436,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 }
 
 export function compileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
-	const exp = node.getExpression();
+	const exp = skipNodesDownwards(node.getExpression());
 	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {
 		state.isModule = true;
 		state.enterPrecedingStatementContext();

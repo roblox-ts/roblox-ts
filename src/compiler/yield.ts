@@ -2,11 +2,12 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 
 export function compileYieldExpression(state: CompilerState, node: ts.YieldExpression) {
-	const exp = node.getExpression();
+	const exp = skipNodesDownwards(node.getExpression());
 	if (node.isGenerator()) {
-		if (!ts.TypeGuards.isExpressionStatement(node.getParent())) {
+		if (!ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent()))) {
 			throw new CompilerError(
 				"Yield expressions must be expression statements!",
 				node,

@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { joinIndentedLines } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility";
 import { shouldWrapExpression } from "./call";
 import { isIdentifierDefinedInConst } from "./indexed";
 
@@ -35,7 +35,7 @@ export function compileSwitchStatement(state: CompilerState, node: ts.SwitchStat
 	let preResult = "";
 	let expStr: string;
 
-	const expression = node.getExpression();
+	const expression = skipNodesDownwards(node.getExpression());
 	state.enterPrecedingStatementContext();
 	const rawExpStr = compileExpression(state, expression);
 	const expressionContext = state.exitPrecedingStatementContext();

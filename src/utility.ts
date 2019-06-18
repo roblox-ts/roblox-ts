@@ -16,52 +16,8 @@ export function safeLuaIndex(parent: string, child: string) {
 }
 
 export function isCompiledIdentifier(s: string) {
-	return isValidLuaIdentifier(removeBalancedParenthesisFromStringBorders(s));
+	return isValidLuaIdentifier(s);
 }
-
-export function removeBalancedParenthesisFromStringBorders(str: string) {
-	let parenDepth = 0;
-	let inOpenParens: number | undefined;
-	let outCloseParens: number | undefined;
-
-	for (const char of str) {
-		if (char === ")") {
-			if (outCloseParens === undefined) {
-				outCloseParens = parenDepth;
-			}
-
-			parenDepth--;
-		} else if (outCloseParens !== undefined) {
-			outCloseParens = undefined;
-
-			if (inOpenParens !== undefined) {
-				if (parenDepth < inOpenParens) {
-					inOpenParens = parenDepth;
-				}
-			}
-		}
-
-		if (char === "(") {
-			parenDepth++;
-		} else if (inOpenParens === undefined) {
-			inOpenParens = parenDepth;
-		}
-	}
-	const index = Math.min(inOpenParens || 0, outCloseParens || 0);
-	return index === 0 ? str : str.slice(index, -index);
-}
-
-// console.log(`"${removeBalancedParenthesisFromStringBorders("")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("x")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("((x))")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x + 5)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x) + 5")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("5 + (x)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("((x) + 5)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(5 + (x))")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("()()")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(()())")}"`);
 
 export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 	if (lines.length > 0) {
@@ -195,17 +151,19 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 	return false;
 }
 
-/** Skips over Null expressions.
+/** Skips over Null/Parenthesis expressions.
  * Be aware that this can change the type of your expression to be potentially undefined.
  */
-export function getNonNullExpressionDownwards<T extends ts.Node>(exp: T): T;
-export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T) {
+export function skipNodesDownwards<T extends ts.Node>(exp: T, dontSkipParenthesis?: boolean): T;
+export function skipNodesDownwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean): T | undefined;
+export function skipNodesDownwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean) {
 	if (exp) {
-		while (ts.TypeGuards.isNonNullExpression(exp)) {
+		while (
+			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
+			ts.TypeGuards.isNonNullExpression(exp)
+		) {
 			exp = (exp.getExpression() as unknown) as T;
 		}
-
 		return exp;
 	}
 }
@@ -213,40 +171,14 @@ export function getNonNullExpressionDownwards<T extends ts.Node>(exp?: T) {
 /** Skips over Null/Parenthesis expressions.
  * Be aware that this can change the type of your expression to be potentially undefined.
  */
-export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp: T): T;
-export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullUnParenthesizedExpressionDownwards<T extends ts.Node>(exp?: T) {
+export function skipNodesUpwards<T extends ts.Node>(exp: T, dontSkipParenthesis?: boolean): T;
+export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean): T | undefined;
+export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean) {
 	if (exp) {
-		while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
-			exp = (exp.getExpression() as unknown) as T;
-		}
-		return exp;
-	}
-}
-
-/** Skips over Null expressions.
- * Be aware that this can change the type of your expression to be potentially undefined.
- */
-export function getNonNullExpressionUpwards<T extends ts.Node>(exp: T): T;
-export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullExpressionUpwards<T extends ts.Node>(exp?: T) {
-	if (exp) {
-		while (ts.TypeGuards.isNonNullExpression(exp)) {
-			exp = (exp.getParent() as unknown) as T;
-		}
-
-		return exp;
-	}
-}
-
-/** Skips over Null/Parenthesis expressions.
- * Be aware that this can change the type of your expression to be potentially undefined.
- */
-export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp: T): T;
-export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T): T | undefined;
-export function getNonNullUnParenthesizedExpressionUpwards<T extends ts.Node>(exp?: T) {
-	if (exp) {
-		while (ts.TypeGuards.isParenthesizedExpression(exp) || ts.TypeGuards.isNonNullExpression(exp)) {
+		while (
+			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
+			ts.TypeGuards.isNonNullExpression(exp)
+		) {
 			exp = (exp.getParent() as unknown) as T;
 		}
 		return exp;
