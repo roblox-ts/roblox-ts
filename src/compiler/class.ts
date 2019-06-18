@@ -275,12 +275,24 @@ function validateMethod(
 	checkDecorators(method);
 	checkMethodCollision(node, method);
 	checkDefaultIterator(extendsArray, method);
-	if (ts.TypeGuards.isComputedPropertyName(method.getNameNode())) {
-		throw new CompilerError(
-			"Cannot make a class with computed method names!",
-			method,
-			CompilerErrorType.ClassWithComputedMethodNames,
-		);
+	const nameNode = method.getNameNode();
+	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		let isSymbolPropAccess = false;
+		const exp = skipNodesDownwards(nameNode.getExpression());
+		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			const subExp = skipNodesDownwards(exp.getExpression());
+			if (ts.TypeGuards.isIdentifier(subExp) && subExp.getText() === "Symbol") {
+				isSymbolPropAccess = true;
+			}
+		}
+
+		if (!isSymbolPropAccess) {
+			throw new CompilerError(
+				"Cannot make a class with computed method names!",
+				method,
+				CompilerErrorType.ClassWithComputedMethodNames,
+			);
+		}
 	}
 }
 

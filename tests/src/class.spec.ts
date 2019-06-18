@@ -258,12 +258,26 @@ export = () => {
 		let i = 0;
 		new (class Boat extends class Goat {
 			[key: number]: () => number;
+			[Symbol.iterator]() {}
 		} {
 			public f(s: string, b?: boolean) {
 				this[i] = () => 10;
 				expect(this[i]()).to.equal(10);
 			}
 		})().f("Go!");
+	});
+
+	it("should support Symbol.iterator", () => {
+		let i = 0;
+		for (const foo of new (class A extends class B {
+			*[Symbol.iterator]() {
+				yield 1;
+				yield 2;
+				yield 3;
+			}
+		} {})()) {
+			expect(foo).to.equal(++i);
+		}
 	});
 
 	it("should support extending from Array", () => {
