@@ -1,10 +1,10 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileLoopBody } from ".";
 import { CompilerState } from "../CompilerState";
-import { joinIndentedLines } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility";
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
-	const exp = node.getExpression();
+	const exp = skipNodesDownwards(node.getExpression());
 	state.pushIdStack();
 	state.enterPrecedingStatementContext();
 	const expStr = compileExpression(state, exp);

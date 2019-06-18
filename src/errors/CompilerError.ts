@@ -84,6 +84,9 @@ export enum CompilerErrorType {
 	DefaultIteratorOnArrayExtension,
 	SuperArrayCall,
 	Decorator,
+	MethodCollision,
+	PropertyCollision,
+	ClassWithComputedMethodNames,
 }
 
 export class CompilerError extends Error {

@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
 import { PrecedingStatementContext } from "./CompilerState";
+import { skipNodesDownwards, skipNodesUpwards } from "./utility";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -94,7 +95,7 @@ export function inheritsFrom(type: ts.Type, className: string): boolean {
 		const declarations = symbol.getDeclarations();
 		for (const declaration of declarations) {
 			if (!ts.TypeGuards.isSourceFile(declaration)) {
-				const decType = declaration.getType();
+				const decType = getType(declaration);
 				const decBaseTypes = decType.getBaseTypes();
 				for (const baseType of decBaseTypes) {
 					if (inheritsFrom(baseType, className)) {
@@ -267,7 +268,7 @@ export function getCompilerDirectiveWithLaxConstraint(
 }
 
 export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
-	for (const constructSignature of node.getType().getConstructSignatures()) {
+	for (const constructSignature of getType(node).getConstructSignatures()) {
 		const returnType = constructSignature.getReturnType();
 		if (
 			getCompilerDirectiveWithConstraint(returnType, CompilerDirective.Set) ||
@@ -280,7 +281,7 @@ export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
 }
 
 export function superExpressionClassInheritsFromArray(node: ts.Expression, recursive = true) {
-	const type = node.getType();
+	const type = getType(node);
 	for (const constructSignature of type.getConstructSignatures()) {
 		if (
 			getCompilerDirectiveWithConstraint(
@@ -489,23 +490,28 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 			return true;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(node) &&
-			isConstantExpression(node.getLeft(), maxDepth - 1) &&
-			isConstantExpression(node.getRight(), maxDepth - 1)
+			isConstantExpression(skipNodesDownwards(node.getLeft()), maxDepth - 1) &&
+			isConstantExpression(skipNodesDownwards(node.getRight()), maxDepth - 1)
 		) {
 			return true;
 		} else if (
 			(ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) &&
-			isConstantExpression(node.getOperand(), maxDepth)
+			isConstantExpression(skipNodesDownwards(node.getOperand()), maxDepth)
 		) {
 			return true;
 		} else if (
 			ts.TypeGuards.isConditionalExpression(node) &&
-			isConstantExpression(node.getCondition(), maxDepth - 1) &&
-			isConstantExpression(node.getWhenTrue(), maxDepth - 1) &&
-			isConstantExpression(node.getWhenFalse(), maxDepth - 1)
+			isConstantExpression(skipNodesDownwards(node.getCondition()), maxDepth - 1) &&
+			isConstantExpression(skipNodesDownwards(node.getWhenTrue()), maxDepth - 1) &&
+			isConstantExpression(skipNodesDownwards(node.getWhenFalse()), maxDepth - 1)
 		) {
 			return true;
 		}
 	}
 	return false;
+}
+
+/** Calls getNonNullUnParenthesizedExpressionUpwards and returns getType() */
+export function getType(node: ts.Node) {
+	return skipNodesUpwards(node).getType();
 }

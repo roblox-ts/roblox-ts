@@ -1,7 +1,8 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileList } from ".";
 import { CompilerState } from "../CompilerState";
-import { isStringType } from "../typeUtilities";
+import { getType, isStringType } from "../typeUtilities";
+import { skipNodesDownwards } from "../utility";
 
 export function sanitizeTemplate(str: string) {
 	str = str.replace(/(^|[^\\](?:\\\\)*)"/g, '$1\\"'); // replace " with \"
@@ -49,14 +50,18 @@ function getTemplateParts(
 			);
 		}
 
-		const expressions = compileList(state, node.getTemplateSpans().map(span => span.getExpression()), (_, exp) => {
-			const expStr = compileExpression(state, exp);
-			if (tostring) {
-				return isStringType(exp.getType()) ? expStr : `tostring(${expStr})`;
-			} else {
-				return expStr;
-			}
-		});
+		const expressions = compileList(
+			state,
+			node.getTemplateSpans().map(span => skipNodesDownwards(span.getExpression())),
+			(_, exp) => {
+				const expStr = compileExpression(state, exp);
+				if (tostring) {
+					return isStringType(getType(exp)) ? expStr : `tostring(${expStr})`;
+				} else {
+					return expStr;
+				}
+			},
+		);
 
 		return {
 			expressions,
@@ -79,7 +84,7 @@ export function compileTemplateExpression(state: CompilerState, node: ts.Templat
 }
 
 export function compileTaggedTemplateExpression(state: CompilerState, node: ts.TaggedTemplateExpression) {
-	const tagStr = compileExpression(state, node.getTag());
+	const tagStr = compileExpression(state, skipNodesDownwards(node.getTag()));
 	const parts = getTemplateParts(state, node.getTemplate(), false);
 	if (parts.expressions.length > 0) {
 		return `${tagStr}({ ${parts.literals.join(", ")} }, ${parts.expressions.join(", ")})`;

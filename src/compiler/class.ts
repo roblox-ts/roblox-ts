@@ -18,7 +18,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, getNonNullUnParenthesizedExpressionDownwards } from "../utility";
+import { bold, skipNodesDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -40,8 +40,6 @@ const LUA_RESERVED_METAMETHODS = [
 	"__metatable",
 	"__mode",
 ];
-
-const LUA_UNDEFINABLE_METAMETHODS = new Set(["__index", "__newindex", "__mode"]);
 
 function nonGetterOrSetter(prop: ts.ClassInstancePropertyTypes) {
 	if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
@@ -93,16 +91,15 @@ function compileClassProperty(
 		}
 
 		if (ts.TypeGuards.isInitializerExpressionableNode(prop) && prop.hasInitializer()) {
-			const initializer = prop.getInitializer()!;
 			state.enterPrecedingStatementContext(precedingStatementContext);
-			const fullInitializer = getNonNullUnParenthesizedExpressionDownwards(initializer);
-			state.declarationContext.set(fullInitializer, {
+			const initializer = skipNodesDownwards(prop.getInitializer()!);
+			state.declarationContext.set(initializer, {
 				isIdentifier: false,
 				set: `${name}${propStr}`,
 			});
 			const expStr = compileExpression(state, initializer);
 			state.exitPrecedingStatementContext();
-			if (state.declarationContext.delete(fullInitializer)) {
+			if (state.declarationContext.delete(initializer)) {
 				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
 			}
 		} else {
@@ -114,19 +111,125 @@ function compileClassProperty(
 function getClassMethod(
 	classDec: ts.ClassDeclaration | ts.ClassExpression,
 	methodName: string,
+	getter = (c: ts.ClassDeclaration | ts.ClassExpression, name: string) => c.getMethod(name),
 ): ts.MethodDeclaration | undefined {
-	const method = classDec.getMethod(methodName);
+	const method = getter(classDec, methodName);
 	if (method) {
 		return method;
 	}
 	const baseClass = classDec.getBaseClass();
 	if (baseClass) {
-		const baseMethod = getClassMethod(baseClass, methodName);
+		const baseMethod = getClassMethod(baseClass, methodName, getter);
 		if (baseMethod) {
 			return baseMethod;
 		}
+	} else {
+		const extendsClass = classDec.getExtends();
+		if (extendsClass) {
+			const exp = extendsClass.getExpression();
+			if (exp && ts.TypeGuards.isClassExpression(exp)) {
+				const baseMethod = getClassMethod(exp, methodName, getter);
+				if (baseMethod) {
+					return baseMethod;
+				}
+			}
+		}
 	}
 	return undefined;
+}
+
+function getClassStaticMethod(classDec: ts.ClassDeclaration | ts.ClassExpression, methodName: string) {
+	return getClassMethod(classDec, methodName, (c, n) => c.getStaticMethod(n));
+}
+
+function getClassInstanceMethod(classDec: ts.ClassDeclaration | ts.ClassExpression, methodName: string) {
+	return getClassMethod(classDec, methodName, (c, n) => c.getInstanceMethod(n));
+}
+
+function checkMethodCollision(node: ts.ClassDeclaration | ts.ClassExpression, method: ts.MethodDeclaration) {
+	const methodName = method.getName();
+	if (method.isStatic()) {
+		if (getClassInstanceMethod(node, methodName)) {
+			throw new CompilerError(
+				`An instance method already exists with the name ${methodName}`,
+				node,
+				CompilerErrorType.MethodCollision,
+			);
+		}
+	} else {
+		if (getClassStaticMethod(node, methodName)) {
+			throw new CompilerError(
+				`A static method already exists with the name ${methodName}`,
+				node,
+				CompilerErrorType.MethodCollision,
+			);
+		}
+	}
+}
+
+function getClassProperty(
+	classDec: ts.ClassDeclaration | ts.ClassExpression,
+	propName: string,
+	getter: (c: ts.ClassDeclaration | ts.ClassExpression, n: string) => ts.ClassInstancePropertyTypes | undefined = (
+		c,
+		n,
+	) => c.getProperty(n),
+): ts.ClassInstancePropertyTypes | undefined {
+	const property = getter(classDec, propName);
+	if (property) {
+		return property;
+	}
+	const baseClass = classDec.getBaseClass();
+	if (baseClass) {
+		const baseProp = getClassProperty(baseClass, propName, getter);
+		if (baseProp) {
+			return baseProp;
+		}
+	} else {
+		const extendsClass = classDec.getExtends();
+		if (extendsClass) {
+			const exp = extendsClass.getExpression();
+			if (exp && ts.TypeGuards.isClassExpression(exp)) {
+				const baseProp = getClassProperty(exp, propName, getter);
+				if (baseProp) {
+					return baseProp;
+				}
+			}
+		}
+	}
+	return undefined;
+}
+
+function getClassStaticProperty(classDec: ts.ClassDeclaration | ts.ClassExpression, propName: string) {
+	return getClassProperty(classDec, propName, (c, n) => c.getStaticProperty(n));
+}
+
+function getClassInstanceProperty(classDec: ts.ClassDeclaration | ts.ClassExpression, propName: string) {
+	return getClassProperty(classDec, propName, (c, n) => c.getInstanceProperty(n));
+}
+
+export function checkPropertyCollision(
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	prop: ts.ClassInstancePropertyTypes,
+) {
+	const propName = prop.getName();
+	if (!ts.TypeGuards.isParameterDeclaration(prop) && prop.isStatic()) {
+		if (getClassInstanceProperty(node, propName)) {
+			throw new CompilerError(
+				`An instance property already exists with the name ${propName}`,
+				node,
+				CompilerErrorType.PropertyCollision,
+			);
+		}
+	} else {
+		if (getClassStaticProperty(node, propName)) {
+			throw new CompilerError(
+				`A static property already exists with the name ${propName}`,
+				node,
+				CompilerErrorType.PropertyCollision,
+			);
+		}
+	}
 }
 
 function checkDecorators(
@@ -164,10 +267,41 @@ function checkDefaultIterator<
 	}
 }
 
+function validateMethod(
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	method: ts.MethodDeclaration,
+	extendsArray: boolean,
+) {
+	checkDecorators(method);
+	checkMethodCollision(node, method);
+	checkDefaultIterator(extendsArray, method);
+	const nameNode = method.getNameNode();
+	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
+		let isSymbolPropAccess = false;
+		const exp = skipNodesDownwards(nameNode.getExpression());
+		if (ts.TypeGuards.isPropertyAccessExpression(exp)) {
+			const subExp = skipNodesDownwards(exp.getExpression());
+			if (ts.TypeGuards.isIdentifier(subExp) && subExp.getText() === "Symbol") {
+				isSymbolPropAccess = true;
+			}
+		}
+
+		if (!isSymbolPropAccess) {
+			throw new CompilerError(
+				"Cannot make a class with computed method names!",
+				method,
+				CompilerErrorType.ClassWithComputedMethodNames,
+			);
+		}
+	}
+}
+
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
 	let expAlias: string | undefined;
+
+	checkDecorators(node);
 
 	if (nameNode) {
 		checkReserved(name, nameNode, true);
@@ -218,7 +352,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	let extendsArray = false;
 
 	if (extendExp) {
-		const extendExpExp = extendExp.getExpression();
+		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
 
@@ -232,7 +366,10 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 		state.enterPrecedingStatementContext(results);
 		if (hasSuper) {
-			results.push(state.indent + `local super = ${compileExpression(state, extendExp.getExpression())};\n`);
+			results.push(
+				state.indent +
+					`local super = ${compileExpression(state, skipNodesDownwards(extendExp.getExpression()))};\n`,
+			);
 		}
 		state.exitPrecedingStatementContext();
 	}
@@ -248,9 +385,16 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		";\n",
 	);
 
+	results.push(state.indent + `${name}.__index = ${name};\n`);
+
+	for (const prop of node.getStaticProperties()) {
+		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
+		checkDefaultIterator(extendsArray, prop);
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
+	}
+
 	for (const method of node.getStaticMethods()) {
-		checkDecorators(method);
-		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
@@ -261,29 +405,29 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.BadStaticMethod,
 				);
 			}
-
+			validateMethod(node, method, extendsArray);
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + ":"));
+			results.push(compileMethodDeclaration(state, method, name + "."));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
-	results.push(
-		state.indent,
-		name,
-		".__index = ",
-		hasSuper ? "setmetatable(" : "",
-		"{}",
-		hasSuper ? ", super)" : "",
-		";\n",
-	);
-
-	state.pushIndent();
+	if (!node.isAbstract()) {
+		results.push(
+			state.indent + `function ${name}.new(...)\n`,
+			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
+			state.indent + `\tself:constructor(...);\n`,
+			state.indent + `\treturn self;\n`,
+			state.indent + `end;\n`,
+		);
+	}
 
 	const extraInitializers = new Array<string>();
 
+	state.pushIndent();
 	for (let prop of node.getInstanceProperties()) {
 		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
 		checkDefaultIterator(extendsArray, prop);
 		prop = nonGetterOrSetter(prop);
 
@@ -292,50 +436,31 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		}
 	}
 	state.popIndent();
+	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
 
 	for (const method of node.getInstanceMethods()) {
-		checkDecorators(method);
-		checkDefaultIterator(extendsArray, method);
 		if (method.getBody() !== undefined) {
+			validateMethod(node, method, extendsArray);
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + ".__index:"));
+			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
 	for (const metamethod of LUA_RESERVED_METAMETHODS) {
 		if (getClassMethod(node, metamethod)) {
-			if (LUA_UNDEFINABLE_METAMETHODS.has(metamethod)) {
-				throw new CompilerError(
-					`Cannot use undefinable Lua metamethod as identifier '${metamethod}' for a class`,
-					node,
-					CompilerErrorType.UndefinableMetamethod,
-				);
-			}
-
-			results.push(state.indent + `function ${name}:${metamethod}(...) return self:${metamethod}(...); end;\n`);
+			throw new CompilerError(
+				`Cannot use Lua metamethod as identifier '${metamethod}' for a class`,
+				node,
+				CompilerErrorType.UndefinableMetamethod,
+			);
 		}
 	}
 
-	if (!node.isAbstract()) {
-		results.push(
-			state.indent + `function ${name}.new(...)\n`,
-			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
-			state.indent + `\t${name}.constructor(self, ...);\n`,
-			state.indent + `\treturn self;\n`,
-			state.indent + `end;\n`,
-		);
+	if (getClassMethod(node, "toString")) {
+		results.push(state.indent + `function ${name}:__tostring() return self:toString(); end;\n`);
+		results.push(state.indent + `function ${name}.__concat(a, b) return tostring(a) .. tostring(b) end;\n`);
 	}
-
-	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
-
-	for (const prop of node.getStaticProperties()) {
-		checkDecorators(prop);
-		checkDefaultIterator(extendsArray, prop);
-		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
-	}
-
-	checkDecorators(node);
 
 	if (isExpression) {
 		if (nameNode) {

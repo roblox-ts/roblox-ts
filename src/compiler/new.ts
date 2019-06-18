@@ -2,14 +2,14 @@ import * as ts from "ts-morph";
 import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { inheritsFrom, isTupleType } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionUpwards, joinIndentedLines, suggest } from "../utility";
+import { getType, inheritsFrom, isTupleType } from "../typeUtilities";
+import { joinIndentedLines, skipNodesDownwards, skipNodesUpwards, suggest } from "../utility";
 import { compileCallArguments } from "./call";
 import { getReadableExpressionName } from "./indexed";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
-		const [key, value] = compileCallArguments(state, element.getElements());
+		const [key, value] = compileCallArguments(state, element.getElements().map(e => skipNodesDownwards(e)));
 		return `[${key}] = ${value};\n`;
 	} else if (ts.TypeGuards.isCallExpression(element) && isTupleType(element.getReturnType())) {
 		const key = state.getNewId();
@@ -49,7 +49,7 @@ function compileSetMapConstructorHelper(
 	const preDeclaration = mode ? "setmetatable(" : "";
 	const postDeclaration = mode ? `, { __mode = "${mode}" })` : "";
 
-	const typeArgument = node.getType().getTypeArguments()[0];
+	const typeArgument = getType(node).getTypeArguments()[0];
 
 	if (typeArgument.isNullable() || typeArgument.isUndefined()) {
 		throw new CompilerError(
@@ -59,17 +59,17 @@ function compileSetMapConstructorHelper(
 		);
 	}
 
-	const firstParam = args[0];
+	const firstParam = skipNodesDownwards(args[0]) as ts.Expression | undefined;
 
 	let exp: ts.Node = node;
-	let parent = getNonNullUnParenthesizedExpressionUpwards(node.getParent());
+	let parent = skipNodesUpwards(node.getParent());
 	const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
 
 	while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
-		const grandparent = getNonNullUnParenthesizedExpressionUpwards(parent.getParent());
+		const grandparent = skipNodesUpwards(parent.getParent());
 		if (ts.TypeGuards.isCallExpression(grandparent)) {
 			exp = grandparent;
-			parent = getNonNullUnParenthesizedExpressionUpwards(grandparent.getParent());
+			parent = skipNodesUpwards(grandparent.getParent());
 		} else {
 			break;
 		}
@@ -97,7 +97,8 @@ function compileSetMapConstructorHelper(
 		let hasContext = false;
 
 		if (firstParam) {
-			for (const element of firstParam.getElements()) {
+			for (let element of firstParam.getElements()) {
+				element = skipNodesDownwards(element);
 				if (hasContext) {
 					state.pushPrecedingStatements(exp, id + compileElement(state, element));
 				} else {
@@ -150,11 +151,11 @@ function compileSetMapConstructorHelper(
 const ARRAY_NIL_LIMIT = 200;
 
 export function compileNewExpression(state: CompilerState, node: ts.NewExpression) {
-	const expNode = node.getExpression();
-	const expressionType = expNode.getType();
+	const expNode = skipNodesDownwards(node.getExpression());
+	const expressionType = getType(expNode);
 	const name = compileExpression(state, expNode);
 	const args = node.getFirstChildByKind(ts.SyntaxKind.OpenParenToken)
-		? (node.getArguments() as Array<ts.Expression>)
+		? (node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>)
 		: [];
 
 	if (inheritsFromRoact(expressionType)) {
@@ -200,13 +201,13 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 			);
 		}
 
-		return appendDeclarationIfMissing(state, node.getParent(), result + `}`);
+		return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result + `}`);
 	}
 
 	if (inheritsFrom(expressionType, "MapConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
-			node.getParent(),
+			skipNodesUpwards(node.getParent()),
 			compileSetMapConstructorHelper(state, node, args, "map"),
 		);
 	}
@@ -214,7 +215,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	if (inheritsFrom(expressionType, "SetConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
-			node.getParent(),
+			skipNodesUpwards(node.getParent()),
 			compileSetMapConstructorHelper(state, node, args, "set"),
 		);
 	}
@@ -222,7 +223,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	if (inheritsFrom(expressionType, "WeakMapConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
-			node.getParent(),
+			skipNodesUpwards(node.getParent()),
 			compileSetMapConstructorHelper(state, node, args, "map", "k"),
 		);
 	}
@@ -230,7 +231,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	if (inheritsFrom(expressionType, "WeakSetConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
-			node.getParent(),
+			skipNodesUpwards(node.getParent()),
 			compileSetMapConstructorHelper(state, node, args, "set", "k"),
 		);
 	}

@@ -5,6 +5,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
 import {
 	getCompilerDirectiveWithLaxConstraint,
+	getType,
 	isArrayMethodType,
 	isArrayType,
 	isIterableFunction,
@@ -17,37 +18,53 @@ import {
 	isStringMethodType,
 	isStringType,
 } from "../typeUtilities";
-import { getNonNullUnParenthesizedExpressionDownwards, joinIndentedLines } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { checkPropertyCollision } from "./class";
 import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
 import { CompilerDirective } from "./security";
 
-function compileParamDefault(state: CompilerState, initial: ts.Expression, name: string) {
+function compileParamDefault(state: CompilerState, exp: ts.Expression, name: string) {
+	const initializer = skipNodesDownwards(exp);
 	state.enterPrecedingStatementContext();
-	const initialToWriteTo = getNonNullUnParenthesizedExpressionDownwards(initial);
 
-	state.declarationContext.set(initialToWriteTo, {
-		isIdentifier: ts.TypeGuards.isIdentifier(initial) && !isIdentifierDefinedInExportLet(initial),
+	state.declarationContext.set(initializer, {
+		isIdentifier: ts.TypeGuards.isIdentifier(initializer) && !isIdentifierDefinedInExportLet(initializer),
 		set: name,
 	});
-	const expStr = compileExpression(state, initial);
+	const expStr = compileExpression(state, initializer);
 	const context = state.exitPrecedingStatementContext();
 
-	let defaultValue: string;
-	if (context.length > 0) {
-		state.pushIndent();
-		defaultValue =
-			`if ${name} == nil then\n` +
-			joinIndentedLines(context, 2) +
-			state.indent +
-			`${state.declarationContext.delete(initialToWriteTo) ? `\t${name} = ${expStr};\n` + state.indent : ""}` +
-			`end;`;
-		state.popIndent();
+	state.pushIndent();
+
+	const declaration = state.declarationContext.delete(initializer) ? `${name} = ${expStr};` : "";
+	let newline: string;
+	let indentation: string;
+	let tab: string;
+	let contextLines: string;
+
+	if (context.length > (declaration ? 0 : 1)) {
+		newline = "\n";
+		indentation = state.indent;
+		tab = "\t";
+		contextLines = joinIndentedLines(context, 2);
 	} else {
-		defaultValue = `if ${name} == nil then${
-			state.declarationContext.delete(initialToWriteTo) ? ` ${name} = ${expStr};` : ""
-		} end;`;
+		newline = " ";
+		indentation = "";
+		tab = "";
+		contextLines = joinIndentedLines(context, 0).replace(/\n/g, " ");
 	}
-	return defaultValue;
+
+	state.popIndent();
+
+	return "if ".concat(
+		name,
+		" == nil then",
+		newline,
+		contextLines,
+		indentation,
+		declaration ? tab + `${declaration}` + newline + indentation : "",
+		"end;",
+	);
 }
 
 export function getParameterData(
@@ -58,10 +75,12 @@ export function getParameterData(
 	defaults?: Array<string>,
 ) {
 	for (const param of node.getParameters()) {
-		const child =
-			param.getFirstChildByKind(ts.SyntaxKind.Identifier) ||
-			param.getFirstChildByKind(ts.SyntaxKind.ArrayBindingPattern) ||
-			param.getFirstChildByKind(ts.SyntaxKind.ObjectBindingPattern);
+		const child = param.getFirstChild(
+			exp =>
+				ts.TypeGuards.isIdentifier(exp) ||
+				ts.TypeGuards.isArrayBindingPattern(exp) ||
+				ts.TypeGuards.isObjectBindingPattern(exp),
+		);
 
 		/* istanbul ignore next */
 		if (child === undefined) {
@@ -90,12 +109,15 @@ export function getParameterData(
 			paramNames.push(name);
 		}
 
-		const initial = param.getInitializer();
-		if (initial) {
-			(defaults ? defaults : initializers).push(compileParamDefault(state, initial, name));
+		if (param.hasInitializer()) {
+			(defaults ? defaults : initializers).push(compileParamDefault(state, param.getInitializer()!, name));
 		}
 
 		if (param.hasScopeKeyword() || param.isReadonly()) {
+			const classDec = node.getParent();
+			if (ts.TypeGuards.isClassDeclaration(classDec) || ts.TypeGuards.isClassExpression(classDec)) {
+				checkPropertyCollision(classDec, param);
+			}
 			initializers.push(`self.${name} = ${name};`);
 		}
 
@@ -147,7 +169,7 @@ function objectAccessor(
 	if (ts.TypeGuards.isIdentifier(nameNode)) {
 		name = compileExpression(state, nameNode);
 	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
-		const exp = nameNode.getExpression();
+		const exp = skipNodesDownwards(nameNode.getExpression());
 		name = getComputedPropertyAccess(state, exp, rhs);
 		return `${t}[${name}]`;
 	} else {
@@ -160,7 +182,7 @@ function objectAccessor(
 	}
 
 	if (getAccessor) {
-		const type = aliasNode.getType();
+		const type = getType(aliasNode);
 		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type) || isStringMethodType(type)) {
 			throw new CompilerError(
 				`Cannot index method ${name} (a roblox-ts internal)`,
@@ -170,8 +192,9 @@ function objectAccessor(
 		}
 	}
 
+	// We need this because length is built-in to the TS compiler, even if we removed it from our types
 	if (
-		getCompilerDirectiveWithLaxConstraint(rhs.getType(), CompilerDirective.Array, r => r.isTuple()) &&
+		getCompilerDirectiveWithLaxConstraint(getType(rhs), CompilerDirective.Array, r => r.isTuple()) &&
 		name === "length"
 	) {
 		throw new CompilerError(
@@ -268,7 +291,7 @@ function iterableFunctionAccessor(
 }
 
 export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
-	const bindingPatternType = bindingPattern.getType();
+	const bindingPatternType = getType(bindingPattern);
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
 	} else if (isStringType(bindingPatternType)) {
@@ -379,7 +402,11 @@ export function getBindingData(
 				preStatements.push(`local ${childId} = ${accessor};`);
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isComputedPropertyName(child)) {
-				const expStr = getComputedPropertyAccess(state, child.getExpression(), bindingPattern);
+				const expStr = getComputedPropertyAccess(
+					state,
+					skipNodesDownwards(child.getExpression()),
+					bindingPattern,
+				);
 				const accessor = `${parentId}[${expStr}]`;
 				const childId: string = compileExpression(state, pattern as ts.Expression);
 				preStatements.push(`local ${childId} = ${accessor};`);
@@ -419,7 +446,7 @@ export function getBindingData(
 			let alias: string;
 			const nameNode = item.getNameNode();
 			if (item.hasInitializer()) {
-				const initializer = item.getInitializer()!;
+				const initializer = skipNodesDownwards(item.getInitializer()!);
 				if (ts.TypeGuards.isIdentifier(initializer)) {
 					alias = compileExpression(state, initializer);
 					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);

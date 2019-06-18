@@ -11,6 +11,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getCompilerDirectiveWithLaxConstraint,
+	getType,
 	isArrayType,
 	isArrayTypeLax,
 	isMapType,
@@ -19,7 +20,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
-import { getNonNullExpressionDownwards, getNonNullUnParenthesizedExpressionDownwards, safeLuaIndex } from "../utility";
+import { safeLuaIndex, skipNodesDownwards } from "../utility";
 import { shouldWrapExpression } from "./call";
 import { CompilerDirective } from "./security";
 
@@ -55,7 +56,7 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
  */
 export function getWritableOperandName(state: CompilerState, operand: ts.Expression, doNotCompileAccess = false) {
 	if (ts.TypeGuards.isPropertyAccessExpression(operand) || ts.TypeGuards.isElementAccessExpression(operand)) {
-		const child = getNonNullUnParenthesizedExpressionDownwards(operand.getExpression());
+		const child = skipNodesDownwards(operand.getExpression());
 
 		if (
 			!ts.TypeGuards.isThisExpression(child) &&
@@ -72,8 +73,8 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			} else {
 				const access = getComputedPropertyAccess(
 					state,
-					operand.getArgumentExpressionOrThrow(),
-					operand.getExpression(),
+					skipNodesDownwards(operand.getArgumentExpressionOrThrow()),
+					skipNodesDownwards(operand.getExpression()),
 				);
 				propertyStr = `[${access}]`;
 			}
@@ -98,14 +99,14 @@ export function getReadableExpressionName(
 	exp: ts.Expression,
 	expStr = compileExpression(state, exp),
 ) {
-	const nonNullExp = getNonNullExpressionDownwards(exp);
+	const nonNullExp = skipNodesDownwards(exp);
 	if (
 		expStr.match(/^\(*_\d+\)*$/) ||
 		(ts.TypeGuards.isIdentifier(nonNullExp) && !isIdentifierDefinedInExportLet(nonNullExp)) ||
 		ts.TypeGuards.isThisExpression(nonNullExp) ||
 		ts.TypeGuards.isSuperExpression(nonNullExp) ||
 		// We know that new Sets and Maps are already ALWAYS pushed
-		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(exp.getType()) || isMapType(exp.getType())))
+		(ts.TypeGuards.isNewExpression(nonNullExp) && (isSetType(getType(exp)) || isMapType(getType(exp))))
 	) {
 		return expStr;
 	} else {
@@ -114,9 +115,9 @@ export function getReadableExpressionName(
 }
 
 export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
-	const exp = node.getExpression();
+	const exp = skipNodesDownwards(node.getExpression());
 	const propertyStr = node.getName();
-	const expType = exp.getType();
+	const expType = getType(exp);
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
 	if (
@@ -197,9 +198,9 @@ export function addOneToArrayIndex(valueStr: string) {
 }
 
 export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expression, fromNode: ts.Node) {
-	const expType = exp.getType();
+	const expType = getType(exp);
 	let expStr = compileExpression(state, exp);
-	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : fromNode.getType();
+	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : getType(fromNode);
 
 	if (isArrayType(fromType)) {
 		if (isNumberTypeStrict(expType)) {
@@ -223,7 +224,11 @@ export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expressi
 }
 
 export function compileElementAccessBracketExpression(state: CompilerState, node: ts.ElementAccessExpression) {
-	return getComputedPropertyAccess(state, node.getArgumentExpressionOrThrow(), node.getExpression());
+	return getComputedPropertyAccess(
+		state,
+		skipNodesDownwards(node.getArgumentExpressionOrThrow()),
+		skipNodesDownwards(node.getExpression()),
+	);
 }
 
 export function compileElementAccessDataTypeExpression(
@@ -231,7 +236,7 @@ export function compileElementAccessDataTypeExpression(
 	node: ts.ElementAccessExpression,
 	expStr = "",
 ) {
-	const expNode = checkNonAny(node.getExpression());
+	const expNode = skipNodesDownwards(checkNonAny(node.getExpression()));
 
 	if (expStr === "") {
 		if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {

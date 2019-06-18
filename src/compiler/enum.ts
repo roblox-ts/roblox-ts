@@ -3,7 +3,7 @@ import { checkReserved } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { shouldHoist } from "../typeUtilities";
-import { safeLuaIndex } from "../utility";
+import { safeLuaIndex, skipNodesDownwards } from "../utility";
 import { getReadableExpressionName } from "./indexed";
 
 export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
@@ -33,7 +33,7 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${name}[${memberValue}] = "${memberName}";\n`;
 		} else if (member.hasInitializer()) {
-			const initializer = member.getInitializer()!;
+			const initializer = skipNodesDownwards(member.getInitializer()!);
 			state.enterPrecedingStatementContext();
 			const expStr = getReadableExpressionName(state, initializer);
 			result += state.exitPrecedingStatementContextAndJoin();

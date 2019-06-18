@@ -358,6 +358,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
+	"computedMethodInClass.spec.ts": {
+		message: "should not allow computed method names in classes",
+		instance: CompilerError,
+		type: CompilerErrorType.ClassWithComputedMethodNames,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

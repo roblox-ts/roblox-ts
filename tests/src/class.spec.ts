@@ -105,24 +105,33 @@ export = () => {
 		expect(foo.bar).to.equal("baz");
 	});
 
-	it("should support __tostring", () => {
+	it("should support toString", () => {
 		class Foo {
-			public __tostring() {
+			public toString() {
 				return "Foo";
 			}
 		}
 		expect(tostring(new Foo())).to.equal("Foo");
 	});
 
-	it("should support __tostring inheritance", () => {
+	it("should support toString inheritance", () => {
 		class Foo {
-			public __tostring() {
+			public toString() {
 				return "Foo";
 			}
 		}
 
 		class Bar extends Foo {}
 		expect(tostring(new Bar())).to.equal("Foo");
+	});
+
+	it("should support toString inheritance with ClassExpression", () => {
+		class A extends class B {
+			toString() {
+				return "B";
+			}
+		} {}
+		expect(tostring(new A())).to.equal("B");
 	});
 
 	it("should support multiple constructors", () => {
@@ -249,19 +258,26 @@ export = () => {
 		let i = 0;
 		new (class Boat extends class Goat {
 			[key: number]: () => number;
-
-			public [++i]() {
-				return 5;
-			}
+			[Symbol.iterator]() {}
 		} {
-			public [i]() {
-				return 10;
-			}
 			public f(s: string, b?: boolean) {
-				expect(super[i]()).to.equal(5);
+				this[i] = () => 10;
 				expect(this[i]()).to.equal(10);
 			}
 		})().f("Go!");
+	});
+
+	it("should support Symbol.iterator", () => {
+		let i = 0;
+		for (const foo of new (class A extends class B {
+			*[Symbol.iterator]() {
+				yield 1;
+				yield 2;
+				yield 3;
+			}
+		} {})()) {
+			expect(foo).to.equal(++i);
+		}
 	});
 
 	it("should support extending from Array", () => {

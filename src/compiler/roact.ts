@@ -9,7 +9,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isArrayType } from "../typeUtilities";
+import { getType, isArrayType } from "../typeUtilities";
 import { bold, suggest } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
@@ -92,11 +92,11 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	const typeArray = new Array<string>();
 	if (symbol) {
 		symbol.getDeclarations().forEach(declaration => {
-			typeArray.push(declaration.getType().getText());
-			declaration
-				.getType()
-				.getBaseTypes()
-				.forEach(baseType => typeArray.push(...getFullTypeList(baseType)));
+			const declarationType = getType(declaration);
+			typeArray.push(declarationType.getText());
+			for (const baseType of declarationType.getBaseTypes()) {
+				typeArray.push(...getFullTypeList(baseType));
+			}
 		});
 	}
 
@@ -563,7 +563,7 @@ export function generateRoactElement(
 				} else if (ts.TypeGuards.isIdentifier(expression)) {
 					const definitionNodes = expression.getDefinitionNodes();
 					for (const definitionNode of definitionNodes) {
-						const type = definitionNode.getType();
+						const type = getType(definitionNode);
 						if (isRoactElementType(type)) {
 							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
@@ -578,7 +578,7 @@ export function generateRoactElement(
 					ts.TypeGuards.isPropertyAccessExpression(expression) ||
 					ts.TypeGuards.isElementAccessExpression(expression)
 				) {
-					const propertyType = expression.getType();
+					const propertyType = getType(expression);
 
 					if (isRoactElementType(propertyType)) {
 						extraChildrenCollection.push(compileExpression(state, expression));
