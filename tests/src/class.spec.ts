@@ -267,6 +267,19 @@ export = () => {
 		})().f("Go!");
 	});
 
+	it("should support Symbol.iterator", () => {
+		let i = 0;
+		for (const foo of new (class A extends class B {
+			*[Symbol.iterator]() {
+				yield 1;
+				yield 2;
+				yield 3;
+			}
+		} {})()) {
+			expect(foo).to.equal(++i);
+		}
+	});
+
 	it("should support extending from Array", () => {
 		/** A very bad implementation of a SortedArray class. Just for testing purposes. */
 		class SortedArray extends Array<number> {
