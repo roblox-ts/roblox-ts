@@ -1,12 +1,5 @@
 import * as ts from "ts-morph";
-import {
-	checkMethodReserved,
-	checkReserved,
-	compileBlock,
-	compileExpression,
-	compileStatement,
-	getParameterData,
-} from ".";
+import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getType, isArrayType } from "../typeUtilities";
@@ -116,7 +109,7 @@ export function inheritsFromRoact(type: ts.Type): boolean {
 	return isRoactClass;
 }
 
-function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
+export function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
 	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
 		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
 
@@ -130,182 +123,6 @@ function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts
 
 		throw new CompilerError(userError, node, CompilerErrorType.RoactNoReservedMethods);
 	}
-}
-
-function getConstructor(node: ts.ClassDeclaration | ts.ClassExpression) {
-	for (const constructor of node.getConstructors()) {
-		return constructor;
-	}
-}
-
-export function compileRoactClassDeclaration(
-	state: CompilerState,
-	type: "Component" | "PureComponent",
-	className: string,
-	node: ts.ClassDeclaration | ts.ClassExpression,
-) {
-	let declaration = `${state.indent}local ${className} = Roact.${type}:extend("${className}");\n`;
-
-	const instanceProps = node
-		.getInstanceProperties()
-		// @ts-ignore
-		.filter(prop => prop.getParent() === node)
-		.filter(prop => !ts.TypeGuards.isGetAccessorDeclaration(prop))
-		.filter(prop => !ts.TypeGuards.isSetAccessorDeclaration(prop));
-
-	const extraInitializers = new Array<string>();
-
-	if (instanceProps.length > 0) {
-		for (const prop of instanceProps) {
-			const propName = prop.getName();
-
-			if (propName) {
-				checkMethodReserved(propName, prop);
-				checkRoactReserved(className, propName, prop);
-
-				if (ts.TypeGuards.isInitializerExpressionableNode(prop)) {
-					const initializer = prop.getInitializer();
-					if (initializer) {
-						extraInitializers.push(`self.${propName} = ${compileExpression(state, initializer)};`);
-					}
-				}
-			}
-		}
-	}
-
-	const constructor = getConstructor(node);
-	if (constructor) {
-		const paramNames = new Array<string>();
-		const initializers = new Array<string>();
-		const defaults = new Array<string>();
-
-		getParameterData(state, paramNames, initializers, constructor, defaults);
-
-		declaration += `${state.indent}function ${className}:init(${paramNames.join(", ")})\n`;
-
-		state.pushIndent();
-
-		const body = constructor.getBodyOrThrow();
-		if (ts.TypeGuards.isBlock(body)) {
-			// we can ignore super() as it's not required.
-			if (ts.TypeGuards.isBlock(body)) {
-				defaults.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-
-				const bodyStatements = body.getStatements();
-				let k = 0;
-
-				initializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-				extraInitializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-
-				for (; k < bodyStatements.length; ++k) {
-					const bodyStatement = bodyStatements[k];
-
-					// Because we want to ignore super. I will figure out a better way to do this eventually.
-					// isSuperExpression doesn't seem to work.
-					if (!bodyStatement.getText().startsWith("super")) {
-						declaration += compileStatement(state, bodyStatement);
-					}
-				}
-
-				const returnStatement = body.getStatementByKind(ts.SyntaxKind.ReturnStatement);
-
-				if (returnStatement) {
-					throw new CompilerError(
-						`Cannot use return statement in constructor for ${className}`,
-						returnStatement,
-						CompilerErrorType.NoConstructorReturn,
-					);
-				}
-			}
-		}
-
-		state.popIndent();
-
-		declaration += `${state.indent}end;\n`;
-	}
-
-	const staticFields = node.getStaticProperties();
-	for (const staticField of staticFields) {
-		if (ts.TypeGuards.isInitializerExpressionableNode(staticField)) {
-			const initializer = staticField.getInitializer();
-			if (initializer) {
-				checkRoactReserved(className, staticField.getName(), staticField);
-				declaration += `${state.indent}${className}.${staticField.getName()} = ${compileExpression(
-					state,
-					initializer,
-				)};\n`;
-			}
-		}
-	}
-
-	const staticMethods = node.getStaticMethods().filter(method => method.getBody() !== undefined);
-	for (const staticMethod of staticMethods) {
-		const name = staticMethod.getName();
-		checkReserved(name, staticMethod);
-		checkRoactReserved(className, name, staticMethod);
-		const body = staticMethod.getBodyOrThrow();
-
-		const paramNames = new Array<string>();
-		const initializers = new Array<string>();
-		state.pushIdStack();
-		getParameterData(state, paramNames, initializers, staticMethod);
-		const paramStr = paramNames.join(", ");
-
-		declaration += `${state.indent}function ${className}.${name}(${paramStr})\n`;
-
-		state.pushIndent();
-		if (ts.TypeGuards.isBlock(body)) {
-			initializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-			declaration += compileBlock(state, body);
-		}
-		state.popIndent();
-
-		declaration += `${state.indent}end;\n`;
-	}
-
-	// Now we'll get the methods, and make them into the special roact format
-	const methods = node.getInstanceMethods().filter(method => method.getBody() !== undefined);
-
-	for (const method of methods) {
-		const name = method.getName();
-		checkReserved(name, method);
-		checkRoactReserved(className, name, method);
-
-		const body = method.getBodyOrThrow();
-
-		const paramNames = new Array<string>();
-		const initializers = new Array<string>();
-		state.pushIdStack();
-		getParameterData(state, paramNames, initializers, method);
-		const paramStr = paramNames.join(", ");
-
-		declaration += `${state.indent}function ${className}:${name}(${paramStr})\n`;
-
-		state.pushIndent();
-		if (ts.TypeGuards.isBlock(body)) {
-			initializers.forEach(initializer => (declaration += state.indent + initializer + "\n"));
-			declaration += compileBlock(state, body);
-		}
-		state.popIndent();
-
-		declaration += `${state.indent}end;\n`;
-	}
-
-	const getters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.GetAccessorDeclaration => ts.TypeGuards.isGetAccessorDeclaration(prop));
-	if (getters.length > 0) {
-		throw new CompilerError("Roact does not support getters", node, CompilerErrorType.RoactGettersNotAllowed);
-	}
-
-	const setters = node
-		.getInstanceProperties()
-		.filter((prop): prop is ts.SetAccessorDeclaration => ts.TypeGuards.isSetAccessorDeclaration(prop));
-	if (setters.length > 0) {
-		throw new CompilerError("Roact does not support setters", node, CompilerErrorType.RoactSettersNotAllowed);
-	}
-
-	return declaration;
 }
 
 function compileSymbolPropertyCallback(state: CompilerState, node: ts.Expression) {

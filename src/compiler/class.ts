@@ -5,10 +5,7 @@ import {
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
-	compileRoactClassDeclaration,
-	inheritsFromRoact,
 	ROACT_COMPONENT_TYPE,
-	ROACT_DERIVED_CLASSES_ERROR,
 	ROACT_PURE_COMPONENT_TYPE,
 } from ".";
 import { CompilerState } from "../CompilerState";
@@ -19,6 +16,7 @@ import {
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
 import { bold, skipNodesDownwards } from "../utility";
+import { checkRoactReserved, inheritsFromRoact, ROACT_DERIVED_CLASSES_ERROR } from "./roact";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -271,7 +269,11 @@ function validateMethod(
 	node: ts.ClassDeclaration | ts.ClassExpression,
 	method: ts.MethodDeclaration,
 	extendsArray: boolean,
+	isRoact: boolean,
 ) {
+	if (isRoact) {
+		checkRoactReserved(node.getName() || "", method.getName(), node);
+	}
 	checkDecorators(method);
 	checkMethodCollision(node, method);
 	checkDefaultIterator(extendsArray, method);
@@ -296,6 +298,32 @@ function validateMethod(
 	}
 }
 
+function compileClassInitializer(
+	state: CompilerState,
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	results: Array<string>,
+	name: string,
+) {
+	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
+	if (node.getExtends()) {
+		results.push(state.indent + `${prefix}${name} = {};\n`);
+	} else {
+		results.push(state.indent + `${prefix}${name} = setmetatable({}, { __index = super };\n`);
+	}
+	results.push(state.indent + `${name}.__index = ${name};\n`);
+}
+
+function compileRoactClassInitializer(
+	state: CompilerState,
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	results: Array<string>,
+	name: string,
+	roactType: string,
+) {
+	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
+	results.push(state.indent + `${prefix}${name} = ${roactType}:extend("${name}");\n`);
+}
+
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
@@ -311,19 +339,23 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.pushExport(name, node);
 	}
 
-	// Roact checks
-	for (const baseType of node.getBaseTypes()) {
-		const baseTypeText = baseType.getText();
-		const isComponent = baseTypeText.startsWith(ROACT_COMPONENT_TYPE);
-		// Handle the special case where we have a roact class
-		if (isComponent || baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			const type = isComponent ? "Component" : "PureComponent";
-			return compileRoactClassDeclaration(state, type, name, node);
-		}
+	// Roact
+	let isRoact = false;
+	let roactType = "";
 
-		if (inheritsFromRoact(baseType)) {
+	const extendExp = node.getExtends();
+	if (extendExp) {
+		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
+		const extendText = extendExpExp.getText();
+		if (extendText.startsWith(ROACT_COMPONENT_TYPE)) {
+			roactType = ROACT_COMPONENT_TYPE;
+			isRoact = true;
+		} else if (extendText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+			roactType = ROACT_PURE_COMPONENT_TYPE;
+			isRoact = true;
+		} else if (inheritsFromRoact(node.getType())) {
 			throw new CompilerError(
-				`Cannot inherit ${bold(baseTypeText)}, must inherit ${bold("Roact.Component")}\n` +
+				`Cannot inherit ${bold(extendText)}, must inherit ${bold("Roact.Component")}\n` +
 					ROACT_DERIVED_CLASSES_ERROR,
 				node,
 				CompilerErrorType.RoactSubClassesNotSupported,
@@ -331,7 +363,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		}
 	}
 
-	const extendExp = node.getExtends();
 	let hasSuper = false;
 	const results = new Array<string>();
 
@@ -351,7 +382,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	let extendsArray = false;
 
-	if (extendExp) {
+	if (!isRoact && extendExp) {
 		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
@@ -374,23 +405,19 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.exitPrecedingStatementContext();
 	}
 
-	results.push(
-		state.indent,
-		isExpression && nameNode ? "local " : "",
-		name,
-		" = ",
-		hasSuper ? "setmetatable(" : "",
-		"{}",
-		hasSuper ? ", { __index = super })" : "",
-		";\n",
-	);
-
-	results.push(state.indent + `${name}.__index = ${name};\n`);
+	if (!isRoact) {
+		compileClassInitializer(state, node, results, name);
+	} else {
+		compileRoactClassInitializer(state, node, results, name, roactType);
+	}
 
 	for (const prop of node.getStaticProperties()) {
 		checkDecorators(prop);
 		checkPropertyCollision(node, prop);
 		checkDefaultIterator(extendsArray, prop);
+		if (isRoact) {
+			checkRoactReserved(name, prop.getName(), node);
+		}
 		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
 
@@ -405,14 +432,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.BadStaticMethod,
 				);
 			}
-			validateMethod(node, method, extendsArray);
+			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + "."));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
-	if (!node.isAbstract()) {
+	if (!isRoact && !node.isAbstract()) {
 		results.push(
 			state.indent + `function ${name}.new(...)\n`,
 			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
@@ -431,16 +458,23 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		checkDefaultIterator(extendsArray, prop);
 		prop = nonGetterOrSetter(prop);
 
+		if (isRoact) {
+			checkRoactReserved(name, prop.getName(), node);
+		}
+
 		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
 			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}
 	state.popIndent();
-	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
+
+	results.push(
+		compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper, isRoact),
+	);
 
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
-			validateMethod(node, method, extendsArray);
+			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();

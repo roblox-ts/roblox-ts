@@ -286,11 +286,12 @@ export function compileConstructorDeclaration(
 	state: CompilerState,
 	classExp: ts.ClassDeclaration | ts.ClassExpression,
 	className: string,
-	node?: ts.ConstructorDeclaration,
-	extraInitializers?: Array<string>,
-	hasSuper?: boolean,
+	node: ts.ConstructorDeclaration | undefined,
+	extraInitializers: Array<string>,
+	hasSuper: boolean,
+	isRoact: boolean,
 ) {
-	const paramNames = ["self"];
+	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
 	const defaults = new Array<string>();
 	const inheritsFromArray = classDeclarationInheritsFromArray(classExp);
@@ -303,8 +304,10 @@ export function compileConstructorDeclaration(
 	}
 	const paramStr = paramNames.join(", ");
 
+	const methodName = isRoact ? "init" : "constructor";
+
 	let result = "";
-	result += state.indent + `function ${className}.constructor(${paramStr})\n`;
+	result += state.indent + `function ${className}:${methodName}(${paramStr})\n`;
 	state.pushIndent();
 
 	if (node) {
@@ -316,7 +319,11 @@ export function compileConstructorDeclaration(
 			let k = 0;
 
 			if (containsSuperExpression(bodyStatements[k])) {
-				result += compileStatement(state, bodyStatements[k++]);
+				if (isRoact) {
+					k++;
+				} else {
+					result += compileStatement(state, bodyStatements[k++]);
+				}
 			}
 
 			initializers.forEach(initializer => (result += state.indent + initializer + "\n"));
