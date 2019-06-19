@@ -4,32 +4,22 @@ export = () => {
 	describe("should support Roact.Component", () => {
 		it("should construct a roact class", () => {
 			class RoactClass extends Roact.Component {
-				/* tslint:disable */
-				public static _new: unknown;
-				/* tslint:enable */
-
 				public render(): Roact.Element {
 					return <frame />;
 				}
 			}
 
 			expect(typeOf(RoactClass)).to.equal("table");
-			expect(RoactClass._new).to.be.a("function");
 		});
 
 		it("should construct a roact pure component class", () => {
 			class RoactPureClass extends Roact.PureComponent {
-				/* tslint:disable */
-				public static _new: unknown;
-				/* tslint:enable */
-
 				public render(): Roact.Element {
 					return <frame />;
 				}
 			}
 
 			expect(typeOf(RoactPureClass)).to.equal("table");
-			expect(RoactPureClass._new).to.be.a("function");
 		});
 
 		it("should construct default props", () => {

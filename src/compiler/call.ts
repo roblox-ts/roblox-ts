@@ -1,10 +1,18 @@
 import * as ts from "ts-morph";
 import {
+	addOneToArrayIndex,
 	appendDeclarationIfMissing,
 	checkApiAccess,
 	checkNonAny,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
 	compileExpression,
 	compileSpreadableListAndJoin,
+	getReadableExpressionName,
+	isFunctionExpressionMethod,
+	isIdentifierDefinedInConst,
+	isIdentifierDefinedInExportLet,
+	isMethodDeclaration,
 	shouldCompileAsSpreadableList,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
@@ -23,15 +31,7 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { isFunctionExpressionMethod, isMethodDeclaration } from "./function";
-import {
-	addOneToArrayIndex,
-	compileElementAccessBracketExpression,
-	compileElementAccessDataTypeExpression,
-	getReadableExpressionName,
-	isIdentifierDefinedInConst,
-	isIdentifierDefinedInExportLet,
-} from "./indexed";
+import { inheritsFromRoact } from "./roact";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
@@ -784,6 +784,8 @@ export function compileCallExpression(
 				}
 
 				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent())) ? "" : "nil";
+			} else if (inheritsFromRoact(exp.getType())) {
+				return "";
 			} else {
 				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
 			}

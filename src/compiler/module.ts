@@ -72,7 +72,6 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
-	state.usesTSLibrary = true;
 	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
 }
 
@@ -105,7 +104,6 @@ function getRelativeImportPathRojo(
 		start += ".Parent";
 	}
 
-	state.usesTSLibrary = true;
 	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
 }
 
@@ -236,6 +234,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 	let result = "";
 	if (isSideEffect) {
+		state.usesTSLibrary = true;
 		return `${luaPath};\n`;
 	}
 
@@ -314,6 +313,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		result += `local ${lhsStr} = ${rhsStr};\n`;
 	}
 
+	state.usesTSLibrary = true;
 	return result;
 }
 
@@ -347,6 +347,7 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 		node.isExternalModuleReferenceRelative(),
 		node,
 	);
+	state.usesTSLibrary = true;
 	return state.indent + `local ${name} = ${luaPath};\n`;
 }
 
@@ -431,6 +432,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		const lhsStr = lhs.map(v => lhsPrefix + v).join(", ");
 		const rhsStr = rhs.map(v => rhsPrefix + v).join(", ");
 		result += `${lhsStr} = ${rhsStr};\n`;
+		state.usesTSLibrary = true;
 		return result;
 	}
 }

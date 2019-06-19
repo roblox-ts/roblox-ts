@@ -62,28 +62,54 @@ export function isTypeStatement(node: ts.Node) {
 	);
 }
 
-export function isType(node: ts.Node) {
+function isImport(node: ts.Node) {
 	return (
+		ts.TypeGuards.isImportSpecifier(node) ||
+		ts.TypeGuards.isImportClause(node) ||
+		ts.TypeGuards.isImportEqualsDeclaration(node)
+	);
+}
+
+function isExport(node: ts.Node) {
+	return ts.TypeGuards.isExportAssignment(node) || ts.TypeGuards.isExportSpecifier(node);
+}
+
+export function isType(node: ts.Node): boolean {
+	if (ts.TypeGuards.isIdentifier(node)) {
+		return isType(node.getParent());
+	}
+
+	return (
+		node.getKindName() === "TypeQuery" ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		ts.TypeGuards.isImportSpecifier(node) ||
-		ts.TypeGuards.isImportClause(node) ||
-		ts.TypeGuards.isImportEqualsDeclaration(node) ||
-		ts.TypeGuards.isExportAssignment(node) ||
-		ts.TypeGuards.isExportSpecifier(node) ||
+		isImport(node) ||
+		isExport(node) ||
 		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
 	);
 }
 
 export function isUsedAsType(node: ts.Identifier) {
-	return node.findReferences().every(refSymbol =>
-		refSymbol
-			.getReferences()
-			.filter(refEntry => refEntry.getSourceFile() === node.getSourceFile())
-			.every(refEntry => isType(refEntry.getNode().getParent()!)),
-	);
+	for (const refSymbol of node.findReferences()) {
+		for (const refEntry of refSymbol.getReferences()) {
+			if (refEntry.getSourceFile() === node.getSourceFile()) {
+				const ref = skipNodesDownwards(refEntry.getNode());
+				if (!isType(ref)) {
+					return false;
+				}
+				if (
+					isExport(ref.getParent()) &&
+					ts.TypeGuards.isIdentifier(ref) &&
+					ref.getDefinitionNodes().some(n => !isType(n))
+				) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
 
 export function inheritsFrom(type: ts.Type, className: string): boolean {

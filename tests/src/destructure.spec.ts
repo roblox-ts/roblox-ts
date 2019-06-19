@@ -242,6 +242,35 @@ export = () => {
 		expect(f(3)).to.equal(4);
 	});
 
+	it("should destructure into objects", () => {
+		const o = {
+			a: 100,
+			b: 100,
+			c: 100,
+			d: 100,
+			1: 100,
+
+			// tslint:disable
+			// prettier-ignore
+			"e":100
+		};
+
+		const f = (): "6" => "6";
+
+		// tslint:disable
+		// prettier-ignore
+		({ a: o.a, b: o.b, "9": o.c, 5: o.d, [f()]: o["e"], c: o[1] } = { a: 1, b: 2, c: 3, "9": 4, 5: 5, ["6"]: 6 });
+
+		let i = 0;
+
+		expect(o.a).to.equal(++i);
+		expect(o.b).to.equal(++i);
+		expect(o[1]).to.equal(++i);
+		expect(o.c).to.equal(++i);
+		expect(o.d).to.equal(++i);
+		expect(o["e"]).to.equal(++i);
+	});
+
 	it("should properly destruct objects with a Symbol.iterator method", () => {
 		const k = { o: 1, b: 2 };
 		const o = {

@@ -62,16 +62,6 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
 	},
-	"roactClassGet.spec.tsx": {
-		message: "should not allow getters in roact classes",
-		instance: CompilerError,
-		type: CompilerErrorType.RoactGettersNotAllowed,
-	},
-	"roactClassSet.spec.tsx": {
-		message: "should not allow setters in roact classes",
-		instance: CompilerError,
-		type: CompilerErrorType.RoactSettersNotAllowed,
-	},
 	"roactSubClass.spec.tsx": {
 		message: "should not allow subclasses of roact components",
 		instance: CompilerError,

@@ -1,5 +1,12 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileIdentifier } from ".";
+import {
+	checkPropertyCollision,
+	compileExpression,
+	compileIdentifier,
+	CompilerDirective,
+	getComputedPropertyAccess,
+	isIdentifierDefinedInExportLet,
+} from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
@@ -19,9 +26,6 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
-import { checkPropertyCollision } from "./class";
-import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
-import { CompilerDirective } from "./security";
 
 function compileParamDefault(state: CompilerState, exp: ts.Expression, name: string) {
 	const initializer = skipNodesDownwards(exp);
@@ -171,6 +175,9 @@ function objectAccessor(
 	} else if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
 		const exp = skipNodesDownwards(nameNode.getExpression());
 		name = getComputedPropertyAccess(state, exp, rhs);
+		return `${t}[${name}]`;
+	} else if (ts.TypeGuards.isNumericLiteral(nameNode) || ts.TypeGuards.isStringLiteral(nameNode)) {
+		name = compileExpression(state, nameNode);
 		return `${t}[${name}]`;
 	} else {
 		throw new CompilerError(
@@ -447,7 +454,11 @@ export function getBindingData(
 			const nameNode = item.getNameNode();
 			if (item.hasInitializer()) {
 				const initializer = skipNodesDownwards(item.getInitializer()!);
-				if (ts.TypeGuards.isIdentifier(initializer)) {
+				if (
+					ts.TypeGuards.isIdentifier(initializer) ||
+					ts.TypeGuards.isPropertyAccessExpression(initializer) ||
+					ts.TypeGuards.isElementAccessExpression(initializer)
+				) {
 					alias = compileExpression(state, initializer);
 					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
 				} else {

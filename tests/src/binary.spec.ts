@@ -107,4 +107,12 @@ export = () => {
 		getArray()[0]++;
 		expect(array[0]).to.equal(1);
 	});
+
+	it("should always put parentheses around unary expressions", () => {
+		const buttonSize = 10;
+		const a = -(48 + 1 * (buttonSize + 4) + 4);
+		const b = -48 + 1 * (buttonSize + 4) + 4;
+		expect(a).to.equal(-66);
+		expect(b).to.equal(-30);
+	});
 };

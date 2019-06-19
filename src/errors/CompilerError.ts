@@ -31,8 +31,6 @@ export enum CompilerErrorType {
 	NoFunctionIndex,
 	NoClassPrototype,
 	ExportInNonModuleScript,
-	RoactGettersNotAllowed,
-	RoactSettersNotAllowed,
 	RoactSubClassesNotSupported,
 	RoactJsxTextNotSupported,
 	RoactNoNewComponentAllowed,

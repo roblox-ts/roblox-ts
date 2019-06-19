@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { compileExpression } from ".";
+import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { getWritableOperandName, isIdentifierDefinedInExportLet } from "./indexed";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -34,7 +33,7 @@ function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, n
 }
 
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
-	const operand = skipNodesDownwards(node.getOperand());
+	const operand = skipNodesDownwards(node.getOperand(), true);
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = skipNodesUpwards(node.getParentOrThrow());

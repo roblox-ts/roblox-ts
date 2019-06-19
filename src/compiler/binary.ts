@@ -1,5 +1,16 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
+import {
+	checkNonAny,
+	compileCallExpression,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
+	compileExpression,
+	concatNamesAndValues,
+	getAccessorForBindingPatternType,
+	getBindingData,
+	getWritableOperandName,
+	isIdentifierDefinedInExportLet,
+} from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
@@ -12,13 +23,6 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { getAccessorForBindingPatternType } from "./binding";
-import {
-	compileElementAccessBracketExpression,
-	compileElementAccessDataTypeExpression,
-	getWritableOperandName,
-	isIdentifierDefinedInExportLet,
-} from "./indexed";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -39,16 +43,31 @@ function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: 
 	if (wrap) {
 		rhsStr = `(${rhsStr})`;
 	}
-	const leftType = getType(node.getLeft());
-	const rightType = getType(node.getRight());
 
-	if (isStringType(leftType) || isStringType(rightType)) {
+	const lhsType = getType(node.getLeft());
+	const rhsType = getType(node.getRight());
+
+	const lhsIsStr = isStringType(lhsType);
+	const lhsIsNum = isNumberType(lhsType);
+
+	const rhsIsStr = isStringType(rhsType);
+	const rhsIsNum = isNumberType(rhsType);
+
+	if (lhsIsStr || rhsIsStr) {
+		if (!lhsIsStr && !lhsIsNum) {
+			lhsStr = "tostring(" + lhsStr + ")";
+		}
+
+		if (!rhsIsStr && !rhsIsNum) {
+			rhsStr = "tostring(" + rhsStr + ")";
+		}
+
 		return `${lhsStr} .. ${rhsStr}`;
-	} else if (isNumberType(leftType) && isNumberType(rightType)) {
+	} else if (lhsIsNum && rhsIsNum) {
 		return `${lhsStr} + ${rhsStr}`;
 	} else {
 		throw new CompilerError(
-			`Unexpected types for addition: ${leftType.getText()} + ${rightType.getText()}`,
+			`Unexpected types for addition: ${lhsType.getText()} + ${rhsType.getText()}`,
 			node,
 			CompilerErrorType.BadAddition,
 			true,
@@ -127,9 +146,6 @@ function compileBinaryLiteral(
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
-	// @ts-ignore;
-	const x = node.getText();
-
 	const nodeParent = skipNodesUpwards(node.getParentOrThrow());
 	const parentKind = nodeParent.getKind();
 	const isStatement = parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
