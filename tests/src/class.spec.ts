@@ -312,5 +312,15 @@ export = () => {
 		}
 		expect(sorted.pop()).to.equal(7);
 		expect(() => sorted.unshift()).to.throw();
+
+		let i = 0;
+		expect(
+			new (class B extends class extends Array<number> {
+				public x = i++;
+			} {
+				public x = i++;
+			})().x,
+		).to.equal(1);
+		expect(i).to.equal(2);
 	});
 };
