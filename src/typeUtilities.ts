@@ -323,9 +323,12 @@ export function superExpressionClassInheritsFromArray(node: ts.Expression, recur
 	return recursive && inheritsFromArray(type);
 }
 
-export function classDeclarationInheritsFromArray(classExp: ts.ClassDeclaration | ts.ClassExpression) {
+export function classDeclarationInheritsFromArray(
+	classExp: ts.ClassDeclaration | ts.ClassExpression,
+	recursive = true,
+) {
 	const extendsExp = classExp.getExtends();
-	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression()) : false;
+	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression(), recursive) : false;
 }
 
 function inheritsFromArray(type: ts.Type) {
