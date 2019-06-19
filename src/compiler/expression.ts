@@ -21,6 +21,7 @@ import {
 	compilePropertyAccessExpression,
 	compileSpreadElement,
 	compileStringLiteral,
+	compileSuperExpression,
 	compileTaggedTemplateExpression,
 	compileTemplateExpression,
 	compileYieldExpression,
@@ -28,7 +29,6 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getType, isArrayType } from "../typeUtilities";
 import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUpwards } from "../utility";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
@@ -98,7 +98,7 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		}
 		return "self";
 	} else if (ts.TypeGuards.isSuperExpression(node)) {
-		return isArrayType(getType(node)) ? "self" : "super";
+		return compileSuperExpression(state, node);
 	} else if (
 		ts.TypeGuards.isAsExpression(node) ||
 		ts.TypeGuards.isTypeAssertion(node) ||

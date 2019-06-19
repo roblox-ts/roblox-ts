@@ -1,5 +1,12 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileIdentifier } from ".";
+import {
+	checkPropertyCollision,
+	compileExpression,
+	compileIdentifier,
+	CompilerDirective,
+	getComputedPropertyAccess,
+	isIdentifierDefinedInExportLet,
+} from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { HasParameters } from "../types";
@@ -19,9 +26,6 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
-import { checkPropertyCollision } from "./class";
-import { getComputedPropertyAccess, isIdentifierDefinedInExportLet } from "./indexed";
-import { CompilerDirective } from "./security";
 
 function compileParamDefault(state: CompilerState, exp: ts.Expression, name: string) {
 	const initializer = skipNodesDownwards(exp);

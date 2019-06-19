@@ -4,8 +4,10 @@ import {
 	checkNonAny,
 	compileCallExpression,
 	compileExpression,
+	CompilerDirective,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
+	shouldWrapExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -21,8 +23,6 @@ import {
 	isTupleReturnTypeCall,
 } from "../typeUtilities";
 import { safeLuaIndex, skipNodesDownwards } from "../utility";
-import { shouldWrapExpression } from "./call";
-import { CompilerDirective } from "./security";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this

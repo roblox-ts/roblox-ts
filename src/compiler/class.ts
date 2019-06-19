@@ -2,18 +2,19 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
+	checkRoactReserved,
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
-	compileRoactClassDeclaration,
-	inheritsFromRoact,
-	ROACT_COMPONENT_TYPE,
+	getRoactType,
+	inheritsFromRoactComponent,
 	ROACT_DERIVED_CLASSES_ERROR,
-	ROACT_PURE_COMPONENT_TYPE,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
+	isArrayType,
 	shouldHoist,
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
@@ -271,7 +272,11 @@ function validateMethod(
 	node: ts.ClassDeclaration | ts.ClassExpression,
 	method: ts.MethodDeclaration,
 	extendsArray: boolean,
+	isRoact: boolean,
 ) {
+	if (isRoact) {
+		checkRoactReserved(node.getName() || "", method.getName(), node);
+	}
 	checkDecorators(method);
 	checkMethodCollision(node, method);
 	checkDefaultIterator(extendsArray, method);
@@ -296,6 +301,32 @@ function validateMethod(
 	}
 }
 
+function compileClassInitializer(
+	state: CompilerState,
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	results: Array<string>,
+	name: string,
+) {
+	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
+	if (node.getExtends()) {
+		results.push(state.indent + `${prefix}${name} = setmetatable({}, { __index = super });\n`);
+	} else {
+		results.push(state.indent + `${prefix}${name} = {};\n`);
+	}
+	results.push(state.indent + `${name}.__index = ${name};\n`);
+}
+
+function compileRoactClassInitializer(
+	state: CompilerState,
+	node: ts.ClassDeclaration | ts.ClassExpression,
+	results: Array<string>,
+	name: string,
+	roactType: string,
+) {
+	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
+	results.push(state.indent + `${prefix}${name} = ${roactType}:extend("${name}");\n`);
+}
+
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
 	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
@@ -311,27 +342,19 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.pushExport(name, node);
 	}
 
-	// Roact checks
-	for (const baseType of node.getBaseTypes()) {
-		const baseTypeText = baseType.getText();
-		const isComponent = baseTypeText.startsWith(ROACT_COMPONENT_TYPE);
-		// Handle the special case where we have a roact class
-		if (isComponent || baseTypeText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			const type = isComponent ? "Component" : "PureComponent";
-			return compileRoactClassDeclaration(state, type, name, node);
-		}
+	// Roact
+	const roactType = getRoactType(node);
+	const isRoact = roactType !== undefined;
 
-		if (inheritsFromRoact(baseType)) {
-			throw new CompilerError(
-				`Cannot inherit ${bold(baseTypeText)}, must inherit ${bold("Roact.Component")}\n` +
-					ROACT_DERIVED_CLASSES_ERROR,
-				node,
-				CompilerErrorType.RoactSubClassesNotSupported,
-			);
-		}
+	if (!isRoact && inheritsFromRoactComponent(node)) {
+		throw new CompilerError(
+			`Cannot inherit ${bold(node.getExtendsOrThrow().getText())}, must inherit ${bold("Roact.Component")}\n` +
+				ROACT_DERIVED_CLASSES_ERROR,
+			node,
+			CompilerErrorType.RoactSubClassesNotSupported,
+		);
 	}
 
-	const extendExp = node.getExtends();
 	let hasSuper = false;
 	const results = new Array<string>();
 
@@ -351,7 +374,8 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	let extendsArray = false;
 
-	if (extendExp) {
+	const extendExp = node.getExtends();
+	if (!isRoact && extendExp) {
 		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
 		hasSuper = !superExpressionClassInheritsFromArray(extendExpExp, false);
@@ -374,23 +398,19 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		state.exitPrecedingStatementContext();
 	}
 
-	results.push(
-		state.indent,
-		isExpression && nameNode ? "local " : "",
-		name,
-		" = ",
-		hasSuper ? "setmetatable(" : "",
-		"{}",
-		hasSuper ? ", { __index = super })" : "",
-		";\n",
-	);
-
-	results.push(state.indent + `${name}.__index = ${name};\n`);
+	if (!isRoact) {
+		compileClassInitializer(state, node, results, name);
+	} else {
+		compileRoactClassInitializer(state, node, results, name, roactType!);
+	}
 
 	for (const prop of node.getStaticProperties()) {
 		checkDecorators(prop);
 		checkPropertyCollision(node, prop);
 		checkDefaultIterator(extendsArray, prop);
+		if (isRoact) {
+			checkRoactReserved(name, prop.getName(), node);
+		}
 		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
 
@@ -405,14 +425,14 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 					CompilerErrorType.BadStaticMethod,
 				);
 			}
-			validateMethod(node, method, extendsArray);
+			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + "."));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
-	if (!node.isAbstract()) {
+	if (!isRoact && !node.isAbstract()) {
 		results.push(
 			state.indent + `function ${name}.new(...)\n`,
 			state.indent + `\tlocal self = setmetatable({}, ${name});\n`,
@@ -431,16 +451,23 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		checkDefaultIterator(extendsArray, prop);
 		prop = nonGetterOrSetter(prop);
 
+		if (isRoact) {
+			checkRoactReserved(name, prop.getName(), node);
+		}
+
 		if ((prop.getParent() as ts.ClassDeclaration | ts.ClassExpression) === node) {
 			compileClassProperty(state, prop, "self", extraInitializers);
 		}
 	}
 	state.popIndent();
-	results.push(compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper));
+
+	results.push(
+		compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper, isRoact),
+	);
 
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
-			validateMethod(node, method, extendsArray);
+			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
 			state.exitPrecedingStatementContext();
@@ -485,4 +512,8 @@ export function compileClassDeclaration(state: CompilerState, node: ts.ClassDecl
 
 export function compileClassExpression(state: CompilerState, node: ts.ClassExpression) {
 	return compileClass(state, node);
+}
+
+export function compileSuperExpression(state: CompilerState, node: ts.SuperExpression) {
+	return isArrayType(getType(node)) ? "self" : "super";
 }

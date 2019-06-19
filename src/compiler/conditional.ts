@@ -1,8 +1,7 @@
 import * as ts from "ts-morph";
-import { compileExpression } from ".";
+import { assertNonLuaTuple, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { makeSetStatement, skipNodesDownwards } from "../utility";
-import { assertNonLuaTuple } from "./if";
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
