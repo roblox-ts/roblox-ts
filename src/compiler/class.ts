@@ -2,21 +2,24 @@ import * as ts from "ts-morph";
 import {
 	checkMethodReserved,
 	checkReserved,
+	checkRoactReserved,
 	compileConstructorDeclaration,
 	compileExpression,
 	compileMethodDeclaration,
-	ROACT_COMPONENT_TYPE,
-	ROACT_PURE_COMPONENT_TYPE,
+	getRoactType,
+	inheritsFromRoactComponent,
+	ROACT_DERIVED_CLASSES_ERROR,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
+	getType,
+	isArrayType,
 	shouldHoist,
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
 import { bold, skipNodesDownwards } from "../utility";
-import { checkRoactReserved, inheritsFromRoact, ROACT_DERIVED_CLASSES_ERROR } from "./roact";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -340,27 +343,16 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	}
 
 	// Roact
-	let isRoact = false;
-	let roactType = "";
+	const roactType = getRoactType(node);
+	const isRoact = roactType !== undefined;
 
-	const extendExp = node.getExtends();
-	if (extendExp) {
-		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
-		const extendText = extendExpExp.getText();
-		if (extendText.startsWith(ROACT_COMPONENT_TYPE)) {
-			roactType = ROACT_COMPONENT_TYPE;
-			isRoact = true;
-		} else if (extendText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
-			roactType = ROACT_PURE_COMPONENT_TYPE;
-			isRoact = true;
-		} else if (inheritsFromRoact(node.getType())) {
-			throw new CompilerError(
-				`Cannot inherit ${bold(extendText)}, must inherit ${bold("Roact.Component")}\n` +
-					ROACT_DERIVED_CLASSES_ERROR,
-				node,
-				CompilerErrorType.RoactSubClassesNotSupported,
-			);
-		}
+	if (!isRoact && inheritsFromRoactComponent(node)) {
+		throw new CompilerError(
+			`Cannot inherit ${bold(node.getExtendsOrThrow().getText())}, must inherit ${bold("Roact.Component")}\n` +
+				ROACT_DERIVED_CLASSES_ERROR,
+			node,
+			CompilerErrorType.RoactSubClassesNotSupported,
+		);
 	}
 
 	let hasSuper = false;
@@ -382,6 +374,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	let extendsArray = false;
 
+	const extendExp = node.getExtends();
 	if (!isRoact && extendExp) {
 		const extendExpExp = skipNodesDownwards(extendExp.getExpression());
 		extendsArray = superExpressionClassInheritsFromArray(extendExpExp);
@@ -408,7 +401,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 	if (!isRoact) {
 		compileClassInitializer(state, node, results, name);
 	} else {
-		compileRoactClassInitializer(state, node, results, name, roactType);
+		compileRoactClassInitializer(state, node, results, name, roactType!);
 	}
 
 	for (const prop of node.getStaticProperties()) {
@@ -519,4 +512,8 @@ export function compileClassDeclaration(state: CompilerState, node: ts.ClassDecl
 
 export function compileClassExpression(state: CompilerState, node: ts.ClassExpression) {
 	return compileClass(state, node);
+}
+
+export function compileSuperExpression(state: CompilerState, node: ts.SuperExpression) {
+	return isArrayType(getType(node)) ? "self" : "super";
 }

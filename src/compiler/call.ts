@@ -31,6 +31,7 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { inheritsFromRoact } from "./roact";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
@@ -783,6 +784,8 @@ export function compileCallExpression(
 				}
 
 				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent())) ? "" : "nil";
+			} else if (inheritsFromRoact(exp.getType())) {
+				return "";
 			} else {
 				return `super.constructor(${compileCallArgumentsAndJoin(state, params, "self")})`;
 			}

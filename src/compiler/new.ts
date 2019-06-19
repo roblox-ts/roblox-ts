@@ -5,6 +5,7 @@ import {
 	compileCallArgumentsAndJoin,
 	compileExpression,
 	getReadableExpressionName,
+	inheritsFromRoact,
 } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";

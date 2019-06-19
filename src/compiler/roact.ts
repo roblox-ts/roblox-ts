@@ -3,12 +3,11 @@ import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getType, isArrayType } from "../typeUtilities";
-import { bold, suggest } from "../utility";
+import { bold, skipNodesDownwards, suggest } from "../utility";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
 export const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
-const ROACT_COMPONENT_CLASSES = [ROACT_COMPONENT_TYPE, ROACT_PURE_COMPONENT_TYPE];
 
 export const ROACT_DERIVED_CLASSES_ERROR = suggest(
 	"Composition is preferred over inheritance with Roact components.\n" +
@@ -97,16 +96,45 @@ function getFullTypeList(type: ts.Type): Array<string> {
 }
 
 export function inheritsFromRoact(type: ts.Type): boolean {
-	const fullName = getFullTypeList(type);
 	let isRoactClass = false;
-	for (const name of fullName) {
-		if (ROACT_COMPONENT_CLASSES.findIndex(value => name.startsWith(value)) !== -1) {
+	for (const name of getFullTypeList(type)) {
+		if (name.startsWith(ROACT_COMPONENT_TYPE) || name.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
 			isRoactClass = true;
 			break;
 		}
 	}
-
 	return isRoactClass;
+}
+
+export function getRoactType(node: ts.ClassDeclaration | ts.ClassExpression) {
+	const extendsExp = node.getExtends();
+	if (extendsExp) {
+		const extendsText = skipNodesDownwards(extendsExp.getExpression()).getText();
+		if (extendsText.startsWith(ROACT_COMPONENT_TYPE)) {
+			return ROACT_COMPONENT_TYPE;
+		} else if (extendsText.startsWith(ROACT_PURE_COMPONENT_TYPE)) {
+			return ROACT_PURE_COMPONENT_TYPE;
+		}
+	}
+	return undefined;
+}
+
+export function inheritsFromRoactComponent(node: ts.ClassDeclaration | ts.ClassExpression): boolean {
+	const extendsExp = node.getExtends();
+	if (extendsExp) {
+		const symbol = extendsExp.getType().getSymbol();
+		if (symbol) {
+			const valueDec = symbol.getValueDeclaration();
+			if (valueDec && (ts.TypeGuards.isClassDeclaration(valueDec) || ts.TypeGuards.isClassExpression(valueDec))) {
+				if (getRoactType(node) !== undefined) {
+					return true;
+				} else {
+					return inheritsFromRoactComponent(valueDec);
+				}
+			}
+		}
+	}
+	return false;
 }
 
 export function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
