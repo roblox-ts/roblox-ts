@@ -146,9 +146,6 @@ function compileBinaryLiteral(
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
-	// @ts-ignore;
-	const x = node.getText();
-
 	const nodeParent = skipNodesUpwards(node.getParentOrThrow());
 	const parentKind = nodeParent.getKind();
 	const isStatement = parentKind === ts.SyntaxKind.ExpressionStatement || parentKind === ts.SyntaxKind.ForStatement;
