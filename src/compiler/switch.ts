@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileStatementedNode, shouldWrapExpression, isIdentifierDefinedInConst } from ".";
+import { compileExpression, compileStatementedNode, isIdentifierDefinedInConst, shouldWrapExpression } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
