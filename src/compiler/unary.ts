@@ -1,9 +1,8 @@
 import * as ts from "ts-morph";
-import { compileExpression } from ".";
+import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { getWritableOperandName, isIdentifierDefinedInExportLet } from "./indexed";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,

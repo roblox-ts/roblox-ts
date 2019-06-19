@@ -1,5 +1,16 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
+import {
+	checkNonAny,
+	compileCallExpression,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
+	compileExpression,
+	concatNamesAndValues,
+	getAccessorForBindingPatternType,
+	getBindingData,
+	getWritableOperandName,
+	isIdentifierDefinedInExportLet,
+} from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
@@ -12,13 +23,6 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { getAccessorForBindingPatternType } from "./binding";
-import {
-	compileElementAccessBracketExpression,
-	compileElementAccessDataTypeExpression,
-	getWritableOperandName,
-	isIdentifierDefinedInExportLet,
-} from "./indexed";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;

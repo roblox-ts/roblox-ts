@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileCallExpression, compileExpression } from ".";
+import { checkNonAny, compileCallExpression, compileExpression, getReadableExpressionName } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
@@ -14,7 +14,6 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { skipNodesDownwards } from "../utility";
-import { getReadableExpressionName } from "./indexed";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;

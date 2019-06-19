@@ -1,11 +1,15 @@
 import * as ts from "ts-morph";
-import { appendDeclarationIfMissing, compileCallArgumentsAndJoin, compileExpression, inheritsFromRoact } from ".";
+import {
+	appendDeclarationIfMissing,
+	compileCallArguments,
+	compileCallArgumentsAndJoin,
+	compileExpression,
+	getReadableExpressionName,
+} from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getType, inheritsFrom, isTupleType } from "../typeUtilities";
 import { joinIndentedLines, skipNodesDownwards, skipNodesUpwards, suggest } from "../utility";
-import { compileCallArguments } from "./call";
-import { getReadableExpressionName } from "./indexed";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
@@ -161,7 +165,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	if (inheritsFromRoact(expressionType)) {
 		throw new CompilerError(
 			`Roact components cannot be created using new\n` +
-				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or </${name}>`),
+				suggest(`Proper usage: Roact.createElement(${name}), <${name}></${name}> or <${name}/>`),
 			node,
 			CompilerErrorType.RoactNoNewComponentAllowed,
 		);

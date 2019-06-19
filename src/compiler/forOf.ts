@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
 import {
+	checkReserved,
 	compileExpression,
 	compileLoopBody,
 	concatNamesAndValues,
@@ -20,7 +21,6 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { skipNodesDownwards } from "../utility";
-import { checkReserved } from "./security";
 
 function getVariableName(
 	state: CompilerState,
