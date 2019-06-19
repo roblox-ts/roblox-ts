@@ -315,7 +315,7 @@ export = () => {
 
 		let i = 0;
 		expect(
-			new (class B extends class extends Array<number> {
+			new (class extends class extends Array<number> {
 				public x = i++;
 			} {
 				public x = i++;
