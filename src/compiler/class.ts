@@ -309,9 +309,9 @@ function compileClassInitializer(
 ) {
 	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
 	if (node.getExtends()) {
-		results.push(state.indent + `${prefix}${name} = {};\n`);
+		results.push(state.indent + `${prefix}${name} = setmetatable({}, { __index = super });\n`);
 	} else {
-		results.push(state.indent + `${prefix}${name} = setmetatable({}, { __index = super };\n`);
+		results.push(state.indent + `${prefix}${name} = {};\n`);
 	}
 	results.push(state.indent + `${name}.__index = ${name};\n`);
 }
