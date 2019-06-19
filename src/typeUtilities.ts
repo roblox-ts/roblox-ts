@@ -63,7 +63,20 @@ export function isTypeStatement(node: ts.Node) {
 }
 
 export function isType(node: ts.Node) {
+	if (ts.TypeGuards.isIdentifier(node)) {
+		const parent = node.getParent();
+		if (
+			parent.getKindName() === "TypeQuery" ||
+			ts.TypeGuards.isImportSpecifier(parent) ||
+			ts.TypeGuards.isExportSpecifier(parent) ||
+			ts.TypeGuards.isExportAssignment(parent)
+		) {
+			return true;
+		}
+	}
+
 	return (
+		node.getKindName() === "TypeQuery" ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -78,12 +91,26 @@ export function isType(node: ts.Node) {
 }
 
 export function isUsedAsType(node: ts.Identifier) {
-	return node.findReferences().every(refSymbol =>
-		refSymbol
-			.getReferences()
-			.filter(refEntry => refEntry.getSourceFile() === node.getSourceFile())
-			.every(refEntry => isType(refEntry.getNode().getParent()!)),
-	);
+	for (const refSymbol of node.findReferences()) {
+		for (const refEntry of refSymbol.getReferences()) {
+			if (refEntry.getSourceFile() === node.getSourceFile()) {
+				const ref = skipNodesDownwards(refEntry.getNode());
+				const parentIsType = isType(ref.getParent());
+				if (
+					ts.TypeGuards.isIdentifier(ref) &&
+					!parentIsType &&
+					ref.getDefinitionNodes().some(n => !isType(n))
+				) {
+					return false;
+				}
+
+				if (!isType(ref)) {
+					return false;
+				}
+			}
+		}
+	}
+	return true;
 }
 
 export function inheritsFrom(type: ts.Type, className: string): boolean {
