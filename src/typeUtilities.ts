@@ -62,17 +62,21 @@ export function isTypeStatement(node: ts.Node) {
 	);
 }
 
-export function isType(node: ts.Node) {
+function isImport(node: ts.Node) {
+	return (
+		ts.TypeGuards.isImportSpecifier(node) ||
+		ts.TypeGuards.isImportClause(node) ||
+		ts.TypeGuards.isImportEqualsDeclaration(node)
+	);
+}
+
+function isExport(node: ts.Node) {
+	return ts.TypeGuards.isExportAssignment(node) || ts.TypeGuards.isExportSpecifier(node);
+}
+
+export function isType(node: ts.Node): boolean {
 	if (ts.TypeGuards.isIdentifier(node)) {
-		const parent = node.getParent();
-		if (
-			parent.getKindName() === "TypeQuery" ||
-			ts.TypeGuards.isImportSpecifier(parent) ||
-			ts.TypeGuards.isExportSpecifier(parent) ||
-			ts.TypeGuards.isExportAssignment(parent)
-		) {
-			return true;
-		}
+		return isType(node.getParent());
 	}
 
 	return (
@@ -81,11 +85,8 @@ export function isType(node: ts.Node) {
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		ts.TypeGuards.isImportSpecifier(node) ||
-		ts.TypeGuards.isImportClause(node) ||
-		ts.TypeGuards.isImportEqualsDeclaration(node) ||
-		ts.TypeGuards.isExportAssignment(node) ||
-		ts.TypeGuards.isExportSpecifier(node) ||
+		isImport(node) ||
+		isExport(node) ||
 		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
 	);
 }
@@ -95,16 +96,14 @@ export function isUsedAsType(node: ts.Identifier) {
 		for (const refEntry of refSymbol.getReferences()) {
 			if (refEntry.getSourceFile() === node.getSourceFile()) {
 				const ref = skipNodesDownwards(refEntry.getNode());
-				const parentIsType = isType(ref.getParent());
-				if (
-					ts.TypeGuards.isIdentifier(ref) &&
-					!parentIsType &&
-					ref.getDefinitionNodes().some(n => !isType(n))
-				) {
+				if (!isType(ref)) {
 					return false;
 				}
-
-				if (!isType(ref)) {
+				if (
+					isExport(ref.getParent()) &&
+					ts.TypeGuards.isIdentifier(ref) &&
+					ref.getDefinitionNodes().some(n => !isType(n))
+				) {
 					return false;
 				}
 			}
