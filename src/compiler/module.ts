@@ -169,7 +169,6 @@ function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFi
 		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
 	}
 
-	state.usesTSLibrary = true;
 	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
 }
 
@@ -254,6 +253,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		const defaultImportExp = compileExpression(state, defaultImport);
 
 		if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
+			state.usesTSLibrary = true;
 			// If the defaultImport is importing an `export = ` statement,
 			return `local ${defaultImportExp} = ${luaPath};\n`;
 		}
