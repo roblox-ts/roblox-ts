@@ -404,34 +404,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		compileRoactClassInitializer(state, node, results, name, roactType!);
 	}
 
-	for (const prop of node.getStaticProperties()) {
-		checkDecorators(prop);
-		checkPropertyCollision(node, prop);
-		checkDefaultIterator(extendsArray, prop);
-		if (isRoact) {
-			checkRoactReserved(name, prop.getName(), node);
-		}
-		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
-	}
-
-	for (const method of node.getStaticMethods()) {
-		if (method.getBody() !== undefined) {
-			const methodName = method.getName();
-
-			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
-				throw new CompilerError(
-					`Cannot make a static method with name "${methodName}"!`,
-					method,
-					CompilerErrorType.BadStaticMethod,
-				);
-			}
-			validateMethod(node, method, extendsArray, isRoact);
-			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + "."));
-			state.exitPrecedingStatementContext();
-		}
-	}
-
 	if (!isRoact && !node.isAbstract()) {
 		results.push(
 			state.indent + `function ${name}.new(...)\n`,
@@ -465,6 +437,24 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper, isRoact),
 	);
 
+	for (const method of node.getStaticMethods()) {
+		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+
+			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
+				throw new CompilerError(
+					`Cannot make a static method with name "${methodName}"!`,
+					method,
+					CompilerErrorType.BadStaticMethod,
+				);
+			}
+			validateMethod(node, method, extendsArray, isRoact);
+			state.enterPrecedingStatementContext(results);
+			results.push(compileMethodDeclaration(state, method, name + "."));
+			state.exitPrecedingStatementContext();
+		}
+	}
+
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
 			validateMethod(node, method, extendsArray, isRoact);
@@ -482,6 +472,16 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 				CompilerErrorType.UndefinableMetamethod,
 			);
 		}
+	}
+
+	for (const prop of node.getStaticProperties()) {
+		checkDecorators(prop);
+		checkPropertyCollision(node, prop);
+		checkDefaultIterator(extendsArray, prop);
+		if (isRoact) {
+			checkRoactReserved(name, prop.getName(), node);
+		}
+		compileClassProperty(state, nonGetterOrSetter(prop), name, results);
 	}
 
 	if (getClassMethod(node, "toString")) {
