@@ -318,13 +318,15 @@ export = () => {
 	});
 
 	it("should properly destruct gmatch #1", () => {
-		function catchLetters(...strs: Array<string>) {
-			expect(strs[0]).to.equal("a");
-			expect(strs[1]).to.equal("b");
-			expect(strs[2]).to.equal("c");
-			expect(strs[3]).to.equal("d");
+		function catchLetters(...letterPairs: Array<LuaTuple<Array<string | undefined>>>) {
+			let i = 97;
+			for (const [a, b] of letterPairs) {
+				expect(a).to.equal(string.char(i++));
+				expect(b).to.equal(string.char(i++));
+			}
 		}
-		catchLetters(..."abcd".gmatch("."));
+
+		catchLetters(..."abcdefghijklmnopqrstuvwxyz".gmatch("(%l)(%l)"));
 	});
 
 	it("should properly destruct gmatch #2", () => {
