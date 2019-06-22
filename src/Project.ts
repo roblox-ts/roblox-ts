@@ -12,7 +12,7 @@ import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
-const MINIMUM_RBX_TYPES_VERSION = 203;
+const MINIMUM_RBX_TYPES_VERSION = 223;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;

@@ -933,13 +933,21 @@ function TS.iterableCache(iter)
 	return results
 end
 
+local function package(...)
+	return select("#", ...), {...}
+end
+
 function TS.iterableFunctionCache(iter)
 	local results = {}
 	local count = 0
-	for _0 in iter do
+
+	while true do
+		local size, t = package(iter());
+		if size == 0 then break end
 		count = count + 1
-		results[count] = _0
+		results[count] = t
 	end
+
 	return results
 end
 
