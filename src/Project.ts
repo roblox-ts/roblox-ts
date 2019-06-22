@@ -8,7 +8,7 @@ import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { RojoProject, RojoProjectError } from "./RojoProject";
+import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
@@ -193,10 +193,17 @@ export class Project {
 		}
 
 		if (this.rojoFilePath && this.rojoProject) {
-			const runtimeLibPath = this.rojoProject.getRbxFromFile(path.join(this.includePath, "RuntimeLib.lua")).path;
+			const runtimeFsPath = path.join(this.includePath, "RuntimeLib.lua");
+			const runtimeLibPath = this.rojoProject.getRbxFromFile(runtimeFsPath).path;
+			const runtimeNetworkType = this.rojoProject.getNetworkType(runtimeFsPath);
 			if (!runtimeLibPath) {
 				throw new ProjectError(
 					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
+					ProjectErrorType.BadRojoInclude,
+				);
+			} else if (runtimeNetworkType !== NetworkType.Unknown) {
+				throw new ProjectError(
+					`Runtime library cannot be in a server-only or client-only container!`,
 					ProjectErrorType.BadRojoInclude,
 				);
 			}

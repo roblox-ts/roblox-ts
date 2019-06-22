@@ -24,6 +24,9 @@ const DEFAULT_ISOLATED_CONTAINERS = [
 	["StarterPlayer", "StarterCharacter"],
 ];
 
+const CLIENT_CONTAINERS = [["StarterPack"], ["StarterGui"], ["StarterPlayer"]];
+const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
+
 function stripExts(filePath: string) {
 	const ext = path.extname(filePath);
 	filePath = filePath.slice(0, -ext.length);
@@ -55,6 +58,12 @@ export enum FileRelation {
 	OutToIn, // error
 	InToOut, // absolute
 	InToIn, // relative
+}
+
+export enum NetworkType {
+	Unknown,
+	Client,
+	Server,
 }
 
 export class RojoProject {
@@ -177,9 +186,8 @@ export class RojoProject {
 		return this.tree.$className === "DataModel";
 	}
 
-	private getContainer(from: Array<Array<string>>, filePath: string) {
+	private getContainer(from: Array<Array<string>>, rbxPath?: Array<string>) {
 		if (this.isGame()) {
-			const rbxPath = this.getRbxPathFromFile(filePath);
 			if (rbxPath) {
 				for (const container of from) {
 					if (arrayStartsWith(rbxPath, container)) {
@@ -191,8 +199,8 @@ export class RojoProject {
 	}
 
 	public getFileRelation(filePath: string, modulePath: string): FileRelation {
-		const fileContainer = this.getContainer(this.isolatedContainers, filePath);
-		const moduleContainer = this.getContainer(this.isolatedContainers, modulePath);
+		const fileContainer = this.getContainer(this.isolatedContainers, this.getRbxPathFromFile(filePath));
+		const moduleContainer = this.getContainer(this.isolatedContainers, this.getRbxPathFromFile(modulePath));
 		if (fileContainer && moduleContainer) {
 			if (fileContainer === moduleContainer) {
 				return FileRelation.InToIn;
@@ -207,6 +215,17 @@ export class RojoProject {
 			// !fileContainer && !moduleContainer
 			return FileRelation.OutToOut;
 		}
+	}
+
+	public getNetworkType(filePath: string): NetworkType {
+		const rbxPath = this.getRbxPathFromFile(filePath);
+		if (this.getContainer(SERVER_CONTAINERS, rbxPath)) {
+			return NetworkType.Server;
+		}
+		if (this.getContainer(CLIENT_CONTAINERS, rbxPath)) {
+			return NetworkType.Client;
+		}
+		return NetworkType.Unknown;
 	}
 
 	public static relative(rbxFrom: ReadonlyArray<string>, rbxTo: ReadonlyArray<string>) {
