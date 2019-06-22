@@ -318,7 +318,7 @@ export = () => {
 	});
 
 	it("should properly destruct gmatch #1", () => {
-		function catchLetters(...letterPairs: Array<LuaTuple<Array<string | undefined>>>) {
+		function catchLetters(...letterPairs: Array<LuaTuple<Array<string>>>) {
 			let i = 97;
 			for (const [a, b] of letterPairs) {
 				expect(a).to.equal(string.char(i++));
