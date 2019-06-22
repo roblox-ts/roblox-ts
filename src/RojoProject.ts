@@ -177,13 +177,13 @@ export class RojoProject {
 		return this.tree.$className === "DataModel";
 	}
 
-	private getIsolatedContainer(filePath: string) {
+	private getContainer(from: Array<Array<string>>, filePath: string) {
 		if (this.isGame()) {
 			const rbxPath = this.getRbxPathFromFile(filePath);
 			if (rbxPath) {
-				for (const isolatedContainer of this.isolatedContainers) {
-					if (arrayStartsWith(rbxPath, isolatedContainer)) {
-						return isolatedContainer;
+				for (const container of from) {
+					if (arrayStartsWith(rbxPath, container)) {
+						return container;
 					}
 				}
 			}
@@ -191,8 +191,8 @@ export class RojoProject {
 	}
 
 	public getFileRelation(filePath: string, modulePath: string): FileRelation {
-		const fileContainer = this.getIsolatedContainer(filePath);
-		const moduleContainer = this.getIsolatedContainer(modulePath);
+		const fileContainer = this.getContainer(this.isolatedContainers, filePath);
+		const moduleContainer = this.getContainer(this.isolatedContainers, modulePath);
 		if (fileContainer && moduleContainer) {
 			if (fileContainer === moduleContainer) {
 				return FileRelation.InToIn;
