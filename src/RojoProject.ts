@@ -217,6 +217,10 @@ export class RojoProject {
 		}
 	}
 
+	public isIsolated(filePath: string) {
+		return this.getContainer(this.isolatedContainers, this.getRbxPathFromFile(filePath)) !== undefined;
+	}
+
 	public getNetworkType(filePath: string): NetworkType {
 		const rbxPath = this.getRbxPathFromFile(filePath);
 		if (this.getContainer(SERVER_CONTAINERS, rbxPath)) {

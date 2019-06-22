@@ -195,15 +195,19 @@ export class Project {
 		if (this.rojoFilePath && this.rojoProject) {
 			const runtimeFsPath = path.join(this.includePath, "RuntimeLib.lua");
 			const runtimeLibPath = this.rojoProject.getRbxFromFile(runtimeFsPath).path;
-			const runtimeNetworkType = this.rojoProject.getNetworkType(runtimeFsPath);
 			if (!runtimeLibPath) {
 				throw new ProjectError(
 					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
 					ProjectErrorType.BadRojoInclude,
 				);
-			} else if (runtimeNetworkType !== NetworkType.Unknown) {
+			} else if (this.rojoProject.getNetworkType(runtimeFsPath) !== NetworkType.Unknown) {
 				throw new ProjectError(
 					`Runtime library cannot be in a server-only or client-only container!`,
+					ProjectErrorType.BadRojoInclude,
+				);
+			} else if (this.rojoProject.isIsolated(runtimeFsPath)) {
+				throw new ProjectError(
+					`Runtime library cannot be in an isolated container!`,
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
