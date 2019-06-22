@@ -440,8 +440,11 @@ export class Project {
 		}
 	}
 
-	public addFile(filePath: string) {
-		this.project.addExistingSourceFile(filePath);
+	public async addFile(filePath: string) {
+		const ext = path.extname(filePath);
+		if (ext === ".ts" || ext === ".tsx") {
+			this.project.addExistingSourceFile(filePath);
+		}
 	}
 
 	public async removeFile(filePath: string) {
