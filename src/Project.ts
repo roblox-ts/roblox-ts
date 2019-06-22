@@ -2,13 +2,13 @@ import fs from "fs-extra";
 import klaw from "klaw";
 import { minify } from "luamin";
 import path from "path";
-import RojoProject, { RojoProjectError } from "rojo-utils";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
+import { RojoProject, RojoProjectError } from "./RojoProject";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 

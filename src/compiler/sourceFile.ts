@@ -1,9 +1,9 @@
-import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
+import { RojoProject } from "../RojoProject";
 import { isRbxService } from "../typeUtilities";
 import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility";
 

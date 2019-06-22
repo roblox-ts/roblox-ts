@@ -16,6 +16,14 @@ const SUB_EXT_TYPE_MAP = new Map<string, string>([
 	[".client", "LocalScript"],
 ]);
 
+const DEFAULT_ISOLATED_CONTAINERS = [
+	["StarterPack"],
+	["StarterGui"],
+	["StarterPlayer", "StarterPlayerScripts"],
+	["StarterPlayer", "StarterCharacterScripts"],
+	["StarterPlayer", "StarterCharacter"],
+];
+
 function stripExts(filePath: string) {
 	const ext = path.extname(filePath);
 	filePath = filePath.slice(0, -ext.length);
@@ -32,10 +40,28 @@ interface RbxPath {
 	fsPath: string;
 }
 
-export default class RojoProject {
+function arrayStartsWith<T>(a: Array<T>, b: Array<T>) {
+	const minLength = Math.min(a.length, b.length);
+	for (let i = 0; i < minLength; i++) {
+		if (a[i] !== b[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+export enum FileRelation {
+	OutToOut, // absolute
+	OutToIn, // error
+	InToOut, // absolute
+	InToIn, // relative
+}
+
+export class RojoProject {
 	private readonly basePath: string;
 
 	private partitions = new Array<RbxPath>();
+	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 
 	private tree: RojoTree;
 
@@ -44,12 +70,17 @@ export default class RojoProject {
 			const ext = path.extname(tree.$path);
 			if (ext === LUA_EXT || ext === FOLDER_EXT) {
 				this.partitions.push({
-					isFile: ext === LUA_EXT,
 					base: [...rbxPath],
 					fsPath: path.resolve(this.basePath, tree.$path),
+					isFile: ext === LUA_EXT,
 				});
 			}
 		}
+
+		if (tree.$isolated === true) {
+			this.isolatedContainers.push([...rbxPath]);
+		}
+
 		for (const childName of Object.keys(tree).filter(v => !ROJO_METADATA_REGEX.test(v))) {
 			rbxPath.push(childName);
 			this.parseTree(tree[childName], rbxPath);
@@ -144,6 +175,38 @@ export default class RojoProject {
 
 	public isGame() {
 		return this.tree.$className === "DataModel";
+	}
+
+	private getIsolatedContainer(filePath: string) {
+		if (this.isGame()) {
+			const rbxPath = this.getRbxPathFromFile(filePath);
+			if (rbxPath) {
+				for (const isolatedContainer of this.isolatedContainers) {
+					if (arrayStartsWith(rbxPath, isolatedContainer)) {
+						return isolatedContainer;
+					}
+				}
+			}
+		}
+	}
+
+	public getFileRelation(filePath: string, modulePath: string): FileRelation {
+		const fileContainer = this.getIsolatedContainer(filePath);
+		const moduleContainer = this.getIsolatedContainer(modulePath);
+		if (fileContainer && moduleContainer) {
+			if (fileContainer === moduleContainer) {
+				return FileRelation.InToIn;
+			} else {
+				return FileRelation.OutToIn;
+			}
+		} else if (fileContainer && !moduleContainer) {
+			return FileRelation.InToOut;
+		} else if (!fileContainer && moduleContainer) {
+			return FileRelation.OutToIn;
+		} else {
+			// !fileContainer && !moduleContainer
+			return FileRelation.OutToOut;
+		}
 	}
 
 	public static relative(rbxFrom: ReadonlyArray<string>, rbxTo: ReadonlyArray<string>) {
