@@ -353,6 +353,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.ClassWithComputedMethodNames,
 	},
+	"requireGmatchForOfDestructure.spec.ts": {
+		message: "should force destructuring on gmatch",
+		instance: CompilerError,
+		type: CompilerErrorType.BadForOfInitializer,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 

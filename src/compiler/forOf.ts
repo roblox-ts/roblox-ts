@@ -86,6 +86,7 @@ enum ForOfLoopType {
 	String,
 	IterableFunction,
 	Symbol_iterator,
+	IterableLuaTuple,
 }
 
 function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
@@ -178,7 +179,12 @@ function getLoopType(
 	} else if (isStringType(expType)) {
 		return [exp, ForOfLoopType.String, reversed, backwards];
 	} else if (isIterableFunction(expType)) {
-		return [exp, ForOfLoopType.IterableFunction, reversed, backwards];
+		// Hack
+		if (expType.getText().match("<LuaTuple<")) {
+			return [exp, ForOfLoopType.IterableLuaTuple, reversed, backwards];
+		} else {
+			return [exp, ForOfLoopType.IterableFunction, reversed, backwards];
+		}
 	} else {
 		return [exp, ForOfLoopType.Symbol_iterator, reversed, backwards];
 	}
@@ -202,6 +208,8 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	let expStr = compileExpression(state, exp);
 	let result = "";
 
+	const extraParams = new Array<string>();
+
 	const names = new Array<string>();
 	const values = new Array<string>();
 	const preStatements = new Array<string>();
@@ -210,16 +218,21 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	/** Whether we should iterate as a simple for loop (defaults to a for..in loop) */
 	let isNumericForLoop = false;
 
-	if (loopType === ForOfLoopType.Entries || loopType === ForOfLoopType.ArrayEntries) {
+	if (
+		loopType === ForOfLoopType.Entries ||
+		loopType === ForOfLoopType.ArrayEntries ||
+		loopType === ForOfLoopType.IterableLuaTuple
+	) {
 		if (loopType === ForOfLoopType.ArrayEntries) {
 			expStr = getReadableExpressionName(state, exp, expStr);
 			isNumericForLoop = true;
-		} else {
+		} else if (loopType === ForOfLoopType.Entries) {
 			expStr = `pairs(${expStr})`;
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
-			const [first, second] = lhs.getElements() as [
+			const elements = lhs.getElements();
+			const [first, second] = elements as [
 				ts.BindingElement | ts.OmittedExpression | undefined,
 				ts.BindingElement | ts.OmittedExpression | undefined,
 			];
@@ -231,14 +244,27 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			if (second && ts.TypeGuards.isBindingElement(second)) {
 				value = getVariableName(state, second.getNameNode(), names, values, preStatements, postStatements);
 			}
+
+			for (let i = 2, { length } = elements; i < length; i++) {
+				const { [i]: element } = elements;
+
+				extraParams.push(
+					ts.TypeGuards.isBindingElement(element)
+						? getVariableName(state, element.getNameNode(), names, values, preStatements, postStatements)
+						: "_",
+				);
+			}
 		} else {
-			if (!ts.TypeGuards.isIdentifier(lhs)) {
+			if (loopType === ForOfLoopType.IterableLuaTuple) {
 				throw new CompilerError(
-					"Unexpected for..of initializer",
+					`Unexpected for..of initializer! \`${lhs.getText()}\` is a LuaTuple and should be destructured in-line!`,
 					lhs,
 					CompilerErrorType.BadForOfInitializer,
-					true,
 				);
+			}
+
+			if (!ts.TypeGuards.isIdentifier(lhs)) {
+				throw new CompilerError("Unexpected for..of initializer", lhs, CompilerErrorType.BadForOfInitializer);
 			}
 			key = state.getNewId();
 			value = state.getNewId();
@@ -315,7 +341,11 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			result += state.indent + `local ${value} = ${expStr}[${accessor}];\n`;
 		}
 	} else {
-		result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in ${expStr} do\n`;
+		if (extraParams.length > 0) {
+			result += state.indent + `for ${[key || "_", value || "_", ...extraParams].join(", ")} in ${expStr} do\n`;
+		} else {
+			result += state.indent + `for ${key || "_"}${value ? `, ${value}` : ""} in ${expStr} do\n`;
+		}
 		state.pushIndent();
 	}
 

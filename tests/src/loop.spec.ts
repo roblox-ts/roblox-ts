@@ -313,8 +313,15 @@ export = () => {
 	});
 
 	it("should work with gmatch", () => {
-		for (const a of "H".gmatch(".")) {
+		for (const [a] of "H".gmatch(".")) {
 			expect(a).to.equal("H");
+		}
+
+		for (const [a, b, c, d] of "Hello!".gmatch("(%l)(%l)(%l)(%l)")) {
+			expect(a).to.equal("e");
+			expect(b).to.equal("l");
+			expect(c).to.equal("l");
+			expect(d).to.equal("o");
 		}
 	});
 
