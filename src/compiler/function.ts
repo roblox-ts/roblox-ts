@@ -298,7 +298,7 @@ export function compileConstructorDeclaration(
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
 	const defaults = new Array<string>();
-	const inheritsFromArray = classDeclarationInheritsFromArray(classExp);
+	const inheritsFromArray = classDeclarationInheritsFromArray(classExp, false);
 
 	state.pushIdStack();
 	if (node) {

@@ -35,12 +35,12 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"ajv": "^6.10.0",
 		"chokidar": "^3.0.1",
 		"cross-spawn": "^6.0.5",
 		"fs-extra": "^8.0.1",
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
-		"rojo-utils": "0.0.7",
 		"ts-morph": "^2.3.0",
 		"yargs": "^13.2.4"
 	},

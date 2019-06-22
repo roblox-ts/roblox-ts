@@ -1,6 +1,6 @@
-import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { RojoProject } from "./RojoProject";
 import { ProjectInfo } from "./types";
 import { joinIndentedLines, ScriptContext } from "./utility";
 

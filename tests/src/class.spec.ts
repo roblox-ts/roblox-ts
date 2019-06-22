@@ -312,5 +312,25 @@ export = () => {
 		}
 		expect(sorted.pop()).to.equal(7);
 		expect(() => sorted.unshift()).to.throw();
+
+		let i = 0;
+		expect(
+			new (class extends class extends Array<number> {
+				public x = i++;
+			} {
+				public x = i++;
+			})().x,
+		).to.equal(1);
+		expect(i).to.equal(2);
+	});
+
+	it("should compile static fields last", () => {
+		class Foo {
+			static x = new Foo().bar();
+			bar() {
+				return "baz";
+			}
+		}
+		expect(Foo.x).to.equal("baz");
 	});
 };

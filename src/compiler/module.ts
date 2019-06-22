@@ -1,10 +1,10 @@
 import path from "path";
-import RojoProject from "rojo-utils";
 import * as ts from "ts-morph";
 import { checkReserved, compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
+import { FileRelation, RojoProject } from "../RojoProject";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
 import {
 	isValidLuaIdentifier,
@@ -169,7 +169,6 @@ function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFi
 		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
 	}
 
-	state.usesTSLibrary = true;
 	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
 }
 
@@ -177,15 +176,30 @@ function getImportPath(
 	state: CompilerState,
 	sourceFile: ts.SourceFile,
 	moduleFile: ts.SourceFile,
-	isRelative: boolean,
 	node: ts.Node,
 ): string {
 	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
 		return getModuleImportPath(state, moduleFile);
 	}
 
-	if (state.projectInfo.type === ProjectType.Game && !isRelative) {
-		return getAbsoluteImportPathRojo(state, moduleFile, node);
+	if (state.projectInfo.type === ProjectType.Game) {
+		const fileRelation = state.rojoProject!.getFileRelation(
+			transformPathToLua(state.rootDirPath, state.outDirPath, sourceFile.getFilePath()),
+			transformPathToLua(state.rootDirPath, state.outDirPath, moduleFile.getFilePath()),
+		);
+		if (fileRelation === FileRelation.OutToOut) {
+			return getAbsoluteImportPathRojo(state, moduleFile, node);
+		} else if (fileRelation === FileRelation.OutToIn) {
+			throw new CompilerError(
+				"Attempted to import a file inside of an isolated container from outside!",
+				node,
+				CompilerErrorType.IsolatedContainer,
+			);
+		} else if (fileRelation === FileRelation.InToOut) {
+			return getAbsoluteImportPathRojo(state, moduleFile, node);
+		} else {
+			return getRelativeImportPathRojo(state, sourceFile, moduleFile, node);
+		}
 	} else {
 		if (state.rojoProject) {
 			return getRelativeImportPathRojo(state, sourceFile, moduleFile, node);
@@ -230,7 +244,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 			CompilerErrorType.MissingModuleFile,
 		);
 	}
-	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
+	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node);
 
 	let result = "";
 	if (isSideEffect) {
@@ -254,6 +268,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		const defaultImportExp = compileExpression(state, defaultImport);
 
 		if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
+			state.usesTSLibrary = true;
 			// If the defaultImport is importing an `export = ` statement,
 			return `local ${defaultImportExp} = ${luaPath};\n`;
 		}
@@ -340,13 +355,7 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 		);
 	}
 
-	const luaPath = getImportPath(
-		state,
-		node.getSourceFile(),
-		moduleFile,
-		node.isExternalModuleReferenceRelative(),
-		node,
-	);
+	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node);
 	state.usesTSLibrary = true;
 	return state.indent + `local ${name} = ${luaPath};\n`;
 }
@@ -364,7 +373,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 				CompilerErrorType.MissingModuleFile,
 			);
 		}
-		luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node.isModuleSpecifierRelative(), node);
+		luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node);
 	}
 
 	const ancestor =

@@ -92,22 +92,27 @@ export function isType(node: ts.Node): boolean {
 }
 
 export function isUsedAsType(node: ts.Identifier) {
-	for (const refSymbol of node.findReferences()) {
-		for (const refEntry of refSymbol.getReferences()) {
-			if (refEntry.getSourceFile() === node.getSourceFile()) {
-				const ref = skipNodesDownwards(refEntry.getNode());
-				if (!isType(ref)) {
-					return false;
-				}
-				if (
-					isExport(ref.getParent()) &&
-					ts.TypeGuards.isIdentifier(ref) &&
-					ref.getDefinitionNodes().some(n => !isType(n))
-				) {
-					return false;
+	try {
+		for (const refSymbol of node.findReferences()) {
+			for (const refEntry of refSymbol.getReferences()) {
+				if (refEntry.getSourceFile() === node.getSourceFile()) {
+					const ref = skipNodesDownwards(refEntry.getNode());
+					if (!isType(ref)) {
+						return false;
+					}
+					if (
+						isExport(ref.getParent()) &&
+						ts.TypeGuards.isIdentifier(ref) &&
+						ref.getDefinitionNodes().some(n => !isType(n))
+					) {
+						return false;
+					}
 				}
 			}
 		}
+	} catch (e) {
+		// https://github.com/dsherret/ts-morph/issues/650
+		return false;
 	}
 	return true;
 }
@@ -323,9 +328,12 @@ export function superExpressionClassInheritsFromArray(node: ts.Expression, recur
 	return recursive && inheritsFromArray(type);
 }
 
-export function classDeclarationInheritsFromArray(classExp: ts.ClassDeclaration | ts.ClassExpression) {
+export function classDeclarationInheritsFromArray(
+	classExp: ts.ClassDeclaration | ts.ClassExpression,
+	recursive = true,
+) {
 	const extendsExp = classExp.getExtends();
-	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression()) : false;
+	return extendsExp ? superExpressionClassInheritsFromArray(extendsExp.getExpression(), recursive) : false;
 }
 
 function inheritsFromArray(type: ts.Type) {
