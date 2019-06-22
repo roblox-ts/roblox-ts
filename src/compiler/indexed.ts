@@ -27,7 +27,14 @@ import { safeLuaIndex, skipNodesDownwards } from "../utility";
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
 	for (const def of exp.getDefinitions()) {
-		const definition = def.getNode().getFirstAncestorByKind(ts.SyntaxKind.VariableStatement);
+		const node = def.getNode();
+		// Namespace name identifiers are not variables which can be changed at run-time
+		if (ts.TypeGuards.isNamespaceDeclaration(node.getParent())) {
+			return true;
+		}
+
+		const definition = node.getFirstAncestorByKind(ts.SyntaxKind.VariableDeclarationList);
+
 		if (definition && definition.getDeclarationKind() === ts.VariableDeclarationKind.Const) {
 			return true;
 		}
