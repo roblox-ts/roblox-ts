@@ -59,11 +59,6 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
 	return false;
 }
 
-function log<T>(arg: T) {
-	console.log(arg);
-	return arg;
-}
-
 /**
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
@@ -112,10 +107,10 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 		}
 	}
 
-	return log({
+	return {
 		expStr: compileExpression(state, operand),
 		isIdentifier: ts.TypeGuards.isIdentifier(operand) && !isIdentifierDefinedInExportLet(operand),
-	});
+	};
 }
 
 /**
