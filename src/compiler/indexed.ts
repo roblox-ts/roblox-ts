@@ -16,8 +16,10 @@ import {
 	getType,
 	isArrayType,
 	isArrayTypeLax,
+	isConstantExpression,
 	isMapType,
 	isNumberTypeStrict,
+	isNumericLiteralTypeStrict,
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
@@ -57,6 +59,11 @@ export function isIdentifierDefinedInExportLet(exp: ts.Identifier) {
 	return false;
 }
 
+function log<T>(arg: T) {
+	console.log(arg);
+	return arg;
+}
+
 /**
  * Gets the writable operand name, meaning the code should be able to do `returnValue = x;`
  * The rule in this case is that if there is a depth of 3 or more, e.g. `Foo.Bar.i`, we push `Foo.Bar`
@@ -78,24 +85,37 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			} else if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 				propertyStr = "." + compileExpression(state, operand.getNameNode());
 			} else {
-				const access = getComputedPropertyAccess(
-					state,
-					skipNodesDownwards(operand.getArgumentExpressionOrThrow()),
-					skipNodesDownwards(operand.getExpression()),
-				);
+				const exp = skipNodesDownwards(operand.getArgumentExpressionOrThrow());
+				const fromNode = skipNodesDownwards(operand.getExpression());
+				const access = getComputedPropertyAccess(state, exp, fromNode);
 				propertyStr = `[${access}]`;
 			}
 
 			return { expStr: id + propertyStr, isIdentifier: false };
 		} else if (doNotCompileAccess) {
 			return { expStr: compileExpression(state, child), isIdentifier: false };
+		} else if (ts.TypeGuards.isElementAccessExpression(operand)) {
+			const id = compileExpression(state, child);
+			const exp = skipNodesDownwards(operand.getArgumentExpressionOrThrow());
+			const fromNode = skipNodesDownwards(operand.getExpression());
+
+			if (
+				(isArrayType(getType(fromNode)) && !isNumericLiteralTypeStrict(getType(exp))) ||
+				!isConstantExpression(exp, 0)
+			) {
+				const access = getComputedPropertyAccess(state, exp, fromNode);
+				return {
+					expStr: id + "[" + state.pushPrecedingStatementToReuseableId(exp, access) + "]",
+					isIdentifier: false,
+				};
+			}
 		}
 	}
 
-	return {
+	return log({
 		expStr: compileExpression(state, operand),
 		isIdentifier: ts.TypeGuards.isIdentifier(operand) && !isIdentifierDefinedInExportLet(operand),
-	};
+	});
 }
 
 /**
