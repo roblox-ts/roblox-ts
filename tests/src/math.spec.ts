@@ -142,7 +142,7 @@ export = () => {
 		};
 
 		function f<T extends keyof typeof foo>(k: T) {
-			const x = 5 + foo[k];
+			return 5 + foo[k];
 		}
 
 		expect(f("a")).to.equal(6);
