@@ -489,7 +489,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	if (getClassMethod(node, "toString")) {
 		results.push(state.indent + `function ${name}:__tostring() return self:toString(); end;\n`);
-		results.push(state.indent + `function ${name}.__concat(a, b) return tostring(a) .. tostring(b) end;\n`);
 	}
 
 	if (isExpression) {
