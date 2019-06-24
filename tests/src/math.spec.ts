@@ -133,4 +133,20 @@ export = () => {
 			expect(c.Y).to.equal(6);
 		});
 	});
+
+	it("should add computedAccessExpressions with numbers", () => {
+		const foo = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+
+		function f<T extends keyof typeof foo>(k: T) {
+			return 5 + foo[k];
+		}
+
+		expect(f("a")).to.equal(6);
+		expect(f("b")).to.equal(7);
+		expect(f("c")).to.equal(8);
+	});
 };

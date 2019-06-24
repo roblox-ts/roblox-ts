@@ -192,11 +192,9 @@ function isSomeType(
 	if (typeConstraintChecker(type, cb)) {
 		return true;
 	} else {
-		if (type.isTypeParameter()) {
-			const constraint = type.getConstraint();
-			if (constraint) {
-				return typeConstraintChecker(constraint, cb);
-			}
+		const constraint = type.getConstraint();
+		if (constraint) {
+			return typeConstraintChecker(constraint, cb);
 		}
 	}
 	return false;
