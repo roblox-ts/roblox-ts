@@ -308,11 +308,14 @@ function compileClassInitializer(
 	name: string,
 ) {
 	const prefix = ts.TypeGuards.isClassExpression(node) && node.getNameNode() ? "local " : "";
+	results.push(state.indent + `${prefix}${name} = setmetatable({}, {\n`);
+	state.pushIndent();
 	if (node.getExtends()) {
-		results.push(state.indent + `${prefix}${name} = setmetatable({}, { __index = super });\n`);
-	} else {
-		results.push(state.indent + `${prefix}${name} = {};\n`);
+		results.push(state.indent + `__index = super,\n`);
 	}
+	results.push(state.indent + `__tostring = function() return "${name}" end,\n`);
+	state.popIndent();
+	results.push(state.indent + `});\n`);
 	results.push(state.indent + `${name}.__index = ${name};\n`);
 }
 

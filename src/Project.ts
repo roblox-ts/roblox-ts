@@ -12,7 +12,7 @@ import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
 import { ProjectInfo } from "./types";
 import { red, transformPathToLua, yellow } from "./utility";
 
-const MINIMUM_RBX_TYPES_VERSION = 203;
+const MINIMUM_RBX_TYPES_VERSION = 223;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;
@@ -440,8 +440,11 @@ export class Project {
 		}
 	}
 
-	public addFile(filePath: string) {
-		this.project.addExistingSourceFile(filePath);
+	public async addFile(filePath: string) {
+		const ext = path.extname(filePath);
+		if (ext === ".ts" || ext === ".tsx") {
+			this.project.addExistingSourceFile(filePath);
+		}
 	}
 
 	public async removeFile(filePath: string) {

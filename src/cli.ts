@@ -10,7 +10,7 @@ import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
 
-const CHOKIDAR_OPTIONS = {
+const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
 		pollInterval: 10,
 		stabilityThreshold: 50,
@@ -123,19 +123,22 @@ if (argv.watch === true) {
 	};
 
 	async function update(filePath: string) {
-		console.log("Change detected, compiling..");
-		await project.refreshFile(filePath);
-		clearContextCache();
-		await time(async () => {
-			try {
-				await project.compileFileByPath(filePath);
-			} catch (e) {
-				console.log(e);
-				process.exit();
+		const ext = path.extname(filePath);
+		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
+			console.log("Change detected, compiling..");
+			await project.refreshFile(filePath);
+			clearContextCache();
+			await time(async () => {
+				try {
+					await project.compileFileByPath(filePath);
+				} catch (e) {
+					console.log(e);
+					process.exit();
+				}
+			});
+			if (process.exitCode === 0) {
+				await onSuccess();
 			}
-		});
-		if (process.exitCode === 0) {
-			await onSuccess();
 		}
 	}
 
@@ -196,7 +199,7 @@ if (argv.watch === true) {
 
 	const pkgLockJsonPath = path.resolve("package-lock.json");
 	if (fs.existsSync(pkgLockJsonPath)) {
-		chokidar.watch(pkgLockJsonPath).on("change", async (filePath: string) => {
+		chokidar.watch(pkgLockJsonPath, CHOKIDAR_OPTIONS).on("change", async (filePath: string) => {
 			console.log("Modules updated, copying..");
 			await project.copyModuleFiles();
 		});

@@ -962,7 +962,8 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 }
 
 function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAccessExpression) {
-	const type = getType(node);
+	const type = getType(node).getNonNullableType();
+
 	const allMethods = typeConstraint(type, t =>
 		getSymbolOrThrow(node, t)
 			.getDeclarations()

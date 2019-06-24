@@ -545,7 +545,7 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 	return false;
 }
 
-/** Calls getNonNullUnParenthesizedExpressionUpwards and returns getType() */
+/** Calls skipNodesUpwards and returns getType() */
 export function getType(node: ts.Node) {
 	return skipNodesUpwards(node).getType();
 }
