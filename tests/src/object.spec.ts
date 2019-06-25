@@ -41,6 +41,24 @@ export = () => {
 		expect(b).to.equal(1);
 		expect(c).to.equal(1);
 		expect(d).to.equal(1);
+
+		let j = 0;
+		function f() {
+			j++;
+			return 2;
+		}
+		const o: { [i: number]: number } = {
+			0: 2,
+			1: 4,
+			2: 5,
+			3: 6,
+			4: 5,
+		};
+		o[f()]++;
+		const x = o[f()]++;
+		expect(x).to.equal(6);
+		expect(o[2]).to.equal(7);
+		expect(j).to.equal(2);
 	});
 
 	it("should support bracket index definitions", () => {

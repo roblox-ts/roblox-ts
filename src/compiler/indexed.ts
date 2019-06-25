@@ -16,8 +16,10 @@ import {
 	getType,
 	isArrayType,
 	isArrayTypeLax,
+	isConstantExpression,
 	isMapType,
 	isNumberTypeStrict,
+	isNumericLiteralTypeStrict,
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
@@ -78,17 +80,30 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			} else if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
 				propertyStr = "." + compileExpression(state, operand.getNameNode());
 			} else {
-				const access = getComputedPropertyAccess(
-					state,
-					skipNodesDownwards(operand.getArgumentExpressionOrThrow()),
-					skipNodesDownwards(operand.getExpression()),
-				);
+				const exp = skipNodesDownwards(operand.getArgumentExpressionOrThrow());
+				const fromNode = skipNodesDownwards(operand.getExpression());
+				const access = getComputedPropertyAccess(state, exp, fromNode);
 				propertyStr = `[${access}]`;
 			}
 
 			return { expStr: id + propertyStr, isIdentifier: false };
 		} else if (doNotCompileAccess) {
 			return { expStr: compileExpression(state, child), isIdentifier: false };
+		} else if (ts.TypeGuards.isElementAccessExpression(operand)) {
+			const id = compileExpression(state, child);
+			const exp = skipNodesDownwards(operand.getArgumentExpressionOrThrow());
+			const fromNode = skipNodesDownwards(operand.getExpression());
+
+			if (
+				(isArrayType(getType(fromNode)) && !isNumericLiteralTypeStrict(getType(exp))) ||
+				!isConstantExpression(exp, 0)
+			) {
+				const access = getComputedPropertyAccess(state, exp, fromNode);
+				return {
+					expStr: id + "[" + state.pushPrecedingStatementToReuseableId(exp, access) + "]",
+					isIdentifier: false,
+				};
+			}
 		}
 	}
 

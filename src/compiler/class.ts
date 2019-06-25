@@ -311,9 +311,9 @@ function compileClassInitializer(
 	results.push(state.indent + `${prefix}${name} = setmetatable({}, {\n`);
 	state.pushIndent();
 	if (node.getExtends()) {
-		results.push(state.indent + `__index = super,\n`);
+		results.push(state.indent + `__index = super;\n`);
 	}
-	results.push(state.indent + `__tostring = function() return "${name}" end,\n`);
+	results.push(state.indent + `__tostring = function() return "${name}" end;\n`);
 	state.popIndent();
 	results.push(state.indent + `});\n`);
 	results.push(state.indent + `${name}.__index = ${name};\n`);
@@ -444,7 +444,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
-			if (methodName === "new" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
+			if (methodName === "new" || methodName === "toString" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
 				throw new CompilerError(
 					`Cannot make a static method with name "${methodName}"!`,
 					method,
@@ -489,7 +489,6 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	if (getClassMethod(node, "toString")) {
 		results.push(state.indent + `function ${name}:__tostring() return self:toString(); end;\n`);
-		results.push(state.indent + `function ${name}.__concat(a, b) return tostring(a) .. tostring(b) end;\n`);
 	}
 
 	if (isExpression) {

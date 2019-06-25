@@ -192,11 +192,9 @@ function isSomeType(
 	if (typeConstraintChecker(type, cb)) {
 		return true;
 	} else {
-		if (type.isTypeParameter()) {
-			const constraint = type.getConstraint();
-			if (constraint) {
-				return typeConstraintChecker(constraint, cb);
-			}
+		const constraint = type.getConstraint();
+		if (constraint) {
+			return typeConstraintChecker(constraint, cb);
 		}
 	}
 	return false;
@@ -222,6 +220,10 @@ export function isNumberType(type: ts.Type) {
 
 export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
+}
+
+export function isNumericLiteralTypeStrict(type: ts.Type) {
+	return isSomeType(type, strictTypeConstraint, t => t.isNumberLiteral());
 }
 
 export function isStringType(type: ts.Type) {
