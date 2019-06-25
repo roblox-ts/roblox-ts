@@ -1,6 +1,8 @@
 declare const self: undefined;
 
-export = () => {
+export let topLevelExportLet = 5;
+
+export default () => {
 	it("should support object literal brackets", () => {
 		/* prettier-ignore */
 		/* tslint:disable */
@@ -394,5 +396,10 @@ export = () => {
 		const f = ++fk().o.$v;
 		expect(f).to.equal(21);
 		expect(i).to.equal(10);
+	});
+
+	it("should support shorthand assignments", () => {
+		const p = { a: { topLevelExportLet } };
+		expect(++p.a.topLevelExportLet).to.equal(6);
 	});
 };

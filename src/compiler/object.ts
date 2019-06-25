@@ -75,8 +75,9 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				context.push(...rhsContext);
 				context.isPushed = rhsContext.isPushed;
 			}
-
-			line = `${ts.TypeGuards.isIdentifier(lhs) ? safeLuaIndex("", lhsStr) : `[${lhsStr}]`} = ${rhsStr};\n`;
+			line = `${
+				ts.TypeGuards.isIdentifier(lhs) ? safeLuaIndex("", lhs.getText()) : `[${lhsStr}]`
+			} = ${rhsStr};\n`;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
 			line = "";
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {
