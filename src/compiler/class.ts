@@ -330,15 +330,11 @@ function compileRoactClassInitializer(
 }
 
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
-	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
+	const name = nameNode ? checkReserved(nameNode) : state.getNewId();
 	let expAlias: string | undefined;
 
 	checkDecorators(node);
-
-	if (nameNode) {
-		checkReserved(name, nameNode);
-	}
 
 	if (ts.TypeGuards.isClassDeclaration(node)) {
 		state.pushExport(name, node);

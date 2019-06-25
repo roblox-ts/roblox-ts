@@ -259,7 +259,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 				.getExportAssignments();
 
 		const defaultImportExp = compileExpression(state, defaultImport);
-		checkReserved(defaultImportExp, defaultImport);
+		checkReserved(defaultImport);
 
 		if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
 			state.usesTSLibrary = true;
@@ -285,12 +285,13 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
 		.forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
-			const name = namedImport.getName();
+			const nameNode = namedImport.getNameNode();
+			const name = nameNode.getText();
 			const alias = aliasNode ? aliasNode.getText() : name;
 			const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
 
 			// keep these here no matter what, so that exports can take from initial state.
-			checkReserved(alias, node);
+			checkReserved(aliasNode || nameNode);
 			lhs.push(alias);
 			rhs.push(safeLuaIndex(" ", name));
 
@@ -328,7 +329,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 export function compileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
-	const name = checkReserved(node.getName(), node);
+	const name = checkReserved(nameNode);
 
 	const isRoact = name === "Roact";
 	if (isRoact) {
@@ -407,12 +408,13 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 
 		namedExports.forEach(namedExport => {
 			const aliasNode = namedExport.getAliasNode();
-			let name = namedExport.getNameNode().getText();
+			const nameNode = namedExport.getNameNode();
+			let name = nameNode.getText();
 			if (name === "default") {
 				name = "_default";
 			}
 			const alias = aliasNode ? aliasNode.getText() : name;
-			checkReserved(alias, node);
+			checkReserved(aliasNode || nameNode);
 			lhs.push(alias);
 			if (luaPath !== "") {
 				rhs.push(safeLuaIndex(" ", name));

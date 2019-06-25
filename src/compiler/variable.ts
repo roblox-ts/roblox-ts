@@ -43,7 +43,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				if (ts.TypeGuards.isBindingElement(element)) {
 					const nameNode = element.getNameNode();
 					if (ts.TypeGuards.isIdentifier(nameNode)) {
-						names.push(checkReserved(compileExpression(state, nameNode), nameNode));
+						checkReserved(nameNode);
+						names.push(compileExpression(state, nameNode));
 					}
 				} else if (ts.TypeGuards.isOmittedExpression(element)) {
 					names.push("_");
@@ -67,8 +68,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 
 	let result = "";
 	if (ts.TypeGuards.isIdentifier(lhs)) {
-		const name = lhs.getText();
-		checkReserved(name, lhs);
+		const name = checkReserved(lhs);
 		if (rhs) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				const parentName = state.getExportContextName(grandParent);

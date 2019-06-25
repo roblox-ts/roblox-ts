@@ -120,7 +120,8 @@ export function isValidLuaIdentifier(id: string) {
 	return luaIdentifierRegex.test(id) && !LUA_RESERVED_KEYWORDS.includes(id);
 }
 
-export function checkReserved(name: string, node: ts.Node) {
+export function checkReserved(node: ts.Node) {
+	const name = node.getText();
 	if (LUA_RESERVED_KEYWORDS.includes(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,

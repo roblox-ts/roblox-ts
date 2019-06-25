@@ -10,9 +10,8 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 	if (node.isConstEnum()) {
 		return result;
 	}
-	const name = node.getName();
 	const nameNode = node.getNameNode();
-	checkReserved(name, nameNode);
+	const name = checkReserved(nameNode);
 	state.pushExport(name, node);
 	if (shouldHoist(node, nameNode)) {
 		state.pushHoistStack(name);

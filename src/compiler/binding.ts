@@ -103,7 +103,7 @@ export function getParameterData(
 				continue;
 			}
 			name = compileExpression(state, child);
-			checkReserved(name, child);
+			checkReserved(child);
 		} else {
 			name = state.getNewId();
 		}
@@ -395,7 +395,8 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
 				const idNode = pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child;
-				const id: string = checkReserved(compileIdentifier(state, idNode), idNode);
+				const id: string = compileIdentifier(state, idNode);
+				checkReserved(idNode);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					postStatements.push(compileParamDefault(state, pattern as ts.Expression, id));
@@ -420,7 +421,7 @@ export function getBindingData(
 				const accessor = `${parentId}[${expStr}]`;
 				const childId: string = compileExpression(state, pattern as ts.Expression);
 				if (ts.TypeGuards.isIdentifier(pattern)) {
-					checkReserved(childId, pattern);
+					checkReserved(pattern);
 				}
 				preStatements.push(`local ${childId} = ${accessor};`);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {

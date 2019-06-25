@@ -60,8 +60,8 @@ export function compileTryStatement(state: CompilerState, node: ts.TryStatement)
 		result += state.indent + `if not ${successId} then\n`;
 		state.pushIndent();
 		if (hasErrVar) {
-			const variableDeclaration = catchClause.getVariableDeclarationOrThrow();
-			const varName = checkReserved(variableDeclaration.getName(), variableDeclaration);
+			const variableDeclaration = catchClause.getVariableDeclarationOrThrow().getNameNode();
+			const varName = checkReserved(variableDeclaration);
 			result += state.indent + `local ${varName} = ${errMsgId};\n`;
 		}
 		result += compileStatementedNode(state, catchClause.getBlock());
