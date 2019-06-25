@@ -395,7 +395,7 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
 				const idNode = pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child;
-				const id: string = compileIdentifier(state, idNode);
+				const id: string = compileIdentifier(state, idNode, true);
 				checkReserved(idNode);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
