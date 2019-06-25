@@ -239,16 +239,10 @@ function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpres
 
 export function compileFunctionDeclaration(state: CompilerState, node: ts.FunctionDeclaration) {
 	const body = node.getBody();
-	const nameNode = node.getNameNode();
-	let name: string;
-
-	if (nameNode) {
-		name = checkReserved(nameNode);
-	} else {
-		name = state.getNewId();
-	}
 
 	if (body) {
+		const nameNode = node.getNameNode();
+		const name = nameNode ? checkReserved(nameNode) : state.getNewId();
 		state.pushExport(name, node);
 		return compileFunction(state, node, name, body);
 	} else {
