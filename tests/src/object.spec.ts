@@ -1,5 +1,10 @@
 declare const self: undefined;
 
+namespace N {
+	export let x = 5;
+	export const p = { a: { x } };
+}
+
 export = () => {
 	it("should support object literal brackets", () => {
 		/* prettier-ignore */
@@ -338,5 +343,65 @@ export = () => {
 			expect(o.g(5)).to.equal(4);
 			expect(++o.calls).to.equal(5);
 		}
+	});
+
+	it("should support invalid Lua identifier members", () => {
+		let i = 0;
+
+		const o = {
+			$() {
+				return ++this.$v;
+			},
+			$v: 1,
+		};
+		const k = { o };
+
+		const fo = () => {
+			++i;
+			return o;
+		};
+
+		const fk = () => {
+			++i;
+			return k;
+		};
+
+		expect(o.$()).to.equal(2);
+		expect(o.$v++).to.equal(2);
+		expect(++o.$v).to.equal(4);
+		const x = o.$v++;
+		expect(x).to.equal(4);
+		const y = ++o.$v;
+		expect(y).to.equal(6);
+
+		expect(k.o.$()).to.equal(7);
+		expect(k.o.$v++).to.equal(7);
+		expect(++k.o.$v).to.equal(9);
+		const a = k.o.$v++;
+		expect(a).to.equal(9);
+		const b = ++k.o.$v;
+		expect(b).to.equal(11);
+
+		expect(fo().$()).to.equal(12);
+		expect(fo().$v++).to.equal(12);
+		expect(++fo().$v).to.equal(14);
+		const c = fo().$v++;
+		expect(c).to.equal(14);
+		const d = ++fo().$v;
+		expect(d).to.equal(16);
+		expect(i).to.equal(5);
+
+		expect(fk().o.$()).to.equal(17);
+		expect(fk().o.$v++).to.equal(17);
+		expect(++fk().o.$v).to.equal(19);
+		const e = fk().o.$v++;
+		expect(e).to.equal(19);
+		const f = ++fk().o.$v;
+		expect(f).to.equal(21);
+		expect(i).to.equal(10);
+	});
+
+	it("should support shorthand assignments", () => {
+		expect(++N.p.a.x).to.equal(6);
 	});
 };

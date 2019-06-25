@@ -32,6 +32,7 @@ import {
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { inheritsFromRoact } from "./roact";
+import { isValidLuaIdentifier } from "./security";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
@@ -1063,7 +1064,7 @@ export function compilePropertyCallExpression(
 ) {
 	checkApiAccess(state, expression.getNameNode());
 
-	const property = expression.getName();
+	let property = expression.getName();
 	const params = [
 		skipNodesDownwards(expression.getExpression()),
 		...node.getArguments().map(arg => skipNodesDownwards(arg)),
@@ -1136,7 +1137,7 @@ export function compilePropertyCallExpression(
 	let accessedPath: string;
 	let paramsStr: string;
 	[accessedPath, paramsStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
-	let sep: string;
+	let sep: ":" | ".";
 	const [subExp] = params;
 
 	if (allMethods && !allCallbacks) {
@@ -1166,9 +1167,26 @@ export function compilePropertyCallExpression(
 		);
 	}
 
-	if (shouldWrapExpression(subExp, false)) {
-		accessedPath = `(${accessedPath})`;
+	if (isValidLuaIdentifier(property)) {
+		if (shouldWrapExpression(subExp, false)) {
+			accessedPath = `(${accessedPath})`;
+		}
+		property = sep + property;
+	} else {
+		if (sep === ":") {
+			if (!isValidLuaIdentifier(accessedPath)) {
+				accessedPath = state.pushPrecedingStatementToNewId(params[0], accessedPath);
+			}
+
+			paramsStr = paramsStr ? accessedPath + ", " + paramsStr : accessedPath;
+			property = `["${property}"]`;
+		} else {
+			if (shouldWrapExpression(subExp, false)) {
+				accessedPath = `(${accessedPath})`;
+			}
+			property = `["${property}"]`;
+		}
 	}
 
-	return `${accessedPath}${sep}${property}(${paramsStr})`;
+	return accessedPath + property + "(" + paramsStr + ")";
 }

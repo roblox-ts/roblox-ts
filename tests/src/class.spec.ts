@@ -333,4 +333,50 @@ export = () => {
 		}
 		expect(Foo.x).to.equal("baz");
 	});
+
+	it("should support invalid indexing", () => {
+		expect(
+			new (class A {
+				public $() {
+					return ++this.$v;
+				}
+				public $v = 2;
+			})().$(),
+		).to.equal(3);
+
+		expect(
+			class {
+				public static $() {
+					return ++this.$v;
+				}
+				public static $v = 2;
+			}.$(),
+		).to.equal(3);
+
+		expect(
+			new (class extends class {
+				public $v = -1;
+				public $() {
+					return ++this.$v;
+				}
+			} {
+				public $() {
+					return super.$();
+				}
+			})().$(),
+		).to.equal(0);
+
+		expect(
+			class extends class {
+				public static $v = -1;
+				public static $() {
+					return ++this.$v;
+				}
+			} {
+				public static $() {
+					return super.$();
+				}
+			}.$(),
+		).to.equal(0);
+	});
 };

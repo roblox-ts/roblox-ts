@@ -4,6 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getType, isStringType } from "../typeUtilities";
 import { skipNodesDownwards } from "../utility";
+import { checkReserved } from "./security";
 
 export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
 	const expression = skipNodesDownwards(node.getExpression());
@@ -59,7 +60,9 @@ export function compileTryStatement(state: CompilerState, node: ts.TryStatement)
 		result += state.indent + `if not ${successId} then\n`;
 		state.pushIndent();
 		if (hasErrVar) {
-			result += state.indent + `local ${catchClause.getVariableDeclarationOrThrow().getName()} = ${errMsgId};\n`;
+			const variableDeclaration = catchClause.getVariableDeclarationOrThrow().getNameNode();
+			const varName = checkReserved(variableDeclaration);
+			result += state.indent + `local ${varName} = ${errMsgId};\n`;
 		}
 		result += compileStatementedNode(state, catchClause.getBlock());
 		state.popIndent();
