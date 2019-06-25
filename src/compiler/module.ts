@@ -136,7 +136,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 		parts.push(last);
 	}
 
-	parts = parts.filter(part => part !== ".").map(part => safeLuaIndex("", part));
+	parts = parts.filter(part => part !== ".").map(part => safeLuaIndex(" ", part));
 	state.usesTSLibrary = true;
 	const params = `TS.getModule("${moduleName}")` + parts.join("");
 	return `TS.import(${params})`;
@@ -292,7 +292,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 			// keep these here no matter what, so that exports can take from initial state.
 			checkReserved(alias, node);
 			lhs.push(alias);
-			rhs.push(safeLuaIndex("", name));
+			rhs.push(safeLuaIndex(" ", name));
 
 			if (shouldLocalize) {
 				unlocalizedImports.push("");
@@ -415,7 +415,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			checkReserved(alias, node);
 			lhs.push(alias);
 			if (luaPath !== "") {
-				rhs.push(safeLuaIndex("", name));
+				rhs.push(safeLuaIndex(" ", name));
 			} else {
 				rhs.push(state.getAlias(name));
 			}

@@ -78,7 +78,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			if (doNotCompileAccess) {
 				propertyStr = "";
 			} else if (ts.TypeGuards.isPropertyAccessExpression(operand)) {
-				propertyStr = safeLuaIndex("", compileExpression(state, operand.getNameNode()));
+				propertyStr = safeLuaIndex(" ", compileExpression(state, operand.getNameNode()));
 			} else {
 				const exp = skipNodesDownwards(operand.getArgumentExpressionOrThrow());
 				const fromNode = skipNodesDownwards(operand.getExpression());

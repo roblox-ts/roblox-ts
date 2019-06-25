@@ -65,7 +65,7 @@ function compileClassProperty(
 		let propStr: string;
 		if (ts.TypeGuards.isIdentifier(propNameNode)) {
 			const propName = propNameNode.getText();
-			propStr = safeLuaIndex("", propName);
+			propStr = safeLuaIndex(" ", propName);
 			checkMethodReserved(propName, prop);
 		} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
 			const expStr = compileExpression(state, propNameNode);

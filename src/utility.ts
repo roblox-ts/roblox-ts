@@ -5,9 +5,9 @@ import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
-		return `${parent ? parent + "." : ""}${child}`;
+		return `${parent ? parent.trimRight() + "." : ""}${child}`;
 	} else {
-		return `${parent}["${child}"]`;
+		return `${parent.trimRight()}["${child}"]`;
 	}
 }
 
