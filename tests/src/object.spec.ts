@@ -1,8 +1,11 @@
 declare const self: undefined;
 
-export let topLevelExportLet = 5;
+namespace N {
+	export let x = 5;
+	export const p = { a: { x } };
+}
 
-export default () => {
+export = () => {
 	it("should support object literal brackets", () => {
 		/* prettier-ignore */
 		/* tslint:disable */
@@ -399,7 +402,6 @@ export default () => {
 	});
 
 	it("should support shorthand assignments", () => {
-		const p = { a: { topLevelExportLet } };
-		expect(++p.a.topLevelExportLet).to.equal(6);
+		expect(++N.p.a.x).to.equal(6);
 	});
 };
