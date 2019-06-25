@@ -1,5 +1,4 @@
 import * as ts from "ts-morph";
-import { checkReserved } from ".";
 import { CompilerState } from "../CompilerState";
 
 export const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
@@ -14,7 +13,6 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 		return replacement;
 	}
 
-	checkReserved(name, node);
 	if (BUILT_INS.indexOf(name) !== -1) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;

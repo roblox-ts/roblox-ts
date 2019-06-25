@@ -5,30 +5,6 @@ import { HasParameters } from "../types";
 import { getType, isAnyType } from "../typeUtilities";
 import { bold, ScriptContext, yellow } from "../utility";
 
-const LUA_RESERVED_KEYWORDS = [
-	"and",
-	"break",
-	"do",
-	"else",
-	"elseif",
-	"end",
-	"false",
-	"for",
-	"function",
-	"if",
-	"in",
-	"local",
-	"nil",
-	"not",
-	"or",
-	"repeat",
-	"return",
-	"then",
-	"true",
-	"until",
-	"while",
-];
-
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
 	"__newindex",
@@ -112,16 +88,46 @@ const LUA_RESERVED_NAMESPACES = [
 	"Ray",
 ];
 
-const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis", "table"];
+const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis", "table", "_continue_"];
 
-export function checkReserved(name: string, node: ts.Node, checkNamespace: boolean = false) {
-	if (LUA_RESERVED_KEYWORDS.indexOf(name) !== -1) {
+const LUA_RESERVED_KEYWORDS = [
+	"and",
+	"break",
+	"do",
+	"else",
+	"elseif",
+	"end",
+	"false",
+	"for",
+	"function",
+	"if",
+	"in",
+	"local",
+	"nil",
+	"not",
+	"or",
+	"repeat",
+	"return",
+	"then",
+	"true",
+	"until",
+	"while",
+];
+
+const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+export function isValidLuaIdentifier(id: string) {
+	return luaIdentifierRegex.test(id) && !LUA_RESERVED_KEYWORDS.includes(id);
+}
+
+export function checkReserved(name: string, node: ts.Node) {
+	if (LUA_RESERVED_KEYWORDS.includes(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 			node,
 			CompilerErrorType.ReservedKeyword,
 		);
-	} else if (!name.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+	} else if (!luaIdentifierRegex.test(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (doesn't match Lua's identifier rules)`,
 			node,
@@ -129,21 +135,21 @@ export function checkReserved(name: string, node: ts.Node, checkNamespace: boole
 		);
 	} else if (TS_RESERVED_KEYWORDS.indexOf(name) !== -1 || name.match(/^_[0-9]+$/)) {
 		throw new CompilerError(
-			`Cannot use '${name}' as identifier (reserved for Roblox-ts)`,
+			`Cannot use '${name}' as identifier (reserved for roblox-ts)`,
 			node,
 			CompilerErrorType.RobloxTSReservedIdentifier,
 		);
-	} else if (checkNamespace && LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
+	} else if (LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
 			node,
 			CompilerErrorType.ReservedNamespace,
 		);
 	}
+	return name;
 }
 
 export function checkMethodReserved(name: string, node: ts.Node) {
-	checkReserved(name, node);
 	if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
 		throw new CompilerError(
 			`Cannot use '${name}' as a method name (reserved Lua metamethod)`,

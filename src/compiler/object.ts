@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, compileMethodDeclaration } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
 
 function assignMembers(state: CompilerState, from: string, target: string) {
 	state.pushIdStack();
@@ -76,7 +76,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 				context.isPushed = rhsContext.isPushed;
 			}
 
-			line = `${ts.TypeGuards.isIdentifier(lhs) ? lhsStr : `[${lhsStr}]`} = ${rhsStr};\n`;
+			line = `${ts.TypeGuards.isIdentifier(lhs) ? safeLuaIndex("", lhsStr) : `[${lhsStr}]`} = ${rhsStr};\n`;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
 			line = "";
 		} else if (ts.TypeGuards.isSpreadAssignment(prop)) {

@@ -22,7 +22,7 @@ export function compileNamespaceDeclaration(state: CompilerState, node: ts.Names
 	}
 	state.pushIdStack();
 	const name = node.getName();
-	checkReserved(name, node, true);
+	checkReserved(name, node);
 	const parentNamespace = node.getFirstAncestorByKind(ts.SyntaxKind.ModuleDeclaration);
 	state.pushExport(name, node);
 	state.pushHoistStack(name);

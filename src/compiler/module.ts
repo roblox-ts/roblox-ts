@@ -6,13 +6,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { FileRelation, RojoProject } from "../RojoProject";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import {
-	isValidLuaIdentifier,
-	skipNodesDownwards,
-	skipNodesUpwards,
-	stripExtensions,
-	transformPathToLua,
-} from "../utility";
+import { safeLuaIndex, skipNodesDownwards, skipNodesUpwards, stripExtensions, transformPathToLua } from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = skipNodesUpwards(def.getNode().getParent());
@@ -142,8 +136,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 		parts.push(last);
 	}
 
-	parts = parts.filter(part => part !== ".").map(part => (isValidLuaIdentifier(part) ? "." + part : `["${part}"]`));
-
+	parts = parts.filter(part => part !== ".").map(part => safeLuaIndex("", part));
 	state.usesTSLibrary = true;
 	const params = `TS.getModule("${moduleName}")` + parts.join("");
 	return `TS.import(${params})`;
@@ -266,6 +259,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 				.getExportAssignments();
 
 		const defaultImportExp = compileExpression(state, defaultImport);
+		checkReserved(defaultImportExp, defaultImport);
 
 		if (exportAssignments && exportAssignments.length === 1 && exportAssignments[0].isExportEquals()) {
 			state.usesTSLibrary = true;
@@ -296,9 +290,9 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 			const shouldLocalize = shouldLocalizeImport(namedImport.getNameNode());
 
 			// keep these here no matter what, so that exports can take from initial state.
-			checkReserved(alias, node, true);
+			checkReserved(alias, node);
 			lhs.push(alias);
-			rhs.push(`.${name}`);
+			rhs.push(safeLuaIndex("", name));
 
 			if (shouldLocalize) {
 				unlocalizedImports.push("");
@@ -334,7 +328,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 
 export function compileImportEqualsDeclaration(state: CompilerState, node: ts.ImportEqualsDeclaration) {
 	const nameNode = node.getNameNode();
-	const name = node.getName();
+	const name = checkReserved(node.getName(), node);
 
 	const isRoact = name === "Roact";
 	if (isRoact) {
@@ -421,7 +415,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			checkReserved(alias, node);
 			lhs.push(alias);
 			if (luaPath !== "") {
-				rhs.push(`.${name}`);
+				rhs.push(safeLuaIndex("", name));
 			} else {
 				rhs.push(state.getAlias(name));
 			}

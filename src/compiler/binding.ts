@@ -25,7 +25,8 @@ import {
 	isStringMethodType,
 	isStringType,
 } from "../typeUtilities";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
+import { checkReserved } from "./security";
 
 function compileParamDefault(state: CompilerState, exp: ts.Expression, name: string) {
 	const initializer = skipNodesDownwards(exp);
@@ -102,6 +103,7 @@ export function getParameterData(
 				continue;
 			}
 			name = compileExpression(state, child);
+			checkReserved(name, child);
 		} else {
 			name = state.getNewId();
 		}
@@ -122,7 +124,8 @@ export function getParameterData(
 			if (ts.TypeGuards.isClassDeclaration(classDec) || ts.TypeGuards.isClassExpression(classDec)) {
 				checkPropertyCollision(classDec, param);
 			}
-			initializers.push(`self.${name} = ${name};`);
+
+			initializers.push(`${safeLuaIndex("self", name)} = ${name};`);
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
@@ -211,7 +214,7 @@ function objectAccessor(
 		);
 	}
 
-	return `${t}.${name}`;
+	return safeLuaIndex(t, name);
 }
 
 function stringAccessor(state: CompilerState, t: string, key: number) {
@@ -392,7 +395,7 @@ export function getBindingData(
 				getBindingData(state, names, values, preStatements, postStatements, child, childId);
 			} else if (ts.TypeGuards.isIdentifier(child)) {
 				const idNode = pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child;
-				const id: string = compileIdentifier(state, idNode, true);
+				const id: string = checkReserved(compileIdentifier(state, idNode), idNode);
 				names.push(id);
 				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
 					postStatements.push(compileParamDefault(state, pattern as ts.Expression, id));
@@ -416,6 +419,9 @@ export function getBindingData(
 				);
 				const accessor = `${parentId}[${expStr}]`;
 				const childId: string = compileExpression(state, pattern as ts.Expression);
+				if (ts.TypeGuards.isIdentifier(pattern)) {
+					checkReserved(childId, pattern);
+				}
 				preStatements.push(`local ${childId} = ${accessor};`);
 			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
 				throw new CompilerError(
@@ -426,6 +432,10 @@ export function getBindingData(
 				);
 			}
 		} else if (ts.TypeGuards.isIdentifier(item)) {
+			/*
+			let a: number;
+			[a] = [0];
+			*/
 			const id = compileExpression(state, item as ts.Expression);
 			names.push(id);
 			values.push(getAccessor(state, parentId, childIndex, preStatements, idStack));

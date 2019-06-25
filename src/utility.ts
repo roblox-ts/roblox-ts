@@ -1,22 +1,14 @@
 import path from "path";
 import * as ts from "ts-morph";
+import { isValidLuaIdentifier } from "./compiler";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-
-const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
-export function isValidLuaIdentifier(id: string) {
-	return luaIdentifierRegex.test(id);
-}
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
-		return `${parent}.${child}`;
+		return `${parent ? parent + "." : ""}${child}`;
 	} else {
 		return `${parent}["${child}"]`;
 	}
-}
-
-export function isCompiledIdentifier(s: string) {
-	return isValidLuaIdentifier(s);
 }
 
 export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {

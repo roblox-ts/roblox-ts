@@ -77,11 +77,6 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.RoactNoNewComponentAllowed,
 	},
-	"invalidId.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
-		instance: CompilerError,
-		type: CompilerErrorType.InvalidIdentifier,
-	},
 	"luaTupleInConditional.spec.ts": {
 		message: "should not allow LuaTuples in conditionals",
 		instance: CompilerError,
@@ -357,6 +352,66 @@ const errorMatrix: ErrorMatrix = {
 		message: "should force destructuring on gmatch",
 		instance: CompilerError,
 		type: CompilerErrorType.BadForOfInitializer,
+	},
+	"invalidNames/catch.spec.ts": {
+		message: "should disallow invalid identifiers",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/variableDeclaration.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/destruct.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/destructAlias.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/function.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/namespace.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/functionExpression.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/class.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/arrDestruct.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/flatDestruct.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/enum.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
+	},
+	"invalidNames/parameter.spec.ts": {
+		message: "should not allow invalid identifiers to be used",
+		instance: CompilerError,
+		type: CompilerErrorType.InvalidIdentifier,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

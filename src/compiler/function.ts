@@ -19,6 +19,7 @@ import {
 	shouldHoist,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { isValidLuaIdentifier } from "./security";
 
 export const nodeHasParameters = (ancestor: ts.Node): ancestor is HasParameters =>
 	ts.TypeGuards.isFunctionExpression(ancestor) ||
@@ -113,7 +114,7 @@ function canSugaryCompileFunction(node: HasParameters) {
 		return true;
 	} else if (ts.TypeGuards.isFunctionDeclaration(node) || ts.TypeGuards.isMethodDeclaration(node)) {
 		const nameNode = node.getNameNode();
-		if (nameNode && ts.TypeGuards.isIdentifier(nameNode)) {
+		if (nameNode && ts.TypeGuards.isIdentifier(nameNode) && isValidLuaIdentifier(node.getName()!)) {
 			return true;
 		}
 	}
@@ -241,7 +242,7 @@ export function compileFunctionDeclaration(state: CompilerState, node: ts.Functi
 	let name = node.getName();
 
 	if (name) {
-		checkReserved(name, node, true);
+		checkReserved(name, node);
 	} else {
 		name = state.getNewId();
 	}
@@ -263,7 +264,10 @@ export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDe
 		name = `[${compileExpression(state, skipNodesDownwards(nameNode.getExpression()))}]`;
 	} else {
 		name = compileExpression(state, nameNode);
-		checkReserved(name, node);
+		if (!isValidLuaIdentifier(name)) {
+			namePrefix = namePrefix.slice(0, -1);
+			name = `["${name}"]`;
+		}
 	}
 
 	return compileFunction(state, node, name, node.getBodyOrThrow(), namePrefix);
@@ -369,6 +373,7 @@ export function compileFunctionExpression(state: CompilerState, node: ts.Functio
 		potentialNameNode.findReferences()[0].getReferences().length > 1
 	) {
 		const name = compileExpression(state, potentialNameNode);
+		checkReserved(name, potentialNameNode);
 		const id = state.pushPrecedingStatementToNewId(node, "");
 		state.pushPrecedingStatements(node, state.indent + `do\n`);
 		state.pushIndent();
