@@ -37,6 +37,15 @@ function stripExts(filePath: string) {
 	return filePath;
 }
 
+function isAncestorOf(ancestor: string, descendant: string) {
+	if (ancestor === descendant) {
+		return true;
+	} else {
+		const relative = path.relative(ancestor, descendant);
+		return !relative.startsWith("..") && !path.isAbsolute(relative);
+	}
+}
+
 interface RbxPath {
 	isFile: boolean;
 	base: ReadonlyArray<string>;
@@ -163,7 +172,7 @@ export class RojoProject {
 					return [...partition.base];
 				}
 			} else {
-				if (filePath.startsWith(partition.fsPath)) {
+				if (isAncestorOf(partition.fsPath, filePath)) {
 					const relative = path.relative(partition.fsPath, stripExts(filePath)).split(path.sep);
 					if (relative[relative.length - 1] === "init") {
 						relative.pop();
