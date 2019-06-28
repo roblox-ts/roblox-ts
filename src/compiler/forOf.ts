@@ -37,8 +37,7 @@ function getVariableName(
 			varName = state.getNewId();
 			getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
 		} else if (ts.TypeGuards.isIdentifier(lhs)) {
-			varName = lhs.getText();
-			checkReserved(varName, lhs);
+			varName = checkReserved(lhs);
 		}
 
 		if (varName) {

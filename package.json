@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -47,7 +47,7 @@
 	"devDependencies": {
 		"@istanbuljs/nyc-config-typescript": "^0.1.3",
 		"@types/cross-spawn": "^6.0.0",
-		"@types/fs-extra": "^7.0.0",
+		"@types/fs-extra": "^8.0.0",
 		"@types/klaw": "^3.0.0",
 		"@types/mocha": "^5.2.7",
 		"@types/node": "^12.0.10",

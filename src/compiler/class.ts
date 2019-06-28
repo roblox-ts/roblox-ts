@@ -19,7 +19,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, skipNodesDownwards } from "../utility";
+import { bold, safeLuaIndex, skipNodesDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -65,7 +65,7 @@ function compileClassProperty(
 		let propStr: string;
 		if (ts.TypeGuards.isIdentifier(propNameNode)) {
 			const propName = propNameNode.getText();
-			propStr = "." + propName;
+			propStr = safeLuaIndex(" ", propName);
 			checkMethodReserved(propName, prop);
 		} else if (ts.TypeGuards.isStringLiteral(propNameNode)) {
 			const expStr = compileExpression(state, propNameNode);
@@ -75,7 +75,6 @@ function compileClassProperty(
 			const expStr = compileExpression(state, propNameNode);
 			propStr = `[${expStr}]`;
 		} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
-			// ComputedPropertyName
 			const computedExp = propNameNode.getExpression();
 			if (ts.TypeGuards.isStringLiteral(computedExp)) {
 				checkMethodReserved(computedExp.getLiteralText(), prop);
@@ -331,15 +330,11 @@ function compileRoactClassInitializer(
 }
 
 function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.ClassExpression) {
-	const name = node.getName() || state.getNewId();
 	const nameNode = node.getNameNode();
+	const name = nameNode ? checkReserved(nameNode) : state.getNewId();
 	let expAlias: string | undefined;
 
 	checkDecorators(node);
-
-	if (nameNode) {
-		checkReserved(name, nameNode, true);
-	}
 
 	if (ts.TypeGuards.isClassDeclaration(node)) {
 		state.pushExport(name, node);

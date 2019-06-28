@@ -13,7 +13,8 @@ import {
 	isTupleType,
 	shouldHoist,
 } from "../typeUtilities";
-import { isCompiledIdentifier, skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { isValidLuaIdentifier } from "./security";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
 	state.enterPrecedingStatementContext();
@@ -34,6 +35,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			.getElements()
 			.filter(v => ts.TypeGuards.isBindingElement(v))
 			.every(v => ts.TypeGuards.isIdentifier(v.getChildAtIndex(0)));
+
 		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleType(getType(rhs))) {
 			const names = new Array<string>();
 			const values = new Array<string>();
@@ -41,6 +43,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				if (ts.TypeGuards.isBindingElement(element)) {
 					const nameNode = element.getNameNode();
 					if (ts.TypeGuards.isIdentifier(nameNode)) {
+						checkReserved(nameNode);
 						names.push(compileExpression(state, nameNode));
 					}
 				} else if (ts.TypeGuards.isOmittedExpression(element)) {
@@ -65,8 +68,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 
 	let result = "";
 	if (ts.TypeGuards.isIdentifier(lhs)) {
-		const name = lhs.getText();
-		checkReserved(name, lhs, true);
+		const name = checkReserved(lhs);
 		if (rhs) {
 			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
 				const parentName = state.getExportContextName(grandParent);
@@ -116,7 +118,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		const postStatements = new Array<string>();
 		let rhsStr = compileExpression(state, rhs);
 
-		if (!isCompiledIdentifier(rhsStr)) {
+		if (!isValidLuaIdentifier(rhsStr)) {
 			const id = state.getNewId();
 			preStatements.push(`local ${id} = ${rhsStr};`);
 			rhsStr = id;

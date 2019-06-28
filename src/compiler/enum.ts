@@ -10,9 +10,8 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 	if (node.isConstEnum()) {
 		return result;
 	}
-	const name = node.getName();
 	const nameNode = node.getNameNode();
-	checkReserved(name, nameNode, true);
+	const name = checkReserved(nameNode);
 	state.pushExport(name, node);
 	if (shouldHoist(node, nameNode)) {
 		state.pushHoistStack(name);
@@ -22,7 +21,6 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 	state.pushIndent();
 	for (const member of node.getMembers()) {
 		const memberName = member.getName();
-		checkReserved(memberName, member.getNameNode());
 		const memberValue = member.getValue();
 		const safeIndex = safeLuaIndex(name, memberName);
 

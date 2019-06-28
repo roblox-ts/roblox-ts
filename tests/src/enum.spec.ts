@@ -3,6 +3,7 @@ enum Fruits {
 	Apple,
 	Orange,
 	Pear,
+	$,
 }
 
 // Numeric enum test
@@ -10,6 +11,7 @@ enum Breads {
 	White = 5,
 	Wheat,
 	Pumpernickel,
+	$,
 }
 
 // String enums
@@ -17,6 +19,7 @@ enum Soups {
 	Tomato = "TOMATO",
 	ChickenNoodle = "CHICKENNOODLE",
 	Dumpling = "DUMPLING",
+	$ = "DOLLARS",
 }
 
 const enum Person {
@@ -25,12 +28,14 @@ const enum Person {
 	Evaera,
 	Vorlias,
 	DataBrain,
+	$,
 }
 
 const enum Animal {
 	Bear = "BEAR",
 	Dog = "DOG",
 	Snake = "SNAKE",
+	$ = "SCARAB",
 }
 
 function getValue() {
@@ -58,6 +63,7 @@ export = () => {
 		expect(Soups.Tomato).to.equal("TOMATO");
 		expect(Soups.ChickenNoodle).to.equal("CHICKENNOODLE");
 		expect(Soups.Dumpling).to.equal("DUMPLING");
+		expect(Soups.$).to.equal("DOLLARS");
 	});
 
 	it("should support numeric const enums", () => {
@@ -66,12 +72,14 @@ export = () => {
 		expect(Person.Evaera).to.equal(2);
 		expect(Person.Vorlias).to.equal(3);
 		expect(Person.DataBrain).to.equal(4);
+		expect(Person.$).to.equal(5);
 	});
 
 	it("should support string const enums", () => {
 		expect(Animal.Bear).to.equal("BEAR");
 		expect(Animal.Dog).to.equal("DOG");
 		expect(Animal.Snake).to.equal("SNAKE");
+		expect(Animal.$).to.equal("SCARAB");
 	});
 
 	it("should support members with initializers", () => {
