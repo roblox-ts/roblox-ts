@@ -404,4 +404,13 @@ export = () => {
 	it("should support shorthand assignments", () => {
 		expect(++N.p.a.x).to.equal(6);
 	});
+
+	it("should support computed members", () => {
+		let a = 8;
+		let i = 0;
+		const b = { [a]: `${++i}${(a = 9)}` };
+		const c = { [a]: 1 };
+		expect(b[8]).to.equal(`19`);
+		expect(c[9]).to.equal(1);
+	});
 };
