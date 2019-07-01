@@ -41,7 +41,7 @@
 		"fs-extra": "^8.0.1",
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
-		"ts-morph": "^2.3.0",
+		"ts-morph": "^3.0.0",
 		"yargs": "^13.2.4"
 	},
 	"devDependencies": {
