@@ -3,7 +3,7 @@ import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportL
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { conditionalCheck } from "./if";
+import { compileTruthiness } from "./if";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -63,15 +63,14 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
-		const expStr = compileExpression(state, operand);
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
-			return `${conditionalCheck(state, operand, expStr, true)}`;
+			return compileTruthiness(state, operand, undefined, true);
 		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
-			return `-${expStr}`;
+			return `-${compileExpression(state, operand)}`;
 		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
 			state.usesTSLibrary = true;
-			return `TS.bit_not(${expStr})`;
+			return `TS.bit_not(${compileExpression(state, operand)})`;
 		}
 
 		/* istanbul ignore next */

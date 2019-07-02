@@ -23,6 +23,7 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { compileTruthiness } from "./if";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -395,7 +396,11 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		}
 	} else {
 		state.enterPrecedingStatementContext();
-		lhsStr = compileExpression(state, lhs);
+		if (opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken) {
+			lhsStr = compileTruthiness(state, lhs, undefined, false, opKind === ts.SyntaxKind.AmpersandAmpersandToken);
+		} else {
+			lhsStr = compileExpression(state, lhs);
+		}
 		const lhsContext = state.exitPrecedingStatementContext();
 		state.enterPrecedingStatementContext();
 		rhsStr = compileExpression(state, rhs);

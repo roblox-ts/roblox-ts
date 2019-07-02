@@ -214,6 +214,14 @@ export function isBooleanType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
 }
 
+export function isBoolishTypeLax(type: ts.Type) {
+	return isSomeType(
+		type,
+		laxTypeConstraint,
+		t => t.isBoolean() || t.isBooleanLiteral() || t.isNullable() || t.isUndefined(),
+	);
+}
+
 export function isUnknowableType(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isUnknown());
 }
@@ -226,8 +234,8 @@ export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
-export function isNumberTypeLax(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
+export function isFalsyNumberTypeLax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isNumber() || (t.isNumberLiteral() && t.getText() == `0`));
 }
 
 export function isNumericLiteralTypeStrict(type: ts.Type) {
@@ -238,16 +246,8 @@ export function isStringType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isString() || t.isStringLiteral());
 }
 
-export function isStringTypeLax(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isString() || t.isStringLiteral());
-}
-
-export function isNumberOrString(type: ts.Type) {
-	return isSomeType(
-		type,
-		strictTypeConstraint,
-		t => t.isString() || t.isStringLiteral() || t.isNumber() || t.isNumberLiteral(),
-	);
+export function isFalsyStringTypeLax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isString() || (t.isStringLiteral() && t.getText() === `""`));
 }
 
 export function isObjectType(type: ts.Type) {

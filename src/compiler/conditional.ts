@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { assertNonLuaTuple, compileExpression } from ".";
+import { compileExpression, compileTruthiness } from ".";
 import { CompilerState } from "../CompilerState";
 import { makeSetStatement, skipNodesDownwards } from "../utility";
 
@@ -9,14 +9,14 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 
 	const declaration = state.declarationContext.get(node);
 
-	const condition = assertNonLuaTuple(skipNodesDownwards(node.getCondition()));
+	const condition = skipNodesDownwards(node.getCondition());
 	const whenTrue = skipNodesDownwards(node.getWhenTrue());
 	const whenFalse = skipNodesDownwards(node.getWhenFalse());
 	let conditionStr: string;
 	let isPushed = false;
 
 	if (declaration) {
-		conditionStr = compileExpression(state, condition);
+		conditionStr = compileTruthiness(state, condition);
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + "local " + declaration.set + ";\n");
 		}
@@ -30,7 +30,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		} else {
 			id = currentConditionalContext;
 		}
-		conditionStr = compileExpression(state, condition);
+		conditionStr = compileTruthiness(state, condition);
 	}
 
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);

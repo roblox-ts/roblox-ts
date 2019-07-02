@@ -1,14 +1,13 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileLoopBody } from ".";
+import { compileLoopBody } from ".";
 import { CompilerState } from "../CompilerState";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
-import { assertNonLuaTuple } from "./if";
+import { compileTruthiness } from "./if";
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
-	const exp = skipNodesDownwards(assertNonLuaTuple(node.getExpression()));
 	state.pushIdStack();
 	state.enterPrecedingStatementContext();
-	const expStr = compileExpression(state, exp);
+	const expStr = compileTruthiness(state, skipNodesDownwards(node.getExpression()));
 	let result = "";
 	const context = state.exitPrecedingStatementContext();
 	const contextHasStatements = context.length > 0;
