@@ -3,6 +3,7 @@ import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportL
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { conditionalCheck } from "./if";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -65,7 +66,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		const expStr = compileExpression(state, operand);
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
-			return `not ${expStr}`;
+			return `${conditionalCheck(state, operand, expStr, true)}`;
 		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
 			return `-${expStr}`;
 		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
