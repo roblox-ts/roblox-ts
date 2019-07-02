@@ -69,14 +69,15 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			const rhsContext = state.exitPrecedingStatementContext();
 
 			if (rhsContext.length > 0) {
-				if (!ts.TypeGuards.isIdentifier(lhs) && !context.isPushed) {
+				if (!ts.TypeGuards.isIdentifier(child) && !context.isPushed) {
 					lhsStr = state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsContext);
 				}
 				context.push(...rhsContext);
 				context.isPushed = rhsContext.isPushed;
 			}
+
 			line = `${
-				ts.TypeGuards.isIdentifier(lhs) ? safeLuaIndex("", lhs.getText()) : `[${lhsStr}]`
+				ts.TypeGuards.isIdentifier(child) ? safeLuaIndex("", lhs.getText()) : `[${lhsStr}]`
 			} = ${rhsStr};\n`;
 		} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
 			line = "";
