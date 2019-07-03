@@ -970,19 +970,15 @@ end
 
 -- opcall
 
-function TS.opcall(func, ...)
+local function opcall(func, ...)
 	local success, valueOrErr = pcall(func, ...)
+	local data = { success = success }
 	if success then
-		return {
-			success = true,
-			value = valueOrErr,
-		}
+		data.value = valueOrErr
 	else
-		return {
-			success = false,
-			error = valueOrErr,
-		}
+		data.error = valueOrErr
 	end
+	return success
 end
 
 -- try catch utilities
