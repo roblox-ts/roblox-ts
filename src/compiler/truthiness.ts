@@ -44,29 +44,29 @@ function getExpStr(
 
 	const isUnknown = isUnknowableType(expType);
 
+	const checkNumber = isUnknown || isFalsyNumberTypeLax(expType);
+	const checkString = isUnknown || isFalsyStringTypeLax(expType);
+	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
+
+	// console.log(exp.getKindName(), exp.getText(), checkNumber, checkString, checkTruthy);
+	const checks = new Array<string>();
+	const boolify = extraNots > 0;
+
+	// console.log(boolify, exp.getText());
+	if (extraNots === 0 && isAnd === false) {
+		extraNots++;
+	}
+
 	let mainStr: string;
 
 	if (extraNots % 2) {
 		mainStr = `not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
 	} else {
-		if (extraNots > 0 && !isBooleanTypeStrict(expType)) {
+		if (boolify && !isBooleanTypeStrict(expType)) {
 			mainStr = `not not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
 		} else {
 			mainStr = expStr;
 		}
-	}
-
-	const checkNumber = isUnknown || isFalsyNumberTypeLax(expType);
-	const checkString = isUnknown || isFalsyStringTypeLax(expType);
-	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
-
-	console.log(exp.getKindName(), exp.getText(), checkNumber, checkString, checkTruthy);
-	const checks = new Array<string>();
-	const boolify = extraNots > 0;
-
-	console.log(boolify, exp.getText());
-	if (extraNots === 0 && isAnd === false) {
-		extraNots++;
 	}
 
 	// TODO: Add pushed logic
@@ -138,8 +138,7 @@ export function compileTruthiness(
 	const { condition, id } = getExpStr(state, exp, extraNots, isAnd, node, currentBinaryLogicContext);
 
 	if (node && rhs) {
-		state.pushPrecedingStatements(exp, state.indent + `-- ${node.getText()}\n`);
-		state.pushPrecedingStatements(exp, state.indent + `if ${condition} then\n`);
+		state.pushPrecedingStatements(exp, state.indent + `if ${condition} then -- ${node.getText()}\n`);
 		state.pushIndent();
 		const rhsStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, rhs));
 		if (id !== rhsStr) {
