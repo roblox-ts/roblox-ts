@@ -57,4 +57,31 @@ export = () => {
 		f("");
 		f("stuff");
 	});
+
+	it("should support binary expressions", () => {
+		function test(
+			x: string | undefined,
+			answers: [
+				string | boolean | undefined,
+				string | boolean | undefined,
+				string | boolean | undefined,
+				string | boolean | undefined,
+				string | boolean | undefined,
+				string | boolean | undefined,
+			],
+		) {
+			let i = -1;
+			expect(x && x === "Soup").to.equal(answers[++i]);
+			expect(x || x === "Soup").to.equal(answers[++i]);
+			expect(!x && x === "Soup").to.equal(answers[++i]);
+			expect(!x || x === "Soup").to.equal(answers[++i]);
+			expect(!!x && x === "Soup").to.equal(answers[++i]);
+			expect(!!x || x === "Soup").to.equal(answers[++i]);
+		}
+
+		test(undefined, [undefined, false, false, true, false, false]);
+		test("", ["", false, false, true, false, false]);
+		test("a", [false, "a", false, false, false, true]);
+		test("Soup", [true, "Soup", false, true, true, true]);
+	});
 };
