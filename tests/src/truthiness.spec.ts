@@ -84,4 +84,20 @@ export = () => {
 		test("a", [false, "a", false, false, false, true]);
 		test("Soup", [true, "Soup", false, true, true, true]);
 	});
+
+	it("should support returning binary expressions", () => {
+		function f(s: string) {
+			return s || "default";
+		}
+
+		function g(s: string) {
+			return s && "default";
+		}
+
+		expect(f("")).to.equal("default");
+		expect(f("a")).to.equal("a");
+
+		expect(g("")).to.equal("");
+		expect(g("a")).to.equal("default");
+	});
 };
