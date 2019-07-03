@@ -222,6 +222,10 @@ export function isBoolishTypeLax(type: ts.Type) {
 	);
 }
 
+export function isBooleanTypeStrict(type: ts.Type) {
+	return isSomeType(type, strictTypeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
+}
+
 export function isUnknowableType(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isUnknown());
 }
