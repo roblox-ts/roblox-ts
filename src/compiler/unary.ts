@@ -64,7 +64,6 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 	} else {
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
-			console.log("operand", operand.getKindName(), operand.getText());
 			return compileTruthiness(state, operand, 1);
 		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;

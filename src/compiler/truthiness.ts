@@ -43,11 +43,6 @@ function getExpStr(
 	}
 
 	const isUnknown = isUnknowableType(expType);
-	const asBool = extraNots > 0;
-
-	if (isAnd === false) {
-		extraNots++;
-	}
 
 	let mainStr: string;
 
@@ -65,7 +60,14 @@ function getExpStr(
 	const checkString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 
+	console.log(exp.getKindName(), exp.getText(), checkNumber, checkString, checkTruthy);
 	const checks = new Array<string>();
+	const boolify = extraNots > 0;
+
+	console.log(boolify, exp.getText());
+	if (extraNots === 0 && isAnd === false) {
+		extraNots++;
+	}
 
 	// TODO: Add pushed logic
 	if (checkNumber) {
@@ -82,7 +84,7 @@ function getExpStr(
 		checks.push(mainStr);
 	}
 
-	const condition = extraNots % 2 ? checks.join(" or ") : checks.join(" and ");
+	let condition = extraNots % 2 ? checks.join(" or ") : checks.join(" and ");
 	let id: string;
 
 	if (node) {
@@ -91,7 +93,7 @@ function getExpStr(
 			if (declaration.needsLocalizing) {
 				state.pushPrecedingStatements(
 					node,
-					state.indent + `local ${declaration.set} = ${asBool ? condition : expStr};\n`,
+					state.indent + `local ${declaration.set} = ${boolify ? condition : expStr};\n`,
 				);
 			}
 			state.currentBinaryLogicContext = id = declaration.set;
@@ -101,7 +103,7 @@ function getExpStr(
 			} else {
 				state.currentBinaryLogicContext = id = state.pushPrecedingStatementToNewId(
 					node,
-					`${asBool ? condition : expStr}`,
+					`${boolify ? condition : expStr}`,
 				);
 			}
 		}
@@ -109,8 +111,15 @@ function getExpStr(
 		id = "";
 	}
 
+	if (isAnd !== undefined) {
+		condition = boolify ? id || condition : condition;
+		if (isAnd === false && boolify) {
+			condition = `not (${condition})`;
+		}
+	}
+
 	return {
-		condition: asBool ? id || mainStr : condition,
+		condition,
 		id,
 	};
 }
@@ -123,7 +132,6 @@ export function compileTruthiness(
 	rhs?: ts.Expression,
 	node?: ts.BinaryExpression,
 ) {
-	console.log(".", exp.getKindName(), exp.getText(), extraNots);
 	const isPushed = false;
 
 	const currentBinaryLogicContext = state.currentBinaryLogicContext;
@@ -148,6 +156,7 @@ export function compileTruthiness(
 		state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
 		return id;
 	} else {
+		// console.log("got", condition, exp.getKindName(), exp.getText());
 		return condition;
 	}
 }
