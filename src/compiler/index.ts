@@ -37,3 +37,4 @@ export * from "./for";
 export * from "./forOf";
 export * from "./loop";
 export * from "./while";
+export * from "./truthiness";

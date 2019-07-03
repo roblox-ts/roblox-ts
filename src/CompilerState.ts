@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
 import { ProjectInfo } from "./types";
-import { joinIndentedLines, ScriptContext } from "./utility";
+import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -29,50 +29,6 @@ function canBePushedToReusableId(node: ts.Node): boolean {
 		return false;
 	}
 }
-
-function removeBalancedParenthesisFromStringBorders(str: string) {
-	let parenDepth = 0;
-	let inOpenParens: number | undefined;
-	let outCloseParens: number | undefined;
-
-	for (const char of str) {
-		if (char === ")") {
-			if (outCloseParens === undefined) {
-				outCloseParens = parenDepth;
-			}
-
-			parenDepth--;
-		} else if (outCloseParens !== undefined) {
-			outCloseParens = undefined;
-
-			if (inOpenParens !== undefined) {
-				if (parenDepth < inOpenParens) {
-					inOpenParens = parenDepth;
-				}
-			}
-		}
-
-		if (char === "(") {
-			parenDepth++;
-		} else if (inOpenParens === undefined) {
-			inOpenParens = parenDepth;
-		}
-	}
-	const index = Math.min(inOpenParens || 0, outCloseParens || 0);
-	return index === 0 ? str : str.slice(index, -index);
-}
-
-// console.log(`"${removeBalancedParenthesisFromStringBorders("")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("x")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("((x))")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x + 5)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(x) + 5")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("5 + (x)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("((x) + 5)")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(5 + (x))")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("()()")}"`);
-// console.log(`"${removeBalancedParenthesisFromStringBorders("(()())")}"`);
 
 export class CompilerState {
 	constructor(
@@ -116,6 +72,7 @@ export class CompilerState {
 	}
 
 	public currentConditionalContext: string = "";
+	public currentBinaryLogicContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
@@ -160,16 +117,17 @@ export class CompilerState {
 		return context.push(...statements);
 	}
 
-	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId = this.getNewId()) {
-		const currentContext = this.getCurrentPrecedingStatementContext(node);
-		currentContext.push(
-			this.indent +
-				`local ${newId}${
-					compiledSource ? ` = ${removeBalancedParenthesisFromStringBorders(compiledSource)}` : ""
-				};\n`,
-		);
-		currentContext.isPushed = true;
-		return newId;
+	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId?: string) {
+		compiledSource = removeBalancedParenthesisFromStringBorders(compiledSource);
+		if (/^_\d+$/.test(compiledSource)) {
+			return compiledSource;
+		} else {
+			newId = newId || this.getNewId();
+			const currentContext = this.getCurrentPrecedingStatementContext(node);
+			currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
+			currentContext.isPushed = true;
+			return newId;
+		}
 	}
 
 	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
@@ -193,7 +151,7 @@ export class CompilerState {
 			/** If we would write a duplicate `local _5 = i`, skip it */
 			if (cache) {
 				for (const str of cache) {
-					const matchesRegex = str.match(/^(\t*)local ([a-zA-Z_][a-zA-Z0-9_]*) = ([^;]+);\n$/);
+					const matchesRegex = str.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
 					// iterate only through non-state changing pushed id statements
 					if (!matchesRegex) {
 						break;

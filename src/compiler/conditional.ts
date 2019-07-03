@@ -6,7 +6,6 @@ import { makeSetStatement, skipNodesDownwards } from "../utility";
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
 	const currentConditionalContext = state.currentConditionalContext;
-
 	const declaration = state.declarationContext.get(node);
 
 	const condition = skipNodesDownwards(node.getCondition());
@@ -20,12 +19,11 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + "local " + declaration.set + ";\n");
 		}
-		id = declaration.set;
-		state.currentConditionalContext = id;
+
+		state.currentConditionalContext = id = declaration.set;
 	} else {
 		if (currentConditionalContext === "") {
-			id = state.pushPrecedingStatementToNewId(node, "");
-			state.currentConditionalContext = id;
+			state.currentConditionalContext = id = state.pushPrecedingStatementToNewId(node, "");
 			isPushed = true;
 		} else {
 			id = currentConditionalContext;
@@ -62,5 +60,5 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	}
 	state.declarationContext.delete(node);
 	state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
-	return id || "";
+	return id;
 }

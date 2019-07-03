@@ -1,8 +1,7 @@
 import * as ts from "ts-morph";
-import { compileLoopBody } from ".";
+import { compileLoopBody, compileTruthiness } from ".";
 import { CompilerState } from "../CompilerState";
 import { skipNodesDownwards } from "../utility";
-import { compileTruthiness } from "./if";
 
 export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	state.pushIdStack();

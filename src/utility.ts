@@ -24,6 +24,50 @@ export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 	}
 }
 
+export function removeBalancedParenthesisFromStringBorders(str: string) {
+	let parenDepth = 0;
+	let inOpenParens: number | undefined;
+	let outCloseParens: number | undefined;
+
+	for (const char of str) {
+		if (char === ")") {
+			if (outCloseParens === undefined) {
+				outCloseParens = parenDepth;
+			}
+
+			parenDepth--;
+		} else if (outCloseParens !== undefined) {
+			outCloseParens = undefined;
+
+			if (inOpenParens !== undefined) {
+				if (parenDepth < inOpenParens) {
+					inOpenParens = parenDepth;
+				}
+			}
+		}
+
+		if (char === "(") {
+			parenDepth++;
+		} else if (inOpenParens === undefined) {
+			inOpenParens = parenDepth;
+		}
+	}
+	const index = Math.min(inOpenParens || 0, outCloseParens || 0);
+	return index === 0 ? str : str.slice(index, -index);
+}
+
+// console.log(`"${removeBalancedParenthesisFromStringBorders("")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("x")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("((x))")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x + 5)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x) + 5")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("5 + (x)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("((x) + 5)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(5 + (x))")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("()()")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(()())")}"`);
+
 export function stripExtensions(fileName: string): string {
 	const ext = path.extname(fileName);
 	if (ext.length > 0) {
