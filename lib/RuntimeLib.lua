@@ -970,7 +970,7 @@ end
 
 -- opcall
 
-local function opcall(func, ...)
+function TS.opcall(func, ...)
 	local success, valueOrErr = pcall(func, ...)
 	local data = { success = success }
 	if success then
