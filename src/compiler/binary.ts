@@ -397,7 +397,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else {
 		const isAnd = opKind === ts.SyntaxKind.AmpersandAmpersandToken;
 		if (isAnd || opKind === ts.SyntaxKind.BarBarToken) {
-			return compileTruthiness(state, lhs, isAnd ? 0 : 1, isAnd, rhs, node);
+			return compileTruthiness(state, lhs, 0, isAnd, rhs, node);
 		} else {
 			lhsStr = compileExpression(state, lhs);
 

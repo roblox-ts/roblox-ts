@@ -17,7 +17,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	if (declaration) {
 		conditionStr = compileTruthiness(state, condition);
 		if (declaration.needsLocalizing) {
-			state.pushPrecedingStatements(node, state.indent + "local " + declaration.set + ";\n");
+			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
 
 		state.currentConditionalContext = id = declaration.set;

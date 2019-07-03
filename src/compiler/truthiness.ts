@@ -13,7 +13,14 @@ import {
 } from "../typeUtilities";
 import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility";
 
-function getExpStr(state: CompilerState, exp: ts.Expression, extraNots: number, node?: ts.BinaryExpression) {
+function getExpStr(
+	state: CompilerState,
+	exp: ts.Expression,
+	extraNots: number,
+	isAnd?: boolean,
+	node?: ts.BinaryExpression,
+	currentBinaryLogicContext?: string,
+) {
 	while (ts.TypeGuards.isPrefixUnaryExpression(exp) && exp.getOperatorToken() === ts.SyntaxKind.ExclamationToken) {
 		exp = skipNodesDownwards(exp.getOperand());
 		extraNots++;
@@ -36,26 +43,75 @@ function getExpStr(state: CompilerState, exp: ts.Expression, extraNots: number, 
 	}
 
 	const isUnknown = isUnknowableType(expType);
+	const asBool = extraNots > 0;
+
+	if (isAnd === false) {
+		extraNots++;
+	}
 
 	let mainStr: string;
 
 	if (extraNots % 2) {
-		mainStr = `not (${removeBalancedParenthesisFromStringBorders(expStr)})`;
+		mainStr = `not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
 	} else {
-		if (extraNots > 0 && !isBooleanTypeStrict(expType) && !node) {
-			mainStr = `not not (${removeBalancedParenthesisFromStringBorders(expStr)})`;
+		if (extraNots > 0 && !isBooleanTypeStrict(expType)) {
+			mainStr = `not not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
 		} else {
 			mainStr = expStr;
 		}
 	}
 
+	const checkNumber = isUnknown || isFalsyNumberTypeLax(expType);
+	const checkString = isUnknown || isFalsyStringTypeLax(expType);
+	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
+
+	const checks = new Array<string>();
+
+	// TODO: Add pushed logic
+	if (checkNumber) {
+		checks.push(
+			extraNots % 2 ? `${expStr} == 0 or ${expStr} ~= ${expStr}` : `${expStr} ~= 0 and ${expStr} == ${expStr}`,
+		);
+	}
+
+	if (checkString) {
+		checks.push(`${expStr} ${extraNots % 2 ? "=" : "~"}= ""`);
+	}
+
+	if (checkTruthy || checks.length === 0) {
+		checks.push(mainStr);
+	}
+
+	const condition = extraNots % 2 ? checks.join(" or ") : checks.join(" and ");
+	let id: string;
+
+	if (node) {
+		const declaration = state.declarationContext.get(node);
+		if (declaration) {
+			if (declaration.needsLocalizing) {
+				state.pushPrecedingStatements(
+					node,
+					state.indent + `local ${declaration.set} = ${asBool ? condition : expStr};\n`,
+				);
+			}
+			state.currentBinaryLogicContext = id = declaration.set;
+		} else {
+			if (currentBinaryLogicContext) {
+				id = currentBinaryLogicContext;
+			} else {
+				state.currentBinaryLogicContext = id = state.pushPrecedingStatementToNewId(
+					node,
+					`${asBool ? condition : expStr}`,
+				);
+			}
+		}
+	} else {
+		id = "";
+	}
+
 	return {
-		checkNumber: isUnknown || isFalsyNumberTypeLax(expType),
-		checkString: isUnknown || isFalsyStringTypeLax(expType),
-		checkTruthy: isUnknown || isBoolishTypeLax(expType),
-		expStr,
-		extraNots,
-		mainStr,
+		condition: asBool ? id || mainStr : condition,
+		id,
 	};
 }
 
@@ -67,58 +123,15 @@ export function compileTruthiness(
 	rhs?: ts.Expression,
 	node?: ts.BinaryExpression,
 ) {
-	let expStr: string;
-	let id: string | undefined;
-	let isPushed = false;
+	console.log(".", exp.getKindName(), exp.getText(), extraNots);
+	const isPushed = false;
+
 	const currentBinaryLogicContext = state.currentBinaryLogicContext;
+	const { condition, id } = getExpStr(state, exp, extraNots, isAnd, node, currentBinaryLogicContext);
 
-	const checks = new Array<string>();
-	let checkNumber: boolean;
-	let checkString: boolean;
-	let checkTruthy: boolean;
-	let mainStr: string;
-
-	if (node) {
-		const declaration = state.declarationContext.get(node);
-
-		if (declaration) {
-			state.currentBinaryLogicContext = id = declaration.set;
-			({ checkNumber, checkString, checkTruthy, mainStr, expStr } = getExpStr(state, exp, extraNots));
-			if (declaration.needsLocalizing) {
-				state.pushPrecedingStatements(node, state.indent + `local ${declaration.set} = ${expStr};\n`);
-			}
-		} else {
-			({ checkNumber, checkString, checkTruthy, mainStr, expStr } = getExpStr(state, exp, extraNots));
-			if (currentBinaryLogicContext) {
-				id = currentBinaryLogicContext;
-			} else {
-				state.currentBinaryLogicContext = id = state.pushPrecedingStatementToNewId(node, expStr);
-				isPushed = true;
-			}
-		}
-	} else {
-		({ checkNumber, checkString, checkTruthy, mainStr, expStr } = getExpStr(state, exp, extraNots));
-	}
-
-	if (checkNumber) {
-		checks.push(
-			extraNots % 2 ? `${expStr} == 0 or ${expStr} ~= ${expStr}` : `${expStr} ~= 0 and ${expStr} == ${expStr}`,
-		);
-	}
-
-	if (checkString) {
-		checks.push(extraNots % 2 ? `${expStr} == ""` : `${expStr} ~= ""`);
-	}
-
-	if (checkTruthy || checks.length === 0) {
-		checks.push(mainStr);
-	}
-
-	const result = extraNots % 2 ? checks.join(" or ") : checks.join(" and ");
-
-	if (node && rhs && id) {
+	if (node && rhs) {
 		state.pushPrecedingStatements(exp, state.indent + `-- ${node.getText()}\n`);
-		state.pushPrecedingStatements(exp, state.indent + `if ${result} then\n`);
+		state.pushPrecedingStatements(exp, state.indent + `if ${condition} then\n`);
 		state.pushIndent();
 		const rhsStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, rhs));
 		if (id !== rhsStr) {
@@ -135,6 +148,6 @@ export function compileTruthiness(
 		state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
 		return id;
 	} else {
-		return result;
+		return condition;
 	}
 }
