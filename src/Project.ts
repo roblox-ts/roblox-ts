@@ -354,7 +354,20 @@ export class Project {
 			errors.push(`${yellow(`"isolatedModules"`)} must be ${yellow(`true`)}`);
 		}
 
-		if (opts.typeRoots === undefined || opts.typeRoots.every(v => !v.endsWith("node_modules/@rbxts"))) {
+		let typesFound = false;
+		if (opts.typeRoots && this.modulesDir) {
+			const typesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+			for (const typeRoot of opts.typeRoots) {
+				if (path.resolve(typeRoot) === typesPath) {
+					console.log(path.resolve(typeRoot));
+					console.log(typesPath);
+					typesFound = true;
+					break;
+				}
+			}
+		}
+
+		if (!typesFound) {
 			errors.push(`${yellow(`"typeRoots"`)} must contain ${yellow(`[ "node_modules/@rbxts" ]`)}`);
 		}
 
