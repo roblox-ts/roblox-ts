@@ -14,6 +14,10 @@ import {
 } from "../typeUtilities";
 import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility";
 
+function compileTruthyCheck(state: CompilerState, exp: ts.Expression) {
+	const expStr = compileExpression(state, exp);
+}
+
 function getExpStr(
 	state: CompilerState,
 	exp: ts.Expression,
@@ -45,12 +49,11 @@ function getExpStr(
 
 	const isUnknown = isUnknowableType(expType);
 
-	const checkNumber = isUnknown || isNumberTypeLax(expType);
-	const checkNon0 = isUnknown || checkNumber || is0TypeLax(expType);
-	const checkString = isUnknown || isFalsyStringTypeLax(expType);
+	const checkNaN = isUnknown || isNumberTypeLax(expType);
+	const checkNon0 = isUnknown || checkNaN || is0TypeLax(expType);
+	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 
-	// console.log(exp.getKindName(), exp.getText(), checkNumber, checkString, checkTruthy);
 	const checks = new Array<string>();
 	const boolify = extraNots > 0;
 
@@ -75,11 +78,11 @@ function getExpStr(
 		checks.push(extraNots % 2 ? `${expStr} == 0` : `${expStr} ~= 0`);
 	}
 
-	if (checkNumber) {
+	if (checkNaN) {
 		checks.push(extraNots % 2 ? `${expStr} ~= ${expStr}` : `${expStr} == ${expStr}`);
 	}
 
-	if (checkString) {
+	if (checkEmptyString) {
 		checks.push(`${expStr} ${extraNots % 2 ? "=" : "~"}= ""`);
 	}
 
