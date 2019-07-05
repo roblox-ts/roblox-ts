@@ -32,11 +32,6 @@ function getExpStr(
 	}
 
 	const expStr = compileExpression(state, exp);
-
-	if (ts.TypeGuards.isParenthesizedExpression(exp)) {
-		exp = skipNodesDownwards(exp.getExpression());
-	}
-
 	const expType = getType(exp);
 
 	if (isTupleType(expType)) {
