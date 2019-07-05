@@ -167,11 +167,14 @@ export function skipNodesUpwards<T extends ts.Node>(exp: T, dontSkipParenthesis?
 export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean): T | undefined;
 export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean) {
 	if (exp) {
+		let parent = exp.getParent();
 		while (
-			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
-			ts.TypeGuards.isNonNullExpression(exp)
+			parent &&
+			((!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(parent)) ||
+				ts.TypeGuards.isNonNullExpression(parent))
 		) {
-			exp = (exp.getParent() as unknown) as T;
+			exp = (parent as unknown) as T;
+			parent = exp.getParent();
 		}
 		return exp;
 	}

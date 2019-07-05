@@ -3,12 +3,19 @@ import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { getType, isStringType } from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { checkReserved } from "./security";
 
 export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {
 	const expression = skipNodesDownwards(node.getExpression());
 	if (!expression || !isStringType(getType(expression))) {
+		if (expression) {
+			console.log(
+				getType(expression).getText(),
+				skipNodesUpwards(expression).getKindName(),
+				expression.getKindName(),
+			);
+		}
 		throw new CompilerError("Non-string throws are not supported!", node, CompilerErrorType.NonStringThrow);
 	}
 	state.enterPrecedingStatementContext();
