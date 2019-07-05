@@ -441,21 +441,14 @@ function testFolder(folderPath: string) {
 					await compile(path.join(folderPath, name));
 				} catch (e) {
 					if (e instanceof CompilerError) {
-						const startLineNumber = e.node.getStartLineNumber();
-
 						throw new Error(
 							util.format(
-								"%s:%d:%d - %s %s\n%s",
+								"%s:%d:%d - %s %s",
 								path.relative(srcFolder, e.node.getSourceFile().getFilePath()),
-								startLineNumber,
+								e.node.getStartLineNumber(),
 								e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
 								red("Compiler Error:"),
 								e.message,
-								e.node
-									.getSourceFile()
-									.getFullText()
-									.match(/.+/g)!
-									.reduce((a, x, i) => (Math.abs(startLineNumber - i) < 10 ? a + "\n" + x : a), ""),
 							),
 						);
 					} else if (e instanceof ProjectError) {
