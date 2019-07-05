@@ -9,10 +9,12 @@ import {
 	compileExpression,
 	compileSpreadableListAndJoin,
 	getReadableExpressionName,
+	inheritsFromRoact,
 	isFunctionExpressionMethod,
 	isIdentifierDefinedInConst,
 	isIdentifierDefinedInExportLet,
 	isMethodDeclaration,
+	isValidLuaIdentifier,
 	shouldCompileAsSpreadableList,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
@@ -31,8 +33,6 @@ import {
 	typeConstraint,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { inheritsFromRoact } from "./roact";
-import { isValidLuaIdentifier } from "./security";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
