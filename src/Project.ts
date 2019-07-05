@@ -127,6 +127,7 @@ export class Project {
 
 	private rojoProject?: RojoProject;
 	private projectInfo: ProjectInfo = { type: ProjectType.Package };
+	private modulesDir?: ts.Directory;
 
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
@@ -134,7 +135,6 @@ export class Project {
 	private readonly modulesPath: string;
 	private readonly rootDirPath: string;
 	private readonly outDirPath: string;
-	private readonly modulesDir?: ts.Directory;
 	private readonly rojoOverridePath: string | undefined;
 	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
@@ -163,6 +163,11 @@ export class Project {
 			},
 			tsConfigFilePath: this.configFilePath,
 		});
+
+		const modulesDirPath = this.getModulesDirPath(this.projectPath);
+		if (modulesDirPath !== undefined) {
+			this.modulesDir = this.project.getDirectory(modulesDirPath);
+		}
 
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
@@ -241,17 +246,6 @@ export class Project {
 
 			this.ci = opts.ci === true;
 
-			try {
-				this.validateRbxTypes();
-			} catch (e) {
-				if (e instanceof ProjectError) {
-					console.log(red("Compiler Error:"), e.message);
-					process.exit(1);
-				} else {
-					throw e;
-				}
-			}
-
 			const rootDirPath = this.compilerOptions.rootDir;
 			if (!rootDirPath) {
 				throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
@@ -274,7 +268,16 @@ export class Project {
 				});
 			}
 
-			this.modulesDir = this.project.getDirectory(path.join(this.projectPath, "node_modules"));
+			try {
+				this.validateRbxTypes();
+			} catch (e) {
+				if (e instanceof ProjectError) {
+					console.log(red("Compiler Error:"), e.message);
+					process.exit(1);
+				} else {
+					throw e;
+				}
+			}
 
 			this.rojoFilePath = this.getRojoFilePath();
 			this.reloadRojo();
@@ -312,6 +315,17 @@ export class Project {
 		}
 	}
 
+	private getModulesDirPath(project: string): string | undefined {
+		const modulesDirPath = path.resolve(project, "node_modules");
+		if (fs.existsSync(modulesDirPath)) {
+			return modulesDirPath;
+		}
+		const parent = path.resolve(project, "..");
+		if (parent !== project) {
+			return this.getModulesDirPath(parent);
+		}
+	}
+
 	private validateCompilerOptions() {
 		const opts = this.compilerOptions;
 
@@ -340,16 +354,21 @@ export class Project {
 			errors.push(`${yellow(`"isolatedModules"`)} must be ${yellow(`true`)}`);
 		}
 
-		const rbxTsModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
-		if (
-			opts.typeRoots === undefined ||
-			opts.typeRoots.find(v => path.normalize(v) === rbxTsModulesPath) === undefined
-		) {
-			errors.push(`${yellow(`"typeRoots"`)} must be ${yellow(`[ "node_modules/@rbxts" ]`)}`);
+		let typesFound = false;
+		if (opts.typeRoots && this.modulesDir) {
+			const typesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+			for (const typeRoot of opts.typeRoots) {
+				if (path.resolve(typeRoot) === typesPath) {
+					console.log(path.resolve(typeRoot));
+					console.log(typesPath);
+					typesFound = true;
+					break;
+				}
+			}
 		}
 
-		if (opts.types !== undefined) {
-			errors.push(`${yellow(`"types"`)} must be ${yellow(`undefined`)}`);
+		if (!typesFound) {
+			errors.push(`${yellow(`"typeRoots"`)} must contain ${yellow(`[ "node_modules/@rbxts" ]`)}`);
 		}
 
 		// configurable compiler options
@@ -381,26 +400,28 @@ export class Project {
 	}
 
 	private validateRbxTypes() {
-		const pkgJsonPath = path.join(this.projectPath, "node_modules", "@rbxts", "types", "package.json");
-		if (fs.pathExistsSync(pkgJsonPath)) {
-			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
-			if (pkgJson !== undefined) {
-				const versionStr = pkgJson.version;
-				if (versionStr !== undefined) {
-					const regexMatch = versionStr.match(/\d+$/g);
-					if (regexMatch !== null) {
-						const patchNumber = Number(regexMatch[0]);
-						if (!isNaN(patchNumber)) {
-							if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
-								return;
-							} else {
-								throw new ProjectError(
-									`@rbxts/types is out of date!\n` +
-										yellow(`Installed version: 1.0.${patchNumber}\n`) +
-										yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-										`Run 'npm i @rbxts/types' to fix this.`,
-									ProjectErrorType.BadRbxTypes,
-								);
+		if (this.modulesDir) {
+			const pkgJsonPath = path.join(this.modulesDir.getPath(), "@rbxts", "types", "package.json");
+			if (fs.pathExistsSync(pkgJsonPath)) {
+				const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+				if (pkgJson !== undefined) {
+					const versionStr = pkgJson.version;
+					if (versionStr !== undefined) {
+						const regexMatch = versionStr.match(/\d+$/g);
+						if (regexMatch !== null) {
+							const patchNumber = Number(regexMatch[0]);
+							if (!isNaN(patchNumber)) {
+								if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+									return;
+								} else {
+									throw new ProjectError(
+										`@rbxts/types is out of date!\n` +
+											yellow(`Installed version: 1.0.${patchNumber}\n`) +
+											yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+											`Run 'npm i @rbxts/types' to fix this.`,
+										ProjectErrorType.BadRbxTypes,
+									);
+								}
 							}
 						}
 					}
