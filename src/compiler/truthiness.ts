@@ -4,10 +4,11 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getType,
+	is0TypeLax,
 	isBooleanTypeStrict,
 	isBoolishTypeLax,
-	isFalsyNumberTypeLax,
 	isFalsyStringTypeLax,
+	isNumberTypeLax,
 	isTupleType,
 	isUnknowableType,
 } from "../typeUtilities";
@@ -44,7 +45,8 @@ function getExpStr(
 
 	const isUnknown = isUnknowableType(expType);
 
-	const checkNumber = isUnknown || isFalsyNumberTypeLax(expType);
+	const checkNumber = isUnknown || isNumberTypeLax(expType);
+	const checkNon0 = isUnknown || checkNumber || is0TypeLax(expType);
 	const checkString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 
@@ -69,11 +71,12 @@ function getExpStr(
 		}
 	}
 
-	// TODO: Add pushed logic
+	if (checkNon0) {
+		checks.push(extraNots % 2 ? `${expStr} == 0` : `${expStr} ~= 0`);
+	}
+
 	if (checkNumber) {
-		checks.push(
-			extraNots % 2 ? `${expStr} == 0 or ${expStr} ~= ${expStr}` : `${expStr} ~= 0 and ${expStr} == ${expStr}`,
-		);
+		checks.push(extraNots % 2 ? `${expStr} ~= ${expStr}` : `${expStr} == ${expStr}`);
 	}
 
 	if (checkString) {
