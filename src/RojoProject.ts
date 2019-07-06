@@ -3,6 +3,31 @@ import fs from "fs-extra";
 import path from "path";
 import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility";
 
+interface RojoTreeProperty {
+	Type: string;
+	Value: any;
+}
+
+interface RojoTreeMetadata {
+	$className?: string;
+	$path?: string;
+	$properties?: Array<RojoTreeProperty>;
+	$ignoreUnknownInstances?: boolean;
+	$isolated?: boolean;
+}
+
+type RojoTree = RojoTreeMembers & RojoTreeMetadata;
+
+interface RojoTreeMembers {
+	[name: string]: RojoTree;
+}
+
+interface RojoFile {
+	servePort?: number;
+	name: string;
+	tree: RojoTree;
+}
+
 const ajv = new Ajv();
 
 export class RojoProjectError extends Error {}
