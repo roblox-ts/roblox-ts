@@ -6,7 +6,14 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { FileRelation, RojoProject } from "../RojoProject";
 import { isRbxService, isUsedAsType } from "../typeUtilities";
-import { safeLuaIndex, skipNodesDownwards, skipNodesUpwards, stripExtensions, transformPathToLua } from "../utility";
+import {
+	isPathAncestorOf,
+	safeLuaIndex,
+	skipNodesDownwards,
+	skipNodesUpwards,
+	stripExtensions,
+	transformPathToLua,
+} from "../utility";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = skipNodesUpwards(def.getNode().getParent());
@@ -76,10 +83,10 @@ function getRelativeImportPathRojo(
 	node: ts.Node,
 ) {
 	const rbxFrom = state.rojoProject!.getRbxFromFile(
-		transformPathToLua(state.rootDirPath, state.outDirPath, sourceFile.getFilePath()),
+		transformPathToLua(state.rootPath, state.outPath, sourceFile.getFilePath()),
 	).path;
 	const rbxTo = state.rojoProject!.getRbxFromFile(
-		transformPathToLua(state.rootDirPath, state.outDirPath, moduleFile.getFilePath()),
+		transformPathToLua(state.rootPath, state.outPath, moduleFile.getFilePath()),
 	).path;
 
 	if (!rbxFrom) {
@@ -104,9 +111,8 @@ function getRelativeImportPathRojo(
 const moduleCache = new Map<string, string>();
 
 function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
-	const modulesDir = state.modulesDir!;
-	let parts = modulesDir
-		.getRelativePathTo(moduleFile)
+	let parts = path
+		.relative(state.modulesPath, moduleFile.getFilePath())
 		.split("/")
 		.filter(part => part !== ".");
 
@@ -125,7 +131,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	if (moduleCache.has(moduleName)) {
 		mainPath = moduleCache.get(moduleName)!;
 	} else {
-		const pkgJson = require(path.join(modulesDir.getPath(), scope, moduleName, "package.json"));
+		const pkgJson = require(path.join(state.modulesPath, scope, moduleName, "package.json"));
 		mainPath = pkgJson.main as string;
 		moduleCache.set(moduleName, mainPath);
 	}
@@ -148,7 +154,7 @@ function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFi
 	}
 
 	const filePath = moduleFile.getFilePath();
-	const rbx = state.rojoProject.getRbxFromFile(transformPathToLua(state.rootDirPath, state.outDirPath, filePath));
+	const rbx = state.rojoProject.getRbxFromFile(transformPathToLua(state.rootPath, state.outPath, filePath));
 	if (!rbx.path || rbx.path.length === 0) {
 		throw new CompilerError(`Could not find Rojo data for ${filePath}`, node, CompilerErrorType.BadRojo);
 	}
@@ -171,14 +177,14 @@ function getImportPath(
 	moduleFile: ts.SourceFile,
 	node: ts.Node,
 ): string {
-	if (state.modulesDir && state.modulesDir.isAncestorOf(moduleFile)) {
+	if (isPathAncestorOf(state.modulesPath, moduleFile.getFilePath())) {
 		return getModuleImportPath(state, moduleFile);
 	}
 
-	if (state.projectInfo.type === ProjectType.Game) {
+	if (state.projectType === ProjectType.Game) {
 		const fileRelation = state.rojoProject!.getFileRelation(
-			transformPathToLua(state.rootDirPath, state.outDirPath, sourceFile.getFilePath()),
-			transformPathToLua(state.rootDirPath, state.outDirPath, moduleFile.getFilePath()),
+			transformPathToLua(state.rootPath, state.outPath, sourceFile.getFilePath()),
+			transformPathToLua(state.rootPath, state.outPath, moduleFile.getFilePath()),
 		);
 		if (fileRelation === FileRelation.OutToOut) {
 			return getAbsoluteImportPathRojo(state, moduleFile, node);

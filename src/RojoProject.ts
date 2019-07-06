@@ -1,6 +1,7 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
+import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility";
 
 const ajv = new Ajv();
 
@@ -27,39 +28,10 @@ const DEFAULT_ISOLATED_CONTAINERS = [
 const CLIENT_CONTAINERS = [["StarterPack"], ["StarterGui"], ["StarterPlayer"]];
 const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
 
-function stripExts(filePath: string) {
-	const ext = path.extname(filePath);
-	filePath = filePath.slice(0, -ext.length);
-	const subext = path.extname(filePath);
-	if (subext.length > 0) {
-		filePath = filePath.slice(0, -subext.length);
-	}
-	return filePath;
-}
-
-function isAncestorOf(ancestor: string, descendant: string) {
-	if (ancestor === descendant) {
-		return true;
-	} else {
-		const relative = path.relative(ancestor, descendant);
-		return !relative.startsWith("..") && !path.isAbsolute(relative);
-	}
-}
-
 interface RbxPath {
 	isFile: boolean;
 	base: ReadonlyArray<string>;
 	fsPath: string;
-}
-
-function arrayStartsWith<T>(a: Array<T>, b: Array<T>) {
-	const minLength = Math.min(a.length, b.length);
-	for (let i = 0; i < minLength; i++) {
-		if (a[i] !== b[i]) {
-			return false;
-		}
-	}
-	return true;
 }
 
 export enum FileRelation {
@@ -172,7 +144,7 @@ export class RojoProject {
 					return [...partition.base];
 				}
 			} else {
-				if (isAncestorOf(partition.fsPath, filePath)) {
+				if (isPathAncestorOf(partition.fsPath, filePath)) {
 					const relative = path.relative(partition.fsPath, stripExts(filePath)).split(path.sep);
 					if (relative[relative.length - 1] === "init") {
 						relative.pop();

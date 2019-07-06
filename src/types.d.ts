@@ -7,7 +7,3 @@ export type HasParameters =
 	| ts.FunctionDeclaration
 	| ts.ConstructorDeclaration
 	| ts.MethodDeclaration;
-
-type ProjectInfo =
-	| { type: ProjectType.Package }
-	| { type: ProjectType.Game | ProjectType.Bundle; runtimeLibPath: Array<string> };
