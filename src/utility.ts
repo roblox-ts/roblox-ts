@@ -207,3 +207,32 @@ export function transformPathToLua(rootPath: string, outPath: string, filePath: 
 	const luaName = name + exts.join("") + ".lua";
 	return path.join(outPath, relativeToRoot, luaName);
 }
+
+export function stripExts(filePath: string) {
+	const ext = path.extname(filePath);
+	filePath = filePath.slice(0, -ext.length);
+	const subext = path.extname(filePath);
+	if (subext.length > 0) {
+		filePath = filePath.slice(0, -subext.length);
+	}
+	return filePath;
+}
+
+export function isPathAncestorOf(ancestor: string, descendant: string) {
+	if (ancestor === descendant) {
+		return true;
+	} else {
+		const relative = path.relative(ancestor, descendant);
+		return !relative.startsWith("..") && !path.isAbsolute(relative);
+	}
+}
+
+export function arrayStartsWith<T>(a: Array<T>, b: Array<T>) {
+	const minLength = Math.min(a.length, b.length);
+	for (let i = 0; i < minLength; i++) {
+		if (a[i] !== b[i]) {
+			return false;
+		}
+	}
+	return true;
+}

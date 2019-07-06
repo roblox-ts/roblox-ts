@@ -64,13 +64,6 @@ const argv = yargs
 		describe: "folder to copy runtime files to",
 	})
 
-	// modulesPath
-	.option("m", {
-		alias: "modulesPath",
-		default: "modules",
-		describe: "folder to copy modules to",
-	})
-
 	// minify
 	.option("minify", {
 		alias: "min",
