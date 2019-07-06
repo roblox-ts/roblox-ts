@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileTruthiness } from ".";
+import { compileExpression, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
 import { makeSetStatement, skipNodesDownwards } from "../utility";
 
@@ -15,7 +15,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	let isPushed = false;
 
 	if (declaration) {
-		conditionStr = compileTruthiness(state, condition);
+		conditionStr = compileTruthyCheck(state, condition);
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
@@ -28,7 +28,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		} else {
 			id = currentConditionalContext;
 		}
-		conditionStr = compileTruthiness(state, condition);
+		conditionStr = compileTruthyCheck(state, condition);
 	}
 
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);

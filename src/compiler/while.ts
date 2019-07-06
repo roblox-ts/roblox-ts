@@ -1,12 +1,12 @@
 import * as ts from "ts-morph";
-import { compileLoopBody, compileTruthiness } from ".";
+import { compileLoopBody, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
 import { joinIndentedLines, skipNodesDownwards } from "../utility";
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	state.pushIdStack();
 	state.enterPrecedingStatementContext();
-	const expStr = compileTruthiness(state, skipNodesDownwards(node.getExpression()));
+	const expStr = compileTruthyCheck(state, skipNodesDownwards(node.getExpression()));
 	let result = "";
 	const context = state.exitPrecedingStatementContext();
 	const contextHasStatements = context.length > 0;

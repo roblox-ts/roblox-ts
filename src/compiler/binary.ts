@@ -24,6 +24,7 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { shouldWrapExpression } from "./call";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -454,7 +455,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		return `${lhsStr} ^ ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.InKeyword) {
 		// doesn't need parenthesis because In is restrictive
-		return `${rhsStr}[${lhsStr}] ~= nil`;
+		return `${shouldWrapExpression(rhs, false) ? `(${rhsStr})` : rhsStr}[${lhsStr}] ~= nil`;
 	} else if (opKind === ts.SyntaxKind.GreaterThanToken) {
 		return `${lhsStr} > ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.LessThanToken) {

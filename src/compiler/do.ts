@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { compileLoopBody, compileTruthiness } from ".";
+import { compileLoopBody, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
 import { skipNodesDownwards } from "../utility";
 
@@ -13,7 +13,7 @@ export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	state.popIndent();
 	result += state.indent + "end;\n";
 	state.enterPrecedingStatementContext();
-	const condition = compileTruthiness(state, skipNodesDownwards(node.getExpression()), 1);
+	const condition = compileTruthyCheck(state, skipNodesDownwards(node.getExpression()), 1);
 	result += state.exitPrecedingStatementContextAndJoin();
 	state.popIndent();
 	result += state.indent + `until ${condition};\n`;

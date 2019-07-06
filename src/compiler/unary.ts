@@ -1,8 +1,9 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileTruthiness, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
+import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { compileTruthyCheck } from "./truthiness";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -64,7 +65,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 	} else {
 		const tokenKind = node.getOperatorToken();
 		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
-			return compileTruthiness(state, operand, 1);
+			return compileTruthyCheck(state, operand, 1);
 		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;
 		} else if (tokenKind === ts.SyntaxKind.TildeToken) {

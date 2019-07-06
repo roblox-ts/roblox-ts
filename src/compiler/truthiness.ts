@@ -13,9 +13,127 @@ import {
 	isUnknowableType,
 } from "../typeUtilities";
 import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility";
+import { shouldWrapExpression } from "./call";
+import { isValidLuaIdentifier } from "./security";
 
-function compileTruthyCheck(state: CompilerState, exp: ts.Expression) {
-	const expStr = compileExpression(state, exp);
+type LogicalOperator =
+	| ts.SyntaxKind.AmpersandAmpersandToken
+	| ts.SyntaxKind.BarBarToken
+	| ts.SyntaxKind.EqualsEqualsEqualsToken
+	| ts.SyntaxKind.ExclamationEqualsEqualsToken
+	| ts.SyntaxKind.GreaterThanToken
+	| ts.SyntaxKind.LessThanEqualsToken
+	| ts.SyntaxKind.LessThanToken;
+
+const NottedLogicalOperators = {
+	[ts.SyntaxKind.AmpersandAmpersandToken]: ts.SyntaxKind.BarBarToken,
+	[ts.SyntaxKind.BarBarToken]: ts.SyntaxKind.AmpersandAmpersandToken,
+	[ts.SyntaxKind.EqualsEqualsEqualsToken]: ts.SyntaxKind.ExclamationEqualsEqualsToken,
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken]: ts.SyntaxKind.EqualsEqualsEqualsToken,
+	[ts.SyntaxKind.GreaterThanEqualsToken]: ts.SyntaxKind.LessThanToken,
+	[ts.SyntaxKind.GreaterThanToken]: ts.SyntaxKind.LessThanEqualsToken,
+	[ts.SyntaxKind.LessThanEqualsToken]: ts.SyntaxKind.GreaterThanToken,
+	[ts.SyntaxKind.LessThanToken]: ts.SyntaxKind.GreaterThanEqualsToken,
+};
+
+const LogicalOperatorSymbols = {
+	[ts.SyntaxKind.AmpersandAmpersandToken]: " and ",
+	[ts.SyntaxKind.BarBarToken]: " or ",
+	[ts.SyntaxKind.EqualsEqualsEqualsToken]: " == ",
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken]: " ~= ",
+	[ts.SyntaxKind.GreaterThanEqualsToken]: " >= ",
+	[ts.SyntaxKind.GreaterThanToken]: " > ",
+	[ts.SyntaxKind.LessThanEqualsToken]: " <= ",
+	[ts.SyntaxKind.LessThanToken]: " < ",
+};
+
+export function compileTruthyCheck(state: CompilerState, exp: ts.Expression, extraNots = 0): string {
+	if (ts.TypeGuards.isPrefixUnaryExpression(exp) && exp.getOperatorToken() === ts.SyntaxKind.ExclamationToken) {
+		return compileTruthyCheck(state, skipNodesDownwards(exp.getOperand(), true), (extraNots + 1) % 2);
+	} else if (ts.TypeGuards.isParenthesizedExpression(exp)) {
+		return "(" + compileTruthyCheck(state, skipNodesDownwards(exp.getExpression()), extraNots) + ")";
+	} else if (ts.TypeGuards.isBinaryExpression(exp)) {
+		const operator = exp.getOperatorToken().getKind();
+
+		if (operator in NottedLogicalOperators) {
+			const lhs = skipNodesDownwards(exp.getLeft(), true);
+			const rhs = skipNodesDownwards(exp.getRight(), true);
+
+			if (operator === ts.SyntaxKind.AmpersandAmpersandToken || operator === ts.SyntaxKind.BarBarToken) {
+				return (
+					compileTruthyCheck(state, lhs, extraNots) +
+					LogicalOperatorSymbols[
+						(extraNots ? NottedLogicalOperators[operator as LogicalOperator] : operator) as LogicalOperator
+					] +
+					compileTruthyCheck(state, rhs, extraNots)
+				);
+			} else {
+				return (
+					compileExpression(state, lhs) +
+					LogicalOperatorSymbols[
+						(extraNots ? NottedLogicalOperators[operator as LogicalOperator] : operator) as LogicalOperator
+					] +
+					compileExpression(state, rhs)
+				);
+			}
+		}
+	}
+
+	const expType = getType(exp);
+
+	if (isTupleType(expType)) {
+		throw new CompilerError(
+			`Cannot check a LuaTuple in a conditional! Change this to:\n\t${exp.getText()}[0]`,
+			exp,
+			CompilerErrorType.LuaTupleInConditional,
+		);
+	}
+
+	const isUnknown = isUnknowableType(expType);
+
+	const checkNaN = isUnknown || isNumberTypeLax(expType);
+	const checkNon0 = isUnknown || checkNaN || is0TypeLax(expType);
+	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
+	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
+
+	let expStr = compileExpression(state, exp);
+	let mainStr = expStr;
+	if (
+		!isValidLuaIdentifier(expStr) &&
+		(checkNaN ? 1 : 0) + (checkNon0 ? 1 : 0) + (checkEmptyString ? 1 : 0) + (checkTruthy ? 1 : 0) > 1
+	) {
+		expStr = state.pushPrecedingStatementToNewId(exp, expStr);
+	} else if (extraNots) {
+		if (shouldWrapExpression(exp, false)) {
+			mainStr = `(${mainStr})`;
+		}
+	}
+
+	const checks = new Array<string>();
+
+	if (extraNots) {
+		mainStr = `not ${mainStr}`;
+	} else {
+		mainStr = mainStr;
+	}
+
+	if (checkNon0) {
+		checks.push(extraNots ? `${expStr} == 0` : `${expStr} ~= 0`);
+	}
+
+	if (checkNaN) {
+		checks.push(extraNots ? `${expStr} ~= ${expStr}` : `${expStr} == ${expStr}`);
+	}
+
+	if (checkEmptyString) {
+		checks.push(`${expStr} ${extraNots ? "=" : "~"}= ""`);
+	}
+
+	if (checkTruthy || checks.length === 0) {
+		checks.push(mainStr);
+	}
+
+	return extraNots ? checks.join(" or ") : checks.join(" and ");
 }
 
 function getExpStr(
