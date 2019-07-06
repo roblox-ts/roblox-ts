@@ -550,9 +550,11 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 /** Calls skipNodesUpwards and returns getType() */
 export function getType(node: ts.Node) {
 	let parent = node.getParent();
-	while (parent && ts.TypeGuards.isNonNullExpression(parent)) {
+
+	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
 		node = parent;
 		parent = node.getParent();
 	}
+
 	return node.getType();
 }
