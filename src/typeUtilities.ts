@@ -575,15 +575,14 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 	return false;
 }
 
-/** Calls skipNodesUpwards and returns getType() */
+/** Skips NonNullExpressions and Parenthesized Expressions above the current node and returns `getType()` */
 export function getType(node: ts.Node) {
-	if (ts.TypeGuards.isParenthesizedExpression(node)) {
-		node = skipNodesDownwards(node.getExpression());
-	}
 	let parent = node.getParent();
-	while (parent && ts.TypeGuards.isNonNullExpression(parent)) {
+
+	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
 		node = parent;
 		parent = node.getParent();
 	}
+
 	return node.getType();
 }
