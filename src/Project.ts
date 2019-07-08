@@ -359,7 +359,7 @@ export class Project {
 		if (opts.typeRoots) {
 			const typesPath = path.resolve(this.modulesPath, "@rbxts");
 			for (const typeRoot of opts.typeRoots) {
-				if (typeRoot === typesPath) {
+				if (path.normalize(typeRoot) === typesPath) {
 					typesFound = true;
 					break;
 				}
@@ -390,9 +390,9 @@ export class Project {
 		if (errors.length > 0) {
 			throw new ProjectError(
 				`Invalid "tsconfig.json" configuration!\n` +
-					"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
-					"\n- " +
-					errors.join("\n- "),
+				"https://roblox-ts.github.io/docs/quick-start#project-folder-setup" +
+				"\n- " +
+				errors.join("\n- "),
 				ProjectErrorType.BadTsConfig,
 			);
 		}
@@ -414,9 +414,9 @@ export class Project {
 							} else {
 								throw new ProjectError(
 									`@rbxts/types is out of date!\n` +
-										yellow(`Installed version: 1.0.${patchNumber}\n`) +
-										yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-										`Run 'npm i @rbxts/types' to fix this.`,
+									yellow(`Installed version: 1.0.${patchNumber}\n`) +
+									yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+									`Run 'npm i @rbxts/types' to fix this.`,
 									ProjectErrorType.BadRbxTypes,
 								);
 							}
