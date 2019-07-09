@@ -5,7 +5,6 @@ import {
 	compileElementAccessBracketExpression,
 	compileElementAccessDataTypeExpression,
 	compileExpression,
-	compileTruthiness,
 	concatNamesAndValues,
 	getAccessorForBindingPatternType,
 	getBindingData,
@@ -25,6 +24,7 @@ import {
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { shouldWrapExpression } from "./call";
+import { compileTruthyCheck, getTruthyCompileData } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -145,6 +145,24 @@ function compileBinaryLiteral(
 		postStatements.forEach(statementStr => state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"));
 		return rootId;
 	}
+}
+
+function compileLogicalBinary(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	isAnd: boolean,
+	node: ts.BinaryExpression,
+) {
+	const lhsCompileData = getTruthyCompileData(state, lhs);
+	const id = state.pushToDeclarationOrNewId(node, lhsCompileData.expStr);
+	const check = compileTruthyCheck(state, lhs, lhsCompileData);
+	state.pushPrecedingStatements(lhs, state.indent + `if ${isAnd ? "" : "not "}${check} then\n`);
+	state.pushIndent();
+	state.pushPrecedingStatements(lhs, state.indent + `${id} = ${compileExpression(state, rhs)};\n`);
+	state.popIndent();
+	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+	return id;
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {
@@ -398,7 +416,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else {
 		const isAnd = opKind === ts.SyntaxKind.AmpersandAmpersandToken;
 		if (isAnd || opKind === ts.SyntaxKind.BarBarToken) {
-			return compileTruthiness(state, lhs, 0, isAnd, rhs, node);
+			return compileLogicalBinary(state, lhs, rhs, isAnd, node);
 		} else {
 			lhsStr = compileExpression(state, lhs);
 

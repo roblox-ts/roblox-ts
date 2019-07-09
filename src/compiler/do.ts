@@ -13,10 +13,10 @@ export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	state.popIndent();
 	result += state.indent + "end;\n";
 	state.enterPrecedingStatementContext();
-	const condition = compileTruthyCheck(state, skipNodesDownwards(node.getExpression()), 1);
+	const condition = compileTruthyCheck(state, skipNodesDownwards(node.getExpression()));
 	result += state.exitPrecedingStatementContextAndJoin();
 	state.popIndent();
-	result += state.indent + `until ${condition};\n`;
+	result += state.indent + `until not ${condition};\n`;
 	state.popIdStack();
 	return result;
 }
