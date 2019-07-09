@@ -113,7 +113,7 @@ const moduleCache = new Map<string, string>();
 function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	let parts = path
 		.relative(state.modulesPath, moduleFile.getFilePath())
-		.split("/")
+		.split(path.sep)
 		.filter(part => part !== ".");
 
 	const scope = parts.shift()!;
