@@ -10,7 +10,6 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { HasParameters } from "../types";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
@@ -20,6 +19,13 @@ import {
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { isValidLuaIdentifier } from "./security";
+
+export type HasParameters =
+	| ts.FunctionExpression
+	| ts.ArrowFunction
+	| ts.FunctionDeclaration
+	| ts.ConstructorDeclaration
+	| ts.MethodDeclaration;
 
 export const nodeHasParameters = (ancestor: ts.Node): ancestor is HasParameters =>
 	ts.TypeGuards.isFunctionExpression(ancestor) ||

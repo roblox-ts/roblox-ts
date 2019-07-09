@@ -5,11 +5,11 @@ import {
 	compileIdentifier,
 	CompilerDirective,
 	getComputedPropertyAccess,
+	HasParameters,
 	isIdentifierDefinedInExportLet,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { HasParameters } from "../types";
 import {
 	getCompilerDirectiveWithLaxConstraint,
 	getType,

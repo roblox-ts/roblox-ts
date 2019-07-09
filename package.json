@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "0.2.4",
+	"version": "0.2.7",
 	"description": "",
 	"main": "out/index.js",
 	"repository": {
@@ -35,8 +35,8 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"ajv": "^6.10.0",
-		"chokidar": "^3.0.1",
+		"ajv": "^6.10.1",
+		"chokidar": "^3.0.2",
 		"cross-spawn": "^6.0.5",
 		"fs-extra": "^8.1.0",
 		"klaw": "^3.0.0",
