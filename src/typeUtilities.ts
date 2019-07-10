@@ -75,12 +75,13 @@ function isExport(node: ts.Node) {
 }
 
 export function isType(node: ts.Node): boolean {
-	if (ts.TypeGuards.isIdentifier(node)) {
+	if (ts.TypeGuards.isIdentifier(node) || ts.TypeGuards.isExpressionWithTypeArguments(node)) {
 		return isType(node.getParent());
 	}
 
 	return (
 		node.getKindName() === "TypeQuery" ||
+		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
