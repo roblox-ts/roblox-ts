@@ -359,7 +359,7 @@ export class Project {
 		if (opts.typeRoots) {
 			const typesPath = path.resolve(this.modulesPath, "@rbxts");
 			for (const typeRoot of opts.typeRoots) {
-				if (typeRoot === typesPath) {
+				if (path.normalize(typeRoot) === typesPath) {
 					typesFound = true;
 					break;
 				}
