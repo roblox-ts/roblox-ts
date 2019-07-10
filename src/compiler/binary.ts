@@ -22,7 +22,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { makeSetStatement, skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { shouldWrapExpression } from "./call";
 import { compileTruthyCheck, getTruthyCompileData } from "./truthiness";
 
@@ -154,14 +154,36 @@ function compileLogicalBinary(
 	isAnd: boolean,
 	node: ts.BinaryExpression,
 ) {
-	const lhsCompileData = getTruthyCompileData(state, lhs);
-	const id = state.pushToDeclarationOrNewId(node, lhsCompileData.expStr);
-	const check = compileTruthyCheck(state, lhs, lhsCompileData);
-	state.pushPrecedingStatements(lhs, state.indent + `if ${isAnd ? "" : "not "}${check} then\n`);
+	if (node) {
+		const declarationContext = state.declarationContext.get(node);
+
+		if (declarationContext) {
+			state.declarationContext.set(lhs, declarationContext).delete(node);
+		}
+	}
+
+	const truthyData = getTruthyCompileData(state, lhs, true);
+
+	if (node) {
+		const declarationContext = state.declarationContext.get(lhs);
+
+		if (declarationContext) {
+			state.declarationContext.set(node, declarationContext).delete(lhs);
+		}
+	}
+
+	const id = truthyData.expStr;
+	const conditionStr = compileTruthyCheck(state, lhs, truthyData);
+
+	state.pushPrecedingStatements(lhs, state.indent + `if ${isAnd ? "" : "not "}${conditionStr} then\n`);
+	state.pushIdStack();
 	state.pushIndent();
-	state.pushPrecedingStatements(lhs, state.indent + `${id} = ${compileExpression(state, rhs)};\n`);
+	const rhsStr = compileExpression(state, rhs);
+	state.pushPrecedingStatements(lhs, makeSetStatement(state, id, rhsStr));
+	state.popIdStack();
 	state.popIndent();
 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+
 	return id;
 }
 

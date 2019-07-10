@@ -11,11 +11,9 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const condition = skipNodesDownwards(node.getCondition());
 	const whenTrue = skipNodesDownwards(node.getWhenTrue());
 	const whenFalse = skipNodesDownwards(node.getWhenFalse());
-	let conditionStr: string;
 	let isPushed = false;
 
 	if (declaration) {
-		conditionStr = compileTruthyCheck(state, condition);
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
@@ -28,17 +26,18 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		} else {
 			id = currentConditionalContext;
 		}
-		conditionStr = compileTruthyCheck(state, condition);
 	}
 
+	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;
+	const conditionStr = compileTruthyCheck(state, condition);
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
 	state.pushIndent();
 
-	state.declarationContext.set(whenTrue, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
+	state.declarationContext.set(whenTrue, subDeclaration);
 	state.pushIdStack();
 	const whenTrueStr = compileExpression(state, whenTrue);
 	if (state.declarationContext.delete(whenTrue) && id !== whenTrueStr) {
-		state.pushPrecedingStatements(whenTrue, state.indent + makeSetStatement(id, whenTrueStr) + ";\n");
+		state.pushPrecedingStatements(whenTrue, makeSetStatement(state, id, whenTrueStr));
 	}
 	state.popIdStack();
 	state.popIndent();
@@ -46,10 +45,10 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	state.pushIndent();
 	state.pushIdStack();
 
-	state.declarationContext.set(whenFalse, { isIdentifier: declaration ? declaration.isIdentifier : true, set: id });
+	state.declarationContext.set(whenFalse, subDeclaration);
 	const whenFalseStr = compileExpression(state, whenFalse);
 	if (state.declarationContext.delete(whenFalse) && id !== whenFalseStr) {
-		state.pushPrecedingStatements(whenFalse, state.indent + makeSetStatement(id, whenFalseStr) + ";\n");
+		state.pushPrecedingStatements(whenFalse, makeSetStatement(state, id, whenFalseStr));
 	}
 	state.popIdStack();
 	state.popIndent();

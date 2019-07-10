@@ -1,6 +1,7 @@
 import path from "path";
 import * as ts from "ts-morph";
 import { isValidLuaIdentifier } from "./compiler";
+import { CompilerState } from "./CompilerState";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 
 export function safeLuaIndex(parent: string, child: string) {
@@ -221,11 +222,11 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 	}
 }
 
-export function makeSetStatement(varToSet: string, value: string) {
+export function makeSetStatement(state: CompilerState, varToSet: string, value: string) {
 	if (varToSet === "return") {
-		return `return ${value}`;
+		return state.indent + `return ${value};\n`;
 	} else {
-		return `${varToSet} = ${value}`;
+		return state.indent + `${varToSet} = ${value};\n`;
 	}
 }
 

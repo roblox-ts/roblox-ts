@@ -13,7 +13,7 @@ import {
 } from "../typeUtilities";
 import { isValidLuaIdentifier } from "./security";
 
-export function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
+export function getTruthyCompileData(state: CompilerState, exp: ts.Expression, shouldPush = false) {
 	const expType = getType(exp);
 
 	if (isTupleType(expType)) {
@@ -31,13 +31,30 @@ export function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 
+	console.log(0, exp.getText(), state.declarationContext.get(exp), state.currentConditionalContext);
+
 	let expStr = compileExpression(state, exp);
 
+	const currentConditionalContext = state.currentConditionalContext;
+	const declaration = state.declarationContext.get(exp);
+
+	console.log(1, exp.getText(), declaration, currentConditionalContext);
+
+	// This comes after compileExpressions so that the declarationContext can
+	// be recursively set to the lhs of binary logical expressions
 	if (
-		!isValidLuaIdentifier(expStr) &&
-		(checkNaN ? 1 : 0) + (checkNon0 ? 1 : 0) + (checkEmptyString ? 1 : 0) + (checkTruthy ? 1 : 0) > 1
+		declaration ||
+		(!isValidLuaIdentifier(expStr) &&
+			(checkNaN ? 1 : 0) + (checkNon0 ? 1 : 0) + (checkEmptyString ? 1 : 0) + (checkTruthy ? 1 : 0) > 1)
 	) {
-		expStr = state.pushPrecedingStatementToNewId(exp, expStr);
+		console.log(2, state.currentBinaryLogicContext, exp.getText());
+		if (state.currentBinaryLogicContext) {
+			state.pushPrecedingStatements(exp, state.indent + `::${state.currentBinaryLogicContext} = ${expStr};\n`);
+			expStr = state.currentBinaryLogicContext;
+		} else {
+			state.currentBinaryLogicContext = expStr = state.pushPrecedingStatementToNewId(exp, expStr);
+		}
+		console.log(3, expStr, exp.getText());
 	}
 
 	return { expStr, checkNon0, checkNaN, checkEmptyString, checkTruthy } as const;
