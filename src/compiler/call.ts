@@ -1103,7 +1103,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} + ${argStrs[1]})`,
+				`(${argStrs[0]} + (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathSub: {
@@ -1111,7 +1111,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} - ${argStrs[1]})`,
+				`(${argStrs[0]} - (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathMul: {
@@ -1119,7 +1119,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} * ${argStrs[1]})`,
+				`(${argStrs[0]} * (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathDiv: {
@@ -1127,7 +1127,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} / ${argStrs[1]})`,
+				`(${argStrs[0]} / (${argStrs[1]}))`,
 			);
 		}
 	}
