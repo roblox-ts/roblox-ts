@@ -34,4 +34,10 @@ export = () => {
 		expect(c.Y).to.equal(5);
 		expect(c.Z).to.equal(2);
 	});
+
+	it("should properly support binary expressions", () => {
+		const a = new Vector2(1, 2).mul(1 + 3);
+		expect(a.X).to.equal(4);
+		expect(a.Y).to.equal(8);
+	});
 };
