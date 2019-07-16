@@ -71,15 +71,15 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				try {
 					const stats = await fs.stat(filePath);
 					if (stats.isDirectory()) {
-						searchForDeadFiles(filePath);
+						await searchForDeadFiles(filePath);
 						if ((await fs.readdir(dir)).length === 0) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "dir", filePath);
 						}
 					} else if (stats.isFile()) {
 						const relativeToDestFolder = path.relative(destinationFolder, filePath);
 						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "file", filePath);
 						}
 					}
@@ -476,7 +476,7 @@ export class Project {
 	public async refreshFile(filePath: string) {
 		const file = this.project.getSourceFile(filePath);
 		if (file) {
-			file.refreshFromFileSystem();
+			await file.refreshFromFileSystem();
 		} else {
 			this.project.addExistingSourceFile(filePath);
 		}
@@ -592,10 +592,10 @@ export class Project {
 			dtsFiles.map(filePath => {
 				return new Promise(resolve => {
 					const outPath = path.join(this.outPath, path.relative(this.rootPath, filePath));
-					fs.readFile(filePath).then(buffer => {
+					void fs.readFile(filePath).then(buffer => {
 						const contents = buffer.toString();
-						fs.ensureFile(outPath).then(() => {
-							fs.writeFile(outPath, contents).then(() => resolve());
+						void fs.ensureFile(outPath).then(() => {
+							void fs.writeFile(outPath, contents).then(() => resolve());
 						});
 					});
 				});
@@ -655,7 +655,7 @@ export class Project {
 			exception = e;
 		}
 		const errors = this.getDiagnosticErrors([sourceFile]);
-		sourceFile.deleteImmediately();
+		void sourceFile.deleteImmediately();
 
 		if (errors.length > 0) {
 			throw new DiagnosticError(errors);
@@ -686,13 +686,13 @@ export class Project {
 			(await this.getEmittedDtsFiles()).map(
 				filePath =>
 					new Promise(resolve => {
-						fs.readFile(filePath).then(contentsBuffer => {
+						void fs.readFile(filePath).then(contentsBuffer => {
 							let fileContents = contentsBuffer.toString();
 							fileContents = fileContents.replace(
 								/<reference types="([^."]+)" \/>/g,
 								'<reference types="@rbxts/$1" />',
 							);
-							fs.writeFile(filePath, fileContents).then(() => resolve());
+							void fs.writeFile(filePath, fileContents).then(() => resolve());
 						});
 					}),
 			),

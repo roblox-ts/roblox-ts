@@ -14,6 +14,7 @@
 		"no-console": false,
 		"no-empty-interface": false,
 		"no-empty": false,
+		"no-floating-promises": true,
 		"no-namespace": false,
 		"no-string-literal": true,
 		"no-unnecessary-qualifier": true,

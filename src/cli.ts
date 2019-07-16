@@ -161,7 +161,7 @@ if (argv.watch === true) {
 		.on("add", async (filePath: string) => {
 			if (!isCompiling) {
 				isCompiling = true;
-				project.addFile(filePath);
+				await project.addFile(filePath);
 				await update(filePath);
 				isCompiling = false;
 			}
@@ -200,7 +200,7 @@ if (argv.watch === true) {
 
 	console.log("Running in watch mode..");
 	console.log("Starting initial compile..");
-	updateAll();
+	void updateAll();
 } else {
-	project.compileAll();
+	void project.compileAll();
 }
