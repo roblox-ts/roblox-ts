@@ -122,7 +122,7 @@ export class Watcher {
 
 		const pkgLockJsonPath = path.resolve("package-lock.json");
 		if (fs.existsSync(pkgLockJsonPath)) {
-			chokidar.watch(pkgLockJsonPath, CHOKIDAR_OPTIONS).on("change", async (filePath: string) => {
+			chokidar.watch(pkgLockJsonPath, CHOKIDAR_OPTIONS).on("change", async () => {
 				console.log("Modules updated, copying..");
 				await this.project.copyModuleFiles();
 			});
