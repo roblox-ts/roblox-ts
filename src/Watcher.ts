@@ -18,109 +18,105 @@ const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	usePolling: true,
 };
 
+async function time(callback: () => any) {
+	const start = Date.now();
+	try {
+		await callback();
+	} catch (e) {
+		if (e instanceof ProjectError || e instanceof CompilerError) {
+			process.exitCode = 0;
+		} else {
+			throw e;
+		}
+	}
+	console.log(`Done, took ${Date.now() - start} ms!`);
+}
+
 export class Watcher {
-	constructor(private project: Project, private onSuccess = "") {}
+	private isCompiling = false;
 
-	public start() {
-		const project = this.project;
+	constructor(private project: Project, private onSuccessCmd = "") {}
 
-		const rootDir = project.getRootDirOrThrow();
-		let isCompiling = false;
-
-		const onSuccessCommand = this.onSuccess;
-		async function onSuccess() {
-			if (onSuccessCommand.length > 0) {
-				const parts = onSuccessCommand.split(/\s+/);
-				await spawn(parts.shift()!, parts, { stdio: "inherit" });
-			}
+	private async onSuccess() {
+		if (this.onSuccessCmd.length > 0) {
+			const parts = this.onSuccessCmd.split(/\s+/);
+			await spawn(parts.shift()!, parts, { stdio: "inherit" });
 		}
+	}
 
-		const time = async (callback: () => any) => {
-			const start = Date.now();
-			try {
-				await callback();
-			} catch (e) {
-				if (e instanceof ProjectError || e instanceof CompilerError) {
-					process.exitCode = 0;
-				} else {
-					throw e;
-				}
-			}
-			console.log(`Done, took ${Date.now() - start} ms!`);
-		};
-
-		async function update(filePath: string) {
-			const ext = path.extname(filePath);
-			if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
-				console.log("Change detected, compiling..");
-				await project.refreshFile(filePath);
-				clearContextCache();
-				await time(async () => {
-					try {
-						await project.compileFileByPath(filePath);
-					} catch (e) {
-						console.log(e);
-						process.exit();
-					}
-				});
-				if (process.exitCode === 0) {
-					await onSuccess();
-				}
-			}
-		}
-
-		async function updateAll() {
+	private async update(filePath: string) {
+		const ext = path.extname(filePath);
+		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
+			console.log("Change detected, compiling..");
+			await this.project.refreshFile(filePath);
+			clearContextCache();
 			await time(async () => {
 				try {
-					await project.compileAll();
+					await this.project.compileFileByPath(filePath);
 				} catch (e) {
 					console.log(e);
 					process.exit();
 				}
 			});
 			if (process.exitCode === 0) {
-				await onSuccess();
+				await this.onSuccess();
 			}
 		}
+	}
 
+	private async updateAll() {
+		await time(async () => {
+			try {
+				await this.project.compileAll();
+			} catch (e) {
+				console.log(e);
+				process.exit();
+			}
+		});
+		if (process.exitCode === 0) {
+			await this.onSuccess();
+		}
+	}
+
+	public start() {
 		chokidar
-			.watch(rootDir, CHOKIDAR_OPTIONS)
+			.watch(this.project.getRootDirOrThrow(), CHOKIDAR_OPTIONS)
 			.on("change", async (filePath: string) => {
-				if (!isCompiling) {
-					isCompiling = true;
-					await update(filePath);
-					isCompiling = false;
+				if (!this.isCompiling) {
+					this.isCompiling = true;
+					await this.update(filePath);
+					this.isCompiling = false;
 				}
 			})
 			.on("add", async (filePath: string) => {
-				if (!isCompiling) {
-					isCompiling = true;
-					await project.addFile(filePath);
-					await update(filePath);
-					isCompiling = false;
+				if (!this.isCompiling) {
+					this.isCompiling = true;
+					await this.project.addFile(filePath);
+					await this.update(filePath);
+					this.isCompiling = false;
 				}
 			})
 			.on("unlink", async (filePath: string) => {
-				if (!isCompiling) {
-					isCompiling = true;
-					await project.removeFile(filePath);
-					isCompiling = false;
+				if (!this.isCompiling) {
+					this.isCompiling = true;
+					await this.project.removeFile(filePath);
+					this.isCompiling = false;
 				}
 			});
 
-		if (project.configFilePath) {
-			chokidar.watch(project.configFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
+		if (this.project.configFilePath) {
+			chokidar.watch(this.project.configFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
 				console.log("tsconfig.json changed! Recompiling project..");
-				project.reloadProject();
-				await updateAll();
+				this.project.reloadProject();
+				await this.updateAll();
 			});
 		}
 
-		if (project.rojoFilePath) {
-			chokidar.watch(project.rojoFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
+		if (this.project.rojoFilePath) {
+			chokidar.watch(this.project.rojoFilePath, CHOKIDAR_OPTIONS).on("change", async () => {
 				console.log("Rojo configuration changed! Recompiling project..");
-				project.reloadRojo();
-				await updateAll();
+				this.project.reloadRojo();
+				await this.updateAll();
 			});
 		}
 
@@ -128,12 +124,12 @@ export class Watcher {
 		if (fs.existsSync(pkgLockJsonPath)) {
 			chokidar.watch(pkgLockJsonPath, CHOKIDAR_OPTIONS).on("change", async (filePath: string) => {
 				console.log("Modules updated, copying..");
-				await project.copyModuleFiles();
+				await this.project.copyModuleFiles();
 			});
 		}
 
 		console.log("Running in watch mode..");
 		console.log("Starting initial compile..");
-		void updateAll();
+		void this.updateAll();
 	}
 }
