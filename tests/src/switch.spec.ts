@@ -96,4 +96,24 @@ export = () => {
 		expect(bar(2)).to.equal(-2);
 		expect(bar(3)).to.equal(0);
 	});
+
+	it("should support switch statements with preceding statements", () => {
+		function bar(n: number) {
+			let x = 1;
+			switch (++n) {
+				case x++:
+				case x++:
+				case x++:
+				case x++:
+					return -2;
+			}
+			return 0;
+		}
+
+		expect(bar(0)).to.equal(-2);
+		expect(bar(1)).to.equal(-2);
+		expect(bar(2)).to.equal(-2);
+		expect(bar(3)).to.equal(-2);
+		expect(bar(4)).to.equal(0);
+	});
 };
