@@ -5,11 +5,12 @@ import path from "path";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
-import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { red, transformPathToLua, yellow } from "./utility";
+import { red, yellow } from "./textUtilities";
+import { transformPathToLua } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -173,8 +174,8 @@ export class Project {
 		try {
 			this.validateCompilerOptions();
 		} catch (e) {
-			if (e instanceof ProjectError) {
-				console.log(red("Compiler Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 				process.exit(1);
 			} else {
 				throw e;
@@ -272,8 +273,8 @@ export class Project {
 			try {
 				this.validateRbxTypes();
 			} catch (e) {
-				if (e instanceof ProjectError) {
-					console.log(red("Compiler Error:"), e.message);
+				if (e instanceof LoggableError) {
+					e.log(this.projectPath);
 					process.exit(1);
 				} else {
 					throw e;
@@ -476,7 +477,15 @@ export class Project {
 	public async refreshFile(filePath: string) {
 		const file = this.project.getSourceFile(filePath);
 		if (file) {
-			await file.refreshFromFileSystem();
+			try {
+				await file.refreshFromFileSystem();
+			} catch (e) {
+				this.reloadProject();
+				throw new ProjectError(
+					`ts-morph failed to parse ${path.relative(this.projectPath, filePath)}`,
+					ProjectErrorType.TsMorph,
+				);
+			}
 		} else {
 			this.project.addExistingSourceFile(filePath);
 		}
@@ -781,27 +790,8 @@ export class Project {
 			if (this.ci) {
 				throw e;
 			}
-			if (e instanceof CompilerError) {
-				const node = e.node;
-				if (ts.TypeGuards.isSourceFile(node)) {
-					console.log(
-						"%s - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						red("Compiler Error:"),
-						e.message,
-					);
-				} else {
-					console.log(
-						"%s:%d:%d - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						e.node.getStartLineNumber(),
-						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-						red("Compiler Error:"),
-						e.message,
-					);
-				}
-			} else if (e instanceof ProjectError) {
-				console.log(red("Project Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 			} else if (e instanceof DiagnosticError) {
 				console.log(e.toString());
 			} else {

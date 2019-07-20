@@ -1,7 +1,7 @@
 import path from "path";
 import * as ts from "ts-morph";
 import { isValidLuaIdentifier } from "./compiler";
-import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
+import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
@@ -48,7 +48,7 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 	const filePath = file.getFilePath();
 	const ext = path.extname(filePath);
 	if (ext !== ".ts" && ext !== ".tsx") {
-		throw new ProjectError(`Unexpected extension type: ${ext}`, ProjectErrorType.UnexpectedExtensionType);
+		throw new CompilerError(`Unexpected extension type: ${ext}`, file, CompilerErrorType.UnexpectedExtensionType);
 	}
 
 	const subext = path.extname(path.basename(filePath, ext));
@@ -111,22 +111,6 @@ export function getScriptContext(file: ts.SourceFile, seen = new Set<string>()):
 			return ScriptContext.None;
 		}
 	}
-}
-
-export function red(text: string) {
-	return `\x1b[31m${text}\x1b[0m`;
-}
-
-export function yellow(text: string) {
-	return `\x1b[33m${text}\x1b[0m`;
-}
-
-export function bold(text: string) {
-	return `\x1b[1m${text}\x1b[0m`;
-}
-
-export function suggest(text: string) {
-	return `...\t${yellow(text)}`;
 }
 
 export function isIdentifierWhoseDefinitionMatchesNode(

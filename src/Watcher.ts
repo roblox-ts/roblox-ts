@@ -3,6 +3,7 @@ import spawn from "cross-spawn";
 import fs from "fs";
 import path from "path";
 import { CompilerError } from "./errors/CompilerError";
+import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
@@ -48,7 +49,16 @@ export class Watcher {
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
 			console.log("Change detected, compiling..");
-			await this.project.refreshFile(filePath);
+			try {
+				await this.project.refreshFile(filePath);
+			} catch (e) {
+				if (e instanceof LoggableError) {
+					e.log("");
+					return;
+				} else {
+					throw e;
+				}
+			}
 			clearContextCache();
 			await time(async () => {
 				try {
