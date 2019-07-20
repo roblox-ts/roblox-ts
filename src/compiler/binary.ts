@@ -6,7 +6,6 @@ import {
 	compileElementAccessDataTypeExpression,
 	compileExpression,
 	concatNamesAndValues,
-	getAccessorForBindingPatternType,
 	getBindingData,
 	getWritableOperandName,
 	isIdentifierDefinedInExportLet,
@@ -124,7 +123,7 @@ function compileBinaryLiteral(
 		postStatements,
 		lhs,
 		rootId,
-		getAccessorForBindingPatternType(rhs),
+		// TODO: getAccessorForBindingPatternType(rhs),
 	);
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
@@ -198,7 +197,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 							postStatements,
 							element,
 							rootId,
-							getAccessorForBindingPatternType(rhs),
+							// TODO: getAccessorForBindingPatternType(rhs),
 						);
 						return rootId;
 					} else {

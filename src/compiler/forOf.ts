@@ -4,7 +4,7 @@ import {
 	compileExpression,
 	compileLoopBody,
 	concatNamesAndValues,
-	getBindingData,
+	compileBindingPattern,
 	getPropertyAccessExpressionType,
 	getReadableExpressionName,
 	PropertyCallExpType,
@@ -22,20 +22,13 @@ import {
 } from "../typeUtilities";
 import { skipNodesDownwards } from "../utility";
 
-function getVariableName(
-	state: CompilerState,
-	lhs: ts.Node,
-	names: Array<string>,
-	values: Array<string>,
-	preStatements: Array<string>,
-	postStatements: Array<string>,
-) {
+function getVariableName(state: CompilerState, lhs: ts.Node) {
 	if (lhs) {
 		let varName = "";
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 			varName = state.getNewId();
-			getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
+			compileBindingPattern(state, lhs, varName);
 		} else if (ts.TypeGuards.isIdentifier(lhs)) {
 			varName = checkReserved(lhs);
 		}
@@ -237,20 +230,18 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			];
 
 			if (first && ts.TypeGuards.isBindingElement(first)) {
-				key = getVariableName(state, first.getNameNode(), names, values, preStatements, postStatements);
+				key = getVariableName(state, first.getNameNode());
 			}
 
 			if (second && ts.TypeGuards.isBindingElement(second)) {
-				value = getVariableName(state, second.getNameNode(), names, values, preStatements, postStatements);
+				value = getVariableName(state, second.getNameNode());
 			}
 
 			for (let i = 2, { length } = elements; i < length; i++) {
 				const { [i]: element } = elements;
 
 				extraParams.push(
-					ts.TypeGuards.isBindingElement(element)
-						? getVariableName(state, element.getNameNode(), names, values, preStatements, postStatements)
-						: "_",
+					ts.TypeGuards.isBindingElement(element) ? getVariableName(state, element.getNameNode()) : "_",
 				);
 			}
 		} else {
@@ -267,11 +258,11 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			}
 			key = state.getNewId();
 			value = state.getNewId();
-			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+			varName = getVariableName(state, lhs);
 			preStatements.push(`local ${varName} = {${key}, ${value}};`);
 		}
 	} else {
-		varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+		varName = getVariableName(state, lhs);
 
 		switch (loopType) {
 			case ForOfLoopType.Keys:
