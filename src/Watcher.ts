@@ -6,6 +6,7 @@ import { CompilerError } from "./errors/CompilerError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
+import { LoggableError } from "./errors/LoggableError";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
@@ -48,7 +49,16 @@ export class Watcher {
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
 			console.log("Change detected, compiling..");
-			await this.project.refreshFile(filePath);
+			try {
+				await this.project.refreshFile(filePath);
+			} catch (e) {
+				if (e instanceof LoggableError) {
+					e.log("");
+					return;
+				} else {
+					throw e;
+				}
+			}
 			clearContextCache();
 			await time(async () => {
 				try {
