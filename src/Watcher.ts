@@ -3,10 +3,10 @@ import spawn from "cross-spawn";
 import fs from "fs";
 import path from "path";
 import { CompilerError } from "./errors/CompilerError";
+import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
 import { clearContextCache } from "./utility";
-import { LoggableError } from "./errors/LoggableError";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
