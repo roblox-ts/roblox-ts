@@ -1,4 +1,4 @@
-import { red } from "../utility";
+import { red } from "../textUtilities";
 import { LoggableError } from "./LoggableError";
 
 export enum ProjectErrorType {

@@ -1,6 +1,6 @@
 import path from "path";
 import * as ts from "ts-morph";
-import { red } from "../utility";
+import { red } from "../textUtilities";
 
 export enum CompilerErrorType {
 	NoAny,

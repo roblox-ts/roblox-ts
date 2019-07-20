@@ -12,6 +12,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { bold } from "../textUtilities";
 import {
 	getType,
 	isArrayType,
@@ -19,7 +20,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../typeUtilities";
-import { bold, safeLuaIndex, skipNodesDownwards } from "../utility";
+import { safeLuaIndex, skipNodesDownwards } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",

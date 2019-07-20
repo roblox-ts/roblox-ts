@@ -9,7 +9,8 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { red, transformPathToLua, yellow } from "./utility";
+import { red, yellow } from "./textUtilities";
+import { transformPathToLua } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
