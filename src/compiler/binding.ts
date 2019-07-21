@@ -343,6 +343,13 @@ function compileArrayBindingPattern(state: CompilerState, bindingPattern: ts.Arr
 		if (ts.TypeGuards.isOmittedExpression(element)) {
 			getAccessor(state, element, parentId, childIndex, idStack, true);
 		} else {
+			if (element.getDotDotDotToken()) {
+				throw new CompilerError(
+					"Operator ... is not supported for destructuring!",
+					element,
+					CompilerErrorType.SpreadDestructuring,
+				);
+			}
 			const name = element.getNameNode();
 			const rhs = getAccessor(state, name, parentId, childIndex, idStack);
 			if (ts.TypeGuards.isIdentifier(name)) {
@@ -365,6 +372,13 @@ function compileArrayBindingPattern(state: CompilerState, bindingPattern: ts.Arr
 function compileObjectBindingPattern(state: CompilerState, bindingPattern: ts.ObjectBindingPattern, parentId: string) {
 	const getAccessor = getAccessorForBindingType(bindingPattern);
 	for (const element of bindingPattern.getElements()) {
+		if (element.getDotDotDotToken()) {
+			throw new CompilerError(
+				"Operator ... is not supported for destructuring!",
+				element,
+				CompilerErrorType.SpreadDestructuring,
+			);
+		}
 		const name = element.getNameNode();
 		const prop = element.getPropertyNameNode();
 		if (ts.TypeGuards.isIdentifier(name)) {
