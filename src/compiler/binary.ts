@@ -1,27 +1,10 @@
 import * as ts from "ts-morph";
-import {
-	checkNonAny,
-	compileCallExpression,
-	compileElementAccessBracketExpression,
-	compileElementAccessDataTypeExpression,
-	compileExpression,
-	concatNamesAndValues,
-	getWritableOperandName,
-	isIdentifierDefinedInExportLet,
-	compileBindingPattern,
-} from ".";
+import { checkNonAny, compileCallExpression, compileElementAccessBracketExpression, compileElementAccessDataTypeExpression, compileExpression, concatNamesAndValues, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import {
-	getType,
-	isArrayType,
-	isConstantExpression,
-	isNumberType,
-	isStringType,
-	isTupleReturnTypeCall,
-	shouldPushToPrecedingStatement,
-} from "../typeUtilities";
+import { getType, isArrayType, isConstantExpression, isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { compileBindingLiteral } from "./binding";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -116,7 +99,7 @@ function compileBinaryLiteral(
 	}
 
 	// TODO
-	compileBindingPattern(state, lhs, rootId);
+	preStatements.push(...compileBindingLiteral(state, lhs, rootId).map(v => v.trim()));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
@@ -290,8 +273,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		const previouslhs = isEqualsOperation
 			? ""
 			: isStatement && rhsStrContext.length === 0
-			? lhsStr
-			: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
+				? lhsStr
+				: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
 
 		let { isPushed } = rhsStrContext;
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);
