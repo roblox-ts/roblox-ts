@@ -6,9 +6,9 @@ import {
 	compileElementAccessDataTypeExpression,
 	compileExpression,
 	concatNamesAndValues,
-	getBindingData,
 	getWritableOperandName,
 	isIdentifierDefinedInExportLet,
+	compileBindingPattern,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -115,16 +115,8 @@ function compileBinaryLiteral(
 		preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	getBindingData(
-		state,
-		names,
-		values,
-		preStatements,
-		postStatements,
-		lhs,
-		rootId,
-		// TODO: getAccessorForBindingPatternType(rhs),
-	);
+	// TODO
+	compileBindingPattern(state, lhs, rootId);
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
@@ -189,16 +181,9 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						let rootId: string;
 						rootId = state.getNewId();
 
-						getBindingData(
-							state,
-							[],
-							[],
-							preStatements,
-							postStatements,
-							element,
-							rootId,
-							// TODO: getAccessorForBindingPatternType(rhs),
-						);
+						// TODO
+						// compileBindingPattern(state, element, rootId);
+
 						return rootId;
 					} else {
 						return compileExpression(state, element);

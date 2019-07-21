@@ -62,7 +62,8 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 
 	state.popIndent();
 
-	return "if ".concat(
+	return [
+		"if ",
 		name,
 		" == nil then",
 		newline,
@@ -70,7 +71,7 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 		indentation,
 		declaration ? tab + `${declaration}` + newline + indentation : "",
 		"end;",
-	);
+	].join("");
 }
 
 export function getParameterData(
@@ -130,7 +131,7 @@ export function getParameterData(
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
-			compileBindingPattern(state, child, name);
+			initializers.push(...compileBindingPattern(state, child, name).map(v => v.trim()));
 		}
 	}
 }
@@ -380,18 +381,22 @@ function compileObjectBindingPattern(state: CompilerState, bindingPattern: ts.Ob
 	}
 }
 
-function compileBindingPatternInner(state: CompilerState, bindingPattern: BindingPattern, parentId: string): string {
-	state.enterPrecedingStatementContext();
+function compileBindingPatternInner(state: CompilerState, bindingPattern: BindingPattern, parentId: string) {
 	if (ts.TypeGuards.isArrayBindingPattern(bindingPattern)) {
 		compileArrayBindingPattern(state, bindingPattern, parentId);
 	} else if (ts.TypeGuards.isObjectBindingPattern(bindingPattern)) {
 		compileObjectBindingPattern(state, bindingPattern, parentId);
 	}
-	return state.exitPrecedingStatementContextAndJoin();
 }
 
-export function compileBindingPattern(state: CompilerState, bindingPattern: BindingPattern, parentId: string): string {
+export function compileBindingPatternAndJoin(state: CompilerState, bindingPattern: BindingPattern, parentId: string) {
 	state.enterPrecedingStatementContext();
 	compileBindingPatternInner(state, bindingPattern, parentId);
 	return state.exitPrecedingStatementContextAndJoin();
+}
+
+export function compileBindingPattern(state: CompilerState, bindingPattern: BindingPattern, parentId: string) {
+	state.enterPrecedingStatementContext();
+	compileBindingPatternInner(state, bindingPattern, parentId);
+	return state.exitPrecedingStatementContext();
 }

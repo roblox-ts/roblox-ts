@@ -4,7 +4,7 @@ import {
 	compileExpression,
 	compileLoopBody,
 	concatNamesAndValues,
-	compileBindingPattern,
+	compileBindingPatternAndJoin,
 	getPropertyAccessExpressionType,
 	getReadableExpressionName,
 	PropertyCallExpType,
@@ -28,7 +28,7 @@ function getVariableName(state: CompilerState, lhs: ts.Node) {
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 			varName = state.getNewId();
-			compileBindingPattern(state, lhs, varName);
+			compileBindingPatternAndJoin(state, lhs, varName);
 		} else if (ts.TypeGuards.isIdentifier(lhs)) {
 			varName = checkReserved(lhs);
 		}
