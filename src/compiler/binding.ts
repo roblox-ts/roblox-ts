@@ -355,6 +355,7 @@ function compileArrayBindingPattern(state: CompilerState, bindingPattern: ts.Arr
 			const name = element.getNameNode();
 			const rhs = getAccessor(state, name, parentId, childIndex, idStack);
 			if (ts.TypeGuards.isIdentifier(name)) {
+				checkReserved(name);
 				const nameStr = compileExpression(state, name);
 				state.pushPrecedingStatements(element, state.indent + `local ${nameStr} = ${rhs};\n`);
 				const initializer = element.getInitializer();
@@ -384,6 +385,7 @@ function compileObjectBindingPattern(state: CompilerState, bindingPattern: ts.Ob
 		const name = element.getNameNode();
 		const prop = element.getPropertyNameNode();
 		if (ts.TypeGuards.isIdentifier(name)) {
+			checkReserved(name);
 			const nameStr = compileExpression(state, name);
 			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
 			state.pushPrecedingStatements(bindingPattern, state.indent + `local ${nameStr} = ${rhs};\n`);
