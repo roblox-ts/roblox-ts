@@ -455,6 +455,7 @@ export function compileBindingPattern(
 ) {
 	state.enterPrecedingStatementContext();
 	compileBindingPatternInner(state, bindingPattern, parentId, exportVars, noLocal);
+	// TODO: remove .trim(), fix call sites
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
 
@@ -594,5 +595,6 @@ export function compileBindingLiteral(
 ) {
 	state.enterPrecedingStatementContext();
 	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
+	// TODO: remove .trim(), fix call sites
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
