@@ -25,8 +25,8 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
-import { checkReserved } from "./security";
 import { compileIdentifier } from "./identifier";
+import { checkReserved } from "./security";
 
 type BindingPattern = ts.ArrayBindingPattern | ts.ObjectBindingPattern;
 type BindingLiteral = ts.ArrayLiteralExpression | ts.ObjectLiteralExpression;
