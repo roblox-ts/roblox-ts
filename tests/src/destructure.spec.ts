@@ -372,4 +372,37 @@ export = () => {
 		expect(array[a]).to.equal(2);
 		expect(array[b]).to.equal(1);
 	});
+
+	it("should support initializers in object destructuring", () => {
+		const o: { [K: string]: number } = {
+			a: 1,
+			b: 2,
+			c: 3,
+		};
+		function f(x: string) {
+			const { [x]: a = 0 } = o;
+			return a;
+		}
+		function g(x: string) {
+			const { x: b = 2 } = o;
+			return b;
+		}
+		expect(f("a")).to.equal(1);
+		expect(g("a")).to.equal(2);
+		expect(f("b")).to.equal(2);
+		expect(g("b")).to.equal(2);
+		expect(f("c")).to.equal(3);
+		expect(g("c")).to.equal(2);
+		expect(f("d")).to.equal(0);
+		expect(g("d")).to.equal(2);
+	});
+
+	it("should support arrays with object destructure", () => {
+		const array = [3, 4];
+		let a = 0;
+		let b = 1;
+		({ [a]: array[b], [b]: array[a] } = array);
+		expect(array[a]).to.equal(3);
+		expect(array[b]).to.equal(3);
+	});
 };
