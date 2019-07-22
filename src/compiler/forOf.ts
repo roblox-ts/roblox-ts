@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
-	compileBindingPatternAndJoin,
+	compileBindingPattern,
 	compileExpression,
 	compileLoopBody,
 	getPropertyAccessExpressionType,
@@ -21,13 +21,13 @@ import {
 } from "../typeUtilities";
 import { skipNodesDownwards } from "../utility";
 
-function getVariableName(state: CompilerState, lhs: ts.Node) {
+function getVariableName(state: CompilerState, lhs: ts.Node, statements: Array<string>) {
 	if (lhs) {
 		let varName = "";
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 			varName = state.getNewId();
-			compileBindingPatternAndJoin(state, lhs, varName);
+			statements.push(...compileBindingPattern(state, lhs, varName));
 		} else if (ts.TypeGuards.isIdentifier(lhs)) {
 			varName = checkReserved(lhs);
 		}
@@ -226,18 +226,20 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			];
 
 			if (first && ts.TypeGuards.isBindingElement(first)) {
-				key = getVariableName(state, first.getNameNode());
+				key = getVariableName(state, first.getNameNode(), statements);
 			}
 
 			if (second && ts.TypeGuards.isBindingElement(second)) {
-				value = getVariableName(state, second.getNameNode());
+				value = getVariableName(state, second.getNameNode(), statements);
 			}
 
 			for (let i = 2, { length } = elements; i < length; i++) {
 				const { [i]: element } = elements;
 
 				extraParams.push(
-					ts.TypeGuards.isBindingElement(element) ? getVariableName(state, element.getNameNode()) : "_",
+					ts.TypeGuards.isBindingElement(element)
+						? getVariableName(state, element.getNameNode(), statements)
+						: "_",
 				);
 			}
 		} else {
@@ -254,11 +256,11 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			}
 			key = state.getNewId();
 			value = state.getNewId();
-			varName = getVariableName(state, lhs);
+			varName = getVariableName(state, lhs, statements);
 			statements.push(`local ${varName} = {${key}, ${value}};`);
 		}
 	} else {
-		varName = getVariableName(state, lhs);
+		varName = getVariableName(state, lhs, statements);
 
 		switch (loopType) {
 			case ForOfLoopType.Keys:

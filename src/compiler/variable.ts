@@ -142,20 +142,23 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			}
 		}
 
-		result += compileBindingPatternAndJoin(state, lhs, rhsStr);
+		let exportVars = false;
+		let noLocal = false;
 
-		// preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-		// if (values.length > 0) {
-		// 	if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-		// 		concatNamesAndValues(state, names, values, false, str => (result += str));
-		// 	} else {
-		// 		if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
-		// 			names.forEach(name => state.pushExport(name, grandParent));
-		// 		}
-		// 		concatNamesAndValues(state, names, values, true, str => (result += str));
-		// 	}
-		// }
-		// postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		if (isExported) {
+			if (decKind === ts.VariableDeclarationKind.Let) {
+				exportVars = false;
+				noLocal = true;
+			} else {
+				exportVars = true;
+				noLocal = false;
+			}
+		} else {
+			exportVars = false;
+			noLocal = false;
+		}
+
+		result += compileBindingPatternAndJoin(state, lhs, rhsStr, exportVars, noLocal);
 	}
 
 	return state.exitPrecedingStatementContextAndJoin() + result;

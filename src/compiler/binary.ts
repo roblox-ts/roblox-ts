@@ -112,7 +112,6 @@ function compileBinaryLiteral(
 		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	// TODO
 	statements.push(...compileBindingLiteral(state, lhs, rootId));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
