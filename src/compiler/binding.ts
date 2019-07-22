@@ -500,7 +500,12 @@ function compileArrayBindingLiteral(
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
 				compileBindingLiteralInner(state, element, id, accessNode);
 			} else {
-				throw `Unexpected ${element.getKindName()} for compileArrayBindingLiteral`;
+				throw new CompilerError(
+					`Unexpected ${element.getKindName()} in compileArrayBindingLiteral.`,
+					element,
+					CompilerErrorType.UnexpectedBindingPattern,
+					true,
+				);
 			}
 		}
 		childIndex++;
@@ -555,7 +560,12 @@ function compileObjectBindingLiteral(
 				compileBindingLiteralInner(state, initializer, id, accessNode);
 			}
 		} else {
-			throw `Unexpected ${property.getKindName()} for compileObjectBindingLiteral`;
+			throw new CompilerError(
+				`Unexpected ${property.getKindName()} in compileArrayBindingLiteral.`,
+				property,
+				CompilerErrorType.UnexpectedBindingPattern,
+				true,
+			);
 		}
 	}
 }
