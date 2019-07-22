@@ -167,9 +167,9 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 
 export function laxTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
-		return type.getUnionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getUnionTypes().some(t => laxTypeConstraint(t, cb));
 	} else if (type.isIntersection()) {
-		return type.getIntersectionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getIntersectionTypes().some(t => laxTypeConstraint(t, cb));
 	} else {
 		return cb(type);
 	}
