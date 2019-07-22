@@ -356,7 +356,7 @@ function compileArrayBindingPattern(
 				checkReserved(name);
 				const prefix = noLocal ? "" : "local ";
 				const nameStr = compileIdentifier(state, name, true);
-				state.pushPrecedingStatements(element, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
+				state.pushPrecedingStatements(bindingPattern, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
 				if (exportVars) {
 					state.pushExport(nameStr, bindingPattern.getParent());
 				}
@@ -484,7 +484,7 @@ function compileArrayBindingLiteral(
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
 				const initializer = skipNodesDownwards(element.getRight());
 				state.pushPrecedingStatements(
-					initializer,
+					bindingLiteral,
 					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
 				);
 			} else if (
@@ -543,8 +543,8 @@ function compileObjectBindingLiteral(
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
 				const init = skipNodesDownwards(initializer.getRight());
 				state.pushPrecedingStatements(
-					init,
-					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+					bindingLiteral,
+					state.indent + compileParamDefault(state, init, nameStr) + "\n",
 				);
 			} else if (
 				ts.TypeGuards.isObjectLiteralExpression(initializer) ||
