@@ -2,7 +2,6 @@ import * as ts from "ts-morph";
 import {
 	checkPropertyCollision,
 	compileExpression,
-	compileIdentifier,
 	CompilerDirective,
 	getComputedPropertyAccess,
 	HasParameters,
@@ -26,7 +25,11 @@ import {
 	isStringType,
 } from "../typeUtilities";
 import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
+import { compileIdentifier } from "./identifier";
 import { checkReserved } from "./security";
+
+type BindingPattern = ts.ArrayBindingPattern | ts.ObjectBindingPattern;
+type BindingLiteral = ts.ArrayLiteralExpression | ts.ObjectLiteralExpression;
 
 function compileParamDefault(state: CompilerState, exp: ts.Expression, name: string) {
 	const initializer = skipNodesDownwards(exp);
@@ -61,7 +64,8 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 
 	state.popIndent();
 
-	return "if ".concat(
+	return [
+		"if ",
 		name,
 		" == nil then",
 		newline,
@@ -69,7 +73,7 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 		indentation,
 		declaration ? tab + `${declaration}` + newline + indentation : "",
 		"end;",
-	);
+	].join("");
 }
 
 export function getParameterData(
@@ -129,19 +133,12 @@ export function getParameterData(
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
-			const names = new Array<string>();
-			const values = new Array<string>();
-			const preStatements = new Array<string>();
-			const postStatements = new Array<string>();
-			getBindingData(state, names, values, preStatements, postStatements, child, name);
-			preStatements.forEach(statement => initializers.push(statement));
-			concatNamesAndValues(state, names, values, true, declaration => initializers.push(declaration), false);
-			postStatements.forEach(statement => initializers.push(statement));
+			initializers.push(...compileBindingPattern(state, child, name));
 		}
 	}
 }
 
-function arrayAccessor(state: CompilerState, t: string, key: number) {
+function arrayAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
 	return `${t}[${key}]`;
 }
 
@@ -149,13 +146,7 @@ function objectAccessor(
 	state: CompilerState,
 	t: string,
 	node: ts.Node,
-	getAccessor: (
-		state: CompilerState,
-		t: string,
-		key: number,
-		preStatements: Array<string>,
-		idStack: Array<string>,
-	) => string,
+	getAccessor: (state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) => string,
 	nameNode: ts.Node = node,
 	aliasNode: ts.Node = node,
 ): string {
@@ -191,15 +182,13 @@ function objectAccessor(
 		);
 	}
 
-	if (getAccessor) {
-		const type = getType(aliasNode);
-		if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type) || isStringMethodType(type)) {
-			throw new CompilerError(
-				`Cannot index method ${name} (a roblox-ts internal)`,
-				aliasNode,
-				CompilerErrorType.BadDestructuringType,
-			);
-		}
+	const type = getType(aliasNode);
+	if (isArrayMethodType(type) || isMapMethodType(type) || isSetMethodType(type) || isStringMethodType(type)) {
+		throw new CompilerError(
+			`Cannot index method ${name} (a roblox-ts internal)`,
+			aliasNode,
+			CompilerErrorType.BadDestructuringType,
+		);
 	}
 
 	// We need this because length is built-in to the TS compiler, even if we removed it from our types
@@ -217,33 +206,22 @@ function objectAccessor(
 	return safeLuaIndex(t, name);
 }
 
-function stringAccessor(state: CompilerState, t: string, key: number) {
-	return `${t}:sub(${key}, ${key})`;
+function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
+	return `string.sub(${t}, ${key}, ${key})`;
 }
 
-function setAccessor(
-	state: CompilerState,
-	t: string,
-	key: number,
-	preStatements: Array<string>,
-	idStack: Array<string>,
-) {
-	const id = state.getNewId();
+function setAccessor(state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) {
 	const lastId = idStack[idStack.length - 1] as string | undefined;
-	if (lastId !== undefined) {
-		preStatements.push(`local ${id} = next(${t}, ${lastId})`);
-	} else {
-		preStatements.push(`local ${id} = next(${t})`);
-	}
+	const id = state.pushPrecedingStatementToNewId(node, `next(${t}${lastId ? `, ${lastId}` : ""})`);
 	idStack.push(id);
 	return id;
 }
 
 function mapAccessor(
 	state: CompilerState,
+	node: ts.Node,
 	t: string,
 	key: number,
-	preStatements: Array<string>,
 	idStack: Array<string>,
 	isHole = false,
 ) {
@@ -258,9 +236,9 @@ function mapAccessor(
 	}
 
 	if (lastId !== undefined) {
-		preStatements.push(`local ${keyId}${valueIdStr} = next(${t}, ${lastId})`);
+		state.pushPrecedingStatements(node, state.indent + `local ${keyId}${valueIdStr} = next(${t}, ${lastId});\n`);
 	} else {
-		preStatements.push(`local ${keyId}${valueIdStr} = next(${t})`);
+		state.pushPrecedingStatements(node, state.indent + `local ${keyId}${valueIdStr} = next(${t});\n`);
 	}
 	idStack.push(keyId);
 	return `{ ${keyId}${valueIdStr} }`;
@@ -268,39 +246,39 @@ function mapAccessor(
 
 function iterAccessor(
 	state: CompilerState,
+	node: ts.Node,
 	t: string,
 	key: number,
-	preStatements: Array<string>,
 	idStack: Array<string>,
 	isHole = false,
 ) {
 	if (isHole) {
-		preStatements.push(`${t}.next()`);
+		state.pushPrecedingStatements(node, state.indent + `${t}.next();\n`);
 		return "";
 	} else {
 		const id = state.getNewId();
-		preStatements.push(`local ${id} = ${t}.next();`);
+		state.pushPrecedingStatements(node, state.indent + `local ${id} = ${t}.next();\n`);
 		return `${id}.value`;
 	}
 }
 
 function iterableFunctionAccessor(
 	state: CompilerState,
+	node: ts.Node,
 	t: string,
 	key: number,
-	preStatements: Array<string>,
 	idStack: Array<string>,
 	isHole = false,
 ) {
 	if (isHole) {
-		preStatements.push(`${t}()`);
+		state.pushPrecedingStatements(node, state.indent + `${t}();\n`);
 		return "";
 	} else {
 		return `${t}()`;
 	}
 }
 
-export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
+export function getAccessorForBindingType(bindingPattern: ts.Node) {
 	const bindingPatternType = getType(bindingPattern);
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
@@ -320,7 +298,7 @@ export function getAccessorForBindingPatternType(bindingPattern: ts.Node) {
 	) {
 		return iterAccessor;
 	} else {
-		if (bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern) {
+		if (ts.TypeGuards.isObjectBindingPattern(bindingPattern)) {
 			return null as never;
 		} else {
 			throw new CompilerError(
@@ -351,147 +329,272 @@ export function concatNamesAndValues(
 	}
 }
 
-export function getBindingData(
+function compileArrayBindingPattern(
 	state: CompilerState,
-	names: Array<string>,
-	values: Array<string>,
-	preStatements: Array<string>,
-	postStatements: Array<string>,
-	bindingPattern: ts.Node,
+	bindingPattern: ts.ArrayBindingPattern,
 	parentId: string,
-	getAccessor = getAccessorForBindingPatternType(bindingPattern),
+	exportVars: boolean,
+	noLocal: boolean,
 ) {
-	const idStack = new Array<string>();
-	const strKeys = bindingPattern.getKind() === ts.SyntaxKind.ObjectBindingPattern;
 	let childIndex = 1;
-	for (const item of bindingPattern.getFirstChildByKindOrThrow(ts.SyntaxKind.SyntaxList).getChildren()) {
-		if (ts.TypeGuards.isBindingElement(item)) {
-			const [child, op, pattern] = item.getChildren();
-
-			if (child.getKind() === ts.SyntaxKind.DotDotDotToken) {
+	const idStack = new Array<string>();
+	const getAccessor = getAccessorForBindingType(bindingPattern);
+	for (const element of bindingPattern.getElements()) {
+		if (ts.TypeGuards.isOmittedExpression(element)) {
+			getAccessor(state, element, parentId, childIndex, idStack, true);
+		} else {
+			if (element.getDotDotDotToken()) {
 				throw new CompilerError(
 					"Operator ... is not supported for destructuring!",
-					child,
+					element,
 					CompilerErrorType.SpreadDestructuring,
 				);
 			}
+			const name = element.getNameNode();
+			const rhs = getAccessor(state, name, parentId, childIndex, idStack);
+			if (ts.TypeGuards.isIdentifier(name)) {
+				checkReserved(name);
+				const prefix = noLocal ? "" : "local ";
+				const nameStr = compileIdentifier(state, name, true);
+				state.pushPrecedingStatements(bindingPattern, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
+				if (exportVars) {
+					state.pushExport(nameStr, bindingPattern.getParent());
+				}
+				const initializer = element.getInitializer();
+				if (initializer) {
+					state.pushPrecedingStatements(
+						bindingPattern,
+						state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+					);
+				}
+			} else {
+				const id = state.getNewId();
+				state.pushPrecedingStatements(bindingPattern, state.indent + `local ${id} = ${rhs};\n`);
+				compileBindingPatternInner(state, name, id, exportVars, noLocal);
+			}
+		}
+		childIndex++;
+	}
+}
 
-			if (
-				pattern &&
-				(ts.TypeGuards.isArrayBindingPattern(pattern) || ts.TypeGuards.isObjectBindingPattern(pattern))
-			) {
-				const childId = state.getNewId();
-				const accessor: string = strKeys
-					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements, idStack);
-				preStatements.push(`local ${childId} = ${accessor};`);
-				getBindingData(state, names, values, preStatements, postStatements, pattern, childId);
-			} else if (ts.TypeGuards.isArrayBindingPattern(child)) {
-				const childId = state.getNewId();
-				const accessor: string = strKeys
-					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements, idStack);
-				preStatements.push(`local ${childId} = ${accessor};`);
-				getBindingData(state, names, values, preStatements, postStatements, child, childId);
-			} else if (ts.TypeGuards.isIdentifier(child)) {
-				const idNode = pattern && ts.TypeGuards.isIdentifier(pattern) ? pattern : child;
-				const id: string = compileIdentifier(state, idNode, true);
-				checkReserved(idNode);
-				names.push(id);
-				if (op && op.getKind() === ts.SyntaxKind.EqualsToken) {
-					postStatements.push(compileParamDefault(state, pattern as ts.Expression, id));
-				}
-				const accessor: string = strKeys
-					? objectAccessor(state, parentId, child, getAccessor, child, idNode)
-					: getAccessor(state, parentId, childIndex, preStatements, idStack);
-				values.push(accessor);
-			} else if (ts.TypeGuards.isObjectBindingPattern(child)) {
-				const childId = state.getNewId();
-				const accessor: string = strKeys
-					? objectAccessor(state, parentId, child, getAccessor)
-					: getAccessor(state, parentId, childIndex, preStatements, idStack);
-				preStatements.push(`local ${childId} = ${accessor};`);
-				getBindingData(state, names, values, preStatements, postStatements, child, childId);
-			} else if (ts.TypeGuards.isComputedPropertyName(child)) {
-				const expStr = getComputedPropertyAccess(
-					state,
-					skipNodesDownwards(child.getExpression()),
+function compileObjectBindingPattern(
+	state: CompilerState,
+	bindingPattern: ts.ObjectBindingPattern,
+	parentId: string,
+	exportVars: boolean,
+	noLocal: boolean,
+) {
+	const getAccessor = getAccessorForBindingType(bindingPattern);
+	for (const element of bindingPattern.getElements()) {
+		if (element.getDotDotDotToken()) {
+			throw new CompilerError(
+				"Operator ... is not supported for destructuring!",
+				element,
+				CompilerErrorType.SpreadDestructuring,
+			);
+		}
+		const name = element.getNameNode();
+		const prop = element.getPropertyNameNode();
+		if (ts.TypeGuards.isIdentifier(name)) {
+			checkReserved(name);
+			const prefix = noLocal ? "" : "local ";
+			const nameStr = compileIdentifier(state, name, true);
+			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
+			state.pushPrecedingStatements(bindingPattern, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
+			if (exportVars) {
+				state.pushExport(nameStr, bindingPattern.getParent());
+			}
+			const initializer = element.getInitializer();
+			if (initializer) {
+				state.pushPrecedingStatements(
 					bindingPattern,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
 				);
-				const accessor = `${parentId}[${expStr}]`;
-				const childId: string = compileExpression(state, pattern as ts.Expression);
-				if (ts.TypeGuards.isIdentifier(pattern)) {
-					checkReserved(pattern);
-				}
-				preStatements.push(`local ${childId} = ${accessor};`);
-			} else if (child.getKind() !== ts.SyntaxKind.CommaToken && !ts.TypeGuards.isOmittedExpression(child)) {
+			}
+		} else {
+			const id = state.getNewId();
+			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
+			state.pushPrecedingStatements(bindingPattern, state.indent + `local ${id} = ${rhs};\n`);
+			compileBindingPatternInner(state, name, id, exportVars, noLocal);
+		}
+	}
+}
+
+function compileBindingPatternInner(
+	state: CompilerState,
+	bindingPattern: BindingPattern,
+	parentId: string,
+	exportVars: boolean,
+	noLocal: boolean,
+) {
+	if (ts.TypeGuards.isArrayBindingPattern(bindingPattern)) {
+		compileArrayBindingPattern(state, bindingPattern, parentId, exportVars, noLocal);
+	} else if (ts.TypeGuards.isObjectBindingPattern(bindingPattern)) {
+		compileObjectBindingPattern(state, bindingPattern, parentId, exportVars, noLocal);
+	}
+}
+
+export function compileBindingPatternAndJoin(
+	state: CompilerState,
+	bindingPattern: BindingPattern,
+	parentId: string,
+	exportVars = false,
+	noLocal = false,
+) {
+	state.enterPrecedingStatementContext();
+	compileBindingPatternInner(state, bindingPattern, parentId, exportVars, noLocal);
+	return state.exitPrecedingStatementContextAndJoin();
+}
+
+export function compileBindingPattern(
+	state: CompilerState,
+	bindingPattern: BindingPattern,
+	parentId: string,
+	exportVars = false,
+	noLocal = false,
+) {
+	state.enterPrecedingStatementContext();
+	compileBindingPatternInner(state, bindingPattern, parentId, exportVars, noLocal);
+	// TODO: remove .trim(), fix call sites
+	return state.exitPrecedingStatementContext().map(v => v.trim());
+}
+
+function compileArrayBindingLiteral(
+	state: CompilerState,
+	bindingLiteral: ts.ArrayLiteralExpression,
+	parentId: string,
+	accessNode: ts.Node,
+) {
+	let childIndex = 1;
+	const idStack = new Array<string>();
+	const getAccessor = getAccessorForBindingType(accessNode);
+	for (const element of bindingLiteral.getElements()) {
+		if (ts.TypeGuards.isOmittedExpression(element)) {
+			getAccessor(state, element, parentId, childIndex, idStack, true);
+		} else {
+			const rhs = getAccessor(state, element, parentId, childIndex, idStack);
+			if (
+				ts.TypeGuards.isIdentifier(element) ||
+				ts.TypeGuards.isElementAccessExpression(element) ||
+				ts.TypeGuards.isPropertyAccessExpression(element)
+			) {
+				const nameStr = compileExpression(state, element);
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
+			} else if (ts.TypeGuards.isBinaryExpression(element)) {
+				const nameStr = compileExpression(state, skipNodesDownwards(element.getLeft()));
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
+				const initializer = skipNodesDownwards(element.getRight());
+				state.pushPrecedingStatements(
+					bindingLiteral,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
+			} else if (
+				ts.TypeGuards.isArrayLiteralExpression(element) ||
+				ts.TypeGuards.isObjectLiteralExpression(element)
+			) {
+				const id = state.getNewId();
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
+				compileBindingLiteralInner(state, element, id, accessNode);
+			} else {
 				throw new CompilerError(
-					`Unexpected ${child.getKindName()} in getBindingData.`,
-					child,
+					`Unexpected ${element.getKindName()} in compileArrayBindingLiteral.`,
+					element,
 					CompilerErrorType.UnexpectedBindingPattern,
 					true,
 				);
 			}
-		} else if (ts.TypeGuards.isIdentifier(item)) {
-			/*
-			let a: number;
-			[a] = [0];
-			*/
-			const id = compileExpression(state, item as ts.Expression);
-			names.push(id);
-			values.push(getAccessor(state, parentId, childIndex, preStatements, idStack));
-		} else if (ts.TypeGuards.isPropertyAccessExpression(item)) {
-			const id = compileExpression(state, item as ts.Expression);
-			names.push(id);
-			values.push(getAccessor(state, parentId, childIndex, preStatements, idStack));
-		} else if (ts.TypeGuards.isArrayLiteralExpression(item)) {
-			const childId = state.getNewId();
-			preStatements.push(
-				`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements, idStack)};`,
-			);
-			getBindingData(state, names, values, preStatements, postStatements, item, childId);
-		} else if (item.getKind() === ts.SyntaxKind.CommaToken) {
-			childIndex--;
-		} else if (ts.TypeGuards.isObjectLiteralExpression(item)) {
-			const childId = state.getNewId();
-			preStatements.push(
-				`local ${childId} = ${getAccessor(state, parentId, childIndex, preStatements, idStack)};`,
-			);
-			getBindingData(state, names, values, preStatements, postStatements, item, childId);
-		} else if (ts.TypeGuards.isShorthandPropertyAssignment(item)) {
-			preStatements.push(`${item.getName()} = ${objectAccessor(state, parentId, item, getAccessor)};`);
-		} else if (ts.TypeGuards.isPropertyAssignment(item)) {
-			let alias: string;
-			const nameNode = item.getNameNode();
-			if (item.hasInitializer()) {
-				const initializer = skipNodesDownwards(item.getInitializer()!);
-				if (
-					ts.TypeGuards.isIdentifier(initializer) ||
-					ts.TypeGuards.isPropertyAccessExpression(initializer) ||
-					ts.TypeGuards.isElementAccessExpression(initializer)
-				) {
-					alias = compileExpression(state, initializer);
-					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
-				} else {
-					alias = state.getNewId();
-					preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
-					getBindingData(state, names, values, preStatements, postStatements, initializer, alias);
-				}
-			} else {
-				alias = item.getName();
-				preStatements.push(`${alias} = ${objectAccessor(state, parentId, item, getAccessor, nameNode)};`);
+		}
+		childIndex++;
+	}
+}
+
+function compileObjectBindingLiteral(
+	state: CompilerState,
+	bindingLiteral: ts.ObjectLiteralExpression,
+	parentId: string,
+	accessNode: ts.Node,
+) {
+	const getAccessor = getAccessorForBindingType(accessNode);
+	for (const property of bindingLiteral.getProperties()) {
+		if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+			const name = property.getNameNode();
+			const nameStr = compileExpression(state, name);
+			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
+			state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${nameStr} = ${rhs};\n`);
+			const initializer = property.getObjectAssignmentInitializer();
+			if (initializer) {
+				state.pushPrecedingStatements(
+					bindingLiteral,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
 			}
-		} else if (ts.TypeGuards.isOmittedExpression(item)) {
-			getAccessor(state, parentId, childIndex, preStatements, idStack, true);
+		} else if (ts.TypeGuards.isPropertyAssignment(property)) {
+			const name = property.getNameNode();
+			const init = property.getInitializerOrThrow();
+			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
+			if (
+				ts.TypeGuards.isIdentifier(init) ||
+				ts.TypeGuards.isElementAccessExpression(init) ||
+				ts.TypeGuards.isPropertyAccessExpression(init)
+			) {
+				const nameStr = compileExpression(state, init);
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
+			} else if (ts.TypeGuards.isBinaryExpression(init)) {
+				const nameStr = compileExpression(state, skipNodesDownwards(init.getLeft()));
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
+				const initializer = skipNodesDownwards(init.getRight());
+				state.pushPrecedingStatements(
+					bindingLiteral,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
+			} else if (ts.TypeGuards.isObjectLiteralExpression(init) || ts.TypeGuards.isArrayLiteralExpression(init)) {
+				const id = state.getNewId();
+				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
+				compileBindingLiteralInner(state, init, id, accessNode);
+			}
 		} else {
 			throw new CompilerError(
-				`Unexpected ${item.getKindName()} in getBindingData.`,
-				item,
+				`Unexpected ${property.getKindName()} in compileArrayBindingLiteral.`,
+				property,
 				CompilerErrorType.UnexpectedBindingPattern,
 				true,
 			);
 		}
-
-		childIndex++;
 	}
+}
+
+function compileBindingLiteralInner(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node,
+) {
+	if (ts.TypeGuards.isArrayLiteralExpression(bindingLiteral)) {
+		compileArrayBindingLiteral(state, bindingLiteral, parentId, accessNode);
+	} else if (ts.TypeGuards.isObjectLiteralExpression(bindingLiteral)) {
+		compileObjectBindingLiteral(state, bindingLiteral, parentId, accessNode);
+	}
+}
+
+export function compileBindingLiteralAndJoin(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node = bindingLiteral,
+) {
+	state.enterPrecedingStatementContext();
+	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
+	return state.exitPrecedingStatementContextAndJoin();
+}
+
+export function compileBindingLiteral(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node = bindingLiteral,
+) {
+	state.enterPrecedingStatementContext();
+	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
+	// TODO: remove .trim(), fix call sites
+	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
