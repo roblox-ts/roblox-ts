@@ -26,6 +26,7 @@ import {
 } from "../typeUtilities";
 import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
 import { checkReserved } from "./security";
+import { compileIdentifier } from "./identifier";
 
 type BindingPattern = ts.ArrayBindingPattern | ts.ObjectBindingPattern;
 type BindingLiteral = ts.ArrayLiteralExpression | ts.ObjectLiteralExpression;
@@ -361,7 +362,7 @@ function compileArrayBindingPattern(
 			if (ts.TypeGuards.isIdentifier(name)) {
 				checkReserved(name);
 				const prefix = noLocal ? "" : "local ";
-				const nameStr = compileExpression(state, name);
+				const nameStr = compileIdentifier(state, name, true);
 				state.pushPrecedingStatements(element, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
 				if (exportVars) {
 					state.pushExport(nameStr, bindingPattern.getParent());
@@ -401,7 +402,7 @@ function compileObjectBindingPattern(
 		if (ts.TypeGuards.isIdentifier(name)) {
 			checkReserved(name);
 			const prefix = noLocal ? "" : "local ";
-			const nameStr = compileExpression(state, name);
+			const nameStr = compileIdentifier(state, name, true);
 			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
 			state.pushPrecedingStatements(bindingPattern, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
 			if (exportVars) {
