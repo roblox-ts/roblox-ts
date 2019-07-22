@@ -529,30 +529,27 @@ function compileObjectBindingLiteral(
 			}
 		} else if (ts.TypeGuards.isPropertyAssignment(property)) {
 			const name = property.getNameNode();
-			const initializer = property.getInitializerOrThrow();
+			const init = property.getInitializerOrThrow();
 			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
 			if (
-				ts.TypeGuards.isIdentifier(initializer) ||
-				ts.TypeGuards.isElementAccessExpression(initializer) ||
-				ts.TypeGuards.isPropertyAccessExpression(initializer)
+				ts.TypeGuards.isIdentifier(init) ||
+				ts.TypeGuards.isElementAccessExpression(init) ||
+				ts.TypeGuards.isPropertyAccessExpression(init)
 			) {
-				const nameStr = compileExpression(state, initializer);
+				const nameStr = compileExpression(state, init);
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
-			} else if (ts.TypeGuards.isBinaryExpression(initializer)) {
-				const nameStr = compileExpression(state, skipNodesDownwards(initializer.getLeft()));
+			} else if (ts.TypeGuards.isBinaryExpression(init)) {
+				const nameStr = compileExpression(state, skipNodesDownwards(init.getLeft()));
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
-				const init = skipNodesDownwards(initializer.getRight());
+				const initializer = skipNodesDownwards(init.getRight());
 				state.pushPrecedingStatements(
 					bindingLiteral,
-					state.indent + compileParamDefault(state, init, nameStr) + "\n",
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
 				);
-			} else if (
-				ts.TypeGuards.isObjectLiteralExpression(initializer) ||
-				ts.TypeGuards.isArrayLiteralExpression(initializer)
-			) {
+			} else if (ts.TypeGuards.isObjectLiteralExpression(init) || ts.TypeGuards.isArrayLiteralExpression(init)) {
 				const id = state.getNewId();
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
-				compileBindingLiteralInner(state, initializer, id, accessNode);
+				compileBindingLiteralInner(state, init, id, accessNode);
 			}
 		} else {
 			throw new CompilerError(
