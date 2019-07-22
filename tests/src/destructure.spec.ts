@@ -388,12 +388,10 @@ export = () => {
 			return b;
 		}
 		expect(f("a")).to.equal(1);
-		expect(g("a")).to.equal(2);
 		expect(f("b")).to.equal(2);
-		expect(g("b")).to.equal(2);
 		expect(f("c")).to.equal(3);
-		expect(g("c")).to.equal(2);
 		expect(f("d")).to.equal(0);
+		expect(g("a")).to.equal(2);
 		expect(g("d")).to.equal(2);
 	});
 
