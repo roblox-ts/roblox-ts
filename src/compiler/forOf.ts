@@ -257,7 +257,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			key = state.getNewId();
 			value = state.getNewId();
 			varName = getVariableName(state, lhs, statements);
-			statements.push(`local ${varName} = {${key}, ${value}};`);
+			statements.unshift(`local ${varName} = {${key}, ${value}};`);
 		}
 	} else {
 		varName = getVariableName(state, lhs, statements);
@@ -291,8 +291,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				const loopVar = state.getNewId();
 				key = loopVar;
 				expStr = `${expStr}.next`;
-				statements.push(`if ${loopVar}.done then break end;`);
-				statements.push(`local ${varName} = ${loopVar}.value;`);
+				statements.unshift(`if ${loopVar}.done then break end;`, `local ${varName} = ${loopVar}.value;`);
 				break;
 			}
 		}
