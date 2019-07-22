@@ -698,7 +698,7 @@ export class Project {
 						void fs.readFile(filePath).then(contentsBuffer => {
 							let fileContents = contentsBuffer.toString();
 							fileContents = fileContents.replace(
-								/<reference types="([^."]+)" \/>/g,
+								/<reference types="(?!@rbxts\/)([^."]+)" \/>/g,
 								'<reference types="@rbxts/$1" />',
 							);
 							void fs.writeFile(filePath, fileContents).then(() => resolve());
