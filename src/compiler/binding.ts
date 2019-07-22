@@ -283,9 +283,7 @@ function iterableFunctionAccessor(
 	}
 }
 
-export function getAccessorForBindingType(
-	bindingPattern: BindingPattern | ts.ArrayLiteralExpression | ts.ObjectLiteralExpression,
-) {
+export function getAccessorForBindingType(bindingPattern: ts.Node) {
 	const bindingPatternType = getType(bindingPattern);
 	if (isArrayType(bindingPatternType)) {
 		return arrayAccessor;
@@ -369,7 +367,10 @@ function compileArrayBindingPattern(
 				}
 				const initializer = element.getInitializer();
 				if (initializer) {
-					state.pushPrecedingStatements(bindingPattern, compileParamDefault(state, initializer, nameStr));
+					state.pushPrecedingStatements(
+						bindingPattern,
+						state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+					);
 				}
 			} else {
 				const id = state.getNewId();
@@ -408,6 +409,13 @@ function compileObjectBindingPattern(
 			if (exportVars) {
 				state.pushExport(nameStr, bindingPattern.getParent());
 			}
+			const initializer = element.getInitializer();
+			if (initializer) {
+				state.pushPrecedingStatements(
+					bindingPattern,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
+			}
 		} else {
 			const id = state.getNewId();
 			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
@@ -436,7 +444,7 @@ export function compileBindingPatternAndJoin(
 	bindingPattern: BindingPattern,
 	parentId: string,
 	exportVars = false,
-	noLocal = true,
+	noLocal = false,
 ) {
 	state.enterPrecedingStatementContext();
 	compileBindingPatternInner(state, bindingPattern, parentId, exportVars, noLocal);
@@ -448,17 +456,22 @@ export function compileBindingPattern(
 	bindingPattern: BindingPattern,
 	parentId: string,
 	exportVars = false,
-	noLocal = true,
+	noLocal = false,
 ) {
 	state.enterPrecedingStatementContext();
 	compileBindingPatternInner(state, bindingPattern, parentId, exportVars, noLocal);
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
 
-function compileArrayBindingLiteral(state: CompilerState, bindingLiteral: ts.ArrayLiteralExpression, parentId: string) {
+function compileArrayBindingLiteral(
+	state: CompilerState,
+	bindingLiteral: ts.ArrayLiteralExpression,
+	parentId: string,
+	accessNode: ts.Node,
+) {
 	let childIndex = 1;
 	const idStack = new Array<string>();
-	const getAccessor = getAccessorForBindingType(bindingLiteral);
+	const getAccessor = getAccessorForBindingType(accessNode);
 	for (const element of bindingLiteral.getElements()) {
 		if (ts.TypeGuards.isOmittedExpression(element)) {
 			getAccessor(state, element, parentId, childIndex, idStack, true);
@@ -474,15 +487,18 @@ function compileArrayBindingLiteral(state: CompilerState, bindingLiteral: ts.Arr
 			} else if (ts.TypeGuards.isBinaryExpression(element)) {
 				const nameStr = compileExpression(state, skipNodesDownwards(element.getLeft()));
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
-				const init = skipNodesDownwards(element.getRight());
-				state.pushPrecedingStatements(init, compileParamDefault(state, init, nameStr));
+				const initializer = skipNodesDownwards(element.getRight());
+				state.pushPrecedingStatements(
+					initializer,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
 			} else if (
 				ts.TypeGuards.isArrayLiteralExpression(element) ||
 				ts.TypeGuards.isObjectLiteralExpression(element)
 			) {
 				const id = state.getNewId();
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
-				compileBindingLiteralInner(state, element, id);
+				compileBindingLiteralInner(state, element, id, accessNode);
 			} else {
 				throw `Unexpected ${element.getKindName()} for compileArrayBindingLiteral`;
 			}
@@ -495,17 +511,21 @@ function compileObjectBindingLiteral(
 	state: CompilerState,
 	bindingLiteral: ts.ObjectLiteralExpression,
 	parentId: string,
+	accessNode: ts.Node,
 ) {
-	const getAccessor = getAccessorForBindingType(bindingLiteral);
+	const getAccessor = getAccessorForBindingType(accessNode);
 	for (const property of bindingLiteral.getProperties()) {
 		if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
 			const name = property.getNameNode();
 			const nameStr = compileExpression(state, name);
 			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
 			state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${nameStr} = ${rhs};\n`);
-			const init = property.getObjectAssignmentInitializer();
-			if (init) {
-				state.pushPrecedingStatements(bindingLiteral, compileParamDefault(state, init, nameStr));
+			const initializer = property.getObjectAssignmentInitializer();
+			if (initializer) {
+				state.pushPrecedingStatements(
+					bindingLiteral,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
 			}
 		} else if (ts.TypeGuards.isPropertyAssignment(property)) {
 			const name = property.getNameNode();
@@ -522,14 +542,17 @@ function compileObjectBindingLiteral(
 				const nameStr = compileExpression(state, skipNodesDownwards(initializer.getLeft()));
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
 				const init = skipNodesDownwards(initializer.getRight());
-				state.pushPrecedingStatements(init, compileParamDefault(state, init, nameStr));
+				state.pushPrecedingStatements(
+					init,
+					state.indent + compileParamDefault(state, initializer, nameStr) + "\n",
+				);
 			} else if (
 				ts.TypeGuards.isObjectLiteralExpression(initializer) ||
 				ts.TypeGuards.isArrayLiteralExpression(initializer)
 			) {
 				const id = state.getNewId();
 				state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${id} = ${rhs};\n`);
-				compileBindingLiteralInner(state, initializer, id);
+				compileBindingLiteralInner(state, initializer, id, accessNode);
 			}
 		} else {
 			throw `Unexpected ${property.getKindName()} for compileObjectBindingLiteral`;
@@ -537,22 +560,37 @@ function compileObjectBindingLiteral(
 	}
 }
 
-function compileBindingLiteralInner(state: CompilerState, bindingLiteral: BindingLiteral, parentId: string) {
+function compileBindingLiteralInner(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node,
+) {
 	if (ts.TypeGuards.isArrayLiteralExpression(bindingLiteral)) {
-		compileArrayBindingLiteral(state, bindingLiteral, parentId);
+		compileArrayBindingLiteral(state, bindingLiteral, parentId, accessNode);
 	} else if (ts.TypeGuards.isObjectLiteralExpression(bindingLiteral)) {
-		compileObjectBindingLiteral(state, bindingLiteral, parentId);
+		compileObjectBindingLiteral(state, bindingLiteral, parentId, accessNode);
 	}
 }
 
-export function compileBindingLiteralAndJoin(state: CompilerState, bindingLiteral: BindingLiteral, parentId: string) {
+export function compileBindingLiteralAndJoin(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node = bindingLiteral,
+) {
 	state.enterPrecedingStatementContext();
-	compileBindingLiteralInner(state, bindingLiteral, parentId);
+	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
 	return state.exitPrecedingStatementContextAndJoin();
 }
 
-export function compileBindingLiteral(state: CompilerState, bindingLiteral: BindingLiteral, parentId: string) {
+export function compileBindingLiteral(
+	state: CompilerState,
+	bindingLiteral: BindingLiteral,
+	parentId: string,
+	accessNode: ts.Node = bindingLiteral,
+) {
 	state.enterPrecedingStatementContext();
-	compileBindingLiteralInner(state, bindingLiteral, parentId);
+	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }

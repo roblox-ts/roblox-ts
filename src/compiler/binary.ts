@@ -112,7 +112,7 @@ function compileBinaryLiteral(
 		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	statements.push(...compileBindingLiteral(state, lhs, rootId));
+	statements.push(...compileBindingLiteral(state, lhs, rootId, rhs));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
@@ -168,7 +168,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
 						const rootId = state.getNewId();
-						statements.push(...compileBindingLiteral(state, element, rootId));
+						statements.push(...compileBindingLiteral(state, element, rootId, rhs));
 						return rootId;
 					} else {
 						return compileExpression(state, element);
