@@ -356,4 +356,20 @@ export = () => {
 		expect(c[0]).to.equal("b");
 		expect(c[1]).to.equal(2);
 	});
+
+	it("should properly destruct with element access", () => {
+		const array = [1, 2];
+		[array[0], array[1]] = [array[1], array[0]];
+		expect(array[0]).to.equal(2);
+		expect(array[1]).to.equal(1);
+	});
+
+	it("should properly destruct with var element access", () => {
+		const array = [1, 2];
+		let a = 0;
+		let b = 1;
+		[array[a], array[b]] = [array[b], array[a]];
+		expect(array[a]).to.equal(2);
+		expect(array[b]).to.equal(1);
+	});
 };
