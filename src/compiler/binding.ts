@@ -211,13 +211,8 @@ function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: num
 }
 
 function setAccessor(state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) {
-	const id = state.getNewId();
 	const lastId = idStack[idStack.length - 1] as string | undefined;
-	if (lastId !== undefined) {
-		state.pushPrecedingStatements(node, state.indent + `local ${id} = next(${t}, ${lastId});\n`);
-	} else {
-		state.pushPrecedingStatements(node, state.indent + `local ${id} = next(${t});\n`);
-	}
+	const id = state.pushPrecedingStatementToNewId(node, `next(${t}${lastId ? `, ${lastId}` : ""})`);
 	idStack.push(id);
 	return id;
 }
