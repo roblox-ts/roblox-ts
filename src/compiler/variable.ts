@@ -142,8 +142,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 			}
 		}
 
-		let exportVars = false;
-		let noLocal = false;
+		let exportVars: boolean;
+		let noLocal: boolean;
 
 		if (isExported) {
 			if (decKind === ts.VariableDeclarationKind.Let) {
