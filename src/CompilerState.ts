@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
+import { ProjectType } from ".";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
-import { ProjectInfo } from "./types";
 import { joinIndentedLines, ScriptContext } from "./utility";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
@@ -32,11 +32,12 @@ function canBePushedToReusableId(node: ts.Node): boolean {
 
 export class CompilerState {
 	constructor(
-		public readonly rootDirPath: string,
-		public readonly outDirPath: string,
-		public readonly projectInfo: ProjectInfo,
+		public readonly rootPath: string,
+		public readonly outPath: string,
+		public readonly projectType: ProjectType,
+		public readonly runtimeLibPath: Array<string>,
+		public readonly modulesPath: string,
 		public readonly rojoProject?: RojoProject,
-		public readonly modulesDir?: ts.Directory,
 		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();

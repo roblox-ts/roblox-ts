@@ -6,7 +6,7 @@ import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { red } from "./utility";
+import { red } from "./textUtilities";
 
 interface ErrorMatrix {
 	[propName: string]: {

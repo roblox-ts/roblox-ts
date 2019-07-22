@@ -5,12 +5,12 @@ import path from "path";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
-import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { ProjectInfo } from "./types";
-import { red, transformPathToLua, yellow } from "./utility";
+import { red, yellow } from "./textUtilities";
+import { transformPathToLua } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -72,15 +72,15 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				try {
 					const stats = await fs.stat(filePath);
 					if (stats.isDirectory()) {
-						searchForDeadFiles(filePath);
+						await searchForDeadFiles(filePath);
 						if ((await fs.readdir(dir)).length === 0) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "dir", filePath);
 						}
 					} else if (stats.isFile()) {
 						const relativeToDestFolder = path.relative(destinationFolder, filePath);
 						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "file", filePath);
 						}
 					}
@@ -123,18 +123,18 @@ export class Project {
 
 	public project: ts.Project = {} as ts.Project;
 	private compilerOptions: ts.CompilerOptions = {};
-	private projectPath: string = "";
+	private projectPath = "";
 
 	private rojoProject?: RojoProject;
-	private projectInfo: ProjectInfo = { type: ProjectType.Package };
-	private modulesDir?: ts.Directory;
+	private projectType = ProjectType.Package;
+	private modulesPath = "";
+	private runtimeLibPath = new Array<string>();
 
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
-	private readonly modulesPath: string;
-	private readonly rootDirPath: string;
-	private readonly outDirPath: string;
+	private readonly rootPath: string;
+	private readonly outPath: string;
 	private readonly rojoOverridePath: string | undefined;
 	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
@@ -164,17 +164,18 @@ export class Project {
 			tsConfigFilePath: this.configFilePath,
 		});
 
-		const modulesDirPath = this.getModulesDirPath(this.projectPath);
-		if (modulesDirPath !== undefined) {
-			this.modulesDir = this.project.getDirectory(modulesDirPath);
+		const modulesPath = this.getModulesPath(this.projectPath);
+		if (!modulesPath) {
+			throw new Error("Unable to find node_modules");
 		}
+		this.modulesPath = modulesPath;
 
 		this.compilerOptions = this.project.getCompilerOptions();
 		try {
 			this.validateCompilerOptions();
 		} catch (e) {
-			if (e instanceof ProjectError) {
-				console.log(red("Compiler Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 				process.exit(1);
 			} else {
 				throw e;
@@ -222,12 +223,11 @@ export class Project {
 			} else {
 				type = ProjectType.Bundle;
 			}
-			this.projectInfo = {
-				runtimeLibPath,
-				type,
-			};
+			this.projectType = type;
+			this.runtimeLibPath = runtimeLibPath;
 		} else {
-			this.projectInfo = { type: ProjectType.Package };
+			this.projectType = ProjectType.Package;
+			this.runtimeLibPath = [];
 		}
 	}
 
@@ -241,25 +241,27 @@ export class Project {
 			this.includePath = joinIfNotAbsolute(this.projectPath, opts.includePath);
 			this.minify = opts.minify === true;
 			this.luaSourceTransformer = this.minify ? minify : undefined;
-			this.modulesPath = path.join(this.includePath, "node_modules");
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
 
-			const rootDirPath = this.compilerOptions.rootDir;
-			if (!rootDirPath) {
+			const rootPath = this.compilerOptions.rootDir;
+			if (!rootPath) {
 				throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
 			}
-			this.rootDirPath = rootDirPath;
+			if (!fs.pathExistsSync(rootPath)) {
+				throw new ProjectError(`Unable to find ${rootPath}`, ProjectErrorType.MissingRootDir);
+			}
+			this.rootPath = rootPath;
 
-			const outDirPath = this.compilerOptions.outDir;
-			if (!outDirPath) {
+			const outPath = this.compilerOptions.outDir;
+			if (!outPath) {
 				throw new ProjectError("Expected 'outDir' option in tsconfig.json!", ProjectErrorType.MissingOutDir);
 			}
-			this.outDirPath = outDirPath;
+			this.outPath = outPath;
 
 			// filter out outDir .d.ts files
-			const outDir = this.project.getDirectory(outDirPath);
+			const outDir = this.project.getDirectory(outPath);
 			if (outDir) {
 				this.project.getSourceFiles().forEach(sourceFile => {
 					if (outDir.isAncestorOf(sourceFile)) {
@@ -271,8 +273,8 @@ export class Project {
 			try {
 				this.validateRbxTypes();
 			} catch (e) {
-				if (e instanceof ProjectError) {
-					console.log(red("Compiler Error:"), e.message);
+				if (e instanceof LoggableError) {
+					e.log(this.projectPath);
 					process.exit(1);
 				} else {
 					throw e;
@@ -286,9 +288,9 @@ export class Project {
 			this.includePath = "";
 			this.noInclude = true;
 			this.minify = false;
+			this.rootPath = "";
+			this.outPath = "";
 			this.modulesPath = "";
-			this.rootDirPath = "";
-			this.outDirPath = "";
 			this.ci = false;
 
 			this.runtimeOverride = "local TS = ...; -- link to runtime library";
@@ -315,14 +317,14 @@ export class Project {
 		}
 	}
 
-	private getModulesDirPath(project: string): string | undefined {
-		const modulesDirPath = path.resolve(project, "node_modules");
-		if (fs.existsSync(modulesDirPath)) {
-			return modulesDirPath;
+	private getModulesPath(project: string): string | undefined {
+		const modulesPath = path.resolve(project, "node_modules");
+		if (fs.existsSync(modulesPath)) {
+			return modulesPath;
 		}
 		const parent = path.resolve(project, "..");
 		if (parent !== project) {
-			return this.getModulesDirPath(parent);
+			return this.getModulesPath(parent);
 		}
 	}
 
@@ -355,12 +357,10 @@ export class Project {
 		}
 
 		let typesFound = false;
-		if (opts.typeRoots && this.modulesDir) {
-			const typesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+		if (opts.typeRoots) {
+			const typesPath = path.resolve(this.modulesPath, "@rbxts");
 			for (const typeRoot of opts.typeRoots) {
-				if (path.resolve(typeRoot) === typesPath) {
-					console.log(path.resolve(typeRoot));
-					console.log(typesPath);
+				if (path.normalize(typeRoot) === typesPath) {
 					typesFound = true;
 					break;
 				}
@@ -400,28 +400,26 @@ export class Project {
 	}
 
 	private validateRbxTypes() {
-		if (this.modulesDir) {
-			const pkgJsonPath = path.join(this.modulesDir.getPath(), "@rbxts", "types", "package.json");
-			if (fs.pathExistsSync(pkgJsonPath)) {
-				const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
-				if (pkgJson !== undefined) {
-					const versionStr = pkgJson.version;
-					if (versionStr !== undefined) {
-						const regexMatch = versionStr.match(/\d+$/g);
-						if (regexMatch !== null) {
-							const patchNumber = Number(regexMatch[0]);
-							if (!isNaN(patchNumber)) {
-								if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
-									return;
-								} else {
-									throw new ProjectError(
-										`@rbxts/types is out of date!\n` +
-											yellow(`Installed version: 1.0.${patchNumber}\n`) +
-											yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
-											`Run 'npm i @rbxts/types' to fix this.`,
-										ProjectErrorType.BadRbxTypes,
-									);
-								}
+		const pkgJsonPath = path.join(this.modulesPath, "@rbxts", "types", "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			if (pkgJson !== undefined) {
+				const versionStr = pkgJson.version;
+				if (versionStr !== undefined) {
+					const regexMatch = versionStr.match(/\d+$/g);
+					if (regexMatch !== null) {
+						const patchNumber = Number(regexMatch[0]);
+						if (!isNaN(patchNumber)) {
+							if (patchNumber >= MINIMUM_RBX_TYPES_VERSION) {
+								return;
+							} else {
+								throw new ProjectError(
+									`@rbxts/types is out of date!\n` +
+										yellow(`Installed version: 1.0.${patchNumber}\n`) +
+										yellow(`Minimum required version: 1.0.${MINIMUM_RBX_TYPES_VERSION}\n`) +
+										`Run 'npm i @rbxts/types' to fix this.`,
+									ProjectErrorType.BadRbxTypes,
+								);
 							}
 						}
 					}
@@ -473,13 +471,21 @@ export class Project {
 		if (sourceFile) {
 			this.project.removeSourceFile(sourceFile);
 		}
-		await this.cleanDirRecursive(this.outDirPath);
+		await this.cleanDirRecursive(this.outPath);
 	}
 
 	public async refreshFile(filePath: string) {
 		const file = this.project.getSourceFile(filePath);
 		if (file) {
-			file.refreshFromFileSystem();
+			try {
+				await file.refreshFromFileSystem();
+			} catch (e) {
+				this.reloadProject();
+				throw new ProjectError(
+					`ts-morph failed to parse ${path.relative(this.projectPath, filePath)}`,
+					ProjectErrorType.TsMorph,
+				);
+			}
 		} else {
 			this.project.addExistingSourceFile(filePath);
 		}
@@ -499,8 +505,8 @@ export class Project {
 					let baseName = path.basename(filePath, ext);
 					let subext = path.extname(baseName);
 					baseName = path.basename(baseName, subext);
-					const relativeToOut = path.dirname(path.relative(this.outDirPath, filePath));
-					const rootPath = path.join(this.rootDirPath, relativeToOut);
+					const relativeToOut = path.dirname(path.relative(this.outPath, filePath));
+					const rootPath = path.join(this.rootPath, relativeToOut);
 					if (ext === ".lua") {
 						let exists = false;
 						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
@@ -550,16 +556,16 @@ export class Project {
 	}
 
 	public getRootDirOrThrow() {
-		if (!this.rootDirPath) {
+		if (!this.rootPath) {
 			throw new ProjectError("Could not find rootDir!", ProjectErrorType.MissingRootDir);
 		}
-		return this.rootDirPath;
+		return this.rootPath;
 	}
 
 	public async copyModuleFiles() {
-		if (this.modulesDir && this.projectInfo.type !== ProjectType.Package) {
-			const modulesPath = this.modulesPath;
-			const rbxTsModulesPath = path.resolve(this.modulesDir.getPath(), "@rbxts");
+		if (this.projectType !== ProjectType.Package) {
+			const modulesPath = path.join(this.includePath, "node_modules");
+			const rbxTsModulesPath = path.resolve(this.modulesPath, "@rbxts");
 			if (await fs.pathExists(rbxTsModulesPath)) {
 				for (const name of await fs.readdir(rbxTsModulesPath)) {
 					const oldModulePath = path.join(rbxTsModulesPath, name);
@@ -571,19 +577,19 @@ export class Project {
 	}
 
 	public async copyIncludeFiles() {
-		if (!this.noInclude && this.projectInfo.type !== ProjectType.Package) {
+		if (!this.noInclude && this.projectType !== ProjectType.Package) {
 			await copyLuaFiles(LIB_PATH, this.includePath, this.luaSourceTransformer);
 		}
 	}
 
 	public async copyLuaFiles() {
-		await copyLuaFiles(this.rootDirPath, this.outDirPath, this.luaSourceTransformer);
+		await copyLuaFiles(this.rootPath, this.outPath, this.luaSourceTransformer);
 	}
 
 	public async copyDtsFiles() {
 		const dtsFiles = new Array<string>();
 		await new Promise(resolve => {
-			klaw(this.rootDirPath)
+			klaw(this.rootPath)
 				.on("data", item => {
 					if (item.path.endsWith(".d.ts")) {
 						dtsFiles.push(item.path);
@@ -594,11 +600,11 @@ export class Project {
 		return Promise.all(
 			dtsFiles.map(filePath => {
 				return new Promise(resolve => {
-					const outPath = path.join(this.outDirPath, path.relative(this.rootDirPath, filePath));
-					fs.readFile(filePath).then(buffer => {
+					const outPath = path.join(this.outPath, path.relative(this.rootPath, filePath));
+					void fs.readFile(filePath).then(buffer => {
 						const contents = buffer.toString();
-						fs.ensureFile(outPath).then(() => {
-							fs.writeFile(outPath, contents).then(() => resolve());
+						void fs.ensureFile(outPath).then(() => {
+							void fs.writeFile(outPath, contents).then(() => resolve());
 						});
 					});
 				});
@@ -636,11 +642,12 @@ export class Project {
 
 	private createCompilerState() {
 		return new CompilerState(
-			this.rootDirPath,
-			this.outDirPath,
-			this.projectInfo,
+			this.rootPath,
+			this.outPath,
+			this.projectType,
+			this.runtimeLibPath,
+			this.modulesPath,
 			this.rojoProject,
-			this.modulesDir,
 			this.runtimeOverride,
 		);
 	}
@@ -657,7 +664,7 @@ export class Project {
 			exception = e;
 		}
 		const errors = this.getDiagnosticErrors([sourceFile]);
-		sourceFile.deleteImmediately();
+		void sourceFile.deleteImmediately();
 
 		if (errors.length > 0) {
 			throw new DiagnosticError(errors);
@@ -673,7 +680,7 @@ export class Project {
 	private async getEmittedDtsFiles() {
 		return new Promise<Array<string>>(resolve => {
 			const result = new Array<string>();
-			klaw(this.outDirPath)
+			klaw(this.outPath)
 				.on("data", item => {
 					if (item.stats.isFile() && item.path.endsWith(".d.ts")) {
 						result.push(item.path);
@@ -688,13 +695,13 @@ export class Project {
 			(await this.getEmittedDtsFiles()).map(
 				filePath =>
 					new Promise(resolve => {
-						fs.readFile(filePath).then(contentsBuffer => {
+						void fs.readFile(filePath).then(contentsBuffer => {
 							let fileContents = contentsBuffer.toString();
 							fileContents = fileContents.replace(
 								/<reference types="([^."]+)" \/>/g,
 								'<reference types="@rbxts/$1" />',
 							);
-							fs.writeFile(filePath, fileContents).then(() => resolve());
+							void fs.writeFile(filePath, fileContents).then(() => resolve());
 						});
 					}),
 			),
@@ -737,7 +744,7 @@ export class Project {
 	}
 
 	public async compileFiles(files: Array<ts.SourceFile>) {
-		await this.cleanDirRecursive(this.outDirPath);
+		await this.cleanDirRecursive(this.outPath);
 
 		process.exitCode = 0;
 
@@ -752,7 +759,7 @@ export class Project {
 			for (const sourceFile of files) {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
-					const outPath = transformPathToLua(this.rootDirPath, this.outDirPath, filePath);
+					const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
 					let source = compileSourceFile(this.createCompilerState(), sourceFile);
 
 					if (this.luaSourceTransformer) {
@@ -783,27 +790,8 @@ export class Project {
 			if (this.ci) {
 				throw e;
 			}
-			if (e instanceof CompilerError) {
-				const node = e.node;
-				if (ts.TypeGuards.isSourceFile(node)) {
-					console.log(
-						"%s - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						red("Compiler Error:"),
-						e.message,
-					);
-				} else {
-					console.log(
-						"%s:%d:%d - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						e.node.getStartLineNumber(),
-						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-						red("Compiler Error:"),
-						e.message,
-					);
-				}
-			} else if (e instanceof ProjectError) {
-				console.log(red("Project Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 			} else if (e instanceof DiagnosticError) {
 				console.log(e.toString());
 			} else {
