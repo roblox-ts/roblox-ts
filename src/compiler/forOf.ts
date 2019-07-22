@@ -1,10 +1,9 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
+	compileBindingPatternAndJoin,
 	compileExpression,
 	compileLoopBody,
-	concatNamesAndValues,
-	compileBindingPatternAndJoin,
 	getPropertyAccessExpressionType,
 	getReadableExpressionName,
 	PropertyCallExpType,
@@ -202,10 +201,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 	const extraParams = new Array<string>();
 
-	const names = new Array<string>();
-	const values = new Array<string>();
-	const preStatements = new Array<string>();
-	const postStatements = new Array<string>();
+	const statements = new Array<string>();
 
 	/** Whether we should iterate as a simple for loop (defaults to a for..in loop) */
 	let isNumericForLoop = false;
@@ -259,7 +255,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			key = state.getNewId();
 			value = state.getNewId();
 			varName = getVariableName(state, lhs);
-			preStatements.push(`local ${varName} = {${key}, ${value}};`);
+			statements.push(`local ${varName} = {${key}, ${value}};`);
 		}
 	} else {
 		varName = getVariableName(state, lhs);
@@ -293,8 +289,8 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				const loopVar = state.getNewId();
 				key = loopVar;
 				expStr = `${expStr}.next`;
-				preStatements.push(`if ${loopVar}.done then break end;`);
-				preStatements.push(`local ${varName} = ${loopVar}.value;`);
+				statements.push(`if ${loopVar}.done then break end;`);
+				statements.push(`local ${varName} = ${loopVar}.value;`);
 				break;
 			}
 		}
@@ -339,13 +335,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		state.pushIndent();
 	}
 
-	for (const myStatement of preStatements) {
-		result += state.indent + myStatement + "\n";
-	}
-	concatNamesAndValues(state, names, values, true, str => {
-		result += str;
-	});
-	for (const myStatement of postStatements) {
+	for (const myStatement of statements) {
 		result += state.indent + myStatement + "\n";
 	}
 	state.pushIdStack();

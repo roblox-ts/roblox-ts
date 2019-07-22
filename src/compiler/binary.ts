@@ -1,8 +1,25 @@
 import * as ts from "ts-morph";
-import { checkNonAny, compileCallExpression, compileElementAccessBracketExpression, compileElementAccessDataTypeExpression, compileExpression, concatNamesAndValues, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
+import {
+	checkNonAny,
+	compileCallExpression,
+	compileElementAccessBracketExpression,
+	compileElementAccessDataTypeExpression,
+	compileExpression,
+	concatNamesAndValues,
+	getWritableOperandName,
+	isIdentifierDefinedInExportLet,
+} from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getType, isArrayType, isConstantExpression, isNumberType, isStringType, isTupleReturnTypeCall, shouldPushToPrecedingStatement } from "../typeUtilities";
+import {
+	getType,
+	isArrayType,
+	isConstantExpression,
+	isNumberType,
+	isStringType,
+	isTupleReturnTypeCall,
+	shouldPushToPrecedingStatement,
+} from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { compileBindingLiteral } from "./binding";
 
@@ -81,10 +98,7 @@ function compileBinaryLiteral(
 	lhs: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
 	rhs: ts.Expression,
 ) {
-	const names = new Array<string>();
-	const values = new Array<string>();
-	const preStatements = new Array<string>();
-	const postStatements = new Array<string>();
+	const statements = new Array<string>();
 
 	let rootId: string;
 	if (
@@ -95,26 +109,20 @@ function compileBinaryLiteral(
 		rootId = compileExpression(state, rhs);
 	} else {
 		rootId = state.getNewId();
-		preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
 	// TODO
-	preStatements.push(...compileBindingLiteral(state, lhs, rootId).map(v => v.trim()));
+	statements.push(...compileBindingLiteral(state, lhs, rootId));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
 	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
 		let result = "";
-		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		return result.replace(/;\n$/, ""); // terrible hack
 	} else {
-		preStatements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration =>
-			state.pushPrecedingStatements(node, declaration),
-		);
-		postStatements.forEach(statementStr => state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
 		return rootId;
 	}
 }
@@ -150,8 +158,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			// e.g. [[[[[[[a]]]]]]] = func() where func() returns a LuaTuple<[string]>
 
 			let result = "";
-			const preStatements = new Array<string>();
-			const postStatements = new Array<string>();
+			const statements = new Array<string>();
 			const names = lhs
 				.getElements()
 				.map(element => {
@@ -161,12 +168,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						ts.TypeGuards.isArrayLiteralExpression(element) ||
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
-						let rootId: string;
-						rootId = state.getNewId();
-
-						// TODO
-						// compileBindingPattern(state, element, rootId);
-
+						const rootId = state.getNewId();
+						statements.push(...compileBindingLiteral(state, element, rootId));
 						return rootId;
 					} else {
 						return compileExpression(state, element);
@@ -184,8 +187,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				false,
 				false,
 			);
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+			statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 			if (isStatement) {
 				return result.replace(/;\n$/, ""); // terrible hack
 			} else {
@@ -273,8 +275,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		const previouslhs = isEqualsOperation
 			? ""
 			: isStatement && rhsStrContext.length === 0
-				? lhsStr
-				: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
+			? lhsStr
+			: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
 
 		let { isPushed } = rhsStrContext;
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);

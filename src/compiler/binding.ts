@@ -132,7 +132,7 @@ export function getParameterData(
 		}
 
 		if (ts.TypeGuards.isArrayBindingPattern(child) || ts.TypeGuards.isObjectBindingPattern(child)) {
-			initializers.push(...compileBindingPattern(state, child, name).map(v => v.trim()));
+			initializers.push(...compileBindingPattern(state, child, name));
 		}
 	}
 }
@@ -415,7 +415,7 @@ export function compileBindingPatternAndJoin(state: CompilerState, bindingPatter
 export function compileBindingPattern(state: CompilerState, bindingPattern: BindingPattern, parentId: string) {
 	state.enterPrecedingStatementContext();
 	compileBindingPatternInner(state, bindingPattern, parentId);
-	return state.exitPrecedingStatementContext();
+	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
 
 function compileArrayBindingLiteral(state: CompilerState, bindingLiteral: ts.ArrayLiteralExpression, parentId: string) {
