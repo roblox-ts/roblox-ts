@@ -284,7 +284,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				key = varName;
 				break;
 			case ForOfLoopType.Symbol_iterator: {
-				if (!isIterableIterator(getType(exp), exp)) {
+				if (!isIterableIterator(getType(exp))) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}

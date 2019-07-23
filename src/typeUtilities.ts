@@ -242,7 +242,7 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIterator(type: ts.Type, node: ts.Node) {
+export function isIterableIterator(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;

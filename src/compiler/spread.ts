@@ -207,7 +207,7 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 	} else if (isIterableFunction(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
-	} else if (isIterableIterator(expType, expression)) {
+	} else if (isIterableIterator(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {

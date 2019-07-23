@@ -193,7 +193,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIterator(node.getReturnType(), node);
+		isIterableIterator(node.getReturnType());
 		result += "\n";
 		state.pushIndent();
 		result += state.indent + `return {\n`;

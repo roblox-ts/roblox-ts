@@ -127,7 +127,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				!isArrayType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
-				!isIterableIterator(rhsType, rhs) &&
+				!isIterableIterator(rhsType) &&
 				!isIterableFunction(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {

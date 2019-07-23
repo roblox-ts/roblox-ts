@@ -274,10 +274,10 @@ function iterableFunctionAccessor(
 }
 
 function getAccessorForBindingNode(bindingPattern: ts.Node) {
-	return getAccessorForBindingType(getType(bindingPattern), bindingPattern)!;
+	return getAccessorForBindingType(bindingPattern, getType(bindingPattern), bindingPattern);
 }
 
-function getAccessorForBindingType(type: ts.Type | Array<ts.Type>, node?: ts.Node) {
+function getAccessorForBindingType(binding: ts.Node, type: ts.Type | Array<ts.Type>, node?: ts.Node) {
 	if (!(type instanceof ts.Type) || isArrayType(type)) {
 		return arrayAccessor;
 	} else if (isStringType(type)) {
@@ -289,29 +289,27 @@ function getAccessorForBindingType(type: ts.Type | Array<ts.Type>, node?: ts.Nod
 	} else if (isIterableFunction(type)) {
 		return iterableFunctionAccessor;
 	} else {
-		if (node) {
-			if (
-				isIterableIterator(type, node) ||
-				isObjectType(type) ||
-				ts.TypeGuards.isThisExpression(node) ||
-				ts.TypeGuards.isSuperExpression(node)
-			) {
-				return iterAccessor;
+		if (
+			isIterableIterator(type) ||
+			isObjectType(type) ||
+			(node && (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)))
+		) {
+			return iterAccessor;
+		} else if (node) {
+			if (ts.TypeGuards.isObjectBindingPattern(node)) {
+				return null as never;
 			} else {
-				if (ts.TypeGuards.isObjectBindingPattern(node)) {
-					return null as never;
-				} else {
-					throw new CompilerError(
-						`Cannot destructure an object of type ${type.getText()}`,
-						node,
-						CompilerErrorType.BadDestructuringType,
-					);
-				}
+				throw new CompilerError(
+					`Cannot destructure an object of type ${type.getText()}`,
+					node,
+					CompilerErrorType.BadDestructuringType,
+				);
 			}
 		}
 	}
-	// todo make this a real CompilerError
-	throw "Could not find get accessor";
+
+	console.log(type.getText());
+	throw new CompilerError("Could not find get accessor", binding, CompilerErrorType.NoGetAccessor, true);
 }
 
 export function concatNamesAndValues(
@@ -462,6 +460,42 @@ export function compileBindingPattern(
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
 
+function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index: string | number) {
+	if (type instanceof ts.Type) {
+		if (typeof index === "string") {
+			const prop = type.getProperty(index);
+			if (prop) {
+				const valDec = prop.getValueDeclaration();
+				if (valDec) {
+					return getType(valDec);
+				}
+			}
+		} else if (isArrayType(type)) {
+			if (type.isTuple()) {
+				return type.getTupleElements()[index];
+			} else {
+				const numIndexType = type.getNumberIndexType();
+				if (numIndexType) {
+					return numIndexType;
+				}
+			}
+		} else if (isStringType(type)) {
+			return type;
+		} else if (isSetType(type)) {
+			return type.getTypeArguments()[0];
+		} else if (isMapType(type)) {
+			return type.getTypeArguments();
+		} else if (isIterableIterator(type)) {
+			return type.getTypeArguments()[0];
+		}
+	} else {
+		if (typeof index === "number") {
+			return type[index];
+		}
+	}
+	throw new CompilerError("Could not find subtype!", node, CompilerErrorType.BadDestructSubType, true);
+}
+
 function compileArrayBindingLiteral(
 	state: CompilerState,
 	bindingLiteral: ts.ArrayLiteralExpression,
@@ -470,7 +504,7 @@ function compileArrayBindingLiteral(
 ) {
 	let childIndex = 1;
 	const idStack = new Array<string>();
-	const getAccessor = getAccessorForBindingType(accessType);
+	const getAccessor = getAccessorForBindingType(bindingLiteral, accessType);
 	for (const element of bindingLiteral.getElements()) {
 		if (ts.TypeGuards.isOmittedExpression(element)) {
 			getAccessor(state, element, parentId, childIndex, idStack, true);
@@ -514,36 +548,6 @@ function compileArrayBindingLiteral(
 		}
 		childIndex++;
 	}
-}
-
-function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index: string | number) {
-	if (type instanceof ts.Type) {
-		if (typeof index === "string") {
-			const prop = type.getProperty(index);
-			if (prop) {
-				const valDec = prop.getValueDeclaration();
-				if (valDec) {
-					return getType(valDec);
-				}
-			}
-		} else if (isArrayType(type)) {
-			if (type.isTuple()) {
-				return type.getTupleElements()[index];
-			} else {
-				const numIndexType = type.getNumberIndexType();
-				if (numIndexType) {
-					return numIndexType;
-				}
-			}
-		} else if (isMapType(type)) {
-			return type.getTypeArguments();
-		}
-	} else {
-		if (typeof index === "number") {
-			return type[index];
-		}
-	}
-	throw new CompilerError("Could not find subtype!", node, CompilerErrorType.BadDestructSubType, true);
 }
 
 function compileObjectBindingLiteral(
