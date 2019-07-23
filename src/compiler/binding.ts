@@ -152,10 +152,6 @@ function objectAccessor(
 ): string {
 	let name: string;
 
-	if (ts.TypeGuards.isShorthandPropertyAssignment(nameNode)) {
-		nameNode = nameNode.getNameNode();
-	}
-
 	const rhs = node
 		.getFirstAncestorOrThrow(
 			ancestor =>
