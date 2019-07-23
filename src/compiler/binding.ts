@@ -123,12 +123,12 @@ export function getParameterData(
 			(defaults ? defaults : initializers).push(compileParamDefault(state, param.getInitializer()!, name));
 		}
 
-		if (param.hasScopeKeyword() || param.isReadonly()) {
-			const classDec = node.getParent();
-			if (ts.TypeGuards.isClassDeclaration(classDec) || ts.TypeGuards.isClassExpression(classDec)) {
-				checkPropertyCollision(classDec, param);
-			}
-
+		const parent = node.getParent();
+		if (
+			(ts.TypeGuards.isClassDeclaration(parent) || ts.TypeGuards.isClassExpression(parent)) &&
+			(param.hasScopeKeyword() || param.isReadonly())
+		) {
+			checkPropertyCollision(parent, param);
 			initializers.push(`${safeLuaIndex("self", name)} = ${name};`);
 		}
 
@@ -146,15 +146,10 @@ function objectAccessor(
 	state: CompilerState,
 	t: string,
 	node: ts.Node,
-	getAccessor: (state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) => string,
 	nameNode: ts.Node = node,
 	aliasNode: ts.Node = node,
 ): string {
 	let name: string;
-
-	if (ts.TypeGuards.isShorthandPropertyAssignment(nameNode)) {
-		nameNode = nameNode.getNameNode();
-	}
 
 	const rhs = node
 		.getFirstAncestorOrThrow(
@@ -384,7 +379,6 @@ function compileObjectBindingPattern(
 	exportVars: boolean,
 	noLocal: boolean,
 ) {
-	const getAccessor = getAccessorForBindingType(bindingPattern);
 	for (const element of bindingPattern.getElements()) {
 		if (element.getDotDotDotToken()) {
 			throw new CompilerError(
@@ -399,7 +393,7 @@ function compileObjectBindingPattern(
 			checkReserved(name);
 			const prefix = noLocal ? "" : "local ";
 			const nameStr = compileIdentifier(state, name, true);
-			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
+			const rhs = objectAccessor(state, parentId, name, prop, name);
 			state.pushPrecedingStatements(bindingPattern, state.indent + `${prefix}${nameStr} = ${rhs};\n`);
 			if (exportVars) {
 				state.pushExport(nameStr, bindingPattern.getParent());
@@ -413,7 +407,7 @@ function compileObjectBindingPattern(
 			}
 		} else {
 			const id = state.getNewId();
-			const rhs = objectAccessor(state, parentId, name, getAccessor, prop, name);
+			const rhs = objectAccessor(state, parentId, name, prop, name);
 			state.pushPrecedingStatements(bindingPattern, state.indent + `local ${id} = ${rhs};\n`);
 			compileBindingPatternInner(state, name, id, exportVars, noLocal);
 		}
@@ -514,12 +508,11 @@ function compileObjectBindingLiteral(
 	parentId: string,
 	accessNode: ts.Node,
 ) {
-	const getAccessor = getAccessorForBindingType(accessNode);
 	for (const property of bindingLiteral.getProperties()) {
 		if (ts.TypeGuards.isShorthandPropertyAssignment(property)) {
 			const name = property.getNameNode();
 			const nameStr = compileExpression(state, name);
-			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
+			const rhs = objectAccessor(state, parentId, name, name, name);
 			state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${nameStr} = ${rhs};\n`);
 			const initializer = property.getObjectAssignmentInitializer();
 			if (initializer) {
@@ -531,7 +524,7 @@ function compileObjectBindingLiteral(
 		} else if (ts.TypeGuards.isPropertyAssignment(property)) {
 			const name = property.getNameNode();
 			const init = property.getInitializerOrThrow();
-			const rhs = objectAccessor(state, parentId, name, getAccessor, name, name);
+			const rhs = objectAccessor(state, parentId, name, name, name);
 			if (
 				ts.TypeGuards.isIdentifier(init) ||
 				ts.TypeGuards.isElementAccessExpression(init) ||
@@ -574,17 +567,6 @@ function compileBindingLiteralInner(
 	} else if (ts.TypeGuards.isObjectLiteralExpression(bindingLiteral)) {
 		compileObjectBindingLiteral(state, bindingLiteral, parentId, accessNode);
 	}
-}
-
-export function compileBindingLiteralAndJoin(
-	state: CompilerState,
-	bindingLiteral: BindingLiteral,
-	parentId: string,
-	accessNode: ts.Node = bindingLiteral,
-) {
-	state.enterPrecedingStatementContext();
-	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
-	return state.exitPrecedingStatementContextAndJoin();
 }
 
 export function compileBindingLiteral(
