@@ -474,12 +474,16 @@ function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index:
 				}
 			}
 		} else if (isStringType(type)) {
+			// T -> T
 			return type;
 		} else if (isSetType(type)) {
+			// Set<T> -> T
 			return type.getTypeArguments()[0];
 		} else if (isMapType(type)) {
+			// Map<K, V> -> [K, V]
 			return type.getTypeArguments();
 		} else if (isIterableIterator(type)) {
+			// IterableIterator<T> -> T
 			return type.getTypeArguments()[0];
 		}
 	} else {
