@@ -511,4 +511,10 @@ export = () => {
 		const [x = 5] = [];
 		expect(x).to.equal(5);
 	});
+
+	it("should support array binding pattern with omitted expression", () => {
+		const [a, , b] = [1, 2, 3];
+		expect(a).to.equal(1);
+		expect(b).to.equal(3);
+	});
 };
