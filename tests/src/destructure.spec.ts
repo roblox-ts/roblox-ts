@@ -527,4 +527,12 @@ export = () => {
 		expect(a).to.equal(5);
 		expect(b).to.equal(6);
 	});
+
+	it("should support object binding literal with initializer", () => {
+		let a = 0;
+		let b = 0;
+		({ a = 5, b = 6 } = {});
+		expect(a).to.equal(5);
+		expect(b).to.equal(6);
+	});
 };
