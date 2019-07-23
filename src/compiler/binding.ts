@@ -288,28 +288,22 @@ function getAccessorForBindingType(binding: ts.Node, type: ts.Type | Array<ts.Ty
 		return mapAccessor;
 	} else if (isIterableFunction(type)) {
 		return iterableFunctionAccessor;
-	} else {
-		if (
-			isIterableIterator(type) ||
-			isObjectType(type) ||
-			(node && (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)))
-		) {
-			return iterAccessor;
-		} else if (node) {
-			if (ts.TypeGuards.isObjectBindingPattern(node)) {
-				return null as never;
-			} else {
-				throw new CompilerError(
-					`Cannot destructure an object of type ${type.getText()}`,
-					node,
-					CompilerErrorType.BadDestructuringType,
-				);
-			}
-		}
+	} else if (
+		isIterableIterator(type) ||
+		isObjectType(type) ||
+		(node && (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)))
+	) {
+		return iterAccessor;
+	} else if (node && ts.TypeGuards.isObjectBindingPattern(node)) {
+		return null as never;
 	}
 
-	console.log(type.getText());
-	throw new CompilerError("Could not find get accessor", binding, CompilerErrorType.NoGetAccessor, true);
+	throw new CompilerError(
+		`Cannot destructure an object of type ${type.getText()}`,
+		binding,
+		CompilerErrorType.BadDestructuringType,
+		true,
+	);
 }
 
 export function concatNamesAndValues(

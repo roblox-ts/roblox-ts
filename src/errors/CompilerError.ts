@@ -91,7 +91,6 @@ export enum CompilerErrorType {
 	IsolatedContainer,
 	UnexpectedExtensionType,
 	BadDestructSubType,
-	NoGetAccessor,
 }
 
 export class CompilerError extends LoggableError {
