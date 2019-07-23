@@ -535,4 +535,10 @@ export = () => {
 		expect(a).to.equal(5);
 		expect(b).to.equal(6);
 	});
+
+	it("should support object binding literal with alias and initializer", () => {
+		let y = 0;
+		({ x: y = 5 } = {});
+		expect(y).to.equal(5);
+	});
 };
