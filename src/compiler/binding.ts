@@ -294,10 +294,9 @@ function getAccessorForBindingType(binding: ts.Node, type: ts.Type | Array<ts.Ty
 		(node && (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)))
 	) {
 		return iterAccessor;
-	} else if (node && ts.TypeGuards.isObjectBindingPattern(node)) {
-		return null as never;
 	}
 
+	/* istanbul ignore next */
 	throw new CompilerError(
 		`Cannot destructure an object of type ${type.getText()}`,
 		binding,
