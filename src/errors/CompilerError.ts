@@ -1,6 +1,7 @@
 import path from "path";
 import * as ts from "ts-morph";
 import { red } from "../textUtilities";
+import { LoggableError } from "./LoggableError";
 
 export enum CompilerErrorType {
 	NoAny,
@@ -91,7 +92,7 @@ export enum CompilerErrorType {
 	UnexpectedExtensionType,
 }
 
-export class CompilerError extends Error {
+export class CompilerError extends LoggableError {
 	constructor(
 		message: string,
 		public readonly node: ts.Node,
