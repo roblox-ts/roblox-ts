@@ -506,4 +506,9 @@ export = () => {
 		} = obj);
 		expect(str).to.equal("NEST!");
 	});
+
+	it("should support array binding pattern with initializer", () => {
+		const [x = 5] = [];
+		expect(x).to.equal(5);
+	});
 };
