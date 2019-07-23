@@ -90,6 +90,7 @@ export enum CompilerErrorType {
 	ClassWithComputedMethodNames,
 	IsolatedContainer,
 	UnexpectedExtensionType,
+	BadDestructSubType,
 }
 
 export class CompilerError extends LoggableError {
