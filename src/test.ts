@@ -213,6 +213,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
+	"any/unary.spec.ts": {
+		message: "should not allow unary operators on type any",
+		instance: CompilerError,
+		type: CompilerErrorType.NoAny,
+	},
 	"methodDestructure/arr.spec.1.ts": {
 		message: "should not allow method indexing from arrays",
 		instance: CompilerError,
