@@ -123,12 +123,12 @@ export function getParameterData(
 			(defaults ? defaults : initializers).push(compileParamDefault(state, param.getInitializer()!, name));
 		}
 
-		if (param.hasScopeKeyword() || param.isReadonly()) {
-			const classDec = node.getParent();
-			if (ts.TypeGuards.isClassDeclaration(classDec) || ts.TypeGuards.isClassExpression(classDec)) {
-				checkPropertyCollision(classDec, param);
-			}
-
+		const parent = node.getParent();
+		if (
+			(ts.TypeGuards.isClassDeclaration(parent) || ts.TypeGuards.isClassExpression(parent)) &&
+			(param.hasScopeKeyword() || param.isReadonly())
+		) {
+			checkPropertyCollision(parent, param);
 			initializers.push(`${safeLuaIndex("self", name)} = ${name};`);
 		}
 
