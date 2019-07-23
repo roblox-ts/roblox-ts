@@ -13,8 +13,8 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -169,7 +169,7 @@ function getLoopType(
 		return [exp, ForOfLoopType.Array, reversed, backwards];
 	} else if (isStringType(expType)) {
 		return [exp, ForOfLoopType.String, reversed, backwards];
-	} else if (isIterableFunction(expType)) {
+	} else if (isIterableFunctionType(expType)) {
 		// Hack
 		if (expType.getText().match("<LuaTuple<")) {
 			return [exp, ForOfLoopType.IterableLuaTuple, reversed, backwards];
@@ -284,7 +284,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				key = varName;
 				break;
 			case ForOfLoopType.Symbol_iterator: {
-				if (!isIterableIterator(getType(exp))) {
+				if (!isIterableIteratorType(getType(exp))) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}

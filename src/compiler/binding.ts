@@ -14,8 +14,8 @@ import {
 	getType,
 	isArrayMethodType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapMethodType,
 	isMapType,
 	isObjectType,
@@ -286,10 +286,10 @@ function getAccessorForBindingType(binding: ts.Node, type: ts.Type | Array<ts.Ty
 		return setAccessor;
 	} else if (isMapType(type)) {
 		return mapAccessor;
-	} else if (isIterableFunction(type)) {
+	} else if (isIterableFunctionType(type)) {
 		return iterableFunctionAccessor;
 	} else if (
-		isIterableIterator(type) ||
+		isIterableIteratorType(type) ||
 		isObjectType(type) ||
 		(node && (ts.TypeGuards.isThisExpression(node) || ts.TypeGuards.isSuperExpression(node)))
 	) {
@@ -481,7 +481,7 @@ function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index:
 		} else if (isMapType(type)) {
 			// Map<K, V> -> [K, V]
 			return type.getTypeArguments();
-		} else if (isIterableIterator(type)) {
+		} else if (isIterableIteratorType(type)) {
 			// IterableIterator<T> -> T
 			return type.getTypeArguments()[0];
 		}

@@ -5,8 +5,8 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -204,10 +204,10 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		} else {
 			return `string.split(${compileExpression(state, expression)}, "")`;
 		}
-	} else if (isIterableFunction(expType)) {
+	} else if (isIterableFunctionType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
-	} else if (isIterableIterator(expType)) {
+	} else if (isIterableIteratorType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {
