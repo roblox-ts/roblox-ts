@@ -576,17 +576,6 @@ function compileBindingLiteralInner(
 	}
 }
 
-export function compileBindingLiteralAndJoin(
-	state: CompilerState,
-	bindingLiteral: BindingLiteral,
-	parentId: string,
-	accessNode: ts.Node = bindingLiteral,
-) {
-	state.enterPrecedingStatementContext();
-	compileBindingLiteralInner(state, bindingLiteral, parentId, accessNode);
-	return state.exitPrecedingStatementContextAndJoin();
-}
-
 export function compileBindingLiteral(
 	state: CompilerState,
 	bindingLiteral: BindingLiteral,
