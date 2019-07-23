@@ -41,7 +41,10 @@ export class Watcher {
 	private async onSuccess() {
 		if (this.onSuccessCmd.length > 0) {
 			const parts = this.onSuccessCmd.split(/\s+/);
-			await spawn(parts.shift()!, parts, { stdio: "inherit" });
+			const command = parts.shift();
+			if (command) {
+				await spawn(command, parts, { stdio: "inherit" });
+			}
 		}
 	}
 
