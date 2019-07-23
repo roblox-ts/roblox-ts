@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues, getBindingData } from ".";
+import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
@@ -14,6 +14,7 @@ import {
 	shouldHoist,
 } from "../typeUtilities";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { compileBindingPatternAndJoin } from "./binding";
 import { isValidLuaIdentifier } from "./security";
 
 export function compileVariableDeclaration(state: CompilerState, node: ts.VariableDeclaration) {
@@ -112,15 +113,11 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 		}
 	} else if ((ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) && rhs) {
 		// binding patterns MUST have rhs
-		const names = new Array<string>();
-		const values = new Array<string>();
-		const preStatements = new Array<string>();
-		const postStatements = new Array<string>();
 		let rhsStr = compileExpression(state, rhs);
 
 		if (!isValidLuaIdentifier(rhsStr)) {
 			const id = state.getNewId();
-			preStatements.push(`local ${id} = ${rhsStr};`);
+			state.pushPrecedingStatements(node, state.indent + `local ${id} = ${rhsStr};\n`);
 			rhsStr = id;
 		}
 
@@ -137,24 +134,31 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				state.usesTSLibrary = true;
 				rhsStr = rhsStr;
 				const id = state.getNewId();
-				preStatements.push(`local ${id} = ${rhsStr}[TS.Symbol_iterator](${rhsStr});`);
+				state.pushPrecedingStatements(
+					node,
+					state.indent + `local ${id} = ${rhsStr}[TS.Symbol_iterator](${rhsStr});\n`,
+				);
 				rhsStr = id;
 			}
 		}
 
-		getBindingData(state, names, values, preStatements, postStatements, lhs, rhsStr);
-		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-		if (values.length > 0) {
-			if (isExported && decKind === ts.VariableDeclarationKind.Let) {
-				concatNamesAndValues(state, names, values, false, str => (result += str));
+		let exportVars: boolean;
+		let noLocal: boolean;
+
+		if (isExported) {
+			if (decKind === ts.VariableDeclarationKind.Let) {
+				exportVars = false;
+				noLocal = true;
 			} else {
-				if (isExported && ts.TypeGuards.isVariableStatement(grandParent)) {
-					names.forEach(name => state.pushExport(name, grandParent));
-				}
-				concatNamesAndValues(state, names, values, true, str => (result += str));
+				exportVars = true;
+				noLocal = false;
 			}
+		} else {
+			exportVars = false;
+			noLocal = false;
 		}
-		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+
+		result += compileBindingPatternAndJoin(state, lhs, rhsStr, exportVars, noLocal);
 	}
 
 	return state.exitPrecedingStatementContextAndJoin() + result;

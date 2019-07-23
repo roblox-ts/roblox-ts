@@ -3,6 +3,7 @@ import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportL
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { checkNonAny } from "./security";
 import { compileTruthyCheck } from "./truthiness";
 
 function isUnaryExpressionNonStatement(
@@ -35,6 +36,7 @@ function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, n
 
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = skipNodesDownwards(node.getOperand(), true);
+	checkNonAny(operand);
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = skipNodesUpwards(node.getParentOrThrow());
@@ -85,6 +87,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 
 export function compilePostfixUnaryExpression(state: CompilerState, node: ts.PostfixUnaryExpression) {
 	const operand = skipNodesDownwards(node.getOperand());
+	checkNonAny(operand);
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = skipNodesUpwards(node.getParentOrThrow());

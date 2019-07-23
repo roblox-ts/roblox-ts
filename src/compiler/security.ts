@@ -2,8 +2,9 @@ import * as ts from "ts-morph";
 import { HasParameters } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { bold, yellow } from "../textUtilities";
 import { getType, isAnyType } from "../typeUtilities";
-import { bold, ScriptContext, yellow } from "../utility";
+import { ScriptContext } from "../utility";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",

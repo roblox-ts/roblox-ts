@@ -75,12 +75,13 @@ function isExport(node: ts.Node) {
 }
 
 export function isType(node: ts.Node): boolean {
-	if (ts.TypeGuards.isIdentifier(node)) {
+	if (ts.TypeGuards.isIdentifier(node) || ts.TypeGuards.isExpressionWithTypeArguments(node)) {
 		return isType(node.getParent());
 	}
 
 	return (
 		node.getKindName() === "TypeQuery" ||
+		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -166,9 +167,9 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 
 export function laxTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
-		return type.getUnionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getUnionTypes().some(t => laxTypeConstraint(t, cb));
 	} else if (type.isIntersection()) {
-		return type.getIntersectionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getIntersectionTypes().some(t => laxTypeConstraint(t, cb));
 	} else {
 		return cb(type);
 	}

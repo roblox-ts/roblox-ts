@@ -6,10 +6,9 @@ import {
 	compileElementAccessDataTypeExpression,
 	compileExpression,
 	concatNamesAndValues,
-	getAccessorForBindingPatternType,
-	getBindingData,
 	getWritableOperandName,
 	isIdentifierDefinedInExportLet,
+	shouldWrapExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -23,7 +22,7 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../typeUtilities";
 import { makeSetStatement, skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { shouldWrapExpression } from "./call";
+import { compileBindingLiteral } from "./binding";
 import { compileTruthyCheck, getTruthyCompileData } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
@@ -101,10 +100,7 @@ function compileBinaryLiteral(
 	lhs: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
 	rhs: ts.Expression,
 ) {
-	const names = new Array<string>();
-	const values = new Array<string>();
-	const preStatements = new Array<string>();
-	const postStatements = new Array<string>();
+	const statements = new Array<string>();
 
 	let rootId: string;
 	if (
@@ -115,34 +111,19 @@ function compileBinaryLiteral(
 		rootId = compileExpression(state, rhs);
 	} else {
 		rootId = state.getNewId();
-		preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	getBindingData(
-		state,
-		names,
-		values,
-		preStatements,
-		postStatements,
-		lhs,
-		rootId,
-		getAccessorForBindingPatternType(rhs),
-	);
+	statements.push(...compileBindingLiteral(state, lhs, rootId, rhs));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
 	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
 		let result = "";
-		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		return result.replace(/;\n$/, ""); // terrible hack
 	} else {
-		preStatements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration =>
-			state.pushPrecedingStatements(node, declaration),
-		);
-		postStatements.forEach(statementStr => state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
 		return rootId;
 	}
 }
@@ -218,8 +199,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			// e.g. [[[[[[[a]]]]]]] = func() where func() returns a LuaTuple<[string]>
 
 			let result = "";
-			const preStatements = new Array<string>();
-			const postStatements = new Array<string>();
+			const statements = new Array<string>();
 			const names = lhs
 				.getElements()
 				.map(element => {
@@ -229,19 +209,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						ts.TypeGuards.isArrayLiteralExpression(element) ||
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
-						let rootId: string;
-						rootId = state.getNewId();
-
-						getBindingData(
-							state,
-							[],
-							[],
-							preStatements,
-							postStatements,
-							element,
-							rootId,
-							getAccessorForBindingPatternType(rhs),
-						);
+						const rootId = state.getNewId();
+						statements.push(...compileBindingLiteral(state, element, rootId, rhs));
 						return rootId;
 					} else {
 						return compileExpression(state, element);
@@ -259,8 +228,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				false,
 				false,
 			);
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+			statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 			if (isStatement) {
 				return result.replace(/;\n$/, ""); // terrible hack
 			} else {

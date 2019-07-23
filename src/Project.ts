@@ -5,11 +5,12 @@ import path from "path";
 import * as ts from "ts-morph";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
-import { CompilerError } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
+import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { red, transformPathToLua, yellow } from "./utility";
+import { red, yellow } from "./textUtilities";
+import { transformPathToLua } from "./utility";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -71,15 +72,15 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 				try {
 					const stats = await fs.stat(filePath);
 					if (stats.isDirectory()) {
-						searchForDeadFiles(filePath);
+						await searchForDeadFiles(filePath);
 						if ((await fs.readdir(dir)).length === 0) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "dir", filePath);
 						}
 					} else if (stats.isFile()) {
 						const relativeToDestFolder = path.relative(destinationFolder, filePath);
 						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-							fs.remove(filePath);
+							await fs.remove(filePath);
 							console.log("delete", "file", filePath);
 						}
 					}
@@ -173,8 +174,8 @@ export class Project {
 		try {
 			this.validateCompilerOptions();
 		} catch (e) {
-			if (e instanceof ProjectError) {
-				console.log(red("Compiler Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 				process.exit(1);
 			} else {
 				throw e;
@@ -272,8 +273,8 @@ export class Project {
 			try {
 				this.validateRbxTypes();
 			} catch (e) {
-				if (e instanceof ProjectError) {
-					console.log(red("Compiler Error:"), e.message);
+				if (e instanceof LoggableError) {
+					e.log(this.projectPath);
 					process.exit(1);
 				} else {
 					throw e;
@@ -476,7 +477,15 @@ export class Project {
 	public async refreshFile(filePath: string) {
 		const file = this.project.getSourceFile(filePath);
 		if (file) {
-			file.refreshFromFileSystem();
+			try {
+				await file.refreshFromFileSystem();
+			} catch (e) {
+				this.reloadProject();
+				throw new ProjectError(
+					`ts-morph failed to parse ${path.relative(this.projectPath, filePath)}`,
+					ProjectErrorType.TsMorph,
+				);
+			}
 		} else {
 			this.project.addExistingSourceFile(filePath);
 		}
@@ -592,10 +601,10 @@ export class Project {
 			dtsFiles.map(filePath => {
 				return new Promise(resolve => {
 					const outPath = path.join(this.outPath, path.relative(this.rootPath, filePath));
-					fs.readFile(filePath).then(buffer => {
+					void fs.readFile(filePath).then(buffer => {
 						const contents = buffer.toString();
-						fs.ensureFile(outPath).then(() => {
-							fs.writeFile(outPath, contents).then(() => resolve());
+						void fs.ensureFile(outPath).then(() => {
+							void fs.writeFile(outPath, contents).then(() => resolve());
 						});
 					});
 				});
@@ -655,7 +664,7 @@ export class Project {
 			exception = e;
 		}
 		const errors = this.getDiagnosticErrors([sourceFile]);
-		sourceFile.deleteImmediately();
+		void sourceFile.deleteImmediately();
 
 		if (errors.length > 0) {
 			throw new DiagnosticError(errors);
@@ -686,13 +695,13 @@ export class Project {
 			(await this.getEmittedDtsFiles()).map(
 				filePath =>
 					new Promise(resolve => {
-						fs.readFile(filePath).then(contentsBuffer => {
+						void fs.readFile(filePath).then(contentsBuffer => {
 							let fileContents = contentsBuffer.toString();
 							fileContents = fileContents.replace(
-								/<reference types="([^."]+)" \/>/g,
+								/<reference types="(?!@rbxts\/)([^."]+)" \/>/g,
 								'<reference types="@rbxts/$1" />',
 							);
-							fs.writeFile(filePath, fileContents).then(() => resolve());
+							void fs.writeFile(filePath, fileContents).then(() => resolve());
 						});
 					}),
 			),
@@ -781,27 +790,8 @@ export class Project {
 			if (this.ci) {
 				throw e;
 			}
-			if (e instanceof CompilerError) {
-				const node = e.node;
-				if (ts.TypeGuards.isSourceFile(node)) {
-					console.log(
-						"%s - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						red("Compiler Error:"),
-						e.message,
-					);
-				} else {
-					console.log(
-						"%s:%d:%d - %s %s",
-						path.relative(this.projectPath, e.node.getSourceFile().getFilePath()),
-						e.node.getStartLineNumber(),
-						e.node.getNonWhitespaceStart() - e.node.getStartLinePos(),
-						red("Compiler Error:"),
-						e.message,
-					);
-				}
-			} else if (e instanceof ProjectError) {
-				console.log(red("Project Error:"), e.message);
+			if (e instanceof LoggableError) {
+				e.log(this.projectPath);
 			} else if (e instanceof DiagnosticError) {
 				console.log(e.toString());
 			} else {
