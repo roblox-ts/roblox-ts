@@ -310,8 +310,8 @@ function getAccessorForBindingType(type: ts.Type | Array<ts.Type>, node?: ts.Nod
 			}
 		}
 	}
-	console.log(type.getText());
-	throw "hecK";
+	// todo make this a real CompilerError
+	throw "Could not find get accessor";
 }
 
 export function concatNamesAndValues(
