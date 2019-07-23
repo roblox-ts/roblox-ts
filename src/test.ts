@@ -62,6 +62,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
 	},
+	"spreadDestructure2.spec.ts": {
+		message: "should not allow usage of spread in destructure statements",
+		instance: CompilerError,
+		type: CompilerErrorType.SpreadDestructuring,
+	},
 	"roactSubClass.spec.tsx": {
 		message: "should not allow subclasses of roact components",
 		instance: CompilerError,
