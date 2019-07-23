@@ -519,4 +519,12 @@ export = () => {
 		expect(a).to.equal(1);
 		expect(b).to.equal(3);
 	});
+
+	it("should support array binding literal with initializer", () => {
+		let a = 0;
+		let b = 0;
+		[a = 5, b = 6] = [];
+		expect(a).to.equal(5);
+		expect(b).to.equal(6);
+	});
 };
