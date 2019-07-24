@@ -590,4 +590,26 @@ export = () => {
 		expect(a).to.equal("heck");
 		expect(b).to.equal(123);
 	});
+
+	it("should destructure assign with double nested sets", () => {
+		let a: string;
+		const obj = {
+			x: [new Set(["heck"])],
+		};
+		({
+			x: [[a]],
+		} = obj);
+		expect(a).to.equal("heck");
+	});
+
+	it("should destructure assign with triple nested sets", () => {
+		let a: string;
+		const obj = {
+			x: [new Set(["heck"])],
+		};
+		({
+			x: [[[a]]],
+		} = obj);
+		expect(a).to.equal("h");
+	});
 };
