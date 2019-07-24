@@ -654,4 +654,34 @@ export = () => {
 		expect(b).to.equal(2);
 		expect(c).to.equal(3);
 	});
+
+	it("should destructure nested strings", () => {
+		const obj = {
+			x: "abc",
+		};
+		let a = "";
+		let b = "";
+		let c = "";
+		({
+			x: [a, b, c],
+		} = obj);
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
+	});
+
+	it("should destructure nested strings", () => {
+		const obj = {
+			x: "abc",
+		};
+		let a = "";
+		let b = "";
+		let c = "";
+		({
+			x: [a, b, c],
+		} = obj);
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
+	});
 };
