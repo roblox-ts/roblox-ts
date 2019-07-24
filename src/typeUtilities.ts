@@ -242,14 +242,14 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIterator(type: ts.Type, node: ts.Node) {
+export function isIterableIteratorType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
 	});
 }
 
-export function isIterableFunction(type: ts.Type) {
+export function isIterableFunctionType(type: ts.Type) {
 	return isSomeType(type, check, t => {
 		const symbol = t.getAliasSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;

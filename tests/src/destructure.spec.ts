@@ -541,4 +541,168 @@ export = () => {
 		({ x: y = 5 } = {});
 		expect(y).to.equal(5);
 	});
+
+	it("should destructure assign with nested sets", () => {
+		let a = "";
+		const obj = {
+			x: new Set(["heck"]),
+		};
+		({
+			x: [a],
+		} = obj);
+		expect(a).to.equal("heck");
+	});
+
+	it("should destructure assign with nested maps", () => {
+		let a: [string, number];
+		const obj = {
+			x: new Map([["heck", 123]]),
+		};
+		({
+			x: [a],
+		} = obj);
+		expect(a[0]).to.equal("heck");
+		expect(a[1]).to.equal(123);
+	});
+
+	it("should destructure assign with nested maps keys and values", () => {
+		let a: string;
+		let b: number;
+		const obj = {
+			x: new Map([["heck", 123]]),
+		};
+		({
+			x: [[a, b]],
+		} = obj);
+		expect(a).to.equal("heck");
+		expect(b).to.equal(123);
+	});
+
+	it("should destructure assign with double nested maps keys and values", () => {
+		let a: string;
+		let b: number;
+		const obj = {
+			x: [new Map([["heck", 123]])],
+		};
+		({
+			x: [[[a, b]]],
+		} = obj);
+		expect(a).to.equal("heck");
+		expect(b).to.equal(123);
+	});
+
+	it("should destructure assign with double nested sets", () => {
+		let a: string;
+		const obj = {
+			x: [new Set(["heck"])],
+		};
+		({
+			x: [[a]],
+		} = obj);
+		expect(a).to.equal("heck");
+	});
+
+	it("should destructure assign with triple nested sets", () => {
+		let a: string;
+		const obj = {
+			x: [new Set(["heck"])],
+		};
+		({
+			x: [[[a]]],
+		} = obj);
+		expect(a).to.equal("h");
+	});
+
+	it("should destructure nested generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const obj = {
+			x: foo(),
+		};
+		let a = 0;
+		let b = 0;
+		let c = 0;
+		({
+			x: [a, b, c],
+		} = obj);
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
+
+	it("should destructure double nested generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const obj = {
+			x: [foo()],
+		};
+		let a = 0;
+		let b = 0;
+		let c = 0;
+		({
+			x: [[a, b, c]],
+		} = obj);
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
+
+	it("should destructure nested strings", () => {
+		const obj = {
+			x: "abc",
+		};
+		let a = "";
+		let b = "";
+		let c = "";
+		({
+			x: [a, b, c],
+		} = obj);
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
+	});
+
+	it("should destructure nested strings", () => {
+		const obj = {
+			x: new Map([["foo", 1]]),
+		};
+
+		let a = "";
+
+		({
+			x: [[[[[a]]]]],
+		} = obj);
+
+		expect(a).to.equal("f");
+	});
+
+	it("should get sub type of iterable iterator", () => {
+		function* foo() {
+			yield "abc";
+		}
+
+		const obj = {
+			x: foo(),
+		};
+
+		let a = "";
+		let b = "";
+		let c = "";
+
+		({
+			x: [[a, b, c]],
+		} = obj);
+
+		expect(a).to.equal("a");
+		expect(b).to.equal("b");
+		expect(c).to.equal("c");
+	});
 };

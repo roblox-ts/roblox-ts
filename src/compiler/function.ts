@@ -13,7 +13,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
-	isIterableIterator,
+	isIterableIteratorType,
 	isTupleType,
 	shouldHoist,
 } from "../typeUtilities";
@@ -193,7 +193,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIterator(node.getReturnType(), node);
+		isIterableIteratorType(node.getReturnType());
 		result += "\n";
 		state.pushIndent();
 		result += state.indent + `return {\n`;

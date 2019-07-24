@@ -5,8 +5,8 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapType,
 	isObjectType,
 	isSetType,
@@ -127,8 +127,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				!isArrayType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
-				!isIterableIterator(rhsType, rhs) &&
-				!isIterableFunction(rhsType) &&
+				!isIterableIteratorType(rhsType) &&
+				!isIterableFunctionType(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {
 				state.usesTSLibrary = true;
