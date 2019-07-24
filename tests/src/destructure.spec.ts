@@ -672,14 +672,35 @@ export = () => {
 
 	it("should destructure nested strings", () => {
 		const obj = {
-			x: "abc",
+			x: new Map([["foo", 1]]),
 		};
+
+		let a = "";
+
+		({
+			x: [[[[[a]]]]],
+		} = obj);
+
+		expect(a).to.equal("f");
+	});
+
+	it("should get sub type of iterable iterator", () => {
+		function* foo() {
+			yield "abc";
+		}
+
+		const obj = {
+			x: foo(),
+		};
+
 		let a = "";
 		let b = "";
 		let c = "";
+
 		({
-			x: [a, b, c],
+			x: [[a, b, c]],
 		} = obj);
+
 		expect(a).to.equal("a");
 		expect(b).to.equal("b");
 		expect(c).to.equal("c");
