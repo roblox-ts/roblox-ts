@@ -7,4 +7,4 @@
 	- `rbxtsc --init game`
 	- `rbxtsc --init bundle`
 	- `rbxtsc --init package`\
-	It not run if you have a non-empty src folder
+	It will not run if you have a non-empty src folder
