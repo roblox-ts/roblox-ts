@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import yargs from "yargs";
+import { CliError } from "./errors/CliError";
+import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
 import { Watcher } from "./Watcher";
 
@@ -68,13 +70,31 @@ const argv = yargs
 		describe: "Manually select Rojo configuration file",
 	})
 
+	// init
+	.option("init", {
+		choices: ["game", "bundle", "package"],
+		conflicts: ["w"],
+		type: "string",
+	})
+
 	// parse
 	.parse();
 
-const project = new Project(argv);
-if (argv.watch === true) {
-	const watcher = new Watcher(project, argv.onSuccess);
-	watcher.start();
-} else {
-	void project.compileAll();
-}
+void (async () => {
+	try {
+		if (argv.init !== undefined) {
+			await Initializer.init(argv.init.toLowerCase() as InitializeMode);
+		} else if (argv.watch === true) {
+			const watcher = new Watcher(new Project(argv), argv.onSuccess);
+			watcher.start();
+		} else {
+			await new Project(argv).compileAll();
+		}
+	} catch (e) {
+		if (e instanceof CliError) {
+			e.log();
+		} else {
+			throw e;
+		}
+	}
+})();
