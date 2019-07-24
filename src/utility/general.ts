@@ -1,7 +1,7 @@
 import path from "path";
 import * as ts from "ts-morph";
-import { isValidLuaIdentifier } from "./compiler";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { isValidLuaIdentifier } from "../compiler";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {

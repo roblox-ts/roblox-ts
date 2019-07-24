@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileLoopBody } from ".";
 import { CompilerState } from "../CompilerState";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards } from "../utility/general";
 import { assertNonLuaTuple } from "./if";
 
 export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {

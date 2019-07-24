@@ -2,8 +2,8 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatement } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getType, isTupleType } from "../typeUtilities";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility/general";
+import { getType, isTupleType } from "../utility/type";
 
 export function assertNonLuaTuple(exp: ts.Expression) {
 	if (isTupleType(getType(exp))) {

@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
-import { PrecedingStatementContext } from "./CompilerState";
-import { skipNodesDownwards } from "./utility";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "../compiler";
+import { PrecedingStatementContext } from "../CompilerState";
+import { skipNodesDownwards } from "./general";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",

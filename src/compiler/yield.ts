@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 
 export function compileYieldExpression(state: CompilerState, node: ts.YieldExpression) {
 	const exp = skipNodesDownwards(node.getExpression());

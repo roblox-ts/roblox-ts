@@ -10,6 +10,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
@@ -18,8 +19,7 @@ import {
 	isMapType,
 	isSetType,
 	isStringType,
-} from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+} from "../utility/type";
 
 function getVariableName(state: CompilerState, lhs: ts.Node, statements: Array<string>) {
 	if (lhs) {

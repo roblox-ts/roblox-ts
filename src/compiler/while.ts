@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileLoopBody } from ".";
 import { CompilerState } from "../CompilerState";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility/general";
 import { assertNonLuaTuple } from "./if";
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {

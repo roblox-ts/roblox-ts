@@ -2,8 +2,8 @@ import * as ts from "ts-morph";
 import { checkReserved, getReadableExpressionName } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { shouldHoist } from "../typeUtilities";
-import { safeLuaIndex, skipNodesDownwards } from "../utility";
+import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
+import { shouldHoist } from "../utility/type";
 
 export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
 	let result = "";

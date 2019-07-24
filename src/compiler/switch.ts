@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatementedNode, isIdentifierDefinedInConst, shouldWrapExpression } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility/general";
 
 function fallThroughConditionsRequireIfStatement(fallThroughConditions: Array<string>, fallThroughVar?: string) {
 	return (

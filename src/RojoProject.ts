@@ -1,7 +1,8 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
-import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility";
+import { RojoProjectError } from "./errors/RojoProjectError";
+import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility/general";
 
 interface RojoTreeProperty {
 	Type: string;

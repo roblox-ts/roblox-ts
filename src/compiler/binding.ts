@@ -9,6 +9,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility/general";
 import {
 	getCompilerDirectiveWithLaxConstraint,
 	getType,
@@ -23,8 +24,7 @@ import {
 	isSetType,
 	isStringMethodType,
 	isStringType,
-} from "../typeUtilities";
-import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
+} from "../utility/type";
 import { compileIdentifier } from "./identifier";
 import { checkReserved } from "./security";
 

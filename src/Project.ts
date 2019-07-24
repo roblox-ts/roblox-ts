@@ -8,9 +8,10 @@ import { CompilerState } from "./CompilerState";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { red, yellow } from "./textUtilities";
-import { transformPathToLua } from "./utility";
+import { RojoProjectError } from "./errors/RojoProjectError";
+import { NetworkType, RojoProject } from "./RojoProject";
+import { transformPathToLua } from "./utility/general";
+import { red, yellow } from "./utility/text";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 

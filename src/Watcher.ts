@@ -6,7 +6,7 @@ import { CompilerError } from "./errors/CompilerError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { clearContextCache } from "./utility";
+import { clearContextCache } from "./utility/general";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {

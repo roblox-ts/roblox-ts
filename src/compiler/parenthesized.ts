@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 
 export function compileParenthesizedExpression(state: CompilerState, node: ts.ParenthesizedExpression) {
 	const expStr = compileExpression(state, skipNodesDownwards(node.getExpression()));

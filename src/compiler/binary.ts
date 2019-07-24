@@ -11,6 +11,7 @@ import {
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
@@ -19,8 +20,7 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { compileBindingLiteral } from "./binding";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {

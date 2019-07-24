@@ -8,8 +8,8 @@ import {
 	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
-import { getType, isNumberType } from "../typeUtilities";
-import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines, skipNodesDownwards } from "../utility";
+import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines, skipNodesDownwards } from "../utility/general";
+import { getType, isNumberType } from "../utility/type";
 
 function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	return (

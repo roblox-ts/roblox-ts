@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, compileMethodDeclaration } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility/general";
 
 function assignMembers(state: CompilerState, from: string, target: string) {
 	state.pushIdStack();

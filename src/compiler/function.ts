@@ -10,14 +10,14 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
 	isIterableIteratorType,
 	isTupleType,
 	shouldHoist,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
 
 export type HasParameters =
