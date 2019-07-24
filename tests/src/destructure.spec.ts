@@ -541,4 +541,53 @@ export = () => {
 		({ x: y = 5 } = {});
 		expect(y).to.equal(5);
 	});
+
+	it("should destructure assign with nested sets", () => {
+		let a = "";
+		const obj = {
+			x: new Set(["heck"]),
+		};
+		({
+			x: [a],
+		} = obj);
+		expect(a).to.equal("heck");
+	});
+
+	it("should destructure assign with nested maps", () => {
+		let a: [string, number];
+		const obj = {
+			x: new Map([["heck", 123]]),
+		};
+		({
+			x: [a],
+		} = obj);
+		expect(a[0]).to.equal("heck");
+		expect(a[1]).to.equal(123);
+	});
+
+	it("should destructure assign with nested maps keys and values", () => {
+		let a: string;
+		let b: number;
+		const obj = {
+			x: new Map([["heck", 123]]),
+		};
+		({
+			x: [[a, b]],
+		} = obj);
+		expect(a).to.equal("heck");
+		expect(b).to.equal(123);
+	});
+
+	it("should destructure assign with double nested maps keys and values", () => {
+		let a: string;
+		let b: number;
+		const obj = {
+			x: [new Map([["heck", 123]])],
+		};
+		({
+			x: [[[a, b]]],
+		} = obj);
+		expect(a).to.equal("heck");
+		expect(b).to.equal(123);
+	});
 };
