@@ -189,11 +189,7 @@ export class Project {
 				this.rojoProject = RojoProject.fromPathSync(this.rojoFilePath);
 			} catch (e) {
 				if (e instanceof RojoProjectError) {
-					console.log(
-						"Warning!",
-						"Failed to load Rojo configuration. Import and export statements will not compile.",
-						e.message,
-					);
+					e.log();
 				}
 			}
 		}

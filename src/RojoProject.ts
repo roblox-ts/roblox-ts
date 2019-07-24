@@ -30,8 +30,6 @@ interface RojoFile {
 
 const ajv = new Ajv();
 
-export class RojoProjectError extends Error {}
-
 const ROJO_METADATA_REGEX = /^\$/;
 const LUA_EXT = ".lua";
 const FOLDER_EXT = "";
