@@ -485,11 +485,11 @@ function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index:
 			// IterableIterator<T> -> T
 			return type.getTypeArguments()[0];
 		}
-	} else {
-		if (typeof index === "number") {
-			return type[index];
-		}
+	} else if (typeof index === "number") {
+		return type[index];
 	}
+
+	/* istanbul ignore next */
 	throw new CompilerError("Could not find subtype!", node, CompilerErrorType.BadDestructSubType, true);
 }
 
