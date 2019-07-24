@@ -2,7 +2,7 @@
 
 import yargs from "yargs";
 import { CliError } from "./errors/CliError";
-import { Initializer, InitializeMode } from "./Initializer";
+import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
 import { Watcher } from "./Watcher";
 
