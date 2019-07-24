@@ -47,9 +47,9 @@ export abstract class Initializer {
 			}
 		});
 
-		await this.doStep("Install @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
+		await this.doStep("Installing @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
 
-		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir, { errorOnExist: true }));
+		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
 		console.log("Run `rbxtsc` to compile!");
 	}
