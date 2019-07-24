@@ -612,4 +612,46 @@ export = () => {
 		} = obj);
 		expect(a).to.equal("h");
 	});
+
+	it("should destructure nested generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const obj = {
+			x: foo(),
+		};
+		let a = 0;
+		let b = 0;
+		let c = 0;
+		({
+			x: [a, b, c],
+		} = obj);
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
+
+	it("should destructure double nested generators", () => {
+		function* foo() {
+			yield 1;
+			yield 2;
+			yield 3;
+		}
+
+		const obj = {
+			x: [foo()],
+		};
+		let a = 0;
+		let b = 0;
+		let c = 0;
+		({
+			x: [[a, b, c]],
+		} = obj);
+		expect(a).to.equal(1);
+		expect(b).to.equal(2);
+		expect(c).to.equal(3);
+	});
 };
