@@ -72,7 +72,7 @@ const argv = yargs
 
 	// init
 	.option("init", {
-		choices: ["game", "bundle", "package"],
+		choices: [InitializeMode.Game, InitializeMode.Bundle, InitializeMode.Package],
 		conflicts: ["w"],
 		type: "string",
 	})
@@ -83,7 +83,7 @@ const argv = yargs
 void (async () => {
 	try {
 		if (argv.init !== undefined) {
-			await Initializer.init(argv.init.toLowerCase() as InitializeMode);
+			await Initializer.init(argv.init as InitializeMode);
 		} else if (argv.watch === true) {
 			const watcher = new Watcher(new Project(argv), argv.onSuccess);
 			watcher.start();
