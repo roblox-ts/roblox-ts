@@ -35,7 +35,7 @@ export abstract class Initializer {
 
 		console.log(yellow(`Initializing directory as ${mode}`));
 
-		await this.doStep("Creating package.json", () => cmd("npm", ["init", "-y"]));
+		await this.doStep("Creating package.json", () => cmd("npm", ["init", "-y", "--scope", "@rbxts"]));
 
 		await this.doStep("Install @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
 
