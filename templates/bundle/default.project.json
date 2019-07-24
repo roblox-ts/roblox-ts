@@ -1,0 +1,9 @@
+{
+	"name": "roblox-ts-bundle",
+	"tree": {
+		"$path": "out",
+		"include": {
+			"$path": "include"
+		}
+	}
+}
