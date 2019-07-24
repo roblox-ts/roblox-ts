@@ -38,6 +38,10 @@ export abstract class Initializer {
 		await this.doStep("Creating package.json", async () => {
 			if (mode === InitializeMode.Package) {
 				await cmd("npm", ["init", "-y", "--scope", "@rbxts"]);
+				const pkgJsonPath = path.join(dir, "package.json");
+				const pkgJson = await fs.readJson(pkgJsonPath);
+				pkgJson.private = false;
+				await fs.outputFile(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 			} else {
 				await cmd("npm", ["init", "-y"]);
 			}
