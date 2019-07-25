@@ -105,7 +105,7 @@ async function copyAndCleanDeadLuaFiles(
 
 export enum ProjectType {
 	Game,
-	Bundle,
+	Model,
 	Package,
 }
 
@@ -214,11 +214,11 @@ export class Project {
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
-			let type: ProjectType.Game | ProjectType.Bundle;
+			let type: ProjectType.Game | ProjectType.Model;
 			if (this.rojoProject.isGame()) {
 				type = ProjectType.Game;
 			} else {
-				type = ProjectType.Bundle;
+				type = ProjectType.Model;
 			}
 			this.projectType = type;
 			this.runtimeLibPath = runtimeLibPath;

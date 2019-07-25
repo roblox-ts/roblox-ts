@@ -6,7 +6,7 @@ import { yellow } from "./utility/text";
 
 export enum InitializeMode {
 	Game = "game",
-	Bundle = "bundle",
+	Model = "model",
 	Package = "package",
 }
 
