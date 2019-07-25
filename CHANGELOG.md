@@ -1,3 +1,6 @@
+### **0.2.12**
+- Replaced .npmignore with "files" field to resolve npm issues
+
 ### **0.2.11**
 - Removed empty field initializers from compiled constructor. i.e. `self.field = nil;`
 - Renamed "bundle" to "model"
