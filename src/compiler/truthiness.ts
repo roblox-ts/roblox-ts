@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	getType,
@@ -11,9 +11,55 @@ import {
 	isTupleType,
 	isUnknowableType,
 } from "../typeUtilities";
+import { makeSetStatement, removeBalancedParenthesisFromStringBorders } from "../utility";
 import { isValidLuaIdentifier } from "./security";
 
-export function getTruthyCompileData(state: CompilerState, exp: ts.Expression, shouldPush = false) {
+export function compileLogicalBinary(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	isAnd: boolean,
+	node: ts.BinaryExpression,
+) {
+	console.log(8, node.getText());
+	let id: string | undefined;
+	const currentConditionalContext = state.currentConditionalContext;
+	let isPushed = false;
+	const declaration = state.declarationContext.get(node);
+
+	if (declaration) {
+		if (declaration.needsLocalizing) {
+			state.pushPrecedingStatements(node, state.indent + `local `);
+		}
+
+		state.currentConditionalContext = id = declaration.set;
+		state.declarationContext.delete(node);
+	} else {
+		if (currentConditionalContext === "") {
+			state.currentConditionalContext = id = state.pushPrecedingStatementToNewId(node, "");
+			isPushed = true;
+		} else {
+			id = currentConditionalContext;
+		}
+	}
+
+	const truthyData = getTruthyCompileData(state, lhs, true);
+	console.log(9, id, (id = truthyData.expStr));
+	const conditionStr = compileTruthyCheck(state, lhs, truthyData);
+
+	state.pushPrecedingStatements(lhs, state.indent + `if ${isAnd ? "" : "not "}${conditionStr} then\n`);
+	state.pushIdStack();
+	state.pushIndent();
+	const rhsStr = compileExpression(state, rhs);
+	state.pushPrecedingStatements(lhs, makeSetStatement(state, id, rhsStr));
+	state.popIdStack();
+	state.popIndent();
+	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+
+	return id;
+}
+
+export function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = false) {
 	const expType = getType(exp);
 
 	if (isTupleType(expType)) {
@@ -31,21 +77,22 @@ export function getTruthyCompileData(state: CompilerState, exp: ts.Expression, s
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 
-	console.log(0, exp.getText(), state.declarationContext.get(exp), state.currentConditionalContext);
+	console.log(0, exp.getText(), state.currentConditionalContext);
 
-	let expStr = compileExpression(state, exp);
+	let expStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, exp));
+
+	if (expStr !== state.currentConditionalContext) {
+		state.pushPrecedingStatements(exp, state.indent + `${state.currentConditionalContext} = ${expStr};\n`);
+		expStr = state.currentConditionalContext;
+	}
 
 	const currentConditionalContext = state.currentConditionalContext;
-	const declaration = state.declarationContext.get(exp);
 
-	console.log(1, exp.getText(), declaration, currentConditionalContext);
+	console.log(1, expStr, exp.getText(), currentConditionalContext);
 
-	// This comes after compileExpressions so that the declarationContext can
-	// be recursively set to the lhs of binary logical expressions
 	if (
-		declaration ||
-		(!isValidLuaIdentifier(expStr) &&
-			(checkNaN ? 1 : 0) + (checkNon0 ? 1 : 0) + (checkEmptyString ? 1 : 0) + (checkTruthy ? 1 : 0) > 1)
+		!isValidLuaIdentifier(expStr) &&
+		Number(checkNaN) + Number(checkNon0) + Number(checkEmptyString) + Number(checkTruthy) > 1
 	) {
 		console.log(2, state.currentBinaryLogicContext, exp.getText());
 		if (state.currentBinaryLogicContext) {

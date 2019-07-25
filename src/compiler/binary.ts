@@ -23,7 +23,7 @@ import {
 } from "../typeUtilities";
 import { makeSetStatement, skipNodesDownwards, skipNodesUpwards } from "../utility";
 import { compileBindingLiteral } from "./binding";
-import { compileTruthyCheck, getTruthyCompileData } from "./truthiness";
+import { compileLogicalBinary, compileTruthyCheck, getTruthyCompileData } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -126,46 +126,6 @@ function compileBinaryLiteral(
 		statements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
 		return rootId;
 	}
-}
-
-function compileLogicalBinary(
-	state: CompilerState,
-	lhs: ts.Expression,
-	rhs: ts.Expression,
-	isAnd: boolean,
-	node: ts.BinaryExpression,
-) {
-	if (node) {
-		const declarationContext = state.declarationContext.get(node);
-
-		if (declarationContext) {
-			state.declarationContext.set(lhs, declarationContext).delete(node);
-		}
-	}
-
-	const truthyData = getTruthyCompileData(state, lhs, true);
-
-	if (node) {
-		const declarationContext = state.declarationContext.get(lhs);
-
-		if (declarationContext) {
-			state.declarationContext.set(node, declarationContext).delete(lhs);
-		}
-	}
-
-	const id = truthyData.expStr;
-	const conditionStr = compileTruthyCheck(state, lhs, truthyData);
-
-	state.pushPrecedingStatements(lhs, state.indent + `if ${isAnd ? "" : "not "}${conditionStr} then\n`);
-	state.pushIdStack();
-	state.pushIndent();
-	const rhsStr = compileExpression(state, rhs);
-	state.pushPrecedingStatements(lhs, makeSetStatement(state, id, rhsStr));
-	state.popIdStack();
-	state.popIndent();
-	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
-
-	return id;
 }
 
 export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExpression) {

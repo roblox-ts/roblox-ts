@@ -1,7 +1,24 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileTruthyCheck } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, DeclarationContext } from "../CompilerState";
 import { makeSetStatement, skipNodesDownwards } from "../utility";
+
+function compileConditionalBlock(
+	state: CompilerState,
+	id: string,
+	whenCondition: ts.Expression,
+	subDeclaration: DeclarationContext,
+) {
+	state.pushIndent();
+	state.declarationContext.set(whenCondition, subDeclaration);
+	state.pushIdStack();
+	const whenTrueStr = compileExpression(state, whenCondition);
+	if (state.declarationContext.delete(whenCondition) && id !== whenTrueStr) {
+		state.pushPrecedingStatements(whenCondition, makeSetStatement(state, id, whenTrueStr));
+	}
+	state.popIdStack();
+	state.popIndent();
+}
 
 export function compileConditionalExpression(state: CompilerState, node: ts.ConditionalExpression) {
 	let id: string | undefined;
@@ -31,27 +48,9 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;
 	const conditionStr = compileTruthyCheck(state, condition);
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
-	state.pushIndent();
-
-	state.declarationContext.set(whenTrue, subDeclaration);
-	state.pushIdStack();
-	const whenTrueStr = compileExpression(state, whenTrue);
-	if (state.declarationContext.delete(whenTrue) && id !== whenTrueStr) {
-		state.pushPrecedingStatements(whenTrue, makeSetStatement(state, id, whenTrueStr));
-	}
-	state.popIdStack();
-	state.popIndent();
+	compileConditionalBlock(state, id, whenTrue, subDeclaration);
 	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
-	state.pushIndent();
-	state.pushIdStack();
-
-	state.declarationContext.set(whenFalse, subDeclaration);
-	const whenFalseStr = compileExpression(state, whenFalse);
-	if (state.declarationContext.delete(whenFalse) && id !== whenFalseStr) {
-		state.pushPrecedingStatements(whenFalse, makeSetStatement(state, id, whenFalseStr));
-	}
-	state.popIdStack();
-	state.popIndent();
+	compileConditionalBlock(state, id, whenFalse, subDeclaration);
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
 
 	if (currentConditionalContext === "") {
