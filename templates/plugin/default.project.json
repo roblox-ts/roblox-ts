@@ -1,0 +1,9 @@
+{
+	"name": "roblox-ts-model",
+	"tree": {
+		"$path": "out",
+		"include": {
+			"$path": "include"
+		}
+	}
+}

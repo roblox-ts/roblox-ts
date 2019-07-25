@@ -1,6 +1,7 @@
 ### **0.2.11**
 - Removed empty field initializers from compiled constructor. i.e. `self.field = nil;`
 - Renamed "bundle" to "model"
+- Added `rbxtsc --init plugin`
 
 ### **0.2.10**
 - Improved Watch mode stability
