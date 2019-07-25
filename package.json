@@ -66,6 +66,7 @@
 		"lib",
 		"templates",
 		"CHANGELOG.md",
-		"rojo-schema.json"
+		"rojo-schema.json",
+		"!**/*.js.map"
 	]
 }
