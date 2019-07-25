@@ -1,3 +1,6 @@
+### **0.2.13**
+- Fixed bug with call expressions + non null assertion. i.e. `map.get(x)![0]`
+
 ### **0.2.12**
 - Replaced .npmignore with "files" field to resolve npm issues
 
