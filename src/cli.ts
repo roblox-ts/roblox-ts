@@ -72,7 +72,7 @@ const argv = yargs
 
 	// init
 	.option("init", {
-		choices: [InitializeMode.Game, InitializeMode.Model, InitializeMode.Package],
+		choices: [InitializeMode.Game, InitializeMode.Model, InitializeMode.Plugin, InitializeMode.Package],
 		conflicts: ["w"],
 		type: "string",
 	})
