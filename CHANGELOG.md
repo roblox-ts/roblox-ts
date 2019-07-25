@@ -2,6 +2,7 @@
 - Removed empty field initializers from compiled constructor. i.e. `self.field = nil;`
 - Renamed "bundle" to "model"
 - Added `rbxtsc --init plugin`
+- Fixed `rbxtsc --init` bug
 
 ### **0.2.10**
 - Improved Watch mode stability
