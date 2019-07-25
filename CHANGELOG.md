@@ -1,3 +1,6 @@
+### **0.2.11**
+- Removed empty field initializers from compiled constructor. i.e. `self.field = nil;`
+
 ### **0.2.10**
 - Improved Watch mode stability
 - Improved error handling
