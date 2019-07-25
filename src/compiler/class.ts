@@ -103,8 +103,6 @@ function compileClassProperty(
 			if (state.declarationContext.delete(initializer)) {
 				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
 			}
-		} else {
-			precedingStatementContext.push(state.indent, name, propStr, " = nil;\n");
 		}
 	}
 }
