@@ -174,5 +174,8 @@ export = () => {
 		let c: Map<number, number> | undefined;
 		(c!!! = a!!!).set(1, 2);
 		expect(a!.get(1)).to.equal(2);
+
+		const b = new Map<string, number[]>([["a", [123]]]);
+		expect(b.get("a")![0]).to.equal(123);
 	});
 };

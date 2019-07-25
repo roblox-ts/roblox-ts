@@ -223,7 +223,7 @@ export function addOneToArrayIndex(valueStr: string) {
 export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expression, fromNode: ts.Node) {
 	const expType = getType(exp);
 	let expStr = compileExpression(state, exp);
-	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : getType(fromNode);
+	const fromType = getType(fromNode);
 
 	if (isArrayType(fromType)) {
 		if (isNumberTypeStrict(expType)) {
