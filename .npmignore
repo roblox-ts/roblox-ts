@@ -9,3 +9,4 @@ tests
 vendor
 .editorconfig
 .history
+!templates
