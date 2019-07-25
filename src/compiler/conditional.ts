@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileTruthyCheck } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
-import { makeSetStatement, skipNodesDownwards } from "../utility";
+import { makeSetStatement, skipNodesDownwards } from "../utility/general";
 
 function compileConditionalBlock(
 	state: CompilerState,

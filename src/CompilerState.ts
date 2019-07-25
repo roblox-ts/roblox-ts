@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { ProjectType } from ".";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
-import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
+import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility/general";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 

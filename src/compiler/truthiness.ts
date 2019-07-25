@@ -1,7 +1,8 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
-import { CompilerState, DeclarationContext } from "../CompilerState";
+import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { makeSetStatement, removeBalancedParenthesisFromStringBorders } from "../utility/general";
 import {
 	getType,
 	is0TypeLax,
@@ -10,8 +11,7 @@ import {
 	isNumberTypeLax,
 	isTupleType,
 	isUnknowableType,
-} from "../typeUtilities";
-import { makeSetStatement, removeBalancedParenthesisFromStringBorders } from "../utility";
+} from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
 
 export function compileLogicalBinary(
@@ -24,7 +24,7 @@ export function compileLogicalBinary(
 	console.log(8, node.getText());
 	let id: string | undefined;
 	const currentConditionalContext = state.currentConditionalContext;
-	let isPushed = false;
+	// let isPushed = false;
 	const declaration = state.declarationContext.get(node);
 
 	if (declaration) {
@@ -37,7 +37,7 @@ export function compileLogicalBinary(
 	} else {
 		if (currentConditionalContext === "") {
 			state.currentConditionalContext = id = state.pushPrecedingStatementToNewId(node, "");
-			isPushed = true;
+			// isPushed = true;
 		} else {
 			id = currentConditionalContext;
 		}

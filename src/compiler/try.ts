@@ -2,8 +2,8 @@ import * as ts from "ts-morph";
 import { compileExpression, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getType, isStringType } from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards } from "../utility/general";
+import { getType, isStringType } from "../utility/type";
 import { checkReserved } from "./security";
 
 export function compileThrowStatement(state: CompilerState, node: ts.ThrowStatement) {

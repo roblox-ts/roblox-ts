@@ -6,7 +6,7 @@ import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { red } from "./textUtilities";
+import { red } from "./utility/text";
 
 interface ErrorMatrix {
 	[propName: string]: {
@@ -58,6 +58,11 @@ const errorMatrix: ErrorMatrix = {
 		type: CompilerErrorType.ReservedMethodName,
 	},
 	"spreadDestructure.spec.ts": {
+		message: "should not allow usage of spread in destructure statements",
+		instance: CompilerError,
+		type: CompilerErrorType.SpreadDestructuring,
+	},
+	"spreadDestructure2.spec.ts": {
 		message: "should not allow usage of spread in destructure statements",
 		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,

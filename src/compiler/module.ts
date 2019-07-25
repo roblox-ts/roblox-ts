@@ -5,7 +5,6 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { FileRelation, RojoProject } from "../RojoProject";
-import { isRbxService, isUsedAsType } from "../typeUtilities";
 import {
 	isPathAncestorOf,
 	safeLuaIndex,
@@ -13,7 +12,8 @@ import {
 	skipNodesUpwards,
 	stripExtensions,
 	transformPathToLua,
-} from "../utility";
+} from "../utility/general";
+import { isRbxService, isUsedAsType } from "../utility/type";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = skipNodesUpwards(def.getNode().getParent());

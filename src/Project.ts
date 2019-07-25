@@ -8,9 +8,10 @@ import { CompilerState } from "./CompilerState";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
-import { NetworkType, RojoProject, RojoProjectError } from "./RojoProject";
-import { red, yellow } from "./textUtilities";
-import { transformPathToLua } from "./utility";
+import { RojoProjectError } from "./errors/RojoProjectError";
+import { NetworkType, RojoProject } from "./RojoProject";
+import { transformPathToLua } from "./utility/general";
+import { red, yellow } from "./utility/text";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -104,7 +105,7 @@ async function copyAndCleanDeadLuaFiles(
 
 export enum ProjectType {
 	Game,
-	Bundle,
+	Model,
 	Package,
 }
 
@@ -189,11 +190,7 @@ export class Project {
 				this.rojoProject = RojoProject.fromPathSync(this.rojoFilePath);
 			} catch (e) {
 				if (e instanceof RojoProjectError) {
-					console.log(
-						"Warning!",
-						"Failed to load Rojo configuration. Import and export statements will not compile.",
-						e.message,
-					);
+					e.log();
 				}
 			}
 		}
@@ -217,11 +214,11 @@ export class Project {
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
-			let type: ProjectType.Game | ProjectType.Bundle;
+			let type: ProjectType.Game | ProjectType.Model;
 			if (this.rojoProject.isGame()) {
 				type = ProjectType.Game;
 			} else {
-				type = ProjectType.Bundle;
+				type = ProjectType.Model;
 			}
 			this.projectType = type;
 			this.runtimeLibPath = runtimeLibPath;

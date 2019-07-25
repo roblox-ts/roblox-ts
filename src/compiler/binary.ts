@@ -12,6 +12,7 @@ import {
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
@@ -20,10 +21,9 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
-} from "../typeUtilities";
-import { makeSetStatement, skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { compileBindingLiteral } from "./binding";
-import { compileLogicalBinary, compileTruthyCheck, getTruthyCompileData } from "./truthiness";
+import { compileLogicalBinary } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -114,7 +114,7 @@ function compileBinaryLiteral(
 		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	statements.push(...compileBindingLiteral(state, lhs, rootId, rhs));
+	statements.push(...compileBindingLiteral(state, lhs, rootId, getType(rhs)));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
@@ -170,7 +170,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
 						const rootId = state.getNewId();
-						statements.push(...compileBindingLiteral(state, element, rootId, rhs));
+						statements.push(...compileBindingLiteral(state, element, rootId, getType(rhs)));
 						return rootId;
 					} else {
 						return compileExpression(state, element);

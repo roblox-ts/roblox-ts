@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileLoopBody, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility/general";
 
 export function compileWhileStatement(state: CompilerState, node: ts.WhileStatement) {
 	state.pushIdStack();

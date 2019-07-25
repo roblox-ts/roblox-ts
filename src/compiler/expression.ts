@@ -29,7 +29,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {

@@ -10,14 +10,14 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
-	isIterableIterator,
+	isIterableIteratorType,
 	isTupleType,
 	shouldHoist,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
 
 export type HasParameters =
@@ -193,7 +193,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIterator(node.getReturnType(), node);
+		isIterableIteratorType(node.getReturnType());
 		result += "\n";
 		state.pushIndent();
 		result += state.indent + `return {\n`;

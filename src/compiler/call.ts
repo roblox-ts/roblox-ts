@@ -19,6 +19,7 @@ import {
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayMethodType,
@@ -31,8 +32,7 @@ import {
 	shouldPushToPrecedingStatement,
 	superExpressionClassInheritsFromArray,
 	typeConstraint,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 

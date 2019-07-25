@@ -4,8 +4,8 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { RojoProject } from "../RojoProject";
-import { isRbxService } from "../typeUtilities";
-import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility";
+import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
+import { isRbxService } from "../utility/type";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
@@ -31,13 +31,13 @@ function getRuntimeLibraryStatement(state: CompilerState, node: ts.SourceFile) {
 		}
 		const path = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
 		link = `require(${path})`;
-	} else if (state.projectType === ProjectType.Bundle) {
+	} else if (state.projectType === ProjectType.Model) {
 		const rbxPath = state.rojoProject!.getRbxFromFile(
 			transformPathToLua(state.rootPath, state.outPath, node.getFilePath()),
 		).path;
 		if (!rbxPath) {
 			throw new CompilerError(
-				`Bundle could not resolve runtime library location!`,
+				`Model could not resolve runtime library location!`,
 				node,
 				CompilerErrorType.BadRojo,
 			);

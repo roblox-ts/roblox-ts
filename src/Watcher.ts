@@ -1,12 +1,11 @@
 import chokidar from "chokidar";
-import spawn from "cross-spawn";
 import fs from "fs";
 import path from "path";
 import { CompilerError } from "./errors/CompilerError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { clearContextCache } from "./utility";
+import { clearContextCache, cmd } from "./utility/general";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
@@ -41,7 +40,10 @@ export class Watcher {
 	private async onSuccess() {
 		if (this.onSuccessCmd.length > 0) {
 			const parts = this.onSuccessCmd.split(/\s+/);
-			await spawn(parts.shift()!, parts, { stdio: "inherit" });
+			const command = parts.shift();
+			if (command) {
+				await cmd(command, parts);
+			}
 		}
 	}
 

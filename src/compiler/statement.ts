@@ -25,7 +25,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isTypeStatement } from "../typeUtilities";
+import { isTypeStatement } from "../utility/type";
 
 export function compileStatement(state: CompilerState, node: ts.Statement): string {
 	if (isTypeStatement(node)) {

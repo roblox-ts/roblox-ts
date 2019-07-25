@@ -12,15 +12,15 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { bold } from "../textUtilities";
+import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
+import { bold } from "../utility/text";
 import {
 	getType,
 	isArrayType,
 	shouldHoist,
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
-} from "../typeUtilities";
-import { safeLuaIndex, skipNodesDownwards } from "../utility";
+} from "../utility/type";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -103,8 +103,6 @@ function compileClassProperty(
 			if (state.declarationContext.delete(initializer)) {
 				precedingStatementContext.push(state.indent, name, propStr, " = ", expStr, ";\n");
 			}
-		} else {
-			precedingStatementContext.push(state.indent, name, propStr, " = nil;\n");
 		}
 	}
 }

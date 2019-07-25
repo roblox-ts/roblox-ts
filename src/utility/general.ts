@@ -1,8 +1,10 @@
+import { SpawnOptions } from "child_process";
+import spawn from "cross-spawn";
 import path from "path";
 import * as ts from "ts-morph";
-import { isValidLuaIdentifier } from "./compiler";
-import { CompilerState } from "./CompilerState";
-import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
+import { isValidLuaIdentifier } from "../compiler";
+import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
@@ -264,4 +266,14 @@ export function arrayStartsWith<T>(a: Array<T>, b: Array<T>) {
 		}
 	}
 	return true;
+}
+
+export async function cmd(process: string, args: Array<string>, options?: SpawnOptions) {
+	return new Promise<string>((resolve, reject) => {
+		let output = "";
+		spawn(process, args, options)
+			.on("message", msg => (output += msg))
+			.on("error", e => reject(e.message))
+			.on("close", () => resolve(output));
+	});
 }

@@ -2,9 +2,9 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { bold, suggest } from "../textUtilities";
-import { getType, isArrayType } from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards } from "../utility/general";
+import { bold, suggest } from "../utility/text";
+import { getType, isArrayType } from "../utility/type";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";

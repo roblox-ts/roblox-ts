@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileStatement, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
-import { joinIndentedLines, skipNodesDownwards } from "../utility";
+import { joinIndentedLines, skipNodesDownwards } from "../utility/general";
 
 export function compileIfStatement(state: CompilerState, node: ts.IfStatement) {
 	state.enterPrecedingStatementContext();

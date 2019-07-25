@@ -2,18 +2,18 @@ import * as ts from "ts-morph";
 import { checkReserved, compileCallExpression, compileExpression, concatNamesAndValues } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapType,
 	isObjectType,
 	isSetType,
 	isTupleType,
 	shouldHoist,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { compileBindingPatternAndJoin } from "./binding";
 import { isValidLuaIdentifier } from "./security";
 
@@ -127,8 +127,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				!isArrayType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
-				!isIterableIterator(rhsType, rhs) &&
-				!isIterableFunction(rhsType) &&
+				!isIterableIteratorType(rhsType) &&
+				!isIterableFunctionType(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {
 				state.usesTSLibrary = true;
