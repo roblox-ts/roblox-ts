@@ -41,6 +41,9 @@ export async function setAnalyticsDisabled(disabled: boolean) {
 }
 
 async function getAnalyticsDisabled() {
+	if (process.env.CI) {
+		return true;
+	}
 	if (analyticsDisabled === undefined) {
 		const storage = await getStorage();
 		analyticsDisabled = (await storage.getItem("no-analytics")) === true;

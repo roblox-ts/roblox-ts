@@ -823,10 +823,6 @@ export class Project {
 			process.exitCode = 1;
 		}
 
-		if (success) {
-			await addEvent("Compile", "success");
-		} else {
-			await addEvent("Compile", "failure");
-		}
+		await addEvent("Compile", success ? "success" : "failure");
 	}
 }
