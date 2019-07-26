@@ -77,4 +77,22 @@ export = () => {
 	it("should support concatenating strings", () => {
 		expect("a" + 1 + true + false).to.equal("a1truefalse");
 	});
+
+	it("should support string.padStart", () => {
+		expect("".padStart(1)).to.equal(" ");
+		expect("Hello".padStart(6)).to.equal(" Hello");
+		let i = 6;
+		expect("Hello".padStart(i)).to.equal(" Hello");
+		let j = 5;
+		expect("Hello".padStart(j + 1)).to.equal(" Hello");
+	});
+
+	it("should support string.padEnd", () => {
+		expect("".padEnd(1)).to.equal(" ");
+		expect("Hello".padEnd(6)).to.equal("Hello ");
+		let i = 6;
+		expect("Hello".padEnd(i)).to.equal("Hello ");
+		let j = 5;
+		expect("Hello".padEnd(j + 1)).to.equal("Hello ");
+	});
 };
