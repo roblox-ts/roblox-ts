@@ -1,5 +1,6 @@
 import path from "path";
 import * as ts from "ts-morph";
+import { addEvent } from "../analytics";
 import { red } from "../utility/text";
 import { LoggableError } from "./LoggableError";
 
@@ -104,6 +105,7 @@ export class CompilerError extends LoggableError {
 			message +
 				(shouldNotHappen ? "\nPlease submit an issue at https://github.com/roblox-ts/roblox-ts/issues" : ""),
 		);
+		void addEvent("CompilerError", CompilerErrorType[type]);
 	}
 
 	public log(projectPath: string) {

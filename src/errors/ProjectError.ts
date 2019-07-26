@@ -1,3 +1,4 @@
+import { addEvent } from "../analytics";
 import { red } from "../utility/text";
 import { LoggableError } from "./LoggableError";
 
@@ -22,6 +23,7 @@ export enum ProjectErrorType {
 export class ProjectError extends LoggableError {
 	constructor(message: string, public readonly type: ProjectErrorType) {
 		super(message);
+		void addEvent("ProjectError", ProjectErrorType[type]);
 	}
 
 	public log(projectPath: string) {

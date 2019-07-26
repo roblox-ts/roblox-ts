@@ -3,6 +3,9 @@
 - Fixed #296 - ensure tsconfig.json is readable
 - Fixed #297 - better project config errors
 - Fixed #573 - fixed call expressions + non null assertion. i.e. `map.get(x)![0]`
+- Added analytics to help track most common errors.
+	- You can opt out globally with `rbxtsc --noAnalytics` (only needed once)
+	- Opt back in with `rbxtsc --noAnalytics=false`
 
 ### **0.2.12**
 - Replaced .npmignore with "files" field to resolve npm issues
