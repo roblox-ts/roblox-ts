@@ -209,6 +209,7 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 }
 
 export function makeSetStatement(state: CompilerState, varToSet: string, value: string) {
+	value = removeBalancedParenthesisFromStringBorders(value);
 	if (varToSet === "return") {
 		return state.indent + `return ${value};\n`;
 	} else {

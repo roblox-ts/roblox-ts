@@ -228,7 +228,7 @@ export function isBooleanTypeStrict(type: ts.Type) {
 }
 
 export function isUnknowableType(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isUnknown());
+	return isSomeType(type, laxTypeConstraint, t => t.isUnknown() || t.isAny());
 }
 
 export function isNumberType(type: ts.Type) {
@@ -243,7 +243,7 @@ export function isNumberTypeLax(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isNumber());
 }
 
-export function is0TypeLax(type: ts.Type) {
+export function isLiterally0Lax(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && t.getText() === `0`);
 }
 

@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileTruthyCheck } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
-import { makeSetStatement, skipNodesDownwards } from "../utility/general";
+import { makeSetStatement, removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility/general";
 
 function compileConditionalBlock(
 	state: CompilerState,
@@ -35,10 +35,11 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
 
-		state.currentConditionalContext = id = declaration.set;
+		id = declaration.set;
+		state.declarationContext.delete(node);
 	} else {
 		if (currentConditionalContext === "") {
-			state.currentConditionalContext = id = state.pushPrecedingStatementToNewId(node, "");
+			id = state.pushPrecedingStatementToNewId(node, "");
 			isPushed = true;
 		} else {
 			id = currentConditionalContext;
@@ -46,7 +47,9 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	}
 
 	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;
-	const conditionStr = compileTruthyCheck(state, condition);
+	const conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
+	state.currentConditionalContext = id;
+
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
 	compileConditionalBlock(state, id, whenTrue, subDeclaration);
 	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
@@ -56,7 +59,6 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	if (currentConditionalContext === "") {
 		state.currentConditionalContext = "";
 	}
-	state.declarationContext.delete(node);
 	state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
 	return id;
 }
