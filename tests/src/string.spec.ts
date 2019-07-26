@@ -97,4 +97,10 @@ export = () => {
 		expect("Hello".padEnd(j + 1)).to.equal("Hello ");
 		expect("Hello".padEnd(6, "!")).to.equal("Hello!");
 	});
+
+	it("should support variable string indices", () => {
+		let i = 0;
+		let j = 2;
+		expect("foobar".sub(i, j)).to.equal("foo");
+	});
 };
