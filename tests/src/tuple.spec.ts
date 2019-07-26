@@ -177,4 +177,16 @@ export = () => {
 		expect(a).to.equal(101);
 		expect(b).to.equal(203);
 	});
+
+	it("should support assigning from LuaTuples with omitted expressions", () => {
+		function foo(): LuaTuple<[number, number, number]> {
+			return [101, 203, 345];
+		}
+
+		let a = 0;
+		let b = 0;
+		[a, , b] = foo();
+		expect(a).to.equal(101);
+		expect(b).to.equal(345);
+	});
 };
