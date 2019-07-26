@@ -29,26 +29,32 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const whenTrue = skipNodesDownwards(node.getWhenTrue());
 	const whenFalse = skipNodesDownwards(node.getWhenFalse());
 	let isPushed = false;
+	let conditionStr: string;
 
+	// Perform these steps in the proper order in order for a few reasons:
+	// 1. To ensure that front-heavy ternary conditionals only use a single temp variable
+	// 2. So that the condition expression does not accidentally use variable `x`
+	// const q = (a: boolean, b: boolean, c: boolean) => { const x = ((a ? b : c) ? (a ? b : c) : a ? b : c) ? b : c; };
 	if (declaration) {
+		conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
 
-		id = declaration.set;
+		state.currentConditionalContext = id = declaration.set;
 		state.declarationContext.delete(node);
 	} else {
 		if (currentConditionalContext === "") {
 			id = state.pushPrecedingStatementToNewId(node, "");
+			state.currentConditionalContext = id;
 			isPushed = true;
 		} else {
 			id = currentConditionalContext;
 		}
+		conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
 	}
 
 	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;
-	const conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
-	state.currentConditionalContext = id;
 
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
 	compileConditionalBlock(state, id, whenTrue, subDeclaration);
