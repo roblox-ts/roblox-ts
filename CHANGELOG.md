@@ -1,5 +1,7 @@
 ### **0.2.13**
-- Fixed bug with call expressions + non null assertion. i.e. `map.get(x)![0]`
+- Fixed #573 - call expressions + non null assertion. i.e. `map.get(x)![0]`
+- Fixed #296 - ensure tsconfig.json is readable
+- Fixed #297 - better project config errors
 
 ### **0.2.12**
 - Replaced .npmignore with "files" field to resolve npm issues
