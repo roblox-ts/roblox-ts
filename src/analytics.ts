@@ -38,6 +38,11 @@ export async function setAnalyticsDisabled(disabled: boolean) {
 	analyticsDisabled = disabled;
 	const storage = await getStorage();
 	await storage.setItem("no-analytics", disabled);
+	if (disabled) {
+		console.log("Analytics disabled");
+	} else {
+		console.log("Analytics enabled");
+	}
 }
 
 async function getAnalyticsDisabled() {
