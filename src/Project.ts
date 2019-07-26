@@ -247,7 +247,7 @@ export class Project {
 				throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
 			}
 			if (!fs.pathExistsSync(rootPath)) {
-				throw new ProjectError(`Unable to find ${rootPath}`, ProjectErrorType.MissingRootDir);
+				throw new ProjectError(`Unable to find rootDir at ${rootPath}`, ProjectErrorType.MissingRootDir);
 			}
 			this.rootPath = rootPath;
 

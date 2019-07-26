@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import yargs from "yargs";
-import { CliError } from "./errors/CliError";
+import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
 import { Watcher } from "./Watcher";
@@ -91,8 +91,8 @@ void (async () => {
 			await new Project(argv).compileAll();
 		}
 	} catch (e) {
-		if (e instanceof CliError) {
-			e.log();
+		if (e instanceof LoggableError) {
+			e.log("");
 		} else {
 			throw e;
 		}
