@@ -24,6 +24,7 @@ import {
 	isSetType,
 	isStringMethodType,
 	isStringType,
+	isTupleType,
 } from "../utility/type";
 import { compileIdentifier } from "./identifier";
 import { checkReserved } from "./security";
@@ -453,7 +454,11 @@ export function compileBindingPattern(
 	return state.exitPrecedingStatementContext().map(v => v.trim());
 }
 
-function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index: string | number) {
+export function getSubTypeOrThrow(
+	node: ts.Node,
+	type: ts.Type | Array<ts.Type>,
+	index: string | number,
+): ts.Type | Array<ts.Type> {
 	if (type instanceof ts.Type) {
 		if (typeof index === "string") {
 			const prop = type.getProperty(index);
@@ -463,6 +468,8 @@ function getSubTypeOrThrow(node: ts.Node, type: ts.Type | Array<ts.Type>, index:
 					return getType(valDec);
 				}
 			}
+		} else if (isTupleType(type)) {
+			return getSubTypeOrThrow(node, type.getAliasTypeArguments()[0], index);
 		} else if (isArrayType(type)) {
 			if (type.isTuple()) {
 				return type.getTupleElements()[index];
@@ -558,7 +565,7 @@ function compileObjectBindingLiteral(
 			const name = property.getNameNode();
 			const nameStr = compileExpression(state, name);
 			const rhs = objectAccessor(state, parentId, name, name, name);
-			state.pushPrecedingStatements(bindingLiteral, state.indent + `local ${nameStr} = ${rhs};\n`);
+			state.pushPrecedingStatements(bindingLiteral, state.indent + `${nameStr} = ${rhs};\n`);
 			const initializer = property.getObjectAssignmentInitializer();
 			if (initializer) {
 				state.pushPrecedingStatements(
