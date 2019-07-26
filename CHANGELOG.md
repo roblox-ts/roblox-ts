@@ -1,3 +1,6 @@
+### **0.2.14**
+- Fixed analytics bug
+
 ### **0.2.13**
 - Fixed #285 - Watch mode now recompiles files which import the file you changed
 - Fixed #296 - ensure tsconfig.json is readable
