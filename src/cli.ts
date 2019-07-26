@@ -85,8 +85,7 @@ void (async () => {
 		if (argv.init !== undefined) {
 			await Initializer.init(argv.init as InitializeMode);
 		} else if (argv.watch === true) {
-			const watcher = new Watcher(new Project(argv), argv.onSuccess);
-			watcher.start();
+			new Watcher(new Project(argv), argv.onSuccess).start();
 		} else {
 			await new Project(argv).compileAll();
 		}
