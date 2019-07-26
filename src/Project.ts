@@ -628,7 +628,7 @@ export class Project {
 		}
 	}
 
-	public async compileFileByPath(filePath: string) {
+	public async compileFileByPath(filePath: string, compileReferencingFiles = false) {
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
@@ -638,7 +638,21 @@ export class Project {
 					ProjectErrorType.MissingSourceFile,
 				);
 			}
-			return this.compileFiles([sourceFile]);
+			const files = new Set([sourceFile]);
+
+			function getReferencingFiles(file: ts.SourceFile) {
+				for (const refFile of file.getReferencingSourceFiles()) {
+					if (!files.has(refFile)) {
+						files.add(refFile);
+						getReferencingFiles(refFile);
+					}
+				}
+			}
+			if (compileReferencingFiles) {
+				getReferencingFiles(sourceFile);
+			}
+
+			return this.compileFiles([...files]);
 		} else if (ext === ".lua") {
 			await this.copyLuaFiles();
 		}

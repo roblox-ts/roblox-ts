@@ -64,7 +64,7 @@ export class Watcher {
 			clearContextCache();
 			await time(async () => {
 				try {
-					await this.project.compileFileByPath(filePath);
+					await this.project.compileFileByPath(filePath, true);
 				} catch (e) {
 					console.log(e);
 					process.exit();
