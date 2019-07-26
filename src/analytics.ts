@@ -46,7 +46,7 @@ export async function setAnalyticsDisabled(disabled: boolean) {
 }
 
 async function getAnalyticsDisabled() {
-	if (process.env.CI) {
+	if (process.env.CI === "true") {
 		return true;
 	}
 	if (analyticsDisabled === undefined) {
