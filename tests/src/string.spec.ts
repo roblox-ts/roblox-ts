@@ -85,6 +85,7 @@ export = () => {
 		expect("Hello".padStart(i)).to.equal(" Hello");
 		let j = 5;
 		expect("Hello".padStart(j + 1)).to.equal(" Hello");
+		expect("Hello".padStart(6, "!")).to.equal("!Hello");
 	});
 
 	it("should support string.padEnd", () => {
@@ -94,5 +95,6 @@ export = () => {
 		expect("Hello".padEnd(i)).to.equal("Hello ");
 		let j = 5;
 		expect("Hello".padEnd(j + 1)).to.equal("Hello ");
+		expect("Hello".padEnd(6, "!")).to.equal("Hello!");
 	});
 };
