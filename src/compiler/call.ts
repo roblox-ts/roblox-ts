@@ -115,20 +115,6 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 	return [accessStr, compiledArgs.join(", ")];
 }
 
-export function addOneToStringIndex(valueStr: string) {
-	if (valueStr === "nil") {
-		return "nil";
-	}
-
-	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
-		const valueNumber = Number(valueStr);
-		if (!Number.isNaN(valueNumber)) {
-			return (valueNumber < 0 ? valueNumber : valueNumber + 1).toString();
-		}
-	}
-	return valueStr + " + 1";
-}
-
 function macroStringIndexFunction(
 	methodName: string,
 	incrementedArgs: Array<number>,
