@@ -1,7 +1,8 @@
 ### **0.2.13**
-- Fixed #573 - call expressions + non null assertion. i.e. `map.get(x)![0]`
+- Fixed #285 - Watch mode now recompiles files which import the file you changed
 - Fixed #296 - ensure tsconfig.json is readable
 - Fixed #297 - better project config errors
+- Fixed #573 - fixed call expressions + non null assertion. i.e. `map.get(x)![0]`
 
 ### **0.2.12**
 - Replaced .npmignore with "files" field to resolve npm issues
