@@ -158,12 +158,19 @@ export class Project {
 
 		this.projectPath = path.resolve(this.configFilePath, "..");
 
-		this.project = new ts.Project({
-			compilerOptions: {
-				configFilePath: this.configFilePath,
-			},
-			tsConfigFilePath: this.configFilePath,
-		});
+		try {
+			this.project = new ts.Project({
+				compilerOptions: {
+					configFilePath: this.configFilePath,
+				},
+				tsConfigFilePath: this.configFilePath,
+			});
+		} catch (e) {
+			throw new ProjectError(
+				"Could not create project!" + "\n" + "- Is your tsconfig.json valid UTF-8?",
+				ProjectErrorType.ProjectFailed,
+			);
+		}
 
 		const modulesPath = this.getModulesPath(this.projectPath);
 		if (!modulesPath) {

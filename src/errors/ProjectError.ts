@@ -16,6 +16,7 @@ export enum ProjectErrorType {
 	BadRbxTypes,
 	BadRojoInclude,
 	TsMorph,
+	ProjectFailed,
 }
 
 export class ProjectError extends LoggableError {
