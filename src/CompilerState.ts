@@ -225,7 +225,7 @@ export class CompilerState {
 		}
 
 		const ancestorName = this.getExportContextName(node);
-		const alias = node.hasDefaultKeyword() ? "_default" : name;
+		const alias = node.hasDefaultKeyword() ? "default" : name;
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
@@ -236,7 +236,7 @@ export class CompilerState {
 			name = myNamespace.getName();
 			name = this.namespaceStack.get(name) || name;
 		} else {
-			name = "_exports";
+			name = "exports";
 			this.isModule = true;
 		}
 

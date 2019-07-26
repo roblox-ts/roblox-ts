@@ -89,7 +89,7 @@ const LUA_RESERVED_NAMESPACES = [
 	"Ray",
 ];
 
-const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis", "table", "_continue_"];
+const TS_RESERVED_KEYWORDS = ["undefined", "TS", "globalThis", "table", "_continue_"];
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",
