@@ -3,6 +3,7 @@ import klaw from "klaw";
 import { minify } from "luamin";
 import path from "path";
 import * as ts from "ts-morph";
+import { addEvent } from "./analytics";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { DiagnosticError } from "./errors/DiagnosticError";
@@ -766,6 +767,8 @@ export class Project {
 
 		process.exitCode = 0;
 
+		let success = false;
+
 		const errors = this.getDiagnosticErrors(files);
 		try {
 			if (errors.length > 0) {
@@ -803,6 +806,8 @@ export class Project {
 				await this.project.emit({ emitOnlyDtsFiles: true });
 				await this.postProcessDtsFiles();
 			}
+
+			success = true;
 		} catch (e) {
 			// do not silence errors for CI tests
 			if (this.ci) {
@@ -816,6 +821,12 @@ export class Project {
 				throw e;
 			}
 			process.exitCode = 1;
+		}
+
+		if (success) {
+			await addEvent("Compile", "success");
+		} else {
+			await addEvent("Compile", "failure");
 		}
 	}
 }
