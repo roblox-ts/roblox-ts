@@ -58,21 +58,22 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 local globalModules = script.Parent:FindFirstChild("node_modules")
 
 function TS.getModule(moduleName)
-	local object = getfenv(2).script.Parent
-	if not globalModules then
-		error("Could not find any modules!", 2)
-	end
-	if object:IsDescendantOf(globalModules) then
-		while object.Parent do
+	local object = getfenv(2).script
+	if object:IsDescendantOf(globalModules or error("Could not find any modules!", 2)) then
+		repeat
 			local modules = object:FindFirstChild("node_modules")
 			if modules then
+				local subModules = modules:FindFirstChild("@rbxts")
+				if subModules then
+					modules = subModules
+				end
 				local module = modules:FindFirstChild(moduleName)
 				if module then
 					return module
 				end
 			end
 			object = object.Parent
-		end
+		until object == nil
 	else
 		local module = globalModules:FindFirstChild(moduleName)
 		if module then
