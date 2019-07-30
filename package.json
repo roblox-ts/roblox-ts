@@ -57,7 +57,7 @@
 		"@types/node-persist": "0.0.33",
 		"@types/universal-analytics": "^0.4.2",
 		"@types/uuid": "^3.4.5",
-		"@types/yargs": "^13.0.0",
+		"@types/yargs": "^13.0.1",
 		"coveralls": "^3.0.5",
 		"mocha": "^6.2.0",
 		"nyc": "^14.1.1",
