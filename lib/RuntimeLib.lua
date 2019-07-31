@@ -59,7 +59,10 @@ local globalModules = script.Parent:FindFirstChild("node_modules")
 
 function TS.getModule(moduleName)
 	local object = getfenv(2).script
-	if object:IsDescendantOf(globalModules or error("Could not find any modules!", 2)) then
+	if not globalModules then
+		error("Could not find any modules!", 2)
+	end
+	if object:IsDescendantOf(globalModules) then
 		repeat
 			local modules = object:FindFirstChild("node_modules")
 			if modules then
