@@ -33,7 +33,8 @@ async function time(callback: () => any) {
 }
 
 export class Watcher {
-	private isCompiling = false;
+    private isCompiling = false;
+    private hasUpdateAllSucceeded = false;
 
 	constructor(private project: Project, private onSuccessCmd = "") {}
 
@@ -79,7 +80,8 @@ export class Watcher {
 	private async updateAll() {
 		await time(async () => {
 			try {
-				await this.project.compileAll();
+                await this.project.compileAll();
+                this.hasUpdateAllSucceeded = true;
 			} catch (e) {
 				console.log(e);
 				process.exit();
@@ -95,16 +97,31 @@ export class Watcher {
 			.watch(this.project.getRootDirOrThrow(), CHOKIDAR_OPTIONS)
 			.on("change", async (filePath: string) => {
 				if (!this.isCompiling) {
-					this.isCompiling = true;
-					await this.update(filePath);
+                    this.isCompiling = true;
+                    
+                    if (this.hasUpdateAllSucceeded) {
+                        await this.update(filePath);
+                    }
+                    else {
+                        await this.updateAll();
+                    }
+                    
 					this.isCompiling = false;
 				}
 			})
 			.on("add", async (filePath: string) => {
 				if (!this.isCompiling) {
-					this.isCompiling = true;
+                    this.isCompiling = true;
+                    
 					await this.project.addFile(filePath);
-					await this.update(filePath);
+                    
+                    if (this.hasUpdateAllSucceeded) {
+                        await this.update(filePath);
+                    }
+                    else {
+                        await this.updateAll();
+                    }
+
 					this.isCompiling = false;
 				}
 			})
