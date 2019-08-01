@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "../compiler";
 import { PrecedingStatementContext } from "../CompilerState";
-import { skipNodesDownwards } from "./general";
+import { skipNodesDownwards, skipNodesDownwardsInverse } from "./general";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -578,12 +578,5 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 
 /** Skips NonNullExpressions and Parenthesized Expressions above the current node and returns `getType()` */
 export function getType(node: ts.Node) {
-	let parent = node.getParent();
-
-	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
-		node = parent;
-		parent = node.getParent();
-	}
-
-	return node.getType();
+	return skipNodesDownwardsInverse(node).getType();
 }

@@ -65,19 +65,19 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
-		const tokenKind = node.getOperatorToken();
-		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
+		if (opKind === ts.SyntaxKind.ExclamationToken) {
 			return `not (${removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, operand))})`;
-		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
+		} else if (opKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;
-		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
+		} else if (opKind === ts.SyntaxKind.TildeToken) {
 			state.usesTSLibrary = true;
 			return `TS.bit_not(${compileExpression(state, operand)})`;
 		}
+		// TODO: UnaryPlusToken?
 
 		/* istanbul ignore next */
 		throw new CompilerError(
-			`Unexpected prefix UnaryExpression ( ${tokenKind} ) in compilePrefixUnaryExpression`,
+			`Unexpected prefix UnaryExpression ( ${opKind} ) in compilePrefixUnaryExpression`,
 			node,
 			CompilerErrorType.BadPrefixUnaryExpression,
 			true,

@@ -41,6 +41,7 @@ export class CompilerState {
 		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
+	public alreadyCheckedTruthyConditionals = new Array<ts.Node>();
 
 	public pushToDeclarationOrNewId(
 		node: ts.Node,
