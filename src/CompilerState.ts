@@ -74,7 +74,6 @@ export class CompilerState {
 	}
 
 	public currentConditionalContext: string = "";
-	public currentBinaryLogicContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
