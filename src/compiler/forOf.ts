@@ -1,41 +1,33 @@
 import * as ts from "ts-morph";
 import {
 	checkReserved,
+	compileBindingPattern,
 	compileExpression,
 	compileLoopBody,
-	concatNamesAndValues,
-	getBindingData,
 	getPropertyAccessExpressionType,
 	getReadableExpressionName,
 	PropertyCallExpType,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
-	isIterableFunction,
-	isIterableIterator,
+	isIterableFunctionType,
+	isIterableIteratorType,
 	isMapType,
 	isSetType,
 	isStringType,
-} from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+} from "../utility/type";
 
-function getVariableName(
-	state: CompilerState,
-	lhs: ts.Node,
-	names: Array<string>,
-	values: Array<string>,
-	preStatements: Array<string>,
-	postStatements: Array<string>,
-) {
+function getVariableName(state: CompilerState, lhs: ts.Node, statements: Array<string>) {
 	if (lhs) {
 		let varName = "";
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs) || ts.TypeGuards.isObjectBindingPattern(lhs)) {
 			varName = state.getNewId();
-			getBindingData(state, names, values, preStatements, postStatements, lhs, varName);
+			statements.push(...compileBindingPattern(state, lhs, varName));
 		} else if (ts.TypeGuards.isIdentifier(lhs)) {
 			varName = checkReserved(lhs);
 		}
@@ -177,7 +169,7 @@ function getLoopType(
 		return [exp, ForOfLoopType.Array, reversed, backwards];
 	} else if (isStringType(expType)) {
 		return [exp, ForOfLoopType.String, reversed, backwards];
-	} else if (isIterableFunction(expType)) {
+	} else if (isIterableFunctionType(expType)) {
 		// Hack
 		if (expType.getText().match("<LuaTuple<")) {
 			return [exp, ForOfLoopType.IterableLuaTuple, reversed, backwards];
@@ -209,10 +201,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 	const extraParams = new Array<string>();
 
-	const names = new Array<string>();
-	const values = new Array<string>();
-	const preStatements = new Array<string>();
-	const postStatements = new Array<string>();
+	const statements = new Array<string>();
 
 	/** Whether we should iterate as a simple for loop (defaults to a for..in loop) */
 	let isNumericForLoop = false;
@@ -237,11 +226,11 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			];
 
 			if (first && ts.TypeGuards.isBindingElement(first)) {
-				key = getVariableName(state, first.getNameNode(), names, values, preStatements, postStatements);
+				key = getVariableName(state, first.getNameNode(), statements);
 			}
 
 			if (second && ts.TypeGuards.isBindingElement(second)) {
-				value = getVariableName(state, second.getNameNode(), names, values, preStatements, postStatements);
+				value = getVariableName(state, second.getNameNode(), statements);
 			}
 
 			for (let i = 2, { length } = elements; i < length; i++) {
@@ -249,7 +238,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 				extraParams.push(
 					ts.TypeGuards.isBindingElement(element)
-						? getVariableName(state, element.getNameNode(), names, values, preStatements, postStatements)
+						? getVariableName(state, element.getNameNode(), statements)
 						: "_",
 				);
 			}
@@ -267,11 +256,11 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			}
 			key = state.getNewId();
 			value = state.getNewId();
-			varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
-			preStatements.push(`local ${varName} = {${key}, ${value}};`);
+			varName = getVariableName(state, lhs, statements);
+			statements.unshift(`local ${varName} = {${key}, ${value}};`);
 		}
 	} else {
-		varName = getVariableName(state, lhs, names, values, preStatements, postStatements);
+		varName = getVariableName(state, lhs, statements);
 
 		switch (loopType) {
 			case ForOfLoopType.Keys:
@@ -295,15 +284,14 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				key = varName;
 				break;
 			case ForOfLoopType.Symbol_iterator: {
-				if (!isIterableIterator(getType(exp), exp)) {
+				if (!isIterableIteratorType(getType(exp))) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}
 				const loopVar = state.getNewId();
 				key = loopVar;
 				expStr = `${expStr}.next`;
-				preStatements.push(`if ${loopVar}.done then break end;`);
-				preStatements.push(`local ${varName} = ${loopVar}.value;`);
+				statements.unshift(`if ${loopVar}.done then break end;`, `local ${varName} = ${loopVar}.value;`);
 				break;
 			}
 		}
@@ -348,13 +336,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 		state.pushIndent();
 	}
 
-	for (const myStatement of preStatements) {
-		result += state.indent + myStatement + "\n";
-	}
-	concatNamesAndValues(state, names, values, true, str => {
-		result += str;
-	});
-	for (const myStatement of postStatements) {
+	for (const myStatement of statements) {
 		result += state.indent + myStatement + "\n";
 	}
 	state.pushIdStack();

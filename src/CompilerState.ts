@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
+import { ProjectType } from ".";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
-import { ProjectInfo } from "./types";
-import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility";
+import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility/general";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -32,14 +32,16 @@ function canBePushedToReusableId(node: ts.Node): boolean {
 
 export class CompilerState {
 	constructor(
-		public readonly rootDirPath: string,
-		public readonly outDirPath: string,
-		public readonly projectInfo: ProjectInfo,
+		public readonly rootPath: string,
+		public readonly outPath: string,
+		public readonly projectType: ProjectType,
+		public readonly runtimeLibPath: Array<string>,
+		public readonly modulesPath: string,
 		public readonly rojoProject?: RojoProject,
-		public readonly modulesDir?: ts.Directory,
 		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
+	public alreadyCheckedTruthyConditionals = new Array<ts.Node>();
 
 	public pushToDeclarationOrNewId(
 		node: ts.Node,
@@ -72,7 +74,6 @@ export class CompilerState {
 	}
 
 	public currentConditionalContext: string = "";
-	public currentBinaryLogicContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
@@ -231,7 +232,7 @@ export class CompilerState {
 		}
 
 		const ancestorName = this.getExportContextName(node);
-		const alias = node.hasDefaultKeyword() ? "_default" : name;
+		const alias = node.hasDefaultKeyword() ? "default" : name;
 		this.exportStack[this.exportStack.length - 1].add(`${ancestorName}.${alias} = ${name};\n`);
 	}
 
@@ -242,7 +243,7 @@ export class CompilerState {
 			name = myNamespace.getName();
 			name = this.namespaceStack.get(name) || name;
 		} else {
-			name = "_exports";
+			name = "exports";
 			this.isModule = true;
 		}
 

@@ -1,4 +1,8 @@
+import path from "path";
 import * as ts from "ts-morph";
+import { addEvent } from "../analytics";
+import { red } from "../utility/text";
+import { LoggableError } from "./LoggableError";
 
 export enum CompilerErrorType {
 	NoAny,
@@ -86,9 +90,11 @@ export enum CompilerErrorType {
 	PropertyCollision,
 	ClassWithComputedMethodNames,
 	IsolatedContainer,
+	UnexpectedExtensionType,
+	BadDestructSubType,
 }
 
-export class CompilerError extends Error {
+export class CompilerError extends LoggableError {
 	constructor(
 		message: string,
 		public readonly node: ts.Node,
@@ -99,5 +105,27 @@ export class CompilerError extends Error {
 			message +
 				(shouldNotHappen ? "\nPlease submit an issue at https://github.com/roblox-ts/roblox-ts/issues" : ""),
 		);
+		void addEvent("CompilerError", CompilerErrorType[type]);
+	}
+
+	public log(projectPath: string) {
+		const node = this.node;
+		if (ts.TypeGuards.isSourceFile(node)) {
+			console.log(
+				"%s - %s %s",
+				path.relative(projectPath, this.node.getSourceFile().getFilePath()),
+				red("Compiler Error:"),
+				this.message,
+			);
+		} else {
+			console.log(
+				"%s:%d:%d - %s %s",
+				path.relative(projectPath, this.node.getSourceFile().getFilePath()),
+				this.node.getStartLineNumber(),
+				this.node.getNonWhitespaceStart() - this.node.getStartLinePos(),
+				red("Compiler Error:"),
+				this.message,
+			);
+		}
 	}
 }

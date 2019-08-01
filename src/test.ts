@@ -6,7 +6,7 @@ import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { red } from "./utility";
+import { red } from "./utility/text";
 
 interface ErrorMatrix {
 	[propName: string]: {
@@ -58,6 +58,11 @@ const errorMatrix: ErrorMatrix = {
 		type: CompilerErrorType.ReservedMethodName,
 	},
 	"spreadDestructure.spec.ts": {
+		message: "should not allow usage of spread in destructure statements",
+		instance: CompilerError,
+		type: CompilerErrorType.SpreadDestructuring,
+	},
+	"spreadDestructure2.spec.ts": {
 		message: "should not allow usage of spread in destructure statements",
 		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
@@ -213,6 +218,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
+	"any/unary.spec.ts": {
+		message: "should not allow unary operators on type any",
+		instance: CompilerError,
+		type: CompilerErrorType.NoAny,
+	},
 	"methodDestructure/arr.spec.1.ts": {
 		message: "should not allow method indexing from arrays",
 		instance: CompilerError,
@@ -354,62 +364,62 @@ const errorMatrix: ErrorMatrix = {
 		type: CompilerErrorType.BadForOfInitializer,
 	},
 	"invalidNames/catch.spec.ts": {
-		message: "should disallow invalid identifiers",
+		message: "should not allow invalid identifiers to be used (catch.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/variableDeclaration.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (variableDeclaration.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/destruct.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (destruct.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/destructAlias.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (destructAlias.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/function.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (function.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/namespace.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (namespace.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/functionExpression.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (functionExpression.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/class.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (class.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/arrDestruct.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (arrDestruct.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/flatDestruct.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (flatDestruct.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/enum.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (enum.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/parameter.spec.ts": {
-		message: "should not allow invalid identifiers to be used",
+		message: "should not allow invalid identifiers to be used (parameter.spec.ts)",
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},

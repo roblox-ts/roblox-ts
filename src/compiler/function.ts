@@ -10,16 +10,22 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { HasParameters } from "../types";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
-	isIterableIterator,
+	isIterableIteratorType,
 	isTupleType,
 	shouldHoist,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
+
+export type HasParameters =
+	| ts.FunctionExpression
+	| ts.ArrowFunction
+	| ts.FunctionDeclaration
+	| ts.ConstructorDeclaration
+	| ts.MethodDeclaration;
 
 export const nodeHasParameters = (ancestor: ts.Node): ancestor is HasParameters =>
 	ts.TypeGuards.isFunctionExpression(ancestor) ||
@@ -187,7 +193,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIterator(node.getReturnType(), node);
+		isIterableIteratorType(node.getReturnType());
 		result += "\n";
 		state.pushIndent();
 		result += state.indent + `return {\n`;

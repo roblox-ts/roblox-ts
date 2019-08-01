@@ -1,8 +1,10 @@
 import * as ts from "ts-morph";
-import { compileExpression, compileTruthiness, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
+import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
+import { checkNonAny } from "./security";
+import { compileTruthyCheck } from "./truthiness";
 
 function isUnaryExpressionNonStatement(
 	parent: ts.Node<ts.ts.Node>,
@@ -34,6 +36,7 @@ function getIncrementString(opKind: ts.ts.PrefixUnaryOperator, expStr: string, n
 
 export function compilePrefixUnaryExpression(state: CompilerState, node: ts.PrefixUnaryExpression) {
 	const operand = skipNodesDownwards(node.getOperand(), true);
+	checkNonAny(operand);
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = skipNodesUpwards(node.getParentOrThrow());
@@ -62,19 +65,19 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 			return getIncrementString(opKind, expStr, node, expStr);
 		}
 	} else {
-		const tokenKind = node.getOperatorToken();
-		if (tokenKind === ts.SyntaxKind.ExclamationToken) {
-			return compileTruthiness(state, operand, 1);
-		} else if (tokenKind === ts.SyntaxKind.MinusToken) {
+		if (opKind === ts.SyntaxKind.ExclamationToken) {
+			return `not (${removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, operand))})`;
+		} else if (opKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;
-		} else if (tokenKind === ts.SyntaxKind.TildeToken) {
+		} else if (opKind === ts.SyntaxKind.TildeToken) {
 			state.usesTSLibrary = true;
 			return `TS.bit_not(${compileExpression(state, operand)})`;
 		}
+		// TODO: UnaryPlusToken?
 
 		/* istanbul ignore next */
 		throw new CompilerError(
-			`Unexpected prefix UnaryExpression ( ${tokenKind} ) in compilePrefixUnaryExpression`,
+			`Unexpected prefix UnaryExpression ( ${opKind} ) in compilePrefixUnaryExpression`,
 			node,
 			CompilerErrorType.BadPrefixUnaryExpression,
 			true,
@@ -84,6 +87,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 
 export function compilePostfixUnaryExpression(state: CompilerState, node: ts.PostfixUnaryExpression) {
 	const operand = skipNodesDownwards(node.getOperand());
+	checkNonAny(operand);
 	const opKind = node.getOperatorToken();
 	if (opKind === ts.SyntaxKind.PlusPlusToken || opKind === ts.SyntaxKind.MinusMinusToken) {
 		const parent = skipNodesUpwards(node.getParentOrThrow());

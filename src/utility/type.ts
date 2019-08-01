@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
-import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "./compiler";
-import { PrecedingStatementContext } from "./CompilerState";
-import { skipNodesDownwards, skipNodesUpwards } from "./utility";
+import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "../compiler";
+import { PrecedingStatementContext } from "../CompilerState";
+import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "./general";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -75,12 +75,13 @@ function isExport(node: ts.Node) {
 }
 
 export function isType(node: ts.Node): boolean {
-	if (ts.TypeGuards.isIdentifier(node)) {
+	if (ts.TypeGuards.isIdentifier(node) || ts.TypeGuards.isExpressionWithTypeArguments(node)) {
 		return isType(node.getParent());
 	}
 
 	return (
 		node.getKindName() === "TypeQuery" ||
+		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
@@ -166,9 +167,9 @@ export function typeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): b
 
 export function laxTypeConstraint(type: ts.Type, cb: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
-		return type.getUnionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getUnionTypes().some(t => laxTypeConstraint(t, cb));
 	} else if (type.isIntersection()) {
-		return type.getIntersectionTypes().some(t => strictTypeConstraint(t, cb));
+		return type.getIntersectionTypes().some(t => laxTypeConstraint(t, cb));
 	} else {
 		return cb(type);
 	}
@@ -227,7 +228,7 @@ export function isBooleanTypeStrict(type: ts.Type) {
 }
 
 export function isUnknowableType(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isUnknown());
+	return isSomeType(type, laxTypeConstraint, t => t.isUnknown() || t.isAny());
 }
 
 export function isNumberType(type: ts.Type) {
@@ -238,8 +239,12 @@ export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
-export function isFalsyNumberTypeLax(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isNumber() || (t.isNumberLiteral() && t.getText() === `0`));
+export function isNumberTypeLax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isNumber());
+}
+
+export function isLiterally0Lax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && t.getText() === `0`);
 }
 
 export function isNumericLiteralTypeStrict(type: ts.Type) {
@@ -265,14 +270,14 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIterator(type: ts.Type, node: ts.Node) {
+export function isIterableIteratorType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
 	});
 }
 
-export function isIterableFunction(type: ts.Type) {
+export function isIterableFunctionType(type: ts.Type) {
 	return isSomeType(type, check, t => {
 		const symbol = t.getAliasSymbol();
 		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
@@ -571,7 +576,7 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 	return false;
 }
 
-/** Calls skipNodesUpwards and returns getType() */
+/** Skips NonNullExpressions and Parenthesized Expressions above the current node and returns `getType()` */
 export function getType(node: ts.Node) {
-	return skipNodesUpwards(node).getType();
+	return skipNodesUpwardsLookAhead(node).getType();
 }

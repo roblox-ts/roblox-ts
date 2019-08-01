@@ -9,8 +9,9 @@ import {
 } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { getType, inheritsFrom, isTupleType } from "../typeUtilities";
-import { joinIndentedLines, skipNodesDownwards, skipNodesUpwards, suggest } from "../utility";
+import { joinIndentedLines, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
+import { suggest } from "../utility/text";
+import { getType, inheritsFrom, isTupleType } from "../utility/type";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {

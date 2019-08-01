@@ -9,14 +9,17 @@ import {
 	compileExpression,
 	compileSpreadableListAndJoin,
 	getReadableExpressionName,
+	inheritsFromRoact,
 	isFunctionExpressionMethod,
 	isIdentifierDefinedInConst,
 	isIdentifierDefinedInExportLet,
 	isMethodDeclaration,
+	isValidLuaIdentifier,
 	shouldCompileAsSpreadableList,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayMethodType,
@@ -29,10 +32,7 @@ import {
 	shouldPushToPrecedingStatement,
 	superExpressionClassInheritsFromArray,
 	typeConstraint,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
-import { inheritsFromRoact } from "./roact";
-import { isValidLuaIdentifier } from "./security";
+} from "../utility/type";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
 
@@ -113,20 +113,6 @@ function compileCallArgumentsAndSeparateAndJoinWrapped(
 ): [string, string] {
 	const [accessStr, compiledArgs] = compileCallArgumentsAndSeparateWrapped(state, params, strict);
 	return [accessStr, compiledArgs.join(", ")];
-}
-
-export function addOneToStringIndex(valueStr: string) {
-	if (valueStr === "nil") {
-		return "nil";
-	}
-
-	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
-		const valueNumber = Number(valueStr);
-		if (!Number.isNaN(valueNumber)) {
-			return (valueNumber < 0 ? valueNumber : valueNumber + 1).toString();
-		}
-	}
-	return valueStr + " + 1";
 }
 
 function macroStringIndexFunction(
@@ -1120,7 +1106,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} + ${argStrs[1]})`,
+				`(${argStrs[0]} + (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathSub: {
@@ -1128,7 +1114,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} - ${argStrs[1]})`,
+				`(${argStrs[0]} - (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathMul: {
@@ -1136,7 +1122,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} * ${argStrs[1]})`,
+				`(${argStrs[0]} * (${argStrs[1]}))`,
 			);
 		}
 		case PropertyCallExpType.RbxMathDiv: {
@@ -1144,7 +1130,7 @@ export function compilePropertyCallExpression(
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
-				`(${argStrs[0]} / ${argStrs[1]})`,
+				`(${argStrs[0]} / (${argStrs[1]}))`,
 			);
 		}
 	}

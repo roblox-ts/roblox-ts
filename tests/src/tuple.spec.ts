@@ -165,4 +165,52 @@ export = () => {
 
 		expect(foo().pop()).to.equal("3");
 	});
+
+	it("should support assigning from LuaTuples", () => {
+		function foo(): LuaTuple<[number, number]> {
+			return [101, 203];
+		}
+
+		let a = 0;
+		let b = 0;
+		[a, b] = foo();
+		expect(a).to.equal(101);
+		expect(b).to.equal(203);
+	});
+
+	it("should support assigning from LuaTuples with omitted expressions", () => {
+		function foo(): LuaTuple<[number, number, number]> {
+			return [101, 203, 345];
+		}
+
+		let a = 0;
+		let b = 0;
+		[a, , b] = foo();
+		expect(a).to.equal(101);
+		expect(b).to.equal(345);
+	});
+
+	it("should support nested assigning from LuaTuples", () => {
+		function foo(): LuaTuple<[number, [number, number]]> {
+			return [101, [203, 345]];
+		}
+
+		let a = 0;
+		let b = 0;
+		[a, [, b]] = foo();
+		expect(a).to.equal(101);
+		expect(b).to.equal(345);
+	});
+
+	it("should support nested assigning from LuaTuples", () => {
+		function foo(): LuaTuple<[number, { a: number; b: number }]> {
+			return [101, { a: 203, b: 345 }];
+		}
+
+		let a = 0;
+		let b = 0;
+		[a, { b }] = foo();
+		expect(a).to.equal(101);
+		expect(b).to.equal(345);
+	});
 };

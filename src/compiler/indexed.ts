@@ -11,6 +11,7 @@ import {
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
 import {
 	getCompilerDirectiveWithLaxConstraint,
 	getType,
@@ -23,8 +24,7 @@ import {
 	isSetType,
 	isStringType,
 	isTupleReturnTypeCall,
-} from "../typeUtilities";
-import { safeLuaIndex, skipNodesDownwards } from "../utility";
+} from "../utility/type";
 
 export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	// I have no idea why, but getDefinitionNodes() cannot replace this
@@ -223,7 +223,7 @@ export function addOneToArrayIndex(valueStr: string) {
 export function getComputedPropertyAccess(state: CompilerState, exp: ts.Expression, fromNode: ts.Node) {
 	const expType = getType(exp);
 	let expStr = compileExpression(state, exp);
-	const fromType = ts.TypeGuards.isCallExpression(fromNode) ? fromNode.getReturnType() : getType(fromNode);
+	const fromType = getType(fromNode);
 
 	if (isArrayType(fromType)) {
 		if (isNumberTypeStrict(expType)) {

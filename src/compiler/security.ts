@@ -1,9 +1,10 @@
 import * as ts from "ts-morph";
+import { HasParameters } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { HasParameters } from "../types";
-import { getType, isAnyType } from "../typeUtilities";
-import { bold, ScriptContext, yellow } from "../utility";
+import { ScriptContext } from "../utility/general";
+import { bold, yellow } from "../utility/text";
+import { getType, isAnyType } from "../utility/type";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -88,7 +89,7 @@ const LUA_RESERVED_NAMESPACES = [
 	"Ray",
 ];
 
-const TS_RESERVED_KEYWORDS = ["_exports", "undefined", "TS", "globalThis", "table", "_continue_"];
+const TS_RESERVED_KEYWORDS = ["undefined", "TS", "globalThis", "table", "_continue_"];
 
 const LUA_RESERVED_KEYWORDS = [
 	"and",

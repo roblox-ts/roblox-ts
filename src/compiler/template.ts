@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileList } from ".";
 import { CompilerState } from "../CompilerState";
-import { getType, isStringType } from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards } from "../utility/general";
+import { getType, isStringType } from "../utility/type";
 
 export function sanitizeTemplate(str: string) {
 	str = str.replace(/(^|[^\\](?:\\\\)*)"/g, '$1\\"'); // replace " with \"

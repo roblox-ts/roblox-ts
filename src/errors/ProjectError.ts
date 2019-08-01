@@ -1,3 +1,7 @@
+import { addEvent } from "../analytics";
+import { red } from "../utility/text";
+import { LoggableError } from "./LoggableError";
+
 export enum ProjectErrorType {
 	MissingRootDir,
 	MissingOutDir,
@@ -9,14 +13,20 @@ export enum ProjectErrorType {
 	GetImportPathFail2,
 	GetImportPathFail3,
 	NoRojoData,
-	UnexpectedExtensionType,
 	BadTsConfig,
 	BadRbxTypes,
 	BadRojoInclude,
+	TsMorph,
+	ProjectFailed,
 }
 
-export class ProjectError extends Error {
+export class ProjectError extends LoggableError {
 	constructor(message: string, public readonly type: ProjectErrorType) {
 		super(message);
+		void addEvent("ProjectError", ProjectErrorType[type]);
+	}
+
+	public log(projectPath: string) {
+		console.log(red("Project Error:"), this.message);
 	}
 }

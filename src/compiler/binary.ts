@@ -5,15 +5,14 @@ import {
 	compileElementAccessBracketExpression,
 	compileElementAccessDataTypeExpression,
 	compileExpression,
-	compileTruthiness,
 	concatNamesAndValues,
-	getAccessorForBindingPatternType,
-	getBindingData,
 	getWritableOperandName,
 	isIdentifierDefinedInExportLet,
+	shouldWrapExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
@@ -22,8 +21,9 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
-} from "../typeUtilities";
-import { skipNodesDownwards, skipNodesUpwards } from "../utility";
+} from "../utility/type";
+import { compileBindingLiteral, getSubTypeOrThrow } from "./binding";
+import { compileLogicalBinary } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -100,10 +100,7 @@ function compileBinaryLiteral(
 	lhs: ts.ObjectLiteralExpression | ts.ArrayLiteralExpression,
 	rhs: ts.Expression,
 ) {
-	const names = new Array<string>();
-	const values = new Array<string>();
-	const preStatements = new Array<string>();
-	const postStatements = new Array<string>();
+	const statements = new Array<string>();
 
 	let rootId: string;
 	if (
@@ -114,34 +111,19 @@ function compileBinaryLiteral(
 		rootId = compileExpression(state, rhs);
 	} else {
 		rootId = state.getNewId();
-		preStatements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
+		statements.push(`local ${rootId} = ${compileExpression(state, rhs)};`);
 	}
 
-	getBindingData(
-		state,
-		names,
-		values,
-		preStatements,
-		postStatements,
-		lhs,
-		rootId,
-		getAccessorForBindingPatternType(rhs),
-	);
+	statements.push(...compileBindingLiteral(state, lhs, rootId, getType(rhs)));
 
 	const parent = skipNodesUpwards(node.getParentOrThrow());
 
 	if (ts.TypeGuards.isExpressionStatement(parent) || ts.TypeGuards.isForStatement(parent)) {
 		let result = "";
-		preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration => (result += declaration));
-		postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 		return result.replace(/;\n$/, ""); // terrible hack
 	} else {
-		preStatements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
-		concatNamesAndValues(state, names, values, false, declaration =>
-			state.pushPrecedingStatements(node, declaration),
-		);
-		postStatements.forEach(statementStr => state.pushPrecedingStatements(lhs, state.indent + statementStr + "\n"));
+		statements.forEach(statementStr => state.pushPrecedingStatements(rhs, state.indent + statementStr + "\n"));
 		return rootId;
 	}
 }
@@ -169,38 +151,28 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 	// binding patterns
 	if (ts.TypeGuards.isArrayLiteralExpression(lhs)) {
-		const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
+		// const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
 
-		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
+		if (rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
 			// FIXME: Still broken for nested destructuring of non-arrays.
 			// BUT this change makes it LESS broken than before. (try nested destructuring a string here)
 			// e.g. [[[[[[[a]]]]]]] = func() where func() returns a LuaTuple<[string]>
 
 			let result = "";
-			const preStatements = new Array<string>();
-			const postStatements = new Array<string>();
+			const statements = new Array<string>();
 			const names = lhs
 				.getElements()
-				.map(element => {
+				.map((element, i) => {
 					if (ts.TypeGuards.isOmittedExpression(element)) {
 						return "_";
 					} else if (
 						ts.TypeGuards.isArrayLiteralExpression(element) ||
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
-						let rootId: string;
-						rootId = state.getNewId();
-
-						getBindingData(
-							state,
-							[],
-							[],
-							preStatements,
-							postStatements,
-							element,
-							rootId,
-							getAccessorForBindingPatternType(rhs),
-						);
+						const rootId = state.getNewId();
+						result += state.indent + `local ${rootId};\n`;
+						const subType = getSubTypeOrThrow(lhs, getType(rhs), i);
+						statements.push(...compileBindingLiteral(state, element, rootId, subType));
 						return rootId;
 					} else {
 						return compileExpression(state, element);
@@ -218,8 +190,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 				false,
 				false,
 			);
-			preStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
-			postStatements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
+			statements.forEach(statementStr => (result += state.indent + statementStr + "\n"));
 			if (isStatement) {
 				return result.replace(/;\n$/, ""); // terrible hack
 			} else {
@@ -397,7 +368,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else {
 		const isAnd = opKind === ts.SyntaxKind.AmpersandAmpersandToken;
 		if (isAnd || opKind === ts.SyntaxKind.BarBarToken) {
-			return compileTruthiness(state, lhs, 0, isAnd, rhs, node);
+			return compileLogicalBinary(state, lhs, rhs, isAnd, node);
 		} else {
 			lhsStr = compileExpression(state, lhs);
 
@@ -454,7 +425,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		return `${lhsStr} ^ ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.InKeyword) {
 		// doesn't need parenthesis because In is restrictive
-		return `${rhsStr}[${lhsStr}] ~= nil`;
+		return `${shouldWrapExpression(rhs, false) ? `(${rhsStr})` : rhsStr}[${lhsStr}] ~= nil`;
 	} else if (opKind === ts.SyntaxKind.GreaterThanToken) {
 		return `${lhsStr} > ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.LessThanToken) {

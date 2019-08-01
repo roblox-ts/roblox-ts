@@ -1,7 +1,10 @@
+import { SpawnOptions } from "child_process";
+import spawn from "cross-spawn";
 import path from "path";
 import * as ts from "ts-morph";
-import { isValidLuaIdentifier } from "./compiler";
-import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
+import { isValidLuaIdentifier } from "../compiler";
+import { CompilerState } from "../CompilerState";
+import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
@@ -92,7 +95,7 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 	const filePath = file.getFilePath();
 	const ext = path.extname(filePath);
 	if (ext !== ".ts" && ext !== ".tsx") {
-		throw new ProjectError(`Unexpected extension type: ${ext}`, ProjectErrorType.UnexpectedExtensionType);
+		throw new CompilerError(`Unexpected extension type: ${ext}`, file, CompilerErrorType.UnexpectedExtensionType);
 	}
 
 	const subext = path.extname(path.basename(filePath, ext));
@@ -157,22 +160,6 @@ export function getScriptContext(file: ts.SourceFile, seen = new Set<string>()):
 	}
 }
 
-export function red(text: string) {
-	return `\x1b[31m${text}\x1b[0m`;
-}
-
-export function yellow(text: string) {
-	return `\x1b[33m${text}\x1b[0m`;
-}
-
-export function bold(text: string) {
-	return `\x1b[1m${text}\x1b[0m`;
-}
-
-export function suggest(text: string) {
-	return `...\t${yellow(text)}`;
-}
-
 export function isIdentifierWhoseDefinitionMatchesNode(
 	node: ts.Node<ts.ts.Node>,
 	potentialDefinition: ts.Identifier,
@@ -212,8 +199,9 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean) {
 	if (exp) {
 		while (
-			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
-			ts.TypeGuards.isNonNullExpression(exp)
+			exp &&
+			((!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
+				ts.TypeGuards.isNonNullExpression(exp))
 		) {
 			exp = (exp.getParent() as unknown) as T;
 		}
@@ -221,11 +209,23 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 	}
 }
 
-export function makeSetStatement(varToSet: string, value: string) {
+export function skipNodesUpwardsLookAhead(node: ts.Node) {
+	let parent = node.getParent();
+
+	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
+		node = parent;
+		parent = node.getParent();
+	}
+
+	return node;
+}
+
+export function makeSetStatement(state: CompilerState, varToSet: string, value: string) {
+	value = removeBalancedParenthesisFromStringBorders(value);
 	if (varToSet === "return") {
-		return `return ${value}`;
+		return state.indent + `return ${value};\n`;
 	} else {
-		return `${varToSet} = ${value}`;
+		return state.indent + `${varToSet} = ${value};\n`;
 	}
 }
 
@@ -250,4 +250,43 @@ export function transformPathToLua(rootPath: string, outPath: string, filePath: 
 	}
 	const luaName = name + exts.join("") + ".lua";
 	return path.join(outPath, relativeToRoot, luaName);
+}
+
+export function stripExts(filePath: string) {
+	const ext = path.extname(filePath);
+	filePath = filePath.slice(0, -ext.length);
+	const subext = path.extname(filePath);
+	if (subext.length > 0) {
+		filePath = filePath.slice(0, -subext.length);
+	}
+	return filePath;
+}
+
+export function isPathAncestorOf(ancestor: string, descendant: string) {
+	if (ancestor === descendant) {
+		return true;
+	} else {
+		const relative = path.relative(ancestor, descendant);
+		return !relative.startsWith("..") && !path.isAbsolute(relative);
+	}
+}
+
+export function arrayStartsWith<T>(a: Array<T>, b: Array<T>) {
+	const minLength = Math.min(a.length, b.length);
+	for (let i = 0; i < minLength; i++) {
+		if (a[i] !== b[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+export async function cmd(process: string, args: Array<string>, options?: SpawnOptions) {
+	return new Promise<string>((resolve, reject) => {
+		let output = "";
+		spawn(process, args, options)
+			.on("message", msg => (output += msg))
+			.on("error", e => reject(e.message))
+			.on("close", () => resolve(output));
+	});
 }

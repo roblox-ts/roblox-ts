@@ -1,8 +1,8 @@
 import * as ts from "ts-morph";
 import { compileList, compileSpreadableListAndJoin, compileSpreadExpression, shouldCompileAsSpreadableList } from ".";
 import { CompilerState } from "../CompilerState";
-import { getType, isArrayType } from "../typeUtilities";
-import { skipNodesDownwards } from "../utility";
+import { skipNodesDownwards } from "../utility/general";
+import { getType, isArrayType } from "../utility/type";
 
 export function compileArrayLiteralExpression(state: CompilerState, node: ts.ArrayLiteralExpression) {
 	const elements = node.getElements();

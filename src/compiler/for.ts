@@ -8,8 +8,14 @@ import {
 	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
-import { getType, isNumberType } from "../typeUtilities";
-import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines, skipNodesDownwards } from "../utility";
+import {
+	isIdentifierWhoseDefinitionMatchesNode,
+	joinIndentedLines,
+	removeBalancedParenthesisFromStringBorders,
+	skipNodesDownwards,
+} from "../utility/general";
+import { getType, isNumberType } from "../utility/type";
+import { compileTruthyCheck } from "./truthiness";
 
 function isConstantNumberVariableOrLiteral(condValue: ts.Node) {
 	return (
@@ -279,7 +285,9 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 			// if it has any internal function declarations, make sure to locally scope variables
 			if (statementDescendants.some(nodeHasParameters)) {
 				state.enterPrecedingStatementContext();
-				conditionStr = condition ? compileExpression(state, condition) : "true";
+				conditionStr = condition
+					? removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition))
+					: "true";
 				conditionContext = state.exitPrecedingStatementContext();
 				state.enterPrecedingStatementContext();
 				incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
@@ -327,7 +335,10 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 	// order matters
 	if (conditionStr === undefined) {
 		state.enterPrecedingStatementContext();
-		conditionStr = condition ? compileExpression(state, condition) : "true";
+
+		conditionStr = condition
+			? removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition))
+			: "true";
 		conditionContext = state.exitPrecedingStatementContext();
 		state.enterPrecedingStatementContext();
 		incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;

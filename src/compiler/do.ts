@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
-import { compileLoopBody, compileTruthiness } from ".";
+import { compileLoopBody, compileTruthyCheck } from ".";
 import { CompilerState } from "../CompilerState";
-import { skipNodesDownwards } from "../utility";
+import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility/general";
 
 export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	state.pushIdStack();
@@ -13,10 +13,12 @@ export function compileDoStatement(state: CompilerState, node: ts.DoStatement) {
 	state.popIndent();
 	result += state.indent + "end;\n";
 	state.enterPrecedingStatementContext();
-	const condition = compileTruthiness(state, skipNodesDownwards(node.getExpression()), 1);
+	const condition = removeBalancedParenthesisFromStringBorders(
+		compileTruthyCheck(state, skipNodesDownwards(node.getExpression())),
+	);
 	result += state.exitPrecedingStatementContextAndJoin();
 	state.popIndent();
-	result += state.indent + `until ${condition};\n`;
+	result += state.indent + `until not (${condition});\n`;
 	state.popIdStack();
 	return result;
 }

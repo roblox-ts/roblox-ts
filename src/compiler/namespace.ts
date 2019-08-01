@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { checkReserved, compileStatementedNode } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { isTypeOnlyNamespace } from "../typeUtilities";
+import { isTypeOnlyNamespace } from "../utility/type";
 
 function safeMapGet<T, R>(map: Map<T, R>, key: T, node: ts.Node) {
 	const find = map.get(key);

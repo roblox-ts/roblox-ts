@@ -176,10 +176,11 @@ end
 
 function TS.async(callback)
 	return function(...)
+		local n = select("#", ...)
 		local args = { ... }
 		return Promise.new(function(resolve, reject)
 			coroutine.wrap(function()
-				local ok, result = pcall(callback, unpack(args))
+				local ok, result = pcall(callback, unpack(args, 1, n))
 				if ok then
 					resolve(result)
 				else
@@ -972,13 +973,17 @@ end
 
 function TS.opcall(func, ...)
 	local success, valueOrErr = pcall(func, ...)
-	local data = { success = success }
 	if success then
-		data.value = valueOrErr
+		return {
+			success = true,
+			value = valueOrErr,
+		}
 	else
-		data.error = valueOrErr
+		return {
+			success = false,
+			error = valueOrErr,
+		}
 	end
-	return success
 end
 
 -- try catch utilities

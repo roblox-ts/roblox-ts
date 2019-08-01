@@ -4,8 +4,8 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { RojoProject } from "../RojoProject";
-import { isRbxService } from "../typeUtilities";
-import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility";
+import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
+import { isRbxService } from "../utility/type";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
@@ -17,10 +17,10 @@ function getRuntimeLibraryStatement(state: CompilerState, node: ts.SourceFile) {
 	}
 
 	let link: string;
-	if (state.projectInfo.type === ProjectType.Package) {
+	if (state.projectType === ProjectType.Package) {
 		link = `_G[script]`;
-	} else if (state.projectInfo.type === ProjectType.Game) {
-		const runtimeLibPath = [...state.projectInfo.runtimeLibPath];
+	} else if (state.projectType === ProjectType.Game) {
+		const runtimeLibPath = [...state.runtimeLibPath];
 		const service = runtimeLibPath.shift()!;
 		if (!isRbxService(service)) {
 			throw new CompilerError(
@@ -31,18 +31,18 @@ function getRuntimeLibraryStatement(state: CompilerState, node: ts.SourceFile) {
 		}
 		const path = `game:GetService("${service}")` + runtimeLibPath.map(v => `:WaitForChild("${v}")`).join("");
 		link = `require(${path})`;
-	} else if (state.projectInfo.type === ProjectType.Bundle) {
+	} else if (state.projectType === ProjectType.Model) {
 		const rbxPath = state.rojoProject!.getRbxFromFile(
-			transformPathToLua(state.rootDirPath, state.outDirPath, node.getFilePath()),
+			transformPathToLua(state.rootPath, state.outPath, node.getFilePath()),
 		).path;
 		if (!rbxPath) {
 			throw new CompilerError(
-				`Bundle could not resolve runtime library location!`,
+				`Model could not resolve runtime library location!`,
 				node,
 				CompilerErrorType.BadRojo,
 			);
 		}
-		const rbxRelative = RojoProject.relative(rbxPath, state.projectInfo.runtimeLibPath);
+		const rbxRelative = RojoProject.relative(rbxPath, state.runtimeLibPath);
 		let start = "script";
 		while (rbxRelative[0] === "..") {
 			rbxRelative.shift();
@@ -80,11 +80,11 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		}
 
 		if (hasExportEquals) {
-			result = state.indent + `local _exports;\n` + result;
+			result = state.indent + `local exports;\n` + result;
 		} else {
-			result = state.indent + `local _exports = {};\n` + result;
+			result = state.indent + `local exports = {};\n` + result;
 		}
-		result += state.indent + "return _exports;\n";
+		result += state.indent + "return exports;\n";
 	} else {
 		if (scriptType === ScriptType.Module) {
 			result += state.indent + "return nil;\n";
