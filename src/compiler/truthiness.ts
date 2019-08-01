@@ -72,28 +72,24 @@ function isExpInTruthyCheck(node: ts.Node) {
 
 	if (top) {
 		if (ts.TypeGuards.isConditionalExpression(top) && top.getCondition() === previous) {
-			return parent ? i : i; // Number.POSITIVE_INFINITY;
+			return i;
 		} else if (
 			ts.TypeGuards.isPrefixUnaryExpression(top) &&
 			top.getOperatorToken() === ts.SyntaxKind.ExclamationToken &&
 			top.getOperand() === previous
 		) {
-			return parent ? i : i; // Number.POSITIVE_INFINITY;
+			return i;
 		} else if (
 			(ts.TypeGuards.isIfStatement(top) ||
 				ts.TypeGuards.isWhileStatement(top) ||
 				ts.TypeGuards.isDoStatement(top)) &&
 			top.getExpression() === previous
 		) {
-			return parent ? i : i; // Number.POSITIVE_INFINITY;
+			return i;
 		}
 	}
 
 	return 0;
-
-	// return parent
-	// 	? previous.getKindName() + " " + previous.getText() + ", " + parent.getKindName() + " " + parent.getText()
-	// 	: undefined;
 }
 
 /* If it is in a truthy check, we can throw away the middle values when possible
@@ -125,27 +121,6 @@ export function compileLogicalBinary(
 	isAnd: boolean,
 	node: ts.BinaryExpression,
 ) {
-	// let id: string | undefined;
-	// const currentBinaryLogicContext = state.currentBinaryLogicContext;
-	// let isPushed = false;
-	// const declaration = state.declarationContext.get(node);
-
-	// if (declaration) {
-	// 	if (declaration.needsLocalizing) {
-	// 		// state.pushPrecedingStatements(node, state.indent + `local `);
-	// 	}
-
-	// 	state.currentBinaryLogicContext = id = declaration.set;
-	// 	state.declarationContext.delete(node);
-	// } else {
-	// 	if (currentBinaryLogicContext === "") {
-	// 		state.currentBinaryLogicContext = id = state.pushPrecedingStatementToNewId(node, "");
-	// 		// isPushed = true;
-	// 	} else {
-	// 		id = currentBinaryLogicContext;
-	// 	}
-	// }
-
 	const isInTruthyCheck = isExpInTruthyCheck(node);
 	const lhsData = getTruthyCompileData(state, lhs, true);
 	let expStr: string;
@@ -211,33 +186,6 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = 
 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
 	const numChecks = +checkNaN + +checkNon0 + +checkEmptyString + +checkTruthy;
 
-	// console.log(expStr);
-
-	// if (expStr !== state.currentBinaryLogicContext && state.currentBinaryLogicContext) {
-	// 	if (state.currentBinaryLogicContext === "return") {
-	// 		state.currentBinaryLogicContext = state.pushPrecedingStatementToNewId(exp, expStr);
-	// 	} else {
-	// 		state.pushPrecedingStatements(exp, state.indent + `${state.currentBinaryLogicContext} = ${expStr};\n`);
-	// 		expStr = state.currentBinaryLogicContext;
-	// 	}
-	// }
-
-	// const currentBinaryLogicContext = state.currentBinaryLogicContext;
-
-	// console.log(1, expStr, exp.getText(), currentBinaryLogicContext);
-
-	// const { currentBinaryLogicContext } = state;
-
-	// if (pushy || (!isValidLuaIdentifier(expStr) && numChecks > 1)) {
-	// 	if (currentBinaryLogicContext) {
-	// 		state.pushPrecedingStatements(exp, state.indent + `::${currentBinaryLogicContext} = ${expStr};\n`);
-	// 		expStr = currentBinaryLogicContext;
-	// 	} else {
-	// 		console.log("pushing", expStr);
-	// 		state.currentBinaryLogicContext = expStr = state.pushPrecedingStatementToNewId(exp, expStr);
-	// 	}
-	// }
-
 	return { checkNon0, checkNaN, checkEmptyString, checkTruthy, numChecks };
 }
 
@@ -247,7 +195,6 @@ export function compileTruthyCheck(
 	expStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, exp)),
 	compileData = getTruthyCompileData(state, exp),
 ) {
-	// console.log(exp.getKindName(), exp.getText(), ":", expStr);
 	if (state.alreadyCheckedTruthyConditionals.includes(exp)) {
 		return expStr;
 	}
@@ -264,21 +211,17 @@ export function compileTruthyCheck(
 	}
 
 	const checks = new Array<string>();
-	// let shouldWrap = false;
 
 	if (checkNon0) {
 		checks.push(`${expStr} ~= 0`);
-		// shouldWrap = true;
 	}
 
 	if (checkNaN) {
 		checks.push(`${expStr} == ${expStr}`);
-		// shouldWrap = true;
 	}
 
 	if (checkEmptyString) {
 		checks.push(`${expStr} ~= ""`);
-		// shouldWrap = true;
 	}
 
 	if (checkTruthy || checks.length === 0) {
@@ -287,166 +230,5 @@ export function compileTruthyCheck(
 
 	const result = checks.join(" and ");
 
-	// if (currentBinaryLogicContext === "") {
-	// 	state.currentBinaryLogicContext = "";
-	// }
-
-	// getParentWhile(exp, (p, n) => {
-	// 	if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
-	// 		return true;
-	// 	} else if (ts.TypeGuards.isBinaryExpression(p)) {
-	// 		const opKind = p.getOperatorToken().getKind();
-	// 		return opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken;
-	// 		// } else if (ts.TypeGuards.isConditionalExpression(p) && (p.getWhenTrue() === n || p.getWhenFalse() === n)) {
-	// 		// 	return true;
-	// 	} else {
-	// 		return false;
-	// 	}
-	// });
 	return checks.length > 1 ? `(${result})` : result;
-
-	// return `(${result})`;
 }
-
-// function getExpStr(
-// 	state: CompilerState,
-// 	exp: ts.Expression,
-// 	extraNots: number,
-// 	isAnd?: boolean,
-// 	node?: ts.BinaryExpression,
-// 	currentBinaryLogicContext?: string,
-// ) {
-// 	while (ts.TypeGuards.isPrefixUnaryExpression(exp) && exp.getOperatorToken() === ts.SyntaxKind.ExclamationToken) {
-// 		exp = skipNodesDownwards(exp.getOperand());
-// 		extraNots++;
-// 	}
-
-// 	const expStr = compileExpression(state, exp);
-// 	const expType = getType(exp);
-
-// 	if (isTupleType(expType)) {
-// 		throw new CompilerError(
-// 			`Cannot check a LuaTuple in a conditional! Change this to:\n\t${exp.getText()}[0]`,
-// 			exp,
-// 			CompilerErrorType.LuaTupleInConditional,
-// 		);
-// 	}
-
-// 	const isUnknown = isUnknowableType(expType);
-
-// 	const checkNaN = isUnknown || isNumberTypeLax(expType);
-// 	const checkNon0 = isUnknown || checkNaN || is0TypeLax(expType);
-// 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
-// 	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
-
-// 	const checks = new Array<string>();
-// 	const boolify = extraNots > 0;
-
-// 	// console.log(boolify, exp.getText());
-// 	if (extraNots === 0 && isAnd === false) {
-// 		extraNots++;
-// 	}
-
-// 	let mainStr: string;
-
-// 	if (extraNots % 2) {
-// 		mainStr = `not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
-// 	} else {
-// 		if (boolify && !isBooleanTypeStrict(expType)) {
-// 			mainStr = `not not ${removeBalancedParenthesisFromStringBorders(expStr)}`;
-// 		} else {
-// 			mainStr = expStr;
-// 		}
-// 	}
-
-// 	if (checkNon0) {
-// 		checks.push(extraNots % 2 ? `${expStr} == 0` : `${expStr} ~= 0`);
-// 	}
-
-// 	if (checkNaN) {
-// 		checks.push(extraNots % 2 ? `${expStr} ~= ${expStr}` : `${expStr} == ${expStr}`);
-// 	}
-
-// 	if (checkEmptyString) {
-// 		checks.push(`${expStr} ${extraNots % 2 ? "=" : "~"}= ""`);
-// 	}
-
-// 	if (checkTruthy || checks.length === 0) {
-// 		checks.push(mainStr);
-// 	}
-
-// 	let condition = extraNots % 2 ? checks.join(" or ") : checks.join(" and ");
-// 	let id: string;
-
-// 	if (node) {
-// 		const declaration = state.declarationContext.get(node);
-// 		if (declaration) {
-// 			if (declaration.needsLocalizing) {
-// 				state.pushPrecedingStatements(
-// 					node,
-// 					state.indent + `local ${declaration.set} = ${boolify ? condition : expStr};\n`,
-// 				);
-// 			}
-// 			state.currentBinaryLogicContext = id = declaration.set;
-// 		} else {
-// 			if (currentBinaryLogicContext) {
-// 				id = currentBinaryLogicContext;
-// 			} else {
-// 				state.currentBinaryLogicContext = id = state.pushPrecedingStatementToNewId(
-// 					node,
-// 					`${boolify ? condition : expStr}`,
-// 				);
-// 			}
-// 		}
-// 	} else {
-// 		id = "";
-// 	}
-
-// 	if (isAnd !== undefined) {
-// 		condition = boolify ? id || condition : condition;
-// 		if (isAnd === false && boolify) {
-// 			condition = `not (${condition})`;
-// 		}
-// 	}
-
-// 	return {
-// 		condition,
-// 		id,
-// 	};
-// }
-
-// export function compileTruthiness(
-// 	state: CompilerState,
-// 	exp: ts.Expression,
-// 	extraNots = 0,
-// 	isAnd?: boolean,
-// 	rhs?: ts.Expression,
-// 	node?: ts.BinaryExpression,
-// ) {
-// 	const isPushed = false;
-
-// 	const currentBinaryLogicContext = state.currentBinaryLogicContext;
-// 	const { condition, id } = getExpStr(state, exp, extraNots, isAnd, node, currentBinaryLogicContext);
-
-// 	if (node && rhs) {
-// 		state.pushPrecedingStatements(exp, state.indent + `if ${condition} then -- ${node.getText()}\n`);
-// 		state.pushIndent();
-// 		const rhsStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, rhs));
-// 		if (id !== rhsStr) {
-// 			state.pushPrecedingStatements(exp, state.indent + `${id} = ${rhsStr};\n`);
-// 		}
-// 		state.popIndent();
-
-// 		state.pushPrecedingStatements(exp, state.indent + `end;\n`);
-
-// 		if (currentBinaryLogicContext === "") {
-// 			state.currentBinaryLogicContext = "";
-// 		}
-// 		state.declarationContext.delete(node);
-// 		state.getCurrentPrecedingStatementContext(node).isPushed = isPushed;
-// 		return id;
-// 	} else {
-// 		// console.log("got", condition, exp.getKindName(), exp.getText());
-// 		return condition;
-// 	}
-// }
