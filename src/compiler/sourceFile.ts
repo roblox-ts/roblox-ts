@@ -80,11 +80,11 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		}
 
 		if (hasExportEquals) {
-			result = state.indent + `local _exports;\n` + result;
+			result = state.indent + `local exports;\n` + result;
 		} else {
-			result = state.indent + `local _exports = {};\n` + result;
+			result = state.indent + `local exports = {};\n` + result;
 		}
-		result += state.indent + "return _exports;\n";
+		result += state.indent + "return exports;\n";
 	} else {
 		if (scriptType === ScriptType.Module) {
 			result += state.indent + "return nil;\n";

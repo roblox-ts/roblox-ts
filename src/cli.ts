@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import yargs from "yargs";
-import { CliError } from "./errors/CliError";
+import { setAnalyticsDisabled } from "./analytics";
+import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
 import { Watcher } from "./Watcher";
@@ -73,8 +74,15 @@ const argv = yargs
 	// init
 	.option("init", {
 		choices: [InitializeMode.Game, InitializeMode.Model, InitializeMode.Plugin, InitializeMode.Package],
-		conflicts: ["w"],
+		conflicts: ["w", "no-analytics"],
 		type: "string",
+	})
+
+	// noAnalytics
+	.option("noAnalytics", {
+		conflicts: ["w", "init"],
+		description: "disables analytics globally",
+		type: "boolean",
 	})
 
 	// parse
@@ -82,17 +90,18 @@ const argv = yargs
 
 void (async () => {
 	try {
-		if (argv.init !== undefined) {
+		if (argv.noAnalytics !== undefined) {
+			await setAnalyticsDisabled(argv.noAnalytics);
+		} else if (argv.init !== undefined) {
 			await Initializer.init(argv.init as InitializeMode);
 		} else if (argv.watch === true) {
-			const watcher = new Watcher(new Project(argv), argv.onSuccess);
-			watcher.start();
+			new Watcher(new Project(argv), argv.onSuccess).start();
 		} else {
 			await new Project(argv).compileAll();
 		}
 	} catch (e) {
-		if (e instanceof CliError) {
-			e.log();
+		if (e instanceof LoggableError) {
+			e.log("");
 		} else {
 			throw e;
 		}

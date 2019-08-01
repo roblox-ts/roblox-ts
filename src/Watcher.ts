@@ -34,6 +34,7 @@ async function time(callback: () => any) {
 
 export class Watcher {
 	private isCompiling = false;
+	private hasUpdateAllSucceeded = false;
 
 	constructor(private project: Project, private onSuccessCmd = "") {}
 
@@ -48,6 +49,11 @@ export class Watcher {
 	}
 
 	private async update(filePath: string) {
+		if (!this.hasUpdateAllSucceeded) {
+			await this.updateAll();
+			return;
+		}
+
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
 			console.log("Change detected, compiling..");
@@ -64,7 +70,7 @@ export class Watcher {
 			clearContextCache();
 			await time(async () => {
 				try {
-					await this.project.compileFileByPath(filePath);
+					await this.project.compileFileByPath(filePath, true);
 				} catch (e) {
 					console.log(e);
 					process.exit();
@@ -80,6 +86,7 @@ export class Watcher {
 		await time(async () => {
 			try {
 				await this.project.compileAll();
+				this.hasUpdateAllSucceeded = true;
 			} catch (e) {
 				console.log(e);
 				process.exit();

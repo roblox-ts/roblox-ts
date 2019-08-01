@@ -1,2 +1,2 @@
-const _exports = 1;
+const globalThis = 1;
 export {};

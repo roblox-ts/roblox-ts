@@ -274,7 +274,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		}
 
 		lhs.push(defaultImportExp);
-		rhs.push(`._default`);
+		rhs.push(`.default`);
 		unlocalizedImports.push("");
 	}
 
@@ -395,7 +395,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			ancestorName = ancestor.getName();
 		} else {
 			state.isModule = true;
-			ancestorName = "_exports";
+			ancestorName = "exports";
 		}
 		return state.indent + `TS.exportNamespace(${luaPath}, ${ancestorName});\n`;
 	} else {
@@ -409,7 +409,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			ancestorName = ancestor.getName();
 		} else {
 			state.isModule = true;
-			ancestorName = "_exports";
+			ancestorName = "exports";
 		}
 
 		namedExports.forEach(namedExport => {
@@ -417,7 +417,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 			const nameNode = namedExport.getNameNode();
 			let name = nameNode.getText();
 			if (name === "default") {
-				name = "_default";
+				name = "default";
 			}
 			const alias = aliasNode ? aliasNode.getText() : name;
 			checkReserved(aliasNode || nameNode);
@@ -454,7 +454,7 @@ export function compileExportAssignment(state: CompilerState, node: ts.ExportAss
 		state.isModule = true;
 		state.enterPrecedingStatementContext();
 		const expStr = compileExpression(state, exp);
-		return state.exitPrecedingStatementContextAndJoin() + `_exports = ${expStr};\n`;
+		return state.exitPrecedingStatementContextAndJoin() + `exports = ${expStr};\n`;
 	} else {
 		const symbol = node.getSymbol();
 		if (symbol) {
@@ -462,7 +462,7 @@ export function compileExportAssignment(state: CompilerState, node: ts.ExportAss
 				state.isModule = true;
 				state.enterPrecedingStatementContext();
 				const expStr = compileExpression(state, exp);
-				return state.exitPrecedingStatementContextAndJoin() + "_exports._default = " + expStr + ";\n";
+				return state.exitPrecedingStatementContextAndJoin() + "exports.default = " + expStr + ";\n";
 			}
 		}
 	}

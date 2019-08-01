@@ -22,7 +22,7 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../utility/type";
-import { compileBindingLiteral } from "./binding";
+import { compileBindingLiteral, getSubTypeOrThrow } from "./binding";
 import { compileLogicalBinary } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
@@ -151,9 +151,9 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 	// binding patterns
 	if (ts.TypeGuards.isArrayLiteralExpression(lhs)) {
-		const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
+		// const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
 
-		if (isFlatBinding && rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
+		if (rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
 			// FIXME: Still broken for nested destructuring of non-arrays.
 			// BUT this change makes it LESS broken than before. (try nested destructuring a string here)
 			// e.g. [[[[[[[a]]]]]]] = func() where func() returns a LuaTuple<[string]>
@@ -162,7 +162,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			const statements = new Array<string>();
 			const names = lhs
 				.getElements()
-				.map(element => {
+				.map((element, i) => {
 					if (ts.TypeGuards.isOmittedExpression(element)) {
 						return "_";
 					} else if (
@@ -170,7 +170,9 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 						ts.TypeGuards.isObjectLiteralExpression(element)
 					) {
 						const rootId = state.getNewId();
-						statements.push(...compileBindingLiteral(state, element, rootId, getType(rhs)));
+						result += state.indent + `local ${rootId};\n`;
+						const subType = getSubTypeOrThrow(lhs, getType(rhs), i);
+						statements.push(...compileBindingLiteral(state, element, rootId, subType));
 						return rootId;
 					} else {
 						return compileExpression(state, element);

@@ -3,6 +3,7 @@ import klaw from "klaw";
 import { minify } from "luamin";
 import path from "path";
 import * as ts from "ts-morph";
+import { addEvent } from "./analytics";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
 import { DiagnosticError } from "./errors/DiagnosticError";
@@ -158,12 +159,19 @@ export class Project {
 
 		this.projectPath = path.resolve(this.configFilePath, "..");
 
-		this.project = new ts.Project({
-			compilerOptions: {
-				configFilePath: this.configFilePath,
-			},
-			tsConfigFilePath: this.configFilePath,
-		});
+		try {
+			this.project = new ts.Project({
+				compilerOptions: {
+					configFilePath: this.configFilePath,
+				},
+				tsConfigFilePath: this.configFilePath,
+			});
+		} catch (e) {
+			throw new ProjectError(
+				"Could not create project!" + "\n" + "- Is your tsconfig.json valid UTF-8?",
+				ProjectErrorType.ProjectFailed,
+			);
+		}
 
 		const modulesPath = this.getModulesPath(this.projectPath);
 		if (!modulesPath) {
@@ -247,7 +255,7 @@ export class Project {
 				throw new ProjectError("Expected 'rootDir' option in tsconfig.json!", ProjectErrorType.MissingRootDir);
 			}
 			if (!fs.pathExistsSync(rootPath)) {
-				throw new ProjectError(`Unable to find ${rootPath}`, ProjectErrorType.MissingRootDir);
+				throw new ProjectError(`Unable to find rootDir at ${rootPath}`, ProjectErrorType.MissingRootDir);
 			}
 			this.rootPath = rootPath;
 
@@ -621,7 +629,7 @@ export class Project {
 		}
 	}
 
-	public async compileFileByPath(filePath: string) {
+	public async compileFileByPath(filePath: string, compileReferencingFiles = false) {
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
@@ -631,7 +639,21 @@ export class Project {
 					ProjectErrorType.MissingSourceFile,
 				);
 			}
-			return this.compileFiles([sourceFile]);
+			const files = new Set([sourceFile]);
+
+			function getReferencingFiles(file: ts.SourceFile) {
+				for (const refFile of file.getReferencingSourceFiles()) {
+					if (!files.has(refFile)) {
+						files.add(refFile);
+						getReferencingFiles(refFile);
+					}
+				}
+			}
+			if (compileReferencingFiles) {
+				getReferencingFiles(sourceFile);
+			}
+
+			return this.compileFiles([...files]);
 		} else if (ext === ".lua") {
 			await this.copyLuaFiles();
 		}
@@ -745,6 +767,8 @@ export class Project {
 
 		process.exitCode = 0;
 
+		let success = false;
+
 		const errors = this.getDiagnosticErrors(files);
 		try {
 			if (errors.length > 0) {
@@ -782,6 +806,8 @@ export class Project {
 				await this.project.emit({ emitOnlyDtsFiles: true });
 				await this.postProcessDtsFiles();
 			}
+
+			success = true;
 		} catch (e) {
 			// do not silence errors for CI tests
 			if (this.ci) {
@@ -796,5 +822,7 @@ export class Project {
 			}
 			process.exitCode = 1;
 		}
+
+		void addEvent("Compile", success ? "success" : "failure");
 	}
 }

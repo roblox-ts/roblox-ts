@@ -154,7 +154,6 @@ export function compileLogicalBinary(
 	} else if (isInTruthyCheck) {
 		expStr = state.pushToDeclarationOrNewId(node, lhsStr);
 		lhsStr = expStr;
-		rhsStr = rhsStr;
 	}
 
 	state.pushPrecedingStatements(
