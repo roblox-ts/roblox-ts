@@ -1,7 +1,7 @@
 import * as ts from "ts-morph";
 import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } from "../compiler";
 import { PrecedingStatementContext } from "../CompilerState";
-import { skipNodesDownwards } from "./general";
+import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "./general";
 
 export const RBX_SERVICES: Array<string> = [
 	"AssetService",
@@ -215,6 +215,22 @@ export function isBooleanType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
 }
 
+export function isBoolishTypeLax(type: ts.Type) {
+	return isSomeType(
+		type,
+		laxTypeConstraint,
+		t => t.isBoolean() || t.isBooleanLiteral() || t.isNullable() || t.isUndefined(),
+	);
+}
+
+export function isBooleanTypeStrict(type: ts.Type) {
+	return isSomeType(type, strictTypeConstraint, t => t.isBoolean() || t.isBooleanLiteral());
+}
+
+export function isUnknowableType(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isUnknown() || t.isAny());
+}
+
 export function isNumberType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
@@ -223,12 +239,24 @@ export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
+export function isNumberTypeLax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isNumber());
+}
+
+export function isLiterally0Lax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && t.getText() === `0`);
+}
+
 export function isNumericLiteralTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumberLiteral());
 }
 
 export function isStringType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => t.isString() || t.isStringLiteral());
+}
+
+export function isFalsyStringTypeLax(type: ts.Type) {
+	return isSomeType(type, laxTypeConstraint, t => t.isString() || (t.isStringLiteral() && t.getText() === `""`));
 }
 
 export function isObjectType(type: ts.Type) {
@@ -550,12 +578,5 @@ export function isConstantExpression(node: ts.Expression, maxDepth: number = Num
 
 /** Skips NonNullExpressions and Parenthesized Expressions above the current node and returns `getType()` */
 export function getType(node: ts.Node) {
-	let parent = node.getParent();
-
-	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
-		node = parent;
-		parent = node.getParent();
-	}
-
-	return node.getType();
+	return skipNodesUpwardsLookAhead(node).getType();
 }

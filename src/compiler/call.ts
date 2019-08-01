@@ -657,8 +657,25 @@ function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => stri
 	};
 }
 
+// This makes local testing easier
+const PRIMITIVE_LUA_TYPES = [
+	`"nil"`,
+	`"boolean"`,
+	`"string"`,
+	`"number"`,
+	`"table"`,
+	`"userdata"`,
+	`"function"`,
+	`"thread"`,
+];
+
 const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
-	["typeIs", makeGlobalExpressionMacro((obj, type) => `typeof(${obj}) == ${type}`)],
+	[
+		"typeIs",
+		makeGlobalExpressionMacro(
+			(obj, type) => `${PRIMITIVE_LUA_TYPES.includes(type) ? "type" : "typeof"}(${obj}) == ${type}`,
+		),
+	],
 	["classIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
 ]);
 

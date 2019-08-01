@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { ProjectType } from ".";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
-import { joinIndentedLines, ScriptContext } from "./utility/general";
+import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility/general";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -41,6 +41,7 @@ export class CompilerState {
 		public readonly runtimeOverride?: string,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
+	public alreadyCheckedTruthyConditionals = new Array<ts.Node>();
 
 	public pushToDeclarationOrNewId(
 		node: ts.Node,
@@ -117,11 +118,17 @@ export class CompilerState {
 		return context.push(...statements);
 	}
 
-	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId = this.getNewId()) {
-		const currentContext = this.getCurrentPrecedingStatementContext(node);
-		currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
-		currentContext.isPushed = true;
-		return newId;
+	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId?: string) {
+		compiledSource = removeBalancedParenthesisFromStringBorders(compiledSource);
+		if (/^_\d+$/.test(compiledSource)) {
+			return compiledSource;
+		} else {
+			newId = newId || this.getNewId();
+			const currentContext = this.getCurrentPrecedingStatementContext(node);
+			currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
+			currentContext.isPushed = true;
+			return newId;
+		}
 	}
 
 	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
@@ -145,7 +152,7 @@ export class CompilerState {
 			/** If we would write a duplicate `local _5 = i`, skip it */
 			if (cache) {
 				for (const str of cache) {
-					const matchesRegex = str.match(/^(\t*)local ([a-zA-Z_][a-zA-Z0-9_]*) = ([^;]+);\n$/);
+					const matchesRegex = str.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
 					// iterate only through non-state changing pushed id statements
 					if (!matchesRegex) {
 						break;

@@ -8,6 +8,7 @@ import {
 	concatNamesAndValues,
 	getWritableOperandName,
 	isIdentifierDefinedInExportLet,
+	shouldWrapExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -22,6 +23,7 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../utility/type";
 import { compileBindingLiteral, getSubTypeOrThrow } from "./binding";
+import { compileLogicalBinary } from "./truthiness";
 
 function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
 	state.usesTSLibrary = true;
@@ -364,19 +366,22 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			return returnStr;
 		}
 	} else {
-		state.enterPrecedingStatementContext();
-		lhsStr = compileExpression(state, lhs);
-		const lhsContext = state.exitPrecedingStatementContext();
-		state.enterPrecedingStatementContext();
-		rhsStr = compileExpression(state, rhs);
-		const rhsContext = state.exitPrecedingStatementContext();
+		const isAnd = opKind === ts.SyntaxKind.AmpersandAmpersandToken;
+		if (isAnd || opKind === ts.SyntaxKind.BarBarToken) {
+			return compileLogicalBinary(state, lhs, rhs, isAnd, node);
+		} else {
+			lhsStr = compileExpression(state, lhs);
 
-		state.pushPrecedingStatements(lhs, ...lhsContext);
-		if (rhsContext.length > 0) {
-			if (shouldPushToPrecedingStatement(lhs, lhsStr, lhsContext)) {
-				lhsStr = state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsContext);
+			state.enterPrecedingStatementContext();
+			rhsStr = compileExpression(state, rhs);
+			const rhsContext = state.exitPrecedingStatementContext();
+
+			if (rhsContext.length > 0) {
+				if (shouldPushToPrecedingStatement(lhs, lhsStr, state.getCurrentPrecedingStatementContext(lhs))) {
+					lhsStr = state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsContext);
+				}
+				state.pushPrecedingStatements(rhs, ...rhsContext);
 			}
-			state.pushPrecedingStatements(rhs, ...rhsContext);
 		}
 	}
 
@@ -420,11 +425,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		return `${lhsStr} ^ ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.InKeyword) {
 		// doesn't need parenthesis because In is restrictive
-		return `${rhsStr}[${lhsStr}] ~= nil`;
-	} else if (opKind === ts.SyntaxKind.AmpersandAmpersandToken) {
-		return `${lhsStr} and ${rhsStr}`;
-	} else if (opKind === ts.SyntaxKind.BarBarToken) {
-		return `${lhsStr} or ${rhsStr}`;
+		return `${shouldWrapExpression(rhs, false) ? `(${rhsStr})` : rhsStr}[${lhsStr}] ~= nil`;
 	} else if (opKind === ts.SyntaxKind.GreaterThanToken) {
 		return `${lhsStr} > ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.LessThanToken) {

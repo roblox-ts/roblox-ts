@@ -3,6 +3,7 @@ import spawn from "cross-spawn";
 import path from "path";
 import * as ts from "ts-morph";
 import { isValidLuaIdentifier } from "../compiler";
+import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
@@ -25,6 +26,50 @@ export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 		return "";
 	}
 }
+
+export function removeBalancedParenthesisFromStringBorders(str: string) {
+	let parenDepth = 0;
+	let inOpenParens: number | undefined;
+	let outCloseParens: number | undefined;
+
+	for (const char of str) {
+		if (char === ")") {
+			if (outCloseParens === undefined) {
+				outCloseParens = parenDepth;
+			}
+
+			parenDepth--;
+		} else if (outCloseParens !== undefined) {
+			outCloseParens = undefined;
+
+			if (inOpenParens !== undefined) {
+				if (parenDepth < inOpenParens) {
+					inOpenParens = parenDepth;
+				}
+			}
+		}
+
+		if (char === "(") {
+			parenDepth++;
+		} else if (inOpenParens === undefined) {
+			inOpenParens = parenDepth;
+		}
+	}
+	const index = Math.min(inOpenParens || 0, outCloseParens || 0);
+	return index === 0 ? str : str.slice(index, -index);
+}
+
+// console.log(`"${removeBalancedParenthesisFromStringBorders("")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("x")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("((x))")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x + 5)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(x) + 5")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("5 + (x)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("((x) + 5)")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(5 + (x))")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("()()")}"`);
+// console.log(`"${removeBalancedParenthesisFromStringBorders("(()())")}"`);
 
 export function stripExtensions(fileName: string): string {
 	const ext = path.extname(fileName);
@@ -154,8 +199,9 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean) {
 	if (exp) {
 		while (
-			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
-			ts.TypeGuards.isNonNullExpression(exp)
+			exp &&
+			((!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
+				ts.TypeGuards.isNonNullExpression(exp))
 		) {
 			exp = (exp.getParent() as unknown) as T;
 		}
@@ -163,11 +209,23 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 	}
 }
 
-export function makeSetStatement(varToSet: string, value: string) {
+export function skipNodesUpwardsLookAhead(node: ts.Node) {
+	let parent = node.getParent();
+
+	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
+		node = parent;
+		parent = node.getParent();
+	}
+
+	return node;
+}
+
+export function makeSetStatement(state: CompilerState, varToSet: string, value: string) {
+	value = removeBalancedParenthesisFromStringBorders(value);
 	if (varToSet === "return") {
-		return `return ${value}`;
+		return state.indent + `return ${value};\n`;
 	} else {
-		return `${varToSet} = ${value}`;
+		return state.indent + `${varToSet} = ${value};\n`;
 	}
 }
 
