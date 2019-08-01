@@ -50,46 +50,46 @@ function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.N
 	return node;
 }
 
-function isExpInTruthyCheck(node: ts.Node) {
-	// TODO: Support middle argument of for loops
-	let i = 0;
-	const parent = getParentWhile(node, (p, n) => {
-		i++;
-		if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
-			return true;
-		} else if (ts.TypeGuards.isBinaryExpression(p)) {
-			const opKind = p.getOperatorToken().getKind();
-			return opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken;
-			// } else if (ts.TypeGuards.isConditionalExpression(p) && (p.getWhenTrue() === n || p.getWhenFalse() === n)) {
-			// 	return true;
-		} else {
-			return false;
-		}
-	});
+export function isExpInTruthyCheck(node: ts.Node) {
+	const previous =
+		getParentWhile(node, (p, n) => {
+			if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
+				return true;
+			} else if (ts.TypeGuards.isBinaryExpression(p)) {
+				const opKind = p.getOperatorToken().getKind();
+				return opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken;
+			} else if (ts.TypeGuards.isConditionalExpression(p) && (p.getWhenTrue() === n || p.getWhenFalse() === n)) {
+				return true;
+			} else {
+				return false;
+			}
+		}) || node;
 
-	const previous = parent || node;
 	const top = previous.getParent();
 
 	if (top) {
-		if (ts.TypeGuards.isConditionalExpression(top) && top.getCondition() === previous) {
-			return i;
+		if (
+			(ts.TypeGuards.isConditionalExpression(top) || ts.TypeGuards.isForStatement(top)) &&
+			top.getCondition() === previous
+		) {
+			return true;
 		} else if (
 			ts.TypeGuards.isPrefixUnaryExpression(top) &&
 			top.getOperatorToken() === ts.SyntaxKind.ExclamationToken &&
 			top.getOperand() === previous
 		) {
-			return i;
+			return true;
 		} else if (
 			(ts.TypeGuards.isIfStatement(top) ||
 				ts.TypeGuards.isWhileStatement(top) ||
 				ts.TypeGuards.isDoStatement(top)) &&
 			top.getExpression() === previous
 		) {
-			return i;
+			return true;
 		}
 	}
 
-	return 0;
+	return false;
 }
 
 /* If it is in a truthy check, we can throw away the middle values when possible
@@ -125,8 +125,7 @@ export function compileLogicalBinary(
 	const lhsData = getTruthyCompileData(state, lhs, true);
 	let expStr: string;
 	if (isInTruthyCheck) {
-		const skippingNode = skipNodesDownwardsInverse(node);
-		state.alreadyCheckedTruthyConditionals.push(skippingNode);
+		state.alreadyCheckedTruthyConditionals.push(skipNodesDownwardsInverse(node));
 	}
 
 	expStr = compileExpression(state, lhs);
@@ -195,7 +194,7 @@ export function compileTruthyCheck(
 	expStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, exp)),
 	compileData = getTruthyCompileData(state, exp),
 ) {
-	if (state.alreadyCheckedTruthyConditionals.includes(exp)) {
+	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesDownwardsInverse(exp))) {
 		return expStr;
 	}
 	expStr = removeBalancedParenthesisFromStringBorders(expStr);

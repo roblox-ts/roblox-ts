@@ -1,18 +1,27 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileTruthyCheck } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
-import { makeSetStatement, removeBalancedParenthesisFromStringBorders, skipNodesDownwards } from "../utility/general";
+import {
+	makeSetStatement,
+	removeBalancedParenthesisFromStringBorders,
+	skipNodesDownwards,
+	skipNodesDownwardsInverse,
+} from "../utility/general";
+import { isExpInTruthyCheck } from "./truthiness";
 
 function compileConditionalBlock(
 	state: CompilerState,
 	id: string,
 	whenCondition: ts.Expression,
 	subDeclaration: DeclarationContext,
+	isInTruthyCheck: boolean,
 ) {
 	state.pushIndent();
 	state.declarationContext.set(whenCondition, subDeclaration);
 	state.pushIdStack();
-	const whenTrueStr = compileExpression(state, whenCondition);
+	const whenTrueStr = isInTruthyCheck
+		? compileTruthyCheck(state, whenCondition)
+		: compileExpression(state, whenCondition);
 	if (state.declarationContext.delete(whenCondition) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenCondition, makeSetStatement(state, id, whenTrueStr));
 	}
@@ -24,6 +33,12 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	let id: string | undefined;
 	const currentConditionalContext = state.currentConditionalContext;
 	const declaration = state.declarationContext.get(node);
+
+	const isInTruthyCheck = isExpInTruthyCheck(node);
+
+	if (isInTruthyCheck) {
+		state.alreadyCheckedTruthyConditionals.push(skipNodesDownwardsInverse(node));
+	}
 
 	const condition = skipNodesDownwards(node.getCondition());
 	const whenTrue = skipNodesDownwards(node.getWhenTrue());
@@ -57,9 +72,9 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;
 
 	state.pushPrecedingStatements(condition, state.indent + `if ${conditionStr} then\n`);
-	compileConditionalBlock(state, id, whenTrue, subDeclaration);
+	compileConditionalBlock(state, id, whenTrue, subDeclaration, isInTruthyCheck);
 	state.pushPrecedingStatements(whenFalse, state.indent + `else\n`);
-	compileConditionalBlock(state, id, whenFalse, subDeclaration);
+	compileConditionalBlock(state, id, whenFalse, subDeclaration, isInTruthyCheck);
 	state.pushPrecedingStatements(whenFalse, state.indent + `end;\n`);
 
 	if (currentConditionalContext === "") {
