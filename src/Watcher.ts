@@ -49,6 +49,11 @@ export class Watcher {
 	}
 
 	private async update(filePath: string) {
+        if (!this.hasUpdateAllSucceeded) {
+            await this.updateAll();
+            return;
+        }
+
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
 			console.log("Change detected, compiling..");
@@ -97,29 +102,16 @@ export class Watcher {
 			.watch(this.project.getRootDirOrThrow(), CHOKIDAR_OPTIONS)
 			.on("change", async (filePath: string) => {
 				if (!this.isCompiling) {
-					this.isCompiling = true;
-
-					if (this.hasUpdateAllSucceeded) {
-						await this.update(filePath);
-					} else {
-						await this.updateAll();
-					}
-
+                    this.isCompiling = true;
+                    await this.update(filePath);
 					this.isCompiling = false;
 				}
 			})
 			.on("add", async (filePath: string) => {
 				if (!this.isCompiling) {
 					this.isCompiling = true;
-
-					await this.project.addFile(filePath);
-
-					if (this.hasUpdateAllSucceeded) {
-						await this.update(filePath);
-					} else {
-						await this.updateAll();
-					}
-
+                    await this.project.addFile(filePath);
+                    await this.update(filePath);
 					this.isCompiling = false;
 				}
 			})
