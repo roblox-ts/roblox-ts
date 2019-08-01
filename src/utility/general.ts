@@ -209,8 +209,7 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 	}
 }
 
-/** Like skipNodesUpwards, but has "look ahead". */
-export function skipNodesDownwardsInverse(node: ts.Node) {
+export function skipNodesUpwardsLookAhead(node: ts.Node) {
 	let parent = node.getParent();
 
 	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {

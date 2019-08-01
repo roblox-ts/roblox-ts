@@ -6,7 +6,7 @@ import {
 	joinIndentedLines,
 	makeSetStatement,
 	removeBalancedParenthesisFromStringBorders,
-	skipNodesDownwardsInverse,
+	skipNodesUpwardsLookAhead,
 } from "../utility/general";
 import {
 	getType,
@@ -125,7 +125,7 @@ export function compileLogicalBinary(
 	const lhsData = getTruthyCompileData(state, lhs, true);
 	let expStr: string;
 	if (isInTruthyCheck) {
-		state.alreadyCheckedTruthyConditionals.push(skipNodesDownwardsInverse(node));
+		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
 	}
 
 	expStr = compileExpression(state, lhs);
@@ -194,7 +194,7 @@ export function compileTruthyCheck(
 	expStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, exp)),
 	compileData = getTruthyCompileData(state, exp),
 ) {
-	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesDownwardsInverse(exp))) {
+	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
 	}
 	expStr = removeBalancedParenthesisFromStringBorders(expStr);

@@ -5,7 +5,7 @@ import {
 	makeSetStatement,
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesDownwards,
-	skipNodesDownwardsInverse,
+	skipNodesUpwardsLookAhead,
 } from "../utility/general";
 import { isExpInTruthyCheck } from "./truthiness";
 
@@ -22,6 +22,7 @@ function compileConditionalBlock(
 	const whenTrueStr = isInTruthyCheck
 		? compileTruthyCheck(state, whenCondition)
 		: compileExpression(state, whenCondition);
+
 	if (state.declarationContext.delete(whenCondition) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenCondition, makeSetStatement(state, id, whenTrueStr));
 	}
@@ -37,7 +38,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const isInTruthyCheck = isExpInTruthyCheck(node);
 
 	if (isInTruthyCheck) {
-		state.alreadyCheckedTruthyConditionals.push(skipNodesDownwardsInverse(node));
+		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
 	}
 
 	const condition = skipNodesDownwards(node.getCondition());
