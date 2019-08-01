@@ -101,8 +101,7 @@ export class Watcher {
 
 					if (this.hasUpdateAllSucceeded) {
 						await this.update(filePath);
-					}
-					else {
+					} else {
 						await this.updateAll();
 					}
 
@@ -117,8 +116,7 @@ export class Watcher {
 
 					if (this.hasUpdateAllSucceeded) {
 						await this.update(filePath);
-					}
-					else {
+					} else {
 						await this.updateAll();
 					}
 
