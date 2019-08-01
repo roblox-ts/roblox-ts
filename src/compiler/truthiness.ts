@@ -19,7 +19,8 @@ import {
 } from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
 
-// TODO: Remove once `getParentWhile` is added to ts-morph:
+// TODO: Remove once the second param to the condition callback of `getParentWhile` is added to ts-morph:
+
 /**
  * Goes up the parents (ancestors) of the node while a condition is true.
  * Returns undefined if the initial parent doesn't match the condition.
@@ -50,6 +51,12 @@ function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.N
 	return node;
 }
 
+/** Returns whether a given node needs to preserve its value as a truthiness statement.
+ * If it is within an if statement, for example, we can throw away in between values. See docs below.
+ * However, it is also possible for expressions within an if statement to require the proper value.
+ * Ex: if ((x = f()) && g()) {}
+ * So we just whitelist the nodes we can safely climb and optimize those.
+ */
 export function isExpInTruthyCheck(node: ts.Node) {
 	const previous =
 		getParentWhile(node, (p, n) => {
@@ -167,6 +174,7 @@ export function compileLogicalBinary(
 	return expStr;
 }
 
+/** Returns an object specifying how many checks a given expression needs */
 function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = false) {
 	const expType = getType(exp);
 
@@ -187,6 +195,7 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = 
 	return { checkNon0, checkNaN, checkEmptyString, checkTruthy, numChecks };
 }
 
+/** Compiles a given expression and check compileData and assembles an `and` chain for it. */
 export function compileTruthyCheck(
 	state: CompilerState,
 	exp: ts.Expression,
