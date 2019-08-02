@@ -66,10 +66,6 @@ function TS.getModule(moduleName)
 		repeat
 			local modules = object:FindFirstChild("node_modules")
 			if modules then
-				local subModules = modules:FindFirstChild("@rbxts")
-				if subModules then
-					modules = subModules
-				end
 				local module = modules:FindFirstChild(moduleName)
 				if module then
 					return module
