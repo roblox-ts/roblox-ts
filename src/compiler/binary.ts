@@ -154,10 +154,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		// const isFlatBinding = lhs.getElements().every(v => ts.TypeGuards.isIdentifier(v));
 
 		if (rhs && ts.TypeGuards.isCallExpression(rhs) && isTupleReturnTypeCall(rhs)) {
-			// FIXME: Still broken for nested destructuring of non-arrays.
-			// BUT this change makes it LESS broken than before. (try nested destructuring a string here)
-			// e.g. [[[[[[[a]]]]]]] = func() where func() returns a LuaTuple<[string]>
-
 			let result = "";
 			const statements = new Array<string>();
 			const names = lhs
