@@ -335,4 +335,11 @@ export = () => {
 		const foo = new Set(["a", "b", "c"]);
 		expect(new Set([...foo]).difference(foo).isEmpty()).to.equal(true);
 	});
+
+	it("should support creating ReadonlySets", () => {
+		const set = new ReadonlySet(["foo", "bar", "baz"]);
+		expect(set.has("foo")).to.equal(true);
+		expect(set.has("bar")).to.equal(true);
+		expect(set.has("baz")).to.equal(true);
+	});
 };
