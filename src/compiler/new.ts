@@ -210,7 +210,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 		return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result + `}`);
 	}
 
-	if (inheritsFrom(expressionType, "MapConstructor")) {
+	if (inheritsFrom(expressionType, "MapConstructor") || inheritsFrom(expressionType, "ReadonlyMapConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
 			skipNodesUpwards(node.getParent()),
@@ -218,7 +218,7 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 		);
 	}
 
-	if (inheritsFrom(expressionType, "SetConstructor")) {
+	if (inheritsFrom(expressionType, "SetConstructor") || inheritsFrom(expressionType, "ReadonlySetConstructor")) {
 		return appendDeclarationIfMissing(
 			state,
 			skipNodesUpwards(node.getParent()),

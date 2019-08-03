@@ -178,4 +178,11 @@ export = () => {
 		const b = new Map<string, number[]>([["a", [123]]]);
 		expect(b.get("a")![0]).to.equal(123);
 	});
+
+	it("should support creating ReadonlyMaps", () => {
+		const map = new ReadonlyMap([["foo", 1], ["bar", 2], ["baz", 3]]);
+		expect(map.get("foo")).to.equal(1);
+		expect(map.get("bar")).to.equal(2);
+		expect(map.get("baz")).to.equal(3);
+	});
 };
