@@ -42,6 +42,8 @@ export abstract class Initializer {
 				const pkgJsonPath = path.join(dir, "package.json");
 				const pkgJson = await fs.readJson(pkgJsonPath);
 				pkgJson.private = false;
+				pkgJson.main = "out/init.lua";
+				pkgJson.types = "out/index.d.ts";
 				await fs.outputFile(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
 			} else {
 				await cmd("npm", ["init", "-y"]);
