@@ -8,6 +8,7 @@ import {
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesUpwardsLookAhead,
 } from "../utility/general";
+import { yellow } from "../utility/text";
 import {
 	getType,
 	isBoolishTypeLax,
@@ -205,9 +206,10 @@ export function compileTruthyCheck(
 	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
 	}
-	expStr = removeBalancedParenthesisFromStringBorders(expStr);
 
 	const { checkNon0, checkNaN, checkEmptyString, checkTruthy, numChecks } = compileData;
+
+	expStr = removeBalancedParenthesisFromStringBorders(expStr);
 
 	if (!isValidLuaIdentifier(expStr)) {
 		if (numChecks > 1) {
@@ -217,18 +219,22 @@ export function compileTruthyCheck(
 		}
 	}
 
+	const checkWarnings = new Array<string>();
 	const checks = new Array<string>();
 
 	if (checkNon0) {
 		checks.push(`${expStr} ~= 0`);
+		checkWarnings.push("0");
 	}
 
 	if (checkNaN) {
 		checks.push(`${expStr} == ${expStr}`);
+		checkWarnings.push("NaN");
 	}
 
 	if (checkEmptyString) {
 		checks.push(`${expStr} ~= ""`);
+		checkWarnings.push(`""`);
 	}
 
 	if (checkTruthy || checks.length === 0) {
@@ -236,6 +242,17 @@ export function compileTruthyCheck(
 	}
 
 	const result = checks.join(" and ");
+
+	if (checkWarnings.length > 0) {
+		console.log(
+			"%s:%d:%d - %s %s",
+			exp.getSourceFile().getFilePath(),
+			exp.getStartLineNumber(),
+			exp.getNonWhitespaceStart() - exp.getStartLinePos(),
+			yellow("Compiler Warning:"),
+			"`" + exp.getText() + "` will be checked against " + checkWarnings.join(", "),
+		);
+	}
 
 	return checks.length > 1 ? `(${result})` : result;
 }
