@@ -1,3 +1,9 @@
+### **0.3.0**
+- Truthiness Rework
+	- ...
+- Fixed #586 - `new ReadonlySet()` and `new ReadonlyMap()` now work
+- Fixed #604 - `rbxtsc --init package` now fills out package.json better
+
 ### **0.2.14**
 - Fixed analytics bug
 
