@@ -12,24 +12,6 @@ export interface DeclarationContext {
 	set: string;
 }
 
-function canBePushedToReusableId(node: ts.Node): boolean {
-	if (
-		ts.TypeGuards.isThisExpression(node) ||
-		ts.TypeGuards.isIdentifier(node) ||
-		ts.TypeGuards.isSuperExpression(node)
-	) {
-		return true;
-	} else if (ts.TypeGuards.isPrefixUnaryExpression(node) || ts.TypeGuards.isPostfixUnaryExpression(node)) {
-		return canBePushedToReusableId(node.getOperand());
-	} else if (ts.TypeGuards.isPropertyAccessExpression(node)) {
-		return canBePushedToReusableId(node.getNameNode());
-	} else if (ts.TypeGuards.isElementAccessExpression(node)) {
-		return canBePushedToReusableId(node.getArgumentExpressionOrThrow());
-	} else {
-		return false;
-	}
-}
-
 export class CompilerState {
 	constructor(
 		public readonly rootPath: string,
@@ -48,6 +30,7 @@ export class CompilerState {
 		node: ts.Node,
 		expStr: string,
 		condition: (declaration: DeclarationContext) => boolean = dec => dec.set !== "return",
+		newId?: string,
 	) {
 		const declaration = this.declarationContext.get(node);
 		let id: string;
@@ -68,13 +51,14 @@ export class CompilerState {
 
 			context.isPushed = declaration.isIdentifier;
 		} else {
-			id = this.pushPrecedingStatementToReuseableId(node, expStr);
+			id = this.pushPrecedingStatementToNewId(node, expStr, newId);
 		}
 
 		return id;
 	}
 
 	public currentConditionalContext: string = "";
+	public currentTruthyContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
@@ -119,58 +103,14 @@ export class CompilerState {
 		return context.push(...statements);
 	}
 
-	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId?: string) {
+	public pushPrecedingStatementToNewId(node: ts.Node, compiledSource: string, newId = this.getNewId()) {
 		compiledSource = removeBalancedParenthesisFromStringBorders(compiledSource);
-		if (/^_\d+$/.test(compiledSource)) {
-			return compiledSource;
-		} else {
-			newId = newId || this.getNewId();
-			const currentContext = this.getCurrentPrecedingStatementContext(node);
-			currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
-			currentContext.isPushed = true;
-			return newId;
-		}
+		const currentContext = this.getCurrentPrecedingStatementContext(node);
+		currentContext.push(this.indent + `local ${newId}${compiledSource ? ` = ${compiledSource}` : ""};\n`);
+		currentContext.isPushed = true;
+		return newId;
 	}
 
-	public pushPrecedingStatementToReuseableId(node: ts.Node, compiledSource: string, nextCachedStrs?: Array<string>) {
-		if (compiledSource === "" || !canBePushedToReusableId(node)) {
-			return this.pushPrecedingStatementToNewId(node, compiledSource);
-		}
-
-		/** Gets the top PreStatement to compare to */
-		let previousTop: Array<string> | undefined;
-
-		for (let i = this.precedingStatementContexts.length - 1; 0 <= i; i--) {
-			const context = this.precedingStatementContexts[i];
-			const topPreStatement = context[context.length - 1];
-			if (topPreStatement) {
-				previousTop = [...context].reverse();
-				break;
-			}
-		}
-
-		for (const cache of [previousTop, nextCachedStrs]) {
-			/** If we would write a duplicate `local _5 = i`, skip it */
-			if (cache) {
-				for (const str of cache) {
-					const matchesRegex = str.match(/^(\t*)local (_\d+) = ([^;]+);\n$/);
-					// iterate only through non-state changing pushed id statements
-					if (!matchesRegex) {
-						break;
-					}
-					const [, indentation, currentId, data] = matchesRegex;
-					if (indentation === this.indent && data === compiledSource) {
-						this.getCurrentPrecedingStatementContext(node).isPushed = true;
-						return currentId;
-					}
-				}
-			}
-		}
-
-		return this.pushPrecedingStatementToNewId(node, compiledSource);
-	}
-
-	// indent
 	public indent = "";
 
 	public pushIndent() {

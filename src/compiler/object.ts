@@ -70,7 +70,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 
 			if (rhsContext.length > 0) {
 				if (!ts.TypeGuards.isIdentifier(child) && !context.isPushed) {
-					lhsStr = state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsContext);
+					lhsStr = state.pushPrecedingStatementToNewId(lhs, lhsStr);
 				}
 				context.push(...rhsContext);
 				context.isPushed = rhsContext.isPushed;

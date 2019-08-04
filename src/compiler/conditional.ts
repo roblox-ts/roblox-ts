@@ -26,6 +26,7 @@ function compileConditionalBlock(
 	if (state.declarationContext.delete(whenCondition) && id !== whenTrueStr) {
 		state.pushPrecedingStatements(whenCondition, makeSetStatement(state, id, whenTrueStr));
 	}
+
 	state.popIdStack();
 	state.popIndent();
 }
@@ -35,7 +36,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	const currentConditionalContext = state.currentConditionalContext;
 	const declaration = state.declarationContext.get(node);
 
-	const isInTruthyCheck = isExpInTruthyCheck(node);
+	const isInTruthyCheck = Boolean(isExpInTruthyCheck(node));
 
 	if (isInTruthyCheck) {
 		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));

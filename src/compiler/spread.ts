@@ -129,7 +129,7 @@ export function compileSpreadableList(
 						nextContext.isPushed = false;
 					}
 
-					parts[i] = state.pushPrecedingStatementToReuseableId(arg, part, nextContext);
+					parts[i] = state.pushPrecedingStatementToNewId(arg, part);
 				}
 				gIter++;
 			} else {
@@ -146,7 +146,7 @@ export function compileSpreadableList(
 					}
 
 					if (shouldPushToPrecedingStatement(subExp, subStr, subContext)) {
-						part[j] = state.pushPrecedingStatementToReuseableId(subExp, subStr, context[j + 1]);
+						part[j] = state.pushPrecedingStatementToNewId(subExp, subStr);
 					}
 
 					if (++gIter === lastContextualIndex) {
