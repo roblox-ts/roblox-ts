@@ -117,7 +117,7 @@ interface ProjectOptions {
 	noInclude?: boolean;
 	minify?: boolean;
 	ci?: boolean;
-	truthyChanges?: boolean;
+	logTruthyChanges?: boolean;
 }
 
 export class Project {
@@ -252,7 +252,7 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
-			this.logTruthyDifferences = opts.truthyChanges;
+			this.logTruthyDifferences = opts.logTruthyChanges;
 
 			const rootPath = this.compilerOptions.rootDir;
 			if (!rootPath) {

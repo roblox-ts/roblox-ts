@@ -85,8 +85,7 @@ const argv = yargs
 		type: "boolean",
 	})
 
-	.option("truthyChanges", {
-		alias: "logTruthyChanges",
+	.option("logTruthyChanges", {
 		boolean: true,
 		describe: "logs changes to truthiness evaluation from Lua truthiness rules",
 	})
