@@ -138,12 +138,18 @@ export function compileLogicalBinary(
 
 	expStr = compileExpression(state, lhs);
 
-	if (!isInTruthyCheck || lhsData.numChecks > 1) {
-		expStr = state.pushPrecedingStatementToNewId(lhs, expStr);
-	}
+	// if (!isInTruthyCheck || lhsData.numChecks > 1) {
+	console.log("pushing0", expStr);
+	expStr = state.pushPrecedingStatementToNewId(lhs, expStr);
+	// }
 
 	let lhsStr = compileTruthyCheck(state, lhs, expStr, lhsData);
 	state.enterPrecedingStatementContext();
+	state.declarationContext.set(rhs, {
+		isIdentifier: true,
+		needsLocalizing: false,
+		set: expStr,
+	});
 	let rhsStr = compileExpression(state, rhs);
 	if (isInTruthyCheck) {
 		rhsStr = compileTruthyCheck(state, rhs, rhsStr);
@@ -154,14 +160,13 @@ export function compileLogicalBinary(
 		if (isInTruthyCheck) {
 			return lhsStr + (isAnd ? " and " : " or ") + rhsStr;
 		} else if (!isAnd && lhsData.checkTruthy) {
-			state.pushPrecedingStatements(node, makeSetStatement(state, expStr, lhsStr + " or " + rhsStr));
-			return expStr;
+			return lhsStr + " or " + rhsStr;
 		} else if (lhsData.numChecks === 1 && lhsData.checkTruthy) {
 			return lhsStr + (isAnd ? " and " : " or ") + rhsStr;
 		}
 	} else if (isInTruthyCheck) {
-		expStr = state.pushToDeclarationOrNewId(node, lhsStr);
-		lhsStr = expStr;
+		console.log("pushing1", lhsStr);
+		lhsStr = expStr = state.pushToDeclarationOrNewId(node, lhsStr);
 	}
 
 	state.pushPrecedingStatements(
@@ -169,7 +174,9 @@ export function compileLogicalBinary(
 		state.indent +
 			`if ${isAnd ? "" : "not ("}${removeBalancedParenthesisFromStringBorders(lhsStr)}${isAnd ? "" : ")"} then\n`,
 	);
-	context.push(makeSetStatement(state, expStr, rhsStr));
+	if (expStr !== rhsStr) {
+		context.push(makeSetStatement(state, expStr, rhsStr));
+	}
 	state.pushPrecedingStatements(lhs, joinIndentedLines(context, 1));
 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
 	return expStr;
@@ -243,7 +250,7 @@ export function compileTruthyCheck(
 
 	const result = checks.join(" and ");
 
-	if (checkWarnings.length > 0) {
+	if (state.logTruthyDifferences && checkWarnings.length > 0) {
 		console.log(
 			"%s:%d:%d - %s %s",
 			exp.getSourceFile().getFilePath(),

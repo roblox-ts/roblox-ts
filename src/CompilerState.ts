@@ -39,6 +39,7 @@ export class CompilerState {
 		public readonly modulesPath: string,
 		public readonly rojoProject?: RojoProject,
 		public readonly runtimeOverride?: string,
+		public readonly logTruthyDifferences?: boolean,
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 	public alreadyCheckedTruthyConditionals = new Array<ts.Node>();
