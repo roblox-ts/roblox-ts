@@ -59,20 +59,20 @@ function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.N
  * So we just whitelist the nodes we can safely climb and optimize those.
  */
 export function isExpInTruthyCheck(node: ts.Node) {
-	const parent = getParentWhile(node, (p, n) => {
-		if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
-			return true;
-		} else if (ts.TypeGuards.isBinaryExpression(p)) {
-			const opKind = p.getOperatorToken().getKind();
-			return opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken;
-		} else if (ts.TypeGuards.isConditionalExpression(p) && (p.getWhenTrue() === n || p.getWhenFalse() === n)) {
-			return true;
-		} else {
-			return false;
-		}
-	});
+	const previous =
+		getParentWhile(node, (p, n) => {
+			if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
+				return true;
+			} else if (ts.TypeGuards.isBinaryExpression(p)) {
+				const opKind = p.getOperatorToken().getKind();
+				return opKind === ts.SyntaxKind.AmpersandAmpersandToken || opKind === ts.SyntaxKind.BarBarToken;
+			} else if (ts.TypeGuards.isConditionalExpression(p) && (p.getWhenTrue() === n || p.getWhenFalse() === n)) {
+				return true;
+			} else {
+				return false;
+			}
+		}) || node;
 
-	const previous = parent || node;
 	const top = previous.getParent();
 
 	if (top) {

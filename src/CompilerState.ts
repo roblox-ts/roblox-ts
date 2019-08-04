@@ -58,7 +58,6 @@ export class CompilerState {
 	}
 
 	public currentConditionalContext: string = "";
-	public currentTruthyContext: string = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
