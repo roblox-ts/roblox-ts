@@ -275,7 +275,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			? ""
 			: isStatement && rhsStrContext.length === 0
 			? lhsStr
-			: state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsStrContext);
+			: state.pushPrecedingStatementToNewId(lhs, lhsStr);
 
 		let { isPushed } = rhsStrContext;
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);
@@ -374,7 +374,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 			if (rhsContext.length > 0) {
 				if (shouldPushToPrecedingStatement(lhs, lhsStr, state.getCurrentPrecedingStatementContext(lhs))) {
-					lhsStr = state.pushPrecedingStatementToReuseableId(lhs, lhsStr, rhsContext);
+					lhsStr = state.pushToDeclarationOrNewId(lhs, lhsStr);
 				}
 				state.pushPrecedingStatements(rhs, ...rhsContext);
 			}

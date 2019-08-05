@@ -114,7 +114,7 @@ export function compilePostfixUnaryExpression(state: CompilerState, node: ts.Pos
 				const incrStr = getIncrementString(opKind, id, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 			} else {
-				id = state.pushPrecedingStatementToReuseableId(node, expStr);
+				id = state.pushPrecedingStatementToNewId(node, expStr);
 				const incrStr = getIncrementString(opKind, id, node, expStr);
 				state.pushPrecedingStatements(node, state.indent + incrStr + ";\n");
 				state.getCurrentPrecedingStatementContext(node).isPushed = true;

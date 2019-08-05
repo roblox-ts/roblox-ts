@@ -72,7 +72,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			!ts.TypeGuards.isSuperExpression(child) &&
 			(!ts.TypeGuards.isIdentifier(child) || isIdentifierDefinedInExportLet(child))
 		) {
-			const id = state.pushPrecedingStatementToReuseableId(operand, compileExpression(state, child));
+			const id = state.pushPrecedingStatementToNewId(operand, compileExpression(state, child));
 
 			let propertyStr: string;
 			if (doNotCompileAccess) {
@@ -100,7 +100,7 @@ export function getWritableOperandName(state: CompilerState, operand: ts.Express
 			) {
 				const access = getComputedPropertyAccess(state, exp, fromNode);
 				return {
-					expStr: id + "[" + state.pushPrecedingStatementToReuseableId(exp, access) + "]",
+					expStr: id + "[" + state.pushPrecedingStatementToNewId(exp, access) + "]",
 					isIdentifier: false,
 				};
 			}
@@ -132,7 +132,7 @@ export function getReadableExpressionName(
 	) {
 		return expStr;
 	} else {
-		return state.pushPrecedingStatementToReuseableId(nonNullExp, expStr);
+		return state.pushPrecedingStatementToNewId(nonNullExp, expStr);
 	}
 }
 

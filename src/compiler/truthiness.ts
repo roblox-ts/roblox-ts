@@ -8,6 +8,7 @@ import {
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesUpwardsLookAhead,
 } from "../utility/general";
+import { yellow } from "../utility/text";
 import {
 	getType,
 	isBoolishTypeLax,
@@ -129,38 +130,42 @@ export function compileLogicalBinary(
 	node: ts.BinaryExpression,
 ) {
 	const isInTruthyCheck = isExpInTruthyCheck(node);
-	const lhsData = getTruthyCompileData(state, lhs, true);
-	let expStr: string;
+
 	if (isInTruthyCheck) {
 		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
 	}
 
-	expStr = compileExpression(state, lhs);
+	const lhsData = getTruthyCompileData(state, lhs);
+	let expStr = compileExpression(state, lhs);
 
-	if (!isInTruthyCheck || lhsData.numChecks > 1) {
+	if (!isInTruthyCheck) {
 		expStr = state.pushPrecedingStatementToNewId(lhs, expStr);
 	}
 
 	let lhsStr = compileTruthyCheck(state, lhs, expStr, lhsData);
-	state.enterPrecedingStatementContext();
+
+	const context = state.enterPrecedingStatementContext();
+
 	let rhsStr = compileExpression(state, rhs);
+
 	if (isInTruthyCheck) {
 		rhsStr = compileTruthyCheck(state, rhs, rhsStr);
 	}
-	const context = state.exitPrecedingStatementContext();
+
+	state.exitPrecedingStatementContext();
 
 	if (context.length === 0) {
-		if (isInTruthyCheck) {
-			return lhsStr + (isAnd ? " and " : " or ") + rhsStr;
-		} else if (!isAnd && lhsData.checkTruthy) {
-			state.pushPrecedingStatements(node, makeSetStatement(state, expStr, lhsStr + " or " + rhsStr));
-			return expStr;
-		} else if (lhsData.numChecks === 1 && lhsData.checkTruthy) {
-			return lhsStr + (isAnd ? " and " : " or ") + rhsStr;
+		const luaOp = isAnd ? " and " : " or ";
+
+		if (
+			isInTruthyCheck ||
+			(!isAnd && lhsData.checkLuaTruthy) ||
+			(lhsData.numRefs === 1 && lhsData.checkLuaTruthy)
+		) {
+			return lhsStr + luaOp + rhsStr;
 		}
 	} else if (isInTruthyCheck) {
-		expStr = state.pushToDeclarationOrNewId(node, lhsStr);
-		lhsStr = expStr;
+		lhsStr = expStr = state.pushToDeclarationOrNewId(node, lhsStr);
 	}
 
 	state.pushPrecedingStatements(
@@ -168,14 +173,17 @@ export function compileLogicalBinary(
 		state.indent +
 			`if ${isAnd ? "" : "not ("}${removeBalancedParenthesisFromStringBorders(lhsStr)}${isAnd ? "" : ")"} then\n`,
 	);
-	context.push(makeSetStatement(state, expStr, rhsStr));
+
+	if (expStr !== rhsStr) {
+		context.push(makeSetStatement(state, expStr, rhsStr));
+	}
 	state.pushPrecedingStatements(lhs, joinIndentedLines(context, 1));
 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
 	return expStr;
 }
 
 /** Returns an object specifying how many checks a given expression needs */
-function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = false) {
+function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	const expType = getType(exp);
 
 	if (isTupleType(expType)) {
@@ -185,32 +193,34 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression, pushy = 
 			CompilerErrorType.LuaTupleInConditional,
 		);
 	}
+
 	const isUnknown = isUnknowableType(expType);
 	const checkNaN = isUnknown || isNumberTypeLax(expType);
 	const checkNon0 = isUnknown || checkNaN || isLiterally0Lax(expType);
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
-	const checkTruthy = isUnknown || isBoolishTypeLax(expType);
-	const numChecks = +checkNaN + +checkNon0 + +checkEmptyString + +checkTruthy;
+	const checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
+	const numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
 
-	return { checkNon0, checkNaN, checkEmptyString, checkTruthy, numChecks };
+	return { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs };
 }
 
 /** Compiles a given expression and check compileData and assembles an `and` chain for it. */
 export function compileTruthyCheck(
 	state: CompilerState,
 	exp: ts.Expression,
-	expStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, exp)),
+	expStr = compileExpression(state, exp),
 	compileData = getTruthyCompileData(state, exp),
 ) {
 	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
 	}
+
+	const { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs } = compileData;
+
 	expStr = removeBalancedParenthesisFromStringBorders(expStr);
 
-	const { checkNon0, checkNaN, checkEmptyString, checkTruthy, numChecks } = compileData;
-
 	if (!isValidLuaIdentifier(expStr)) {
-		if (numChecks > 1) {
+		if (numRefs > 1) {
 			expStr = state.pushPrecedingStatementToNewId(exp, expStr);
 		} else {
 			expStr = `(${expStr})`;
@@ -231,11 +241,27 @@ export function compileTruthyCheck(
 		checks.push(`${expStr} ~= ""`);
 	}
 
-	if (checkTruthy || checks.length === 0) {
+	if (checkLuaTruthy || checks.length === 0) {
 		checks.push(expStr);
 	}
 
 	const result = checks.join(" and ");
+
+	if (state.logTruthyDifferences && (checkNon0 || checkNaN || checkEmptyString)) {
+		console.log(
+			"%s:%d:%d - %s %s",
+			exp.getSourceFile().getFilePath(),
+			exp.getStartLineNumber(),
+			exp.getNonWhitespaceStart() - exp.getStartLinePos(),
+			yellow("Compiler Warning:"),
+			"`" +
+				exp.getText() +
+				"` will be checked against " +
+				[checkNon0 ? "0" : undefined, checkNaN ? "NaN" : undefined, checkEmptyString ? `""` : undefined]
+					.filter(a => a !== undefined)
+					.join(", "),
+		);
+	}
 
 	return checks.length > 1 ? `(${result})` : result;
 }

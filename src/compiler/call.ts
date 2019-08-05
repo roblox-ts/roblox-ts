@@ -353,7 +353,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			} else {
 				const node = getLeftHandSideParent(subExp, 2);
 				let id: string;
-				const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+				const len = state.pushPrecedingStatementToNewId(subExp, `#${accessPath}`);
 				const place = `${accessPath}[${len}]`;
 				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
 				id = state.pushToDeclarationOrNewId(node, place);
@@ -374,7 +374,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const accessPath = getReadableExpressionName(state, subExp);
 			let id: string;
 
-			const len = state.pushPrecedingStatementToReuseableId(subExp, `#${accessPath}`);
+			const len = state.pushPrecedingStatementToNewId(subExp, `#${accessPath}`);
 			const lastPlace = `${accessPath}[${len}]`;
 
 			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
@@ -716,7 +716,7 @@ export function compileList(
 			}
 
 			if (shouldPushToPrecedingStatement(arg, argStr, cachedStrs || [])) {
-				argStrs[i] = state.pushPrecedingStatementToReuseableId(arg, argStr, cached[i + 1]);
+				argStrs[i] = state.pushPrecedingStatementToNewId(arg, argStr);
 			}
 		}
 

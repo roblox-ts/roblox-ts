@@ -117,6 +117,7 @@ interface ProjectOptions {
 	noInclude?: boolean;
 	minify?: boolean;
 	ci?: boolean;
+	logTruthyChanges?: boolean;
 }
 
 export class Project {
@@ -135,6 +136,8 @@ export class Project {
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
+	public readonly logTruthyDifferences: boolean | undefined;
+
 	private readonly rootPath: string;
 	private readonly outPath: string;
 	private readonly rojoOverridePath: string | undefined;
@@ -249,6 +252,7 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
+			this.logTruthyDifferences = opts.logTruthyChanges;
 
 			const rootPath = this.compilerOptions.rootDir;
 			if (!rootPath) {
@@ -668,6 +672,7 @@ export class Project {
 			this.modulesPath,
 			this.rojoProject,
 			this.runtimeOverride,
+			this.logTruthyDifferences,
 		);
 	}
 
