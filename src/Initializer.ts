@@ -1,6 +1,8 @@
 import fs from "fs-extra";
 import path from "path";
 import { CliError } from "./errors/CliError";
+import { LoggableError } from "./errors/LoggableError";
+import { Project } from "./Project";
 import { cmd } from "./utility/general";
 import { yellow } from "./utility/text";
 
@@ -53,6 +55,22 @@ export abstract class Initializer {
 		await this.doStep("Installing @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
+
+		await this.doStep("Compiling", async () => {
+			try {
+				await new Project({
+					includePath: "include",
+					project: dir,
+					rojo: "",
+				}).compileAll();
+			} catch (e) {
+				if (e instanceof LoggableError) {
+					e.log("");
+				} else {
+					throw e;
+				}
+			}
+		});
 
 		console.log("Run `rbxtsc` to compile!");
 	}
