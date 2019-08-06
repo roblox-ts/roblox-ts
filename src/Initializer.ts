@@ -1,7 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
 import { CliError } from "./errors/CliError";
-import { LoggableError } from "./errors/LoggableError";
 import { Project } from "./Project";
 import { cmd } from "./utility/general";
 import { yellow } from "./utility/text";
@@ -56,21 +55,15 @@ export abstract class Initializer {
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
-		await this.doStep("Compiling", async () => {
-			try {
+		await this.doStep(
+			"Compiling",
+			async () =>
 				await new Project({
 					includePath: "include",
 					project: dir,
 					rojo: "",
-				}).compileAll();
-			} catch (e) {
-				if (e instanceof LoggableError) {
-					e.log("");
-				} else {
-					throw e;
-				}
-			}
-		});
+				}).compileAll(),
+		);
 
 		console.log("Run `rbxtsc` to compile!");
 	}
