@@ -536,4 +536,61 @@ export = () => {
 		const arr = [..."Hello, world!"];
 		compare(array_entries(arr), arr.entries());
 	});
+
+	it("should support spreading non-apparent types", () => {
+		type TypeGuard<T> = (value: unknown) => value is T;
+		type StaticArguments<T> = T extends [TypeGuard<infer A>]
+			? [A]
+			: T extends [TypeGuard<infer A>, TypeGuard<infer B>]
+			? [A, B]
+			: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>]
+			? [A, B, C]
+			: T extends [TypeGuard<infer A>, TypeGuard<infer B>, TypeGuard<infer C>, TypeGuard<infer D>]
+			? [A, B, C, D]
+			: T extends [
+					TypeGuard<infer A>,
+					TypeGuard<infer B>,
+					TypeGuard<infer C>,
+					TypeGuard<infer D>,
+					TypeGuard<infer E>,
+			  ]
+			? [A, B, C, D, E]
+			: T extends [
+					TypeGuard<infer A>,
+					TypeGuard<infer B>,
+					TypeGuard<infer C>,
+					TypeGuard<infer D>,
+					TypeGuard<infer E>,
+					TypeGuard<infer F>,
+			  ]
+			? [A, B, C, D, E, F]
+			: T extends [
+					TypeGuard<infer A>,
+					TypeGuard<infer B>,
+					TypeGuard<infer C>,
+					TypeGuard<infer D>,
+					TypeGuard<infer E>,
+					TypeGuard<infer F>,
+					TypeGuard<infer G>,
+			  ]
+			? [A, B, C, D, E, F, G]
+			: T extends [
+					TypeGuard<infer A>,
+					TypeGuard<infer B>,
+					TypeGuard<infer C>,
+					TypeGuard<infer D>,
+					TypeGuard<infer E>,
+					TypeGuard<infer F>,
+					TypeGuard<infer G>,
+					TypeGuard<infer H>,
+			  ]
+			? [A, B, C, D, E, F, G, H]
+			: Array<unknown>; // default, if user has more than 8 args then wtf they doing with their lives?!?
+
+		function f<C extends Array<any>>(arr: StaticArguments<C>) {
+			return [...arr];
+		}
+
+		f([0, 1]);
+	});
 };
