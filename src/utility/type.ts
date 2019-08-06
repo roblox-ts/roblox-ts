@@ -305,12 +305,24 @@ function getCompilerDirectiveHelper(
 	}
 }
 
+function getCompilerDirectiveWithSomeConstraint(
+	someTypeConstraint: (type: ts.Type<ts.ts.Type>, cb: (type: ts.Type<ts.ts.Type>) => boolean) => boolean,
+	type: ts.Type,
+	directive: CompilerDirective,
+	orCallback = (t: ts.Type) => false,
+) {
+	return someTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+}
+
 export function getCompilerDirectiveWithConstraint(
 	type: ts.Type,
 	directive: CompilerDirective,
 	orCallback = (t: ts.Type) => false,
 ): boolean {
-	return typeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+	return (
+		getCompilerDirectiveWithSomeConstraint(typeConstraint, type, directive, orCallback) ||
+		getCompilerDirectiveWithSomeConstraint(typeConstraint, type.getApparentType(), directive, orCallback)
+	);
 }
 
 export function getCompilerDirectiveWithStrictConstraint(
@@ -318,7 +330,10 @@ export function getCompilerDirectiveWithStrictConstraint(
 	directive: CompilerDirective,
 	orCallback = (t: ts.Type) => false,
 ): boolean {
-	return strictTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+	return (
+		getCompilerDirectiveWithSomeConstraint(strictTypeConstraint, type, directive, orCallback) ||
+		getCompilerDirectiveWithSomeConstraint(strictTypeConstraint, type.getApparentType(), directive, orCallback)
+	);
 }
 
 export function getCompilerDirectiveWithLaxConstraint(
@@ -326,7 +341,10 @@ export function getCompilerDirectiveWithLaxConstraint(
 	directive: CompilerDirective,
 	orCallback = (t: ts.Type) => false,
 ): boolean {
-	return laxTypeConstraint(type, t => getCompilerDirectiveHelper(type, directive, orCallback, t));
+	return (
+		getCompilerDirectiveWithSomeConstraint(laxTypeConstraint, type, directive, orCallback) ||
+		getCompilerDirectiveWithSomeConstraint(laxTypeConstraint, type.getApparentType(), directive, orCallback)
+	);
 }
 
 export function superExpressionClassInheritsFromSetOrMap(node: ts.Expression) {
@@ -389,10 +407,6 @@ export function isArrayTypeLax(type: ts.Type) {
 	);
 }
 
-export function isStringMethodType(type: ts.Type) {
-	return getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
-}
-
 export function isArrayType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(
 		type,
@@ -423,6 +437,10 @@ export function isMapMethodType(type: ts.Type) {
 
 export function isSetMethodType(type: ts.Type) {
 	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
+}
+
+export function isStringMethodType(type: ts.Type) {
+	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
