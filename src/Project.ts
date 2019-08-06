@@ -741,6 +741,10 @@ export class Project {
 				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
+				if (diagnosticFile && diagnostic.getCode() === 1208) {
+					// All files must be modules when the '--isolatedModules' flag is provided.tedModules' flag is provided.
+					continue;
+				}
 				const line = diagnostic.getLineNumber();
 				let prefix = "";
 				if (diagnosticFile) {
@@ -761,6 +765,7 @@ export class Project {
 					}
 					messageText = textSegments.join("\n");
 				}
+
 				errors.push(prefix + red("Diagnostic Error: ") + messageText);
 			}
 		}
