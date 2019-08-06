@@ -200,7 +200,7 @@ export = () => {
 				class RoactRefTest extends Roact.Component {
 					public onScreenGuiRender = (rbx: ScreenGui) => {
 						worked = true;
-					}
+					};
 					public render(): Roact.Element {
 						return <screengui Ref={this.onScreenGuiRender} />;
 					}
@@ -290,5 +290,12 @@ export = () => {
 		// expect there to be a textlabel called "Hello"
 		expect(returned!._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
 		expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
+	});
+
+	it("should support JSX element expressions used as statements", () => {
+		// tslint:disable-next-line: no-unused-expression
+		<screengui>
+			<imagebutton />
+		</screengui>;
 	});
 };

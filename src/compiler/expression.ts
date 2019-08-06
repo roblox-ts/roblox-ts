@@ -145,7 +145,8 @@ export function compileExpressionStatement(state: CompilerState, node: ts.Expres
 					expression.getOperatorToken() === ts.SyntaxKind.MinusMinusToken)
 			) &&
 			!(ts.TypeGuards.isBinaryExpression(expression) && isSetToken(expression.getOperatorToken().getKind())) &&
-			!ts.TypeGuards.isYieldExpression(expression)
+			!ts.TypeGuards.isYieldExpression(expression) &&
+			!ts.TypeGuards.isJsxElement(expression)
 		) {
 			expStr = `local _ = ${expStr}`;
 		}
