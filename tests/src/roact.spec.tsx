@@ -292,7 +292,7 @@ export = () => {
 		expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
 	});
 
-	it("should support JSX element expressions", () => {
+	it("should support JSX element expressions used as statements", () => {
 		// tslint:disable-next-line: no-unused-expression
 		<screengui>
 			<imagebutton />
