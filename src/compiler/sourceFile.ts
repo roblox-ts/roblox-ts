@@ -106,12 +106,13 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		year: "numeric",
 	});
 
-	const GENERATED_HEADER = `-- Compiled with https://roblox-ts.github.io v${VERSION}
--- ${CURRENT_TIME}
+	let header = `-- Compiled with https://roblox-ts.github.io`;
 
-`;
-
-	result = GENERATED_HEADER + result;
+	if (!state.staticHeader) {
+		header += ` v${VERSION}\n-- ${CURRENT_TIME}`;
+	} else {
+	}
+	result = `${header}\n\n${result}`;
 	console.profileEnd();
 	return result;
 }

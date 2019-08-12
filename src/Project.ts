@@ -118,6 +118,7 @@ interface ProjectOptions {
 	minify?: boolean;
 	ci?: boolean;
 	logTruthyChanges?: boolean;
+	header?: boolean;
 }
 
 export class Project {
@@ -136,7 +137,8 @@ export class Project {
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
-	public readonly logTruthyDifferences: boolean | undefined;
+	private readonly logTruthyDifferences: boolean;
+	private readonly staticHeader: boolean;
 
 	private readonly rootPath: string;
 	private readonly outPath: string;
@@ -252,7 +254,8 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
-			this.logTruthyDifferences = opts.logTruthyChanges;
+			this.logTruthyDifferences = opts.logTruthyChanges === true;
+			this.staticHeader = opts.header === true;
 
 			const rootPath = this.compilerOptions.rootDir;
 			if (!rootPath) {
@@ -301,6 +304,8 @@ export class Project {
 			this.outPath = "";
 			this.modulesPath = "";
 			this.ci = false;
+			this.logTruthyDifferences = false;
+			this.staticHeader = false;
 
 			this.runtimeOverride = "local TS = ...; -- link to runtime library";
 
@@ -673,6 +678,7 @@ export class Project {
 			this.rojoProject,
 			this.runtimeOverride,
 			this.logTruthyDifferences,
+			this.staticHeader,
 		);
 	}
 

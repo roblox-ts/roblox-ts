@@ -61,14 +61,14 @@ const argv = yargs
 	// onSuccess
 	.option("onSuccess", {
 		default: "",
-		describe: "Command to run on watch success",
+		describe: "command to run on watch success",
 	})
 
 	// rojo
 	.option("rojo", {
 		alias: "r",
 		default: "",
-		describe: "Manually select Rojo configuration file",
+		describe: "manually select Rojo configuration file",
 	})
 
 	// init
@@ -87,7 +87,12 @@ const argv = yargs
 
 	.option("logTruthyChanges", {
 		boolean: true,
-		describe: "logs changes to truthiness evaluation from Lua truthiness rules",
+		describe: "logs changes to truth evaluation",
+	})
+
+	.option("header", {
+		boolean: true,
+		describe: "makes header comment static",
 	})
 
 	// parse
