@@ -244,7 +244,7 @@ export function isNumberTypeLax(type: ts.Type) {
 }
 
 export function isLiterally0Lax(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && t.getText() === `0`);
+	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && Number(t.getText()) === 0);
 }
 
 export function isNumericLiteralTypeStrict(type: ts.Type) {

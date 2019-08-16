@@ -58,6 +58,8 @@ export class CompilerState {
 	}
 
 	public currentConditionalContext: string = "";
+	public currentTruthyContext: string = "";
+	public binaryRhsExpressions = new Map<ts.Expression, ts.Expression>();
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {

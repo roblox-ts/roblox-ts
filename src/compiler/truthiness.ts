@@ -1,11 +1,12 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import {
 	joinIndentedLines,
 	makeSetStatement,
 	removeBalancedParenthesisFromStringBorders,
+	skipNodesDownwards,
 	skipNodesUpwardsLookAhead,
 } from "../utility/general";
 import { yellow } from "../utility/text";
@@ -100,6 +101,50 @@ export function isExpInTruthyCheck(node: ts.Node) {
 	return false;
 }
 
+function getBinaryExpressionType(node: ts.Expression) {
+	if (ts.TypeGuards.isBinaryExpression(node)) {
+		switch (node.getOperatorToken().getKind()) {
+			case ts.SyntaxKind.AmpersandAmpersandToken:
+				return 1;
+			case ts.SyntaxKind.BarBarToken:
+				return 2;
+			default:
+				return 0 / 0;
+		}
+	} else {
+		return 0 / 0;
+	}
+}
+
+function compileRhs(
+	state: CompilerState,
+	rhs: ts.Expression,
+	isInTruthyCheck: boolean,
+): [PrecedingStatementContext, string] {
+	state.enterPrecedingStatementContext();
+	let rhsStr = compileExpression(state, rhs);
+
+	if (isInTruthyCheck) {
+		rhsStr = compileTruthyCheck(state, rhs, rhsStr);
+	}
+
+	return [state.exitPrecedingStatementContext(), rhsStr];
+}
+
+function getbinaryRhsExpression(state: CompilerState, node: ts.Expression) {
+	let current: ts.Expression | undefined;
+	let next = state.binaryRhsExpressions.get(node);
+	let i = 0;
+
+	while (next) {
+		console.log(":", ++i, next.getText());
+		current = skipNodesDownwards(next) as ts.Expression;
+		next = state.binaryRhsExpressions.get(current);
+	}
+
+	return current;
+}
+
 /* If it is in a truthy check, we can throw away the middle values when possible
 For example, given strings a, b, c, the statement if (a && b && c) becomes:
 
@@ -129,38 +174,76 @@ export function compileLogicalBinary(
 	isAnd: boolean,
 	node: ts.BinaryExpression,
 ) {
+	state.binaryRhsExpressions.set(node, rhs);
+	state.binaryRhsExpressions.set(skipNodesUpwardsLookAhead(node) as ts.Expression, rhs);
+	console.log(0, node.getText(), state.currentTruthyContext);
+	// let such = state.indent.length;
 	const isInTruthyCheck = isExpInTruthyCheck(node);
 
 	if (isInTruthyCheck) {
 		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
 	}
 
-	const lhsData = getTruthyCompileData(state, lhs);
+	const lhsContext = state.enterPrecedingStatementContext();
 	let expStr = compileExpression(state, lhs);
+	let context: PrecedingStatementContext;
+	let rhsStr: string;
+
+	console.log(
+		1,
+		node.getText(),
+		state.currentTruthyContext,
+		getBinaryExpressionType(node),
+		getBinaryExpressionType(lhs),
+	);
 
 	if (!isInTruthyCheck) {
-		expStr = state.pushPrecedingStatementToNewId(lhs, expStr);
+		// 	const upperContext = state.getCurrentPrecedingStatementContext(node);
+		// 	console.log(upperContext);
+
+		// 	if (
+		// 		getBinaryExpressionType(lhs) === getBinaryExpressionType(node) &&
+		// 		upperContext.length > 1 &&
+		// 		upperContext[upperContext.length - 1].match(/^\t*end;\n$/)
+		// 	) {
+		// 		// this is just a sanity check. Should always be true
+		// 		extraEnd = upperContext.pop();
+		// 		state.pushIndent();
+		// 		console.log(lhs.getText(), ":", node.getText())
+		// 	} else {
+
+		if (state.currentTruthyContext) {
+			state.exitPrecedingStatementContext();
+			[context, rhsStr] = compileRhs(state, rhs, isInTruthyCheck);
+			if (state.currentTruthyContext !== removeBalancedParenthesisFromStringBorders(expStr)) {
+				lhsContext.push(makeSetStatement(state, state.currentTruthyContext, expStr));
+			}
+			expStr = state.currentTruthyContext;
+		} else {
+			state.currentTruthyContext = expStr = state.pushPrecedingStatementToNewId(lhs, expStr);
+			state.exitPrecedingStatementContext();
+			[context, rhsStr] = compileRhs(state, rhs, isInTruthyCheck);
+		}
+	} else {
+		state.exitPrecedingStatementContext();
+		[context, rhsStr] = compileRhs(state, rhs, isInTruthyCheck);
 	}
 
-	let lhsStr = compileTruthyCheck(state, lhs, expStr, lhsData);
+	const checkableTypeNode =
+		(getBinaryExpressionType(node) === getBinaryExpressionType(lhs) && getbinaryRhsExpression(state, lhs)) || lhs;
 
-	const context = state.enterPrecedingStatementContext();
+	state.pushPrecedingStatements(lhs, ...lhsContext);
 
-	let rhsStr = compileExpression(state, rhs);
-
-	if (isInTruthyCheck) {
-		rhsStr = compileTruthyCheck(state, rhs, rhsStr);
-	}
-
-	state.exitPrecedingStatementContext();
+	const checkableTypeData = getTruthyCompileData(state, checkableTypeNode);
+	let lhsStr = compileTruthyCheck(state, lhs, expStr, checkableTypeData);
 
 	if (context.length === 0) {
 		const luaOp = isAnd ? " and " : " or ";
 
 		if (
 			isInTruthyCheck ||
-			(!isAnd && lhsData.checkLuaTruthy) ||
-			(lhsData.numRefs === 1 && lhsData.checkLuaTruthy)
+			(!isAnd && checkableTypeData.checkLuaTruthy) ||
+			(checkableTypeData.numRefs === 1 && checkableTypeData.checkLuaTruthy)
 		) {
 			return lhsStr + luaOp + rhsStr;
 		}
@@ -174,11 +257,22 @@ export function compileLogicalBinary(
 			`if ${isAnd ? "" : "not ("}${removeBalancedParenthesisFromStringBorders(lhsStr)}${isAnd ? "" : ")"} then\n`,
 	);
 
-	if (expStr !== rhsStr) {
+	if (expStr !== removeBalancedParenthesisFromStringBorders(rhsStr)) {
 		context.push(makeSetStatement(state, expStr, rhsStr));
 	}
+
 	state.pushPrecedingStatements(lhs, joinIndentedLines(context, 1));
 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+
+	// if (extraEnd && !getBinaryExpressionType(node.getParent())) {
+	// 	const target = state.indent.length - such;
+	// 	for (let i = 0; i < target; i++) {
+	// 		console.log(i);
+	// 		state.popIndent();
+	// 		state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+	// 	}
+	// 	// 	state.popIndent()
+	// }
 	return expStr;
 }
 
@@ -195,8 +289,19 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	}
 
 	const isUnknown = isUnknowableType(expType);
-	const checkNaN = isUnknown || isNumberTypeLax(expType);
+	let checkNaN = isUnknown || isNumberTypeLax(expType);
 	const checkNon0 = isUnknown || checkNaN || isLiterally0Lax(expType);
+
+	if (checkNon0) {
+		// TS doesn't handle the falsy number type very well at the time of writing.
+		// TS will frequently evaluate falsy numbers to `0`, even though it should be `0 | NaN`
+		// (NaN doesn't exist as a type-language primitive at the moment)
+		// Example: const f = (a: number, b: string) => a && b;
+		// `f` returns `string | 0`, when it should return `string | 0 | NaN`
+		// For now, we are going to pretend that `0` means `0 | NaN`
+		checkNaN = true;
+	}
+
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
 	const checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
 	const numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
@@ -221,7 +326,7 @@ export function compileTruthyCheck(
 
 	if (!isValidLuaIdentifier(expStr)) {
 		if (numRefs > 1) {
-			expStr = state.pushPrecedingStatementToNewId(exp, expStr);
+			console.log(expStr, (expStr = state.pushPrecedingStatementToNewId(exp, expStr)));
 		} else {
 			expStr = `(${expStr})`;
 		}
