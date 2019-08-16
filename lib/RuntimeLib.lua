@@ -91,55 +91,57 @@ function TS.import(module, ...)
 		module = module:WaitForChild((select(i, ...)))
 	end
 
-	if module.ClassName == "ModuleScript" then
-		local data = loadedLibraries[module]
-
-		if data == nil then
-			-- If called from command bar, use table as a reference (this is never concatenated)
-			local caller = getfenv(0).script or { Name = "Command bar" }
-			currentlyLoading[caller] = module
-
-			-- Check to see if a case like this occurs:
-			-- module -> Module1 -> Module2 -> module
-
-			-- WHERE currentlyLoading[module] is Module1
-			-- and currentlyLoading[Module1] is Module2
-			-- and currentlyLoading[Module2] is module
-
-			local currentModule = module
-			local depth = 0
-
-			while currentModule do
-				depth = depth + 1
-				currentModule = currentlyLoading[currentModule]
-
-				if currentModule == module then
-					local str = currentModule.Name -- Get the string traceback
-
-					for _ = 1, depth do
-						currentModule = currentlyLoading[currentModule]
-						str = str .. " -> " .. currentModule.Name
-					end
-
-					error("Failed to import! Detected a circular dependency chain: " .. str, 2)
-				end
-			end
-
-			assert(_G[module] == nil, "Invalid module access!")
-			_G[module] = TS
-			data = { value = require(module) }
-
-			if currentlyLoading[caller] == module then -- Thread-safe cleanup!
-				currentlyLoading[caller] = nil
-			end
-
-			loadedLibraries[module] = data -- Cache for subsequent calls
-		end
-
-		return data.value
-	else
+	if module.ClassName ~= "ModuleScript" then
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
+
+	if loadedLibraries[module] then
+		return require(module)
+	end
+
+	-- If called from command bar, use table as a reference (this is never concatenated)
+	local caller = getfenv(0).script or { Name = "Command bar" }
+	currentlyLoading[caller] = module
+
+	-- Check to see if a case like this occurs:
+	-- module -> Module1 -> Module2 -> module
+
+	-- WHERE currentlyLoading[module] is Module1
+	-- and currentlyLoading[Module1] is Module2
+	-- and currentlyLoading[Module2] is module
+
+	local currentModule = module
+	local depth = 0
+
+	while currentModule do
+		depth = depth + 1
+		currentModule = currentlyLoading[currentModule]
+
+		if currentModule == module then
+			local str = currentModule.Name -- Get the string traceback
+
+			for _ = 1, depth do
+				currentModule = currentlyLoading[currentModule]
+				str = str .. " -> " .. currentModule.Name
+			end
+
+			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+		end
+	end
+
+	if _G[module] then
+		error("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(), 2)
+	end
+
+	_G[module] = TS
+	loadedLibraries[module] = true -- register as already loaded for subsequent calls
+	local data = require(module)
+
+	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
+		currentlyLoading[caller] = nil
+	end
+
+	return data
 end
 
 function TS.exportNamespace(module, ancestor)
