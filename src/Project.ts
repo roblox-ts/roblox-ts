@@ -57,7 +57,6 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 			innerPath = [first, ...rest];
 		}
 		const innerFolder = innerPath.join(path.sep);
-		oldPath = path.join(sourceFolder, innerFolder);
 		const newPath = path.join(destinationFolder, innerFolder);
 
 		let source = await fs.readFile(oldPath, "utf8");
@@ -88,7 +87,8 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 						}
 					} else if (stats.isFile()) {
 						const relativeToDestFolder = path.relative(destinationFolder, filePath);
-						if (!(await fs.pathExists(path.join(sourceFolder, relativeToDestFolder)))) {
+						const targetPath = path.join(sourceFolder, relativeToDestFolder);
+						if (!(await fs.pathExists(targetPath))) {
 							await fs.remove(filePath);
 							console.log("delete", "file", filePath);
 						}
