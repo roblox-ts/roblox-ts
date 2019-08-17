@@ -88,7 +88,7 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 						}
 					} else if (stats.isFile()) {
 						const relativeToDestFolder = path.relative(destinationFolder, filePath);
-						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
+						if (!(await fs.pathExists(path.join(sourceFolder, relativeToDestFolder)))) {
 							await fs.remove(filePath);
 							console.log("delete", "file", filePath);
 						}
