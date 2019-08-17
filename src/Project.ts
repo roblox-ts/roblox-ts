@@ -51,7 +51,14 @@ function joinIfNotAbsolute(basePath: string, relativePath: string) {
 
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
-		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
+		let innerPath = path.relative(sourceFolder, oldPath).split(path.sep);
+		const [first, second, ...rest] = innerPath;
+		if (first === "node_modules" && second === "@rbxts") {
+			innerPath = [first, ...rest];
+		}
+		const innerFolder = innerPath.join(path.sep);
+		oldPath = path.join(sourceFolder, innerFolder);
+		const newPath = path.join(destinationFolder, innerFolder);
 
 		let source = await fs.readFile(oldPath, "utf8");
 
