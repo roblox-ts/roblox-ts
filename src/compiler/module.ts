@@ -125,7 +125,11 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 		);
 	}
 
-	const moduleName = parts.shift()!;
+	let moduleName = parts.shift()!;
+
+	if (parts.length > 2 && parts[0] === "node_modules" && parts[1] === "@rbxts") {
+		moduleName = parts[2];
+	}
 
 	let mainPath: string;
 	if (moduleCache.has(moduleName)) {
