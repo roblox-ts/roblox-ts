@@ -1,6 +1,6 @@
 ---
 name: Question
-about: We prefer to be asked in the #help channel @ https://discord.gg/f6Rn6RY
+about: We prefer to be asked in the \#help channel @ https://discord.gg/f6Rn6RY
 labels: question
 
 ---
