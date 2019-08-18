@@ -58,55 +58,58 @@ export function isTypeStatement(node: ts.Node) {
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+		(ts.TypeGuards.isEnumDeclaration(node) && node.isConstEnum())
 	);
 }
 
-function isImport(node: ts.Node) {
+/** Helper function which determines whether a given node is a type.
+ * Note: This assumes that if `node` is a const enum then it is the bottom-level identifer.
+ * If this receives a propertyAccess or elementAccess to a const enum, it will return false.
+ */
+function isType(node: ts.Node) {
 	return (
-		ts.TypeGuards.isImportSpecifier(node) ||
-		ts.TypeGuards.isImportClause(node) ||
-		ts.TypeGuards.isImportEqualsDeclaration(node)
+		isTypeStatement(node) ||
+		node
+			.getAncestors()
+			.some(ancestor => ancestor.getKind() === ts.SyntaxKind.TypeQuery || isTypeStatement(ancestor)) ||
+		// if it is a const enum, it is always a type, even if it isn't a type >:)
+		(ts.TypeGuards.isIdentifier(node) &&
+			node.getDefinitions().some(def =>
+				def
+					.getNode()
+					.getAncestors()
+					.some(ancestor => ts.TypeGuards.isEnumDeclaration(ancestor) && ancestor.isConstEnum()),
+			))
 	);
 }
 
-function isExport(node: ts.Node) {
-	return ts.TypeGuards.isExportAssignment(node) || ts.TypeGuards.isExportSpecifier(node);
-}
-
-export function isType(node: ts.Node): boolean {
-	if (ts.TypeGuards.isIdentifier(node) || ts.TypeGuards.isExpressionWithTypeArguments(node)) {
-		return isType(node.getParent());
-	}
-
-	return (
-		node.getKindName() === "TypeQuery" ||
-		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
-		ts.TypeGuards.isEmptyStatement(node) ||
-		ts.TypeGuards.isTypeReferenceNode(node) ||
-		ts.TypeGuards.isTypeAliasDeclaration(node) ||
-		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		isImport(node) ||
-		isExport(node) ||
-		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
-	);
-}
-
-export function isUsedAsType(node: ts.Identifier) {
+export function isUsedExclusivelyAsType(node: ts.Identifier) {
 	try {
 		for (const refSymbol of node.findReferences()) {
 			for (const refEntry of refSymbol.getReferences()) {
 				if (refEntry.getSourceFile() === node.getSourceFile()) {
 					const ref = skipNodesDownwards(refEntry.getNode());
-					if (!isType(ref)) {
-						return false;
-					}
-					if (
-						isExport(ref.getParent()) &&
-						ts.TypeGuards.isIdentifier(ref) &&
-						ref.getDefinitionNodes().some(n => !isType(n))
-					) {
-						return false;
+					const isInImportStatement = ref.getFirstAncestorByKind(ts.SyntaxKind.ImportDeclaration);
+
+					// We want to check all references in this file to see whether this identifier is ever used as a value.
+					// Import statements, however, don't count.
+					if (!isInImportStatement) {
+						const isInExportStatement = ref.getFirstAncestor(
+							ancestor =>
+								ts.TypeGuards.isExportAssignment(ancestor) ||
+								ts.TypeGuards.isExportDeclaration(ancestor),
+						);
+
+						// If it is in an export statement, then it does count, but only if there is a value-version of the identifier.
+						// Otherwise, if the ref is a non-type, then it counts
+						if (
+							isInExportStatement
+								? ts.TypeGuards.isIdentifier(ref) &&
+								  ref.getDefinitions().some(def => !isType(def.getNode()))
+								: !isType(ref)
+						) {
+							return false;
+						}
 					}
 				}
 			}
