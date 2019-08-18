@@ -69,11 +69,9 @@ export function isTypeStatement(node: ts.Node) {
 function isType(node: ts.Node) {
 	return (
 		isTypeStatement(node) ||
-		Boolean(
-			node.getFirstAncestor(
-				ancestor => ancestor.getKind() === ts.SyntaxKind.TypeQuery || isTypeStatement(ancestor),
-			),
-		) ||
+		node
+			.getAncestors()
+			.some(ancestor => ancestor.getKind() === ts.SyntaxKind.TypeQuery || isTypeStatement(ancestor)) ||
 		// if it is a const enum, it is always a type, even if it isn't a type >:)
 		(ts.TypeGuards.isIdentifier(node) &&
 			node
