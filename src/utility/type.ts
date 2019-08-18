@@ -74,15 +74,12 @@ function isType(node: ts.Node) {
 			.some(ancestor => ancestor.getKind() === ts.SyntaxKind.TypeQuery || isTypeStatement(ancestor)) ||
 		// if it is a const enum, it is always a type, even if it isn't a type >:)
 		(ts.TypeGuards.isIdentifier(node) &&
-			node
-				.getDefinitions()
-				.some(def =>
-					def
-						.getNode()
-						.getFirstAncestor(
-							ancestor => ts.TypeGuards.isEnumDeclaration(ancestor) && ancestor.isConstEnum(),
-						),
-				))
+			node.getDefinitions().some(def =>
+				def
+					.getNode()
+					.getAncestors()
+					.some(ancestor => ts.TypeGuards.isEnumDeclaration(ancestor) && ancestor.isConstEnum()),
+			))
 	);
 }
 
