@@ -28,7 +28,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../utility/type";
 
 export function compileStatement(state: CompilerState, node: ts.Statement): string {
-	if (isTypeStatement(node)) {
+	if (isTypeStatement(node) || (ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
 		return compileBlock(state, node);
