@@ -403,7 +403,9 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		}
 		return state.indent + `TS.exportNamespace(${luaPath}, ${ancestorName});\n`;
 	} else {
-		const namedExports = node.getNamedExports().filter(namedExport => !isUsedExclusivelyAsType(namedExport.getNameNode()));
+		const namedExports = node
+			.getNamedExports()
+			.filter(namedExport => !isUsedExclusivelyAsType(namedExport.getNameNode()));
 		if (namedExports.length === 0) {
 			return "";
 		}
