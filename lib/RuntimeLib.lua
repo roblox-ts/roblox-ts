@@ -811,9 +811,11 @@ TS.array_deepEquals = deepEquals
 
 function TS.map_new(pairs)
 	local result = {}
-	for i = 1, #pairs do
-		local pair = pairs[i]
-		result[pair[1]] = pair[2]
+	if pairs then
+		for i = 1, #pairs do
+			local pair = pairs[i]
+			result[pair[1]] = pair[2]
+		end
 	end
 	return result
 end
@@ -850,8 +852,10 @@ TS.map_toString = toString
 
 function TS.set_new(values)
 	local result = {}
-	for i = 1, #values do
-		result[values[i]] = true
+	if values then
+		for i = 1, #values do
+			result[values[i]] = true
+		end
 	end
 	return result
 end
