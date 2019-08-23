@@ -54,6 +54,8 @@ export function isRbxService(name: string) {
 
 export function isTypeStatement(node: ts.Node) {
 	return (
+		// Classes which implement
+		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
