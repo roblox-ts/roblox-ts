@@ -984,8 +984,7 @@ function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAc
 			.getDeclarations()
 			.every(dec => {
 				if (
-					(!isMethodDeclaration(dec) ||
-						ts.TypeGuards.isFunctionTypeNode(dec) ||
+					(ts.TypeGuards.isFunctionTypeNode(dec) ||
 						ts.TypeGuards.isPropertySignature(dec) ||
 						(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
 						ts.TypeGuards.isArrowFunction(dec) ||
