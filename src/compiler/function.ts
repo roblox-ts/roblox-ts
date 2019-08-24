@@ -79,6 +79,7 @@ export function isFunctionExpressionMethod(node: ts.FunctionExpression) {
 
 export function isMethodDeclaration(node: ts.Node<ts.ts.Node>): node is ts.MethodDeclaration | ts.FunctionExpression {
 	if (
+		ts.TypeGuards.isMethodSignature(node) ||
 		ts.TypeGuards.isMethodDeclaration(node) ||
 		(ts.TypeGuards.isFunctionExpression(node) && isFunctionExpressionMethod(node))
 	) {
