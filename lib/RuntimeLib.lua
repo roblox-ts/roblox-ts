@@ -202,7 +202,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.throw(ok == nil and "The awaited Promise was cancelled" or result)
+		error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
@@ -990,74 +990,6 @@ function TS.opcall(func, ...)
 			error = valueOrErr,
 		}
 	end
-end
-
--- try catch utilities
-
-local function pack(...)
-	return { size = select("#", ...), ... }
-end
-
-local throwStack = {}
-
-function TS.throw(value)
-	if #throwStack > 0 then
-		throwStack[#throwStack](value)
-	else
-		error("Uncaught " .. tostring(value), 2)
-	end
-end
-
-function TS.try(tryCallback, catchCallback)
-	local done = false
-	local yielded = false
-	local popped = false
-	local resumeThread = coroutine.running()
-
-	local returns
-
-	local function pop()
-		if not popped then
-			popped = true
-			throwStack[#throwStack] = nil
-		end
-	end
-
-	local function resume()
-		if yielded then
-			local success, errorMsg = coroutine.resume(resumeThread)
-			if not success then
-				warn(errorMsg)
-			end
-		else
-			done = true
-		end
-	end
-
-	local function throw(value)
-		pop()
-		if catchCallback then
-			returns = pack(catchCallback(value))
-		end
-		resume()
-		coroutine.yield()
-	end
-
-	throwStack[#throwStack + 1] = throw
-
-	coroutine.wrap(function()
-		returns = pack(tryCallback())
-		resume()
-	end)()
-
-	if not done then
-		yielded = true
-		coroutine.yield()
-	end
-
-	pop()
-
-	return returns
 end
 
 return TS
