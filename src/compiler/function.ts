@@ -177,8 +177,10 @@ function compileFunction(
 	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
 	let namePrefixEndsInColon = namePrefix.endsWith(":");
 
-	if (isMethodDeclaration(node) && !namePrefixEndsInColon) {
-		giveInitialSelfParameter(node, paramNames);
+	if (isMethodDeclaration(node)) {
+		if (!namePrefixEndsInColon) {
+			giveInitialSelfParameter(node, paramNames);
+		}
 	} else if (namePrefixEndsInColon) {
 		namePrefixEndsInColon = false;
 		namePrefix = namePrefix.slice(0, -1) + ".";
