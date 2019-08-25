@@ -78,10 +78,17 @@ export function isFunctionExpressionMethod(node: ts.FunctionExpression) {
 }
 
 export function isMethodDeclaration(node: ts.Node<ts.ts.Node>): node is ts.MethodDeclaration | ts.FunctionExpression {
-	return (
+	if (
+		ts.TypeGuards.isMethodSignature(node) ||
 		ts.TypeGuards.isMethodDeclaration(node) ||
 		(ts.TypeGuards.isFunctionExpression(node) && isFunctionExpressionMethod(node))
-	);
+	) {
+		const thisParam = node.getParameter("this");
+
+		return !thisParam || getType(thisParam).getText() !== "void";
+	}
+
+	return false;
 }
 
 function compileFunctionBody(state: CompilerState, body: ts.Node, node: HasParameters, initializers: Array<string>) {
@@ -170,6 +177,15 @@ function compileFunction(
 	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
 	let namePrefixEndsInColon = namePrefix.endsWith(":");
 
+	if (isMethodDeclaration(node)) {
+		if (!namePrefixEndsInColon) {
+			giveInitialSelfParameter(node, paramNames);
+		}
+	} else if (namePrefixEndsInColon) {
+		namePrefixEndsInColon = false;
+		namePrefix = namePrefix.slice(0, -1) + ".";
+	}
+
 	if (name) {
 		if (sugarcoat) {
 			result = state.indent + prefix;
@@ -183,10 +199,6 @@ function compileFunction(
 		backWrap += ";\n";
 	} else {
 		result = "";
-	}
-
-	if (isMethodDeclaration(node) && !namePrefixEndsInColon) {
-		giveInitialSelfParameter(node, paramNames);
 	}
 
 	result += frontWrap + "function" + (sugarcoat ? " " + namePrefix + name : "") + "(" + paramNames.join(", ") + ")";
@@ -223,7 +235,6 @@ function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpres
 			(ancestor): ancestor is ts.ClassDeclaration | ts.ClassExpression =>
 				ts.TypeGuards.isClassDeclaration(ancestor) || ts.TypeGuards.isClassExpression(ancestor),
 		);
-
 		if (
 			classParent &&
 			child &&
