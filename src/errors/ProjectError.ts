@@ -18,8 +18,6 @@ export enum ProjectErrorType {
 	BadRojoInclude,
 	TsMorph,
 	ProjectFailed,
-	BadProjectPath,
-	BadNodeModules,
 }
 
 export class ProjectError extends LoggableError {
