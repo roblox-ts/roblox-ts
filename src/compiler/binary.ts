@@ -25,19 +25,8 @@ import {
 import { compileBindingLiteral, getSubTypeOrThrow } from "./binding";
 import { compileLogicalBinary } from "./truthiness";
 
-function getLuaBarExpression(state: CompilerState, node: ts.BinaryExpression, lhsStr: string, rhsStr: string) {
-	state.usesTSLibrary = true;
-	const rhs = skipNodesDownwards(node.getRight());
-	if (ts.TypeGuards.isNumericLiteral(rhs) && rhs.getLiteralValue() === 0) {
-		return `TS.bit_truncate(${lhsStr})`;
-	} else {
-		return `TS.bit_or(${lhsStr}, ${rhsStr})`;
-	}
-}
-
-function getLuaBitExpression(state: CompilerState, lhsStr: string, rhsStr: string, name: string) {
-	state.usesTSLibrary = true;
-	return `TS.bit_${name}(${lhsStr}, ${rhsStr})`;
+function getLuaBitExpression(lhsStr: string, rhsStr: string, name: string) {
+	return `bit32.${name}(${lhsStr}, ${rhsStr})`;
 }
 
 function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
@@ -281,17 +270,17 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		state.pushPrecedingStatements(rhs, ...rhsStrContext);
 
 		if (opKind === ts.SyntaxKind.BarEqualsToken) {
-			rhsStr = getLuaBarExpression(state, node, previouslhs, rhsStr);
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "bor");
 		} else if (opKind === ts.SyntaxKind.AmpersandEqualsToken) {
-			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "and");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "band");
 		} else if (opKind === ts.SyntaxKind.CaretEqualsToken) {
-			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "xor");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "bxor");
 		} else if (opKind === ts.SyntaxKind.LessThanLessThanEqualsToken) {
-			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "lsh");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "lshift");
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken) {
-			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "rsh");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "rshift");
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken) {
-			rhsStr = getLuaBitExpression(state, previouslhs, rhsStr, "lrsh");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "lrsh");
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
 			rhsStr = getLuaAddExpression(node, previouslhs, rhsStr, true);
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
@@ -398,17 +387,17 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else if (opKind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
 		return `${lhsStr} ~= ${rhsStr}`;
 	} else if (opKind === ts.SyntaxKind.BarToken) {
-		return getLuaBarExpression(state, node, lhsStr, rhsStr);
+		return getLuaBitExpression(lhsStr, rhsStr, "bor");
 	} else if (opKind === ts.SyntaxKind.AmpersandToken) {
-		return getLuaBitExpression(state, lhsStr, rhsStr, "and");
+		return getLuaBitExpression(lhsStr, rhsStr, "band");
 	} else if (opKind === ts.SyntaxKind.CaretToken) {
-		return getLuaBitExpression(state, lhsStr, rhsStr, "xor");
+		return getLuaBitExpression(lhsStr, rhsStr, "bxor");
 	} else if (opKind === ts.SyntaxKind.LessThanLessThanToken) {
-		return getLuaBitExpression(state, lhsStr, rhsStr, "lsh");
+		return getLuaBitExpression(lhsStr, rhsStr, "lshift");
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanToken) {
-		return getLuaBitExpression(state, lhsStr, rhsStr, "rsh");
+		return getLuaBitExpression(lhsStr, rhsStr, "rshift");
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken) {
-		return getLuaBitExpression(state, lhsStr, rhsStr, "lrsh");
+		return getLuaBitExpression(lhsStr, rhsStr, "lrsh");
 	} else if (opKind === ts.SyntaxKind.PlusToken) {
 		return getLuaAddExpression(node, lhsStr, rhsStr);
 	} else if (opKind === ts.SyntaxKind.MinusToken) {
