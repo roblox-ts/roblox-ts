@@ -149,7 +149,7 @@ export class Project {
 		try {
 			fs.accessSync(this.configFilePath, fs.constants.R_OK | fs.constants.W_OK);
 		} catch (e) {
-			throw new Error("Project path does not exist!");
+			throw new ProjectError("Project path does not exist!", ProjectErrorType.BadProjectPath);
 		}
 
 		if (fs.statSync(this.configFilePath).isDirectory()) {
@@ -157,7 +157,7 @@ export class Project {
 		}
 
 		if (!fs.existsSync(this.configFilePath) || !fs.statSync(this.configFilePath).isFile()) {
-			throw new Error("Cannot find tsconfig.json!");
+			throw new ProjectError("Cannot find tsconfig.json!", ProjectErrorType.BadTsConfig);
 		}
 
 		this.projectPath = path.resolve(this.configFilePath, "..");
@@ -178,7 +178,7 @@ export class Project {
 
 		const modulesPath = this.getModulesPath(this.projectPath);
 		if (!modulesPath) {
-			throw new Error("Unable to find node_modules");
+			throw new ProjectError("Unable to find node_modules", ProjectErrorType.BadNodeModules);
 		}
 		this.modulesPath = modulesPath;
 
