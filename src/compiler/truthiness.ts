@@ -8,6 +8,7 @@ import {
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesDownwards,
 	skipNodesUpwardsLookAhead,
+	skipNodesUpwards,
 } from "../utility/general";
 import { yellow } from "../utility/text";
 import {
@@ -56,8 +57,9 @@ function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.N
 /** Returns whether a given node needs to preserve its value as a truthiness statement.
  * If it is within an if statement, for example, we can throw away in between values. See docs below.
  * However, it is also possible for expressions within an if statement to require the proper value.
- * Ex: if ((x = f()) && g()) {}
  * So we just whitelist the nodes we can safely climb and optimize those.
+ * @example
+ * if ((x = f()) && g()) {} // everything in the rhs of `x = ` can't be optimized
  */
 export function isExpInTruthyCheck(node: ts.Node) {
 	const previous =
@@ -101,6 +103,13 @@ export function isExpInTruthyCheck(node: ts.Node) {
 	return false;
 }
 
+/** Helper function which returns
+ * 1 if it is an `&&` binaryExpression,
+ * 2 if it is an `||` binaryExpression,
+ * Otherwise, this returns NaN.
+ * That way, comparing two values returned from this function will be false when both are non-BinaryExpressions
+ * (as opposed to typing this as boolean | undefined, where undefined === undefined would yield true)
+ */
 function getBinaryExpressionType(node: ts.Expression) {
 	if (ts.TypeGuards.isBinaryExpression(node)) {
 		switch (node.getOperatorToken().getKind()) {
@@ -109,10 +118,10 @@ function getBinaryExpressionType(node: ts.Expression) {
 			case ts.SyntaxKind.BarBarToken:
 				return 2;
 			default:
-				return 0 / 0;
+				return NaN;
 		}
 	} else {
-		return 0 / 0;
+		return NaN;
 	}
 }
 
@@ -131,13 +140,13 @@ function compileRhs(
 	return [state.exitPrecedingStatementContext(), rhsStr];
 }
 
-function getbinaryRhsExpression(state: CompilerState, node: ts.Expression) {
+function getBinaryRhsExpression(state: CompilerState, node: ts.Expression, debug = false) {
 	let current: ts.Expression | undefined;
 	let next = state.binaryRhsExpressions.get(node);
-	let i = 0;
+	// let i = 0;
 
 	while (next) {
-		console.log(":", ++i, next.getText());
+		// if (debug) console.log(":", ++i, next.getText());
 		current = skipNodesDownwards(next) as ts.Expression;
 		next = state.binaryRhsExpressions.get(current);
 	}
@@ -167,7 +176,7 @@ we can optimize this case to:
 
 alreadyCheckedTruthyConditionals is effectively a whitelist of nodes which were optimized in this way
 */
-export function compileLogicalBinary(
+export function compileLogicalBinary2(
 	state: CompilerState,
 	lhs: ts.Expression,
 	rhs: ts.Expression,
@@ -175,9 +184,6 @@ export function compileLogicalBinary(
 	node: ts.BinaryExpression,
 ) {
 	state.binaryRhsExpressions.set(node, rhs);
-	state.binaryRhsExpressions.set(skipNodesUpwardsLookAhead(node) as ts.Expression, rhs);
-	console.log(0, node.getText(), state.currentTruthyContext);
-	// let such = state.indent.length;
 	const isInTruthyCheck = isExpInTruthyCheck(node);
 
 	if (isInTruthyCheck) {
@@ -189,29 +195,7 @@ export function compileLogicalBinary(
 	let context: PrecedingStatementContext;
 	let rhsStr: string;
 
-	console.log(
-		1,
-		node.getText(),
-		state.currentTruthyContext,
-		getBinaryExpressionType(node),
-		getBinaryExpressionType(lhs),
-	);
-
 	if (!isInTruthyCheck) {
-		// 	const upperContext = state.getCurrentPrecedingStatementContext(node);
-		// 	console.log(upperContext);
-
-		// 	if (
-		// 		getBinaryExpressionType(lhs) === getBinaryExpressionType(node) &&
-		// 		upperContext.length > 1 &&
-		// 		upperContext[upperContext.length - 1].match(/^\t*end;\n$/)
-		// 	) {
-		// 		// this is just a sanity check. Should always be true
-		// 		extraEnd = upperContext.pop();
-		// 		state.pushIndent();
-		// 		console.log(lhs.getText(), ":", node.getText())
-		// 	} else {
-
 		if (state.currentTruthyContext) {
 			state.exitPrecedingStatementContext();
 			[context, rhsStr] = compileRhs(state, rhs, isInTruthyCheck);
@@ -229,13 +213,19 @@ export function compileLogicalBinary(
 		[context, rhsStr] = compileRhs(state, rhs, isInTruthyCheck);
 	}
 
-	const checkableTypeNode =
-		(getBinaryExpressionType(node) === getBinaryExpressionType(lhs) && getbinaryRhsExpression(state, lhs)) || lhs;
+	const subLhs = skipNodesDownwards(lhs);
 
+	const checkableTypeNode =
+		(getBinaryExpressionType(node) === getBinaryExpressionType(subLhs) && getBinaryRhsExpression(state, subLhs)) ||
+		lhs;
+
+	console.log(1, "get", node.getText(), ">>", checkableTypeNode.getText());
 	state.pushPrecedingStatements(lhs, ...lhsContext);
 
 	const checkableTypeData = getTruthyCompileData(state, checkableTypeNode);
 	let lhsStr = compileTruthyCheck(state, lhs, expStr, checkableTypeData);
+
+	console.log(node.getText(), getBinaryExpressionType(node), getBinaryExpressionType(subLhs));
 
 	if (context.length === 0) {
 		const luaOp = isAnd ? " and " : " or ";
@@ -251,18 +241,36 @@ export function compileLogicalBinary(
 		lhsStr = expStr = state.pushToDeclarationOrNewId(node, lhsStr);
 	}
 
-	state.pushPrecedingStatements(
-		lhs,
-		state.indent +
-			`if ${isAnd ? "" : "not ("}${removeBalancedParenthesisFromStringBorders(lhsStr)}${isAnd ? "" : ")"} then\n`,
-	);
+	let conditionStr = removeBalancedParenthesisFromStringBorders(lhsStr);
+
+	if (!isAnd) {
+		conditionStr = `not (${conditionStr})`;
+	}
+
+	state.pushPrecedingStatements(lhs, state.indent + `if ${conditionStr} then\n`);
 
 	if (expStr !== removeBalancedParenthesisFromStringBorders(rhsStr)) {
 		context.push(makeSetStatement(state, expStr, rhsStr));
 	}
 
 	state.pushPrecedingStatements(lhs, joinIndentedLines(context, 1));
+
+	// if (getBinaryExpressionType(node) !== getBinaryExpressionType(skipNodesUpwards(node.getParent()))) {
+	// 	console.log(2, node.getText());
+	// 	const x = state.indent.length - originalLength;
+
+	// 	for (let i = 0; i < x; i++) {
+	// 		state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+	// 		state.popIndent();
+	// 	}
+	// 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+	// }
+
 	state.pushPrecedingStatements(lhs, state.indent + `end;\n`);
+
+	// if (checkableTypeNode !== lhs) {
+	// state.popIndent();
+	// }
 
 	// if (extraEnd && !getBinaryExpressionType(node.getParent())) {
 	// 	const target = state.indent.length - such;
@@ -274,6 +282,17 @@ export function compileLogicalBinary(
 	// 	// 	state.popIndent()
 	// }
 	return expStr;
+}
+
+export function compileLogicalBinary(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	isAnd: boolean,
+	node: ts.BinaryExpression,
+) {
+	const stack = new Array<ts.Node>();
+	stack.push();
 }
 
 /** Returns an object specifying how many checks a given expression needs */
