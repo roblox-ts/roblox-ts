@@ -157,8 +157,7 @@ export class Project {
 		}
 
 		if (!fs.existsSync(this.configFilePath) || !fs.statSync(this.configFilePath).isFile()) {
-			// throw new ProjectError("Cannot find tsconfig.json!", ProjectErrorType.BadTsConfig);
-			throw new Error("Cannot find tsconfig.json!");
+			throw new ProjectError("Cannot find tsconfig.json!", ProjectErrorType.BadTsConfig);
 		}
 
 		this.projectPath = path.resolve(this.configFilePath, "..");
