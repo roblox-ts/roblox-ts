@@ -28,7 +28,7 @@ export class ProjectError extends LoggableError {
 		void addEvent("ProjectError", ProjectErrorType[type]);
 	}
 
-	public log(projectPath: string) {
+	public log() {
 		console.log(red("Project Error:"), this.message);
 	}
 }
