@@ -214,33 +214,6 @@ function TS.add(a, b)
 	end
 end
 
-local function bitTruncate(a)
-	if a < 0 then
-		return math_ceil(a)
-	else
-		return math_floor(a)
-	end
-end
-
-TS.bit_truncate = bitTruncate
-
--- bitwise operations
-local powOfTwo = setmetatable({}, {
-	__index = function(self, i)
-		local v = 2 ^ i
-		self[i] = v
-		return v
-	end;
-})
-
-
-function TS.bit_lrsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	if a >= 0 then return TS.bit_rsh(a, b) end
-	return TS.bit_rsh((a % powOfTwo[32]), b)
-end
-
 -- utility functions
 local function copy(object)
 	local result = {}

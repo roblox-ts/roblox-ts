@@ -278,9 +278,13 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		} else if (opKind === ts.SyntaxKind.LessThanLessThanEqualsToken) {
 			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "lshift");
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken) {
-			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "rshift");
+			throw new CompilerError(
+				"Operator >> is not supported! Use >>> instead.",
+				opToken,
+				CompilerErrorType.BadBinaryExpression,
+			);
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken) {
-			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "lrsh");
+			rhsStr = getLuaBitExpression(previouslhs, rhsStr, "rshift");
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
 			rhsStr = getLuaAddExpression(node, previouslhs, rhsStr, true);
 		} else if (opKind === ts.SyntaxKind.MinusEqualsToken) {
@@ -395,9 +399,13 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else if (opKind === ts.SyntaxKind.LessThanLessThanToken) {
 		return getLuaBitExpression(lhsStr, rhsStr, "lshift");
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanToken) {
-		return getLuaBitExpression(lhsStr, rhsStr, "rshift");
+		throw new CompilerError(
+			"Operator >> is not supported! Use >>> instead.",
+			opToken,
+			CompilerErrorType.BadBinaryExpression,
+		);
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken) {
-		return getLuaBitExpression(lhsStr, rhsStr, "lrsh");
+		return getLuaBitExpression(lhsStr, rhsStr, "rshift");
 	} else if (opKind === ts.SyntaxKind.PlusToken) {
 		return getLuaAddExpression(node, lhsStr, rhsStr);
 	} else if (opKind === ts.SyntaxKind.MinusToken) {
