@@ -214,6 +214,16 @@ function TS.add(a, b)
 	end
 end
 
+function TS.lrsh(a, b)
+	local absA = math.abs(a)
+	local result = bit32.rshift(absA, b)
+	if a/absA == 1 then
+		return result
+	else
+		return -result - 1
+	end
+end
+
 -- utility functions
 local function copy(object)
 	local result = {}

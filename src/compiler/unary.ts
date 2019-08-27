@@ -70,8 +70,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		} else if (opKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;
 		} else if (opKind === ts.SyntaxKind.TildeToken) {
-			state.usesTSLibrary = true;
-			return `bit32.bnot(${compileExpression(state, operand)})`;
+			return `(-(${compileExpression(state, operand)}) - 1)`;
 		}
 		// TODO: UnaryPlusToken?
 
