@@ -604,6 +604,14 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 			if (expression) {
 				joinedChildrenTree.push(compileRoactJsxExpression(state, expression));
 			}
+		} else if (ts.TypeGuards.isJsxText(child)) {
+			if (child.getText().match(/[^\s]/)) {
+				throw new CompilerError(
+					"Roact does not support text!",
+					child,
+					CompilerErrorType.RoactJsxTextNotSupported,
+				);
+			}
 		}
 	}
 
