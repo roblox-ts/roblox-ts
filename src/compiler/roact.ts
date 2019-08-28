@@ -632,7 +632,7 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 	} else if (currentChildren.length > 0) {
 		return (fragment ? "" : state.indent) + `{\n${currentChildren.join(",\n")},\n` + state.indent + `}`;
 	} else {
-		return state.indent + "{}";
+		return (fragment ? "" : state.indent) + "{}";
 	}
 }
 
