@@ -4,7 +4,7 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards } from "../utility/general";
 import { bold, suggest } from "../utility/text";
-import { getType, isArrayType } from "../utility/type";
+import { getType, isArrayType, isMapType } from "../utility/type";
 
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
@@ -62,22 +62,74 @@ const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 	viewportframe: "ViewportFrame",
 };
 
-function isRoactElementType(type: ts.Type) {
-	const allowed = [ROACT_ELEMENT_TYPE, `${ROACT_ELEMENT_TYPE}[]`];
-	const types = type.getUnionTypes();
+/**
+ * Returns whether or not the type is of `Roact.Element` or `undefined`
+ * @param type The type
+ * @param allowsUndefined Allow undefined
+ */
+function isRoactElementType(type: ts.Type, allowsUndefined: boolean = true) {
+	const unionTypeName = type.getText();
+	return unionTypeName === ROACT_ELEMENT_TYPE || (unionTypeName === "undefined" && allowsUndefined);
+}
 
-	if (types.length > 0) {
-		for (const unionType of types) {
-			const unionTypeName = unionType.getText();
-			if (allowed.indexOf(unionTypeName) === -1 && unionTypeName !== "undefined") {
-				return false;
-			}
+/**
+ * Will return true if it's `Roact.Element | undefined` or `Roact.Element`
+ * @param unionTypes The union types
+ */
+function isValidRoactElementUnionType(type: ts.Type) {
+	const unionTypes = type.getUnionTypes();
+	for (const unionType of unionTypes) {
+		if (!isRoactElementType(unionType)) {
+			return false;
 		}
-	} else {
-		return allowed.indexOf(type.getText()) !== -1;
 	}
 
 	return true;
+}
+
+function isValidRoactMapKey(type: ts.Type) {
+	return type.isString() || type.isNumber();
+}
+
+/**
+ * Returns whether or not the type matches `Map<string, Roact.Element>` or `Map<number, Roact.Element>`
+ * @param type The type
+ */
+function isRoactElementMapType(type: ts.Type) {
+	if (isMapType(type)) {
+		const typeArgs = type.getTypeArguments();
+		return (
+			typeArgs.length === 2 &&
+			isValidRoactMapKey(typeArgs[0]) &&
+			(isValidRoactElementUnionType(typeArgs[1]) && isRoactElementType(typeArgs[1]))
+		);
+	} else {
+		return false;
+	}
+}
+
+/**
+ * Returns whether or not the type matches `Array<Roact.Element>` or `Array<Roact.Element | undefined>`
+ * @param type The type
+ */
+function isRoactElementArrayType(type: ts.Type) {
+	if (isArrayType(type)) {
+		if (isValidRoactElementUnionType(type) || type.getText() === ROACT_ELEMENT_TYPE) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		return false;
+	}
+}
+
+function isRoactChildElementType(type: ts.Type) {
+	if (isRoactElementMapType(type) || isRoactElementArrayType(type) || isRoactElementType(type)) {
+		return true;
+	} else {
+		return false;
+	}
 }
 
 function getFullTypeList(type: ts.Type): Array<string> {
@@ -391,8 +443,8 @@ export function generateRoactElement(
 				if (ts.TypeGuards.isCallExpression(expression)) {
 					// Must return Roact.Element :(
 					const returnType = expression.getReturnType();
-					if (isRoactElementType(returnType)) {
-						if (isArrayType(returnType)) {
+					if (isRoactChildElementType(returnType)) {
+						if (isArrayType(returnType) || isMapType(returnType)) {
 							// Roact.Element[]
 							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
@@ -410,7 +462,7 @@ export function generateRoactElement(
 					const definitionNodes = expression.getDefinitionNodes();
 					for (const definitionNode of definitionNodes) {
 						const type = getType(definitionNode);
-						if (isRoactElementType(type)) {
+						if (isRoactChildElementType(type)) {
 							extraChildrenCollection.push(state.indent + compileExpression(state, expression));
 						} else {
 							throw new CompilerError(
@@ -426,7 +478,7 @@ export function generateRoactElement(
 				) {
 					const propertyType = getType(expression);
 
-					if (isRoactElementType(propertyType)) {
+					if (isRoactChildElementType(propertyType)) {
 						extraChildrenCollection.push(compileExpression(state, expression));
 					} else {
 						throw new CompilerError(
