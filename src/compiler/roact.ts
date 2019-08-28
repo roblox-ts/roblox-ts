@@ -648,13 +648,18 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 
 		if (roactCombineStack.length > 1) {
 			return (
-				(fragment ? "" : state.indent) + `TS.Roact_combine(\n${roactCombineStack.join(",\n")}\n${state.indent})`
+				(fragment ? "" : state.indent) +
+				`TS.Roact_combine(\n` +
+				roactCombineStack.join(",\n") +
+				`\n` +
+				state.indent +
+				`)`
 			);
 		} else {
-			return (fragment ? "" : state.indent) + `${roactCombineStack.join(",\n").trim()}`;
+			return (fragment ? "" : state.indent) + roactCombineStack.join(",\n").trim();
 		}
 	} else if (childStack.length > 0) {
-		return (fragment ? "" : state.indent) + `{\n${childStack.join(",\n")},\n` + state.indent + `}`;
+		return (fragment ? "" : state.indent) + `{\n` + childStack.join(",\n") + `,\n` + state.indent + `}`;
 	} else {
 		return (fragment ? "" : state.indent) + "{}";
 	}
@@ -726,9 +731,9 @@ function generateRoactElementV2(
 	state.popIndent();
 
 	if (elementArguments.length > 1 || isFragment) {
-		return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${state.indent})`;
+		return funcName + "(\n" + state.indent + "\t" + elementArguments.join(",\n") + "\n" + state.indent + ")";
 	} else {
-		return `${funcName}(${elementArguments.join(",\n")})`;
+		return funcName + "(" + elementArguments.join(",\n") + ")";
 	}
 }
 
