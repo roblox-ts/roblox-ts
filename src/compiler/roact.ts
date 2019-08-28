@@ -337,15 +337,38 @@ export function generateRoactSymbolProperty(
 	}
 }
 
+function joinAsTable(state: CompilerState, array: Array<string>) {
+	return state.indent + "{\n" + array.join(`,\n`) + "\n" + state.indent + "}";
+}
+
 export function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
-	const joinedAttributesTree = new Array<Array<string>>();
+	let joinedAttributesTree = new Array<string>();
 
 	state.pushIndent();
 
-	const currentAttributes = new Array<string>();
+	let currentAttributes = new Array<string>();
 
+	let useRoactCombine = false;
 	for (const attributeLike of attributes) {
 		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+			useRoactCombine = true;
+		}
+	}
+
+	for (const attributeLike of attributes) {
+		if (useRoactCombine) {
+			state.pushIndent();
+		}
+		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+			if (currentAttributes.length > 0) {
+				joinedAttributesTree.push(joinAsTable(state, currentAttributes));
+				currentAttributes = new Array<string>();
+			}
+
+			const expression = attributeLike.getExpression();
+			state.popIndent();
+			joinedAttributesTree.push(state.indent + compileExpression(state, expression));
+			state.pushIndent();
 		} else {
 			const attribute = attributeLike as ts.JsxAttribute;
 			const attributeName = attribute.getName();
@@ -362,17 +385,24 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 
 			currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
 		}
+		if (useRoactCombine) {
+			state.popIndent();
+		}
 	}
 
 	state.popIndent();
 
-	if (joinedAttributesTree.length > 1) {
-		return (
-			state.indent +
-			`Roact.combine(\n${state.indent}${joinedAttributesTree.map(r => r.join(",\n"))}${state.indent}\n)`
-		);
+	if (joinedAttributesTree.length >= 1) {
+		if (currentAttributes.length > 0) {
+			state.pushIndent();
+			// joinedAttributesTree = joinedAttributesTree.map(a => state.indent + a);
+			joinedAttributesTree.push(joinAsTable(state, currentAttributes));
+			state.popIndent();
+		}
+
+		return state.indent + `Roact.combine(\n${joinedAttributesTree.join(",\n")}\n${state.indent})`;
 	} else if (currentAttributes.length > 0) {
-		return state.indent + `{\n${currentAttributes.join(",\n")}\n` + state.indent + `}`;
+		return state.indent + `{\n${currentAttributes.join(",\n")}, \n` + state.indent + `}`;
 	} else {
 		return state.indent + "{}";
 	}
