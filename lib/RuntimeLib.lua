@@ -5,8 +5,6 @@ local HttpService = game:GetService("HttpService")
 -- constants
 local table_sort = table.sort
 local table_concat = table.concat
-local math_ceil = math.ceil
-local math_floor = math.floor
 
 local TS = {}
 
