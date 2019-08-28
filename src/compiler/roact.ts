@@ -356,9 +356,6 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 	}
 
 	for (const attributeLike of attributes) {
-		if (useRoactCombine) {
-			state.pushIndent();
-		}
 		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
 			if (currentAttributes.length > 0) {
 				joinedAttributesTree.push(joinAsTable(state, currentAttributes));
@@ -366,10 +363,16 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 			}
 
 			const expression = attributeLike.getExpression();
-			state.popIndent();
+			// state.popIndent();
+
+			// state.pushIndent();
 			joinedAttributesTree.push(state.indent + compileExpression(state, expression));
-			state.pushIndent();
+			// state.popIndent();
 		} else {
+			if (useRoactCombine) {
+				state.pushIndent();
+			}
+
 			const attribute = attributeLike as ts.JsxAttribute;
 			const attributeName = attribute.getName();
 			const attributeType = attribute.getType();
@@ -384,9 +387,10 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 			}
 
 			currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
-		}
-		if (useRoactCombine) {
-			state.popIndent();
+
+			if (useRoactCombine) {
+				state.popIndent();
+			}
 		}
 	}
 
@@ -400,9 +404,9 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 			state.popIndent();
 		}
 
-		return state.indent + `Roact.combine(\n${joinedAttributesTree.join(",\n")}\n${state.indent})`;
+		return state.indent + `TS.Roact_combine(\n${joinedAttributesTree.join(",\n")}\n${state.indent})`;
 	} else if (currentAttributes.length > 0) {
-		return state.indent + `{\n${currentAttributes.join(",\n")}, \n` + state.indent + `}`;
+		return state.indent + `{\n${currentAttributes.join(",\n")},\n` + state.indent + `}`;
 	} else {
 		return state.indent + "{}";
 	}
