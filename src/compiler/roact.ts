@@ -9,6 +9,7 @@ import { getType, isArrayType, isMapType } from "../utility/type";
 const ROACT_ELEMENT_TYPE = "Roact.Element";
 export const ROACT_COMPONENT_TYPE = "Roact.Component";
 export const ROACT_PURE_COMPONENT_TYPE = "Roact.PureComponent";
+const ROACT_FRAGMENT_TYPE = "Roact.Fragment";
 
 export const ROACT_DERIVED_CLASSES_ERROR = suggest(
 	"Composition is preferred over inheritance with Roact components.\n" +
@@ -320,6 +321,7 @@ export function generateRoactElement(
 	const extraChildrenCollection = new Array<string>();
 	const childCollection = new Array<string>();
 	let key: string | undefined;
+	let isFragment = false;
 
 	state.roactIndent++;
 
@@ -337,11 +339,14 @@ export function generateRoactElement(
 				CompilerErrorType.RoactInvalidPrimitive,
 			);
 		}
+	} else if (name === ROACT_FRAGMENT_TYPE) {
+		str = "Roact.createFragment(";
+		isFragment = true;
 	} else {
 		str += name;
 	}
 
-	if (attributes.length > 0) {
+	if (attributes.length > 0 && !isFragment) {
 		state.pushIndent();
 
 		const extraAttributes = attributes.filter(attr => ts.TypeGuards.isJsxSpreadAttribute(attr));
@@ -425,7 +430,7 @@ export function generateRoactElement(
 			str += ` \n${state.indent}}`;
 		}
 	} else {
-		str += ", {}";
+		str += isFragment ? "" : ", {}";
 	}
 
 	if (children.length > 0) {
@@ -508,7 +513,7 @@ export function generateRoactElement(
 
 		if (extraChildrenCollection.length > 0) {
 			state.usesTSLibrary = true;
-			str += `, TS.Roact_combine(`;
+			str += isFragment ? `TS.Roact_combine(` : `, TS.Roact_combine(`;
 
 			if (childCollection.length > 0) {
 				str += "{\n" + state.indent;
@@ -522,7 +527,7 @@ export function generateRoactElement(
 			str += ")";
 		} else {
 			// state.pushIndent();
-			str += state.indent + ", {\n";
+			str += state.indent + isFragment ? "{\n" : ", {\n";
 			str += childCollection.join(",\n") + `\n${state.indent}})`;
 		}
 	} else {
