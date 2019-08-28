@@ -275,7 +275,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			rhsStr = `bit32.lshift(${previouslhs}, ${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken) {
 			state.usesTSLibrary = true;
-			rhsStr = `TS.lrsh(${previouslhs}, ${rhsStr})`;
+			rhsStr = `TS.bit_lrsh(${previouslhs}, ${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken) {
 			rhsStr = `bit32.rshift(${previouslhs}, ${rhsStr})`;
 		} else if (opKind === ts.SyntaxKind.PlusEqualsToken) {
@@ -393,7 +393,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		return `bit32.lshift(${lhsStr}, ${rhsStr})`;
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanToken) {
 		state.usesTSLibrary = true;
-		return `TS.lrsh(${lhsStr}, ${rhsStr})`;
+		return `TS.bit_lrsh(${lhsStr}, ${rhsStr})`;
 	} else if (opKind === ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken) {
 		return `bit32.rshift(${lhsStr}, ${rhsStr})`;
 	} else if (opKind === ts.SyntaxKind.PlusToken) {

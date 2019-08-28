@@ -214,14 +214,28 @@ function TS.add(a, b)
 	end
 end
 
-function TS.lrsh(a, b)
-	local absA = math.abs(a)
-	local result = bit32.rshift(absA, b)
-	if a/absA == 1 then
-		return result
+local function bitTruncate(a)
+	if a < 0 then
+		return math_ceil(a)
 	else
-		return -result - 1
+		return math_floor(a)
 	end
+end
+
+-- bitwise operations
+local powOfTwo = setmetatable({}, {
+	__index = function(self, i)
+		local v = 2 ^ i
+		self[i] = v
+		return v
+	end;
+})
+
+function TS.bit_lrsh(a, b)
+	a = bitTruncate(tonumber(a))
+	b = bitTruncate(tonumber(b))
+	if a >= 0 then return bit32.rshift(a, b) end
+	return bit32.rshift((a % powOfTwo[32]), b)
 end
 
 -- utility functions
