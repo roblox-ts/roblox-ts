@@ -589,7 +589,7 @@ export function generateRoactElement(
 			str += ")";
 		} else {
 			// state.pushIndent();
-			str += state.indent + isFragment ? "{\n" : ", {\n";
+			str += isFragment ? "{\n" : ", {\n";
 			str += childCollection.join(",\n") + `\n${state.indent}})`;
 		}
 	} else {
