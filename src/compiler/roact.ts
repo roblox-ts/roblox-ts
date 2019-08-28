@@ -341,8 +341,63 @@ function joinAsTable(state: CompilerState, array: Array<string>) {
 	return state.indent + "{\n" + array.join(`,\n`) + "\n" + state.indent + "}";
 }
 
+export function generateSpecialPropAttribute(
+	state: CompilerState,
+	roactSymbol: "Event" | "Change" | "Ref",
+	node: ts.JsxAttribute,
+	attrs: Array<string>,
+) {
+	const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
+
+	for (const expression of expr) {
+		const innerExpression = expression.getExpressionOrThrow();
+		if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
+			const properties = innerExpression.getProperties();
+			for (const property of properties) {
+				if (
+					ts.TypeGuards.isPropertyAssignment(property) ||
+					ts.TypeGuards.isShorthandPropertyAssignment(property)
+				) {
+					const propName = property.getName();
+					const rhs = property.getInitializerOrThrow();
+					let value: string;
+
+					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
+						value = compileSymbolPropertyCallback(state, rhs);
+					} else {
+						value = compileExpression(state, rhs);
+					}
+
+					attrs.push(state.indent + `[Roact.${roactSymbol}.${propName}] = ${value}`);
+				}
+			}
+		} else if (roactSymbol === "Ref") {
+			let value: string;
+
+			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
+				const getAccessExpression = innerExpression.getExpression();
+				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
+					value = compileSymbolPropertyCallback(state, innerExpression);
+				} else {
+					value = compileExpression(state, getAccessExpression);
+				}
+			} else {
+				value = compileExpression(state, innerExpression);
+			}
+
+			attrs.push(state.indent + `[Roact.Ref] = ${value}`);
+		} else {
+			throw new CompilerError(
+				`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
+				node,
+				CompilerErrorType.RoactInvalidSymbol,
+			);
+		}
+	}
+}
+
 export function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
-	let joinedAttributesTree = new Array<string>();
+	const joinedAttributesTree = new Array<string>();
 
 	state.pushIndent();
 
@@ -386,7 +441,11 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 				value = compileExpression(state, attribute.getInitializerOrThrow());
 			}
 
-			currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
+			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
+				generateSpecialPropAttribute(state, attributeName, attribute, currentAttributes);
+			} else {
+				currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
+			}
 
 			if (useRoactCombine) {
 				state.popIndent();
