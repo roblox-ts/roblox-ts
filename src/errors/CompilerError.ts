@@ -42,6 +42,7 @@ export enum CompilerErrorType {
 	RoactNoReservedMethods,
 	RoactInvalidSymbol,
 	RoactInvalidPrimitive,
+	RoactSelfClosingFragment,
 	RoactInvalidExpression,
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,

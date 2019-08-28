@@ -445,6 +445,7 @@ function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxA
 
 			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
 				generateSpecialPropAttribute(state, attributeName, attribute, currentAttributes);
+			} else if (attributeName === "Key") {
 			} else {
 				currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
 			}
@@ -568,9 +569,9 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
  * @param children The children
  */
 function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
-	const joinedChildrenTree = new Array<string>();
+	const roactCombineStack = new Array<string>();
 
-	let currentChildren = new Array<string>();
+	let childStack = new Array<string>();
 
 	let useRoactCombine = false;
 	for (const child of children) {
@@ -582,27 +583,48 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 	state.pushIndent();
 
 	for (const child of children) {
-		if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
-			if (useRoactCombine) {
-				state.pushIndent();
+		if (ts.TypeGuards.isJsxElement(child)) {
+			const open = child.getOpeningElement();
+			const name = open.getTagNameNode().getText();
+			if (name === ROACT_FRAGMENT_TYPE) {
+				// We'll just add it to the combine stack, since it requires to be a top-level child
+				roactCombineStack.push(compileExpression(state, child));
+			} else {
+				if (useRoactCombine) {
+					state.pushIndent();
+				}
+
+				const value = compileExpression(state, child);
+				childStack.push(state.indent + value);
+
+				if (useRoactCombine) {
+					state.popIndent();
+				}
 			}
+		} else if (ts.TypeGuards.isJsxSelfClosingElement(child)) {
+			const name = child.getTagNameNode().getText();
 
-			const value = compileExpression(state, child);
-			currentChildren.push(state.indent + value);
-
-			if (useRoactCombine) {
-				state.popIndent();
+			if (name === ROACT_FRAGMENT_TYPE) {
+				// A Roact.Fragment should have nested elements
+				throw new CompilerError(
+					"A Roact.Fragment cannot be self-closing.",
+					child,
+					CompilerErrorType.RoactSelfClosingFragment,
+				);
+			} else {
+				const value = compileExpression(state, child);
+				childStack.push(state.indent + value);
 			}
 		} else if (ts.TypeGuards.isJsxExpression(child)) {
-			if (currentChildren.length > 0) {
-				joinedChildrenTree.push(joinAsTable(state, currentChildren));
-				currentChildren = new Array();
+			if (childStack.length > 0) {
+				roactCombineStack.push(joinAsTable(state, childStack));
+				childStack = new Array();
 			}
 
 			// If there's no expression, it will be a comment.
 			const expression = child.getExpression();
 			if (expression) {
-				joinedChildrenTree.push(compileRoactJsxExpression(state, expression));
+				roactCombineStack.push(compileRoactJsxExpression(state, expression));
 			}
 		} else if (ts.TypeGuards.isJsxText(child)) {
 			if (child.getText().match(/[^\s]/)) {
@@ -617,23 +639,22 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 
 	state.popIndent();
 
-	if (joinedChildrenTree.length >= 1) {
-		if (currentChildren.length > 0) {
+	if (roactCombineStack.length >= 1) {
+		if (childStack.length > 0) {
 			state.pushIndent();
-			joinedChildrenTree.push(joinAsTable(state, currentChildren));
+			roactCombineStack.push(joinAsTable(state, childStack));
 			state.popIndent();
 		}
 
-		if (joinedChildrenTree.length > 1) {
+		if (roactCombineStack.length > 1) {
 			return (
-				(fragment ? "" : state.indent) +
-				`TS.Roact_combine(\n${joinedChildrenTree.join(",\n")}\n${state.indent})`
+				(fragment ? "" : state.indent) + `TS.Roact_combine(\n${roactCombineStack.join(",\n")}\n${state.indent})`
 			);
 		} else {
-			return (fragment ? "" : state.indent) + `${joinedChildrenTree.join(",\n").trim()}`;
+			return (fragment ? "" : state.indent) + `${roactCombineStack.join(",\n").trim()}`;
 		}
-	} else if (currentChildren.length > 0) {
-		return (fragment ? "" : state.indent) + `{\n${currentChildren.join(",\n")},\n` + state.indent + `}`;
+	} else if (childStack.length > 0) {
+		return (fragment ? "" : state.indent) + `{\n${childStack.join(",\n")},\n` + state.indent + `}`;
 	} else {
 		return (fragment ? "" : state.indent) + "{}";
 	}
@@ -648,12 +669,14 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
  */
 function generateRoactElementV2(
 	state: CompilerState,
+	node: ts.JsxElement | ts.JsxSelfClosingElement,
 	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
 	children: Array<ts.JsxChild>,
 ): string {
 	const name = nameNode.getText();
 	let isFragment = false;
+	let isInlineFragment = false;
 	let funcName = "Roact.createElement";
 
 	// All arguments to Roact will end up here!
@@ -662,6 +685,19 @@ function generateRoactElementV2(
 	if (name === ROACT_FRAGMENT_TYPE) {
 		isFragment = true;
 		funcName = "Roact.createFragment";
+
+		if (
+			node
+				.getParent()
+				.getType()
+				.getText() === ROACT_ELEMENT_TYPE
+		) {
+			throw new CompilerError(
+				`Nested fragments are not supported.`,
+				nameNode,
+				CompilerErrorType.RoactInvalidPrimitive,
+			);
+		}
 	} else if (name.match(/^[a-z]+$/)) {
 		const rbxName = INTRINSIC_MAPPINGS[name];
 		if (rbxName !== undefined) {
@@ -679,7 +715,7 @@ function generateRoactElementV2(
 
 	state.pushIndent();
 
-	if (isFragment === false && attributes.length > 0) {
+	if (isFragment === false && isInlineFragment === false && attributes.length > 0) {
 		elementArguments.push(generateRoactAttributes(state, attributes));
 	}
 
@@ -987,7 +1023,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElementV2(state, tagNameNode, open.getAttributes(), children);
+	const element = generateRoactElementV2(state, node, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
@@ -1013,7 +1049,7 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElementV2(state, tagNameNode, node.getAttributes(), []);
+	const element = generateRoactElementV2(state, node, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
