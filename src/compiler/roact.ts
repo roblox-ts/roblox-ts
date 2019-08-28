@@ -74,6 +74,30 @@ function isRoactElementType(type: ts.Type, allowsUndefined: boolean = true) {
 }
 
 /**
+ * Returns whether or not this is a valid conditional expression for Roact JSX
+ * @param node The conditional expression
+ */
+function isValidRoactConditionalExpression(node: ts.ConditionalExpression) {
+	const ifTrue = node.getWhenTrue();
+	const ifFalse = node.getWhenFalse();
+	return isRoactElementType(ifTrue.getType()) && isRoactElementType(ifFalse.getType());
+}
+
+/**
+ * Returns whether or not this is a valid binary expression for Roact JSX
+ * @param node The binary expression
+ */
+function isValidRoactBinaryExpression(node: ts.BinaryExpression) {
+	const rawRhs = node.getRight();
+
+	if (isRoactElementType(rawRhs.getType())) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+/**
  * Will return true if it's `Roact.Element | undefined` or `Roact.Element`
  * @param unionTypes The union types
  */
@@ -496,6 +520,30 @@ export function generateRoactElement(
 							`Roact does not support the property type ` + propertyType.getText(),
 							expression,
 							CompilerErrorType.RoactInvalidPropertyExpression,
+						);
+					}
+				} else if (ts.TypeGuards.isBinaryExpression(expression)) {
+					if (isValidRoactBinaryExpression(expression)) {
+						extraChildrenCollection.push(compileExpression(state, expression));
+					} else {
+						const right = expression
+							.getRight()
+							.getType()
+							.getText();
+						throw new CompilerError(
+							`Invalid right-hand to Roact Binary expression '${right}' - Must be of type Roact.Element or return Roact.Element`,
+							expression,
+							CompilerErrorType.RoactInvalidExpression,
+						);
+					}
+				} else if (ts.TypeGuards.isConditionalExpression(expression)) {
+					if (isValidRoactConditionalExpression(expression)) {
+						extraChildrenCollection.push(compileExpression(state, expression));
+					} else {
+						throw new CompilerError(
+							`Conditional expression must return Roact.Element or undefined`,
+							expression,
+							CompilerErrorType.RoactInvalidExpression,
 						);
 					}
 				} else {
