@@ -124,6 +124,13 @@ function isRoactElementArrayType(type: ts.Type) {
 	}
 }
 
+/**
+ * Returns whether or not this is a valid roact child element type
+ *
+ * e.g. `Roact.Element`, `Map<string, Roact.Element>`, `Map<number, Roact.Element>`
+ * or `Array<Roact.Element | undefined>`
+ * @param type
+ */
 function isRoactChildElementType(type: ts.Type) {
 	if (isRoactElementMapType(type) || isRoactElementArrayType(type) || isRoactElementType(type)) {
 		return true;
@@ -302,7 +309,6 @@ export function generateRoactSymbolProperty(
 
 export function generateRoactElement(
 	state: CompilerState,
-	// name: string,
 	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
 	children: Array<ts.JsxChild>,
