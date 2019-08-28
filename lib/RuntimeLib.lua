@@ -214,6 +214,7 @@ function TS.add(a, b)
 	end
 end
 
+-- bitwise operations
 local function bitTruncate(a)
 	if a < 0 then
 		return math_ceil(a)
@@ -222,7 +223,6 @@ local function bitTruncate(a)
 	end
 end
 
--- bitwise operations
 local powOfTwo = setmetatable({}, {
 	__index = function(self, i)
 		local v = 2 ^ i
