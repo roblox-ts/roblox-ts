@@ -972,17 +972,6 @@ function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAc
 		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return false;
-						} else {
-							return true;
-						}
-					}
-				}
 				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
 					return true;
 				}
@@ -994,24 +983,13 @@ function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAc
 		getSymbolOrThrow(node, t)
 			.getDeclarations()
 			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return true;
-						} else {
-							return false;
-						}
-					}
-				}
-
 				if (
-					ts.TypeGuards.isFunctionTypeNode(dec) ||
-					ts.TypeGuards.isPropertySignature(dec) ||
-					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
-					ts.TypeGuards.isArrowFunction(dec) ||
-					ts.TypeGuards.isFunctionDeclaration(dec)
+					(ts.TypeGuards.isFunctionTypeNode(dec) ||
+						ts.TypeGuards.isPropertySignature(dec) ||
+						(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
+						ts.TypeGuards.isArrowFunction(dec) ||
+						ts.TypeGuards.isFunctionDeclaration(dec)) &&
+					!isMethodDeclaration(dec)
 				) {
 					return true;
 				}

@@ -5,8 +5,6 @@ local HttpService = game:GetService("HttpService")
 -- constants
 local table_sort = table.sort
 local table_concat = table.concat
-local math_ceil = math.ceil
-local math_floor = math.floor
 
 local TS = {}
 
@@ -202,7 +200,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.throw(ok == nil and "The awaited Promise was cancelled" or result)
+		error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
@@ -214,74 +212,14 @@ function TS.add(a, b)
 	end
 end
 
-local function bitTruncate(a)
-	if a < 0 then
-		return math_ceil(a)
-	else
-		return math_floor(a)
-	end
-end
-
-TS.bit_truncate = bitTruncate
-
--- bitwise operations
-local powOfTwo = setmetatable({}, {
-	__index = function(self, i)
-		local v = 2 ^ i
-		self[i] = v
-		return v
-	end;
-})
-
-local _2_52 = powOfTwo[52]
-local function bitop(a, b, oper)
-	local r, m, s = 0, _2_52
-	repeat
-		s, a, b = a + b + m, a % m, b % m
-		r, m = r + m * oper % (s - a - b), m / 2
-	until m < 1
-	return r
-end
-
-function TS.bit_not(a)
-	return -a - 1
-end
-
-function TS.bit_or(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 1)
-end
-
-function TS.bit_and(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 4)
-end
-
-function TS.bit_xor(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 3)
-end
-
-function TS.bit_lsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return a * powOfTwo[b]
-end
-
-function TS.bit_rsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitTruncate(a / powOfTwo[b])
-end
-
 function TS.bit_lrsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	if a >= 0 then return TS.bit_rsh(a, b) end
-	return TS.bit_rsh((a % powOfTwo[32]), b)
+	local absA = math.abs(a)
+	local result = bit32.rshift(absA, b)
+	if a/absA == 1 then
+		return result
+	else
+		return -result - 1
+	end
 end
 
 -- utility functions
@@ -990,74 +928,6 @@ function TS.opcall(func, ...)
 			error = valueOrErr,
 		}
 	end
-end
-
--- try catch utilities
-
-local function pack(...)
-	return { size = select("#", ...), ... }
-end
-
-local throwStack = {}
-
-function TS.throw(value)
-	if #throwStack > 0 then
-		throwStack[#throwStack](value)
-	else
-		error("Uncaught " .. tostring(value), 2)
-	end
-end
-
-function TS.try(tryCallback, catchCallback)
-	local done = false
-	local yielded = false
-	local popped = false
-	local resumeThread = coroutine.running()
-
-	local returns
-
-	local function pop()
-		if not popped then
-			popped = true
-			throwStack[#throwStack] = nil
-		end
-	end
-
-	local function resume()
-		if yielded then
-			local success, errorMsg = coroutine.resume(resumeThread)
-			if not success then
-				warn(errorMsg)
-			end
-		else
-			done = true
-		end
-	end
-
-	local function throw(value)
-		pop()
-		if catchCallback then
-			returns = pack(catchCallback(value))
-		end
-		resume()
-		coroutine.yield()
-	end
-
-	throwStack[#throwStack + 1] = throw
-
-	coroutine.wrap(function()
-		returns = pack(tryCallback())
-		resume()
-	end)()
-
-	if not done then
-		yielded = true
-		coroutine.yield()
-	end
-
-	pop()
-
-	return returns
 end
 
 return TS

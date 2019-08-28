@@ -48,7 +48,24 @@ stds.roblox = {
         "DockWidgetPluginGuiInfo",
 
         -- libraries
-        "utf8",
+		"utf8",
+
+		bit32 = {
+			fields = {
+				"arshift",
+				"band",
+				"bnot",
+				"bor",
+				"btest",
+				"bxor",
+				"extract",
+				"lrotate",
+				"lshift",
+				"replace",
+				"rrotate",
+				"rshift",
+			}
+		},
 
         math = {
             fields = {
