@@ -568,10 +568,6 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
  * @param children The children
  */
 function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
-	if (children.length === 0) {
-		return state.indent + "{}";
-	}
-
 	const joinedChildrenTree = new Array<string>();
 
 	let currentChildren = new Array<string>();
@@ -581,9 +577,6 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 		if (ts.TypeGuards.isJsxExpression(child)) {
 			useRoactCombine = true;
 		}
-	}
-
-	if (useRoactCombine) {
 	}
 
 	state.pushIndent();
@@ -606,9 +599,11 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 				currentChildren = new Array();
 			}
 
-			const expression = child.getExpressionOrThrow();
-
-			joinedChildrenTree.push(compileRoactJsxExpression(state, expression));
+			// If there's no expression, it will be a comment.
+			const expression = child.getExpression();
+			if (expression) {
+				joinedChildrenTree.push(compileRoactJsxExpression(state, expression));
+			}
 		}
 	}
 
