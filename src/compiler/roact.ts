@@ -265,6 +265,7 @@ function compileSymbolPropertyCallback(state: CompilerState, node: ts.Expression
 	return compileExpression(state, node);
 }
 
+// TODO: Remove
 export function generateRoactSymbolProperty(
 	state: CompilerState,
 	roactSymbol: "Event" | "Change" | "Ref",
@@ -338,7 +339,7 @@ export function generateRoactSymbolProperty(
 }
 
 function joinAsTable(state: CompilerState, array: Array<string>) {
-	return state.indent + "{\n" + array.join(`,\n`) + "\n" + state.indent + "}";
+	return state.indent + "{\n" + array.join(`,\n`) + ",\n" + state.indent + "}";
 }
 
 export function generateSpecialPropAttribute(
@@ -418,11 +419,7 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 			}
 
 			const expression = attributeLike.getExpression();
-			// state.popIndent();
-
-			// state.pushIndent();
 			joinedAttributesTree.push(state.indent + compileExpression(state, expression));
-			// state.popIndent();
 		} else {
 			if (useRoactCombine) {
 				state.pushIndent();
@@ -458,7 +455,6 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 	if (joinedAttributesTree.length >= 1) {
 		if (currentAttributes.length > 0) {
 			state.pushIndent();
-			// joinedAttributesTree = joinedAttributesTree.map(a => state.indent + a);
 			joinedAttributesTree.push(joinAsTable(state, currentAttributes));
 			state.popIndent();
 		}
@@ -466,6 +462,155 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 		return state.indent + `TS.Roact_combine(\n${joinedAttributesTree.join(",\n")}\n${state.indent})`;
 	} else if (currentAttributes.length > 0) {
 		return state.indent + `{\n${currentAttributes.join(",\n")},\n` + state.indent + `}`;
+	} else {
+		return state.indent + "{}";
+	}
+}
+
+function compileRoactJsxExpression(state: CompilerState, expression: ts.Expression): string {
+	if (ts.TypeGuards.isCallExpression(expression)) {
+		// Must return Roact.Element :(
+		const returnType = expression.getReturnType();
+		if (isRoactChildElementType(returnType)) {
+			if (isArrayType(returnType) || isMapType(returnType)) {
+				// Roact.Element[]
+				return state.indent + compileExpression(state, expression);
+			} else {
+				// Roact.Element
+				return state.indent + `{ ${compileExpression(state, expression)} }`;
+			}
+		} else {
+			throw new CompilerError(
+				`Function call in an expression must return Roact.Element or Roact.Element[]`,
+				expression,
+				CompilerErrorType.RoactInvalidCallExpression,
+			);
+		}
+	} else if (ts.TypeGuards.isIdentifier(expression)) {
+		const definitionNodes = expression.getDefinitionNodes();
+		for (const definitionNode of definitionNodes) {
+			const type = getType(definitionNode);
+			if (isRoactChildElementType(type)) {
+				return state.indent + compileExpression(state, expression);
+			} else {
+				throw new CompilerError(
+					`Roact does not support identifiers that have the return type ` + type.getText(),
+					expression,
+					CompilerErrorType.RoactInvalidIdentifierExpression,
+				);
+			}
+		}
+
+		return "";
+	} else if (
+		ts.TypeGuards.isPropertyAccessExpression(expression) ||
+		ts.TypeGuards.isElementAccessExpression(expression)
+	) {
+		const propertyType = getType(expression);
+
+		if (isRoactChildElementType(propertyType)) {
+			return state.indent + compileExpression(state, expression);
+		} else {
+			throw new CompilerError(
+				`Roact does not support the property type ` + propertyType.getText(),
+				expression,
+				CompilerErrorType.RoactInvalidPropertyExpression,
+			);
+		}
+	} else if (ts.TypeGuards.isBinaryExpression(expression)) {
+		if (isValidRoactBinaryExpression(expression)) {
+			return state.indent + compileExpression(state, expression);
+		} else {
+			const right = expression
+				.getRight()
+				.getType()
+				.getText();
+			throw new CompilerError(
+				`Invalid right-hand to Roact Binary expression '${right}' - Must be of type Roact.Element or return Roact.Element`,
+				expression,
+				CompilerErrorType.RoactInvalidExpression,
+			);
+		}
+	} else if (ts.TypeGuards.isConditionalExpression(expression)) {
+		if (isValidRoactConditionalExpression(expression)) {
+			return state.indent + compileExpression(state, expression);
+		} else {
+			throw new CompilerError(
+				`Conditional expression must return Roact.Element or undefined`,
+				expression,
+				CompilerErrorType.RoactInvalidExpression,
+			);
+		}
+	} else {
+		throw new CompilerError(
+			`Roact does not support this type of expression ` +
+				`{${expression.getText()}} (${expression.getKindName()})`,
+			expression,
+			CompilerErrorType.RoactInvalidExpression,
+		);
+	}
+}
+
+export function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
+	const baseIndent = state.indent;
+	if (children.length === 0) {
+		return state.indent + "{}";
+	}
+
+	const joinedChildrenTree = new Array<string>();
+
+	let currentChildren = new Array<string>();
+
+	let useRoactCombine = false;
+	for (const child of children) {
+		if (ts.TypeGuards.isJsxExpression(child)) {
+			useRoactCombine = true;
+		}
+	}
+
+	if (useRoactCombine) {
+	}
+
+	state.pushIndent();
+
+	for (const child of children) {
+		if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
+			if (useRoactCombine) {
+				state.pushIndent();
+			}
+
+			const value = compileExpression(state, child);
+			currentChildren.push(state.indent + value);
+
+			if (useRoactCombine) {
+				state.popIndent();
+			}
+		} else if (ts.TypeGuards.isJsxExpression(child)) {
+			if (currentChildren.length > 0) {
+				joinedChildrenTree.push(joinAsTable(state, currentChildren));
+				currentChildren = new Array();
+			}
+
+			const expression = child.getExpressionOrThrow();
+
+			joinedChildrenTree.push(compileRoactJsxExpression(state, expression));
+		}
+	}
+
+	state.popIndent();
+
+	if (joinedChildrenTree.length >= 1) {
+		if (currentChildren.length > 0) {
+			state.pushIndent();
+			joinedChildrenTree.push(joinAsTable(state, currentChildren));
+			state.popIndent();
+		}
+
+		return (
+			(fragment ? "" : state.indent) + `TS.Roact_combine(\n${joinedChildrenTree.join(",\n")}\n${state.indent})`
+		);
+	} else if (currentChildren.length > 0) {
+		return (fragment ? "" : state.indent) + `{\n${currentChildren.join(",\n")},\n` + state.indent + `}`;
 	} else {
 		return state.indent + "{}";
 	}
@@ -513,18 +658,20 @@ export function generateRoactElementV2(
 
 	state.pushIndent();
 
-	if (isFragment) {
-	} else {
+	if (isFragment === false && attributes.length > 0) {
 		elementArguments.push(generateRoactAttributes(state, attributes));
+	}
+
+	if (children.length > 0) {
+		elementArguments.push(generateRoactChildren(state, isFragment, children));
 	}
 
 	state.popIndent();
 
-	return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${
-		state.indent
-	}) --[[isFragment: ${isFragment}, elementType: ${name}]]`;
+	return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${state.indent})`;
 }
 
+// TODO: Remove
 export function generateRoactElement(
 	state: CompilerState,
 	nameNode: ts.JsxTagNameExpression,
@@ -841,7 +988,7 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
+	const element = generateRoactElementV2(state, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
