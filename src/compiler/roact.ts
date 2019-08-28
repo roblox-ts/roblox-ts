@@ -382,7 +382,17 @@ export function generateRoactElement(
 			} else {
 				const attribute = attributeLike as ts.JsxAttribute;
 				const attributeName = attribute.getName();
-				const value = compileExpression(state, attribute.getInitializerOrThrow());
+				const attributeType = attribute.getType();
+
+				let value;
+				console.log(attributeName, attributeType.getText());
+				if (attributeType.isBooleanLiteral()) {
+					// Allow <Component BooleanValue/> (implicit form of <Component BooleanValue={true}/>)
+					const initializer = attribute.getInitializer();
+					value = initializer ? compileExpression(state, initializer) : attributeType.getText();
+				} else {
+					value = compileExpression(state, attribute.getInitializerOrThrow());
+				}
 
 				if (attributeName === "Key") {
 					// handle setting a key for this element
