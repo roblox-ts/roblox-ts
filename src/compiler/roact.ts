@@ -101,10 +101,10 @@ function isValidRoactBinaryExpression(node: ts.BinaryExpression) {
  * Will return true if it's `Roact.Element | undefined` or `Roact.Element`
  * @param unionTypes The union types
  */
-function isValidRoactElementUnionType(type: ts.Type) {
+function isRoactElementUnionType(type: ts.Type) {
 	const unionTypes = type.getUnionTypes();
 	for (const unionType of unionTypes) {
-		if (!isRoactElementType(unionType)) {
+		if (!isRoactElementType(unionType) && !isRoactElementArrayType(unionType)) {
 			return false;
 		}
 	}
@@ -126,7 +126,7 @@ function isRoactElementMapType(type: ts.Type) {
 		return (
 			typeArgs.length === 2 &&
 			isValidRoactMapKey(typeArgs[0]) &&
-			(isValidRoactElementUnionType(typeArgs[1]) && isRoactElementType(typeArgs[1]))
+			(isRoactElementUnionType(typeArgs[1]) && isRoactElementType(typeArgs[1]))
 		);
 	} else {
 		return false;
@@ -139,7 +139,7 @@ function isRoactElementMapType(type: ts.Type) {
  */
 function isRoactElementArrayType(type: ts.Type) {
 	if (isArrayType(type)) {
-		if (isValidRoactElementUnionType(type) || type.getText() === ROACT_ELEMENT_TYPE) {
+		if (isRoactElementUnionType(type) || type.getText() === ROACT_ELEMENT_TYPE) {
 			return true;
 		} else {
 			return false;
@@ -157,7 +157,12 @@ function isRoactElementArrayType(type: ts.Type) {
  * @param type
  */
 function isRoactChildElementType(type: ts.Type) {
-	if (isRoactElementMapType(type) || isRoactElementArrayType(type) || isRoactElementType(type)) {
+	if (
+		isRoactElementMapType(type) ||
+		isRoactElementArrayType(type) ||
+		isRoactElementType(type) ||
+		isRoactElementUnionType(type)
+	) {
 		return true;
 	} else {
 		return false;
@@ -385,7 +390,6 @@ export function generateRoactElement(
 				const attributeType = attribute.getType();
 
 				let value;
-				console.log(attributeName, attributeType.getText());
 				if (attributeType.isBooleanLiteral()) {
 					// Allow <Component BooleanValue/> (implicit form of <Component BooleanValue={true}/>)
 					const initializer = attribute.getInitializer();
