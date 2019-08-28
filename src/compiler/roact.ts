@@ -337,6 +337,101 @@ export function generateRoactSymbolProperty(
 	}
 }
 
+export function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
+	const joinedAttributesTree = new Array<Array<string>>();
+
+	state.pushIndent();
+
+	const currentAttributes = new Array<string>();
+
+	for (const attributeLike of attributes) {
+		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+		} else {
+			const attribute = attributeLike as ts.JsxAttribute;
+			const attributeName = attribute.getName();
+			const attributeType = attribute.getType();
+
+			let value;
+			if (attributeType.isBooleanLiteral()) {
+				// Allow <Component BooleanValue/> (implicit form of <Component BooleanValue={true}/>)
+				const initializer = attribute.getInitializer();
+				value = initializer ? compileExpression(state, initializer) : attributeType.getText();
+			} else {
+				value = compileExpression(state, attribute.getInitializerOrThrow());
+			}
+
+			currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
+		}
+	}
+
+	state.popIndent();
+
+	if (joinedAttributesTree.length > 1) {
+		return (
+			state.indent +
+			`Roact.combine(\n${state.indent}${joinedAttributesTree.map(r => r.join(",\n"))}${state.indent}\n)`
+		);
+	} else if (currentAttributes.length > 0) {
+		return state.indent + `{\n${currentAttributes.join(",\n")}\n` + state.indent + `}`;
+	} else {
+		return state.indent + "{}";
+	}
+}
+
+/**
+ *
+ * @param state The state
+ * @param nameNode The name node
+ * @param attributes The attributes of the JSX element
+ * @param children The children of the JSX element
+ */
+export function generateRoactElementV2(
+	state: CompilerState,
+	nameNode: ts.JsxTagNameExpression,
+	attributes: Array<ts.JsxAttributeLike>,
+	children: Array<ts.JsxChild>,
+): string {
+	const name = nameNode.getText();
+	let isFragment = false;
+	let funcName = "Roact.createElement";
+
+	// state.pushHoistStack("Test");
+
+	// All arguments to Roact will end up here!
+	const elementArguments = new Array<string>();
+
+	if (name === ROACT_FRAGMENT_TYPE) {
+		isFragment = true;
+		funcName = "Roact.createFragment";
+	} else if (name.match(/^[a-z]+$/)) {
+		const rbxName = INTRINSIC_MAPPINGS[name];
+		if (rbxName !== undefined) {
+			elementArguments.push(`"${rbxName}"`);
+		} else {
+			throw new CompilerError(
+				`"${bold(name)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
+				nameNode,
+				CompilerErrorType.RoactInvalidPrimitive,
+			);
+		}
+	} else {
+		elementArguments.push(name);
+	}
+
+	state.pushIndent();
+
+	if (isFragment) {
+	} else {
+		elementArguments.push(generateRoactAttributes(state, attributes));
+	}
+
+	state.popIndent();
+
+	return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${
+		state.indent
+	}) --[[isFragment: ${isFragment}, elementType: ${name}]]`;
+}
+
 export function generateRoactElement(
 	state: CompilerState,
 	nameNode: ts.JsxTagNameExpression,
@@ -627,7 +722,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
+	const element = generateRoactElementV2(state, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
 		state.roactIndent--;
