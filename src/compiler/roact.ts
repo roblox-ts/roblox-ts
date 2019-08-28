@@ -397,7 +397,12 @@ export function generateSpecialPropAttribute(
 	}
 }
 
-export function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
+/**
+ * Generates attributes for a Roact.Element
+ * @param state The compiler state
+ * @param attributes The attributes for the roact element
+ */
+function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
 	const joinedAttributesTree = new Array<string>();
 
 	state.pushIndent();
@@ -467,6 +472,11 @@ export function generateRoactAttributes(state: CompilerState, attributes: Array<
 	}
 }
 
+/**
+ * Transpiles a roact JSX expression
+ * @param state The compiler state
+ * @param expression The expression
+ */
 function compileRoactJsxExpression(state: CompilerState, expression: ts.Expression): string {
 	if (ts.TypeGuards.isCallExpression(expression)) {
 		// Must return Roact.Element :(
@@ -551,8 +561,13 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 	}
 }
 
-export function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
-	const baseIndent = state.indent;
+/**
+ * Generates the children for a Roact Element
+ * @param state The compiler state
+ * @param fragment Whether or not this is children for a Roact.Fragment
+ * @param children The children
+ */
+function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
 	if (children.length === 0) {
 		return state.indent + "{}";
 	}
@@ -606,9 +621,14 @@ export function generateRoactChildren(state: CompilerState, fragment: boolean, c
 			state.popIndent();
 		}
 
-		return (
-			(fragment ? "" : state.indent) + `TS.Roact_combine(\n${joinedChildrenTree.join(",\n")}\n${state.indent})`
-		);
+		if (joinedChildrenTree.length > 1) {
+			return (
+				(fragment ? "" : state.indent) +
+				`TS.Roact_combine(\n${joinedChildrenTree.join(",\n")}\n${state.indent})`
+			);
+		} else {
+			return (fragment ? "" : state.indent) + `${joinedChildrenTree.join(",\n").trim()}`;
+		}
 	} else if (currentChildren.length > 0) {
 		return (fragment ? "" : state.indent) + `{\n${currentChildren.join(",\n")},\n` + state.indent + `}`;
 	} else {
@@ -617,13 +637,13 @@ export function generateRoactChildren(state: CompilerState, fragment: boolean, c
 }
 
 /**
- *
+ * The new and improved Roact.Element generator
  * @param state The state
  * @param nameNode The name node
  * @param attributes The attributes of the JSX element
  * @param children The children of the JSX element
  */
-export function generateRoactElementV2(
+function generateRoactElementV2(
 	state: CompilerState,
 	nameNode: ts.JsxTagNameExpression,
 	attributes: Array<ts.JsxAttributeLike>,
@@ -632,8 +652,6 @@ export function generateRoactElementV2(
 	const name = nameNode.getText();
 	let isFragment = false;
 	let funcName = "Roact.createElement";
-
-	// state.pushHoistStack("Test");
 
 	// All arguments to Roact will end up here!
 	const elementArguments = new Array<string>();
@@ -668,7 +686,11 @@ export function generateRoactElementV2(
 
 	state.popIndent();
 
-	return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${state.indent})`;
+	if (elementArguments.length > 1 || isFragment) {
+		return `${funcName}(\n${state.indent + "\t"}${elementArguments.join(",\n")}\n${state.indent})`;
+	} else {
+		return `${funcName}(${elementArguments.join(",\n")})`;
+	}
 }
 
 // TODO: Remove
