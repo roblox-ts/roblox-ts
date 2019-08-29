@@ -298,12 +298,25 @@ function compileSymbolPropertyCallback(state: CompilerState, expression: ts.Expr
 }
 
 /**
- * Wraps the array of strings and wraps it in a Lua table
+ * Joins the array of strings and wraps it in a Lua table
  * @param state The state
  * @param array The array of strings to join
  */
 function joinAndWrapInTable(state: CompilerState, array: Array<string>) {
-	return state.indent + "{\n" + array.join(`,\n`) + ",\n" + state.indent + "}";
+	if (array.length > 0) {
+		return "{\n" + array.join(`,\n`) + ",\n" + state.indent + "}";
+	} else {
+		return "{}";
+	}
+}
+
+/**
+ * Joins the array of strings and wraps it in a TS.Roact_combine
+ * @param state The state
+ * @param stack The array of strings to join
+ */
+function joinAndWrapInRoactCombine(state: CompilerState, stack: Array<string>) {
+	return `TS.Roact_combine(` + `\n` + stack.join(",\n") + `\n` + state.indent + `)`;
 }
 
 /**
@@ -431,7 +444,7 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 	for (const attributeLike of attributesCollection) {
 		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
 			if (attributeStack.length > 0) {
-				attributeCombineStack.push(joinAndWrapInTable(state, attributeStack));
+				attributeCombineStack.push(state.indent + joinAndWrapInTable(state, attributeStack));
 				attributeStack = new Array<string>();
 			}
 
@@ -460,7 +473,7 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 			} else if (attributeName === "Key") {
 				state.roactKeyStack.push(value);
 			} else {
-				attributeStack.push(`${state.indent}${attributeName} = ${value}`);
+				attributeStack.push(state.indent + attributeName + " = " + value);
 			}
 
 			if (useRoactCombine) {
@@ -474,15 +487,13 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 	if (attributeCombineStack.length >= 1) {
 		if (attributeStack.length > 0) {
 			state.pushIndent();
-			attributeCombineStack.push(joinAndWrapInTable(state, attributeStack));
+			attributeCombineStack.push(state.indent + joinAndWrapInTable(state, attributeStack));
 			state.popIndent();
 		}
 
-		return state.indent + `TS.Roact_combine(\n${attributeCombineStack.join(",\n")}\n${state.indent})`;
-	} else if (attributeStack.length > 0) {
-		return state.indent + `{\n${attributeStack.join(",\n")},\n` + state.indent + `}`;
+		return state.indent + joinAndWrapInRoactCombine(state, attributeCombineStack);
 	} else {
-		return state.indent + "{}";
+		return state.indent + joinAndWrapInTable(state, attributeStack);
 	}
 }
 
@@ -582,7 +593,7 @@ function generateRoactChildren(state: CompilerState, isFragment: boolean, childC
 			}
 		} else if (ts.TypeGuards.isJsxExpression(child)) {
 			if (childStack.length > 0) {
-				roactCombineStack.push(joinAndWrapInTable(state, childStack));
+				roactCombineStack.push(state.indent + joinAndWrapInTable(state, childStack));
 				childStack = new Array();
 			}
 
@@ -607,27 +618,17 @@ function generateRoactChildren(state: CompilerState, isFragment: boolean, childC
 	if (roactCombineStack.length >= 1) {
 		if (childStack.length > 0) {
 			state.pushIndent();
-			roactCombineStack.push(joinAndWrapInTable(state, childStack));
+			roactCombineStack.push(state.indent + joinAndWrapInTable(state, childStack));
 			state.popIndent();
 		}
 
 		if (roactCombineStack.length > 1) {
-			return (
-				(isFragment ? "" : state.indent) +
-				`TS.Roact_combine(\n` +
-				roactCombineStack.join(",\n") +
-				`\n` +
-				state.indent +
-				`)`
-			);
+			return state.indent + joinAndWrapInRoactCombine(state, roactCombineStack);
 		} else {
 			return (isFragment ? "" : state.indent) + roactCombineStack.join(",\n").trim();
 		}
-	} else if (childStack.length > 0) {
-		return (isFragment ? "" : state.indent) + `{\n` + childStack.join(",\n") + `,\n` + state.indent + `}`;
-	} else {
-		return (isFragment ? "" : state.indent) + "{}";
 	}
+	return (isFragment ? "" : state.indent) + joinAndWrapInTable(state, childStack);
 }
 
 /**
