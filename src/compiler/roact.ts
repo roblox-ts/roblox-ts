@@ -17,53 +17,48 @@ export const ROACT_DERIVED_CLASSES_ERROR = suggest(
 );
 const CONSTRUCTOR_METHOD_NAME = "init";
 const INHERITANCE_METHOD_NAME = "extend";
-const RESERVED_METHOD_NAMES = [
-	CONSTRUCTOR_METHOD_NAME,
-	"setState",
-	"_update",
-	"getElementTraceback",
-	"_forceUpdate",
-	"_mount",
-	"_unmount",
-	INHERITANCE_METHOD_NAME,
-];
+const RESERVED_METHOD_NAMES = [CONSTRUCTOR_METHOD_NAME, "setState", "getElementTraceback", INHERITANCE_METHOD_NAME];
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
  */
 const INTRINSIC_MAPPINGS: { [name: string]: string } = {
-	billboardgui: "BillboardGui",
-
+	// Frames
 	frame: "Frame",
+	scrollingframe: "ScrollingFrame",
+	viewportframe: "ViewportFrame",
 
+	// LayerCollectors
+	billboardgui: "BillboardGui",
+	screengui: "ScreenGui",
+	surfacegui: "SurfaceGui",
+
+	// Images
 	imagebutton: "ImageButton",
 	imagelabel: "ImageLabel",
 
-	screengui: "ScreenGui",
-	scrollingframe: "ScrollingFrame",
-	surfacegui: "SurfaceGui",
-
+	// Text
 	textbox: "TextBox",
 	textbutton: "TextButton",
 	textlabel: "TextLabel",
 
+	// Layouts
 	uigridlayout: "UIGridLayout",
+	uiinlinelayout: "UIInlineLayout",
 	uilistlayout: "UIListLayout",
 	uipagelayout: "UIPageLayout",
 	uitablelayout: "UITableLayout",
 
+	// Scaling & Padding
 	uipadding: "UIPadding",
 	uiscale: "UIScale",
 
+	// Constraints
 	uiaspectratioconstraint: "UIAspectRatioConstraint",
-
 	uisizeconstraint: "UISizeConstraint",
 	uitextsizeconstraint: "UITextSizeConstraint",
 
-	uiinlinelayout: "UIInlineLayout",
-
-	viewportframe: "ViewportFrame",
-
+	// Other
 	camera: "Camera",
 };
 
@@ -189,6 +184,10 @@ function getFullTypeList(type: ts.Type): Array<string> {
 	return typeArray;
 }
 
+/**
+ * Returns whether or not this type inherits a Roact.Component
+ * @param type The type
+ */
 export function inheritsFromRoact(type: ts.Type): boolean {
 	let isRoactClass = false;
 	for (const name of getFullTypeList(type)) {
@@ -200,8 +199,12 @@ export function inheritsFromRoact(type: ts.Type): boolean {
 	return isRoactClass;
 }
 
-export function getRoactType(node: ts.ClassDeclaration | ts.ClassExpression) {
-	const extendsExp = node.getExtends();
+/**
+ * Returns the Roact class type of the class declaration or expression
+ * @param classNode The class declaration or expression
+ */
+export function getRoactType(classNode: ts.ClassDeclaration | ts.ClassExpression) {
+	const extendsExp = classNode.getExtends();
 	if (extendsExp) {
 		const extendsText = skipNodesDownwards(extendsExp.getExpression()).getText();
 		if (extendsText.startsWith(ROACT_COMPONENT_TYPE)) {
@@ -213,14 +216,18 @@ export function getRoactType(node: ts.ClassDeclaration | ts.ClassExpression) {
 	return undefined;
 }
 
-export function inheritsFromRoactComponent(node: ts.ClassDeclaration | ts.ClassExpression): boolean {
-	const extendsExp = node.getExtends();
+/**
+ * Whether or not this class declaration / expression inherits Roact.Component
+ * @param classNode The class declaration or expression
+ */
+export function inheritsFromRoactComponent(classNode: ts.ClassDeclaration | ts.ClassExpression): boolean {
+	const extendsExp = classNode.getExtends();
 	if (extendsExp) {
 		const symbol = extendsExp.getType().getSymbol();
 		if (symbol) {
 			const valueDec = symbol.getValueDeclaration();
 			if (valueDec && (ts.TypeGuards.isClassDeclaration(valueDec) || ts.TypeGuards.isClassExpression(valueDec))) {
-				if (getRoactType(node) !== undefined) {
+				if (getRoactType(classNode) !== undefined) {
 					return true;
 				} else {
 					return inheritsFromRoactComponent(valueDec);
@@ -231,7 +238,23 @@ export function inheritsFromRoactComponent(node: ts.ClassDeclaration | ts.ClassE
 	return false;
 }
 
-export function checkRoactReserved(className: string, name: string, node: ts.Node<ts.ts.Node>) {
+/**
+ * Checks to see if the name is a reserved roact keyword
+ * @param className The class name
+ * @param name The name of the member
+ * @param node The node
+ */
+export function checkRoactReserved(className: string, name: string, node: ts.Node) {
+	if (name.startsWith("__")) {
+		throw new CompilerError(
+			`Members with underscores in Roact like '${bold(className)}.${bold(
+				name,
+			)}' are only for internal use, and thus cannot be used.`,
+			node,
+			CompilerErrorType.RoactNoReservedMethods,
+		);
+	}
+
 	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
 		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
 
@@ -247,8 +270,13 @@ export function checkRoactReserved(className: string, name: string, node: ts.Nod
 	}
 }
 
-function compileSymbolPropertyCallback(state: CompilerState, node: ts.Expression) {
-	const symbol = node.getSymbolOrThrow();
+/**
+ * Compiles a symbol property / callback
+ * @param state The state
+ * @param expression The expression
+ */
+function compileSymbolPropertyCallback(state: CompilerState, expression: ts.Expression) {
+	const symbol = expression.getSymbolOrThrow();
 	const name = symbol.getName();
 	const value = symbol.getValueDeclarationOrThrow();
 
@@ -260,149 +288,22 @@ function compileSymbolPropertyCallback(state: CompilerState, node: ts.Expression
 						`Change the declaration of \`${name}(...) {...}\` to \`${name} = () => { ... }\`, ` +
 							` or use an arrow function: \`() => { this.${name}() }\``,
 					),
-				node,
+				expression,
 				CompilerErrorType.RoactInvalidCallExpression,
 			);
 		}
 	}
 
-	return compileExpression(state, node);
-}
-
-function joinAsTable(state: CompilerState, array: Array<string>) {
-	return state.indent + "{\n" + array.join(`,\n`) + ",\n" + state.indent + "}";
-}
-
-export function generateSpecialPropAttribute(
-	state: CompilerState,
-	roactSymbol: "Event" | "Change" | "Ref",
-	node: ts.JsxAttribute,
-	attrs: Array<string>,
-) {
-	const expr = node.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
-
-	for (const expression of expr) {
-		const innerExpression = expression.getExpressionOrThrow();
-		if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
-			const properties = innerExpression.getProperties();
-			for (const property of properties) {
-				if (
-					ts.TypeGuards.isPropertyAssignment(property) ||
-					ts.TypeGuards.isShorthandPropertyAssignment(property)
-				) {
-					const propName = property.getName();
-					const rhs = property.getInitializerOrThrow();
-					let value: string;
-
-					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
-						value = compileSymbolPropertyCallback(state, rhs);
-					} else {
-						value = compileExpression(state, rhs);
-					}
-
-					attrs.push(state.indent + `[Roact.${roactSymbol}.${propName}] = ${value}`);
-				}
-			}
-		} else if (roactSymbol === "Ref") {
-			let value: string;
-
-			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
-				const getAccessExpression = innerExpression.getExpression();
-				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
-					value = compileSymbolPropertyCallback(state, innerExpression);
-				} else {
-					value = compileExpression(state, getAccessExpression);
-				}
-			} else {
-				value = compileExpression(state, innerExpression);
-			}
-
-			attrs.push(state.indent + `[Roact.Ref] = ${value}`);
-		} else {
-			throw new CompilerError(
-				`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
-				node,
-				CompilerErrorType.RoactInvalidSymbol,
-			);
-		}
-	}
+	return compileExpression(state, expression);
 }
 
 /**
- * Generates attributes for a Roact.Element
- * @param state The compiler state
- * @param attributes The attributes for the roact element
+ * Wraps the array of strings and wraps it in a Lua table
+ * @param state The state
+ * @param array The array of strings to join
  */
-function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxAttributeLike>) {
-	const joinedAttributesTree = new Array<string>();
-
-	state.pushIndent();
-
-	let currentAttributes = new Array<string>();
-
-	let useRoactCombine = false;
-	for (const attributeLike of attributes) {
-		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
-			useRoactCombine = true;
-		}
-	}
-
-	for (const attributeLike of attributes) {
-		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
-			if (currentAttributes.length > 0) {
-				joinedAttributesTree.push(joinAsTable(state, currentAttributes));
-				currentAttributes = new Array<string>();
-			}
-
-			const expression = attributeLike.getExpression();
-			joinedAttributesTree.push(state.indent + compileExpression(state, expression));
-		} else {
-			if (useRoactCombine) {
-				state.pushIndent();
-			}
-
-			const attribute = attributeLike as ts.JsxAttribute;
-			const attributeName = attribute.getName();
-			const attributeType = attribute.getType();
-
-			let value;
-			if (attributeType.isBooleanLiteral()) {
-				// Allow <Component BooleanValue/> (implicit form of <Component BooleanValue={true}/>)
-				const initializer = attribute.getInitializer();
-				value = initializer ? compileExpression(state, initializer) : attributeType.getText();
-			} else {
-				value = compileExpression(state, attribute.getInitializerOrThrow());
-			}
-
-			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
-				generateSpecialPropAttribute(state, attributeName, attribute, currentAttributes);
-			} else if (attributeName === "Key") {
-				state.roactKeyStack.push(value);
-			} else {
-				currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
-			}
-
-			if (useRoactCombine) {
-				state.popIndent();
-			}
-		}
-	}
-
-	state.popIndent();
-
-	if (joinedAttributesTree.length >= 1) {
-		if (currentAttributes.length > 0) {
-			state.pushIndent();
-			joinedAttributesTree.push(joinAsTable(state, currentAttributes));
-			state.popIndent();
-		}
-
-		return state.indent + `TS.Roact_combine(\n${joinedAttributesTree.join(",\n")}\n${state.indent})`;
-	} else if (currentAttributes.length > 0) {
-		return state.indent + `{\n${currentAttributes.join(",\n")},\n` + state.indent + `}`;
-	} else {
-		return state.indent + "{}";
-	}
+function joinAndWrapInTable(state: CompilerState, array: Array<string>) {
+	return state.indent + "{\n" + array.join(`,\n`) + ",\n" + state.indent + "}";
 }
 
 /**
@@ -509,18 +410,157 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 }
 
 /**
+ * Generates the attributes for a roact element
+ * @param state The compiler state
+ * @param attributesCollection The attributes for the roact element
+ */
+function generateRoactAttributes(state: CompilerState, attributesCollection: Array<ts.JsxAttributeLike>) {
+	const attributeCombineStack = new Array<string>();
+	let attributeStack = new Array<string>();
+	let useRoactCombine = false;
+
+	// Check to see if we should use Roact_combine for the attributes
+	for (const attributeLike of attributesCollection) {
+		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+			useRoactCombine = true;
+		}
+	}
+
+	state.pushIndent();
+
+	for (const attributeLike of attributesCollection) {
+		if (ts.TypeGuards.isJsxSpreadAttribute(attributeLike)) {
+			if (attributeStack.length > 0) {
+				attributeCombineStack.push(joinAndWrapInTable(state, attributeStack));
+				attributeStack = new Array<string>();
+			}
+
+			const expression = attributeLike.getExpression();
+			attributeCombineStack.push(state.indent + compileExpression(state, expression));
+		} else {
+			if (useRoactCombine) {
+				state.pushIndent();
+			}
+
+			const attribute = attributeLike as ts.JsxAttribute;
+			const attributeName = attribute.getName();
+			const attributeType = attribute.getType();
+
+			let value;
+			if (attributeType.isBooleanLiteral()) {
+				// Allow <Component BooleanValue/> (implicit form of <Component BooleanValue={true}/>)
+				const initializer = attribute.getInitializer();
+				value = initializer ? compileExpression(state, initializer) : attributeType.getText();
+			} else {
+				value = compileExpression(state, attribute.getInitializerOrThrow());
+			}
+
+			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
+				generateRoactSymbolAttribute(state, attributeName, attribute, attributeStack);
+			} else if (attributeName === "Key") {
+				state.roactKeyStack.push(value);
+			} else {
+				attributeStack.push(`${state.indent}${attributeName} = ${value}`);
+			}
+
+			if (useRoactCombine) {
+				state.popIndent();
+			}
+		}
+	}
+
+	state.popIndent();
+
+	if (attributeCombineStack.length >= 1) {
+		if (attributeStack.length > 0) {
+			state.pushIndent();
+			attributeCombineStack.push(joinAndWrapInTable(state, attributeStack));
+			state.popIndent();
+		}
+
+		return state.indent + `TS.Roact_combine(\n${attributeCombineStack.join(",\n")}\n${state.indent})`;
+	} else if (attributeStack.length > 0) {
+		return state.indent + `{\n${attributeStack.join(",\n")},\n` + state.indent + `}`;
+	} else {
+		return state.indent + "{}";
+	}
+}
+
+/**
+ * Generates the specified roact symbol attribute, and places it into `attrs`
+ * @param state The state
+ * @param roactSymbol The Roact symbol
+ * @param attributeNode The attribute node
+ * @param attributesStack The attribute stack
+ */
+export function generateRoactSymbolAttribute(
+	state: CompilerState,
+	roactSymbol: "Event" | "Change" | "Ref",
+	attributeNode: ts.JsxAttribute,
+	attributesStack: Array<string>,
+) {
+	const expr = attributeNode.getChildrenOfKind(ts.SyntaxKind.JsxExpression);
+
+	for (const expression of expr) {
+		const innerExpression = expression.getExpressionOrThrow();
+		if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
+			const properties = innerExpression.getProperties();
+			for (const property of properties) {
+				if (
+					ts.TypeGuards.isPropertyAssignment(property) ||
+					ts.TypeGuards.isShorthandPropertyAssignment(property)
+				) {
+					const propName = property.getName();
+					const rhs = property.getInitializerOrThrow();
+					let value: string;
+
+					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
+						value = compileSymbolPropertyCallback(state, rhs);
+					} else {
+						value = compileExpression(state, rhs);
+					}
+
+					attributesStack.push(state.indent + `[Roact.${roactSymbol}.${propName}] = ${value}`);
+				}
+			}
+		} else if (roactSymbol === "Ref") {
+			let value: string;
+
+			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
+				const getAccessExpression = innerExpression.getExpression();
+				if (ts.TypeGuards.isThisExpression(getAccessExpression)) {
+					value = compileSymbolPropertyCallback(state, innerExpression);
+				} else {
+					value = compileExpression(state, getAccessExpression);
+				}
+			} else {
+				value = compileExpression(state, innerExpression);
+			}
+
+			attributesStack.push(state.indent + `[Roact.Ref] = ${value}`);
+		} else {
+			throw new CompilerError(
+				`Roact symbol ${roactSymbol} does not support (${innerExpression.getKindName()})`,
+				attributeNode,
+				CompilerErrorType.RoactInvalidSymbol,
+			);
+		}
+	}
+}
+
+/**
  * Generates the children for a Roact Element
  * @param state The compiler state
- * @param fragment Whether or not this is children for a Roact.Fragment
- * @param children The children
+ * @param isFragment Whether or not this is children for a Roact.Fragment
+ * @param childCollection The children
  */
-function generateRoactChildren(state: CompilerState, fragment: boolean, children: Array<ts.JsxChild>) {
+function generateRoactChildren(state: CompilerState, isFragment: boolean, childCollection: Array<ts.JsxChild>) {
 	const roactCombineStack = new Array<string>();
 
 	let childStack = new Array<string>();
 
 	let useRoactCombine = false;
-	for (const child of children) {
+	for (const child of childCollection) {
 		if (ts.TypeGuards.isJsxExpression(child)) {
 			useRoactCombine = true;
 		}
@@ -528,7 +568,7 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 
 	state.pushIndent();
 
-	for (const child of children) {
+	for (const child of childCollection) {
 		if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
 			if (useRoactCombine) {
 				state.pushIndent();
@@ -542,7 +582,7 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 			}
 		} else if (ts.TypeGuards.isJsxExpression(child)) {
 			if (childStack.length > 0) {
-				roactCombineStack.push(joinAsTable(state, childStack));
+				roactCombineStack.push(joinAndWrapInTable(state, childStack));
 				childStack = new Array();
 			}
 
@@ -567,13 +607,13 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 	if (roactCombineStack.length >= 1) {
 		if (childStack.length > 0) {
 			state.pushIndent();
-			roactCombineStack.push(joinAsTable(state, childStack));
+			roactCombineStack.push(joinAndWrapInTable(state, childStack));
 			state.popIndent();
 		}
 
 		if (roactCombineStack.length > 1) {
 			return (
-				(fragment ? "" : state.indent) +
+				(isFragment ? "" : state.indent) +
 				`TS.Roact_combine(\n` +
 				roactCombineStack.join(",\n") +
 				`\n` +
@@ -581,12 +621,12 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 				`)`
 			);
 		} else {
-			return (fragment ? "" : state.indent) + roactCombineStack.join(",\n").trim();
+			return (isFragment ? "" : state.indent) + roactCombineStack.join(",\n").trim();
 		}
 	} else if (childStack.length > 0) {
-		return (fragment ? "" : state.indent) + `{\n` + childStack.join(",\n") + `,\n` + state.indent + `}`;
+		return (isFragment ? "" : state.indent) + `{\n` + childStack.join(",\n") + `,\n` + state.indent + `}`;
 	} else {
-		return (fragment ? "" : state.indent) + "{}";
+		return (isFragment ? "" : state.indent) + "{}";
 	}
 }
 
@@ -594,15 +634,14 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
  * The new and improved Roact.Element generator
  * @param state The state
  * @param nameNode The name node
- * @param attributes The attributes of the JSX element
- * @param children The children of the JSX element
+ * @param attributesCollection The attributes of the JSX element
+ * @param childCollection The children of the JSX element
  */
 function generateRoactElement(
 	state: CompilerState,
-	node: ts.JsxElement | ts.JsxSelfClosingElement,
 	nameNode: ts.JsxTagNameExpression,
-	attributes: Array<ts.JsxAttributeLike>,
-	children: Array<ts.JsxChild>,
+	attributesCollection: Array<ts.JsxAttributeLike>,
+	childCollection: Array<ts.JsxChild>,
 ): string {
 	const jsxName = nameNode.getText();
 	let isFragment = false;
@@ -636,11 +675,11 @@ function generateRoactElement(
 	state.roactElementStack.push(isFragment ? "Fragment" : "Element");
 	state.pushIndent();
 
-	if (attributes.length > 0 || children.length > 0) {
+	if (attributesCollection.length > 0 || childCollection.length > 0) {
 		if (isFragment) {
-			generateRoactAttributes(state, attributes);
+			generateRoactAttributes(state, attributesCollection);
 		} else {
-			elementArguments.push(generateRoactAttributes(state, attributes));
+			elementArguments.push(generateRoactAttributes(state, attributesCollection));
 		}
 	}
 
@@ -648,28 +687,24 @@ function generateRoactElement(
 	let key = "";
 	if (state.roactKeyStack.length > 0) {
 		key = state.roactKeyStack.pop()!;
-		if (key && state.roactElementStack.length > 1) {
-			hasKey = true;
-		} else {
-			hasKey = true;
+		hasKey = true;
+		if (state.roactElementStack.length === 1) {
 			preWrap += "Roact.createFragment({ " + `[${key}] = `;
 			postWrap += " })";
 		}
 	}
 
-	if (children.length > 0 || isFragment) {
-		elementArguments.push(generateRoactChildren(state, isFragment, children));
+	if (childCollection.length > 0 || isFragment) {
+		elementArguments.push(generateRoactChildren(state, isFragment, childCollection));
 	}
 
 	state.roactIndent--;
 	state.roactElementStack.pop();
+
 	const parentType = state.roactElementStack[state.roactElementStack.length - 1];
-	if (hasKey) {
-		hasKey = true;
-		if (parentType === "CallExpression") {
-			preWrap += "Roact.createFragment({ " + `[${key}] = `;
-			postWrap += " })";
-		}
+	if (hasKey && parentType === "CallExpression") {
+		preWrap += "Roact.createFragment({ " + `[${key}] = `;
+		postWrap += " })";
 	}
 
 	state.popIndent();
@@ -713,7 +748,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, node, tagNameNode, open.getAttributes(), children);
+	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
 		state.roactElementStack.pop();
@@ -741,7 +776,7 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 		state.roactIndent++;
 	}
 
-	const element = generateRoactElement(state, node, tagNameNode, node.getAttributes(), []);
+	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactElementStack.pop();
