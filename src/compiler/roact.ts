@@ -684,19 +684,22 @@ function generateRoactElement(
 		}
 	}
 
+	if (childCollection.length > 0 || isFragment) {
+		elementArguments.push(generateRoactChildren(state, isFragment, childCollection));
+	}
+
 	let hasKey = false;
 	let key = "";
 	if (state.roactKeyStack.length > 0) {
+		const parentStackType = state.roactElementStack[state.roactElementStack.length - 2];
 		key = state.roactKeyStack.pop()!;
 		hasKey = true;
 		if (state.roactElementStack.length === 1) {
 			preWrap += "Roact.createFragment({ " + `[${key}] = `;
 			postWrap += " })";
+		} else if (parentStackType !== "CallExpression") {
+			preWrap += `[${key}] = `;
 		}
-	}
-
-	if (childCollection.length > 0 || isFragment) {
-		elementArguments.push(generateRoactChildren(state, isFragment, childCollection));
 	}
 
 	state.roactIndent--;
