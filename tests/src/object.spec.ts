@@ -437,4 +437,18 @@ export = () => {
 		expect(obj.mul(3).add(6)).to.equal(51);
 		obj.h(5);
 	});
+
+	it("should support object member functions as implicitly being methods", () => {
+		// don't ask me why, but for some reason non-method function members in objects are implicitly methods
+
+		const o = {
+			count: 1,
+
+			getCount: function() {
+				return this.count;
+			},
+		};
+
+		expect(o.getCount()).to.equal(1);
+	});
 };
