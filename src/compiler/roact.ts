@@ -583,37 +583,16 @@ function generateRoactChildren(state: CompilerState, fragment: boolean, children
 	state.pushIndent();
 
 	for (const child of children) {
-		if (ts.TypeGuards.isJsxElement(child)) {
-			const open = child.getOpeningElement();
-			const name = open.getTagNameNode().getText();
-			if (name === ROACT_FRAGMENT_TYPE) {
-				// We'll just add it to the combine stack, since it requires to be a top-level child
-				roactCombineStack.push(compileExpression(state, child));
-			} else {
-				if (useRoactCombine) {
-					state.pushIndent();
-				}
-
-				const value = compileExpression(state, child);
-				childStack.push(state.indent + value);
-
-				if (useRoactCombine) {
-					state.popIndent();
-				}
+		if (ts.TypeGuards.isJsxElement(child) || ts.TypeGuards.isJsxSelfClosingElement(child)) {
+			if (useRoactCombine) {
+				state.pushIndent();
 			}
-		} else if (ts.TypeGuards.isJsxSelfClosingElement(child)) {
-			const name = child.getTagNameNode().getText();
 
-			if (name === ROACT_FRAGMENT_TYPE) {
-				// A Roact.Fragment should have nested elements
-				throw new CompilerError(
-					"A Roact.Fragment cannot be self-closing.",
-					child,
-					CompilerErrorType.RoactSelfClosingFragment,
-				);
-			} else {
-				const value = compileExpression(state, child);
-				childStack.push(state.indent + value);
+			const value = compileExpression(state, child);
+			childStack.push(state.indent + value);
+
+			if (useRoactCombine) {
+				state.popIndent();
 			}
 		} else if (ts.TypeGuards.isJsxExpression(child)) {
 			if (childStack.length > 0) {
@@ -690,19 +669,6 @@ function generateRoactElementV2(
 	if (name === ROACT_FRAGMENT_TYPE) {
 		isFragment = true;
 		funcName = "Roact.createFragment";
-
-		if (
-			node
-				.getParent()
-				.getType()
-				.getText() === ROACT_ELEMENT_TYPE
-		) {
-			throw new CompilerError(
-				`Nested fragments are not supported.`,
-				nameNode,
-				CompilerErrorType.RoactInvalidPrimitive,
-			);
-		}
 	} else if (name.match(/^[a-z]+$/)) {
 		const rbxName = INTRINSIC_MAPPINGS[name];
 		if (rbxName !== undefined) {
@@ -724,7 +690,7 @@ function generateRoactElementV2(
 		elementArguments.push(generateRoactAttributes(state, attributes));
 	}
 
-	if (children.length > 0) {
+	if (children.length > 0 || isFragment) {
 		elementArguments.push(generateRoactChildren(state, isFragment, children));
 	}
 
