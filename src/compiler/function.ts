@@ -180,11 +180,17 @@ function compileFunction(
 	if (name) {
 		results.push(state.indent, declarationPrefix);
 		if (frontWrap === "" && canSugaryCompileFunction(node)) {
-			results.push("function ", namePrefix, isMethodDeclaration(node) ? ":" : ".", name);
+			results.push("function ");
+			if (namePrefix) {
+				results.push(namePrefix, isMethodDeclaration(node) ? ":" : ".");
+			}
+			results.push(name);
 		} else {
-			results.push(namePrefix);
-			if (!name.startsWith("[")) {
-				results.push(".");
+			if (namePrefix) {
+				results.push(namePrefix);
+				if (!name.startsWith("[")) {
+					results.push(".");
+				}
 			}
 			results.push(name, " = ", frontWrap, "function");
 			if (isMethodDeclaration(node)) {
