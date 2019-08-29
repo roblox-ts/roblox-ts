@@ -419,11 +419,11 @@ export = () => {
 			n: number;
 		}
 
-		function f(this: Numerable, n: number) {
+		function add(this: Numerable, n: number) {
 			return (this.n += n);
 		}
 
-		const g = function<T extends Numerable>(this: T, n: number) {
+		const mul = function<T extends Numerable>(this: T, n: number) {
 			this.n *= n;
 			return this;
 		};
@@ -432,9 +432,9 @@ export = () => {
 			expect(n).to.equal(5);
 		}
 
-		const obj = { f, n: 10, g, h };
-		expect(obj.f(5)).to.equal(15);
-		expect(obj.g(3).f(6)).to.equal(51);
+		const obj = { add, n: 10, mul, h };
+		expect(obj.add(5)).to.equal(15);
+		expect(obj.mul(3).add(6)).to.equal(51);
 		obj.h(5);
 	});
 };
