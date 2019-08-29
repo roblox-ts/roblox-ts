@@ -60,7 +60,11 @@ const INTRINSIC_MAPPINGS: { [name: string]: string } = {
 	uisizeconstraint: "UISizeConstraint",
 	uitextsizeconstraint: "UITextSizeConstraint",
 
+	uiinlinelayout: "UIInlineLayout",
+
 	viewportframe: "ViewportFrame",
+
+	camera: "Camera",
 };
 
 /**
