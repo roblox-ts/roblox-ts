@@ -424,7 +424,8 @@ export = () => {
 		}
 
 		const g = function<T extends Numerable>(this: T, n: number) {
-			return (this.n *= n);
+			this.n *= n;
+			return this;
 		};
 
 		function h(n: number) {
@@ -433,7 +434,7 @@ export = () => {
 
 		const obj = { f, n: 10, g, h };
 		expect(obj.f(5)).to.equal(15);
-		expect(obj.g(3)).to.equal(45);
+		expect(obj.g(3).f(6)).to.equal(51);
 		obj.h(5);
 	});
 };
