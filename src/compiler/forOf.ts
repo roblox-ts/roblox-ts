@@ -278,7 +278,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				break;
 			case ForOfLoopType.String:
 				key = varName;
-				expStr = `(${expStr}):gmatch(".")`;
+				expStr = `string.gmatch(${expStr}, "[%z\1-\127\194-\244][\128-\191]*")`;
 				break;
 			case ForOfLoopType.IterableFunction:
 				key = varName;

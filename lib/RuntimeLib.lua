@@ -867,6 +867,17 @@ TS.set_size = getNumKeys
 
 TS.set_toString = toString
 
+-- spread cache functions
+function TS.string_spread(str)
+	local results = {}
+	local count = 0
+	for char in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+		count = count + 1
+		results[count] = char
+	end
+	return results
+end
+
 function TS.iterableCache(iter)
 	local results = {}
 	local count = 0

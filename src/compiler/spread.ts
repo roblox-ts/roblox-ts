@@ -200,9 +200,10 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		if (ts.TypeGuards.isStringLiteral(expression)) {
 			const text = expression.getText();
 			const quote = text.slice(-1);
-			return "{" + text.replace(/\\?./g, a => `${quote}${a}${quote}, `).slice(4, -7) + " }";
+			return "{" + text.replace(/\\?[^]/gu, a => `${quote}${a}${quote}, `).slice(4, -7) + " }";
 		} else {
-			return `string.split(${compileExpression(state, expression)}, "")`;
+			state.usesTSLibrary = true;
+			return `TS.string_spread(${compileExpression(state, expression)})`;
 		}
 	} else if (isIterableFunctionType(expType)) {
 		state.usesTSLibrary = true;
