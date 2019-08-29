@@ -437,7 +437,7 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,
 	},
-	"conflictingVars.spec.ts": {
+	"method-callback/conflictingVars.spec.ts": {
 		message: "should not allow definition changing of mixed methods/member functions",
 		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,

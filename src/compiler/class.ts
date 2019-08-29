@@ -21,6 +21,7 @@ import {
 	superExpressionClassInheritsFromArray,
 	superExpressionClassInheritsFromSetOrMap,
 } from "../utility/type";
+import { isDefinedAsMethod } from "./call";
 
 const LUA_RESERVED_METAMETHODS = [
 	"__index",
@@ -278,6 +279,7 @@ function validateMethod(
 	checkDecorators(method);
 	checkMethodCollision(node, method);
 	checkDefaultIterator(extendsArray, method);
+	isDefinedAsMethod(method);
 	const nameNode = method.getNameNode();
 	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
 		let isSymbolPropAccess = false;
