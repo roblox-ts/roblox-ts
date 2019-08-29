@@ -458,7 +458,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 			if (methodName === "new") {
 				throw new CompilerError(
-					`Cannot make a static method with name "${methodName}"!`,
+					`Cannot make a method with name "${methodName}"!`,
 					method,
 					CompilerErrorType.BadStaticMethod,
 				);
