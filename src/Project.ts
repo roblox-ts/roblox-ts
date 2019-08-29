@@ -73,33 +73,36 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	async function searchForDeadFiles(dir: string) {
-		if (await fs.pathExists(dir)) {
-			for (const fileName of await fs.readdir(dir)) {
-				const filePath = path.join(dir, fileName);
+	async function searchForDeadFiles(dir: string, dest: string) {
+		if (await fs.pathExists(dest)) {
+			for (const fileName of await fs.readdir(dest)) {
+				const newDest = path.join(dest, fileName);
+				const newDir =
+					path.relative(destinationFolder, newDest) === "node_modules"
+						? path.join(dir, fileName, "@rbxts")
+						: path.join(dir, fileName);
+
 				try {
-					const stats = await fs.stat(filePath);
+					const stats = await fs.stat(newDest);
 					if (stats.isDirectory()) {
-						await searchForDeadFiles(filePath);
-						if ((await fs.readdir(filePath)).length === 0) {
-							await fs.rmdir(filePath);
-							console.log("delete", "dir", filePath);
+						await searchForDeadFiles(newDir, newDest);
+						if ((await fs.readdir(newDest)).length === 0) {
+							await fs.rmdir(newDest);
+							console.log("delete", "dir", newDest);
 						}
 					} else if (stats.isFile()) {
-						const relativeToDestFolder = path.relative(destinationFolder, filePath);
-						const targetPath = path.join(sourceFolder, relativeToDestFolder);
-						if (!(await fs.pathExists(targetPath))) {
-							await fs.unlink(filePath);
-							console.log("delete", "file", filePath);
+						if (!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, newDir))))) {
+							await fs.unlink(newDest);
+							console.log("delete", "file", newDest);
 						}
 					}
 				} catch (e) {
-					console.log("failed to clean", filePath);
+					console.log("failed to clean", newDest);
 				}
 			}
 		}
 	}
-	await searchForDeadFiles(destinationFolder);
+	await searchForDeadFiles(destinationFolder, destinationFolder);
 }
 
 async function copyAndCleanDeadLuaFiles(
