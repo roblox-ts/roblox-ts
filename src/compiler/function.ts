@@ -179,12 +179,16 @@ function compileFunction(
 		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
+	const isMethod = isMethodDeclaration(node);
+
 	if (name) {
 		results.push(state.indent, declarationPrefix);
 		if (frontWrap === "" && canSugaryCompileFunction(node)) {
 			results.push("function ");
 			if (namePrefix) {
-				results.push(namePrefix, isMethodDeclaration(node) ? ":" : ".");
+				results.push(namePrefix, isMethod ? ":" : ".");
+			} else if (isMethod) {
+				paramNames.unshift("self");
 			}
 			results.push(name);
 		} else {
@@ -195,14 +199,14 @@ function compileFunction(
 				}
 			}
 			results.push(name, " = ", frontWrap, "function");
-			if (isMethodDeclaration(node)) {
+			if (isMethod) {
 				paramNames.unshift("self");
 			}
 		}
 		backWrap += ";\n";
 	} else {
 		results.push(frontWrap, "function");
-		if (isMethodDeclaration(node)) {
+		if (isMethod) {
 			paramNames.unshift("self");
 		}
 	}
