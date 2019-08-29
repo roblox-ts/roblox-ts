@@ -24,14 +24,15 @@ import {
 	getType,
 	isArrayMethodType,
 	isConstantExpression,
+	isFunctionType,
 	isMapMethodType,
 	isNullableType,
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
+	laxTypeConstraint,
 	shouldPushToPrecedingStatement,
 	superExpressionClassInheritsFromArray,
-	typeConstraint,
 } from "../utility/type";
 
 const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
@@ -965,39 +966,38 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 	return symbol;
 }
 
-function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAccessExpression) {
+/** Returns true if it is defined as a method, false if it is defined as a callback, or undefined if neither */
+export function isDefinedAsMethod(node: ts.Node): boolean | undefined {
 	const type = getType(node).getNonNullableType();
 
-	const allMethods = typeConstraint(type, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
-					return true;
-				}
-				return false;
-			}),
-	);
+	if (isFunctionType(type)) {
+		let hasMethodDefinition = false;
+		let hasCallbackDefinition = false;
 
-	const allCallbacks = typeConstraint(type, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (
-					(ts.TypeGuards.isFunctionTypeNode(dec) ||
-						ts.TypeGuards.isPropertySignature(dec) ||
-						(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
-						ts.TypeGuards.isArrowFunction(dec) ||
-						ts.TypeGuards.isFunctionDeclaration(dec)) &&
-					!isMethodDeclaration(dec)
-				) {
-					return true;
+		// we just use the laxTypeConstraint for easy iteration
+		laxTypeConstraint(type, t => {
+			for (const declaration of getSymbolOrThrow(node, t).getDeclarations()) {
+				if (isMethodDeclaration(declaration)) {
+					hasMethodDefinition = true;
+				} else {
+					hasCallbackDefinition = true;
 				}
-				return false;
-			}),
-	);
+			}
+			return false;
+		});
 
-	return [allMethods, allCallbacks];
+		if (hasMethodDefinition && hasCallbackDefinition) {
+			throw new CompilerError(
+				"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+				node,
+				CompilerErrorType.MixedMethodCall,
+			);
+		}
+
+		return hasMethodDefinition;
+	} else {
+		return undefined;
+	}
 }
 
 export function compileElementAccessCallExpression(
@@ -1012,13 +1012,13 @@ export function compileElementAccessCallExpression(
 		compileElementAccessBracketExpression(state, expression),
 	);
 	const params = node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>;
-	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
+	const isMethod = isDefinedAsMethod(expression)!;
 
 	let paramsStr = compileCallArgumentsAndJoin(state, params);
 
-	if (allMethods && !allCallbacks) {
+	if (isMethod) {
 		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
-	} else if (!allMethods && allCallbacks) {
+	} else {
 		if (ts.TypeGuards.isSuperExpression(expExp)) {
 			throw new CompilerError(
 				`\`${accessedPath}\` is not a real method! Prefer \`this${accessedPath.slice(5)}\` instead.`,
@@ -1026,13 +1026,6 @@ export function compileElementAccessCallExpression(
 				CompilerErrorType.BadSuperCall,
 			);
 		}
-	} else {
-		// mixed methods and callbacks
-		throw new CompilerError(
-			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
-			node,
-			CompilerErrorType.MixedMethodCall,
-		);
 	}
 
 	return `${accessedPath}(${paramsStr})`;
@@ -1113,7 +1106,7 @@ export function compilePropertyCallExpression(
 		}
 	}
 
-	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
+	const isMethod = isDefinedAsMethod(expression)!;
 
 	let accessedPath: string;
 	let paramsStr: string;
@@ -1121,7 +1114,7 @@ export function compilePropertyCallExpression(
 	let sep: ":" | ".";
 	const [subExp] = params;
 
-	if (allMethods && !allCallbacks) {
+	if (isMethod) {
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
 			accessedPath = "super";
 			paramsStr = paramsStr ? "self, " + paramsStr : "self";
@@ -1129,7 +1122,7 @@ export function compilePropertyCallExpression(
 		} else {
 			sep = ":";
 		}
-	} else if (!allMethods && allCallbacks) {
+	} else {
 		sep = ".";
 
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
@@ -1139,13 +1132,6 @@ export function compilePropertyCallExpression(
 				CompilerErrorType.BadSuperCall,
 			);
 		}
-	} else {
-		// mixed methods and callbacks
-		throw new CompilerError(
-			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
-			node,
-			CompilerErrorType.MixedMethodCall,
-		);
 	}
 
 	if (isValidLuaIdentifier(property)) {

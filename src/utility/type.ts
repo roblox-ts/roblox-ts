@@ -428,24 +428,24 @@ export function isSetType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
-export function isMethodType(type: ts.Type) {
+export function isFunctionType(type: ts.Type) {
 	return type.getCallSignatures().length > 0;
 }
 
 export function isArrayMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
 }
 
 export function isMapMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
 }
 
 export function isSetMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isStringMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;

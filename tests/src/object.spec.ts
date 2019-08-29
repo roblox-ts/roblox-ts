@@ -413,4 +413,27 @@ export = () => {
 		expect(b[8]).to.equal(`19`);
 		expect(c[9]).to.equal(1);
 	});
+
+	it("should support composing objects with methods and callbacks", () => {
+		interface Numerable {
+			n: number;
+		}
+
+		function f(this: Numerable, n: number) {
+			return (this.n += n);
+		}
+
+		const g = function<T extends Numerable>(this: T, n: number) {
+			return (this.n *= n);
+		};
+
+		function h(n: number) {
+			expect(n).to.equal(5);
+		}
+
+		const obj = { f, n: 10, g, h };
+		expect(obj.f(5)).to.equal(15);
+		expect(obj.g(3)).to.equal(45);
+		obj.h(5);
+	});
 };
