@@ -103,4 +103,33 @@ export = () => {
 		let j = 2;
 		expect("foobar".sub(i, j)).to.equal("foo");
 	});
+
+	it("should support proper destructuring and iterating", () => {
+		function compare(results: Array<string>, array2: Array<string>) {
+			for (const [i, v] of array2.entries()) {
+				expect(results[i]).to.equal(v);
+			}
+		}
+
+		// optimized destructuring
+		compare([..."𝟘𝟙𝟚𝟛"], ["𝟘", "𝟙", "𝟚", "𝟛"]);
+		compare([..."யாமறிந்த"], ["ய", "ா", "ம", "ற", "ி", "ந", "்", "த"]);
+
+		const spreadString = (str: string) => [...str];
+
+		// run-time destructuring
+		compare(spreadString("𝟘𝟙𝟚𝟛"), ["𝟘", "𝟙", "𝟚", "𝟛"]);
+		compare(spreadString("யாமறிந்த"), ["ய", "ா", "ம", "ற", "ி", "ந", "்", "த"]);
+
+		let i = 0;
+		for (const substr of "𝟘𝟙𝟚𝟛") {
+			expect(substr).to.equal(["𝟘", "𝟙", "𝟚", "𝟛"][i++]);
+		}
+
+		let j = 0;
+		let myStr = "யாமறிந்த";
+		for (const substr of myStr) {
+			expect(substr).to.equal(["ய", "ா", "ம", "ற", "ி", "ந", "்", "த"][j++]);
+		}
+	});
 };
