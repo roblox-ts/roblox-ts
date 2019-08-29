@@ -438,7 +438,7 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
-			if (methodName === "new" || methodName === "toString" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
+			if (methodName === "new" || methodName === "toString") {
 				throw new CompilerError(
 					`Cannot make a static method with name "${methodName}"!`,
 					method,
@@ -454,6 +454,15 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 
 	for (const method of node.getInstanceMethods()) {
 		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+
+			if (methodName === "new") {
+				throw new CompilerError(
+					`Cannot make a method with name "${methodName}"!`,
+					method,
+					CompilerErrorType.BadStaticMethod,
+				);
+			}
 			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
 			results.push(compileMethodDeclaration(state, method, name + ":"));
