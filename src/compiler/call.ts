@@ -988,7 +988,7 @@ export function isDefinedAsMethod(node: ts.Node): boolean | undefined {
 
 		if (hasMethodDefinition && hasCallbackDefinition) {
 			throw new CompilerError(
-				"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+				"Attempted to define or call a function with mixed types! All definitions must either be a method or a callback.",
 				node,
 				CompilerErrorType.MixedMethodCall,
 			);

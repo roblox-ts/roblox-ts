@@ -19,6 +19,7 @@ import {
 	shouldHoist,
 } from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
+import { isDefinedAsMethod } from "./call";
 
 export type HasParameters =
 	| ts.FunctionExpression
@@ -144,6 +145,7 @@ function compileFunction(
 	body: ts.Node<ts.ts.Node>,
 	namePrefix = "",
 ) {
+	isDefinedAsMethod(node);
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
