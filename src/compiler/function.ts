@@ -327,7 +327,7 @@ export function compileConstructorDeclaration(
 	const methodName = isRoact ? "init" : "constructor";
 
 	let result = "";
-	result += state.indent + `function ${className}:${methodName}(${paramStr})\n`;
+	state.hoistStack.push(new Set<string>());
 	state.pushIndent();
 
 	if (node) {
@@ -370,10 +370,10 @@ export function compileConstructorDeclaration(
 			extraInitializers.forEach(initializer => (result += initializer));
 		}
 	}
+	result = state.popHoistStack(result);
 	state.popIndent();
 	state.popIdStack();
-	result += state.indent + "end;\n";
-	return result;
+	return state.indent + `function ${className}:${methodName}(${paramStr})\n` + result + state.indent + "end;\n";
 }
 
 export function compileFunctionExpression(state: CompilerState, node: ts.FunctionExpression | ts.ArrowFunction) {
