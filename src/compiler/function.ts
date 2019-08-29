@@ -199,7 +199,7 @@ function compileFunction(
 		}
 		backWrap += ";\n";
 	} else {
-		results.push(frontWrap + "function");
+		results.push(frontWrap, "function");
 		if (isMethodDeclaration(node)) {
 			paramNames.unshift("self");
 		}
@@ -226,7 +226,7 @@ function compileFunction(
 		results.push(compileFunctionBody(state, body, node, initializers));
 	}
 	state.popIdStack();
-	results.push("end" + backWrap);
+	results.push("end", backWrap);
 	return results.join("");
 }
 
