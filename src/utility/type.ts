@@ -239,7 +239,7 @@ export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
-export function isNumberTypeLax(type: ts.Type) {
+export function isNonLiteralNumberTypeLax(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isNumber());
 }
 

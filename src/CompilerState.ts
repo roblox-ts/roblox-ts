@@ -59,6 +59,8 @@ export class CompilerState {
 
 	public currentConditionalContext: string = "";
 	public currentTruthyContext: string = "";
+	public topTruthyNode?: ts.BinaryExpression;
+	public hasTruthyContextBeenUsed?: boolean;
 	public binaryRhsExpressions = new Map<ts.Expression, ts.Expression>();
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 

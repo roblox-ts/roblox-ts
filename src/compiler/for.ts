@@ -8,12 +8,7 @@ import {
 	placeIncrementorInStatementIfExpression,
 } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
-import {
-	isIdentifierWhoseDefinitionMatchesNode,
-	joinIndentedLines,
-	removeBalancedParenthesisFromStringBorders,
-	skipNodesDownwards,
-} from "../utility/general";
+import { isIdentifierWhoseDefinitionMatchesNode, joinIndentedLines, skipNodesDownwards } from "../utility/general";
 import { getType, isNumberType } from "../utility/type";
 import { compileTruthyCheck } from "./truthiness";
 
@@ -285,9 +280,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 			// if it has any internal function declarations, make sure to locally scope variables
 			if (statementDescendants.some(nodeHasParameters)) {
 				state.enterPrecedingStatementContext();
-				conditionStr = condition
-					? removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition))
-					: "true";
+				conditionStr = condition ? compileTruthyCheck(state, condition) : "true";
 				conditionContext = state.exitPrecedingStatementContext();
 				state.enterPrecedingStatementContext();
 				incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;
@@ -336,9 +329,7 @@ export function compileForStatement(state: CompilerState, node: ts.ForStatement)
 	if (conditionStr === undefined) {
 		state.enterPrecedingStatementContext();
 
-		conditionStr = condition
-			? removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition))
-			: "true";
+		conditionStr = condition ? compileTruthyCheck(state, condition) : "true";
 		conditionContext = state.exitPrecedingStatementContext();
 		state.enterPrecedingStatementContext();
 		incrementorStr = incrementor ? compileExpression(state, incrementor) + ";\n" : undefined;

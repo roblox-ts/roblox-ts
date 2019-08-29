@@ -16,11 +16,12 @@ import {
 	isBoolishTypeLax,
 	isFalsyStringTypeLax,
 	isLiterally0Lax,
-	isNumberTypeLax,
+	isNonLiteralNumberTypeLax,
 	isTupleType,
 	isUnknowableType,
 } from "../utility/type";
 import { isValidLuaIdentifier } from "./security";
+import { shouldWrapExpression } from "./call";
 
 // TODO: Remove once the second param to the condition callback of `getParentWhile` is added to ts-morph:
 
@@ -219,13 +220,10 @@ export function compileLogicalBinary2(
 		(getBinaryExpressionType(node) === getBinaryExpressionType(subLhs) && getBinaryRhsExpression(state, subLhs)) ||
 		lhs;
 
-	console.log(1, "get", node.getText(), ">>", checkableTypeNode.getText());
 	state.pushPrecedingStatements(lhs, ...lhsContext);
 
 	const checkableTypeData = getTruthyCompileData(state, checkableTypeNode);
 	let lhsStr = compileTruthyCheck(state, lhs, expStr, checkableTypeData);
-
-	console.log(node.getText(), getBinaryExpressionType(node), getBinaryExpressionType(subLhs));
 
 	if (context.length === 0) {
 		const luaOp = isAnd ? " and " : " or ";
@@ -284,6 +282,213 @@ export function compileLogicalBinary2(
 	return expStr;
 }
 
+/** The binary logical operators (selection operators) are associative,
+ * This means that we can grab all the &&/|| operations on the same level and flatten the AST.
+ * Returns an array of all operands between the right kind of operation:
+ * @example
+ * // These will all return [a, b, c, d, e]
+ * a && b && c && d && e
+ * (a && b) && (c && d) && e
+ * a && b && (c && (d && e))
+ *
+ * // We want these to evaluate the same, even with different AST's
+ *        a && b && c && d
+ *       /                \
+ *     a && b && c         d
+ *    /           \
+ *   a && b         c
+ *  /      \
+ * a        b
+ *
+ * vs.
+ *
+ *        a && (b && (c && d))
+ *       /            \
+ *      a        (b && (c && d))
+ *               /          \
+ *              b          (c && d)
+ *                         /      \
+ *                        c        d
+ */
+export function preprocessLogicalBinary(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	node: ts.BinaryExpression,
+	stack: Array<ts.Expression>,
+) {
+	const subLhs = skipNodesDownwards(lhs);
+
+	if (
+		ts.TypeGuards.isBinaryExpression(subLhs) &&
+		subLhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+	) {
+		preprocessLogicalBinary(state, subLhs.getLeft(), subLhs.getRight(), subLhs, stack);
+	} else {
+		stack.push(subLhs);
+	}
+
+	const subRhs = skipNodesDownwards(rhs);
+
+	if (
+		ts.TypeGuards.isBinaryExpression(subRhs) &&
+		subRhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+	) {
+		preprocessLogicalBinary(state, subRhs.getLeft(), subRhs.getRight(), subRhs, stack);
+	} else {
+		stack.push(subRhs);
+	}
+}
+
+interface NestedExpressions {
+	expressions: Array<ts.Expression | NestedExpressions>;
+	isAnd: boolean;
+}
+
+function stringableNestedExp(x: NestedExpressions) {
+	x.expressions.map(a => {
+		if (Array.isArray(a)) {
+			a
+		} else {
+			a
+		}
+	})
+}
+
+/*
+[ [h() && (a() && [b() || c() || d() || e()]],
+  'f() && g()',
+  'h()' ]
+*/
+export function preprocessLogicalBinary2(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	node: ts.BinaryExpression,
+	stuff: NestedExpressions,
+) {
+	const subLhs = skipNodesDownwards(lhs);
+
+	if (
+		ts.TypeGuards.isBinaryExpression(subLhs) &&
+		subLhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+	) {
+		preprocessLogicalBinary2(state, subLhs.getLeft(), subLhs.getRight(), subLhs, stuff);
+	} else if (ts.TypeGuards.isBinaryExpression(subLhs)) {
+		stuff.expressions.push(subLhs);
+	} else {
+		stuff.expressions.push(subLhs);
+	}
+
+	const subRhs = skipNodesDownwards(rhs);
+
+	if (
+		ts.TypeGuards.isBinaryExpression(subRhs) &&
+		subRhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+	) {
+		preprocessLogicalBinary2(state, subRhs.getLeft(), subRhs.getRight(), subRhs, stuff);
+	} else {
+		stack.push(subRhs);
+	}
+}
+
+export function compileLogicalBinary3(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	isAnd: boolean,
+	node: ts.BinaryExpression,
+) {
+	const myStack = new Array<ts.Expression>();
+	preprocessLogicalBinary(state, lhs, rhs, node, myStack);
+	// console.log(myStack.map(a => a.getText()));
+	const stack = new Array<[ts.BinaryExpression, ts.Expression, ts.Expression]>();
+	let subLhs = skipNodesDownwards(lhs);
+
+	while (
+		ts.TypeGuards.isBinaryExpression(subLhs) &&
+		subLhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+	) {
+		stack.push([node, subLhs, rhs]);
+		[node, lhs, rhs] = [subLhs, skipNodesDownwards(subLhs.getLeft()), skipNodesDownwards(subLhs.getRight())];
+		subLhs = skipNodesDownwards(lhs);
+	}
+
+	// stack.push([node, lhs, rhs]);
+
+	const id = state.getNewId();
+	const lhsStr = compileExpression(state, subLhs);
+	const results = new Array<string>();
+	results.push(state.indent, "local ", id, " = ", lhsStr, ";\n");
+	let checkableNode = lhs;
+	let ends = 0;
+	let x = 0;
+
+	while (true) {
+		x++;
+		ends++;
+		// console.log(0, [lhs.getText(), rhs.getText()]);
+		results.push(state.indent, "if ", compileTruthyCheck(state, checkableNode, id), " then\n");
+		state.pushIndent();
+
+		do {
+			subLhs = rhs;
+			while (
+				ts.TypeGuards.isBinaryExpression(subLhs) &&
+				subLhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+			) {
+				stack.push(
+					([node, lhs, rhs] = [
+						subLhs,
+						skipNodesDownwards(subLhs.getLeft()),
+						skipNodesDownwards(subLhs.getRight()),
+					]),
+				);
+				subLhs = skipNodesDownwards(lhs);
+			}
+		} while (ts.TypeGuards.isBinaryExpression(subLhs));
+
+		// console.log(1, stack.map(([_, b, c]) => [b.getText(), c.getText()]));
+
+		[node, lhs, rhs] = stack.pop()!;
+		// console.log(2, [lhs.getText(), rhs.getText()]);
+		state.enterPrecedingStatementContext(results);
+		const rhsStr = compileExpression(state, subLhs);
+		state.exitPrecedingStatementContext();
+		results.push(state.indent, id, " = ", rhsStr, ";\n");
+
+		if (x > 10) {
+			break;
+		}
+
+		// while (
+		// 	ts.TypeGuards.isBinaryExpression(subRhs) &&
+		// 	subRhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
+		// ) {
+		// 	stack.push([node, subRhs, rhs]);
+		// 	[node, lhs, rhs] = [subRhs, skipNodesDownwards(subRhs.getLeft()), skipNodesDownwards(subRhs.getRight())];
+		// 	subRhs = skipNodesDownwards(rhs);
+		// }
+
+		// stack.push([node, subRhs, rhs]);
+
+		if (stack.length) {
+			checkableNode = rhs;
+			[node, lhs, rhs] = stack.pop()!;
+		} else {
+			break;
+		}
+	}
+
+	for (let i = 0; i < ends; i++) {
+		state.popIndent();
+		results.push(state.indent, "end;\n");
+	}
+
+	state.pushPrecedingStatements(node, results.join(""));
+	return id;
+}
+
 export function compileLogicalBinary(
 	state: CompilerState,
 	lhs: ts.Expression,
@@ -291,8 +496,196 @@ export function compileLogicalBinary(
 	isAnd: boolean,
 	node: ts.BinaryExpression,
 ) {
-	const stack = new Array<ts.Node>();
-	stack.push();
+	if (!state.topTruthyNode) {
+		state.topTruthyNode = node;
+	}
+
+	const isInTruthyCheck = isExpInTruthyCheck(node);
+
+	if (isInTruthyCheck) {
+		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
+	}
+
+	const stack = new Array<ts.Expression>();
+	preprocessLogicalBinary(state, lhs, rhs, node, stack);
+
+	const stack2 = new Array<ts.Expression>();
+	preprocessLogicalBinary2(state, lhs, rhs, node, { expressions: new Array(), isAnd });
+	console.log(stack2.map(a => a.getText()));
+	const results = new Array<string>();
+
+	// if (isInTruthyCheck) {
+	// 	if (state.topTruthyNode === node) {
+	// 		state.topTruthyNode = undefined;
+	// 		state.currentTruthyContext = "";
+	// 	}
+
+	// 	const stuff = new Array<string>()
+	// 	for (const check of stack) {
+	// 		state.enterPrecedingStatementContext();
+	// 		const checkStr = removeBalancedParenthesisFromStringBorders(compileExpression(state, check));
+
+	// 		if (!isValidLuaIdentifier(checkStr)) {
+
+	// 		}
+	// 		stuff.push(checkStr);
+	// 		const { length } = state.exitPrecedingStatementContext();
+
+	// 		if (length > 0) {
+	// 			console.log(checkStr)
+	// 		}
+	// 	}
+
+	// 	return stuff.join(isAnd ? " and " : " or ");
+	// }
+
+	let { currentTruthyContext } = state;
+	let id = currentTruthyContext;
+
+	if (!id) {
+		console.log(
+			"id",
+			(state.currentTruthyContext = id = state.getNewId()),
+			"at",
+			node.getText(),
+			currentTruthyContext,
+		);
+		state.hasTruthyContextBeenUsed = false;
+	}
+
+	const checkData = stack.map(check => {
+		state.enterPrecedingStatementContext();
+		const expStr = compileExpression(state, check);
+		const checkContext = state.exitPrecedingStatementContext();
+		const compileData = getTruthyCompileData(state, check);
+
+		return {
+			check,
+			checkContext,
+			compileData,
+			expStr,
+			inlinable: checkContext.length === 0 && compileData.numRefs === 1,
+		};
+	});
+
+	const op = isAnd ? " and " : " or ";
+
+	if (checkData.every(({ inlinable }, i) => i === 0 || inlinable)) {
+		if (!checkData[0].inlinable) {
+			state.pushPrecedingStatements(node, ...checkData[0].checkContext);
+		}
+
+		if (state.topTruthyNode === node) {
+			state.topTruthyNode = undefined;
+			state.currentTruthyContext = "";
+			state.hasTruthyContextBeenUsed = undefined;
+		}
+
+		return checkData
+			.map(({ check, expStr, compileData }) => compileTruthyCheck(state, check, expStr, compileData))
+			.join(op);
+	}
+
+	let closingEnds = 0;
+	state.enterPrecedingStatementContext(results);
+
+	for (let i = 0; i < stack.length; i++) {
+		let {
+			// tslint:disable-next-line: prefer-const
+			[i]: { checkContext, compileData, expStr, check },
+		} = checkData;
+
+		let checkStr = compileTruthyCheck(state, check, expStr, compileData);
+
+		if (isInTruthyCheck) {
+			expStr = checkStr;
+			checkStr = id;
+		}
+
+		results.push(joinIndentedLines(checkContext, closingEnds));
+
+		let { [i + 1]: nextData } = checkData;
+		while (nextData && nextData.inlinable) {
+			expStr += op + compileTruthyCheck(state, nextData.check, nextData.expStr, nextData.compileData);
+			({ [++i + 1]: nextData } = checkData);
+		}
+
+		if (id !== expStr) {
+			console.log(id, "=", expStr, `"${currentTruthyContext}"`, node.getText());
+
+			let declarationPrefix = "";
+
+			if (!state.hasTruthyContextBeenUsed) {
+				state.hasTruthyContextBeenUsed = true;
+				declarationPrefix = "local ";
+			}
+
+			results.push(state.indent, declarationPrefix, id, " = ", expStr, ";\n");
+		}
+
+		if (i < stack.length - 1) {
+			results.push(
+				state.indent,
+				"if ",
+				isAnd ? checkStr : checkStr === id ? `not ${checkStr}` : `not (${checkStr})`,
+				" then\n",
+			);
+			state.pushIndent();
+			closingEnds++;
+		}
+	}
+
+	state.exitPrecedingStatementContext();
+
+	// const expStr = compileExpression(state, stack[0]);
+
+	// const { currentTruthyContext } = state;
+	// let id = currentTruthyContext;
+
+	// if (!id) {
+	// 	state.currentTruthyContext = id = state.getNewId();
+	// }
+
+	// if (id !== expStr) {
+	// 	results.push(state.indent, currentTruthyContext ? "" : "local ", id, " = ", expStr, ";\n");
+	// }
+
+	// const { length: stackSize } = stack;
+
+	// for (
+	// 	let i = 0, previous = stack[i], operand = stack[++i];
+	// 	i < stackSize;
+	// 	previous = operand, operand = stack[++i]
+	// ) {
+	// 	state.enterPrecedingStatementContext();
+	// 	const checkStr = compileTruthyCheck(state, previous, id);
+	// 	const checkContext = state.exitPrecedingStatementContext();
+
+	// 	results.push(
+	// 		state.indent,
+	// 		"if ",
+	// 		isAnd ? checkStr : checkStr === id ? `not ${checkStr}` : `not (${checkStr})`,
+	// 		" then\n",
+	// 	);
+	// 	state.pushIndent();
+	// 	const operandStr = compileExpression(state, operand);
+	// 	if (id !== operandStr) {
+	// 		results.push(state.indent, id, " = ", operandStr, ";\n");
+	// 	}
+	// }
+
+	for (let i = 0; i < closingEnds; i++) {
+		state.popIndent();
+		results.push(state.indent, "end;\n");
+	}
+
+	state.pushPrecedingStatements(node, results.join(""));
+	if (state.topTruthyNode === node) {
+		state.topTruthyNode = undefined;
+		state.currentTruthyContext = "";
+		state.hasTruthyContextBeenUsed = undefined;
+	}
+	return id;
 }
 
 /** Returns an object specifying how many checks a given expression needs */
@@ -308,7 +701,7 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	}
 
 	const isUnknown = isUnknowableType(expType);
-	let checkNaN = isUnknown || isNumberTypeLax(expType);
+	let checkNaN = isUnknown || isNonLiteralNumberTypeLax(expType);
 	const checkNon0 = isUnknown || checkNaN || isLiterally0Lax(expType);
 
 	if (checkNon0) {
@@ -322,8 +715,13 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	}
 
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
-	const checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
-	const numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
+	let checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
+	let numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
+
+	if (numRefs === 0) {
+		numRefs = 1;
+		checkLuaTruthy = true;
+	}
 
 	return { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs };
 }
@@ -335,18 +733,21 @@ export function compileTruthyCheck(
 	expStr = compileExpression(state, exp),
 	compileData = getTruthyCompileData(state, exp),
 ) {
+	// console.log(
+	// 	state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp)),
+	// 	exp.getText(),
+	// 	state.alreadyCheckedTruthyConditionals.map(a => a.getText()),
+	// );
 	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
 	}
 
 	const { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs } = compileData;
 
-	expStr = removeBalancedParenthesisFromStringBorders(expStr);
-
 	if (!isValidLuaIdentifier(expStr)) {
 		if (numRefs > 1) {
-			console.log(expStr, (expStr = state.pushPrecedingStatementToNewId(exp, expStr)));
-		} else {
+			expStr = state.pushPrecedingStatementToNewId(exp, expStr);
+		} else if (shouldWrapExpression(exp, false)) {
 			expStr = `(${expStr})`;
 		}
 	}
@@ -365,11 +766,9 @@ export function compileTruthyCheck(
 		checks.push(`${expStr} ~= ""`);
 	}
 
-	if (checkLuaTruthy || checks.length === 0) {
+	if (checkLuaTruthy) {
 		checks.push(expStr);
 	}
-
-	const result = checks.join(" and ");
 
 	if (state.logTruthyDifferences && (checkNon0 || checkNaN || checkEmptyString)) {
 		console.log(
@@ -387,5 +786,5 @@ export function compileTruthyCheck(
 		);
 	}
 
-	return checks.length > 1 ? `(${result})` : result;
+	return checks.join(" and ");
 }

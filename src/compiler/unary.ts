@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression, getWritableOperandName, isIdentifierDefinedInExportLet } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { removeBalancedParenthesisFromStringBorders, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
+import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import { checkNonAny } from "./security";
 import { compileTruthyCheck } from "./truthiness";
 
@@ -66,7 +66,7 @@ export function compilePrefixUnaryExpression(state: CompilerState, node: ts.Pref
 		}
 	} else {
 		if (opKind === ts.SyntaxKind.ExclamationToken) {
-			return `not (${removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, operand))})`;
+			return `not (${compileTruthyCheck(state, operand)})`;
 		} else if (opKind === ts.SyntaxKind.MinusToken) {
 			return `-${compileExpression(state, operand)}`;
 		} else if (opKind === ts.SyntaxKind.TildeToken) {
