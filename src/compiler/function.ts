@@ -18,8 +18,8 @@ import {
 	isTupleType,
 	shouldHoist,
 } from "../utility/type";
-import { isValidLuaIdentifier } from "./security";
 import { isDefinedAsMethod } from "./call";
+import { isValidLuaIdentifier } from "./security";
 
 export type HasParameters =
 	| ts.FunctionExpression
