@@ -76,28 +76,28 @@ async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string
 	async function searchForDeadFiles(dir: string, dest: string) {
 		if (await fs.pathExists(dest)) {
 			for (const fileName of await fs.readdir(dest)) {
-				const newDest = path.join(dest, fileName);
-				const newDir =
-					path.relative(destinationFolder, newDest) === "node_modules"
+				dest = path.join(dest, fileName);
+				dir =
+					path.relative(destinationFolder, dest) === "node_modules"
 						? path.join(dir, fileName, "@rbxts")
 						: path.join(dir, fileName);
 
 				try {
-					const stats = await fs.stat(newDest);
+					const stats = await fs.stat(dest);
 					if (stats.isDirectory()) {
-						await searchForDeadFiles(newDir, newDest);
-						if ((await fs.readdir(newDest)).length === 0) {
-							await fs.rmdir(newDest);
-							console.log("delete", "dir", newDest);
+						await searchForDeadFiles(dir, dest);
+						if ((await fs.readdir(dest)).length === 0) {
+							await fs.rmdir(dest);
+							console.log("delete", "dir", dest);
 						}
 					} else if (stats.isFile()) {
-						if (!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, newDir))))) {
-							await fs.unlink(newDest);
-							console.log("delete", "file", newDest);
+						if (!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, dir))))) {
+							await fs.unlink(dest);
+							console.log("delete", "file", dest);
 						}
 					}
 				} catch (e) {
-					console.log("failed to clean", newDest);
+					console.log("failed to clean", dest);
 				}
 			}
 		}
