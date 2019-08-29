@@ -3,7 +3,6 @@ import { compileExpression, compileMethodDeclaration } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { joinIndentedLines, safeLuaIndex, skipNodesDownwards } from "../utility/general";
-import { isMethodDeclaration } from "./function";
 
 function assignMembers(state: CompilerState, from: string, target: string) {
 	state.pushIdStack();
