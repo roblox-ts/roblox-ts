@@ -185,4 +185,12 @@ export = () => {
 		expect(map.get("bar")).to.equal(2);
 		expect(map.get("baz")).to.equal(3);
 	});
+
+	it("should support creating Maps with tuple calls", () => {
+		function foo(): [number, string] {
+			return [123, "abc"];
+		}
+		const map = new Map([foo()]);
+		expect(map.get(123)).to.equal("abc");
+	});
 };
