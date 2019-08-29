@@ -124,7 +124,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 	const rawRhs = node.getRight();
 
-	const lhs = skipNodesDownwards(node.getLeft(), true);
+	let lhs = skipNodesDownwards(node.getLeft(), true);
 	const rhs = skipNodesDownwards(rawRhs, true);
 	let lhsStr: string;
 	let rhsStr: string;
@@ -189,6 +189,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	}
 
 	if (isSetToken(opKind)) {
+		lhs = skipNodesDownwards(lhs);
 		let isLhsIdentifier = ts.TypeGuards.isIdentifier(lhs) && !isIdentifierDefinedInExportLet(lhs);
 
 		let rhsStrContext: PrecedingStatementContext;

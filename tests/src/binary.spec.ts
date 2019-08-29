@@ -115,4 +115,19 @@ export = () => {
 		expect(a).to.equal(-66);
 		expect(b).to.equal(-30);
 	});
+
+	it("should support set expressions with parenthesis around the left-hand side", () => {
+		let x = 5;
+		// prettier-ignore
+		(x) *= 9;
+		expect(x).to.equal(45);
+
+		let o = { x: 3 };
+		// prettier-ignore
+		(o.x) = 5;
+		expect(o.x).to.equal(5);
+		// prettier-ignore
+		(o["x"]) = 8;
+		expect(o.x).to.equal(8);
+	});
 };
