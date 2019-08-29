@@ -30,6 +30,9 @@ declare interface Type {
 }
 const Type = require(RoactModule.WaitForChild<ModuleScript>("Type")) as Type;
 
+type ExplicitProps = { [Roact.Children]: { [name: string]: unknown } };
+type FragmentLike = { elements: { [name: string]: unknown } };
+
 export = () => {
 	describe("should support Roact.Component", () => {
 		it("should construct a roact class", () => {
@@ -326,17 +329,74 @@ export = () => {
 	// 	expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
 	// });
 
+	it("should support array expressions", () => {
+		const expression = [<frame />];
+		expect(ElementKind.of(expression[0])).to.equal(ElementKind.Host);
+
+		const keyedExpression = ([<frame Key="Testing" />] as unknown) as Map<string, Roact.Element>;
+		expect(ElementKind.of(keyedExpression.get("Testing"))).to.equal(ElementKind.Host);
+	});
+
 	it("should support JSX Fragments", () => {
-		const fragment = <Roact.Fragment>
-		</Roact.Fragment>;
+		const fragment = (
+			<Roact.Fragment>
+				<frame Key="TestKey" />
+			</Roact.Fragment>
+		);
 
 		expect(Type.of(fragment)).to.equal(Type.Element);
 		expect(ElementKind.of(fragment)).to.equal(ElementKind.Fragment);
+		expect(ElementKind.of(((fragment as unknown) as FragmentLike).elements.TestKey)).to.equal(ElementKind.Host);
 	});
 
 	it("Should default to using a Fragment for top-level keys", () => {
-		const test = <frame Key="Testing"/>;
+		const test = <frame Key="Testing" />;
 		expect(Type.of(test)).to.equal(Type.Element);
 		expect(ElementKind.of(test)).to.equal(ElementKind.Fragment);
+	});
+
+	it("should support BinaryExpressions", () => {
+		let ref: Frame | undefined;
+		const test = <frame>{true && <frame Ref={rbx => (ref = rbx)} />}</frame>;
+
+		Roact.mount(test);
+		expect(ref).to.be.ok();
+	});
+
+	it("should support ConditionalExpressions", () => {
+		let ref: Frame | TextLabel | undefined;
+		let ref2: Frame | TextLabel | undefined;
+		const test = (
+			<frame>{false ? <frame Ref={rbx => (ref = rbx)} /> : <textlabel Ref={rbx => (ref = rbx)} />}</frame>
+		);
+
+		const test2 = (
+			<frame>{true ? <frame Ref={rbx => (ref2 = rbx)} /> : <textlabel Ref={rbx => (ref2 = rbx)} />}</frame>
+		);
+
+		Roact.mount(test);
+		Roact.mount(test2);
+
+		expect(ref).to.be.ok();
+		expect(typeIs(ref, "Instance") && ref.IsA("TextLabel")).to.equal(true);
+
+		expect(ref2).to.be.ok();
+		expect(typeIs(ref2, "Instance") && ref2.IsA("Frame")).to.equal(true);
+	});
+
+	it("should support nesting maps", () => {
+		const map = new Map<string, Roact.Element>();
+		let ref: TextLabel | undefined;
+		const testLabel = <textlabel Ref={rbx => (ref = rbx)} Text="Texty" />;
+		map.set("Testing", testLabel);
+
+		const element = <screengui>{map}</screengui>;
+
+		expect(Type.of(element)).to.equal(Type.Element);
+		expect((element.props as ExplicitProps)[Roact.Children].Testing).to.equal(testLabel);
+
+		Roact.mount(element);
+		expect(ref).to.be.ok();
+		expect(typeIs(ref, "Instance") && ref.IsA("TextLabel") && ref.Text === "Texty").to.equal(true);
 	});
 };
