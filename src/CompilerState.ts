@@ -3,6 +3,7 @@ import { ProjectType } from ".";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
 import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility/general";
+import { RoactElementType } from "./compiler";
 
 export type PrecedingStatementContext = Array<string> & { isPushed: boolean };
 
@@ -214,6 +215,8 @@ export class CompilerState {
 	public isModule = false;
 	public scriptContext = ScriptContext.None;
 	public roactIndent: number = 0;
+	public roactElementStack = new Array<RoactElementType>();
+	public roactKeyStack = new Array<string>();
 	public hasRoactImport: boolean = false;
 	public usesTSLibrary = false;
 }

@@ -47,6 +47,7 @@ export enum CompilerErrorType {
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,
 	RoactInvalidPropertyExpression,
+	RoactInvalidKeyUsage,
 	UnexpectedObjectIndex,
 	NoDynamicImport,
 	InvalidIdentifier,

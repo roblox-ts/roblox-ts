@@ -446,6 +446,7 @@ function generateRoactAttributes(state: CompilerState, attributes: Array<ts.JsxA
 			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
 				generateSpecialPropAttribute(state, attributeName, attribute, currentAttributes);
 			} else if (attributeName === "Key") {
+				state.roactKeyStack.push(value);
 			} else {
 				currentAttributes.push(`${state.indent}${attributeName} = ${value}`);
 			}
@@ -485,10 +486,16 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 		if (isRoactChildElementType(returnType)) {
 			if (isArrayType(returnType) || isMapType(returnType)) {
 				// Roact.Element[]
-				return state.indent + compileExpression(state, expression);
+				state.roactElementStack.push("CallExpression");
+				const result = state.indent + compileExpression(state, expression);
+				state.roactElementStack.pop();
+				return result;
 			} else {
+				state.roactElementStack.push("CallExpression");
 				// Roact.Element
-				return state.indent + `{ ${compileExpression(state, expression)} }`;
+				const result = state.indent + `{ ${compileExpression(state, expression)} }`;
+				state.roactElementStack.pop();
+				return result;
 			}
 		} else {
 			throw new CompilerError(
@@ -552,6 +559,13 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 				CompilerErrorType.RoactInvalidExpression,
 			);
 		}
+	} else if (ts.TypeGuards.isJsxSelfClosingElement(expression) || ts.TypeGuards.isJsxElement(expression)) {
+		let str = state.indent + "{\n";
+		state.pushIndent();
+		str += state.indent + compileExpression(state, expression);
+		state.popIndent();
+		str += "\n" + state.indent + "}";
+		return str;
 	} else {
 		throw new CompilerError(
 			`Roact does not support this type of expression ` +
@@ -660,8 +674,8 @@ function generateRoactElementV2(
 ): string {
 	const name = nameNode.getText();
 	let isFragment = false;
-	let isInlineFragment = false;
 	let funcName = "Roact.createElement";
+	state.roactIndent++;
 
 	// All arguments to Roact will end up here!
 	const elementArguments = new Array<string>();
@@ -684,16 +698,49 @@ function generateRoactElementV2(
 		elementArguments.push(name);
 	}
 
+	state.roactElementStack.push(isFragment ? "Fragment" : "Element");
 	state.pushIndent();
 
-	if (isFragment === false && isInlineFragment === false && attributes.length > 0) {
-		elementArguments.push(generateRoactAttributes(state, attributes));
+	if (attributes.length > 0 || children.length > 0) {
+		if (isFragment) {
+			generateRoactAttributes(state, attributes);
+		} else {
+			elementArguments.push(generateRoactAttributes(state, attributes));
+		}
+	}
+
+	let hasKey = false;
+	let key = "";
+	if (state.roactKeyStack.length > 0) {
+		key = state.roactKeyStack.pop()!;
+		if (key && state.roactElementStack.length > 1) {
+			hasKey = true;
+		} else {
+			throw new CompilerError(
+				`Illegal key usage for key ${key} cannot be assigned to a top-level element.`,
+				nameNode,
+				CompilerErrorType.RoactInvalidKeyUsage,
+			);
+		}
 	}
 
 	if (children.length > 0 || isFragment) {
 		elementArguments.push(generateRoactChildren(state, isFragment, children));
 	}
 
+	state.roactIndent--;
+	state.roactElementStack.pop();
+	const parentType = state.roactElementStack[state.roactElementStack.length - 1];
+	if (hasKey && parentType === "CallExpression") {
+		throw new CompilerError(
+			`Illegal key usage, cannot assign top-level key inside CallExpression.\n` +
+				suggest("If you need to map objects to elements with keys, use a Map<string, Roact.Element>."),
+			nameNode,
+			CompilerErrorType.RoactInvalidKeyUsage,
+		);
+	} else if (hasKey) {
+		funcName = `[${key}] = ` + funcName;
+	}
 	state.popIndent();
 
 	if (elementArguments.length > 1 || isFragment) {
@@ -702,6 +749,8 @@ function generateRoactElementV2(
 		return funcName + "(" + elementArguments.join(",\n") + ")";
 	}
 }
+
+export type RoactElementType = "Element" | "ArrayExpression" | "Fragment" | "CallExpression";
 
 // TODO: Remove
 export function generateRoactElement(
@@ -991,12 +1040,14 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
 	if (isArrayExpressionParent) {
+		state.roactElementStack.push("ArrayExpression");
 		state.roactIndent++;
 	}
 
 	const element = generateRoactElementV2(state, node, tagNameNode, open.getAttributes(), children);
 
 	if (isArrayExpressionParent) {
+		state.roactElementStack.pop();
 		state.roactIndent--;
 	}
 
@@ -1017,12 +1068,14 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
 	if (isArrayExpressionParent) {
+		state.roactElementStack.push("ArrayExpression");
 		state.roactIndent++;
 	}
 
 	const element = generateRoactElementV2(state, node, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
+		state.roactElementStack.pop();
 		state.roactIndent--;
 	}
 
