@@ -51,7 +51,13 @@ function joinIfNotAbsolute(basePath: string, relativePath: string) {
 
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
-		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
+		let innerPath = path.relative(sourceFolder, oldPath).split(path.sep);
+		const [first, second, ...rest] = innerPath;
+		if (first === "node_modules" && second === "@rbxts") {
+			innerPath = [first, ...rest];
+		}
+		const innerFolder = innerPath.join(path.sep);
+		const newPath = path.join(destinationFolder, innerFolder);
 
 		let source = await fs.readFile(oldPath, "utf8");
 
@@ -67,32 +73,36 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	async function searchForDeadFiles(dir: string) {
-		if (await fs.pathExists(dir)) {
-			for (const fileName of await fs.readdir(dir)) {
-				const filePath = path.join(dir, fileName);
+	async function searchForDeadFiles(dir: string, dest: string) {
+		if (await fs.pathExists(dest)) {
+			for (const fileName of await fs.readdir(dest)) {
+				dest = path.join(dest, fileName);
+				dir =
+					path.relative(destinationFolder, dest) === "node_modules"
+						? path.join(dir, fileName, "@rbxts")
+						: path.join(dir, fileName);
+
 				try {
-					const stats = await fs.stat(filePath);
+					const stats = await fs.stat(dest);
 					if (stats.isDirectory()) {
-						await searchForDeadFiles(filePath);
-						if ((await fs.readdir(dir)).length === 0) {
-							await fs.remove(filePath);
-							console.log("delete", "dir", filePath);
+						await searchForDeadFiles(dir, dest);
+						if ((await fs.readdir(dest)).length === 0) {
+							await fs.rmdir(dest);
+							console.log("delete", "dir", dest);
 						}
 					} else if (stats.isFile()) {
-						const relativeToDestFolder = path.relative(destinationFolder, filePath);
-						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-							await fs.remove(filePath);
-							console.log("delete", "file", filePath);
+						if (!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, dir))))) {
+							await fs.unlink(dest);
+							console.log("delete", "file", dest);
 						}
 					}
 				} catch (e) {
-					console.log("failed to clean", filePath);
+					console.log("failed to clean", dest);
 				}
 			}
 		}
 	}
-	await searchForDeadFiles(destinationFolder);
+	await searchForDeadFiles(destinationFolder, destinationFolder);
 }
 
 async function copyAndCleanDeadLuaFiles(
