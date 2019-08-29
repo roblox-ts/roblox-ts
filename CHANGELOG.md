@@ -4,6 +4,7 @@
 - Fixed and/or expressions which now respect the control flow of expressions which require multiple statements in Lua
 - Fixed #586 - `new ReadonlySet()` and `new ReadonlyMap()` now work
 - Fixed #604 - `rbxtsc --init package` now fills out package.json better
+- Fix issues relating to method vs callback logic, specifically, making `this` work better as a first parameter. This should improve object composability. See https://git.io/fjxRS
 
 ### **0.2.14**
 - Fixed analytics bug

@@ -18,6 +18,7 @@ import {
 	isTupleType,
 	shouldHoist,
 } from "../utility/type";
+import { isDefinedAsMethod } from "./call";
 import { isValidLuaIdentifier } from "./security";
 
 export type HasParameters =
@@ -78,14 +79,17 @@ export function isFunctionExpressionMethod(node: ts.FunctionExpression) {
 }
 
 export function isMethodDeclaration(node: ts.Node<ts.ts.Node>): node is ts.MethodDeclaration | ts.FunctionExpression {
-	if (
-		ts.TypeGuards.isMethodSignature(node) ||
-		ts.TypeGuards.isMethodDeclaration(node) ||
-		(ts.TypeGuards.isFunctionExpression(node) && isFunctionExpressionMethod(node))
-	) {
+	if (ts.TypeGuards.isParameteredNode(node)) {
 		const thisParam = node.getParameter("this");
-
-		return !thisParam || getType(thisParam).getText() !== "void";
+		if (thisParam) {
+			return getType(thisParam).getText() !== "void";
+		} else {
+			return (
+				ts.TypeGuards.isMethodDeclaration(node) ||
+				ts.TypeGuards.isMethodSignature(node) ||
+				(ts.TypeGuards.isFunctionExpression(node) && isFunctionExpressionMethod(node))
+			);
+		}
 	}
 
 	return false;
@@ -141,6 +145,7 @@ function compileFunction(
 	body: ts.Node<ts.ts.Node>,
 	namePrefix = "",
 ) {
+	isDefinedAsMethod(node);
 	state.pushIdStack();
 	const paramNames = new Array<string>();
 	const initializers = new Array<string>();
@@ -148,17 +153,17 @@ function compileFunction(
 	getParameterData(state, paramNames, initializers, node);
 	checkReturnsNonAny(node);
 
-	let result: string;
+	const results = new Array<string>();
 	let frontWrap = "";
 	let backWrap = "";
-	let prefix = "";
+	let declarationPrefix = "";
 
 	if (ts.TypeGuards.isFunctionDeclaration(node)) {
 		const nameNode = node.getNameNode();
 		if (nameNode && shouldHoist(node, nameNode)) {
 			state.pushHoistStack(name);
 		} else {
-			prefix = "local ";
+			declarationPrefix = "local ";
 		}
 	}
 
@@ -168,90 +173,67 @@ function compileFunction(
 		/* istanbul ignore next */
 		if (node.isAsync()) {
 			state.usesTSLibrary = true;
-			frontWrap = "TS.async(";
-			backWrap = ")" + backWrap;
+			frontWrap += "TS.async(";
+			backWrap += ")" + backWrap;
 		}
 		isGenerator = !ts.TypeGuards.isArrowFunction(node) && node.isGenerator();
 	}
 
-	const sugarcoat = name !== "" && frontWrap === "" && canSugaryCompileFunction(node);
-	let namePrefixEndsInColon = namePrefix.endsWith(":");
-
-	if (isMethodDeclaration(node)) {
-		if (!namePrefixEndsInColon) {
-			giveInitialSelfParameter(node, paramNames);
-		}
-	} else if (namePrefixEndsInColon) {
-		namePrefixEndsInColon = false;
-		namePrefix = namePrefix.slice(0, -1) + ".";
-	}
+	const isMethod = isMethodDeclaration(node);
 
 	if (name) {
-		if (sugarcoat) {
-			result = state.indent + prefix;
-		} else {
-			if (namePrefix && namePrefixEndsInColon) {
-				namePrefix = namePrefix.slice(0, -1) + ".";
-				namePrefixEndsInColon = false;
+		results.push(state.indent, declarationPrefix);
+		if (frontWrap === "" && canSugaryCompileFunction(node)) {
+			results.push("function ");
+			if (namePrefix) {
+				results.push(namePrefix, isMethod ? ":" : ".");
+			} else if (isMethod) {
+				paramNames.unshift("self");
 			}
-			result = state.indent + prefix + namePrefix + name + " = ";
+			results.push(name);
+		} else {
+			if (namePrefix) {
+				results.push(namePrefix);
+				if (!name.startsWith("[")) {
+					results.push(".");
+				}
+			}
+			results.push(name, " = ", frontWrap, "function");
+			if (isMethod) {
+				paramNames.unshift("self");
+			}
 		}
 		backWrap += ";\n";
 	} else {
-		result = "";
+		results.push(frontWrap, "function");
+		if (isMethod) {
+			paramNames.unshift("self");
+		}
 	}
 
-	result += frontWrap + "function" + (sugarcoat ? " " + namePrefix + name : "") + "(" + paramNames.join(", ") + ")";
+	results.push("(", paramNames.join(", "), ")");
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
 		isIterableIteratorType(node.getReturnType());
-		result += "\n";
+		results.push("\n");
 		state.pushIndent();
-		result += state.indent + `return {\n`;
+		results.push(state.indent, `return {\n`);
 		state.pushIndent();
-		result += state.indent + `next = coroutine.wrap(function()`;
-		result += compileFunctionBody(state, body, node, initializers);
-		result += `\twhile true do coroutine.yield({ done = true }) end;\n`;
-		result += state.indent + `end);\n`;
+		results.push(state.indent, `next = coroutine.wrap(function()`);
+		results.push(compileFunctionBody(state, body, node, initializers));
+		results.push(`\twhile true do coroutine.yield({ done = true }) end;\n`);
+		results.push(state.indent, `end);\n`);
 		state.popIndent();
-		result += state.indent + `};\n`;
+		results.push(state.indent, `};\n`);
 		state.popIndent();
-		result += state.indent;
+		results.push(state.indent);
 	} else {
-		result += compileFunctionBody(state, body, node, initializers);
+		results.push(compileFunctionBody(state, body, node, initializers));
 	}
 	state.popIdStack();
-	return result + "end" + backWrap;
-}
-
-function giveInitialSelfParameter(node: ts.MethodDeclaration | ts.FunctionExpression, paramNames: Array<string>) {
-	const parameters = node.getParameters();
-	let replacedThis = false;
-
-	if (parameters.length > 0) {
-		const child = parameters[0].getFirstChildByKind(ts.SyntaxKind.Identifier);
-		const classParent = node.getFirstAncestor(
-			(ancestor): ancestor is ts.ClassDeclaration | ts.ClassExpression =>
-				ts.TypeGuards.isClassDeclaration(ancestor) || ts.TypeGuards.isClassExpression(ancestor),
-		);
-		if (
-			classParent &&
-			child &&
-			child.getText() === "this" &&
-			(getType(child).getText() === "this" || getType(child) === getType(classParent))
-		) {
-			paramNames[0] = "self";
-			replacedThis = true;
-		}
-	}
-
-	if (!replacedThis) {
-		const thisParam = node.getParameter("this");
-		if (!thisParam || getType(thisParam).getText() !== "void") {
-			paramNames.unshift("self");
-		}
-	}
+	results.push("end", backWrap);
+	return results.join("");
 }
 
 export function compileFunctionDeclaration(state: CompilerState, node: ts.FunctionDeclaration) {
@@ -272,12 +254,10 @@ export function compileMethodDeclaration(state: CompilerState, node: ts.MethodDe
 	let name: string;
 
 	if (ts.TypeGuards.isComputedPropertyName(nameNode)) {
-		namePrefix = namePrefix.slice(0, -1);
 		name = `[${compileExpression(state, skipNodesDownwards(nameNode.getExpression()))}]`;
 	} else {
 		name = compileExpression(state, nameNode);
 		if (!isValidLuaIdentifier(name)) {
-			namePrefix = namePrefix.slice(0, -1);
 			name = `["${name}"]`;
 		}
 	}

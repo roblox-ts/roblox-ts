@@ -422,6 +422,26 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
+	"method-callback/conflictingDefinitions.spec.ts": {
+		message: "should not allow definition overloading of mixed methods/member functions",
+		instance: CompilerError,
+		type: CompilerErrorType.MixedMethodCall,
+	},
+	"method-callback/conflictingClassMethods.spec.ts": {
+		message: "should not allow definition clashing of mixed methods/member functions",
+		instance: CompilerError,
+		type: CompilerErrorType.MixedMethodCall,
+	},
+	"method-callback/conflictingObjectMethodSet.spec.ts": {
+		message: "should not allow definition changing of mixed methods/member functions",
+		instance: CompilerError,
+		type: CompilerErrorType.MixedMethodSet,
+	},
+	"method-callback/conflictingVars.spec.ts": {
+		message: "should not allow definition changing of mixed methods/member functions",
+		instance: CompilerError,
+		type: CompilerErrorType.MixedMethodSet,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
