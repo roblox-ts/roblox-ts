@@ -57,6 +57,7 @@ export class CompilerState {
 		return id;
 	}
 
+	// TODO: Remove the unused Truthy ones
 	public currentConditionalContext: string = "";
 	public currentTruthyContext: string = "";
 	public topTruthyNode?: ts.BinaryExpression;

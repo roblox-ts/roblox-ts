@@ -8,7 +8,6 @@ import {
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesDownwards,
 	skipNodesUpwardsLookAhead,
-	skipNodesUpwards,
 } from "../utility/general";
 import { yellow } from "../utility/text";
 import {
@@ -20,8 +19,8 @@ import {
 	isTupleType,
 	isUnknowableType,
 } from "../utility/type";
-import { isValidLuaIdentifier } from "./security";
 import { shouldWrapExpression } from "./call";
+import { isValidLuaIdentifier } from "./security";
 
 // TODO: Remove once the second param to the condition callback of `getParentWhile` is added to ts-morph:
 
@@ -341,18 +340,22 @@ export function preprocessLogicalBinary(
 }
 
 interface NestedExpressions {
-	expressions: Array<ts.Expression | NestedExpressions>;
+	exprs: Array<ts.Expression | NestedExpressions>;
 	isAnd: boolean;
 }
 
-function stringableNestedExp(x: NestedExpressions) {
-	x.expressions.map(a => {
-		if (Array.isArray(a)) {
-			a
+function isNestedExpressions(x: ts.Expression | NestedExpressions): x is NestedExpressions {
+	return "exprs" in x && "isAnd" in x;
+}
+
+function logNestedExpression(x: NestedExpressions): any {
+	return x.exprs.map(a => {
+		if (isNestedExpressions(a)) {
+			return logNestedExpression(a);
 		} else {
-			a
+			return a.getText();
 		}
-	})
+	});
 }
 
 /*
@@ -367,29 +370,24 @@ export function preprocessLogicalBinary2(
 	node: ts.BinaryExpression,
 	stuff: NestedExpressions,
 ) {
-	const subLhs = skipNodesDownwards(lhs);
-
-	if (
-		ts.TypeGuards.isBinaryExpression(subLhs) &&
-		subLhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
-	) {
-		preprocessLogicalBinary2(state, subLhs.getLeft(), subLhs.getRight(), subLhs, stuff);
-	} else if (ts.TypeGuards.isBinaryExpression(subLhs)) {
-		stuff.expressions.push(subLhs);
-	} else {
-		stuff.expressions.push(subLhs);
+	for (const side of [skipNodesDownwards(lhs), skipNodesDownwards(rhs)]) {
+		if (ts.TypeGuards.isBinaryExpression(side)) {
+			if (side.getOperatorToken().getKind() === node.getOperatorToken().getKind()) {
+				preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), side, stuff);
+			} else {
+				const nextStuff: NestedExpressions = {
+					exprs: new Array(),
+					isAnd: side.getOperatorToken().getKind() === ts.SyntaxKind.AmpersandAmpersandToken,
+				};
+				preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), side, nextStuff);
+				stuff.exprs.push(nextStuff);
+			}
+		} else {
+			stuff.exprs.push(side);
+		}
 	}
 
-	const subRhs = skipNodesDownwards(rhs);
-
-	if (
-		ts.TypeGuards.isBinaryExpression(subRhs) &&
-		subRhs.getOperatorToken().getKind() === node.getOperatorToken().getKind()
-	) {
-		preprocessLogicalBinary2(state, subRhs.getLeft(), subRhs.getRight(), subRhs, stuff);
-	} else {
-		stack.push(subRhs);
-	}
+	return stuff;
 }
 
 export function compileLogicalBinary3(
@@ -489,7 +487,7 @@ export function compileLogicalBinary3(
 	return id;
 }
 
-export function compileLogicalBinary(
+export function compileLogicalBinary4(
 	state: CompilerState,
 	lhs: ts.Expression,
 	rhs: ts.Expression,
@@ -509,9 +507,9 @@ export function compileLogicalBinary(
 	const stack = new Array<ts.Expression>();
 	preprocessLogicalBinary(state, lhs, rhs, node, stack);
 
-	const stack2 = new Array<ts.Expression>();
-	preprocessLogicalBinary2(state, lhs, rhs, node, { expressions: new Array(), isAnd });
-	console.log(stack2.map(a => a.getText()));
+	const nestedExpressions = { exprs: new Array(), isAnd };
+	preprocessLogicalBinary2(state, lhs, rhs, node, nestedExpressions);
+	console.log("hey", logNestedExpression(nestedExpressions));
 	const results = new Array<string>();
 
 	// if (isInTruthyCheck) {
@@ -686,6 +684,58 @@ export function compileLogicalBinary(
 		state.hasTruthyContextBeenUsed = undefined;
 	}
 	return id;
+}
+
+function makeLogicalBinaryState(state: CompilerState) {
+	return {
+		id: state.getNewId(),
+		results: new Array<string>(),
+		sets: 0,
+	};
+}
+
+function parseNestedExpressions(
+	state: CompilerState,
+	logicalState: ReturnType<typeof makeLogicalBinaryState>,
+	{ exprs, isAnd }: NestedExpressions,
+) {
+	for (const item of exprs) {
+		if (isNestedExpressions(item)) {
+			parseNestedExpressions(state, logicalState, item);
+		} else {
+			if (logicalState.sets++ === 0) {
+			}
+			logicalState.results.push(compileExpression(state, item));
+		}
+	}
+
+	return logicalState;
+}
+
+export function compileLogicalBinary(
+	state: CompilerState,
+	lhs: ts.Expression,
+	rhs: ts.Expression,
+	isAnd: boolean,
+	node: ts.BinaryExpression,
+) {
+	if (!state.topTruthyNode) {
+		state.topTruthyNode = node;
+	}
+
+	const isInTruthyCheck = isExpInTruthyCheck(node);
+
+	if (isInTruthyCheck) {
+		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
+	}
+
+	const nestedExpressions: NestedExpressions = { exprs: new Array(), isAnd };
+
+	return parseNestedExpressions(
+		state,
+		makeLogicalBinaryState(state),
+		preprocessLogicalBinary2(state, lhs, rhs, node, nestedExpressions),
+	).results.join("");
 }
 
 /** Returns an object specifying how many checks a given expression needs */
