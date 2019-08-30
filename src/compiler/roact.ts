@@ -383,7 +383,10 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 		}
 	} else if (ts.TypeGuards.isBinaryExpression(expression)) {
 		if (isValidRoactBinaryExpression(expression)) {
-			return state.indent + compileExpression(state, expression);
+			state.roactElementStack.push("BinaryExpression");
+			const result = state.indent + compileExpression(state, expression);
+			state.roactElementStack.pop();
+			return result;
 		} else {
 			const right = expression
 				.getRight()
@@ -397,7 +400,11 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 		}
 	} else if (ts.TypeGuards.isConditionalExpression(expression)) {
 		if (isValidRoactConditionalExpression(expression)) {
-			return state.indent + compileExpression(state, expression);
+			state.roactElementStack.push("ConditionalExpression");
+			const result = state.indent + compileExpression(state, expression);
+			state.roactElementStack.pop();
+
+			return result;
 		} else {
 			throw new CompilerError(
 				`Conditional expression must return Roact.Element or undefined`,
@@ -697,7 +704,11 @@ function generateRoactElement(
 		if (state.roactElementStack.length === 1) {
 			preWrap += "Roact.createFragment({ " + `[${key}] = `;
 			postWrap += " })";
-		} else if (parentStackType !== "CallExpression") {
+		} else if (
+			parentStackType !== "CallExpression" &&
+			parentStackType !== "ConditionalExpression" &&
+			parentStackType !== "BinaryExpression"
+		) {
 			preWrap += `[${key}] = `;
 		}
 	}
@@ -706,9 +717,13 @@ function generateRoactElement(
 	state.roactElementStack.pop();
 
 	const parentType = state.roactElementStack[state.roactElementStack.length - 1];
-	if (hasKey && parentType === "CallExpression") {
-		preWrap += "Roact.createFragment({ " + `[${key}] = `;
-		postWrap += " })";
+	if (hasKey) {
+		if (parentType === "CallExpression") {
+			preWrap += "Roact.createFragment({ " + `[${key}] = `;
+			postWrap += " })";
+		} else {
+			console.log(parentType, key);
+		}
 	}
 
 	state.popIndent();
@@ -731,7 +746,13 @@ function generateRoactElement(
 	}
 }
 
-export type RoactElementType = "Element" | "ArrayExpression" | "Fragment" | "CallExpression";
+export type RoactElementType =
+	| "Element"
+	| "ArrayExpression"
+	| "Fragment"
+	| "CallExpression"
+	| "BinaryExpression"
+	| "ConditionalExpression";
 
 export function compileJsxElement(state: CompilerState, node: ts.JsxElement): string {
 	if (!state.hasRoactImport) {
