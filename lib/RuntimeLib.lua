@@ -215,7 +215,7 @@ end
 function TS.bit_lrsh(a, b)
 	local absA = math.abs(a)
 	local result = bit32.rshift(absA, b)
-	if a/absA == 1 then
+	if a == absA then
 		return result
 	else
 		return -result - 1
