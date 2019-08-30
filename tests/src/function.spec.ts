@@ -1,3 +1,31 @@
+namespace N {
+	export const a = function(this: typeof N, n: 5) {
+		expect(this).to.equal(N);
+		expect(n).to.equal(5);
+	};
+	export const b = function(this: void, n: 5) {
+		// expect(this).to.equal(undefined);
+		expect(n).to.equal(5);
+	};
+	export const c = function(n: 5) {
+		expect(n).to.equal(5);
+	};
+	export const d = (n: 5) => {
+		expect(n).to.equal(5);
+	};
+	export function e(this: typeof N, n: 5) {
+		expect(this).to.equal(N);
+		expect(n).to.equal(5);
+	}
+	export function f(this: void, n: 5) {
+		// expect(this).to.equal(undefined);
+		expect(n).to.equal(5);
+	}
+	export function g(n: 5) {
+		expect(n).to.equal(5);
+	}
+}
+
 export = () => {
 	it("should support function declarations", () => {
 		function foo() {
@@ -114,5 +142,133 @@ export = () => {
 			return `${x}, ${y}, ${z}`;
 		}
 		expect(foo(1, 2, 3)).to.equal("1, 2, 3");
+	});
+
+	it("should properly define and call methods vs callbacks", () => {
+		class A {
+			static a(this: void, n: 5) {
+				expect(this).to.equal(undefined);
+				expect(n).to.equal(5);
+			}
+			static b(this: typeof A, n: 5) {
+				expect(this).to.equal(A);
+				expect(n).to.equal(5);
+			}
+			static c(n: 5) {
+				expect(n).to.equal(5);
+			}
+			public d(this: void, n: 5) {
+				expect(this).to.equal(undefined);
+				expect(n).to.equal(5);
+			}
+			public e = function(n: 5) {
+				expect(n).to.equal(5);
+			};
+			public f = function(this: A, n: 5) {
+				expect(this instanceof A).to.equal(true);
+				expect(n).to.equal(5);
+			};
+			public g = (n: 5) => {
+				expect(n).to.equal(5);
+			};
+			public h(this: this, n: 5) {
+				expect(this instanceof A).to.equal(true);
+				expect(n).to.equal(5);
+			}
+		}
+
+		const o = {
+			a(this: void, n: 5) {
+				expect(this).to.equal(undefined);
+				expect(n).to.equal(5);
+			},
+			b(n: 5) {
+				expect(this).to.equal(o);
+				expect(n).to.equal(5);
+			},
+			c: function(this: void, n: 5) {
+				expect(this).to.equal(undefined);
+				expect(n).to.equal(5);
+			},
+			d: function(n: 5) {
+				expect(this).to.equal(o);
+				expect(n).to.equal(5);
+			},
+			e: (n: 5) => {
+				expect(n).to.equal(5);
+			},
+			f(this: {}, n: 5) {
+				expect(this).to.equal(o);
+				expect(n).to.equal(5);
+			},
+			g: function(this: {}, n: 5) {
+				expect(this).to.equal(o);
+				expect(n).to.equal(5);
+			},
+		};
+
+		function f(this: void, n: 5) {
+			// expect(this).to.equal(undefined);
+			expect(n).to.equal(5);
+		}
+
+		const g = function(this: void, n: 5) {
+			// expect(this).to.equal(undefined);
+			expect(n).to.equal(5);
+		};
+
+		A.a(5);
+		A.b(5);
+		A.c(5);
+		const a = new A();
+		a.d(5);
+		a.e(5);
+		a.f(5);
+		a.g(5);
+		a.h(5);
+
+		o.a(5);
+		o.b(5);
+		o.c(5);
+		o.d(5);
+		o.e(5);
+		o.f(5);
+		o.g(5);
+
+		N.a(5);
+		N.b(5);
+		N.c(5);
+		N.d(5);
+		N.e(5);
+		N.f(5);
+		N.g(5);
+
+		f(5);
+		g(5);
+
+		(function(this: void, n: 5) {
+			expect(n).to.equal(5);
+		})(5);
+		({
+			x: function(n: 5) {
+				expect(n).to.equal(5);
+			},
+		}.x(5));
+
+		({
+			x: function(this: void, n: 5) {
+				expect(n).to.equal(5);
+			},
+		}.x(5));
+
+		({
+			x: function(this: {}, n: 5) {
+				expect(n).to.equal(5);
+			},
+		}.x(5));
+
+		((n: 5) => {
+			expect(n).to.equal(5);
+		})(5);
 	});
 };
