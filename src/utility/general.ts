@@ -174,8 +174,8 @@ export function isIdentifierWhoseDefinitionMatchesNode(
 	return false;
 }
 
-/** Skips over Null/Parenthesis expressions.
- * Be aware that this can change the type of your expression to be potentially undefined.
+/** Skips over Null/Parenthesis/As expressions.
+ * Be aware that this can change the type of your expression.
  */
 export function skipNodesDownwards<T extends ts.Node>(exp: T, dontSkipParenthesis?: boolean): T;
 export function skipNodesDownwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean): T | undefined;
@@ -183,7 +183,8 @@ export function skipNodesDownwards<T extends ts.Node>(exp?: T, dontSkipParenthes
 	if (exp) {
 		while (
 			(!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
-			ts.TypeGuards.isNonNullExpression(exp)
+			ts.TypeGuards.isNonNullExpression(exp) ||
+			ts.TypeGuards.isAsExpression(exp)
 		) {
 			exp = (exp.getExpression() as unknown) as T;
 		}
@@ -191,8 +192,8 @@ export function skipNodesDownwards<T extends ts.Node>(exp?: T, dontSkipParenthes
 	}
 }
 
-/** Skips over Null/Parenthesis expressions.
- * Be aware that this can change the type of your expression to be potentially undefined.
+/** Skips over Null/Parenthesis/As expressions.
+ * Be aware that this can change the type of your expression.
  */
 export function skipNodesUpwards<T extends ts.Node>(exp: T, dontSkipParenthesis?: boolean): T;
 export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis?: boolean): T | undefined;
@@ -201,7 +202,8 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 		while (
 			exp &&
 			((!dontSkipParenthesis && ts.TypeGuards.isParenthesizedExpression(exp)) ||
-				ts.TypeGuards.isNonNullExpression(exp))
+				ts.TypeGuards.isNonNullExpression(exp) ||
+				ts.TypeGuards.isAsExpression(exp))
 		) {
 			exp = (exp.getParent() as unknown) as T;
 		}
@@ -209,10 +211,18 @@ export function skipNodesUpwards<T extends ts.Node>(exp?: T, dontSkipParenthesis
 	}
 }
 
+/** Looks upwards, and gets the Parent nodes as long as the one above is a Null/Parenthesis/As expression.
+ * Be aware that this can change the type of your expression.
+ */
 export function skipNodesUpwardsLookAhead(node: ts.Node) {
 	let parent = node.getParent();
 
-	while (parent && (ts.TypeGuards.isNonNullExpression(parent) || ts.TypeGuards.isParenthesizedExpression(parent))) {
+	while (
+		parent &&
+		(ts.TypeGuards.isNonNullExpression(parent) ||
+			ts.TypeGuards.isParenthesizedExpression(parent) ||
+			ts.TypeGuards.isAsExpression(parent))
+	) {
 		node = parent;
 		parent = node.getParent();
 	}
