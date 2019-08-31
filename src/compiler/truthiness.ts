@@ -367,20 +367,36 @@ export function preprocessLogicalBinary2(
 	state: CompilerState,
 	lhs: ts.Expression,
 	rhs: ts.Expression,
-	node: ts.BinaryExpression,
+	isAnd: 0 | 1 | 2,
 	stuff: NestedExpressions,
 ) {
+	// console.log(0, isAnd === 2 ? "&&": "||", lhs.getText(), rhs.getText());
 	for (const side of [skipNodesDownwards(lhs), skipNodesDownwards(rhs)]) {
 		if (ts.TypeGuards.isBinaryExpression(side)) {
-			if (side.getOperatorToken().getKind() === node.getOperatorToken().getKind()) {
-				preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), side, stuff);
+			let isOpAndToken: 0 | 1 | 2;
+
+			switch (side.getOperatorToken().getKind()) {
+				case ts.SyntaxKind.AmpersandAmpersandToken:
+					isOpAndToken = 2;
+					break;
+				case ts.SyntaxKind.BarBarToken:
+					isOpAndToken = 1;
+					break;
+				default:
+					isOpAndToken = 0;
+			}
+
+			if (isOpAndToken === isAnd) {
+				preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), isOpAndToken, stuff);
+			} else if (isOpAndToken) {
+				stuff.exprs.push(
+					preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), isOpAndToken, {
+						exprs: new Array(),
+						isAnd: isOpAndToken === 2,
+					}),
+				);
 			} else {
-				const nextStuff: NestedExpressions = {
-					exprs: new Array(),
-					isAnd: side.getOperatorToken().getKind() === ts.SyntaxKind.AmpersandAmpersandToken,
-				};
-				preprocessLogicalBinary2(state, side.getLeft(), side.getRight(), side, nextStuff);
-				stuff.exprs.push(nextStuff);
+				stuff.exprs.push(side);
 			}
 		} else {
 			stuff.exprs.push(side);
@@ -508,7 +524,7 @@ export function compileLogicalBinary4(
 	preprocessLogicalBinary(state, lhs, rhs, node, stack);
 
 	const nestedExpressions = { exprs: new Array(), isAnd };
-	preprocessLogicalBinary2(state, lhs, rhs, node, nestedExpressions);
+	preprocessLogicalBinary2(state, lhs, rhs, isAnd, nestedExpressions);
 	console.log("hey", logNestedExpression(nestedExpressions));
 	const results = new Array<string>();
 
@@ -698,12 +714,16 @@ function parseNestedExpressions(
 	state: CompilerState,
 	logicalState: ReturnType<typeof makeLogicalBinaryState>,
 	{ exprs, isAnd }: NestedExpressions,
+	depth = 0,
 ) {
 	for (const item of exprs) {
 		if (isNestedExpressions(item)) {
-			parseNestedExpressions(state, logicalState, item);
+			parseNestedExpressions(state, logicalState, item, depth + 1);
 		} else {
+			// console.log("\t".repeat(depth), item.getText(), isAnd);
 			if (logicalState.sets++ === 0) {
+			} else {
+				logicalState.results.push(isAnd ? " and " : " or ");
 			}
 			logicalState.results.push(compileExpression(state, item));
 		}
@@ -734,7 +754,7 @@ export function compileLogicalBinary(
 	return parseNestedExpressions(
 		state,
 		makeLogicalBinaryState(state),
-		preprocessLogicalBinary2(state, lhs, rhs, node, nestedExpressions),
+		preprocessLogicalBinary2(state, lhs, rhs, isAnd ? 2 : 1, nestedExpressions),
 	).results.join("");
 }
 
