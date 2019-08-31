@@ -81,7 +81,6 @@ enum ForOfLoopType {
 }
 
 function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
-	console.log(exp.getKindName(),exp.getText())
 	while (ts.TypeGuards.isCallExpression(exp)) {
 		const subExp = skipNodesDownwards(exp.getExpression());
 
