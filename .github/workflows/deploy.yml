@@ -2,37 +2,37 @@ name: Deploy
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 7 * * *'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
-      with:
-        submodules: recursive
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
 
-    - name: Install NodeJS
-      uses: actions/setup-node@master
-      with:
-        node-version: 10.x
-        registry-url: 'https://registry.npmjs.org'
+      - name: Install NodeJS
+        uses: actions/setup-node@master
+        with:
+          node-version: 10.x
+          registry-url: 'https://registry.npmjs.org'
 
-    - name: Install Node_modules
-      run: npm install
+      - name: Install Node_modules
+        run: npm install
 
-    - name: Build
-      run: npm run build
+      - name: Build
+        run: npm run build
 
-    - name: Deploy
-      if: github.ref == 'refs/heads/master'
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "noreply@github.com"
-        git checkout origin/master tests/package.json
-        git checkout origin/master tests/package-lock.json
-        npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
-        npm publish --tag next
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+      - name: Deploy
+        if: github.ref == 'refs/heads/master'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "noreply@github.com"
+          git checkout origin/master tests/package.json
+          git checkout origin/master tests/package-lock.json
+          npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+          npm publish --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}

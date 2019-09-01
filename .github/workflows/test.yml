@@ -9,46 +9,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@master
-      with:
-        submodules: recursive
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
 
-    - name: Install NodeJS
-      uses: actions/setup-node@master
-      with:
-        node-version: 10.x
-        registry-url: 'https://registry.npmjs.org'
+      - name: Install NodeJS
+        uses: actions/setup-node@master
+        with:
+          node-version: 10.x
+          registry-url: 'https://registry.npmjs.org'
 
-    - name: Install Node_modules
-      run: npm install
+      - name: Install Node_modules
+        run: npm install
 
-    - name: Install Latest @rbxts/types for tests
-      run: |
-        pushd tests >/dev/null
-        npm install @rbxts/types@latest
-        popd >/dev/null
+      - name: Install Latest @rbxts/types for tests
+        run: |
+          pushd tests >/dev/null
+          npm install @rbxts/types@latest
+          popd >/dev/null
 
-    - name: Install Lua
-      uses: leafo/gh-actions-lua@master
-      with:
-        luaVersion: 5.1
+      - name: Install Lua
+        uses: leafo/gh-actions-lua@master
+        with:
+          luaVersion: 5.1
 
-    - name: Install Luarocks
-      uses: leafo/gh-actions-luarocks@master
+      - name: Install Luarocks
+        uses: leafo/gh-actions-luarocks@master
 
-    - name: Install Luarocks Packages
-      run: |
-        luarocks install luafilesystem
-        luarocks install dkjson
-        luarocks install bit32
+      - name: Install Luarocks Packages
+        run: |
+          luarocks install luafilesystem
+          luarocks install dkjson
+          luarocks install bit32
 
-    - name: Run Tests
-      run: npm run ci
+      - name: Run Tests
+        run: npm run ci
 
-    - name: Generate Coverage
-      run: npm run coverage
+      - name: Generate Coverage
+        run: npm run coverage
 
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.github_token }}
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.github_token }}
