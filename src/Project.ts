@@ -111,7 +111,7 @@ async function copyAndCleanDeadLuaFiles(
 	transform?: (input: string) => string,
 ) {
 	await copyLuaFiles(sourceFolder, destinationFolder, transform);
-	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
+	// await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
 export enum ProjectType {

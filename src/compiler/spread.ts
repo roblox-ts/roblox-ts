@@ -200,7 +200,8 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		if (ts.TypeGuards.isStringLiteral(expression)) {
 			const text = expression.getText();
 			const quote = text.slice(-1);
-			return "{" + text.replace(/\\?[^]/gu, a => `${quote}${a}${quote}, `).slice(4, -7) + " }";
+			const segments = text.slice(1, -1).match(/\\?(\r\n|[^])/gu);
+			return segments ? "{ " + segments.map(a => quote + a + quote).join(", ") + " }" : "{}";
 		} else {
 			state.usesTSLibrary = true;
 			return `TS.string_spread(${compileExpression(state, expression)})`;

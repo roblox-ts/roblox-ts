@@ -60,7 +60,7 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 		newline = " ";
 		indentation = "";
 		tab = "";
-		contextLines = joinIndentedLines(context, 0).replace(/\n/g, " ");
+		contextLines = joinIndentedLines(context, 0).replace(/\r?\n/g, " ");
 	}
 
 	state.popIndent();

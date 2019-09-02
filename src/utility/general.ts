@@ -18,7 +18,7 @@ export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
 	if (lines.length > 0) {
 		if (numTabs > 0) {
 			const sep = "\t".repeat(numTabs);
-			return lines.join("").replace(/.+/g, a => sep + a);
+			return lines.join("").replace(/(\\\r?\n|.)+/g, a => sep + a);
 		} else {
 			return lines.join("");
 		}
