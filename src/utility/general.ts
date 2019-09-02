@@ -300,3 +300,17 @@ export async function cmd(process: string, args: Array<string>, options?: SpawnO
 			.on("close", () => resolve(output));
 	});
 }
+
+export function luaStringify(str: string): string {
+	if (str.indexOf('"') === -1) {
+		return `"${str}"`;
+	} else if (str.indexOf("'") === -1) {
+		return `'${str}'`;
+	} else {
+		let eq = "";
+		while (str.indexOf(`]${eq}]`) !== -1) {
+			eq += "=";
+		}
+		return `[${eq}[${str}]${eq}]`;
+	}
+}

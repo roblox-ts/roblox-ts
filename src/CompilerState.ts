@@ -19,6 +19,7 @@ export class CompilerState {
 		public readonly projectType: ProjectType,
 		public readonly runtimeLibPath: Array<string>,
 		public readonly modulesPath: string,
+		public readonly pkgVersion: string,
 		public readonly rojoProject?: RojoProject,
 		public readonly runtimeOverride?: string,
 		public readonly logTruthyDifferences?: boolean,

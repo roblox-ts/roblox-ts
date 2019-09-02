@@ -1,9 +1,12 @@
 import * as ts from "ts-morph";
 import { CompilerState } from "../CompilerState";
+import { luaStringify } from "../utility/general";
 
-export const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
+const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
 
-export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+
+const PKG_VERSION_ID = "PKG_VERSION";
 
 export function compileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition: boolean = false) {
 	let name = node.getText();
@@ -16,6 +19,10 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 	if (BUILT_INS.indexOf(name) !== -1) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;
+	}
+
+	if (name === PKG_VERSION_ID) {
+		return luaStringify(state.pkgVersion);
 	}
 
 	const definitions = isDefinition ? [node] : node.getDefinitions().map(def => def.getNode());

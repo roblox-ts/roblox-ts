@@ -26,6 +26,8 @@ const IGNORED_DIAGNOSTIC_CODES = [
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
 ];
 
+const DEFAULT_PKG_VERSION = "UNKNOWN";
+
 const LUA_EXT = ".lua";
 function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
 	return new Promise((resolve, reject) => {
@@ -139,6 +141,7 @@ export class Project {
 	public project: ts.Project = {} as ts.Project;
 	private compilerOptions: ts.CompilerOptions = {};
 	private projectPath = "";
+	private pkgVersion = DEFAULT_PKG_VERSION;
 
 	private rojoProject?: RojoProject;
 	private projectType = ProjectType.Package;
@@ -186,6 +189,13 @@ export class Project {
 				"Could not create project!" + "\n" + "- Is your tsconfig.json valid UTF-8?",
 				ProjectErrorType.ProjectFailed,
 			);
+		}
+
+		const pkgJsonPath = path.join(this.projectPath, "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			try {
+				this.pkgVersion = JSON.parse(fs.readFileSync(pkgJsonPath).toString()).version || DEFAULT_PKG_VERSION;
+			} catch (e) {}
 		}
 
 		const modulesPath = this.getModulesPath(this.projectPath);
@@ -682,6 +692,7 @@ export class Project {
 			this.projectType,
 			this.runtimeLibPath,
 			this.modulesPath,
+			this.pkgVersion,
 			this.rojoProject,
 			this.runtimeOverride,
 			this.logTruthyDifferences,
