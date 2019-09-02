@@ -185,6 +185,14 @@ export function expressionModifiesVariable(
 	return false;
 }
 
+export function nodesModifyVariable(nodes: Array<ts.Node>, modified: ts.Identifier) {
+	for (const node of nodes) {
+		for (const descendant of node.getDescendants()) {
+			expressionModifiesVariable(descendant, modified);
+		}
+	}
+}
+
 export function appendDeclarationIfMissing(
 	state: CompilerState,
 	possibleExpressionStatement: ts.Node,

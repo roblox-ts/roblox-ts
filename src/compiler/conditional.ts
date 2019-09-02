@@ -57,7 +57,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		state.declarationContext.delete(node);
 	} else {
 		if (currentConditionalContext === "") {
-			console.log("currentTruthyContext", state.currentTruthyContext);
+			// console.log("currentTruthyContext", state.currentTruthyContext);
 			id = state.pushPrecedingStatementToNewId(node, "");
 			state.currentConditionalContext = id;
 			isPushed = true;
