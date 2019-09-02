@@ -21,10 +21,10 @@ const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
 
-const IGNORED_DIAGNOSTIC_CODES = [
+const IGNORED_DIAGNOSTIC_CODES = new Set([
 	2688, // "Cannot find type definition file for '{0}'."
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
-];
+]);
 
 const DEFAULT_PKG_VERSION = "UNKNOWN";
 
@@ -761,7 +761,7 @@ export class Project {
 			const diagnostics = file
 				.getPreEmitDiagnostics()
 				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
+				.filter(diagnostic => !IGNORED_DIAGNOSTIC_CODES.has(diagnostic.getCode()));
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
 				const line = diagnostic.getLineNumber();

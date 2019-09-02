@@ -3,7 +3,7 @@ import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } f
 import { PrecedingStatementContext } from "../CompilerState";
 import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "./general";
 
-export const RBX_SERVICES: Array<string> = [
+const RBX_SERVICES = new Set([
 	"AssetService",
 	"BadgeService",
 	"Chat",
@@ -46,10 +46,10 @@ export const RBX_SERVICES: Array<string> = [
 	"UserInputService",
 	"VRService",
 	"Workspace",
-];
+]);
 
 export function isRbxService(name: string) {
-	return RBX_SERVICES.indexOf(name) !== -1;
+	return RBX_SERVICES.has(name);
 }
 
 export function isTypeStatement(node: ts.Node) {

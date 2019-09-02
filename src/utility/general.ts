@@ -302,13 +302,13 @@ export async function cmd(process: string, args: Array<string>, options?: SpawnO
 }
 
 export function luaStringify(str: string): string {
-	if (str.indexOf('"') === -1) {
+	if (!str.includes('"')) {
 		return `"${str}"`;
-	} else if (str.indexOf("'") === -1) {
+	} else if (!str.includes("'")) {
 		return `'${str}'`;
 	} else {
 		let eq = "";
-		while (str.indexOf(`]${eq}]`) !== -1) {
+		while (str.includes(`]${eq}]`)) {
 			eq += "=";
 		}
 		return `[${eq}[${str}]${eq}]`;

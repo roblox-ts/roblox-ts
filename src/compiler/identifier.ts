@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { CompilerState } from "../CompilerState";
 import { luaStringify } from "../utility/general";
 
-const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
+const BUILT_INS = new Set(["Promise", "Symbol", "typeIs", "opcall"]);
 
 const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
 
@@ -16,7 +16,7 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 		return replacement;
 	}
 
-	if (BUILT_INS.indexOf(name) !== -1) {
+	if (BUILT_INS.has(name)) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;
 	}

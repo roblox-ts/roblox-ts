@@ -35,7 +35,7 @@ import {
 	superExpressionClassInheritsFromArray,
 } from "../utility/type";
 
-const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
+const STRING_MACRO_METHODS = new Set(["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"]);
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	subExp = skipNodesDownwards(subExp);
@@ -132,9 +132,9 @@ function macroStringIndexFunction(
 				const previousParam = params[i++];
 				let incrementing: boolean | undefined;
 
-				if (incrementedArgs.indexOf(i) !== -1) {
+				if (incrementedArgs.includes(i)) {
 					incrementing = true;
-				} else if (decrementedArgs.indexOf(i) !== -1) {
+				} else if (decrementedArgs.includes(i)) {
 					incrementing = false;
 				}
 
@@ -162,7 +162,7 @@ function macroStringIndexFunction(
 					return "nil";
 				}
 
-				if (expStr.indexOf("e") === -1 && expStr.indexOf("E") === -1) {
+				if (!expStr.includes("e") && !expStr.includes("E")) {
 					const valueNumber = Number(expStr);
 					if (!Number.isNaN(valueNumber)) {
 						if (incrementing) {
@@ -634,7 +634,7 @@ const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	),
 );
 
-const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
+const RBX_MATH_CLASSES = new Set(["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"]);
 
 function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => string): ReplaceFunction {
 	return (state, params) => {
@@ -659,22 +659,15 @@ function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => stri
 }
 
 // This makes local testing easier
-const PRIMITIVE_LUA_TYPES = [
-	`"nil"`,
-	`"boolean"`,
-	`"string"`,
-	`"number"`,
-	`"table"`,
-	`"userdata"`,
-	`"function"`,
-	`"thread"`,
-];
+const PRIMITIVE_LUA_TYPES = new Set(
+	["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"].map(v => `"${v}"`),
+);
 
 const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"typeIs",
 		makeGlobalExpressionMacro(
-			(obj, type) => `${PRIMITIVE_LUA_TYPES.includes(type) ? "type" : "typeof"}(${obj}) == ${type}`,
+			(obj, type) => `${PRIMITIVE_LUA_TYPES.has(type) ? "type" : "typeof"}(${obj}) == ${type}`,
 		),
 	],
 	["classIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
@@ -897,7 +890,7 @@ export function getPropertyAccessExpressionType(
 	}
 
 	if (isStringMethodType(expType)) {
-		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
+		if (STRING_MACRO_METHODS.has(property)) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
 		return PropertyCallExpType.String;
@@ -937,7 +930,7 @@ export function getPropertyAccessExpressionType(
 		}
 
 		// custom math
-		if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
+		if (RBX_MATH_CLASSES.has(subExpTypeName)) {
 			switch (property) {
 				case "add":
 					return PropertyCallExpType.RbxMathAdd;
