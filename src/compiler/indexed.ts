@@ -211,7 +211,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 }
 
 export function addOneToArrayIndex(valueStr: string) {
-	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+	if (!valueStr.includes("e") && !valueStr.includes("E")) {
 		const valueNumber = Number(valueStr);
 		if (!Number.isNaN(valueNumber)) {
 			return (valueNumber + 1).toString();
