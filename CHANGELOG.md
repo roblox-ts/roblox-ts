@@ -9,6 +9,7 @@
 - Converted almost all of our bitwise operators to bit32
 - Fixed our system of checking whether something is a type vs a value.
 - Fixed importing system for when your project requires a package version other than the globally installed one.
+- Added macro variable `PKG_VERSION` which gets replaced with the "version" string in your package.json file on compile
 
 ### **0.2.14**
 - Fixed analytics bug
