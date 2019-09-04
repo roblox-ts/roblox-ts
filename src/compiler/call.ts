@@ -59,7 +59,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = skipNodesUpwards(subExp);
 
 	for (let i = 0; i < climb; i++) {
-		exp = skipNodesUpwards(exp.getParent());
+		exp = skipNodesUpwards(exp.getParent()!);
 	}
 
 	return exp;
@@ -781,7 +781,7 @@ export function compileCallExpression(
 					);
 				}
 
-				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent())) ? "" : "nil";
+				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent()!)) ? "" : "nil";
 			} else if (inheritsFromRoact(exp.getType())) {
 				return "";
 			} else {
@@ -1069,7 +1069,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} + (${argStrs[1]}))`,
 			);
 		}
@@ -1077,7 +1077,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} - (${argStrs[1]}))`,
 			);
 		}
@@ -1085,7 +1085,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} * (${argStrs[1]}))`,
 			);
 		}
@@ -1093,7 +1093,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} / (${argStrs[1]}))`,
 			);
 		}

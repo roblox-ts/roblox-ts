@@ -776,13 +776,27 @@ export class Project {
 
 				let messageText = diagnostic.getMessageText();
 				if (messageText instanceof ts.DiagnosticMessageChain) {
-					const textSegments = new Array<string>();
-					let chain: ts.DiagnosticMessageChain | undefined = messageText;
-					while (chain !== undefined) {
-						textSegments.push(chain.getMessageText());
-						chain = chain.getNext();
+					// I went with the safest bet here, since getNext returns an array of ts.DiagnosticMessageChain,
+					// and each element within those has a `.getNext()` method. That seems to me to imply
+					// a very real possibility that some of those `.getNext()` calls would return duplicates of the
+					// same thing. This will call all .getNext() methods, but will check to make sure we don't get
+					// duplicates.
+					const diagnosticMessages = [messageText];
+
+					for (let i = 0; i < diagnosticMessages.length; i++) {
+						const { [i]: message } = diagnosticMessages;
+						const nextMessages = message.getNext();
+
+						if (nextMessages) {
+							for (const nextMessage of nextMessages) {
+								if (!diagnosticMessages.includes(nextMessage)) {
+									diagnosticMessages.push(nextMessage);
+								}
+							}
+						}
 					}
-					messageText = textSegments.join("\n");
+
+					messageText = diagnosticMessages.map(msg => msg.getMessageText()).join("\n");
 				}
 				errors.push(prefix + red("Diagnostic Error: ") + messageText);
 			}

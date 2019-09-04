@@ -488,16 +488,6 @@ export function isTupleReturnTypeCall(node: ts.CallExpression) {
 	}
 }
 
-function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
-	while (descendant) {
-		if (ancestor === descendant) {
-			return true;
-		}
-		descendant = descendant.getParent();
-	}
-	return false;
-}
-
 export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor = true): boolean {
 	if (ts.TypeGuards.isForStatement(ancestor)) {
 		return false;
@@ -525,7 +515,7 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor 
 			return true;
 		}
 
-		if (checkAncestor && isAncestorOf(ancestor, ref)) {
+		if (checkAncestor && (ref === ancestor || ref.getFirstAncestor(a => a === ancestor))) {
 			return false;
 		} else {
 			let refAncestor: ts.Node | undefined = ref;
