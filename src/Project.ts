@@ -12,6 +12,7 @@ import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { RojoProjectError } from "./errors/RojoProjectError";
 import { NetworkType, RojoProject } from "./RojoProject";
 import { transformPathToLua } from "./utility/general";
+import { checkFileHash, getHashForFile } from "./utility/hash";
 import { red, yellow } from "./utility/text";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
@@ -685,8 +686,9 @@ export class Project {
 		}
 	}
 
-	private createCompilerState() {
+	private createCompilerState(hash: string) {
 		return new CompilerState(
+			hash,
 			this.rootPath,
 			this.outPath,
 			this.projectType,
@@ -706,7 +708,7 @@ export class Project {
 		let exception: Error | undefined;
 		let compiledSource = "";
 		try {
-			compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+			compiledSource = compileSourceFile(this.createCompilerState(getHashForFile(sourceFile)), sourceFile);
 		} catch (e) {
 			exception = e;
 		}
@@ -819,19 +821,28 @@ export class Project {
 			}
 
 			const sources = new Array<[string, string]>();
-			for (const sourceFile of files) {
-				if (!sourceFile.isDeclarationFile()) {
-					const filePath = sourceFile.getFilePath();
-					const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
-					let source = compileSourceFile(this.createCompilerState(), sourceFile);
+			await Promise.all(
+				files
+					.filter(sourceFile => !sourceFile.isDeclarationFile())
+					.map(async sourceFile => {
+						const filePath = sourceFile.getFilePath();
+						const relativePath = path.relative(this.projectPath, filePath);
+						const hash = getHashForFile(sourceFile);
+						const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
+						if (!(await checkFileHash(outPath, hash))) {
+							let source = compileSourceFile(this.createCompilerState(hash), sourceFile);
 
-					if (this.luaSourceTransformer) {
-						source = this.luaSourceTransformer(source);
-					}
+							if (this.luaSourceTransformer) {
+								source = this.luaSourceTransformer(source);
+							}
 
-					sources.push([outPath, source]);
-				}
-			}
+							console.log(relativePath, "Compiled");
+							sources.push([outPath, source]);
+						} else {
+							console.log(relativePath, "Skipped");
+						}
+					}),
+			);
 
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {

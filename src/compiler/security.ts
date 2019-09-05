@@ -179,7 +179,7 @@ function getCompilerDirectiveFromDeclaration(
 	if (ts.TypeGuards.isJSDocableNode(node)) {
 		for (const jsDoc of node.getJsDocs()) {
 			for (const jsTag of jsDoc.getTags()) {
-				if (jsTag.getTagName() === COMPILER_DIRECTIVE_TAG) {
+				if ("getTagName" in jsTag && jsTag.getTagName() === COMPILER_DIRECTIVE_TAG) {
 					const comment = jsTag.getComment();
 					if (comment) {
 						for (const word of comment.split(" ")) {

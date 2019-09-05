@@ -6,6 +6,8 @@ import { isValidLuaIdentifier } from "../compiler";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
+export const COMPILER_VERSION = require("../../package.json").version as string;
+
 export function safeLuaIndex(parent: string, child: string) {
 	if (isValidLuaIdentifier(child)) {
 		return `${parent ? parent.trimRight() + "." : ""}${child}`;

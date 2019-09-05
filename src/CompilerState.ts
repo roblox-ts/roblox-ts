@@ -14,6 +14,7 @@ export interface DeclarationContext {
 
 export class CompilerState {
 	constructor(
+		public readonly fileHash: string,
 		public readonly rootPath: string,
 		public readonly outPath: string,
 		public readonly projectType: ProjectType,

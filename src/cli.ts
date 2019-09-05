@@ -5,6 +5,7 @@ import { setAnalyticsDisabled } from "./analytics";
 import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
+import { COMPILER_VERSION } from "./utility/general";
 import { red } from "./utility/text";
 import { Watcher } from "./Watcher";
 
@@ -14,7 +15,7 @@ const argv = yargs
 
 	// version
 	.alias("v", "version")
-	.version(require("../package.json").version as string)
+	.version(COMPILER_VERSION)
 	.describe("version", "show version information")
 
 	// help

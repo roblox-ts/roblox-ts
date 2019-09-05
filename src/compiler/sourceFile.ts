@@ -6,6 +6,7 @@ import { ProjectType } from "../Project";
 import { RojoProject } from "../RojoProject";
 import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
 import { isRbxService } from "../utility/type";
+import { HASH_PREFIX } from "../utility/hash";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
@@ -106,12 +107,13 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		year: "numeric",
 	});
 
-	const GENERATED_HEADER = `-- Compiled with https://roblox-ts.github.io v${VERSION}
--- ${CURRENT_TIME}
+	const header = new Array<string>();
 
-`;
+	header.push(`-- Compiled with https://roblox-ts.github.io v${VERSION}`);
+	header.push(`-- ${CURRENT_TIME}`);
+	header.push(`${HASH_PREFIX}${state.fileHash}`);
 
-	result = GENERATED_HEADER + result;
+	result = header.join("\n") + "\n\n" + result;
 	console.profileEnd();
 	return result;
 }
