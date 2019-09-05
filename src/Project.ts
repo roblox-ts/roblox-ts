@@ -133,6 +133,7 @@ interface ProjectOptions {
 	minify?: boolean;
 	ci?: boolean;
 	logTruthyChanges?: boolean;
+	noHash?: boolean;
 }
 
 export class Project {
@@ -152,7 +153,8 @@ export class Project {
 	private readonly includePath: string;
 	private readonly noInclude: boolean;
 	private readonly minify: boolean;
-	public readonly logTruthyDifferences: boolean | undefined;
+	public readonly logTruthyDifferences: boolean;
+	public readonly noHash: boolean;
 
 	private readonly rootPath: string;
 	private readonly outPath: string;
@@ -278,7 +280,8 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
-			this.logTruthyDifferences = opts.logTruthyChanges;
+			this.logTruthyDifferences = opts.logTruthyChanges === true;
+			this.noHash = opts.noHash === true;
 
 			const rootPath = this.compilerOptions.rootDir;
 			if (!rootPath) {
@@ -329,6 +332,8 @@ export class Project {
 			this.outPath = "";
 			this.modulesPath = "";
 			this.ci = false;
+			this.logTruthyDifferences = false;
+			this.noHash = false;
 
 			this.runtimeOverride = "local TS = ...; -- link to runtime library";
 
@@ -837,7 +842,7 @@ export class Project {
 
 					const startTime = Date.now();
 					process.stdout.write(`- ${relativePath} .. `);
-					if (!(await checkFileHash(outPath, hash))) {
+					if (this.noHash || !(await checkFileHash(outPath, hash))) {
 						let source = compileSourceFile(this.createCompilerState(hash), sourceFile);
 
 						if (this.luaSourceTransformer) {

@@ -87,9 +87,16 @@ const argv = yargs
 		type: "boolean",
 	})
 
+	// logTruthyChanges
 	.option("logTruthyChanges", {
 		boolean: true,
 		describe: "logs changes to truthiness evaluation from Lua truthiness rules",
+	})
+
+	// noHash
+	.option("noHash", {
+		boolean: true,
+		describe: "Ignores file hashes",
 	})
 
 	// parse
