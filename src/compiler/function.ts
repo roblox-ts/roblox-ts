@@ -11,13 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
-import {
-	classDeclarationInheritsFromArray,
-	getType,
-	isGeneratorType,
-	isTupleType,
-	shouldHoist,
-} from "../utility/type";
+import { classDeclarationInheritsFromArray, getType, isGeneratorType, isTupleType, shouldHoist } from "../utility/type";
 import { isDefinedAsMethod } from "./call";
 import { isValidLuaIdentifier } from "./security";
 
