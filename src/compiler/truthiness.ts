@@ -8,7 +8,6 @@ import {
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesDownwards,
 	skipNodesUpwardsLookAhead,
-	skipNodesUpwards,
 } from "../utility/general";
 import { yellow } from "../utility/text";
 import {
@@ -23,38 +22,6 @@ import {
 import { shouldWrapExpression } from "./call";
 import { isValidLuaIdentifier } from "./security";
 
-// TODO: Remove once the second param to the condition callback of `getParentWhile` is added to ts-morph:
-
-/**
- * Goes up the parents (ancestors) of the node while a condition is true.
- * Returns undefined if the initial parent doesn't match the condition.
- * @param condition - Condition that tests the parent to see if the expression is true.
- */
-function getParentWhile<T extends ts.Node>(
-	myNode: ts.Node,
-	condition: (parent: ts.Node, node: ts.Node) => parent is T,
-): T | undefined;
-
-/**
- * Goes up the parents (ancestors) of the node while a condition is true.
- * Returns undefined if the initial parent doesn't match the condition.
- * @param condition - Condition that tests the parent to see if the expression is true.
- */
-function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.Node) => boolean): ts.Node | undefined;
-function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.Node) => boolean) {
-	let node: ts.Node | undefined;
-	let parent: ts.Node | undefined = myNode.getParent();
-
-	if (parent && condition(parent, myNode)) {
-		do {
-			node = parent;
-			parent = node.getParent();
-		} while (parent && condition(parent, node));
-	}
-
-	return node;
-}
-
 /** Returns whether a given node needs to preserve its value as a truthiness statement.
  * If it is within an if statement, for example, we can throw away in between values. See docs below.
  * However, it is also possible for expressions within an if statement to require the proper value.
@@ -64,7 +31,7 @@ function getParentWhile(myNode: ts.Node, condition: (parent: ts.Node, node: ts.N
  */
 export function isExpInTruthyCheck(node: ts.Node) {
 	const previous =
-		getParentWhile(node, (p, n) => {
+		node.getParentWhile((p, n) => {
 			if (ts.TypeGuards.isParenthesizedExpression(p) || ts.TypeGuards.isNonNullExpression(p)) {
 				return true;
 			} else if (ts.TypeGuards.isBinaryExpression(p)) {

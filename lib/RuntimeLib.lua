@@ -5,8 +5,6 @@ local HttpService = game:GetService("HttpService")
 -- constants
 local table_sort = table.sort
 local table_concat = table.concat
-local math_ceil = math.ceil
-local math_floor = math.floor
 
 local TS = {}
 
@@ -58,12 +56,12 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 local globalModules = script.Parent:FindFirstChild("node_modules")
 
 function TS.getModule(moduleName)
-	local object = getfenv(2).script.Parent
+	local object = getfenv(2).script
 	if not globalModules then
 		error("Could not find any modules!", 2)
 	end
 	if object:IsDescendantOf(globalModules) then
-		while object.Parent do
+		repeat
 			local modules = object:FindFirstChild("node_modules")
 			if modules then
 				local module = modules:FindFirstChild(moduleName)
@@ -72,7 +70,7 @@ function TS.getModule(moduleName)
 				end
 			end
 			object = object.Parent
-		end
+		until object == nil
 	else
 		local module = globalModules:FindFirstChild(moduleName)
 		if module then
@@ -91,55 +89,57 @@ function TS.import(module, ...)
 		module = module:WaitForChild((select(i, ...)))
 	end
 
-	if module.ClassName == "ModuleScript" then
-		local data = loadedLibraries[module]
-
-		if data == nil then
-			-- If called from command bar, use table as a reference (this is never concatenated)
-			local caller = getfenv(0).script or { Name = "Command bar" }
-			currentlyLoading[caller] = module
-
-			-- Check to see if a case like this occurs:
-			-- module -> Module1 -> Module2 -> module
-
-			-- WHERE currentlyLoading[module] is Module1
-			-- and currentlyLoading[Module1] is Module2
-			-- and currentlyLoading[Module2] is module
-
-			local currentModule = module
-			local depth = 0
-
-			while currentModule do
-				depth = depth + 1
-				currentModule = currentlyLoading[currentModule]
-
-				if currentModule == module then
-					local str = currentModule.Name -- Get the string traceback
-
-					for _ = 1, depth do
-						currentModule = currentlyLoading[currentModule]
-						str = str .. " -> " .. currentModule.Name
-					end
-
-					error("Failed to import! Detected a circular dependency chain: " .. str, 2)
-				end
-			end
-
-			assert(_G[module] == nil, "Invalid module access!")
-			_G[module] = TS
-			data = { value = require(module) }
-
-			if currentlyLoading[caller] == module then -- Thread-safe cleanup!
-				currentlyLoading[caller] = nil
-			end
-
-			loadedLibraries[module] = data -- Cache for subsequent calls
-		end
-
-		return data.value
-	else
+	if module.ClassName ~= "ModuleScript" then
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
+
+	if loadedLibraries[module] then
+		return require(module)
+	end
+
+	-- If called from command bar, use table as a reference (this is never concatenated)
+	local caller = getfenv(0).script or { Name = "Command bar" }
+	currentlyLoading[caller] = module
+
+	-- Check to see if a case like this occurs:
+	-- module -> Module1 -> Module2 -> module
+
+	-- WHERE currentlyLoading[module] is Module1
+	-- and currentlyLoading[Module1] is Module2
+	-- and currentlyLoading[Module2] is module
+
+	local currentModule = module
+	local depth = 0
+
+	while currentModule do
+		depth = depth + 1
+		currentModule = currentlyLoading[currentModule]
+
+		if currentModule == module then
+			local str = currentModule.Name -- Get the string traceback
+
+			for _ = 1, depth do
+				currentModule = currentlyLoading[currentModule]
+				str = str .. " -> " .. currentModule.Name
+			end
+
+			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+		end
+	end
+
+	if _G[module] then
+		error("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(), 2)
+	end
+
+	_G[module] = TS
+	loadedLibraries[module] = true -- register as already loaded for subsequent calls
+	local data = require(module)
+
+	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
+		currentlyLoading[caller] = nil
+	end
+
+	return data
 end
 
 function TS.exportNamespace(module, ancestor)
@@ -200,7 +200,7 @@ function TS.await(promise)
 	if ok then
 		return result
 	else
-		TS.throw(ok == nil and "The awaited Promise was cancelled" or result)
+		error(ok == nil and "The awaited Promise was cancelled" or result, 2)
 	end
 end
 
@@ -212,74 +212,14 @@ function TS.add(a, b)
 	end
 end
 
-local function bitTruncate(a)
-	if a < 0 then
-		return math_ceil(a)
-	else
-		return math_floor(a)
-	end
-end
-
-TS.bit_truncate = bitTruncate
-
--- bitwise operations
-local powOfTwo = setmetatable({}, {
-	__index = function(self, i)
-		local v = 2 ^ i
-		self[i] = v
-		return v
-	end;
-})
-
-local _2_52 = powOfTwo[52]
-local function bitop(a, b, oper)
-	local r, m, s = 0, _2_52
-	repeat
-		s, a, b = a + b + m, a % m, b % m
-		r, m = r + m * oper % (s - a - b), m / 2
-	until m < 1
-	return r
-end
-
-function TS.bit_not(a)
-	return -a - 1
-end
-
-function TS.bit_or(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 1)
-end
-
-function TS.bit_and(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 4)
-end
-
-function TS.bit_xor(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitop(a, b, 3)
-end
-
-function TS.bit_lsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return a * powOfTwo[b]
-end
-
-function TS.bit_rsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	return bitTruncate(a / powOfTwo[b])
-end
-
 function TS.bit_lrsh(a, b)
-	a = bitTruncate(tonumber(a))
-	b = bitTruncate(tonumber(b))
-	if a >= 0 then return TS.bit_rsh(a, b) end
-	return TS.bit_rsh((a % powOfTwo[32]), b)
+	local absA = math.abs(a)
+	local result = bit32.rshift(absA, b)
+	if a == absA then
+		return result
+	else
+		return -result - 1
+	end
 end
 
 -- utility functions
@@ -809,9 +749,11 @@ TS.array_deepEquals = deepEquals
 
 function TS.map_new(pairs)
 	local result = {}
-	for i = 1, #pairs do
-		local pair = pairs[i]
-		result[pair[1]] = pair[2]
+	if pairs then
+		for i = 1, #pairs do
+			local pair = pairs[i]
+			result[pair[1]] = pair[2]
+		end
 	end
 	return result
 end
@@ -848,8 +790,10 @@ TS.map_toString = toString
 
 function TS.set_new(values)
 	local result = {}
-	for i = 1, #values do
-		result[values[i]] = true
+	if values then
+		for i = 1, #values do
+			result[values[i]] = true
+		end
 	end
 	return result
 end
@@ -923,6 +867,17 @@ TS.set_size = getNumKeys
 
 TS.set_toString = toString
 
+-- spread cache functions
+function TS.string_spread(str)
+	local results = {}
+	local count = 0
+	for char in string.gmatch(str, "[%z\1-\127\194-\244][\128-\191]*") do
+		count = count + 1
+		results[count] = char
+	end
+	return results
+end
+
 function TS.iterableCache(iter)
 	local results = {}
 	local count = 0
@@ -984,74 +939,6 @@ function TS.opcall(func, ...)
 			error = valueOrErr,
 		}
 	end
-end
-
--- try catch utilities
-
-local function pack(...)
-	return { size = select("#", ...), ... }
-end
-
-local throwStack = {}
-
-function TS.throw(value)
-	if #throwStack > 0 then
-		throwStack[#throwStack](value)
-	else
-		error("Uncaught " .. tostring(value), 2)
-	end
-end
-
-function TS.try(tryCallback, catchCallback)
-	local done = false
-	local yielded = false
-	local popped = false
-	local resumeThread = coroutine.running()
-
-	local returns
-
-	local function pop()
-		if not popped then
-			popped = true
-			throwStack[#throwStack] = nil
-		end
-	end
-
-	local function resume()
-		if yielded then
-			local success, errorMsg = coroutine.resume(resumeThread)
-			if not success then
-				warn(errorMsg)
-			end
-		else
-			done = true
-		end
-	end
-
-	local function throw(value)
-		pop()
-		if catchCallback then
-			returns = pack(catchCallback(value))
-		end
-		resume()
-		coroutine.yield()
-	end
-
-	throwStack[#throwStack + 1] = throw
-
-	coroutine.wrap(function()
-		returns = pack(tryCallback())
-		resume()
-	end)()
-
-	if not done then
-		yielded = true
-		coroutine.yield()
-	end
-
-	pop()
-
-	return returns
 end
 
 return TS

@@ -24,17 +24,18 @@ import {
 	getType,
 	isArrayMethodType,
 	isConstantExpression,
+	isFunctionType,
 	isMapMethodType,
 	isNullableType,
 	isSetMethodType,
 	isStringMethodType,
 	isTupleReturnTypeCall,
+	laxTypeConstraint,
 	shouldPushToPrecedingStatement,
 	superExpressionClassInheritsFromArray,
-	typeConstraint,
 } from "../utility/type";
 
-const STRING_MACRO_METHODS = ["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"];
+const STRING_MACRO_METHODS = new Set(["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"]);
 
 export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	subExp = skipNodesDownwards(subExp);
@@ -58,7 +59,7 @@ function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
 	let exp = skipNodesUpwards(subExp);
 
 	for (let i = 0; i < climb; i++) {
-		exp = skipNodesUpwards(exp.getParent());
+		exp = skipNodesUpwards(exp.getParent()!);
 	}
 
 	return exp;
@@ -131,9 +132,9 @@ function macroStringIndexFunction(
 				const previousParam = params[i++];
 				let incrementing: boolean | undefined;
 
-				if (incrementedArgs.indexOf(i) !== -1) {
+				if (incrementedArgs.includes(i)) {
 					incrementing = true;
-				} else if (decrementedArgs.indexOf(i) !== -1) {
+				} else if (decrementedArgs.includes(i)) {
 					incrementing = false;
 				}
 
@@ -161,7 +162,7 @@ function macroStringIndexFunction(
 					return "nil";
 				}
 
-				if (expStr.indexOf("e") === -1 && expStr.indexOf("E") === -1) {
+				if (!expStr.includes("e") && !expStr.includes("E")) {
 					const valueNumber = Number(expStr);
 					if (!Number.isNaN(valueNumber)) {
 						if (incrementing) {
@@ -633,7 +634,7 @@ const OBJECT_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>().se
 	),
 );
 
-const RBX_MATH_CLASSES = ["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"];
+const RBX_MATH_CLASSES = new Set(["CFrame", "UDim", "UDim2", "Vector2", "Vector2int16", "Vector3", "Vector3int16"]);
 
 function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => string): ReplaceFunction {
 	return (state, params) => {
@@ -658,22 +659,15 @@ function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => stri
 }
 
 // This makes local testing easier
-const PRIMITIVE_LUA_TYPES = [
-	`"nil"`,
-	`"boolean"`,
-	`"string"`,
-	`"number"`,
-	`"table"`,
-	`"userdata"`,
-	`"function"`,
-	`"thread"`,
-];
+const PRIMITIVE_LUA_TYPES = new Set(
+	["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"].map(v => `"${v}"`),
+);
 
 const GLOBAL_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"typeIs",
 		makeGlobalExpressionMacro(
-			(obj, type) => `${PRIMITIVE_LUA_TYPES.includes(type) ? "type" : "typeof"}(${obj}) == ${type}`,
+			(obj, type) => `${PRIMITIVE_LUA_TYPES.has(type) ? "type" : "typeof"}(${obj}) == ${type}`,
 		),
 	],
 	["classIs", makeGlobalExpressionMacro((obj, className) => `${obj}.ClassName == ${className}`)],
@@ -787,7 +781,7 @@ export function compileCallExpression(
 					);
 				}
 
-				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent())) ? "" : "nil";
+				return ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent()!)) ? "" : "nil";
 			} else if (inheritsFromRoact(exp.getType())) {
 				return "";
 			} else {
@@ -896,7 +890,7 @@ export function getPropertyAccessExpressionType(
 	}
 
 	if (isStringMethodType(expType)) {
-		if (STRING_MACRO_METHODS.indexOf(property) !== -1) {
+		if (STRING_MACRO_METHODS.has(property)) {
 			return PropertyCallExpType.BuiltInStringMethod;
 		}
 		return PropertyCallExpType.String;
@@ -936,7 +930,7 @@ export function getPropertyAccessExpressionType(
 		}
 
 		// custom math
-		if (RBX_MATH_CLASSES.indexOf(subExpTypeName) !== -1) {
+		if (RBX_MATH_CLASSES.has(subExpTypeName)) {
 			switch (property) {
 				case "add":
 					return PropertyCallExpType.RbxMathAdd;
@@ -965,61 +959,38 @@ function getSymbolOrThrow(node: ts.Node, t: ts.Type) {
 	return symbol;
 }
 
-function getMethodCallBacksInfo(node: ts.ElementAccessExpression | ts.PropertyAccessExpression) {
+/** Returns true if it is defined as a method, false if it is defined as a callback, or undefined if neither */
+export function isDefinedAsMethod(node: ts.Node): boolean | undefined {
 	const type = getType(node).getNonNullableType();
 
-	const allMethods = typeConstraint(type, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return false;
-						} else {
-							return true;
-						}
-					}
-				}
-				if (isMethodDeclaration(dec) || ts.TypeGuards.isMethodSignature(dec)) {
-					return true;
-				}
-				return false;
-			}),
-	);
+	if (isFunctionType(type)) {
+		let hasMethodDefinition = false;
+		let hasCallbackDefinition = false;
 
-	const allCallbacks = typeConstraint(type, t =>
-		getSymbolOrThrow(node, t)
-			.getDeclarations()
-			.every(dec => {
-				if (ts.TypeGuards.isParameteredNode(dec)) {
-					const thisParam = dec.getParameter("this");
-					if (thisParam) {
-						const structure = thisParam.getStructure();
-						if (structure.type === "void") {
-							return true;
-						} else {
-							return false;
-						}
-					}
+		// we just use the laxTypeConstraint for easy iteration
+		laxTypeConstraint(type, t => {
+			for (const declaration of getSymbolOrThrow(node, t).getDeclarations()) {
+				if (isMethodDeclaration(declaration)) {
+					hasMethodDefinition = true;
+				} else {
+					hasCallbackDefinition = true;
 				}
+			}
+			return false;
+		});
 
-				if (
-					ts.TypeGuards.isFunctionTypeNode(dec) ||
-					ts.TypeGuards.isPropertySignature(dec) ||
-					(ts.TypeGuards.isFunctionExpression(dec) && !isFunctionExpressionMethod(dec)) ||
-					ts.TypeGuards.isArrowFunction(dec) ||
-					ts.TypeGuards.isFunctionDeclaration(dec)
-				) {
-					return true;
-				}
-				return false;
-			}),
-	);
+		if (hasMethodDefinition && hasCallbackDefinition) {
+			throw new CompilerError(
+				"Attempted to define or call a function with mixed types! All definitions must either be a method or a callback.",
+				node,
+				CompilerErrorType.MixedMethodCall,
+			);
+		}
 
-	return [allMethods, allCallbacks];
+		return hasMethodDefinition;
+	} else {
+		return undefined;
+	}
 }
 
 export function compileElementAccessCallExpression(
@@ -1034,13 +1005,13 @@ export function compileElementAccessCallExpression(
 		compileElementAccessBracketExpression(state, expression),
 	);
 	const params = node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>;
-	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
+	const isMethod = isDefinedAsMethod(expression)!;
 
 	let paramsStr = compileCallArgumentsAndJoin(state, params);
 
-	if (allMethods && !allCallbacks) {
+	if (isMethod) {
 		paramsStr = paramsStr ? `${accessor}, ` + paramsStr : accessor;
-	} else if (!allMethods && allCallbacks) {
+	} else {
 		if (ts.TypeGuards.isSuperExpression(expExp)) {
 			throw new CompilerError(
 				`\`${accessedPath}\` is not a real method! Prefer \`this${accessedPath.slice(5)}\` instead.`,
@@ -1048,13 +1019,6 @@ export function compileElementAccessCallExpression(
 				CompilerErrorType.BadSuperCall,
 			);
 		}
-	} else {
-		// mixed methods and callbacks
-		throw new CompilerError(
-			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
-			node,
-			CompilerErrorType.MixedMethodCall,
-		);
 	}
 
 	return `${accessedPath}(${paramsStr})`;
@@ -1105,7 +1069,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} + (${argStrs[1]}))`,
 			);
 		}
@@ -1113,7 +1077,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} - (${argStrs[1]}))`,
 			);
 		}
@@ -1121,7 +1085,7 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} * (${argStrs[1]}))`,
 			);
 		}
@@ -1129,13 +1093,13 @@ export function compilePropertyCallExpression(
 			const argStrs = compileCallArguments(state, params);
 			return appendDeclarationIfMissing(
 				state,
-				skipNodesUpwards(node.getParent()),
+				skipNodesUpwards(node.getParent()!),
 				`(${argStrs[0]} / (${argStrs[1]}))`,
 			);
 		}
 	}
 
-	const [allMethods, allCallbacks] = getMethodCallBacksInfo(expression);
+	const isMethod = isDefinedAsMethod(expression)!;
 
 	let accessedPath: string;
 	let paramsStr: string;
@@ -1143,7 +1107,7 @@ export function compilePropertyCallExpression(
 	let sep: ":" | ".";
 	const [subExp] = params;
 
-	if (allMethods && !allCallbacks) {
+	if (isMethod) {
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
 			accessedPath = "super";
 			paramsStr = paramsStr ? "self, " + paramsStr : "self";
@@ -1151,7 +1115,7 @@ export function compilePropertyCallExpression(
 		} else {
 			sep = ":";
 		}
-	} else if (!allMethods && allCallbacks) {
+	} else {
 		sep = ".";
 
 		if (ts.TypeGuards.isSuperExpression(subExp)) {
@@ -1161,13 +1125,6 @@ export function compilePropertyCallExpression(
 				CompilerErrorType.BadSuperCall,
 			);
 		}
-	} else {
-		// mixed methods and callbacks
-		throw new CompilerError(
-			"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
-			node,
-			CompilerErrorType.MixedMethodCall,
-		);
 	}
 
 	if (isValidLuaIdentifier(property)) {

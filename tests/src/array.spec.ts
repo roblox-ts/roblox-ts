@@ -593,4 +593,8 @@ export = () => {
 
 		f([0, 1]);
 	});
+
+	it("should support Array constructor", () => {
+		expect(new Array(10).isEmpty()).to.equal(true);
+	});
 };

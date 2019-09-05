@@ -92,6 +92,7 @@ export enum CompilerErrorType {
 	IsolatedContainer,
 	UnexpectedExtensionType,
 	BadDestructSubType,
+	MixedMethodSet,
 	DeclarationBreak,
 }
 

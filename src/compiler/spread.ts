@@ -6,8 +6,8 @@ import { skipNodesDownwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
+	isGeneratorType,
 	isIterableFunctionType,
-	isIterableIteratorType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -200,14 +200,16 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		if (ts.TypeGuards.isStringLiteral(expression)) {
 			const text = expression.getText();
 			const quote = text.slice(-1);
-			return "{" + text.replace(/\\?./g, a => `${quote}${a}${quote}, `).slice(4, -7) + " }";
+			const segments = text.slice(1, -1).match(/\\?(\r\n|[^])/gu);
+			return segments ? "{ " + segments.map(a => quote + a + quote).join(", ") + " }" : "{}";
 		} else {
-			return `string.split(${compileExpression(state, expression)}, "")`;
+			state.usesTSLibrary = true;
+			return `TS.string_spread(${compileExpression(state, expression)})`;
 		}
 	} else if (isIterableFunctionType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
-	} else if (isIterableIteratorType(expType)) {
+	} else if (isGeneratorType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {

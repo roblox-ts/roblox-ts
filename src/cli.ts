@@ -5,6 +5,7 @@ import { setAnalyticsDisabled } from "./analytics";
 import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
+import { red } from "./utility/text";
 import { Watcher } from "./Watcher";
 
 // cli interface
@@ -107,6 +108,13 @@ void (async () => {
 	} catch (e) {
 		if (e instanceof LoggableError) {
 			e.log("");
+		} else if (e instanceof Error) {
+			let text = e.stack || String(e);
+			const ERROR_PREFIX = "Error: ";
+			if (text.startsWith(ERROR_PREFIX)) {
+				text = red(ERROR_PREFIX) + text.slice(ERROR_PREFIX.length);
+			}
+			console.log(text);
 		} else {
 			throw e;
 		}

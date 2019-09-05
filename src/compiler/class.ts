@@ -434,11 +434,20 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 		compileConstructorDeclaration(state, node, name, getConstructor(node), extraInitializers, hasSuper, isRoact),
 	);
 
-	for (const method of node.getStaticMethods()) {
+	const staticMethods = node.getStaticMethods();
+	const instanceMethods = node.getInstanceMethods();
+
+	const makeFunctionCategoryComments = staticMethods.length > 0;
+
+	if (makeFunctionCategoryComments) {
+		results.push(state.indent + "-- static methods\n");
+	}
+
+	for (const method of staticMethods) {
 		if (method.getBody() !== undefined) {
 			const methodName = method.getName();
 
-			if (methodName === "new" || methodName === "toString" || LUA_RESERVED_METAMETHODS.includes(methodName)) {
+			if (methodName === "new" || methodName === "toString") {
 				throw new CompilerError(
 					`Cannot make a static method with name "${methodName}"!`,
 					method,
@@ -447,16 +456,29 @@ function compileClass(state: CompilerState, node: ts.ClassDeclaration | ts.Class
 			}
 			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + "."));
+			results.push(compileMethodDeclaration(state, method, name));
 			state.exitPrecedingStatementContext();
 		}
 	}
 
-	for (const method of node.getInstanceMethods()) {
+	if (makeFunctionCategoryComments) {
+		results.push(state.indent + "-- instance methods\n");
+	}
+
+	for (const method of instanceMethods) {
 		if (method.getBody() !== undefined) {
+			const methodName = method.getName();
+
+			if (methodName === "new") {
+				throw new CompilerError(
+					`Cannot make a method with name "${methodName}"!`,
+					method,
+					CompilerErrorType.BadStaticMethod,
+				);
+			}
 			validateMethod(node, method, extendsArray, isRoact);
 			state.enterPrecedingStatementContext(results);
-			results.push(compileMethodDeclaration(state, method, name + ":"));
+			results.push(compileMethodDeclaration(state, method, name));
 			state.exitPrecedingStatementContext();
 		}
 	}

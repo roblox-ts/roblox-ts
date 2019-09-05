@@ -6,7 +6,7 @@ import { ScriptContext } from "../utility/general";
 import { bold, yellow } from "../utility/text";
 import { getType, isAnyType } from "../utility/type";
 
-const LUA_RESERVED_METAMETHODS = [
+const LUA_RESERVED_METAMETHODS = new Set([
 	"__index",
 	"__newindex",
 	"__add",
@@ -25,9 +25,9 @@ const LUA_RESERVED_METAMETHODS = [
 	"__len",
 	"__metatable",
 	"__mode",
-];
+]);
 
-const LUA_RESERVED_NAMESPACES = [
+const LUA_RESERVED_NAMESPACES = new Set([
 	"ipairs",
 	"os",
 	"type",
@@ -87,11 +87,11 @@ const LUA_RESERVED_NAMESPACES = [
 	"Vector2",
 	"Vector3",
 	"Ray",
-];
+]);
 
-const TS_RESERVED_KEYWORDS = ["undefined", "TS", "globalThis", "table", "_continue_"];
+const TS_RESERVED_KEYWORDS = new Set(["undefined", "TS", "globalThis", "table", "_continue_"]);
 
-const LUA_RESERVED_KEYWORDS = [
+const LUA_RESERVED_KEYWORDS = new Set([
 	"and",
 	"break",
 	"do",
@@ -113,17 +113,17 @@ const LUA_RESERVED_KEYWORDS = [
 	"true",
 	"until",
 	"while",
-];
+]);
 
 const luaIdentifierRegex = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export function isValidLuaIdentifier(id: string) {
-	return luaIdentifierRegex.test(id) && !LUA_RESERVED_KEYWORDS.includes(id);
+	return luaIdentifierRegex.test(id) && !LUA_RESERVED_KEYWORDS.has(id);
 }
 
 export function checkReserved(node: ts.Node) {
 	const name = node.getText();
-	if (LUA_RESERVED_KEYWORDS.includes(name)) {
+	if (LUA_RESERVED_KEYWORDS.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua keyword)`,
 			node,
@@ -135,13 +135,13 @@ export function checkReserved(node: ts.Node) {
 			node,
 			CompilerErrorType.InvalidIdentifier,
 		);
-	} else if (TS_RESERVED_KEYWORDS.indexOf(name) !== -1 || name.match(/^_[0-9]+$/)) {
+	} else if (TS_RESERVED_KEYWORDS.has(name) || name.match(/^_[0-9]+$/)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved for roblox-ts)`,
 			node,
 			CompilerErrorType.RobloxTSReservedIdentifier,
 		);
-	} else if (LUA_RESERVED_NAMESPACES.indexOf(name) !== -1) {
+	} else if (LUA_RESERVED_NAMESPACES.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
 			node,
@@ -152,7 +152,7 @@ export function checkReserved(node: ts.Node) {
 }
 
 export function checkMethodReserved(name: string, node: ts.Node) {
-	if (LUA_RESERVED_METAMETHODS.indexOf(name) !== -1) {
+	if (LUA_RESERVED_METAMETHODS.has(name)) {
 		throw new CompilerError(
 			`Cannot use '${name}' as a method name (reserved Lua metamethod)`,
 			node,

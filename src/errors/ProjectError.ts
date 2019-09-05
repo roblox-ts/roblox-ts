@@ -18,6 +18,8 @@ export enum ProjectErrorType {
 	BadRojoInclude,
 	TsMorph,
 	ProjectFailed,
+	BadProjectPath,
+	BadNodeModules,
 }
 
 export class ProjectError extends LoggableError {
@@ -26,7 +28,7 @@ export class ProjectError extends LoggableError {
 		void addEvent("ProjectError", ProjectErrorType[type]);
 	}
 
-	public log(projectPath: string) {
+	public log() {
 		console.log(red("Project Error:"), this.message);
 	}
 }
