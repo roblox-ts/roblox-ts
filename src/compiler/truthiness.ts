@@ -340,15 +340,22 @@ export function preprocessLogicalBinary3(
 	}
 }
 
+type TruthyCompileData = ReturnType<typeof getTruthyCompileData>;
+
+interface NestedExpression {
+	exp: ts.Expression;
+	compileData: TruthyCompileData;
+}
+
 /** A basic AST-ish object into which we convert LogicalBinary expressions.
  * Easier to optimize than the default TS AST.
  */
 interface NestedExpressions {
-	exprs: Array<ts.Expression | NestedExpressions>;
+	exprs: Array<NestedExpression | NestedExpressions>;
 	isAnd: boolean;
 }
 
-function isNestedExpressions(x: ts.Expression | NestedExpressions): x is NestedExpressions {
+function isNestedExpressions(x: NestedExpression | NestedExpressions): x is NestedExpressions {
 	return "exprs" in x && "isAnd" in x;
 }
 
@@ -357,9 +364,51 @@ function logNestedExpression(x: NestedExpressions): any {
 		if (isNestedExpressions(a)) {
 			return logNestedExpression(a);
 		} else {
-			return a.getText();
+			return a.exp.getText();
 		}
 	});
+}
+
+function getTruthyReferences({ checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 }: TruthyCompileData) {
+	return 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
+}
+
+function getCompileData(
+	nestedExprs: NestedExpressions,
+	compileData: TruthyCompileData = {
+		checkEmptyString: false,
+		checkLuaTruthy: false,
+		checkNaN: false,
+		checkNon0: false,
+	},
+) {
+	for (const expr of nestedExprs.exprs) {
+		if (isNestedExpressions(expr)) {
+			getCompileData(expr, compileData);
+		} else {
+			const {
+				compileData: { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 },
+			} = expr;
+
+			if (checkEmptyString) {
+				compileData.checkEmptyString = checkEmptyString;
+			}
+
+			if (checkLuaTruthy) {
+				compileData.checkLuaTruthy = checkLuaTruthy;
+			}
+
+			if (checkNaN) {
+				compileData.checkNaN = checkNaN;
+			}
+
+			if (checkNon0) {
+				compileData.checkNon0 = checkNon0;
+			}
+		}
+	}
+
+	return compileData;
 }
 
 /**
@@ -373,7 +422,6 @@ export function preprocessLogicalBinary(
 	isAnd: 0 | 1 | 2,
 	stuff: NestedExpressions,
 ) {
-	// console.log(isAnd === 2 ? "&&" : "||", lhs.getText() + "\t\t" + rhs.getText());
 	for (const side of [skipNodesDownwards(lhs), skipNodesDownwards(rhs)]) {
 		if (ts.TypeGuards.isBinaryExpression(side)) {
 			const isOpAndToken = getBinaryExpressionType(side);
@@ -388,10 +436,10 @@ export function preprocessLogicalBinary(
 					}),
 				);
 			} else {
-				stuff.exprs.push(side);
+				stuff.exprs.push({ exp: side, compileData: getTruthyCompileData(state, side) });
 			}
 		} else {
-			stuff.exprs.push(side);
+			stuff.exprs.push({ exp: side, compileData: getTruthyCompileData(state, side) });
 		}
 	}
 
@@ -725,7 +773,10 @@ function parseNestedExpressions(
 	let ifStatements = 0;
 	const lastIndex = exprs.length - 1;
 	const { id } = logicalState;
+	let previousCompileData: TruthyCompileData | undefined;
 
+	// The very one should just be an assignment and no check.
+	// For i=1, it should check i=0 and assign according to that.
 	for (let i = 0; i < length; i++) {
 		const { [i]: item } = exprs;
 
@@ -734,71 +785,63 @@ function parseNestedExpressions(
 		// }
 
 		if (isNestedExpressions(item)) {
-			logicalState.results.push("(");
+			// logicalState.results.push("(");
 			parseNestedExpressions(state, logicalState, item, isInTruthyCheck, depth + 1);
-			logicalState.results.push(")");
+			previousCompileData = getCompileData(item);
+			// logicalState.results.push(")");
 		} else {
+			const { exp, compileData } = item;
 			/*
-			If it is a truthy check, we want to set the id to compileTruthyCheck
-			If it is not a truthy check, we want to set id to the compiledExpression, if the previous evaluates to truthy
+				If it is a truthy check, we want to set the id to compileTruthyCheck
+				If it is not a truthy check, we want to set id to the compiledExpression, if the previous evaluates to truthy
 
-			Let's define expStr as the expression to set `id`
+				Let's define expStr as the expression to set `id`
 			*/
 
 			state.enterPrecedingStatementContext();
+			const expStr = compileExpression(state, exp);
+			state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
 
-			let expStr = compileExpression(state, item);
-
-			if (i === lastIndex) {
-				state.pushPrecedingStatements(
-					item,
-					...state.exitPrecedingStatementContext(),
-					state.indent,
-					id,
-					" = ",
-					expStr,
-					";\n",
-				);
-
-				for (let j = 0; j < ifStatements; j++) {
-					state.popIndent();
-					state.pushPrecedingStatements(item, state.indent, "end;\n");
-				}
-			} else {
-				// handle the isIdUsed logic by switching to the declaration syntax.
-				if (state.declarationContext.has(item)) {
-					throw new CompilerError(
-						"Attempted to set two declaration contexts.",
-						item,
-						CompilerErrorType.DeclarationBreak,
-						true,
-					);
-				}
-
-				state.declarationContext.set(item, {
+			if (previousCompileData) {
+				state.declarationContext.set(exp, {
 					isIdentifier: false,
 					needsLocalizing: logicalState.isIdUnused,
 					set: id,
 				});
 
-				let checkStr = wrapNot(isAnd, compileTruthyCheck(state, item, expStr));
+				state.enterPrecedingStatementContext();
+				let checkStr = wrapNot(isAnd, compileTruthyCheck(state, exp, expStr, previousCompileData));
 
-				if (!state.declarationContext.delete(item)) {
+				console.log(checkStr, state.declarationContext.delete(exp));
+
+				if (state.declarationContext.delete(exp)) {
+				} else {
 					logicalState.isIdUnused = undefined;
-					logicalState.results = [id];
 				}
 
 				const context = state.exitPrecedingStatementContext();
 
-				if (context.length > 0) {
-					state.pushPrecedingStatements(item, ...context);
-					state.pushPrecedingStatements(item, state.indent, "if ", checkStr, " then\n");
-					ifStatements++;
-					state.pushIndent();
-				} else {
-					logicalState.results.push(expStr);
+				state.pushPrecedingStatements(exp, ...context);
+				state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
+				ifStatements++;
+				state.pushIndent();
+			} else {
+				let prefix = "";
+				if (logicalState.isIdUnused) {
+					logicalState.isIdUnused = undefined;
+					prefix = "local ";
+				}
+				state.pushPrecedingStatements(exp, state.indent, prefix, id, " = ", expStr, ";\n");
+			}
+
+			if (i === lastIndex) {
+				for (let j = 0; j < ifStatements; j++) {
+					state.popIndent();
+					state.pushPrecedingStatements(exp, state.indent, "end;\n");
 				}
 			}
+
+			previousCompileData = compileData;
 		}
 	}
 
@@ -861,15 +904,13 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	}
 
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
-	let checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
-	let numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
+	const checkLuaTruthy =
+		isUnknown ||
+		ts.TypeGuards.isYieldExpression(exp) ||
+		isBoolishTypeLax(expType) ||
+		(!checkNaN && !checkNon0 && !checkEmptyString);
 
-	if (numRefs === 0) {
-		numRefs = 1;
-		checkLuaTruthy = true;
-	}
-
-	return { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs };
+	return { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy };
 }
 
 /** Compiles a given expression and check compileData and assembles an `and` chain for it. */
@@ -878,15 +919,16 @@ export function compileTruthyCheck(
 	exp: ts.Expression,
 	expStr = compileExpression(state, exp),
 	compileData = getTruthyCompileData(state, exp),
+	forcePush = false,
 ) {
 	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
 	}
 
-	const { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs } = compileData;
+	const { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy } = compileData;
 
-	if (!isValidLuaIdentifier(expStr)) {
-		if (numRefs > 1) {
+	if (forcePush || !isValidLuaIdentifier(expStr)) {
+		if (forcePush || getTruthyReferences(compileData) > 1) {
 			expStr = state.pushToDeclarationOrNewId(exp, expStr);
 		} else if (shouldWrapExpression(exp, false)) {
 			expStr = `(${expStr})`;
