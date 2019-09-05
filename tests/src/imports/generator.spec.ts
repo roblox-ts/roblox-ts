@@ -81,7 +81,7 @@ export = () => {
 		];
 
 		let count = 0;
-		function observe<T, Q>({ done, value }: IteratorResult<T, Q>) {
+		function observe<T>({ done, value }: IteratorResult<T>) {
 			const answer = answers[count] || [true, undefined];
 			expect(done).to.equal(answer[0]);
 			expect(value).to.equal(answer[1]);
