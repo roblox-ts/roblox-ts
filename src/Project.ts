@@ -13,7 +13,7 @@ import { RojoProjectError } from "./errors/RojoProjectError";
 import { NetworkType, RojoProject } from "./RojoProject";
 import { transformPathToLua } from "./utility/general";
 import { checkFileHash, getHashForFile } from "./utility/hash";
-import { red, yellow } from "./utility/text";
+import { bold, green, red, yellow } from "./utility/text";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -814,7 +814,7 @@ export class Project {
 	public async compileFiles(files: Array<ts.SourceFile>) {
 		await this.cleanDirRecursive(this.outPath);
 
-		console.log(`Compiling ${files.length} files:`);
+		console.log(bold(`Compiling ${files.length} files:`));
 
 		process.exitCode = 0;
 
@@ -844,7 +844,7 @@ export class Project {
 							source = this.luaSourceTransformer(source);
 						}
 
-						process.stdout.write(`Compiled ( ${Date.now() - startTime}ms )\n`);
+						process.stdout.write(green("Compiled") + ` ( ${Date.now() - startTime}ms )\n`);
 						sources.push([outPath, source]);
 					} else {
 						process.stdout.write(`Skipped\n`);
@@ -852,8 +852,6 @@ export class Project {
 				}
 			}
 
-			const writeTime = Date.now();
-			process.stdout.write("Writing.. ");
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {
 					const oldContents = (await fs.readFile(filePath)).toString();
@@ -864,14 +862,10 @@ export class Project {
 				await fs.ensureFile(filePath);
 				await fs.writeFile(filePath, contents);
 			}
-			process.stdout.write(`Done ( ${Date.now() - writeTime}ms )\n`);
 
 			if (this.compilerOptions.declaration === true) {
-				const decTime = Date.now();
-				process.stdout.write("Emitting Declation Files.. ");
 				await this.project.emit({ emitOnlyDtsFiles: true });
 				await this.postProcessDtsFiles();
-				process.stdout.write(`Done ( ${Date.now() - decTime}ms )\n`);
 			}
 
 			success = true;

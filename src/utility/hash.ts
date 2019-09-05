@@ -34,12 +34,14 @@ function getFirstNLines(filePath: string, amtLines: number): Promise<Array<strin
 }
 
 export async function checkFileHash(filePath: string, testHash: string) {
-	try {
-		for (const line of await getFirstNLines(filePath, 3)) {
-			if (line && line.startsWith(HASH_PREFIX)) {
-				return line.slice(HASH_PREFIX.length).trim() === testHash;
+	if (await fs.pathExists(filePath)) {
+		try {
+			for (const line of await getFirstNLines(filePath, 3)) {
+				if (line && line.startsWith(HASH_PREFIX)) {
+					return line.slice(HASH_PREFIX.length).trim() === testHash;
+				}
 			}
-		}
-	} catch (e) {}
+		} catch (e) {}
+	}
 	return false;
 }
