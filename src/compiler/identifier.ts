@@ -58,7 +58,7 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 					}
 					break;
 				} else if (parent.getKind() === ts.SyntaxKind.OpenParenToken) {
-					parent = parent.getParent();
+					parent = parent.getParent()!;
 					if (!ts.TypeGuards.isArrowFunction(parent)) {
 						break;
 					}

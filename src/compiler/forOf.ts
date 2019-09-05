@@ -14,8 +14,8 @@ import { skipNodesDownwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
+	isGeneratorType,
 	isIterableFunctionType,
-	isIterableIteratorType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -284,7 +284,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 				key = varName;
 				break;
 			case ForOfLoopType.Symbol_iterator: {
-				if (!isIterableIteratorType(getType(exp))) {
+				if (!isGeneratorType(getType(exp))) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
 				}

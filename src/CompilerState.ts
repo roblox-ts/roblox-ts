@@ -167,8 +167,8 @@ export class CompilerState {
 	// export stack
 	public exportStack = new Array<Set<string>>();
 
-	public pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.hasExportKeyword()) {
+	public pushExport(name: string, node: ts.Node) {
+		if (!ts.TypeGuards.isExportGetableNode(node) || !node.hasExportKeyword()) {
 			return;
 		}
 

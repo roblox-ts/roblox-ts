@@ -72,10 +72,10 @@ function compileSetMapConstructorHelper(
 	const { compile: compileElement, addMethodName: addMethodName } = compileMapSetElement.get(type)!;
 
 	while (ts.TypeGuards.isPropertyAccessExpression(parent) && addMethodName === parent.getName()) {
-		const grandparent = skipNodesUpwards(parent.getParent());
+		const grandparent = skipNodesUpwards(parent.getParent()!);
 		if (ts.TypeGuards.isCallExpression(grandparent)) {
 			exp = grandparent;
-			parent = skipNodesUpwards(grandparent.getParent());
+			parent = skipNodesUpwards(grandparent.getParent()!);
 		} else {
 			break;
 		}

@@ -11,13 +11,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
-import {
-	classDeclarationInheritsFromArray,
-	getType,
-	isIterableIteratorType,
-	isTupleType,
-	shouldHoist,
-} from "../utility/type";
+import { classDeclarationInheritsFromArray, getType, isGeneratorType, isTupleType, shouldHoist } from "../utility/type";
 import { isDefinedAsMethod } from "./call";
 import { isValidLuaIdentifier } from "./security";
 
@@ -215,7 +209,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIteratorType(node.getReturnType());
+		isGeneratorType(node.getReturnType());
 		results.push("\n");
 		state.pushIndent();
 		results.push(state.indent, `return {\n`);

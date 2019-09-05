@@ -31,7 +31,7 @@ export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	for (const def of exp.getDefinitions()) {
 		const node = def.getNode();
 		// Namespace name identifiers are not variables which can be changed at run-time
-		if (ts.TypeGuards.isNamespaceDeclaration(node.getParent())) {
+		if (ts.TypeGuards.isNamespaceDeclaration(node.getParent()!)) {
 			return true;
 		}
 
