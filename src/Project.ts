@@ -671,13 +671,10 @@ export class Project {
 		if (ext === ".ts" || ext === ".tsx") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
-				throw new ProjectError(
-					`No source file for Compiler.compileFileByPath() (filePath = ${filePath})`,
-					ProjectErrorType.MissingSourceFile,
-				);
+				throw new ProjectError(`No source file found for ${filePath}`, ProjectErrorType.MissingSourceFile);
 			}
-			const files = new Set([sourceFile]);
 
+			const files = new Set([sourceFile]);
 			function getReferencingFiles(file: ts.SourceFile) {
 				for (const refFile of file.getReferencingSourceFiles()) {
 					if (!files.has(refFile)) {

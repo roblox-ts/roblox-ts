@@ -457,17 +457,13 @@ const compilerArgs = {
 const srcFolder = path.resolve("tests", "src");
 const project = new Project(compilerArgs);
 
-async function compile(filePath: string) {
-	return project.compileFileByPath(filePath);
-}
-
 function testFolder(folderPath: string) {
 	for (const name of fs.readdirSync(folderPath)) {
 		if (name !== "errors") {
 			it(name, async () => {
 				process.exitCode = 0;
 				try {
-					await compile(path.join(folderPath, name));
+					await project.compileFileByPath(path.join(folderPath, name));
 				} catch (e) {
 					if (e instanceof CompilerError) {
 						throw new Error(
@@ -503,7 +499,8 @@ describe("compile integration tests for imports", () => testFolder(path.join(src
 describe("compile error unit tests", () => {
 	for (const file in errorMatrix) {
 		it(errorMatrix[file].message, done => {
-			compile(path.join(srcFolder, "errors", file))
+			project
+				.compileFileByPath(path.join(srcFolder, "errors", file))
 				.then(() => done("Did not throw!"))
 				.catch(e => {
 					if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === undefined) {
