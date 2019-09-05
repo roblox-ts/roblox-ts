@@ -29,7 +29,7 @@ async function time(callback: () => any) {
 			throw e;
 		}
 	}
-	console.log(`Done, took ${Date.now() - start} ms!`);
+	console.log(`Done ( ${Date.now() - start}ms )`);
 }
 
 export class Watcher {

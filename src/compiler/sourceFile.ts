@@ -5,8 +5,8 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { RojoProject } from "../RojoProject";
 import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
-import { isRbxService } from "../utility/type";
 import { HASH_PREFIX } from "../utility/hash";
+import { isRbxService } from "../utility/type";
 
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;

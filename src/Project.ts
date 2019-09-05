@@ -265,6 +265,9 @@ export class Project {
 	constructor(opts: ProjectOptions = {}) {
 		// cli mode
 		if (opts.project !== undefined && opts.includePath !== undefined && opts.rojo !== undefined) {
+			const startTime = Date.now();
+			process.stdout.write("Starting up.. ");
+
 			this.configFilePath = path.resolve(opts.project);
 			this.reloadProject();
 
@@ -315,6 +318,8 @@ export class Project {
 
 			this.rojoFilePath = this.getRojoFilePath();
 			this.reloadRojo();
+
+			process.stdout.write(`Done ( ${Date.now() - startTime}ms )\n`);
 		} else {
 			this.configFilePath = "";
 			this.includePath = "";
@@ -809,6 +814,8 @@ export class Project {
 	public async compileFiles(files: Array<ts.SourceFile>) {
 		await this.cleanDirRecursive(this.outPath);
 
+		console.log(`Compiling ${files.length} files:`);
+
 		process.exitCode = 0;
 
 		let success = false;
@@ -821,29 +828,32 @@ export class Project {
 			}
 
 			const sources = new Array<[string, string]>();
-			await Promise.all(
-				files
-					.filter(sourceFile => !sourceFile.isDeclarationFile())
-					.map(async sourceFile => {
-						const filePath = sourceFile.getFilePath();
-						const relativePath = path.relative(this.projectPath, filePath);
-						const hash = getHashForFile(sourceFile);
-						const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
-						if (!(await checkFileHash(outPath, hash))) {
-							let source = compileSourceFile(this.createCompilerState(hash), sourceFile);
+			for (const sourceFile of files) {
+				if (!sourceFile.isDeclarationFile()) {
+					const filePath = sourceFile.getFilePath();
+					const relativePath = path.relative(this.projectPath, filePath);
+					const hash = getHashForFile(sourceFile);
+					const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
 
-							if (this.luaSourceTransformer) {
-								source = this.luaSourceTransformer(source);
-							}
+					const startTime = Date.now();
+					process.stdout.write(`- ${relativePath} .. `);
+					if (!(await checkFileHash(outPath, hash))) {
+						let source = compileSourceFile(this.createCompilerState(hash), sourceFile);
 
-							console.log(relativePath, "Compiled");
-							sources.push([outPath, source]);
-						} else {
-							console.log(relativePath, "Skipped");
+						if (this.luaSourceTransformer) {
+							source = this.luaSourceTransformer(source);
 						}
-					}),
-			);
 
+						process.stdout.write(`Compiled ( ${Date.now() - startTime}ms )\n`);
+						sources.push([outPath, source]);
+					} else {
+						process.stdout.write(`Skipped\n`);
+					}
+				}
+			}
+
+			const writeTime = Date.now();
+			process.stdout.write("Writing.. ");
 			for (const [filePath, contents] of sources) {
 				if (await fs.pathExists(filePath)) {
 					const oldContents = (await fs.readFile(filePath)).toString();
@@ -854,10 +864,14 @@ export class Project {
 				await fs.ensureFile(filePath);
 				await fs.writeFile(filePath, contents);
 			}
+			process.stdout.write(`Done ( ${Date.now() - writeTime}ms )\n`);
 
 			if (this.compilerOptions.declaration === true) {
+				const decTime = Date.now();
+				process.stdout.write("Emitting Declation Files.. ");
 				await this.project.emit({ emitOnlyDtsFiles: true });
 				await this.postProcessDtsFiles();
+				process.stdout.write(`Done ( ${Date.now() - decTime}ms )\n`);
 			}
 
 			success = true;
