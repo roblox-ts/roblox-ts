@@ -275,10 +275,14 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIteratorType(type: ts.Type) {
+export function isGeneratorType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
-		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
+		if (symbol) {
+			const name = symbol.getEscapedName();
+			return name === "Generator" || name === "IterableIterator";
+		}
+		return false;
 	});
 }
 

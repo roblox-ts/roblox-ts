@@ -7,7 +7,7 @@ import {
 	getType,
 	isArrayType,
 	isIterableFunctionType,
-	isIterableIteratorType,
+	isGeneratorType,
 	isMapType,
 	isObjectType,
 	isSetType,
@@ -127,7 +127,7 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				!isArrayType(rhsType) &&
 				!isMapType(rhsType) &&
 				!isSetType(rhsType) &&
-				!isIterableIteratorType(rhsType) &&
+				!isGeneratorType(rhsType) &&
 				!isIterableFunctionType(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {

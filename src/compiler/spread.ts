@@ -7,7 +7,7 @@ import {
 	getType,
 	isArrayType,
 	isIterableFunctionType,
-	isIterableIteratorType,
+	isGeneratorType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -209,7 +209,7 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 	} else if (isIterableFunctionType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableFunctionCache(${compileExpression(state, expression)})`;
-	} else if (isIterableIteratorType(expType)) {
+	} else if (isGeneratorType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.iterableCache(${compileExpression(state, expression)})`;
 	} else {

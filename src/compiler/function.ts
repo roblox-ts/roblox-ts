@@ -14,7 +14,7 @@ import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	classDeclarationInheritsFromArray,
 	getType,
-	isIterableIteratorType,
+	isGeneratorType,
 	isTupleType,
 	shouldHoist,
 } from "../utility/type";
@@ -215,7 +215,7 @@ function compileFunction(
 
 	if (isGenerator) {
 		// will error if IterableIterator is nullable
-		isIterableIteratorType(node.getReturnType());
+		isGeneratorType(node.getReturnType());
 		results.push("\n");
 		state.pushIndent();
 		results.push(state.indent, `return {\n`);
