@@ -14,8 +14,8 @@ import { skipNodesDownwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
-	isIterableFunctionType,
 	isGeneratorType,
+	isIterableFunctionType,
 	isMapType,
 	isSetType,
 	isStringType,

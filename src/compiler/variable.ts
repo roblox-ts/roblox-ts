@@ -6,8 +6,8 @@ import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
 	getType,
 	isArrayType,
-	isIterableFunctionType,
 	isGeneratorType,
+	isIterableFunctionType,
 	isMapType,
 	isObjectType,
 	isSetType,
