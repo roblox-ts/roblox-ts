@@ -1,12 +1,7 @@
 import * as ts from "ts-morph";
 import { compileExpression, compileTruthyCheck } from ".";
 import { CompilerState, DeclarationContext } from "../CompilerState";
-import {
-	makeSetStatement,
-	removeBalancedParenthesisFromStringBorders,
-	skipNodesDownwards,
-	skipNodesUpwardsLookAhead,
-} from "../utility/general";
+import { makeSetStatement, skipNodesDownwards, skipNodesUpwardsLookAhead } from "../utility/general";
 import { isExpInTruthyCheck } from "./truthiness";
 
 function compileConditionalBlock(
@@ -53,7 +48,7 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 	// 2. So that the condition expression does not accidentally use variable `x`
 	// const q = (a: boolean, b: boolean, c: boolean) => { const x = ((a ? b : c) ? (a ? b : c) : a ? b : c) ? b : c; };
 	if (declaration) {
-		conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
+		conditionStr = compileTruthyCheck(state, condition);
 		if (declaration.needsLocalizing) {
 			state.pushPrecedingStatements(node, state.indent + `local ${declaration.set};\n`);
 		}
@@ -62,13 +57,14 @@ export function compileConditionalExpression(state: CompilerState, node: ts.Cond
 		state.declarationContext.delete(node);
 	} else {
 		if (currentConditionalContext === "") {
+			// console.log("currentTruthyContext", state.currentTruthyContext);
 			id = state.pushPrecedingStatementToNewId(node, "");
 			state.currentConditionalContext = id;
 			isPushed = true;
 		} else {
 			id = currentConditionalContext;
 		}
-		conditionStr = removeBalancedParenthesisFromStringBorders(compileTruthyCheck(state, condition));
+		conditionStr = compileTruthyCheck(state, condition);
 	}
 
 	const subDeclaration = { isIdentifier: declaration ? declaration.isIdentifier : true, set: id } as const;

@@ -244,12 +244,12 @@ export function isNumberTypeStrict(type: ts.Type) {
 	return isSomeType(type, strictTypeConstraint, t => t.isNumber() || t.isNumberLiteral());
 }
 
-export function isNumberTypeLax(type: ts.Type) {
+export function isNonLiteralNumberTypeLax(type: ts.Type) {
 	return isSomeType(type, laxTypeConstraint, t => t.isNumber());
 }
 
 export function isLiterally0Lax(type: ts.Type) {
-	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && t.getText() === `0`);
+	return isSomeType(type, laxTypeConstraint, t => t.isNumberLiteral() && Number(t.getText()) === 0);
 }
 
 export function isNumericLiteralTypeStrict(type: ts.Type) {

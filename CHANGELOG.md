@@ -1,8 +1,9 @@
 ### **0.3.0**
 - Truthiness Rework: Truthiness is now evaluated like in TypeScript/JavaScript. `0`, `""`, and `NaN` are now falsy.
 	- Added compiler option `--logTruthyChanges`, which displays all code affected by the truthiness change.
-- Fixed `&&`/`||` expressions which now respect the control flow of expressions which require multiple statements in Lua
 - Fixed behavior for when libraries require a different version of a package other than the one globally installed in a project
+- Fixed short-circuit evaluation behavior for `&&/||` expressions spanning multiple Lua statements.
+	Example: `let x = ""; const f = (s: string) => x || (x = s);` would ALWAYS evaluate `x = s` in older versions.
 - Fixed #586 - `new ReadonlySet()` and `new ReadonlyMap()` now work
 - Fixed #604 - `rbxtsc --init package` now fills out package.json better
 - Fix issues relating to method vs callback logic, specifically, making `this` work better as a first parameter. This should improve object composability. See https://git.io/fjxRS
