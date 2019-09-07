@@ -10,25 +10,25 @@ assignees: ''
 ## Version
 
 <!--- run `rbxtsc -v` -->
-roblox-ts version: 
-<!--- run `npm list @rbxts/types` -->
-@rbxts/types version: 
+**roblox-ts:** 0.3.0
 
-## Description <!--- **Describe the bug** -->
-A clear and concise description of what the bug is.
+<!--- run `npm list @rbxts/types` -->
+**@rbxts/types:** 1.0.275
+
+## Description
+<!--- A clear and concise description of what the bug is. -->
 
 ## Minimal Reproduction
-Steps/code to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+<!--- Steps/code to reproduce the behavior -->
+<!--- If applicable, add screenshots to help explain your problem.  -->
 
-## Expected behavior
-A clear and concise description of what you expected to happen.
+**Expected behavior:**
+<!--- A clear and concise description of what you expected to happen. -->
+
+**Current behavior:**
+<!--- A clear and concise description of what went wrong. -->
+
 
 ## Playground link
 [Link here]().
 <!--- https://roblox-ts.github.io/playground/ -->
-
-<!--- If applicable, add screenshots to help explain your problem.  -->

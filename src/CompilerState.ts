@@ -20,6 +20,7 @@ export class CompilerState {
 		public readonly projectType: ProjectType,
 		public readonly runtimeLibPath: Array<string>,
 		public readonly modulesPath: string,
+		public readonly pkgVersion: string,
 		public readonly rojoProject?: RojoProject,
 		public readonly runtimeOverride?: string,
 		public readonly logTruthyDifferences?: boolean,
@@ -167,8 +168,8 @@ export class CompilerState {
 	// export stack
 	public exportStack = new Array<Set<string>>();
 
-	public pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.hasExportKeyword()) {
+	public pushExport(name: string, node: ts.Node) {
+		if (!ts.TypeGuards.isExportGetableNode(node) || !node.hasExportKeyword()) {
 			return;
 		}
 

@@ -23,6 +23,8 @@ import {
 	shouldPushToPrecedingStatement,
 } from "../utility/type";
 import { compileBindingLiteral, getSubTypeOrThrow } from "./binding";
+import { isDefinedAsMethod } from "./call";
+import { isMethodDeclaration } from "./function";
 import { compileLogicalBinary } from "./truthiness";
 
 function getLuaAddExpression(node: ts.BinaryExpression, lhsStr: string, rhsStr: string, wrap = false) {
@@ -124,12 +126,23 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 
 	const rawRhs = node.getRight();
 
-	const lhs = skipNodesDownwards(node.getLeft(), true);
+	let lhs = skipNodesDownwards(node.getLeft(), true);
 	const rhs = skipNodesDownwards(rawRhs, true);
 	let lhsStr: string;
 	let rhsStr: string;
 
-	if (!isEqualsOperation) {
+	if (isEqualsOperation) {
+		const isLhsMethod = isDefinedAsMethod(lhs);
+		if (isLhsMethod !== undefined && isLhsMethod !== isMethodDeclaration(rhs)) {
+			throw new CompilerError(
+				`Attempted to set a ${isLhsMethod ? "method" : "callback"} variable to a ${
+					isLhsMethod ? "callback" : "method"
+				}.`,
+				node,
+				CompilerErrorType.MixedMethodSet,
+			);
+		}
+	} else {
 		checkNonAny(lhs);
 		checkNonAny(rhs);
 	}
@@ -189,6 +202,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	}
 
 	if (isSetToken(opKind)) {
+		lhs = skipNodesDownwards(lhs);
 		let isLhsIdentifier = ts.TypeGuards.isIdentifier(lhs) && !isIdentifierDefinedInExportLet(lhs);
 
 		let rhsStrContext: PrecedingStatementContext;

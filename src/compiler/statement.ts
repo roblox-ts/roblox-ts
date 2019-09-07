@@ -103,7 +103,7 @@ export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.
 	state.exportStack.push(new Set<string>());
 	let result = "";
 
-	const shouldMakeHoistStack = !ts.TypeGuards.isCaseClause(node);
+	const shouldMakeHoistStack = !ts.TypeGuards.isCaseClause(node) && !ts.TypeGuards.isDefaultClause(node);
 
 	if (shouldMakeHoistStack) {
 		state.hoistStack.push(new Set<string>());

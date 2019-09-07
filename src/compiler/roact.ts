@@ -17,7 +17,12 @@ export const ROACT_DERIVED_CLASSES_ERROR = suggest(
 );
 const CONSTRUCTOR_METHOD_NAME = "init";
 const INHERITANCE_METHOD_NAME = "extend";
-const RESERVED_METHOD_NAMES = [CONSTRUCTOR_METHOD_NAME, "setState", "getElementTraceback", INHERITANCE_METHOD_NAME];
+const RESERVED_METHOD_NAMES = new Set([
+	CONSTRUCTOR_METHOD_NAME,
+	"setState",
+	"getElementTraceback",
+	INHERITANCE_METHOD_NAME,
+]);
 
 /**
  * A list of lowercase names that map to Roblox elements for JSX
@@ -255,7 +260,7 @@ export function checkRoactReserved(className: string, name: string, node: ts.Nod
 		);
 	}
 
-	if (RESERVED_METHOD_NAMES.indexOf(name) !== -1) {
+	if (RESERVED_METHOD_NAMES.has(name)) {
 		let userError = `Member ${bold(name)} in component ${bold(className)} is a reserved Roact method name.`;
 
 		if (name === CONSTRUCTOR_METHOD_NAME) {

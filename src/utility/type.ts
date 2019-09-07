@@ -3,7 +3,7 @@ import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } f
 import { PrecedingStatementContext } from "../CompilerState";
 import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "./general";
 
-export const RBX_SERVICES: Array<string> = [
+const RBX_SERVICES = new Set([
 	"AssetService",
 	"BadgeService",
 	"Chat",
@@ -46,10 +46,10 @@ export const RBX_SERVICES: Array<string> = [
 	"UserInputService",
 	"VRService",
 	"Workspace",
-];
+]);
 
 export function isRbxService(name: string) {
-	return RBX_SERVICES.indexOf(name) !== -1;
+	return RBX_SERVICES.has(name);
 }
 
 export function isTypeStatement(node: ts.Node) {
@@ -275,10 +275,14 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIteratorType(type: ts.Type) {
+export function isGeneratorType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
-		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
+		if (symbol) {
+			const name = symbol.getEscapedName();
+			return name === "Generator" || name === "IterableIterator";
+		}
+		return false;
 	});
 }
 
@@ -428,24 +432,24 @@ export function isSetType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
-export function isMethodType(type: ts.Type) {
+export function isFunctionType(type: ts.Type) {
 	return type.getCallSignatures().length > 0;
 }
 
 export function isArrayMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
 }
 
 export function isMapMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
 }
 
 export function isSetMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isStringMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
@@ -488,16 +492,6 @@ export function isTupleReturnTypeCall(node: ts.CallExpression) {
 	}
 }
 
-function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
-	while (descendant) {
-		if (ancestor === descendant) {
-			return true;
-		}
-		descendant = descendant.getParent();
-	}
-	return false;
-}
-
 export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor = true): boolean {
 	if (ts.TypeGuards.isForStatement(ancestor)) {
 		return false;
@@ -525,7 +519,7 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor 
 			return true;
 		}
 
-		if (checkAncestor && isAncestorOf(ancestor, ref)) {
+		if (checkAncestor && (ref === ancestor || ref.getFirstAncestor(a => a === ancestor))) {
 			return false;
 		} else {
 			let refAncestor: ts.Node | undefined = ref;

@@ -1,9 +1,12 @@
 import * as ts from "ts-morph";
 import { CompilerState } from "../CompilerState";
+import { luaStringify } from "../utility/general";
 
-export const BUILT_INS = ["Promise", "Symbol", "typeIs", "opcall"];
+const BUILT_INS = new Set(["Promise", "Symbol", "typeIs", "opcall"]);
 
-export const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+
+const PKG_VERSION_ID = "PKG_VERSION";
 
 export function compileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition: boolean = false) {
 	let name = node.getText();
@@ -13,9 +16,13 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 		return replacement;
 	}
 
-	if (BUILT_INS.indexOf(name) !== -1) {
+	if (BUILT_INS.has(name)) {
 		state.usesTSLibrary = true;
 		name = `TS.${name}`;
+	}
+
+	if (name === PKG_VERSION_ID) {
+		return luaStringify(state.pkgVersion);
 	}
 
 	const definitions = isDefinition ? [node] : node.getDefinitions().map(def => def.getNode());
@@ -51,7 +58,7 @@ export function compileIdentifier(state: CompilerState, node: ts.Identifier, isD
 					}
 					break;
 				} else if (parent.getKind() === ts.SyntaxKind.OpenParenToken) {
-					parent = parent.getParent();
+					parent = parent.getParent()!;
 					if (!ts.TypeGuards.isArrowFunction(parent)) {
 						break;
 					}
