@@ -485,9 +485,9 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 				value = compileExpression(state, attribute.getInitializerOrThrow());
 			}
 
-			if (attributeName === "Event" || attributeName === "Change" || attributeName === "Ref") {
+			if (attributeName === "event" || attributeName === "change" || attributeName === "ref") {
 				generateRoactSymbolAttribute(state, attributeName, attribute, attributeStack);
-			} else if (attributeName === "Key") {
+			} else if (attributeName === "key") {
 				state.roactKeyStack.push(value);
 			} else {
 				attributeStack.push(state.indent + attributeName + " = " + value);
@@ -514,6 +514,66 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 	}
 }
 
+type RoactSymbol = "Event" | "Change" | "Ref" | "event" | "change" | "ref" | "style";
+
+function toTitle(str: string) {
+	return str.substr(0, 1).toUpperCase() + str.substr(1);
+}
+
+function getInlineObjectProperties(
+	state: CompilerState,
+	roactSymbol: RoactSymbol,
+	properties: Array<ts.ObjectLiteralElementLike>,
+	attributesStack: Array<string>,
+) {
+	for (const property of properties) {
+		if (ts.TypeGuards.isPropertyAssignment(property) || ts.TypeGuards.isShorthandPropertyAssignment(property)) {
+			const propName = property.getName();
+			const rhs = property.getInitializerOrThrow();
+			let value: string;
+
+			if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
+				value = compileSymbolPropertyCallback(state, rhs);
+			} else {
+				value = compileExpression(state, rhs);
+			}
+
+			attributesStack.push(state.indent + `[Roact.${toTitle(roactSymbol)}.${propName}] = ${value}`);
+		}
+	}
+}
+
+function getIdentifierObjectProperties(
+	state: CompilerState,
+	roactSymbol: RoactSymbol,
+	identifier: ts.Identifier,
+	attributesStack: Array<string>,
+) {
+	const definitionNodes = identifier.getDefinitionNodes();
+	for (const definitionNode of definitionNodes) {
+		const literalExpressions = definitionNode.getChildrenOfKind(ts.SyntaxKind.ObjectLiteralExpression);
+		if (literalExpressions.length > 0) {
+			for (const literalExpression of literalExpressions) {
+				for (const property of literalExpression.getProperties()) {
+					if (
+						ts.TypeGuards.isPropertyAssignment(property) ||
+						ts.TypeGuards.isShorthandPropertyAssignment(property)
+					) {
+						const propName = property.getName();
+						attributesStack.push(
+							state.indent +
+								`[Roact.${toTitle(roactSymbol)}.${propName}] = ${compileExpression(
+									state,
+									identifier,
+								)}.${propName}`,
+						);
+					}
+				}
+			}
+		}
+	}
+}
+
 /**
  * Generates the specified roact symbol attribute, and places it into `attrs`
  * @param state The state
@@ -523,7 +583,7 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
  */
 export function generateRoactSymbolAttribute(
 	state: CompilerState,
-	roactSymbol: "Event" | "Change" | "Ref",
+	roactSymbol: RoactSymbol,
 	attributeNode: ts.JsxAttribute,
 	attributesStack: Array<string>,
 ) {
@@ -531,27 +591,21 @@ export function generateRoactSymbolAttribute(
 
 	for (const expression of expr) {
 		const innerExpression = expression.getExpressionOrThrow();
-		if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
-			const properties = innerExpression.getProperties();
-			for (const property of properties) {
-				if (
-					ts.TypeGuards.isPropertyAssignment(property) ||
-					ts.TypeGuards.isShorthandPropertyAssignment(property)
-				) {
-					const propName = property.getName();
-					const rhs = property.getInitializerOrThrow();
-					let value: string;
 
-					if (ts.TypeGuards.isPropertyAccessExpression(rhs)) {
-						value = compileSymbolPropertyCallback(state, rhs);
-					} else {
-						value = compileExpression(state, rhs);
-					}
-
-					attributesStack.push(state.indent + `[Roact.${roactSymbol}.${propName}] = ${value}`);
-				}
+		if (roactSymbol === "event" || roactSymbol === "change") {
+			if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
+				const properties = innerExpression.getProperties();
+				getInlineObjectProperties(state, roactSymbol, properties, attributesStack);
+			} else if (ts.TypeGuards.isIdentifier(innerExpression)) {
+				getIdentifierObjectProperties(state, roactSymbol, innerExpression, attributesStack);
+			} else {
+				throw new CompilerError(
+					`Invalid value supplied to ${roactSymbol} ${innerExpression.getKindName()}`,
+					attributeNode,
+					CompilerErrorType.RoactInvalidSymbol,
+				);
 			}
-		} else if (roactSymbol === "Ref") {
+		} else if (roactSymbol === "ref" || roactSymbol === "Ref") {
 			let value: string;
 
 			if (ts.TypeGuards.isPropertyAccessExpression(innerExpression)) {
