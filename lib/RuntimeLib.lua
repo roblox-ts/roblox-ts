@@ -4,7 +4,6 @@ local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
 
--- constants
 local TS = {}
 
 -- runtime classes
