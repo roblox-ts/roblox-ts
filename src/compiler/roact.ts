@@ -388,10 +388,14 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 		}
 	} else if (ts.TypeGuards.isBinaryExpression(expression)) {
 		if (isValidRoactBinaryExpression(expression)) {
+			state.enterPrecedingStatementContext();
+
+			const lhs = expression.getLeft();
+			const rhs = expression.getRight();
 			state.roactElementStack.push("BinaryExpression");
-			const result = state.indent + compileExpression(state, expression);
+			const result = compileExpression(state, lhs) + " and " + compileExpression(state, rhs) + " or nil";
 			state.roactElementStack.pop();
-			return result;
+			return state.indent + "{ " + state.exitPrecedingStatementContextAndJoin() + result + " }";
 		} else {
 			const right = expression
 				.getRight()
@@ -407,6 +411,7 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 		if (isValidRoactConditionalExpression(expression)) {
 			state.roactElementStack.push("ConditionalExpression");
 			const result = state.indent + compileExpression(state, expression);
+
 			state.roactElementStack.pop();
 
 			return result;
@@ -662,7 +667,7 @@ function generateRoactElement(
 	let functionName = "Roact.createElement";
 	let postWrap = "";
 
-	state.roactIndent++;
+	const parentType = state.roactGetElementType(-1);
 
 	// All arguments to Roact will end up here!
 	const elementArguments = new Array<string>();
@@ -692,7 +697,26 @@ function generateRoactElement(
 		if (isFragment) {
 			generateRoactAttributes(state, attributesCollection);
 		} else {
-			elementArguments.push(generateRoactAttributes(state, attributesCollection));
+			const statement = generateRoactAttributes(state, attributesCollection);
+			elementArguments.push(statement);
+		}
+	}
+
+	let hasKey = false;
+	let key = "";
+	if (state.roactKeyStack.length > 0) {
+		const parentStackType = state.roactGetElementType(-2);
+
+		key = state.roactKeyStack.pop()!;
+		hasKey = true;
+		if (state.roactElementStack.length === 1) {
+			preWrap += "Roact.createFragment({ " + `[${key}] = `;
+			postWrap += " })";
+		} else if (parentStackType === "BinaryExpression") {
+			state.pushPrecedingStatements(nameNode, `[${key}] = `);
+			hasKey = false;
+		} else if (parentStackType !== "CallExpression" && parentStackType !== "ConditionalExpression") {
+			preWrap += `[${key}] = `;
 		}
 	}
 
@@ -700,32 +724,14 @@ function generateRoactElement(
 		elementArguments.push(generateRoactChildren(state, isFragment, childCollection));
 	}
 
-	let hasKey = false;
-	let key = "";
-	if (state.roactKeyStack.length > 0) {
-		const parentStackType = state.roactElementStack[state.roactElementStack.length - 2];
-		key = state.roactKeyStack.pop()!;
-		hasKey = true;
-		if (state.roactElementStack.length === 1) {
-			preWrap += "Roact.createFragment({ " + `[${key}] = `;
-			postWrap += " })";
-		} else if (
-			parentStackType !== "CallExpression" &&
-			parentStackType !== "ConditionalExpression" &&
-			parentStackType !== "BinaryExpression"
-		) {
-			preWrap += `[${key}] = `;
-		}
-	}
-
-	state.roactIndent--;
 	state.roactElementStack.pop();
 
-	const parentType = state.roactElementStack[state.roactElementStack.length - 1];
 	if (hasKey) {
-		if (parentType === "CallExpression") {
+		if (parentType === "CallExpression" || parentType === "ConditionalExpression") {
 			preWrap += "Roact.createFragment({ " + `[${key}] = `;
 			postWrap += " })";
+		} else if (parentType === "BinaryExpression") {
+			preWrap = `[${key}] = `;
 		} else {
 			console.log(parentType, key);
 		}
@@ -768,22 +774,17 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 			CompilerErrorType.RoactJsxWithoutImport,
 		);
 	}
+
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
 	const tagNameNode = open.getTagNameNode();
 	const children = node.getJsxChildren();
-	const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
+	// const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
 
-	if (isArrayExpressionParent) {
-		state.roactElementStack.push("ArrayExpression");
-		state.roactIndent++;
-	}
+	// if (isArrayExpressionParent) {
+	// 	state.roactElementStack.push("ArrayExpression");
+	// }
 
 	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
-
-	if (isArrayExpressionParent) {
-		state.roactElementStack.pop();
-		state.roactIndent--;
-	}
 
 	return element;
 }
@@ -803,14 +804,12 @@ export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxS
 
 	if (isArrayExpressionParent) {
 		state.roactElementStack.push("ArrayExpression");
-		state.roactIndent++;
 	}
 
 	const element = generateRoactElement(state, tagNameNode, node.getAttributes(), []);
 
 	if (isArrayExpressionParent) {
 		state.roactElementStack.pop();
-		state.roactIndent--;
 	}
 
 	return element;
