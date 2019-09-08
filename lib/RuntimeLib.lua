@@ -53,9 +53,10 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
 local globalModules
-local lastDescendantAddedTime = tick()
+local lastDescendantAddedTime
 
 if YIELD_HACK then
+	lastDescendantAddedTime = tick()
 	script.Parent.DescendantAdded:Connect(function(Descendant)
 		lastDescendantAddedTime = tick()
 	end)
