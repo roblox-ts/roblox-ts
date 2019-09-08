@@ -1,11 +1,10 @@
+local YIELD_HACK = false
+
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
 
 -- constants
-local table_sort = table.sort
-local table_concat = table.concat
-
 local TS = {}
 
 -- runtime classes
@@ -53,38 +52,61 @@ TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
-local globalModules = script.Parent:FindFirstChild("node_modules")
+local globalModules
+local lastDescendantAddedTime = tick()
 
-function TS.getModule(moduleName)
-	local object = getfenv(2).script
-	if not globalModules then
-		error("Could not find any modules!", 2)
+if YIELD_HACK then
+	script.Parent.DescendantAdded:Connect(function(Descendant)
+		lastDescendantAddedTime = tick()
+	end)
+end
+
+local function getGlobalModules()
+	if YIELD_HACK then
+		while (tick() - lastDescendantAddedTime) > 1 do wait() end
 	end
-	if object:IsDescendantOf(globalModules) then
-		repeat
-			local modules = object:FindFirstChild("node_modules")
-			if modules then
-				local module = modules:FindFirstChild(moduleName)
-				if module then
-					return module
-				end
+	globalModules = script.Parent:FindFirstChild("node_modules")
+	return globalModules
+end
+
+function TS.getModule(object, moduleName)
+	local realCaller = getfenv(0).script
+
+	if object ~= realCaller then
+		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.getModule. This will error upon the release of v3.0")
+		return TS.getModule(realCaller, object, moduleName)
+	end
+
+	if globalModules == nil then
+		globalModules = getGlobalModules() or error("Could not find any modules!", 2)
+	end
+
+	repeat
+		local modules = object:FindFirstChild("node_modules")
+		if modules then
+			local module = modules:FindFirstChild(moduleName)
+			if module then
+				return module
 			end
-			object = object.Parent
-		until object == nil
-	else
-		local module = globalModules:FindFirstChild(moduleName)
-		if module then
-			return module
 		end
-	end
-	error("Could not find module: " .. moduleName, 2)
+		object = object.Parent
+	until object == nil or object == globalModules
+
+	return globalModules:FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
 local loadedLibraries = {}
 local currentlyLoading = {}
 
-function TS.import(module, ...)
+function TS.import(caller, module, ...)
+	local realCaller = getfenv(0).script
+
+	if caller ~= realCaller then
+		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.import. This will error upon the release of v3.0")
+		return TS.import(realCaller, caller, module, ...)
+	end
+
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild((select(i, ...)))
 	end
@@ -97,8 +119,6 @@ function TS.import(module, ...)
 		return require(module)
 	end
 
-	-- If called from command bar, use table as a reference (this is never concatenated)
-	local caller = getfenv(0).script or { Name = "Command bar" }
 	currentlyLoading[caller] = module
 
 	-- Check to see if a case like this occurs:
@@ -383,11 +403,11 @@ function TS.array_sort(list, callback)
 	local sorted = array_copy(list)
 
 	if callback then
-		table_sort(sorted, function(a, b)
+		table.sort(sorted, function(a, b)
 			return 0 < callback(a, b)
 		end)
 	else
-		table_sort(sorted, sortFallback)
+		table.sort(sorted, sortFallback)
 	end
 
 	return sorted
@@ -637,7 +657,7 @@ function TS.array_join(list, separator)
 			result[i] = tostring(list[i])
 		end
 	end
-	return table_concat(result, separator or ",")
+	return table.concat(result, separator or ",")
 end
 
 function TS.array_find(list, callback)
