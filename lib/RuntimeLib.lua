@@ -73,13 +73,6 @@ end
 local defaultObject = { GetFullName = function() return "Command bar" end }
 
 function TS.getModule(object, moduleName)
-	local realCaller = getfenv(0).script or defaultObject
-
-	if object ~= realCaller then
-		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.getModule. This will error upon the release of v3.0")
-		return TS.getModule(realCaller, object, moduleName)
-	end
-
 	if globalModules == nil then
 		globalModules = getGlobalModules() or error("Could not find any modules!", 2)
 	end
@@ -103,13 +96,6 @@ local loadedLibraries = {}
 local currentlyLoading = {}
 
 function TS.import(caller, module, ...)
-	local realCaller = getfenv(0).script or defaultObject
-
-	if caller ~= realCaller then
-		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.import. This will error upon the release of v3.0")
-		return TS.import(realCaller, caller, module, ...)
-	end
-
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild((select(i, ...)))
 	end
