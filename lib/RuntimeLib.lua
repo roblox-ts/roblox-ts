@@ -70,8 +70,10 @@ local function getGlobalModules()
 	return globalModules
 end
 
+local defaultObject = { GetFullName = function() return "Command bar" end }
+
 function TS.getModule(object, moduleName)
-	local realCaller = getfenv(0).script or { GetFullName = function() return "Command bar" end }
+	local realCaller = getfenv(0).script or defaultObject
 
 	if object ~= realCaller then
 		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.getModule. This will error upon the release of v3.0")
@@ -101,7 +103,7 @@ local loadedLibraries = {}
 local currentlyLoading = {}
 
 function TS.import(caller, module, ...)
-	local realCaller = getfenv(0).script
+	local realCaller = getfenv(0).script or defaultObject
 
 	if caller ~= realCaller then
 		warn(realCaller:GetFullName() .. " should pass `script` as the first parameter into TS.import. This will error upon the release of v3.0")
