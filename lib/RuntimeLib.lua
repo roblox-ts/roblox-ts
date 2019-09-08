@@ -64,7 +64,7 @@ end
 
 local function getGlobalModules()
 	if YIELD_HACK then
-		while (tick() - lastDescendantAddedTime) > 1 do wait() end
+		while (tick() - lastDescendantAddedTime) < 1 do wait() end
 	end
 	globalModules = script.Parent:FindFirstChild("node_modules")
 	return globalModules
