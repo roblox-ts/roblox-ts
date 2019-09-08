@@ -57,7 +57,7 @@ local lastDescendantAddedTime
 
 if YIELD_HACK then
 	lastDescendantAddedTime = tick()
-	script.Parent.DescendantAdded:Connect(function(Descendant)
+	script.Parent.DescendantAdded:Connect(function()
 		lastDescendantAddedTime = tick()
 	end)
 end
