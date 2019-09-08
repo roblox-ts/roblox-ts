@@ -347,7 +347,11 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 
 		// If returns Roact.Element or Roact.Element[]
 		if (isRoactChildElementType(returnType)) {
-			return state.indent + compileRoactJsxCallExpression(state, expression);
+			if (isArrayType(returnType)) {
+				return state.indent + compileRoactJsxCallExpression(state, expression);
+			} else {
+				return state.indent + "{ " + compileRoactJsxCallExpression(state, expression) + " }";
+			}
 		} else {
 			throw new CompilerError(
 				`Function call in an expression must return Roact.Element or Roact.Element[]`,
