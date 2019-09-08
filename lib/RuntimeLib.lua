@@ -70,8 +70,6 @@ local function getGlobalModules()
 	return globalModules
 end
 
-local defaultObject = { GetFullName = function() return "Command bar" end }
-
 function TS.getModule(object, moduleName)
 	if globalModules == nil then
 		globalModules = getGlobalModules() or error("Could not find any modules!", 2)
