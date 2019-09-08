@@ -443,6 +443,8 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 	}
 }
 
+const RoactCustomProps = new Set(["event", "change", "ref", "Event", "Change", "Ref"]);
+
 /**
  * Generates the attributes for a roact element
  * @param state The compiler state
@@ -489,9 +491,9 @@ function generateRoactAttributes(state: CompilerState, attributesCollection: Arr
 				value = compileExpression(state, attribute.getInitializerOrThrow());
 			}
 
-			if (attributeName === "event" || attributeName === "change" || attributeName === "ref") {
+			if (RoactCustomProps.has(attributeName)) {
 				generateRoactSymbolAttribute(state, attributeName, attribute, attributeStack);
-			} else if (attributeName === "key") {
+			} else if (attributeName === "key" || attributeName === "Key") {
 				state.roactKeyStack.push(value);
 			} else {
 				attributeStack.push(state.indent + attributeName + " = " + value);
@@ -587,7 +589,7 @@ function getIdentifierObjectProperties(
  */
 export function generateRoactSymbolAttribute(
 	state: CompilerState,
-	roactSymbol: RoactSymbol,
+	roactSymbol: string,
 	attributeNode: ts.JsxAttribute,
 	attributesStack: Array<string>,
 ) {
@@ -596,7 +598,12 @@ export function generateRoactSymbolAttribute(
 	for (const expression of expr) {
 		const innerExpression = expression.getExpressionOrThrow();
 
-		if (roactSymbol === "event" || roactSymbol === "change") {
+		if (
+			roactSymbol === "event" ||
+			roactSymbol === "change" ||
+			roactSymbol === "Event" ||
+			roactSymbol === "Change"
+		) {
 			if (ts.TypeGuards.isObjectLiteralExpression(innerExpression)) {
 				const properties = innerExpression.getProperties();
 				getInlineObjectProperties(state, roactSymbol, properties, attributesStack);
