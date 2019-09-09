@@ -350,28 +350,24 @@ function getCompileData(
 	},
 ) {
 	for (const expr of nestedExprs.exprs) {
-		if (isNestedExpressions(expr)) {
-			getCompileData(expr, compileData);
-		} else {
-			const {
-				compileData: { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 },
-			} = expr;
+		const { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 } = isNestedExpressions(expr)
+			? getCompileData(expr, compileData)
+			: expr.compileData;
 
-			if (checkEmptyString) {
-				compileData.checkEmptyString = checkEmptyString;
-			}
+		if (checkEmptyString) {
+			compileData.checkEmptyString = checkEmptyString;
+		}
 
-			if (checkLuaTruthy) {
-				compileData.checkLuaTruthy = checkLuaTruthy;
-			}
+		if (checkLuaTruthy) {
+			compileData.checkLuaTruthy = checkLuaTruthy;
+		}
 
-			if (checkNaN) {
-				compileData.checkNaN = checkNaN;
-			}
+		if (checkNaN) {
+			compileData.checkNaN = checkNaN;
+		}
 
-			if (checkNon0) {
-				compileData.checkNon0 = checkNon0;
-			}
+		if (checkNon0) {
+			compileData.checkNon0 = checkNon0;
 		}
 	}
 
