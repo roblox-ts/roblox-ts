@@ -320,26 +320,47 @@ interface NestedExpression {
 interface NestedExpressions {
 	exprs: Array<NestedExpression | NestedExpressions>;
 	isAnd: boolean;
+	compileData: TruthyCompileData;
 }
+
+const makeNestedExpressions: (isAnd: boolean) => NestedExpressions = isAnd => ({
+	compileData: {
+		checkEmptyString: false,
+		checkLuaTruthy: false,
+		checkNaN: false,
+		checkNon0: false,
+	},
+	exprs: new Array(),
+	isAnd,
+});
 
 function isNestedExpressions(x: NestedExpression | NestedExpressions): x is NestedExpressions {
 	return "exprs" in x && "isAnd" in x;
 }
 
-function logNestedExpression(x: NestedExpressions): any {
-	return x.exprs.map(a => {
-		if (isNestedExpressions(a)) {
-			return logNestedExpression(a);
-		} else {
-			return a.exp.getText();
-		}
-	});
+function logNestedExpression({
+	exprs,
+	compileData,
+	isAnd,
+}: NestedExpressions): Omit<NestedExpressions, "exprs"> & { exprs: Array<string> } {
+	return {
+		compileData,
+		exprs: exprs.map(a => {
+			if (isNestedExpressions(a)) {
+				return "[" + logNestedExpression(a).exprs.join(", ") + "]";
+			} else {
+				return a.exp.getText();
+			}
+		}),
+		isAnd,
+	};
 }
 
 function getTruthyReferences({ checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 }: TruthyCompileData) {
 	return 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
 }
 
+/** Could probably be optimized away in preprocessLogicalBinary soon^tm */
 function getCompileData(
 	nestedExprs: NestedExpressions,
 	compileData: TruthyCompileData = {
@@ -385,24 +406,52 @@ export function preprocessLogicalBinary(
 	isAnd: 0 | 1 | 2,
 	stuff: NestedExpressions,
 ) {
+	const { compileData: truthyData, exprs } = stuff;
+
 	for (const side of [skipNodesDownwards(lhs), skipNodesDownwards(rhs)]) {
+		let compileData: TruthyCompileData;
+
 		if (ts.TypeGuards.isBinaryExpression(side)) {
 			const isOpAndToken = getBinaryExpressionType(side);
 
 			if (isOpAndToken === isAnd) {
-				preprocessLogicalBinary(state, side.getLeft(), side.getRight(), isOpAndToken, stuff);
+				const substuff = preprocessLogicalBinary(state, side.getLeft(), side.getRight(), isOpAndToken, stuff);
+				({ compileData } = substuff);
 			} else if (isOpAndToken) {
-				stuff.exprs.push(
-					preprocessLogicalBinary(state, side.getLeft(), side.getRight(), isOpAndToken, {
-						exprs: new Array(),
-						isAnd: isOpAndToken === 2,
-					}),
+				const substuff = preprocessLogicalBinary(
+					state,
+					side.getLeft(),
+					side.getRight(),
+					isOpAndToken,
+					makeNestedExpressions(isOpAndToken === 2),
 				);
+				({ compileData } = substuff);
+				exprs.push(substuff);
 			} else {
-				stuff.exprs.push({ exp: side, compileData: getTruthyCompileData(state, side) });
+				compileData = getTruthyCompileData(state, side);
+				exprs.push({ exp: side, compileData });
 			}
 		} else {
-			stuff.exprs.push({ exp: side, compileData: getTruthyCompileData(state, side) });
+			compileData = getTruthyCompileData(state, side);
+			exprs.push({ exp: side, compileData });
+		}
+
+		const { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 } = compileData;
+
+		if (checkEmptyString) {
+			truthyData.checkEmptyString = checkEmptyString;
+		}
+
+		if (checkLuaTruthy) {
+			truthyData.checkLuaTruthy = checkLuaTruthy;
+		}
+
+		if (checkNaN) {
+			truthyData.checkNaN = checkNaN;
+		}
+
+		if (checkNon0) {
+			truthyData.checkNon0 = checkNon0;
 		}
 	}
 
@@ -750,7 +799,7 @@ function parseNestedExpressions(
 		if (isNestedExpressions(item)) {
 			// logicalState.results.push("(");
 			parseNestedExpressions(state, logicalState, item, isInTruthyCheck, depth + 1);
-			previousCompileData = getCompileData(item);
+			previousCompileData = item.compileData;
 			// logicalState.results.push(")");
 		} else {
 			const { exp, compileData } = item;
@@ -828,14 +877,12 @@ export function compileLogicalBinary(
 		state.alreadyCheckedTruthyConditionals.push(skipNodesUpwardsLookAhead(node));
 	}
 
-	const nestedExpressions: NestedExpressions = { exprs: new Array(), isAnd };
-
 	console.log(state.declarationContext.get(node));
 
 	return parseNestedExpressions(
 		state,
 		makeLogicalBinaryState(state),
-		preprocessLogicalBinary(state, lhs, rhs, isAnd ? 2 : 1, nestedExpressions),
+		preprocessLogicalBinary(state, lhs, rhs, isAnd ? 2 : 1, makeNestedExpressions(isAnd)),
 		isInTruthyCheck,
 	).results.join("");
 }
