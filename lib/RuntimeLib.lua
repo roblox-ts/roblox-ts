@@ -1,5 +1,3 @@
-local YIELD_HACK = false
-
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
@@ -51,27 +49,15 @@ TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
-local globalModules
-local lastDescendantAddedTime
-
-if YIELD_HACK then
-	lastDescendantAddedTime = tick()
-	script.Parent.DescendantAdded:Connect(function()
-		lastDescendantAddedTime = tick()
-	end)
-end
-
-local function getGlobalModules()
-	if YIELD_HACK then
-		while (tick() - lastDescendantAddedTime) < 1 do wait() end
-	end
-	globalModules = script.Parent:FindFirstChild("node_modules")
-	return globalModules
-end
-
 function TS.getModule(object, moduleName)
-	if globalModules == nil then
-		globalModules = getGlobalModules() or error("Could not find any modules!", 2)
+	-- ensure modules have fully replicated
+	if not game:IsLoaded() then
+		game.Loaded:Wait()
+	end
+
+	local globalModules = script.Parent:FindFirstChild("node_modules")
+	if not globalModules then
+		error("Could not find any modules!", 2)
 	end
 
 	repeat
