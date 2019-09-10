@@ -797,8 +797,6 @@ function generateRoactElement(
 			postWrap += " })";
 		} else if (parentType === "BinaryExpression") {
 			preWrap = `[${key}] = `;
-		} else {
-			console.log(parentType, key);
 		}
 	}
 
@@ -843,11 +841,6 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
 	const tagNameNode = open.getTagNameNode();
 	const children = node.getJsxChildren();
-	// const isArrayExpressionParent = node.getParentIfKind(ts.ts.SyntaxKind.ArrayLiteralExpression);
-
-	// if (isArrayExpressionParent) {
-	// 	state.roactElementStack.push("ArrayExpression");
-	// }
 
 	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
 
