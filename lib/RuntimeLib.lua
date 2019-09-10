@@ -51,7 +51,7 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 -- module resolution
 function TS.getModule(object, moduleName)
 	-- ensure modules have fully replicated
-	if not game:IsLoaded() then
+	if __LEMUR__ or not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
