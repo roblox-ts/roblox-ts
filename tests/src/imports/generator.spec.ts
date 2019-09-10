@@ -300,7 +300,7 @@ export = () => {
 			range(6, 10, 2)
 				[Symbol.iterator]()
 				.next().value,
-		).to.equal((n += 2));
+		).to.equal((n));
 		expect(
 			range(6, 10, 2)
 				[Symbol.iterator]()
