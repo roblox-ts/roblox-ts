@@ -214,6 +214,8 @@ function compileFunction(
 		state.pushIndent();
 		results.push(state.indent, `return {\n`);
 		state.pushIndent();
+		state.usesTSLibrary = true;
+		results.push(state.indent, `[TS.Symbol_iterator] = function(self) return self; end;\n`);
 		results.push(state.indent, `next = coroutine.wrap(function()`);
 		results.push(compileFunctionBody(state, body, node, initializers));
 		results.push(`\twhile true do coroutine.yield({ done = true }) end;\n`);
