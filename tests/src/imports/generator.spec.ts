@@ -315,6 +315,6 @@ export = () => {
 			range(6, 10, 2)
 				[Symbol.iterator]()
 				.next().value,
-		).to.equal((undefined));
+		).to.equal(undefined);
 	});
 };
