@@ -1,6 +1,7 @@
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 local TS = {}
 
@@ -50,6 +51,10 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
 function TS.getModule(object, moduleName)
+	if object:IsDescendantOf(ReplicatedFirst) then
+		warn("node_modules should not be used from ReplicatedFirst")
+	end
+
 	-- ensure modules have fully replicated
 	if not __LEMUR__ and not game:IsLoaded() then
 		game.Loaded:Wait()
