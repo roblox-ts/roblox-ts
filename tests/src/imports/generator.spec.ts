@@ -296,25 +296,11 @@ export = () => {
 			expect(i).to.equal(n++);
 		}
 
-		expect(
-			range(6, 10, 2)
-				[Symbol.iterator]()
-				.next().value,
-		).to.equal((n));
-		expect(
-			range(6, 10, 2)
-				[Symbol.iterator]()
-				.next().value,
-		).to.equal((n += 2));
-		expect(
-			range(6, 10, 2)
-				[Symbol.iterator]()
-				.next().value,
-		).to.equal((n += 2));
-		expect(
-			range(6, 10, 2)
-				[Symbol.iterator]()
-				.next().value,
-		).to.equal(undefined);
+		const x = range(6, 10, 2);
+
+		expect(x[Symbol.iterator]().next().value).to.equal(n);
+		expect(x[Symbol.iterator]().next().value).to.equal((n += 2));
+		expect(x[Symbol.iterator]().next().value).to.equal((n += 2));
+		expect(x[Symbol.iterator]().next().value).to.equal(undefined);
 	});
 };
