@@ -359,9 +359,13 @@ export = () => {
 	});
 
 	it("should support reducing forwards or backwards", () => {
-		expect([..."abcdef"].reduce((previous, current) => previous + current)).to.equal()
-		expect([..."abcdef"].reduceRight((previous, current) => previous + current)).to.equal()
-	})
+		expect([..."abcdef"].reduce((previous, current) => previous + current)).to.equal("abcdef");
+		expect([..."abcdef"].reduce((previous, current) => previous + current, " ")).to.equal(" " + "abcdef");
+		expect([..."abcdef"].reduceRight((previous, current) => previous + current)).to.equal("abcdef".reverse());
+		expect([..."abcdef"].reduceRight((previous, current) => previous + current, " ")).to.equal(
+			" " + "abcdef".reverse(),
+		);
+	});
 
 	it("should support find", () => {
 		const a = [1, 2, 3, 4, 5];
