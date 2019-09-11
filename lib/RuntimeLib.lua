@@ -1,7 +1,11 @@
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
-local ReplicatedFirst = game:GetService("ReplicatedFirst")
+
+local ReplicatedFirst
+if not __LEMUR__ then
+	ReplicatedFirst = game:GetService("ReplicatedFirst")
+end
 
 local TS = {}
 
@@ -51,7 +55,7 @@ TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
 function TS.getModule(object, moduleName)
-	if object:IsDescendantOf(ReplicatedFirst) then
+	if not __LEMUR__ and object:IsDescendantOf(ReplicatedFirst) then
 		warn("node_modules should not be used from ReplicatedFirst")
 	end
 
