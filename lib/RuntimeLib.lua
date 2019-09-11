@@ -553,10 +553,8 @@ function TS.array_reduce(list, callback, ...)
 		if last == 0 then
 			error("Reduce of empty array with no initial value at Array.reduce", 2)
 		end
-		repeat
-			accumulator = list[first]
-			first = first + 1
-		until accumulator ~= nil
+		accumulator = list[first]
+		first = first + 1
 	else
 		accumulator = ...
 	end
@@ -575,10 +573,8 @@ function TS.array_reduceRight(list, callback, ...)
 		if first == 0 then
 			error("Reduce of empty array with no initial value at Array.reduceRight", 2)
 		end
-		repeat
-			accumulator = list[first]
-			first = first - 1
-		until accumulator ~= nil
+		accumulator = list[first]
+		first = first - 1
 	else
 		accumulator = ...
 	end
