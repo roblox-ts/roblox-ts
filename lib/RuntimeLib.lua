@@ -363,12 +363,10 @@ end
 
 function TS.array_filter(list, callback)
 	local result = {}
-	local count = 0
 	for i = 1, #list do
 		local v = list[i]
 		if v ~= nil and callback(v, i - 1, list) == true then
-			count = count + 1
-			result[count] = v
+			result[#result + 1] = v
 		end
 	end
 	return result
