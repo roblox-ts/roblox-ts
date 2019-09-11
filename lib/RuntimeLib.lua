@@ -363,10 +363,12 @@ end
 
 function TS.array_filter(list, callback)
 	local result = {}
+	local count = 0
 	for i = 1, #list do
 		local v = list[i]
 		if v ~= nil and callback(v, i - 1, list) == true then
-			result[#result + 1] = v
+			count = count + 1
+			result[count] = v
 		end
 	end
 	return result
@@ -377,7 +379,16 @@ local function sortFallback(a, b)
 end
 
 function TS.array_sort(list, callback)
-	local sorted = array_copy(list)
+	local sorted = {}
+	local count = 0
+
+	for i = 1, #list do
+		local v = list[i]
+		if v ~= nil then
+			count = count + 1
+			sorted[count] = v
+		end
+	end
 
 	if callback then
 		table.sort(sorted, function(a, b)
@@ -524,7 +535,8 @@ end
 
 function TS.array_indexOf(list, value, fromIndex)
 	for i = (fromIndex or 0) + 1, #list do
-		if value == list[i] then
+		local v = list[i]
+		if v ~= nil and value == v then
 			return i - 1
 		end
 	end
@@ -533,7 +545,8 @@ end
 
 function TS.array_lastIndexOf(list, value, fromIndex)
 	for i = (fromIndex or #list - 1) + 1, 1, -1 do
-		if value == list[i] then
+		local v = list[i]
+		if v ~= nil and value == v then
 			return i - 1
 		end
 	end
@@ -658,7 +671,7 @@ end
 function TS.array_find(list, callback)
 	for i = 1, #list do
 		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(v, i - 1, list) == true then
 			return v
 		end
 	end
@@ -666,8 +679,7 @@ end
 
 function TS.array_findIndex(list, callback)
 	for i = 0, #list - 1 do
-		local v = list[i + 1]
-		if v ~= nil and callback(v, i, list) == true then
+		if callback(list[i + 1], i, list) == true then
 			return i
 		end
 	end
@@ -679,13 +691,8 @@ local function array_flat_helper(list, depth, count, result)
 		local v = list[i]
 
 		if v ~= nil then
-			if type(v) == "table" then
-				if depth ~= 0 then
-					count = array_flat_helper(v, depth - 1, count, result)
-				else
-					count = count + 1
-					result[count] = v
-				end
+			if type(v) == "table" and depth ~= 0 then
+				count = array_flat_helper(v, depth - 1, count, result)
 			else
 				count = count + 1
 				result[count] = v

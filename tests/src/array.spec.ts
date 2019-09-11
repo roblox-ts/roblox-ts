@@ -358,6 +358,11 @@ export = () => {
 		).to.equal(5);
 	});
 
+	it("should support reducing forwards or backwards", () => {
+		expect([..."abcdef"].reduce((previous, current) => previous + current)).to.equal()
+		expect([..."abcdef"].reduceRight((previous, current) => previous + current)).to.equal()
+	})
+
 	it("should support find", () => {
 		const a = [1, 2, 3, 4, 5];
 
