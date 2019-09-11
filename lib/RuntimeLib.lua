@@ -663,13 +663,11 @@ local function array_flat_helper(list, depth, count, result)
 	for i = 1, #list do
 		local v = list[i]
 
-		if v ~= nil then
-			if type(v) == "table" and depth ~= 0 then
-				count = array_flat_helper(v, depth - 1, count, result)
-			else
-				count = count + 1
-				result[count] = v
-			end
+		if type(v) == "table" and depth ~= 0 then
+			count = array_flat_helper(v, depth - 1, count, result)
+		else
+			count = count + 1
+			result[count] = v
 		end
 	end
 
