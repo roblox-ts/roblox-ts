@@ -573,7 +573,7 @@ function TS.array_reduceRight(list, callback, ...)
 	-- support `nil` initialValues
 	if select("#", ...) == 0 then
 		if first == 0 then
-			error("Reduce of empty array with no initial value at Array.array_reduceRight", 2)
+			error("Reduce of empty array with no initial value at Array.reduceRight", 2)
 		end
 		repeat
 			accumulator = list[first]
