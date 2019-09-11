@@ -343,20 +343,14 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			callback(v, i - 1, list)
-		end
+		callback(list[i], i - 1, list)
 	end
 end
 
 function TS.array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			result[i] = callback(v, i - 1, list)
-		end
+		result[i] = callback(list[i], i - 1, list)
 	end
 	return result
 end
@@ -365,7 +359,7 @@ function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
 		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(v, i - 1, list) == true then
 			result[#result + 1] = v
 		end
 	end
@@ -377,16 +371,7 @@ local function sortFallback(a, b)
 end
 
 function TS.array_sort(list, callback)
-	local sorted = {}
-	local count = 0
-
-	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			count = count + 1
-			sorted[count] = v
-		end
-	end
+	local sorted = array_copy(list)
 
 	if callback then
 		table.sort(sorted, function(a, b)
@@ -504,8 +489,7 @@ end
 
 function TS.array_some(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(list[i], i - 1, list) == true then
 			return true
 		end
 	end
@@ -514,8 +498,7 @@ end
 
 function TS.array_every(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == false then
+		if callback(list[i], i - 1, list) == false then
 			return false
 		end
 	end
@@ -533,8 +516,7 @@ end
 
 function TS.array_indexOf(list, value, fromIndex)
 	for i = (fromIndex or 0) + 1, #list do
-		local v = list[i]
-		if v ~= nil and value == v then
+		if value == list[i] then
 			return i - 1
 		end
 	end
@@ -543,8 +525,7 @@ end
 
 function TS.array_lastIndexOf(list, value, fromIndex)
 	for i = (fromIndex or #list - 1) + 1, 1, -1 do
-		local v = list[i]
-		if v ~= nil and value == v then
+		if value == list[i] then
 			return i - 1
 		end
 	end
@@ -578,10 +559,7 @@ function TS.array_reduce(list, callback, ...)
 		accumulator = ...
 	end
 	for i = first, last do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i - 1, list)
-		end
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end
@@ -603,10 +581,7 @@ function TS.array_reduceRight(list, callback, ...)
 		accumulator = ...
 	end
 	for i = first, last, -1 do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i - 1, list)
-		end
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end

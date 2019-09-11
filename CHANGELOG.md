@@ -16,6 +16,8 @@
 	- They now pass the array into the reducer function
 	- They now error when attempting to reduce an empty array without an initialValue passed in
 	- `undefined` is now a valid initialValue
+- Removed limited support for array methods with holes. We don't support arrays with holes in them.
+    - We should release a library for making with arrays with holes for that niche use case, where `length` is tracked as a real value.
 
 ### **0.2.14**
 - Fixed analytics bug
