@@ -347,13 +347,15 @@ function TS.array_forEach(list, callback)
 	end
 end
 
-function TS.array_map(list, callback)
+local function array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
 		result[i] = callback(list[i], i - 1, list)
 	end
 	return result
 end
+
+TS.array_map = array_map
 
 function TS.array_filter(list, callback)
 	local result = {}
@@ -629,16 +631,7 @@ function TS.array_concat(...)
 end
 
 function TS.array_join(list, separator)
-	local result = {}
-	for i = 1, #list do
-		local item = list[i]
-		if item == nil then
-			result[i] = ""
-		else
-			result[i] = tostring(list[i])
-		end
-	end
-	return table.concat(result, separator or ",")
+	return table.concat(array_map(list, tostring), separator or ",")
 end
 
 function TS.array_find(list, callback)
