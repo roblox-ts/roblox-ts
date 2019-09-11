@@ -550,17 +550,26 @@ function TS.array_reverse(list)
 	return result
 end
 
-function TS.array_reduce(list, callback, initialValue)
-	local start = 1
-	if initialValue == nil then
-		initialValue = list[start]
-		start = 2
+function TS.array_reduce(list, callback, ...)
+	local first = 1
+	local last = #list
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		repeat
+			if first > last then
+				error("Reduce of empty array with no initial value at Array.reduce", 2)
+			end
+			accumulator = list[first]
+			first = first + 1
+		until accumulator ~= nil
+	else
+		accumulator = ...
 	end
-	local accumulator = initialValue
-	for i = start, #list do
+	for i = first, last do
 		local v = list[i]
 		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+			accumulator = callback(accumulator, v, i - 1, list)
 		end
 	end
 	return accumulator
@@ -640,7 +649,7 @@ end
 function TS.array_find(list, callback)
 	for i = 1, #list do
 		local v = list[i]
-		if callback(v, i - 1, list) == true then
+		if v ~= nil and callback(v, i - 1, list) == true then
 			return v
 		end
 	end
@@ -648,7 +657,8 @@ end
 
 function TS.array_findIndex(list, callback)
 	for i = 0, #list - 1 do
-		if callback(list[i + 1], i, list) == true then
+		local v = list[i + 1]
+		if v ~= nil and callback(v, i, list) == true then
 			return i
 		end
 	end
