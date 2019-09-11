@@ -556,10 +556,10 @@ function TS.array_reduce(list, callback, ...)
 	local accumulator
 	-- support `nil` initialValues
 	if select("#", ...) == 0 then
+		if last == 0 then
+			error("Reduce of empty array with no initial value at Array.reduce", 2)
+		end
 		repeat
-			if first > last then
-				error("Reduce of empty array with no initial value at Array.reduce", 2)
-			end
 			accumulator = list[first]
 			first = first + 1
 		until accumulator ~= nil
@@ -575,17 +575,26 @@ function TS.array_reduce(list, callback, ...)
 	return accumulator
 end
 
-function TS.array_reduceRight(list, callback, initialValue)
-	local start = #list
-	if initialValue == nil then
-		initialValue = list[start]
-		start = start - 1
+function TS.array_reduceRight(list, callback, ...)
+	local first = #list
+	local last = 1
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		if first == 0 then
+			error("Reduce of empty array with no initial value at Array.array_reduceRight", 2)
+		end
+		repeat
+			accumulator = list[first]
+			first = first - 1
+		until accumulator ~= nil
+	else
+		accumulator = ...
 	end
-	local accumulator = initialValue
-	for i = start, 1, -1 do
+	for i = first, last, -1 do
 		local v = list[i]
 		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+			accumulator = callback(accumulator, v, i - 1, list)
 		end
 	end
 	return accumulator
