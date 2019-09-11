@@ -11,6 +11,11 @@
 - Fixed importing system for when your project requires a package version other than the globally installed one.
 - Added macro variable `PKG_VERSION` which gets replaced with the "version" string in your package.json file on compile
 - Replaced our `getfenv(0).script` calls with passing in `script` as the first parameter in `TS.import` and `TS.getModule`. This means packages will have to be republished, but anyone can easily fix a broken package by inserting `script` as the first parameter themselves.
+- Fixed `Array.reduce` and `Array.reduceRight` functions
+    - They now pass in the right index into the reducer function (arrays start at 0, not 1)
+	- They now pass the array into the reducer function
+	- They now error when attempting to reduce an empty array without an initialValue passed in
+	- `undefined` is now a valid initialValue
 
 ### **0.2.14**
 - Fixed analytics bug

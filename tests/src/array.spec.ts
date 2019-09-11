@@ -304,6 +304,60 @@ export = () => {
 		expect(a[5]).to.equal(1);
 	});
 
+	it("should support reducing empty arrays only with a initialValue parameter", () => {
+		expect(() => new Array<string>().reduce((previous, current, index, arr) => previous + current)).to.throw();
+		expect(
+			new Array<string>().reduce((previous, current, index, arr) => {
+				throw "This should never run! [1]";
+			}, "a"),
+		).to.equal("a");
+
+		expect(() => new Array<string>().reduceRight((previous, current, index, arr) => previous + current)).to.throw();
+		expect(
+			new Array<string>().reduceRight((previous, current, index, arr) => {
+				throw "This should never run! [2]";
+			}, "a"),
+		).to.equal("a");
+	});
+
+	it("should support reducing arrays with an undefined initialValue", () => {
+		expect(
+			[..."😂😄😃😊😉😍"].reduce(
+				(previous: undefined | number, current, index, arr) => index + (previous || index),
+				undefined,
+			),
+		).to.equal(15);
+		expect(
+			[..."😂😄😃😊😉😍"].reduceRight(
+				(previous: undefined | number, current, index, arr) => index + (previous || index),
+				undefined,
+			),
+		).to.equal(15);
+		expect(
+			[].reduce(() => {
+				throw "Should not call the reducer function on an empty array! [1]";
+			}, undefined),
+		).to.equal(undefined);
+		expect(
+			[].reduceRight(() => {
+				throw "Should not call the reducer function on an empty array! [2]";
+			}, undefined),
+		).to.equal(undefined);
+	});
+
+	it("should support reducing single-element arrays without calling a reducer when no initialValue is passed in", () => {
+		expect(
+			[4].reduce(() => {
+				throw "Should not call the reducer function on a single-element array with no initialValue! [1]";
+			}),
+		).to.equal(4);
+		expect(
+			[5].reduceRight(() => {
+				throw "Should not call the reducer function on a single-element array with no initialValue! [2]";
+			}),
+		).to.equal(5);
+	});
+
 	it("should support find", () => {
 		const a = [1, 2, 3, 4, 5];
 
