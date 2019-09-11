@@ -147,16 +147,6 @@ export = () => {
 		// ripped from https://www.lua.org/cgi-bin/demo?sieve
 		// the sieve of Eratosthenes
 
-		function* gen(n: number) {
-			for (let i = 2; i <= n; i++) yield i;
-		}
-
-		function* filter(p: number, g: Iterable<number>) {
-			for (const n of g) {
-				if (n % p !== 0) yield n;
-			}
-		}
-
 		const answers = [
 			2,
 			3,
@@ -254,6 +244,16 @@ export = () => {
 			491,
 			499,
 		];
+
+		function* gen(n: number) {
+			for (let i = 2; i <= n; i++) yield i;
+		}
+
+		function* filter(p: number, g: Iterable<number>) {
+			for (const n of g) {
+				if (n % p !== 0) yield n;
+			}
+		}
 
 		let x = gen(500);
 		let i = 0;
