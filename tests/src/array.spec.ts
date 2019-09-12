@@ -484,7 +484,7 @@ export = () => {
 		expect(z[5]).to.equal(6);
 		// [1, 2, 3, 4, 5, 6]
 
-		const arr4 = [1, 2, , 4, 5];
+		const arr4 = [1, 2, 4, 5];
 		const a = arr4.flat();
 		// [1, 2, 4, 5]
 		expect(a[0]).to.equal(1);
