@@ -1,15 +1,16 @@
 ### **0.3.0**
 - Truthiness Rework: Truthiness is now evaluated like in TypeScript/JavaScript. `0`, `""`, and `NaN` are now falsy.
 	- Added compiler option `--logTruthyChanges`, which displays all code affected by the truthiness change.
-- Fixed `&&`/`||` expressions which now respect the control flow of expressions which require multiple statements in Lua
-- Fixed behavior for when libraries require a different version of a package other than the one globally installed in a project
-- Fixed #586 - `new ReadonlySet()` and `new ReadonlyMap()` now work
-- Fixed #604 - `rbxtsc --init package` now fills out package.json better
+- Fixed `&&`/`||` expressions which now respect the control flow of expressions which require multiple statements in Lua.
+- Fixed behavior for when libraries require a different version of a package other than the one globally installed in a project.
+- Fixed #586 - `new ReadonlySet()` and `new ReadonlyMap()` now work.
+- Fixed #604 - `rbxtsc --init package` now fills out package.json better.
 - Fix issues relating to method vs callback logic, specifically, making `this` work better as a first parameter. This should improve object composability. See https://git.io/fjxRS
-- Converted almost all of our bitwise operators to bit32
+- Converted almost all of our bitwise operators to bit32.
 - Fixed our system of checking whether something is a type vs a value.
 - Fixed importing system for when your project requires a package version other than the globally installed one.
-- Added macro variable `PKG_VERSION` which gets replaced with the "version" string in your package.json file on compile
+- Added macro variable `PKG_VERSION` which gets replaced with the "version" string in your package.json file on compile.
+- Added support for TS 3.6 Generators, and also added support for directly and indirectly indexing Symbol.iterator from iterable functions and methods. See https://git.io/Jem1l
 - Replaced our `getfenv(0).script` calls with passing in `script` as the first parameter in `TS.import` and `TS.getModule`. This means packages will have to be republished, but anyone can easily fix a broken package by inserting `script` as the first parameter themselves.
 
 ### **0.2.14**
