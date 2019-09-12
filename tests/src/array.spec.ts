@@ -326,13 +326,13 @@ export = () => {
 				(previous: undefined | number, current, index, arr) => index + (previous || index),
 				undefined,
 			),
-		).to.equal(15);
+		).to.equal(16);
 		expect(
 			[..."😂😄😃😊😉😍"].reduceRight(
 				(previous: undefined | number, current, index, arr) => index + (previous || index),
 				undefined,
 			),
-		).to.equal(15);
+		).to.equal(20);
 		expect(
 			[].reduce(() => {
 				throw "Should not call the reducer function on an empty array! [1]";
