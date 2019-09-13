@@ -741,15 +741,24 @@ function generateRoactElement(
 		isFragment = true;
 		functionName = "Roact.createFragment";
 	} else if (jsxName.match(/^[a-z]+$/)) {
-		const rbxName = INTRINSIC_MAPPINGS[jsxName];
-		if (rbxName !== undefined) {
-			elementArguments.push(`"${rbxName}"`);
+		const contextualType = nameNode.getContextualType();
+
+		const intrinsicLikeTypes = contextualType && contextualType.getText().match(/RbxJsxIntrinsicProps<([A-z]+)>/);
+		if (intrinsicLikeTypes) {
+			const intrinsicInstanceId = intrinsicLikeTypes[1];
+			elementArguments.push(`"${intrinsicInstanceId}"`);
 		} else {
-			throw new CompilerError(
-				`"${bold(jsxName)}" is not a valid primitive type.\n` + suggest("Your roblox-ts may be out of date."),
-				nameNode,
-				CompilerErrorType.RoactInvalidPrimitive,
-			);
+			const rbxName = INTRINSIC_MAPPINGS[jsxName];
+			if (rbxName !== undefined) {
+				elementArguments.push(`"${rbxName}"`);
+			} else {
+				throw new CompilerError(
+					`"${bold(jsxName)}" is not a valid primitive type.\n` +
+						suggest("Your roblox-ts may be out of date."),
+					nameNode,
+					CompilerErrorType.RoactInvalidPrimitive,
+				);
+			}
 		}
 	} else {
 		elementArguments.push(jsxName);
@@ -840,6 +849,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 
 	const open = node.getOpeningElement() as ts.JsxOpeningElement;
 	const tagNameNode = open.getTagNameNode();
+
 	const children = node.getJsxChildren();
 
 	const element = generateRoactElement(state, tagNameNode, open.getAttributes(), children);
