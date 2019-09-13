@@ -700,7 +700,8 @@ function generateRoactElement(
 	} else if (jsxName.match(/^[a-z]+$/)) {
 		const contextualType = nameNode.getContextualType();
 
-		const intrinsicLikeTypes = contextualType && contextualType.getText().match(/RbxJsxIntrinsicProps<([A-z]+)>/);
+		const intrinsicLikeTypes =
+			contextualType && contextualType.getText().match(/RbxJsxIntrinsicProps<([A-z0-9]+)>/);
 		if (intrinsicLikeTypes) {
 			const intrinsicInstanceId = intrinsicLikeTypes[1];
 			elementArguments.push(`"${intrinsicInstanceId}"`);
