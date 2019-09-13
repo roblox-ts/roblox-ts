@@ -697,7 +697,7 @@ function generateRoactElement(
 	if (jsxName === ROACT_FRAGMENT_TYPE) {
 		isFragment = true;
 		functionName = "Roact.createFragment";
-	} else if (jsxName.match(/^[a-z]+$/)) {
+	} else if (jsxName.match(/^[a-z][a-z0-9]+$/)) {
 		const contextualType = nameNode.getContextualType();
 
 		const intrinsicLikeTypes =
