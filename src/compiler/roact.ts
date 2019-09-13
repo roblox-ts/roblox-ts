@@ -25,49 +25,6 @@ const RESERVED_METHOD_NAMES = new Set([
 ]);
 
 /**
- * A list of lowercase names that map to Roblox elements for JSX
- */
-const INTRINSIC_MAPPINGS: { [name: string]: string } = {
-	// Frames
-	frame: "Frame",
-	scrollingframe: "ScrollingFrame",
-	viewportframe: "ViewportFrame",
-
-	// LayerCollectors
-	billboardgui: "BillboardGui",
-	screengui: "ScreenGui",
-	surfacegui: "SurfaceGui",
-
-	// Images
-	imagebutton: "ImageButton",
-	imagelabel: "ImageLabel",
-
-	// Text
-	textbox: "TextBox",
-	textbutton: "TextButton",
-	textlabel: "TextLabel",
-
-	// Layouts
-	uigridlayout: "UIGridLayout",
-	uiinlinelayout: "UIInlineLayout",
-	uilistlayout: "UIListLayout",
-	uipagelayout: "UIPageLayout",
-	uitablelayout: "UITableLayout",
-
-	// Scaling & Padding
-	uipadding: "UIPadding",
-	uiscale: "UIScale",
-
-	// Constraints
-	uiaspectratioconstraint: "UIAspectRatioConstraint",
-	uisizeconstraint: "UISizeConstraint",
-	uitextsizeconstraint: "UITextSizeConstraint",
-
-	// Other
-	camera: "Camera",
-};
-
-/**
  * Returns whether or not the type is of `Roact.Element` or `undefined`
  * @param type The type
  * @param allowsUndefined Allow undefined
@@ -748,17 +705,13 @@ function generateRoactElement(
 			const intrinsicInstanceId = intrinsicLikeTypes[1];
 			elementArguments.push(`"${intrinsicInstanceId}"`);
 		} else {
-			const rbxName = INTRINSIC_MAPPINGS[jsxName];
-			if (rbxName !== undefined) {
-				elementArguments.push(`"${rbxName}"`);
-			} else {
-				throw new CompilerError(
-					`"${bold(jsxName)}" is not a valid primitive type.\n` +
-						suggest("Your roblox-ts may be out of date."),
-					nameNode,
-					CompilerErrorType.RoactInvalidPrimitive,
-				);
-			}
+			throw new CompilerError(
+				`"${bold(jsxName)}" is an intrinsic-like identifier,` +
+					`but there is no matching RbxJsxIntrinsicProps type for it.\n` +
+					suggest("If you get this message, file an issue."),
+				nameNode,
+				CompilerErrorType.RoactInvalidPrimitive,
+			);
 		}
 	} else {
 		elementArguments.push(jsxName);
