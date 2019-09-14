@@ -1,6 +1,7 @@
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
 local ReplicatedFirst
 if not __LEMUR__ then
@@ -60,7 +61,7 @@ function TS.getModule(object, moduleName)
 	end
 
 	-- ensure modules have fully replicated
-	if not __LEMUR__ and not game:IsLoaded() then
+	if not __LEMUR__ and RunService:IsClient() and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
