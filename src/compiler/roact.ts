@@ -51,11 +51,7 @@ function isValidRoactConditionalExpression(node: ts.ConditionalExpression) {
 function isValidRoactBinaryExpression(node: ts.BinaryExpression) {
 	const rawRhs = node.getRight();
 
-	if (isRoactElementType(rawRhs.getType())) {
-		return true;
-	} else {
-		return false;
-	}
+	return isRoactElementType(rawRhs.getType());
 }
 
 /**
@@ -118,16 +114,12 @@ function isRoactElementArrayType(type: ts.Type) {
  * @param type
  */
 function isRoactChildElementType(type: ts.Type) {
-	if (
+	return (
 		isRoactElementMapType(type) ||
 		isRoactElementArrayType(type) ||
 		isRoactElementType(type) ||
 		isRoactElementUnionType(type)
-	) {
-		return true;
-	} else {
-		return false;
-	}
+	);
 }
 
 function getFullTypeList(type: ts.Type): Array<string> {
