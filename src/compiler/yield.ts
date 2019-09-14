@@ -25,9 +25,12 @@ export function compileYieldExpression(state: CompilerState, node: ts.YieldExpre
 		state.popIdStack();
 		return result;
 	} else {
-		let result = `coroutine.yield({\n`;
+		state.enterPrecedingStatementContext();
+		const value = exp ? compileExpression(state, exp) : "nil";
+		let result = state.exitPrecedingStatementContextAndJoin();
+		result += state.indent + `coroutine.yield({\n`;
 		state.pushIndent();
-		result += state.indent + `value = ${exp ? compileExpression(state, exp) : "nil"};\n`;
+		result += state.indent + `value = ${value};\n`;
 		result += state.indent + `done = false;\n`;
 		state.popIndent();
 		result += state.indent + `})`;

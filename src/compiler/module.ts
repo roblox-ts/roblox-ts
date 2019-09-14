@@ -73,7 +73,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
-	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
 }
 
 function getRelativeImportPathRojo(
@@ -105,7 +105,7 @@ function getRelativeImportPathRojo(
 		start += ".Parent";
 	}
 
-	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
@@ -148,8 +148,8 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 
 	parts = parts.filter(part => part !== ".").map(part => safeLuaIndex(" ", part));
 	state.usesTSLibrary = true;
-	const params = `TS.getModule("${moduleName}")` + parts.join("");
-	return `TS.import(${params})`;
+	const params = `TS.getModule(script, "${moduleName}")` + parts.join("");
+	return `TS.import(script, ${params})`;
 }
 
 function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
@@ -172,7 +172,7 @@ function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFi
 		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
 	}
 
-	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(script, ${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
 }
 
 function getImportPath(
@@ -240,7 +240,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const moduleFile = node.getModuleSpecifierSourceFile();
 	if (!moduleFile) {
 		const specifier = node.getModuleSpecifier();
-		const text = specifier ? specifier.getText : "unknown";
+		const text = specifier ? specifier.getText() : "unknown";
 		throw new CompilerError(
 			`Could not find file for '${text}'. Did you forget to "npm install"?`,
 			node,
@@ -371,7 +371,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (!moduleFile) {
 			const specifier = node.getModuleSpecifier();
-			const text = specifier ? specifier.getText : "unknown";
+			const text = specifier ? specifier.getText() : "unknown";
 			throw new CompilerError(
 				`Could not find file for '${text}'. Did you forget to "npm install"?`,
 				node,

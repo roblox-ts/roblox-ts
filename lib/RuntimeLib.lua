@@ -1,10 +1,12 @@
 local Promise = require(script.Parent.Promise)
 
 local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
 
--- constants
-local table_sort = table.sort
-local table_concat = table.concat
+local ReplicatedFirst
+if not __LEMUR__ then
+	ReplicatedFirst = game:GetService("ReplicatedFirst")
+end
 
 local TS = {}
 
@@ -53,38 +55,40 @@ TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 -- module resolution
-local globalModules = script.Parent:FindFirstChild("node_modules")
+function TS.getModule(object, moduleName)
+	if not __LEMUR__ and object:IsDescendantOf(ReplicatedFirst) then
+		warn("node_modules should not be used from ReplicatedFirst")
+	end
 
-function TS.getModule(moduleName)
-	local object = getfenv(2).script
+	-- ensure modules have fully replicated
+	if not __LEMUR__ and RunService:IsClient() and not game:IsLoaded() then
+		game.Loaded:Wait()
+	end
+
+	local globalModules = script.Parent:FindFirstChild("node_modules")
 	if not globalModules then
 		error("Could not find any modules!", 2)
 	end
-	if object:IsDescendantOf(globalModules) then
-		repeat
-			local modules = object:FindFirstChild("node_modules")
-			if modules then
-				local module = modules:FindFirstChild(moduleName)
-				if module then
-					return module
-				end
+
+	repeat
+		local modules = object:FindFirstChild("node_modules")
+		if modules then
+			local module = modules:FindFirstChild(moduleName)
+			if module then
+				return module
 			end
-			object = object.Parent
-		until object == nil
-	else
-		local module = globalModules:FindFirstChild(moduleName)
-		if module then
-			return module
 		end
-	end
-	error("Could not find module: " .. moduleName, 2)
+		object = object.Parent
+	until object == nil or object == globalModules
+
+	return globalModules:FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
 local loadedLibraries = {}
 local currentlyLoading = {}
 
-function TS.import(module, ...)
+function TS.import(caller, module, ...)
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild((select(i, ...)))
 	end
@@ -97,8 +101,6 @@ function TS.import(module, ...)
 		return require(module)
 	end
 
-	-- If called from command bar, use table as a reference (this is never concatenated)
-	local caller = getfenv(0).script or { Name = "Command bar" }
 	currentlyLoading[caller] = module
 
 	-- Check to see if a case like this occurs:
@@ -346,29 +348,25 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			callback(v, i - 1, list)
-		end
+		callback(list[i], i - 1, list)
 	end
 end
 
-function TS.array_map(list, callback)
+local function array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			result[i] = callback(v, i - 1, list)
-		end
+		result[i] = callback(list[i], i - 1, list)
 	end
 	return result
 end
+
+TS.array_map = array_map
 
 function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
 		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(v, i - 1, list) == true then
 			result[#result + 1] = v
 		end
 	end
@@ -383,11 +381,11 @@ function TS.array_sort(list, callback)
 	local sorted = array_copy(list)
 
 	if callback then
-		table_sort(sorted, function(a, b)
+		table.sort(sorted, function(a, b)
 			return 0 < callback(a, b)
 		end)
 	else
-		table_sort(sorted, sortFallback)
+		table.sort(sorted, sortFallback)
 	end
 
 	return sorted
@@ -498,8 +496,7 @@ end
 
 function TS.array_some(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(list[i], i - 1, list) == true then
 			return true
 		end
 	end
@@ -508,8 +505,7 @@ end
 
 function TS.array_every(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == false then
+		if callback(list[i], i - 1, list) == false then
 			return false
 		end
 	end
@@ -553,34 +549,42 @@ function TS.array_reverse(list)
 	return result
 end
 
-function TS.array_reduce(list, callback, initialValue)
-	local start = 1
-	if initialValue == nil then
-		initialValue = list[start]
-		start = 2
-	end
-	local accumulator = initialValue
-	for i = start, #list do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+function TS.array_reduce(list, callback, ...)
+	local first = 1
+	local last = #list
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		if last == 0 then
+			error("Reduce of empty array with no initial value at Array.reduce", 2)
 		end
+		accumulator = list[first]
+		first = first + 1
+	else
+		accumulator = ...
+	end
+	for i = first, last do
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end
 
-function TS.array_reduceRight(list, callback, initialValue)
-	local start = #list
-	if initialValue == nil then
-		initialValue = list[start]
-		start = start - 1
-	end
-	local accumulator = initialValue
-	for i = start, 1, -1 do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+function TS.array_reduceRight(list, callback, ...)
+	local first = #list
+	local last = 1
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		if first == 0 then
+			error("Reduce of empty array with no initial value at Array.reduceRight", 2)
 		end
+		accumulator = list[first]
+		first = first - 1
+	else
+		accumulator = ...
+	end
+	for i = first, last, -1 do
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end
@@ -628,16 +632,7 @@ function TS.array_concat(...)
 end
 
 function TS.array_join(list, separator)
-	local result = {}
-	for i = 1, #list do
-		local item = list[i]
-		if item == nil then
-			result[i] = ""
-		else
-			result[i] = tostring(list[i])
-		end
-	end
-	return table_concat(result, separator or ",")
+	return table.concat(array_map(list, tostring), separator or ",")
 end
 
 function TS.array_find(list, callback)
@@ -662,18 +657,11 @@ local function array_flat_helper(list, depth, count, result)
 	for i = 1, #list do
 		local v = list[i]
 
-		if v ~= nil then
-			if type(v) == "table" then
-				if depth ~= 0 then
-					count = array_flat_helper(v, depth - 1, count, result)
-				else
-					count = count + 1
-					result[count] = v
-				end
-			else
-				count = count + 1
-				result[count] = v
-			end
+		if type(v) == "table" and depth ~= 0 then
+			count = array_flat_helper(v, depth - 1, count, result)
+		else
+			count = count + 1
+			result[count] = v
 		end
 	end
 

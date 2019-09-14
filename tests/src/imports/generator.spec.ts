@@ -142,4 +142,165 @@ export = () => {
 		expect(y).to.equal(b);
 		expect(z).to.equal(c);
 	});
+
+	it("should support using Symbol.iterator indirectly", () => {
+		// ripped from https://www.lua.org/cgi-bin/demo?sieve
+		// the sieve of Eratosthenes
+
+		const answers = [
+			2,
+			3,
+			5,
+			7,
+			11,
+			13,
+			17,
+			19,
+			23,
+			29,
+			31,
+			37,
+			41,
+			43,
+			47,
+			53,
+			59,
+			61,
+			67,
+			71,
+			73,
+			79,
+			83,
+			89,
+			97,
+			101,
+			103,
+			107,
+			109,
+			113,
+			127,
+			131,
+			137,
+			139,
+			149,
+			151,
+			157,
+			163,
+			167,
+			173,
+			179,
+			181,
+			191,
+			193,
+			197,
+			199,
+			211,
+			223,
+			227,
+			229,
+			233,
+			239,
+			241,
+			251,
+			257,
+			263,
+			269,
+			271,
+			277,
+			281,
+			283,
+			293,
+			307,
+			311,
+			313,
+			317,
+			331,
+			337,
+			347,
+			349,
+			353,
+			359,
+			367,
+			373,
+			379,
+			383,
+			389,
+			397,
+			401,
+			409,
+			419,
+			421,
+			431,
+			433,
+			439,
+			443,
+			449,
+			457,
+			461,
+			463,
+			467,
+			479,
+			487,
+			491,
+			499,
+		];
+
+		function* gen(n: number) {
+			for (let i = 2; i <= n; i++) yield i;
+		}
+
+		function* filter(p: number, g: Iterable<number>) {
+			for (const n of g) {
+				if (n % p !== 0) yield n;
+			}
+		}
+
+		let x = gen(500);
+		let i = 0;
+		while (true) {
+			const n = x.next();
+			if (n.done) break;
+			else {
+				const { value } = n;
+				expect(value).to.equal(answers[i++]);
+				x = filter(value, x);
+			}
+		}
+
+		expect(i).to.equal(answers.size());
+	});
+
+	it("should support using Symbol.iterator directly", () => {
+		function* range(start: number, last: number, iter: number = 1) {
+			for (let i = start; i <= last; i += iter) yield i;
+		}
+
+		let n = 0;
+
+		for (const i of range(0, 5)
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()
+			[Symbol.iterator]()) {
+			expect(i).to.equal(n++);
+		}
+
+		const x = range(6, 10, 2);
+
+		expect(x[Symbol.iterator]().next().value).to.equal(n);
+		expect(x[Symbol.iterator]().next().value).to.equal((n += 2));
+		expect(x[Symbol.iterator]().next().value).to.equal((n += 2));
+		expect(x[Symbol.iterator]().next().value).to.equal(undefined);
+	});
 };
