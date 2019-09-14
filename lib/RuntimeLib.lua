@@ -347,29 +347,25 @@ end
 
 function TS.array_forEach(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			callback(v, i - 1, list)
-		end
+		callback(list[i], i - 1, list)
 	end
 end
 
-function TS.array_map(list, callback)
+local function array_map(list, callback)
 	local result = {}
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil then
-			result[i] = callback(v, i - 1, list)
-		end
+		result[i] = callback(list[i], i - 1, list)
 	end
 	return result
 end
+
+TS.array_map = array_map
 
 function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
 		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(v, i - 1, list) == true then
 			result[#result + 1] = v
 		end
 	end
@@ -499,8 +495,7 @@ end
 
 function TS.array_some(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == true then
+		if callback(list[i], i - 1, list) == true then
 			return true
 		end
 	end
@@ -509,8 +504,7 @@ end
 
 function TS.array_every(list, callback)
 	for i = 1, #list do
-		local v = list[i]
-		if v ~= nil and callback(v, i - 1, list) == false then
+		if callback(list[i], i - 1, list) == false then
 			return false
 		end
 	end
@@ -554,34 +548,42 @@ function TS.array_reverse(list)
 	return result
 end
 
-function TS.array_reduce(list, callback, initialValue)
-	local start = 1
-	if initialValue == nil then
-		initialValue = list[start]
-		start = 2
-	end
-	local accumulator = initialValue
-	for i = start, #list do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+function TS.array_reduce(list, callback, ...)
+	local first = 1
+	local last = #list
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		if last == 0 then
+			error("Reduce of empty array with no initial value at Array.reduce", 2)
 		end
+		accumulator = list[first]
+		first = first + 1
+	else
+		accumulator = ...
+	end
+	for i = first, last do
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end
 
-function TS.array_reduceRight(list, callback, initialValue)
-	local start = #list
-	if initialValue == nil then
-		initialValue = list[start]
-		start = start - 1
-	end
-	local accumulator = initialValue
-	for i = start, 1, -1 do
-		local v = list[i]
-		if v ~= nil then
-			accumulator = callback(accumulator, v, i)
+function TS.array_reduceRight(list, callback, ...)
+	local first = #list
+	local last = 1
+	local accumulator
+	-- support `nil` initialValues
+	if select("#", ...) == 0 then
+		if first == 0 then
+			error("Reduce of empty array with no initial value at Array.reduceRight", 2)
 		end
+		accumulator = list[first]
+		first = first - 1
+	else
+		accumulator = ...
+	end
+	for i = first, last, -1 do
+		accumulator = callback(accumulator, list[i], i - 1, list)
 	end
 	return accumulator
 end
@@ -629,16 +631,7 @@ function TS.array_concat(...)
 end
 
 function TS.array_join(list, separator)
-	local result = {}
-	for i = 1, #list do
-		local item = list[i]
-		if item == nil then
-			result[i] = ""
-		else
-			result[i] = tostring(list[i])
-		end
-	end
-	return table.concat(result, separator or ",")
+	return table.concat(array_map(list, tostring), separator or ",")
 end
 
 function TS.array_find(list, callback)
@@ -663,18 +656,11 @@ local function array_flat_helper(list, depth, count, result)
 	for i = 1, #list do
 		local v = list[i]
 
-		if v ~= nil then
-			if type(v) == "table" then
-				if depth ~= 0 then
-					count = array_flat_helper(v, depth - 1, count, result)
-				else
-					count = count + 1
-					result[count] = v
-				end
-			else
-				count = count + 1
-				result[count] = v
-			end
+		if type(v) == "table" and depth ~= 0 then
+			count = array_flat_helper(v, depth - 1, count, result)
+		else
+			count = count + 1
+			result[count] = v
 		end
 	end
 
