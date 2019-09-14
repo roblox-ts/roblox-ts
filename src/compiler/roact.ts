@@ -60,6 +60,11 @@ function isValidRoactBinaryExpression(node: ts.BinaryExpression) {
  */
 function isRoactElementUnionType(type: ts.Type) {
 	const unionTypes = type.getUnionTypes();
+
+	if (unionTypes.length === 0) {
+		return false;
+	}
+
 	for (const unionType of unionTypes) {
 		if (!isRoactElementType(unionType) && !isRoactElementArrayType(unionType)) {
 			return false;
@@ -83,7 +88,7 @@ function isRoactElementMapType(type: ts.Type) {
 		return (
 			typeArgs.length === 2 &&
 			isValidRoactMapKey(typeArgs[0]) &&
-			(isRoactElementUnionType(typeArgs[1]) && isRoactElementType(typeArgs[1]))
+			(isRoactElementUnionType(typeArgs[1]) || isRoactElementType(typeArgs[1]))
 		);
 	} else {
 		return false;
