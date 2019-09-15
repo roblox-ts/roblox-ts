@@ -328,6 +328,7 @@ function compileRoactJsxExpression(state: CompilerState, expression: ts.Expressi
 			}
 		}
 
+		/* istanbul ignore next */
 		return "";
 	} else if (
 		ts.TypeGuards.isPropertyAccessExpression(expression) ||
@@ -703,6 +704,8 @@ function generateRoactElement(
 			const intrinsicInstanceId = intrinsicLikeTypes[1];
 			elementArguments.push(`"${intrinsicInstanceId}"`);
 		} else {
+			// This should never get reached, unless the user declares an intrinsic incorrectly.
+			/* istanbul ignore next */
 			throw new CompilerError(
 				`"${bold(jsxName)}" is an intrinsic-like identifier,` +
 					`but there is no matching RbxJsxIntrinsicProps type for it.\n` +
@@ -790,6 +793,7 @@ export type RoactElementType =
 
 export function compileJsxElement(state: CompilerState, node: ts.JsxElement): string {
 	if (!state.hasRoactImport) {
+		/* istanbul ignore next */
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
 				suggest('To fix this, put `import Roact from "@rbxts/roact"` at the top of this file.'),
@@ -810,6 +814,7 @@ export function compileJsxElement(state: CompilerState, node: ts.JsxElement): st
 
 export function compileJsxSelfClosingElement(state: CompilerState, node: ts.JsxSelfClosingElement): string {
 	if (!state.hasRoactImport) {
+		/* istanbul ignore next */
 		throw new CompilerError(
 			"Cannot use JSX without importing Roact first!\n" +
 				suggest('To fix this, put `import Roact from "@rbxts/roact"` at the top of this file.'),
