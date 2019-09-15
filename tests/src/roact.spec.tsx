@@ -327,8 +327,8 @@ export = () => {
 
 			expect(ElementKind.of(testProps[Roact.Children])).to.equal(ElementKind.Fragment);
 			expect(ElementKind.of(test2Props[Roact.Children])).to.equal(ElementKind.Fragment);
-			expect((testProps[Roact.Children] as unknown as FragmentLike).elements.IfFalse).to.be.ok();
-			expect((test2Props[Roact.Children] as unknown as FragmentLike).elements.IfTrue).to.be.ok();
+			expect(((testProps[Roact.Children] as unknown) as FragmentLike).elements.IfFalse).to.be.ok();
+			expect(((test2Props[Roact.Children] as unknown) as FragmentLike).elements.IfTrue).to.be.ok();
 		});
 	});
 
@@ -403,5 +403,15 @@ export = () => {
 		const props = f.props as ExplicitProps<Frame>;
 		expect(props[Roact.Children].TrueFrame).to.be.ok();
 		expect(props[Roact.Children][1]).to.be.ok();
+	});
+
+	it("should support roact element arrays as an expression", () => {
+		const test = [<frame Key="Test1" />, <frame Key="Test2" />];
+
+		const test2 = <frame>{test}</frame>;
+
+		const test2Props = test2.props as ExplicitProps<Frame>;
+		expect(test2Props[Roact.Children].Test1).to.be.ok();
+		expect(test2Props[Roact.Children].Test2).to.be.ok();
 	});
 };
