@@ -73,7 +73,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
-	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 function getRelativeImportPathRojo(
@@ -105,7 +105,7 @@ function getRelativeImportPathRojo(
 		start += ".Parent";
 	}
 
-	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
