@@ -22,7 +22,7 @@ export = () => {
 			const TextColor = Color3.fromRGB(220, 220, 220);
 
 			const element = <textlabel TextColor3={TextColor} {...props} />;
-			const elementProps = element.props as Roact.Properties<TextLabel>;
+			const elementProps = element.props as Roact.Template<TextLabel>;
 
 			expect(elementProps.BackgroundColor3).to.equal(props.BackgroundColor3);
 			expect(elementProps.TextColor3).to.equal(TextColor);
@@ -38,7 +38,7 @@ export = () => {
 			};
 
 			const element = <textlabel {...props} {...props2} />;
-			const elementProps = element.props as Roact.Properties<TextLabel>;
+			const elementProps = element.props as Roact.Template<TextLabel>;
 
 			expect(elementProps.TextColor3).to.equal(props2.TextColor3);
 			expect(elementProps.BackgroundColor3).to.equal(props.BackgroundColor3);
@@ -136,9 +136,9 @@ export = () => {
 			];
 			for (const button of buttons) {
 				Roact.mount(button.button);
-				expect(buttonRef.current).to.be.ok();
-				expect(buttonRef.current!.TextSize).to.equal(button.template.TextSize);
-				expect(buttonRef.current!.Size).to.equal(button.template.Size);
+				expect(buttonRef.getValue()).to.be.ok();
+				expect(buttonRef.getValue()!.TextSize).to.equal(button.template.TextSize);
+				expect(buttonRef.getValue()!.Size).to.equal(button.template.Size);
 			}
 		});
 	});

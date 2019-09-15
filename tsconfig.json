@@ -10,7 +10,8 @@
 		"strictNullChecks": true,
 		"sourceMap": true,
 		"noUnusedLocals": true,
-		"esModuleInterop": true
+		"esModuleInterop": true,
+		"removeComments": true
 	},
 	"include": [
 		"src/**/*"
