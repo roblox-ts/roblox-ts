@@ -101,7 +101,7 @@ function isRoactElementMapType(type: ts.Type) {
  */
 function isRoactElementArrayType(type: ts.Type) {
 	if (isArrayType(type)) {
-		if (isRoactElementUnionType(type) || type.getText() === ROACT_ELEMENT_TYPE) {
+		if (isRoactElementUnionType(type) || type.getText() === `${ROACT_ELEMENT_TYPE}[]`) {
 			return true;
 		} else {
 			return false;
