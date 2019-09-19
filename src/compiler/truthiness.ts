@@ -251,8 +251,6 @@ function evaluateNestedExpressions(
 	state: CompilerState,
 	logicalState: LogicalBinaryState,
 	{ exprs, isAnd }: NestedExpressions,
-	previousCompileData?: TruthyCompileData,
-	previousIsAnd?: boolean,
 	depth = 0,
 ) {
 	const { length } = exprs;
@@ -265,17 +263,7 @@ function evaluateNestedExpressions(
 		const { compileData, exp } = item;
 
 		if (isNestedExpressions(item)) {
-			console.log(logNestedExpression(item));
-			evaluateNestedExpressions(state, logicalState, item, previousCompileData, isAnd, depth + 1);
-
-			if (i !== lastIndex) {
-				state.enterPrecedingStatementContext();
-				const checkStr = wrapNot(isAnd!, compileTruthyCheck(state, exp, id, compileData));
-				state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
-				state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
-				ifStatements++;
-				state.pushIndent();
-			}
+			evaluateNestedExpressions(state, logicalState, item, depth + 1);
 		} else {
 			/*
 				If it is a truthy check, we want to set the id to compileTruthyCheck
@@ -288,27 +276,22 @@ function evaluateNestedExpressions(
 			const expStr = compileExpression(state, exp);
 			state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
 
-			console.log("\t".repeat(depth) + exp.getText());
-
 			let prefix = "";
 			if (logicalState.isIdUnused) {
 				logicalState.isIdUnused = undefined;
 				prefix = "local ";
 			}
 			state.pushPrecedingStatements(exp, state.indent, prefix, id, " = ", expStr, ";\n");
-
-			if (i !== lastIndex) {
-				state.enterPrecedingStatementContext();
-				const checkStr = wrapNot(isAnd!, compileTruthyCheck(state, exp, id, compileData));
-				state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
-				state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
-				ifStatements++;
-				state.pushIndent();
-			}
 		}
 
-		previousCompileData = compileData;
-		previousIsAnd = isAnd;
+		if (i !== lastIndex) {
+			state.enterPrecedingStatementContext();
+			const checkStr = wrapNot(isAnd!, compileTruthyCheck(state, exp, id, compileData));
+			state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
+			state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
+			ifStatements++;
+			state.pushIndent();
+		}
 	}
 
 	console.log(logNestedExpression({ exprs, isAnd }));
