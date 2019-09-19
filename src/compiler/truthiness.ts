@@ -1,6 +1,6 @@
 import * as ts from "ts-morph";
 import { compileExpression } from ".";
-import { CompilerState } from "../CompilerState";
+import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "../utility/general";
 import { yellow } from "../utility/text";
@@ -92,6 +92,8 @@ type TruthyCompileData = ReturnType<typeof getTruthyCompileData>;
 interface NestedExpression {
 	exp: ts.Expression;
 	compileData: TruthyCompileData;
+	expStr: string;
+	context: PrecedingStatementContext;
 }
 
 /** A basic AST-ish object into which we convert LogicalBinary expressions.
@@ -159,80 +161,69 @@ export function preprocessLogicalBinary(
 	node: ts.BinaryExpression,
 	isAnd: 1 | 2,
 	stuff: NestedExpressions,
-	depth = 0,
 ) {
-	let i = 0;
-	console.log("\t".repeat(depth), node.getText());
-	// const { compileData: truthyData, exprs } = stuff;
+	const { exprs, compileData: truthyData } = stuff;
 
 	for (const side of [skipNodesDownwards(node.getLeft()), skipNodesDownwards(node.getRight())]) {
-		i++;
-		let compileData: TruthyCompileData;
+		let compileData: TruthyCompileData | undefined;
 		const isOpAndToken = getBinaryExpressionType(side);
 
 		if (isOpAndToken) {
-			console.log(
-				"\t".repeat(depth),
-				":",
-				i,
-				isOpAndToken === 2 ? "AND" : "OR",
-				isOpAndToken === isAnd ? "" : "making new stuff",
-			);
 			if (isOpAndToken === isAnd) {
-				({ compileData } = preprocessLogicalBinary(
-					state,
-					side as ts.BinaryExpression,
-					isOpAndToken,
-					stuff,
-					depth + 1,
-				));
+				preprocessLogicalBinary(state, side as ts.BinaryExpression, isOpAndToken, stuff);
 			} else {
-				const newStuff = ({ compileData } = preprocessLogicalBinary(
-					state,
-					side as ts.BinaryExpression,
-					isOpAndToken,
-					makeNestedExpressions(side, isOpAndToken === 2),
-					depth + 1,
-				));
+				const newExp = ({ compileData } = makeNestedExpressions(side, isOpAndToken === 2));
+				preprocessLogicalBinary(state, side as ts.BinaryExpression, isOpAndToken, newExp);
 
-				console.log(logNestedExpression(newStuff), "[::]");
-				stuff.exprs.push(newStuff);
+				console.log(logNestedExpression(newExp));
+				if (isNestedExpressionsCollapsable(newExp)) {
+					state.enterPrecedingStatementContext();
+					exprs.push({
+						compileData: newExp.compileData,
+						context: state.exitPrecedingStatementContext(),
+						exp: side,
+						expStr: "("+collapseNestedExpressions(newExp).join(newExp.isAnd ? " and " : " or ")+")",
+					});
+				} else {
+					console.log("______");
+					exprs.push(newExp);
+				}
 			}
 		} else {
 			compileData = getTruthyCompileData(state, side);
-			console.log("\t".repeat(depth), "|", i, side.getText());
-			stuff.exprs.push({ exp: side, compileData });
+			state.enterPrecedingStatementContext();
+			const expStr = compileExpression(state, side);
+			const context = state.exitPrecedingStatementContext();
+			exprs.push({ exp: side, compileData, expStr, context });
 		}
 
-		const { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 } = compileData;
+		if (compileData) {
+			const { checkEmptyString, checkLuaTruthy, checkNaN, checkNon0 } = compileData;
 
-		if (checkEmptyString) {
-			stuff.compileData.checkEmptyString = checkEmptyString;
-		}
+			if (checkEmptyString) {
+				truthyData.checkEmptyString = checkEmptyString;
+			}
 
-		if (checkLuaTruthy) {
-			stuff.compileData.checkLuaTruthy = checkLuaTruthy;
-		}
+			if (checkLuaTruthy) {
+				truthyData.checkLuaTruthy = checkLuaTruthy;
+			}
 
-		if (checkNaN) {
-			stuff.compileData.checkNaN = checkNaN;
-		}
+			if (checkNaN) {
+				truthyData.checkNaN = checkNaN;
+			}
 
-		if (checkNon0) {
-			stuff.compileData.checkNon0 = checkNon0;
+			if (checkNon0) {
+				truthyData.checkNon0 = checkNon0;
+			}
 		}
 	}
-
-	return stuff;
 }
 
 function makeLogicalBinaryState(state: CompilerState, id = state.getNewId()) {
 	return {
 		id,
-		ifStatements: 0,
 		isIdUnused: true as true | undefined,
 		results: new Array<string>(),
-		sets: 0,
 	};
 }
 
@@ -243,6 +234,25 @@ function wrapNot(isAnd: boolean, expStr: string) {
 	return isAnd ? expStr : `not (${expStr})`;
 }
 
+function isNestedExpressionCollapsable({ expStr, context, compileData }: NestedExpression): boolean {
+	console.log(expStr, context.length === 0, compileData.checkLuaTruthy, getTruthyReferences(compileData) === 1);
+	return context.length === 0 && compileData.checkLuaTruthy && getTruthyReferences(compileData) === 1;
+}
+
+function isNestedExpressionsCollapsable(item: NestedExpressions): boolean {
+	return item.exprs.every(expr =>
+		isNestedExpressions(expr) ? isNestedExpressionsCollapsable(expr) : isNestedExpressionCollapsable(expr),
+	);
+}
+
+function collapseNestedExpressions(item: NestedExpressions): Array<string> {
+	return item.exprs.map(exp =>
+		isNestedExpressions(exp)
+			? "(" + collapseNestedExpressions(exp).join(item.isAnd ? " and " : " or ") + ")"
+			: exp.expStr,
+	);
+}
+
 /**
  * Moment of truthy >:)
  * We use declaration context here for the bottom-most nodes. It shouldn't interfere with other systems.
@@ -250,38 +260,64 @@ function wrapNot(isAnd: boolean, expStr: string) {
 function evaluateNestedExpressions(
 	state: CompilerState,
 	logicalState: LogicalBinaryState,
-	{ exprs, isAnd }: NestedExpressions,
-	depth = 0,
+	{ exprs, isAnd, exp: node }: NestedExpressions,
 ) {
-	const { length } = exprs;
-	let ifStatements = 0;
-	const lastIndex = exprs.length - 1;
 	const { id } = logicalState;
+	const { length } = exprs;
+	const lastIndex = length - 1;
+	let ifStatements = 0;
 
 	for (let i = 0; i < length; i++) {
 		const { [i]: item } = exprs;
 		const { compileData, exp } = item;
 
 		if (isNestedExpressions(item)) {
-			evaluateNestedExpressions(state, logicalState, item, depth + 1);
+			evaluateNestedExpressions(state, logicalState, item);
 		} else {
-			/*
-				If it is a truthy check, we want to set the id to compileTruthyCheck
-				If it is not a truthy check, we want to set id to the compiledExpression, if the previous evaluates to truthy
-
-				Let's define expStr as the expression to set `id`
-			*/
-
-			state.enterPrecedingStatementContext();
-			const expStr = compileExpression(state, exp);
-			state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
+			const { expStr, context } = item;
 
 			let prefix = "";
 			if (logicalState.isIdUnused) {
 				logicalState.isIdUnused = undefined;
 				prefix = "local ";
 			}
-			state.pushPrecedingStatements(exp, state.indent, prefix, id, " = ", expStr, ";\n");
+
+			let expStrs = [expStr];
+
+			// while (i + 1 < length) {
+			// 	const { [i]: subItem } = exprs;
+			// 	if (isNestedExpressions(subItem)) {
+			// 		// console.log(
+			// 		// 	logNestedExpression(subItem),
+			// 		// 	subItem.exprs.every(a => isNestedExpressionCollapsable(a as NestedExpression)),
+			// 		// );
+			// 		// if (isNestedExpressionsCollapsable(subItem)) {
+			// 		// 	console.log("COLLAPSABLE");
+			// 		// 	expStrs = [
+			// 		// 		`(${expStrs.join(isAnd ? " and " : " or ")})`,
+			// 		// 		...collapseNestedExpressions(subItem),
+			// 		// 	];
+			// 		// } else {
+			// 		break;
+			// 		// }
+			// 	} else if (isNestedExpressionCollapsable(subItem)) {
+			// 		expStrs.push(subItem.expStr);
+			// 		++i;
+			// 	} else {
+			// 		break;
+			// 	}
+			// }
+
+			state.pushPrecedingStatements(
+				exp,
+				...context,
+				state.indent,
+				prefix,
+				id,
+				" = ",
+				expStrs.join(isAnd ? " and " : " or "),
+				";\n",
+			);
 		}
 
 		if (i !== lastIndex) {
@@ -294,13 +330,12 @@ function evaluateNestedExpressions(
 		}
 	}
 
-	console.log(logNestedExpression({ exprs, isAnd }));
 	while (ifStatements--) {
 		state.popIndent();
-		state.pushPrecedingStatements({} as ts.Node, state.indent, "end;\n");
+		state.pushPrecedingStatements(node, state.indent, "end;\n");
 	}
 
-	return logicalState;
+	return logicalState.id;
 }
 
 /*
@@ -332,14 +367,13 @@ export function compileLogicalBinary(
 
 	const tree = makeNestedExpressions(node, isAnd);
 	preprocessLogicalBinary(state, node, isAnd ? 2 : 1, tree);
-	console.log("___________");
 	console.log(logNestedExpression(tree));
 
 	return (isInTruthyCheck ? evaluateNestedCheckedExpressions : evaluateNestedExpressions)(
 		state,
 		makeLogicalBinaryState(state),
 		tree,
-	).results.join("");
+	);
 }
 
 /** Returns an object specifying how many checks a given expression needs */
@@ -384,7 +418,6 @@ export function compileTruthyCheck(
 	exp: ts.Expression,
 	expStr = compileExpression(state, exp),
 	compileData = getTruthyCompileData(state, exp),
-	forcePush = false,
 ) {
 	if (state.alreadyCheckedTruthyConditionals.includes(skipNodesUpwardsLookAhead(exp))) {
 		return expStr;
@@ -392,8 +425,8 @@ export function compileTruthyCheck(
 
 	const { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy } = compileData;
 
-	if (forcePush || !isValidLuaIdentifier(expStr)) {
-		if (forcePush || getTruthyReferences(compileData) > 1) {
+	if (!isValidLuaIdentifier(expStr)) {
+		if (getTruthyReferences(compileData) > 1) {
 			expStr = state.pushToDeclarationOrNewId(exp, expStr);
 		} else if (shouldWrapExpression(exp, false)) {
 			expStr = `(${expStr})`;
