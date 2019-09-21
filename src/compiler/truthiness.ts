@@ -174,20 +174,7 @@ export function preprocessLogicalBinary(
 			} else {
 				const newExp = ({ compileData } = makeNestedExpressions(side, isOpAndToken === 2));
 				preprocessLogicalBinary(state, side as ts.BinaryExpression, isOpAndToken, newExp);
-
-				console.log(logNestedExpression(newExp));
-				if (isNestedExpressionsCollapsable(newExp)) {
-					state.enterPrecedingStatementContext();
-					exprs.push({
-						compileData: newExp.compileData,
-						context: state.exitPrecedingStatementContext(),
-						exp: side,
-						expStr: "("+collapseNestedExpressions(newExp).join(newExp.isAnd ? " and " : " or ")+")",
-					});
-				} else {
-					console.log("______");
-					exprs.push(newExp);
-				}
+				exprs.push(newExp);
 			}
 		} else {
 			compileData = getTruthyCompileData(state, side);
@@ -235,7 +222,7 @@ function wrapNot(isAnd: boolean, expStr: string) {
 }
 
 function isNestedExpressionCollapsable({ expStr, context, compileData }: NestedExpression): boolean {
-	console.log(expStr, context.length === 0, compileData.checkLuaTruthy, getTruthyReferences(compileData) === 1);
+	// console.log(expStr, context.length === 0, compileData.checkLuaTruthy, getTruthyReferences(compileData) === 1);
 	return context.length === 0 && compileData.checkLuaTruthy && getTruthyReferences(compileData) === 1;
 }
 
@@ -258,6 +245,89 @@ function collapseNestedExpressions(item: NestedExpressions): Array<string> {
  * We use declaration context here for the bottom-most nodes. It shouldn't interfere with other systems.
  */
 function evaluateNestedExpressions(
+	state: CompilerState,
+	logicalState: LogicalBinaryState,
+	nestedExpressions: NestedExpressions,
+) {
+	let ifStatements = 0;
+	const { id } = logicalState;
+	const stack: Array<[number, NestedExpressions]> = [[0, nestedExpressions]];
+	let top = stack.pop();
+
+	while (top) {
+		const [start, { exprs, isAnd }] = top;
+		for (let i = start; i < exprs.length; i++) {
+			const { [i]: item } = exprs;
+			const { compileData, exp } = item;
+
+			if (isNestedExpressions(item)) {
+				top[0] = i + 1;
+				stack.push(top, [0, item]);
+				break;
+			} else {
+				const { expStr, context } = item;
+
+				let prefix = "";
+				if (logicalState.isIdUnused) {
+					logicalState.isIdUnused = undefined;
+					prefix = "local ";
+				}
+
+				let expStrs = [expStr];
+
+				// while (i + 1 < length) {
+				// 	const { [i]: subItem } = exprs;
+				// 	if (isNestedExpressions(subItem)) {
+				// 		// console.log(
+				// 		// 	logNestedExpression(subItem),
+				// 		// 	subItem.exprs.every(a => isNestedExpressionCollapsable(a as NestedExpression)),
+				// 		// );
+				// 		// if (isNestedExpressionsCollapsable(subItem)) {
+				// 		// 	console.log("COLLAPSABLE");
+				// 		// 	expStrs = [
+				// 		// 		`(${expStrs.join(isAnd ? " and " : " or ")})`,
+				// 		// 		...collapseNestedExpressions(subItem),
+				// 		// 	];
+				// 		// } else {
+				// 		break;
+				// 		// }
+				// 	} else if (isNestedExpressionCollapsable(subItem)) {
+				// 		expStrs.push(subItem.expStr);
+				// 		++i;
+				// 	} else {
+				// 		break;
+				// 	}
+				// }
+
+				state.pushPrecedingStatements(
+					exp,
+					...context,
+					state.indent,
+					prefix,
+					id,
+					" = ",
+					expStrs.join(isAnd ? " and " : " or "),
+					";\n",
+				);
+
+				if (i !== exprs.length - 1) {
+					state.enterPrecedingStatementContext();
+					const checkStr = wrapNot(isAnd!, compileTruthyCheck(state, exp, id, compileData));
+					state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
+					state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
+					ifStatements++;
+					state.pushIndent();
+				}
+			}
+		}
+		top = stack.pop();
+	}
+}
+/**
+ * Moment of truthy >:)
+ * We use declaration context here for the bottom-most nodes. It shouldn't interfere with other systems.
+ */
+function evaluateNestedExpressions2(
 	state: CompilerState,
 	logicalState: LogicalBinaryState,
 	{ exprs, isAnd, exp: node }: NestedExpressions,
