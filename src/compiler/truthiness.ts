@@ -249,68 +249,70 @@ function evaluateNestedExpressions(
 	logicalState: LogicalBinaryState,
 	nestedExpressions: NestedExpressions,
 ) {
-	let ifStatements = 0;
 	const { id } = logicalState;
 	const stack: Array<[number, NestedExpressions]> = [[0, nestedExpressions]];
 	let top = stack.pop();
 
 	while (top) {
-		const [start, { exprs, isAnd }] = top;
-		for (let i = start; i < exprs.length; i++) {
-			const { [i]: item } = exprs;
-			const { compileData, exp } = item;
+		console.log("START", top[0], logNestedExpression(top[1]));
+		const [, { exprs, isAnd }] = top;
+		let [i] = top;
+		let ifStatements = 0;
 
-			if (isNestedExpressions(item)) {
-				top[0] = i + 1;
-				stack.push(top, [0, item]);
-				break;
-			} else {
-				const { expStr, context } = item;
+		while (true) {
+			if (i < exprs.length) {
+				const { [i]: item } = exprs;
+				const { compileData, exp } = item;
+				if (isNestedExpressions(item)) {
+					top[0] = i + 1;
+					stack.push(top, [0, item]);
+					break;
+				} else {
+					const { expStr, context } = item;
 
-				let prefix = "";
-				if (logicalState.isIdUnused) {
-					logicalState.isIdUnused = undefined;
-					prefix = "local ";
-				}
+					let prefix = "";
+					if (logicalState.isIdUnused) {
+						logicalState.isIdUnused = undefined;
+						prefix = "local ";
+					}
 
-				let expStrs = [expStr];
+					let expStrs = [expStr];
 
-				// while (i + 1 < length) {
-				// 	const { [i]: subItem } = exprs;
-				// 	if (isNestedExpressions(subItem)) {
-				// 		// console.log(
-				// 		// 	logNestedExpression(subItem),
-				// 		// 	subItem.exprs.every(a => isNestedExpressionCollapsable(a as NestedExpression)),
-				// 		// );
-				// 		// if (isNestedExpressionsCollapsable(subItem)) {
-				// 		// 	console.log("COLLAPSABLE");
-				// 		// 	expStrs = [
-				// 		// 		`(${expStrs.join(isAnd ? " and " : " or ")})`,
-				// 		// 		...collapseNestedExpressions(subItem),
-				// 		// 	];
-				// 		// } else {
-				// 		break;
-				// 		// }
-				// 	} else if (isNestedExpressionCollapsable(subItem)) {
-				// 		expStrs.push(subItem.expStr);
-				// 		++i;
-				// 	} else {
-				// 		break;
-				// 	}
-				// }
+					// while (i + 1 < length) {
+					// 	const { [i]: subItem } = exprs;
+					// 	if (isNestedExpressions(subItem)) {
+					// 		// console.log(
+					// 		// 	logNestedExpression(subItem),
+					// 		// 	subItem.exprs.every(a => isNestedExpressionCollapsable(a as NestedExpression)),
+					// 		// );
+					// 		// if (isNestedExpressionsCollapsable(subItem)) {
+					// 		// 	console.log("COLLAPSABLE");
+					// 		// 	expStrs = [
+					// 		// 		`(${expStrs.join(isAnd ? " and " : " or ")})`,
+					// 		// 		...collapseNestedExpressions(subItem),
+					// 		// 	];
+					// 		// } else {
+					// 		break;
+					// 		// }
+					// 	} else if (isNestedExpressionCollapsable(subItem)) {
+					// 		expStrs.push(subItem.expStr);
+					// 		++i;
+					// 	} else {
+					// 		break;
+					// 	}
+					// }
 
-				state.pushPrecedingStatements(
-					exp,
-					...context,
-					state.indent,
-					prefix,
-					id,
-					" = ",
-					expStrs.join(isAnd ? " and " : " or "),
-					";\n",
-				);
+					state.pushPrecedingStatements(
+						exp,
+						...context,
+						state.indent,
+						prefix,
+						id,
+						" = ",
+						expStrs.join(isAnd ? " and " : " or "),
+						";\n",
+					);
 
-				if (i !== exprs.length - 1) {
 					state.enterPrecedingStatementContext();
 					const checkStr = wrapNot(isAnd!, compileTruthyCheck(state, exp, id, compileData));
 					state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
@@ -318,9 +320,23 @@ function evaluateNestedExpressions(
 					ifStatements++;
 					state.pushIndent();
 				}
+
+				i++;
+			} else {
+				console.log("POPPING", i, ifStatements, top[0], logNestedExpression(top[1]));
+				while (ifStatements--) {
+					state.popIndent();
+					state.pushPrecedingStatements(top[1].exp, state.indent, "end;\n");
+				}
+				break;
 			}
 		}
+
 		top = stack.pop();
+
+		if (top) {
+			// console.log("END", top[0], logNestedExpression(top[1]));
+		}
 	}
 }
 /**
