@@ -134,8 +134,8 @@ function TS.import(caller, module, ...)
 	end
 
 	_G[module] = TS
-	loadedLibraries[module] = true -- register as already loaded for subsequent calls
 	local data = require(module)
+	loadedLibraries[module] = true -- register as already loaded for subsequent calls
 
 	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
 		currentlyLoading[caller] = nil
