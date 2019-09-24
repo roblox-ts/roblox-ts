@@ -85,8 +85,8 @@ function TS.getModule(object, moduleName)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
-local loadedLibraries = {}
 local currentlyLoading = {}
+local registeredLibraries = {}
 
 function TS.import(caller, module, ...)
 	for i = 1, select("#", ...) do
@@ -95,10 +95,6 @@ function TS.import(caller, module, ...)
 
 	if module.ClassName ~= "ModuleScript" then
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
-	end
-
-	if loadedLibraries[module] then
-		return require(module)
 	end
 
 	currentlyLoading[caller] = module
@@ -122,19 +118,22 @@ function TS.import(caller, module, ...)
 
 			for _ = 1, depth do
 				currentModule = currentlyLoading[currentModule]
-				str = str .. " -> " .. currentModule.Name
+				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
 			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
-	if _G[module] then
-		error("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(), 2)
+	if not registeredLibraries[module] then
+		if _G[module] then
+			error("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(), 2)
+		end
+
+		_G[module] = TS
+		registeredLibraries[module] = true -- register as already loaded for subsequent calls
 	end
 
-	_G[module] = TS
-	loadedLibraries[module] = true -- register as already loaded for subsequent calls
 	local data = require(module)
 
 	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
