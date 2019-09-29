@@ -206,12 +206,16 @@ export function preprocessLogicalBinary(
 	}
 }
 
-function makeLogicalBinaryState(state: CompilerState, id = state.getNewId()) {
+function makeLogicalBinaryState(state: CompilerState, nestedExp: NestedExpressions, id = state.getNewId()) {
 	return {
 		id,
+		ifs: 0,
+		inlineCompiling: false,
 		isIdUnused: true as true | undefined,
 		results: new Array<string>(),
-		ifs: 0,
+		state: new Map<NestedExpressions, { expStrs: Array<string>; i: number; ifs: number }>([
+			[nestedExp, { expStrs: [], i: 0, ifs: 0 }],
+		]),
 	};
 }
 
@@ -219,7 +223,7 @@ type LogicalBinaryState = ReturnType<typeof makeLogicalBinaryState>;
 
 /** FIXME: Move this into compileTruthyCheck */
 function wrapNot(isAnd: boolean, expStr: string) {
-	return isAnd ? expStr : `not (${expStr})`;
+	return isAnd ? expStr : isValidLuaIdentifier(expStr) ? `not ${expStr}` : `not (${expStr})`;
 }
 
 function isNestedExpressionCollapsable({ expStr, context, compileData }: NestedExpression): boolean {
@@ -253,30 +257,311 @@ function isCompileDataBooly(compileData: TruthyCompileData) {
 	);
 }
 
-function hasEmptyContext(subItem: NestedExpression | NestedExpressions): boolean {
-	return subItem.isMeta ? subItem.exprs.every(hasEmptyContext) : subItem.context.length === 0;
+const getFirst = ({ exprs: { [0]: exp } }: NestedExpressions): NestedExpression => (exp.isMeta ? getFirst(exp) : exp);
+const getLast = ({ exprs: { length, [length - 1]: exp } }: NestedExpressions): NestedExpression =>
+	exp.isMeta ? getLast(exp) : exp;
+
+function canShorten(
+	subItem: NestedExpression | NestedExpressions,
+	last = subItem.isMeta ? getLast(subItem) : subItem,
+): boolean {
+	return subItem.isMeta
+		? subItem.exprs.every(item => canShorten(item, last))
+		: subItem.context.length === 0 && (subItem === last || isCompileDataBooly(subItem.compileData));
+}
+
+function shorten(subItem: NestedExpression | NestedExpressions): string {
+	return subItem.isMeta
+		? "(" +
+				subItem.exprs
+					.reduce((a, c) => {
+						a.push(shorten(c));
+						return a;
+					}, new Array<string>())
+					.join(subItem.isAnd ? " and " : " or ") +
+				")"
+		: subItem.expStr;
+}
+
+function getLast2({ [length - 1]: item }: Array<string>) {
+	return item;
+}
+
+function appendBoolyNestedExpressionsHelper(
+	logicalState: LogicalBinaryState,
+	expStrs: Array<string>,
+	item: NestedExpression | NestedExpressions,
+	compileData: TruthyCompileData,
+): boolean {
+	if (item.isMeta) {
+		for (const subItem of item.exprs) {
+			if (!appendBoolyNestedExpressionsHelper(logicalState, expStrs, subItem, compileData)) {
+				return false;
+			}
+		}
+
+		return true;
+	} else {
+		const shouldPush = isCompileDataBooly(compileData) && item.context.length === 0;
+
+		if (isCompileDataBooly(compileData) && item.context.length === 0) {
+			expStrs.push(item.expStr);
+		}
+
+		return shouldPush;
+	}
+}
+
+function appendBoolyNestedExpressions(logicalState: LogicalBinaryState, top: NestedExpressions) {
+	let parent = top;
+	let state: NonNullable<ReturnType<typeof logicalState.state["get"]>>;
+	let item: NestedExpression | undefined;
+
+	do {
+		// Iterate through a given parent in order:
+		// if it comes across a NestedExpressions, enter inside that one.
+		// if it comes across a NestedExpression, set the current item to that one.
+		// if it comes to the last element of a NestedExpressions, re-enter the parent context.
+		// (at the location of the NestedExpressions)
+		while (true) {
+			state = logicalState.state.get(parent)!;
+			const i = state.i++;
+			console.log(i, i < parent.exprs.length, logNestedExpression(parent));
+			if (i < parent.exprs.length) {
+				const subItem = parent.exprs[i];
+
+				if (subItem.isMeta) {
+					item = undefined;
+
+					if (!logicalState.state.has(subItem)) {
+						logicalState.state.set(subItem, { i: 0, expStrs: [], ifs: 0 });
+					}
+					// expStrs = [expStrs.length ? "(" + expStrs.join(parent.isAnd ? " and " : " or ") + ")" : expStrs[0]];
+					parent = subItem;
+				} else {
+					item = subItem;
+					break;
+				}
+			} else {
+				item = undefined;
+				const { parent: next } = parent;
+
+				if (next) {
+					const expStrValue =
+						state.expStrs.length > 0
+							? "(" + state.expStrs.join(parent.isAnd ? " and " : " or ") + ")"
+							: state.expStrs[0];
+					const nextState = logicalState.state.get(next);
+
+					console.log(expStrValue, nextState);
+
+					if (nextState) {
+						nextState.expStrs.push(expStrValue);
+					} else {
+						logicalState.state.set(next, {
+							expStrs: [expStrValue],
+							i: next.exprs.indexOf(parent) + 1,
+							ifs: 0,
+						});
+					}
+					parent = next;
+				} else {
+					break;
+				}
+			}
+		}
+
+		if (item && item.context.length === 0) {
+			console.log(item.expStr);
+			state.expStrs.push(item.expStr);
+		} else {
+			break;
+		}
+	} while (isCompileDataBooly(item.compileData));
+
+	--state.i;
+
+	while (parent && parent !== top && parent.parent) {
+		const next = parent.parent;
+		const nextState = logicalState.state.get(next) || { i: next.exprs.indexOf(parent) + 1, expStrs: [], ifs: 0 };
+		const expStrValue =
+			state.expStrs.length > 0
+				? "(" + state.expStrs.join(parent.isAnd ? " and " : " or ") + ")"
+				: state.expStrs[0];
+
+		console.log("STATE", state, expStrValue, logNestedExpression(parent));
+		state.expStrs = [];
+		--nextState.i;
+		nextState.expStrs.push(expStrValue);
+		parent = next;
+		state = nextState;
+	}
+	console.log("STATE", state, logNestedExpression(parent));
+}
+
+function getPrevious(nestedExpressions: NestedExpressions, i: number): NestedExpression | undefined {
+	if (0 <= i) {
+		const item = nestedExpressions.exprs[i];
+		return item.isMeta ? getPrevious(item, item.exprs.length - 1) : item;
+	} else {
+		const { parent } = nestedExpressions;
+		if (parent) {
+			return getPrevious(parent, parent.exprs.indexOf(nestedExpressions) - 1);
+		}
+	}
+}
+
+function getNext(nestedExpressions: NestedExpressions, i: number): NestedExpression | undefined {
+	if (i < nestedExpressions.exprs.length) {
+		const item = nestedExpressions.exprs[i];
+		return item.isMeta ? getNext(item, 0) : item;
+	} else {
+		const { parent } = nestedExpressions;
+		if (parent) {
+			return getNext(parent, parent.exprs.indexOf(nestedExpressions) + 1);
+		}
+	}
+}
+
+function evaluateNestedExpressions9(
+	state: CompilerState,
+	logicalState: LogicalBinaryState,
+	nestedExpressions: NestedExpressions,
+) {
+	const stack = new Array<NestedExpressions>();
+	let iterState = logicalState.state.get(nestedExpressions)!;
+
+	while (true) {
+		if (iterState.i < nestedExpressions.exprs.length) {
+			const { [iterState.i++]: item } = nestedExpressions.exprs;
+
+			console.log(iterState.i, item.isMeta ? logNestedExpression(item) : item.expStr);
+
+			if (item.isMeta) {
+				stack.push(nestedExpressions);
+				logicalState.state.set((nestedExpressions = item), (iterState = { i: 0, expStrs: [], ifs: 0 }));
+			} else {
+				iterState.expStrs.push(item.expStr);
+
+				let prefix = "";
+				if (logicalState.isIdUnused) {
+					logicalState.isIdUnused = undefined;
+					prefix = "local ";
+				}
+
+				state.pushPrecedingStatements(
+					item.exp,
+					joinIndentedLines(item.context, logicalState.ifs),
+					state.indent,
+					prefix,
+					logicalState.id,
+					" = ",
+					iterState.expStrs.join(nestedExpressions.isAnd ? " and " : " or "),
+					";\n",
+				);
+
+				iterState.expStrs = [];
+
+				if (iterState.i < nestedExpressions.exprs.length) {
+					const checkStr = wrapNot(
+						nestedExpressions.isAnd,
+						compileTruthyCheck(state, item.exp, logicalState.id, item.compileData),
+					);
+					state.pushPrecedingStatements(item.exp, state.indent, "if ", checkStr, " then\n");
+					state.pushIndent();
+					iterState.ifs++;
+					logicalState.ifs++;
+				}
+			}
+		} else {
+			while (iterState.ifs--) {
+				logicalState.ifs--;
+				state.popIndent();
+				state.pushPrecedingStatements(nestedExpressions.exp, state.indent, "end;\n");
+			}
+
+			const popped = stack.pop();
+			console.log("POPPIN", popped ? logNestedExpression(popped) : popped);
+
+			if (popped) {
+				nestedExpressions = popped;
+				iterState = logicalState.state.get(nestedExpressions)!;
+
+				if (iterState.i < nestedExpressions.exprs.length) {
+					const checkStr = wrapNot(
+						nestedExpressions.isAnd,
+						compileTruthyCheck(
+							state,
+							nestedExpressions.exp,
+							logicalState.id,
+							nestedExpressions.compileData,
+						),
+					);
+					state.pushPrecedingStatements(nestedExpressions.exp, state.indent, "if ", checkStr, " then\n");
+					state.pushIndent();
+					iterState.ifs++;
+					logicalState.ifs++;
+				}
+			} else {
+				break;
+			}
+		}
+	}
 }
 
 /**
  * Moment of truthy >:)
- * We use declaration context here for the bottom-most nodes. It shouldn't interfere with other systems.
+ * Not perfect, but it works. We can make a better implementation for the intermediary AST version.
  */
 function evaluateNestedExpressions(
 	state: CompilerState,
 	logicalState: LogicalBinaryState,
 	nestedExpressions: NestedExpressions,
 ) {
-	const { exprs, isAnd } = nestedExpressions;
+	let i = 0;
+	/** The object in which we store our operands for and/or selections */
+	let expStrs = new Array<string>();
 	let ifs = 0;
 
-	for (let i = 0; i < exprs.length; i++) {
-		const { [i]: item } = exprs;
-		const { exp, compileData } = item;
+	// iterate through all nestedExpressions
+	while (i < nestedExpressions.exprs.length) {
+		let { [i++]: item } = nestedExpressions.exprs;
+		let { compileData } = item;
+		const firstItem = item;
 
+		// if it is a group, try to shorten it. If it can't be shortened, evaluate recursively.
 		if (item.isMeta) {
-			evaluateNestedExpressions(state, logicalState, item);
+			if (canShorten(item)) {
+				expStrs.push(shorten(item));
+			} else {
+				evaluateNestedExpressions(state, logicalState, item);
+			}
 		} else {
-			const { expStr, context } = item;
+			expStrs.push(item.expStr);
+		}
+
+		while (i < nestedExpressions.exprs.length && isCompileDataBooly(compileData)) {
+			const { [i]: next } = nestedExpressions.exprs;
+			if (canShorten(next)) {
+				expStrs.push(shorten(next));
+				i++;
+				item = { compileData } = next;
+			} else {
+				break;
+			}
+		}
+
+		if (expStrs.length) {
+			if (!logicalState.isIdUnused && firstItem.isMeta) {
+				const checkStr = wrapNot(
+					nestedExpressions.isAnd,
+					compileTruthyCheck(state, item.exp, logicalState.id, firstItem.compileData),
+				);
+				state.pushPrecedingStatements(item.exp, state.indent, "if ", checkStr, " then\n");
+				state.pushIndent();
+				ifs++;
+				logicalState.ifs++;
+			}
 
 			let prefix = "";
 			if (logicalState.isIdUnused) {
@@ -284,47 +569,28 @@ function evaluateNestedExpressions(
 				prefix = "local ";
 			}
 
-			const expStrs = [expStr];
-			let subCompileData = compileData;
-
-			// TODO: Iterate over subsequent subItems and concat and/or's if everything is boolean or w/e
-			// while (isCompileDataBooly(subCompileData)) {
-			// 	const { [i]: subItem } = exprs;
-
-			// 	// while the next expStr doesn't have any context-specifics, and this is a boolean operation
-			// 	while (hasEmptyContext(subItem)) {
-			// 		expStrs.push(expandBoolExp(subItem));
-			// 	}
-
-			// 	subCompileData = subItem.compileData;
-			// }
-
-			// for (let j = i + 1; j < exprs.length; j++) {
-			// 	const { [j]: subItem } = exprs;
-			// 	const { checkLuaTruthy, checkEmptyString, checkNaN, checkNon0 } = subItem.compileData;
-
-			// 	if (hasEmptyContext(subItem) && checkLuaTruthy && !checkEmptyString && !checkNaN && !checkNon0) {
-			// 		expStrs.push(expandBoolExp(subItem));
-			// 	} else {
-			// 		break;
-			// 	}
-			// }
-
 			state.pushPrecedingStatements(
-				exp,
-				joinIndentedLines(context, logicalState.ifs),
+				item.exp,
+				firstItem.isMeta ? "" : joinIndentedLines(firstItem.context, logicalState.ifs),
 				state.indent,
 				prefix,
 				logicalState.id,
 				" = ",
-				expStrs.join(isAnd ? " and " : " or "),
+				expStrs.join(nestedExpressions.isAnd ? " and " : " or "),
 				";\n",
 			);
+
+			expStrs = [];
 		}
 
-		if (i < exprs.length - 1) {
-			const checkStr = wrapNot(isAnd, compileTruthyCheck(state, exp, logicalState.id, compileData));
-			state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
+		// if there will be items to follow, open up this if statement
+		if (i < nestedExpressions.exprs.length) {
+			console.log(item.isMeta ? logNestedExpression(item) : item.expStr, compileData);
+			const checkStr = wrapNot(
+				nestedExpressions.isAnd,
+				compileTruthyCheck(state, item.exp, logicalState.id, compileData),
+			);
+			state.pushPrecedingStatements(item.exp, state.indent, "if ", checkStr, " then\n");
 			state.pushIndent();
 			ifs++;
 			logicalState.ifs++;
@@ -336,96 +602,132 @@ function evaluateNestedExpressions(
 		state.popIndent();
 		state.pushPrecedingStatements(nestedExpressions.exp, state.indent, "end;\n");
 	}
-}
-
-function evaluateNestedExpressions2(
-	state: CompilerState,
-	logicalState: LogicalBinaryState,
-	nestedExpressions: NestedExpressions,
-) {
-	interface Context {
-		i: number;
-		ifs: number;
-		item: NestedExpressions;
-	}
-	const { id } = logicalState;
-	const stack = new Array<Context>();
-	let top: Context | undefined = { i: 0, ifs: 0, item: nestedExpressions };
-
-	while (top) {
-		// console.log("START", top[0], logNestedExpression(top[1]));
-		const { exprs, compileData: topCompileData, exp: topExp, isAnd } = top.item;
-
-		while (true) {
-			if (top.i < exprs.length) {
-				const { [top.i]: item } = exprs;
-				console.log(top.i, item.exp.getText());
-				const { compileData, exp } = item;
-
-				if (isNestedExpressions(item)) {
-					top.i++;
-					stack.push(top, { i: 0, ifs: 0, item });
-					break;
-				} else {
-					const { expStr, context } = item;
-
-					let prefix = "";
-					if (logicalState.isIdUnused) {
-						logicalState.isIdUnused = undefined;
-						prefix = "local ";
-					}
-
-					let expStrs = [expStr];
-
-					state.pushPrecedingStatements(
-						exp,
-						...context,
-						state.indent,
-						prefix,
-						id,
-						" = ",
-						expStrs.join(isAnd ? " and " : " or "),
-						";\n",
-					);
-
-					if (top.i < exprs.length - 1) {
-						state.enterPrecedingStatementContext();
-						const checkStr = wrapNot(isAnd, compileTruthyCheck(state, exp, id, compileData));
-						state.pushPrecedingStatements(exp, ...state.exitPrecedingStatementContext());
-						state.pushPrecedingStatements(exp, state.indent, "if ", checkStr, " then\n");
-						top.ifs++;
-						state.pushIndent();
-					}
-					top.i++;
-				}
-			} else {
-				while (top.ifs--) {
-					console.log("end", logNestedExpression(top.item));
-					state.popIndent();
-					state.pushPrecedingStatements(topExp, state.indent, "end;\n");
-				}
-
-				const nextTop = stack.find(a => a.i < a.item.exprs.length);
-				if (nextTop) {
-					state.enterPrecedingStatementContext();
-					const checkStr = wrapNot(!isAnd, compileTruthyCheck(state, topExp, id, topCompileData));
-					console.log("checkStr", checkStr, logNestedExpression(top.item));
-					// console.log("POPPING", checkStr, logNestedExpression(top.item));
-					state.pushPrecedingStatements(topExp, ...state.exitPrecedingStatementContext());
-					state.pushPrecedingStatements(topExp, state.indent, "if ", checkStr, " then\n");
-					nextTop.ifs++;
-					state.pushIndent();
-				}
-
-				break;
-			}
-		}
-
-		top = stack.pop();
-	}
 
 	return logicalState.id;
 }
+
+// const evaluateNestedCheckedExpressions = evaluateNestedExpressions;
+
+function evaluateNestedCheckedExpressions(
+	state: CompilerState,
+	logicalState: LogicalBinaryState,
+	nestedExpressions: NestedExpressions,
+	first = getLast,
+) {
+	const expStrs = new Array<string>();
+	for (const expr of nestedExpressions.exprs) {
+		if (expr.isMeta) {
+			evaluateNestedCheckedExpressions(state, logicalState, expr);
+		} else {
+			const check = compileTruthyCheck(state, expr.exp, expr.expStr, expr.compileData);
+
+			if (
+				(first === expr || expr.context.length === 0) &&
+				(isValidLuaIdentifier(expr.expStr) || getTruthyReferences(expr.compileData) === 1)
+			) {
+				expStrs.push(check);
+			} else {
+				expStrs.push(check);
+			}
+		}
+	}
+
+	return expStrs.join(nestedExpressions.isAnd ? " and " : " or ");
+}
+
+/**
+ * Moment of truthy >:)
+ * Not perfect, but it works. We can make a better implementation for the intermediary AST version.
+ */
+// function evaluateNestedCheckedExpressions(
+// 	state: CompilerState,
+// 	logicalState: LogicalBinaryState,
+// 	nestedExpressions: NestedExpressions,
+// ) {
+// 	let i = 0;
+// 	/** The object in which we store our operands for and/or selections */
+// 	let expStrs = new Array<string>();
+// 	let ifs = 0;
+
+// 	// iterate through all nestedExpressions
+// 	while (i < nestedExpressions.exprs.length) {
+// 		let { [i++]: item } = nestedExpressions.exprs;
+// 		let { compileData } = item;
+// 		const firstItem = item;
+
+// 		// if it is a group, try to shorten it. If it can't be shortened, evaluate recursively.
+// 		if (item.isMeta) {
+// 			if (canShorten(item)) {
+// 				expStrs.push(shorten(item));
+// 			} else {
+// 				evaluateNestedExpressions(state, logicalState, item);
+// 			}
+// 		} else {
+// 			expStrs.push(item.expStr);
+// 		}
+
+// 		while (i < nestedExpressions.exprs.length && isCompileDataBooly(compileData)) {
+// 			const { [i]: next } = nestedExpressions.exprs;
+// 			if (canShorten(next)) {
+// 				expStrs.push(shorten(next));
+// 				i++;
+// 				item = { compileData } = next;
+// 			} else {
+// 				break;
+// 			}
+// 		}
+
+// 		if (expStrs.length) {
+// 			if (!logicalState.isIdUnused && firstItem.isMeta) {
+// 				const checkStr = wrapNot(
+// 					nestedExpressions.isAnd,
+// 					compileTruthyCheck(state, item.exp, logicalState.id, compileData),
+// 				);
+// 				state.pushPrecedingStatements(item.exp, state.indent, "if ", checkStr, " then\n");
+// 				state.pushIndent();
+// 				ifs++;
+// 				logicalState.ifs++;
+// 			}
+
+// 			let prefix = "";
+// 			if (logicalState.isIdUnused) {
+// 				logicalState.isIdUnused = undefined;
+// 				prefix = "local ";
+// 			}
+
+// 			state.pushPrecedingStatements(
+// 				item.exp,
+// 				firstItem.isMeta ? "" : joinIndentedLines(firstItem.context, logicalState.ifs),
+// 				state.indent,
+// 				prefix,
+// 				logicalState.id,
+// 				" = ",
+// 				expStrs.join(nestedExpressions.isAnd ? " and " : " or "),
+// 				";\n",
+// 			);
+
+// 			expStrs = [];
+// 		}
+
+// 		// if there will be items to follow, open up this if statement
+// 		if (i < nestedExpressions.exprs.length) {
+// 			const checkStr = wrapNot(
+// 				nestedExpressions.isAnd,
+// 				compileTruthyCheck(state, item.exp, logicalState.id, firstItem. compileData),
+// 			);
+// 			state.pushPrecedingStatements(item.exp, state.indent, "if ", checkStr, " then\n");
+// 			state.pushIndent();
+// 			ifs++;
+// 			logicalState.ifs++;
+// 		}
+// 	}
+
+// 	while (ifs--) {
+// 		logicalState.ifs--;
+// 		state.popIndent();
+// 		state.pushPrecedingStatements(nestedExpressions.exp, state.indent, "end;\n");
+// 	}
+// }
 /*
 state.declarationContext.set(exp, {
 	isIdentifier: false,
@@ -433,8 +735,6 @@ state.declarationContext.set(exp, {
 	set: id,
 });
 */
-
-const evaluateNestedCheckedExpressions = evaluateNestedExpressions;
 
 export function compileLogicalBinary(
 	state: CompilerState,
@@ -456,9 +756,8 @@ export function compileLogicalBinary(
 	const tree = makeNestedExpressions(node, isAnd);
 	preprocessLogicalBinary(state, node, isAnd ? 2 : 1, tree);
 	console.log(logNestedExpression(tree));
-	const logicalState = makeLogicalBinaryState(state);
-	(isInTruthyCheck ? evaluateNestedCheckedExpressions : evaluateNestedExpressions)(state, logicalState, tree);
-	return logicalState.id;
+	const logicalState = makeLogicalBinaryState(state, tree);
+	return (isInTruthyCheck ? evaluateNestedCheckedExpressions : evaluateNestedExpressions)(state, logicalState, tree);
 }
 
 /** Returns an object specifying how many checks a given expression needs */
