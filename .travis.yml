@@ -33,6 +33,10 @@ after_success:
   - npm run coverage
 
 before_deploy:
+  # revert these two files so that npm version works
+  - git checkout master tests/package.json
+  - git checkout master tests/package-lock.json
+
   - npm version prerelease --preid=$(git log --format="%H" -n 1) # hack!
 
 deploy:
