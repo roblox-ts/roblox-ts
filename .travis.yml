@@ -31,3 +31,14 @@ script:
 
 after_success:
   - npm run coverage
+
+before_deploy:
+  - npm version prerelease --preid=$(git log --format="%H" -n 1) # hack!
+
+deploy:
+  provider: npm
+  email: $NPM_EMAIL
+  api_key: $NPM_TOKEN
+  tag: next
+  on:
+    branch: master
