@@ -26,12 +26,12 @@ jobs:
         popd >/dev/null
 
     - name: Install Lua
-      uses: leafo/gh-actions-lua@v2
+      uses: leafo/gh-actions-lua@master
       with:
         luaVersion: 5.1
 
     - name: Install Luarocks
-      uses: leafo/gh-actions-luarocks@v2
+      uses: leafo/gh-actions-luarocks@master
 
     - name: Install Luarocks Packages
       run: |
