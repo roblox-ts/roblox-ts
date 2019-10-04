@@ -11,46 +11,47 @@ jobs:
     - name: checkout submodules
       uses: textbook/git-checkout-submodule-action@2.0.0
 
-    - name: install nodejs
+    - name: Install Nodejs
       uses: actions/setup-node@v1
       with:
         node-version: 10.x
 
-    - name: install node_modules
+    - name: Install Node_modules
       run: npm install
 
-    - name: install latest @rbxts/types for tests
+    - name: Install Latest @rbxts/types for tests
       run: |
         pushd tests >/dev/null
         npm install @rbxts/types
         popd >/dev/null
 
-    - name: install lua
+    - name: Install Lua
       uses: leafo/gh-actions-lua@v2
       with:
         luaVersion: 5.1
 
-    - name: install luarocks
+    - name: Install Luarocks
       uses: leafo/gh-actions-luarocks@v2
 
-    - name: install luarocks packages
+    - name: Install Luarocks Packages
       run: |
         luarocks install luafilesystem
         luarocks install dkjson
 
-    - name: tslint
+    - name: Run TSLint
       run: npm run tslint
 
-    - name: prettylint
+    - name: Run PrettyLint
       run: npm run prettylint
 
-    - name: test
+    - name: Run Tests
       run: npm run ci
 
-    - name: coverage
+    - name: Submit Coverage
       run: npm run coverage
 
-    - run: |
+    - name: Deploy
+      run: |
         git checkout master tests/package.json
         git checkout master tests/package-lock.json
         npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
