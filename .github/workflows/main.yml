@@ -35,7 +35,6 @@ jobs:
       run: |
         luarocks install luafilesystem
         luarocks install dkjson
-        luarocks install bit32
 
     - name: tslint
       run: npm run tslint
@@ -49,13 +48,7 @@ jobs:
     - name: coverage
       run: npm run coverage
 
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: actions/setup-node@v1
-      - run: |
-          git checkout master tests/package.json
-          git checkout master tests/package-lock.json
-          npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+    - run: |
+        git checkout master tests/package.json
+        git checkout master tests/package-lock.json
+        npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
