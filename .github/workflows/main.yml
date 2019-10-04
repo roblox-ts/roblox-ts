@@ -11,9 +11,6 @@ jobs:
     - name: checkout submodules
       uses: textbook/git-checkout-submodule-action@2.0.0
 
-    - run: sudo apt-get install tree
-    - run: tree
-
     - name: install nodejs
       uses: actions/setup-node@v1
       with:
