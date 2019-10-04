@@ -28,7 +28,7 @@ jobs:
     - name: install lua
       uses: leafo/gh-actions-lua@v2
       with:
-        luaVersion: "5.1"
+        luaVersion: 5.1
 
     - name: install luarocks
       uses: leafo/gh-actions-luarocks@v2
