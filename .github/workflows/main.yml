@@ -8,6 +8,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: checkout submodules
+      uses: textbook/git-checkout-submodule-action@2.0.0
+
+    - run: tree
 
     - name: install nodejs
       uses: actions/setup-node@v1
