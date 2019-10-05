@@ -37,6 +37,7 @@ jobs:
       run: |
         luarocks install luafilesystem
         luarocks install dkjson
+        luarocks install bit32
 
     - name: Run TSLint
       run: npm run tslint
