@@ -48,8 +48,11 @@ jobs:
     - name: Run Tests
       run: npm run ci
 
-    - name: Submit Coverage
+    - name: Generate Coverage
       run: npm run coverage
+
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v1.0.1
 
     - name: Deploy
       run: |

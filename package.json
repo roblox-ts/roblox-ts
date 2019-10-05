@@ -20,7 +20,7 @@
 		"test-run": "lua tests/spec.lua",
 		"test": "npm run build && npm run test-compile && npm run test-run",
 		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
-		"coverage": "nyc report --reporter=text-lcov | coveralls",
+		"coverage": "nyc report --reporter=text-lcov",
 		"prepublishOnly": "npm run build",
 		"types": "cd tests && npm install @rbxts/types"
 	},
@@ -58,7 +58,6 @@
 		"@types/universal-analytics": "^0.4.3",
 		"@types/uuid": "^3.4.5",
 		"@types/yargs": "^13.0.3",
-		"coveralls": "^3.0.6",
 		"mocha": "^6.2.1",
 		"nyc": "^14.1.1",
 		"prettier": "^1.18.2",
