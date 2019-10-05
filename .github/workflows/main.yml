@@ -8,6 +8,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+
     - name: checkout submodules
       uses: textbook/git-checkout-submodule-action@2.0.0
 
@@ -22,7 +23,7 @@ jobs:
     - name: Install Latest @rbxts/types for tests
       run: |
         pushd tests >/dev/null
-        npm install @rbxts/types
+        npm install @rbxts/types@latest
         popd >/dev/null
 
     - name: Install Lua
@@ -58,6 +59,8 @@ jobs:
 
     - name: Deploy
       run: |
+        git config user.name "GitHub Actions"
+        git config user.email "noreply@github.com"
         git fetch
         git checkout origin/master tests/package.json
         git checkout origin/master tests/package-lock.json
