@@ -58,6 +58,7 @@ jobs:
 
     - name: Deploy
       run: |
+        git fetch
         git checkout master tests/package.json
         git checkout master tests/package-lock.json
         npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
