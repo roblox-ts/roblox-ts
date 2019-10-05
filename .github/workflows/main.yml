@@ -8,9 +8,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@master
-
-    - name: checkout submodules
-      uses: textbook/git-checkout-submodule-action@2.0.0
+      with:
+        submodules: recursive
 
     - name: Install NodeJS
       uses: actions/setup-node@master
