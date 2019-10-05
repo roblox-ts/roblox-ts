@@ -1,6 +1,6 @@
 name: CI
 
-on: push
+on: [push, pull_request]
 
 jobs:
   test:
@@ -66,3 +66,6 @@ jobs:
         git checkout origin/master tests/package.json
         git checkout origin/master tests/package-lock.json
         npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+        npm publish --tag next
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
