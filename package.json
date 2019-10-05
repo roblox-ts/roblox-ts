@@ -20,7 +20,7 @@
 		"test-run": "lua tests/spec.lua",
 		"test": "npm run build && npm run test-compile && npm run test-run",
 		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
-		"coverage": "nyc report --reporter=text-lcov",
+		"coverage": "nyc report --reporter=lcov",
 		"prepublishOnly": "npm run build",
 		"types": "cd tests && npm install @rbxts/types"
 	},
