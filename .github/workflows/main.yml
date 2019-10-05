@@ -57,6 +57,8 @@ jobs:
       with:
         github-token: ${{ secrets.github_token }}
 
+    - run: echo "${{ github.ref }}"
+
   deploy:
     if: github.ref == 'master'
     runs-on: ubuntu-latest
