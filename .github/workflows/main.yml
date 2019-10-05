@@ -16,6 +16,7 @@ jobs:
       uses: actions/setup-node@master
       with:
         node-version: 10.x
+        registry-url: 'https://registry.npmjs.org'
 
     - name: Install Node_modules
       run: npm install
