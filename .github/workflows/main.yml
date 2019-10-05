@@ -69,4 +69,4 @@ jobs:
         npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
         npm publish --tag next
       env:
-        NPM_TOKEN: ${{ secrets.npm_token }}
+        NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
