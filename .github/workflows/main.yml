@@ -63,7 +63,6 @@ jobs:
       run: |
         git config user.name "GitHub Actions"
         git config user.email "noreply@github.com"
-        git fetch
         git checkout origin/master tests/package.json
         git checkout origin/master tests/package-lock.json
         npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
