@@ -11,7 +11,7 @@ jobs:
     - name: checkout submodules
       uses: textbook/git-checkout-submodule-action@2.0.0
 
-    - name: Install Nodejs
+    - name: Install NodeJS
       uses: actions/setup-node@v1
       with:
         node-version: 10.x
