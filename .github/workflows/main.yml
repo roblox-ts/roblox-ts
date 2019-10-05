@@ -7,13 +7,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@master
 
     - name: checkout submodules
       uses: textbook/git-checkout-submodule-action@2.0.0
 
     - name: Install NodeJS
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@master
       with:
         node-version: 10.x
 
@@ -53,15 +53,21 @@ jobs:
       run: npm run coverage
 
     - name: Coveralls GitHub Action
-      uses: coverallsapp/github-action@v1.0.1
+      uses: coverallsapp/github-action@master
       with:
         github-token: ${{ secrets.github_token }}
 
+  deploy:
+    if:
+    needs: test
+    steps:
+    - uses: actions/checkout@master
     - name: Deploy
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "noreply@github.com"
-        git fetch
-        git checkout origin/master tests/package.json
-        git checkout origin/master tests/package-lock.json
-        npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+      run: echo "${{ github.ref }}"
+      # run: |
+      #   git config user.name "GitHub Actions"
+      #   git config user.email "noreply@github.com"
+      #   git fetch
+      #   git checkout origin/master tests/package.json
+      #   git checkout origin/master tests/package-lock.json
+      #   npm version "commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
