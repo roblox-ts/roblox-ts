@@ -57,17 +57,12 @@ jobs:
       with:
         github-token: ${{ secrets.github_token }}
 
-  deploy:
-    if: github.ref == 'refs/heads/master'
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-    - uses: actions/checkout@master
     - name: Deploy
+      if: github.ref == 'refs/heads/master'
       run: |
         git config user.name "GitHub Actions"
         git config user.email "noreply@github.com"
         git fetch
         git checkout origin/master tests/package.json
         git checkout origin/master tests/package-lock.json
-        npm version "commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+        npm version prerelease --preid="commit-$(git log --format="%H" -n 1 | head -c 7)" # hack!
