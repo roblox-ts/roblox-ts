@@ -13,7 +13,7 @@ import {
 	stripExtensions,
 	transformPathToLua,
 } from "../utility/general";
-import { isRbxService, isUsedAsType } from "../utility/type";
+import { isRbxService, isUsedExclusivelyAsType } from "../utility/type";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
 	const parent = skipNodesUpwards(def.getNode().getParent());
@@ -73,7 +73,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
-	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 function getRelativeImportPathRojo(
@@ -105,7 +105,7 @@ function getRelativeImportPathRojo(
 		start += ".Parent";
 	}
 
-	return `TS.import(${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
@@ -125,7 +125,11 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 		);
 	}
 
-	const moduleName = parts.shift()!;
+	let moduleName = parts.shift()!;
+
+	if (parts.length > 2 && parts[0] === "node_modules" && parts[1] === "@rbxts") {
+		moduleName = parts[2];
+	}
 
 	let mainPath: string;
 	if (moduleCache.has(moduleName)) {
@@ -144,8 +148,8 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 
 	parts = parts.filter(part => part !== ".").map(part => safeLuaIndex(" ", part));
 	state.usesTSLibrary = true;
-	const params = `TS.getModule("${moduleName}")` + parts.join("");
-	return `TS.import(${params})`;
+	const params = `TS.getModule(script, "${moduleName}")` + parts.join("");
+	return `TS.import(script, ${params})`;
 }
 
 function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFile, node: ts.Node) {
@@ -168,7 +172,7 @@ function getAbsoluteImportPathRojo(state: CompilerState, moduleFile: ts.SourceFi
 		throw new CompilerError(`"${service}" is not a valid Roblox Service!`, node, CompilerErrorType.InvalidService);
 	}
 
-	return `TS.import(${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(script, ${service}, ${rbxPath.map(v => `"${v}"`).join(", ")})`;
 }
 
 function getImportPath(
@@ -226,9 +230,9 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	if (
 		!isRoact &&
 		!isSideEffect &&
-		(!namespaceImport || isUsedAsType(namespaceImport)) &&
-		(!defaultImport || isUsedAsType(defaultImport)) &&
-		namedImports.every(namedImport => isUsedAsType(namedImport.getNameNode()))
+		(!namespaceImport || isUsedExclusivelyAsType(namespaceImport)) &&
+		(!defaultImport || isUsedExclusivelyAsType(defaultImport)) &&
+		namedImports.every(namedImport => isUsedExclusivelyAsType(namedImport.getNameNode()))
 	) {
 		return "";
 	}
@@ -236,7 +240,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const moduleFile = node.getModuleSpecifierSourceFile();
 	if (!moduleFile) {
 		const specifier = node.getModuleSpecifier();
-		const text = specifier ? specifier.getText : "unknown";
+		const text = specifier ? specifier.getText() : "unknown";
 		throw new CompilerError(
 			`Could not find file for '${text}'. Did you forget to "npm install"?`,
 			node,
@@ -255,7 +259,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	const rhs = new Array<string>();
 	const unlocalizedImports = new Array<string>();
 
-	if (defaultImport && (isRoact || !isUsedAsType(defaultImport))) {
+	if (defaultImport && (isRoact || !isUsedExclusivelyAsType(defaultImport))) {
 		const definitions = defaultImport.getDefinitions();
 		const exportAssignments =
 			definitions.length > 0 &&
@@ -278,7 +282,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		unlocalizedImports.push("");
 	}
 
-	if (namespaceImport && (isRoact || !isUsedAsType(namespaceImport))) {
+	if (namespaceImport && (isRoact || !isUsedExclusivelyAsType(namespaceImport))) {
 		lhs.push(compileExpression(state, namespaceImport));
 		rhs.push("");
 		unlocalizedImports.push("");
@@ -288,7 +292,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 	let hasVarNames = false;
 
 	namedImports
-		.filter(namedImport => !isUsedAsType(namedImport.getNameNode()))
+		.filter(namedImport => !isUsedExclusivelyAsType(namedImport.getNameNode()))
 		.forEach(namedImport => {
 			const aliasNode = namedImport.getAliasNode();
 			const nameNode = namedImport.getNameNode();
@@ -342,7 +346,7 @@ export function compileImportEqualsDeclaration(state: CompilerState, node: ts.Im
 		state.hasRoactImport = true;
 	}
 
-	if (!isRoact && isUsedAsType(nameNode)) {
+	if (!isRoact && isUsedExclusivelyAsType(nameNode)) {
 		return "";
 	}
 
@@ -367,7 +371,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		const moduleFile = node.getModuleSpecifierSourceFile();
 		if (!moduleFile) {
 			const specifier = node.getModuleSpecifier();
-			const text = specifier ? specifier.getText : "unknown";
+			const text = specifier ? specifier.getText() : "unknown";
 			throw new CompilerError(
 				`Could not find file for '${text}'. Did you forget to "npm install"?`,
 				node,
@@ -399,7 +403,9 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 		}
 		return state.indent + `TS.exportNamespace(${luaPath}, ${ancestorName});\n`;
 	} else {
-		const namedExports = node.getNamedExports().filter(namedExport => !isUsedAsType(namedExport.getNameNode()));
+		const namedExports = node
+			.getNamedExports()
+			.filter(namedExport => !isUsedExclusivelyAsType(namedExport.getNameNode()));
 		if (namedExports.length === 0) {
 			return "";
 		}
@@ -450,7 +456,7 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 
 export function compileExportAssignment(state: CompilerState, node: ts.ExportAssignment) {
 	const exp = skipNodesDownwards(node.getExpression());
-	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedAsType(exp))) {
+	if (node.isExportEquals() && (!ts.TypeGuards.isIdentifier(exp) || !isUsedExclusivelyAsType(exp))) {
 		state.isModule = true;
 		state.enterPrecedingStatementContext();
 		const expStr = compileExpression(state, exp);

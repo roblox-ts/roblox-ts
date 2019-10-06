@@ -1,4 +1,42 @@
-import Roact from "@rbxts/roact";
+/// <reference types="@rbxts/roact/internal"/>
+import Roact, { Fragment } from "@rbxts/roact";
+
+const RoactModule = game
+	.GetService("ReplicatedStorage")
+	.WaitForChild("include")
+	.WaitForChild("node_modules")
+	.WaitForChild("roact")
+	.WaitForChild("roact")
+	.WaitForChild<ModuleScript>("src");
+
+declare interface ElementKind {
+	Portal: symbol;
+	Host: symbol;
+	Function: symbol;
+	Stateful: symbol;
+	Fragment: symbol;
+	of: (value: unknown) => boolean;
+}
+const ElementKind = require(RoactModule.WaitForChild<ModuleScript>("ElementKind")) as ElementKind;
+
+declare interface Type {
+	Binding: symbol;
+	Element: symbol;
+	HostChangeEvent: symbol;
+	HostEvent: symbol;
+	StatefulComponentClass: symbol;
+	VirtualNode: symbol;
+	VirtualTree: symbol;
+	of: (value: unknown) => boolean;
+}
+const Type = require(RoactModule.WaitForChild<ModuleScript>("Type")) as Type;
+
+type ExplicitProps<P = {}> = Partial<P> & {
+	[Roact.Children]: { [name: string]: Roact.Element | undefined };
+};
+interface FragmentLike {
+	elements: { [name: string]: unknown };
+}
 
 export = () => {
 	describe("should support Roact.Component", () => {
@@ -9,7 +47,7 @@ export = () => {
 				}
 			}
 
-			expect(typeOf(RoactClass)).to.equal("table");
+			expect(Type.of(RoactClass)).to.equal(Type.StatefulComponentClass);
 		});
 
 		it("should construct a roact pure component class", () => {
@@ -19,7 +57,7 @@ export = () => {
 				}
 			}
 
-			expect(typeOf(RoactPureClass)).to.equal("table");
+			expect(Type.of(RoactPureClass)).to.equal(Type.StatefulComponentClass);
 		});
 
 		it("should construct default props", () => {
@@ -68,8 +106,11 @@ export = () => {
 				}
 			}
 
-			const handle = Roact.mount(<RoactClass />);
-			expect(handle).to.be.a("table");
+			const element = <RoactClass />;
+			expect(Type.of(element)).to.equal(Type.Element);
+
+			const handle = Roact.mount(element);
+			expect(Type.of(handle)).to.equal(Type.VirtualTree);
 		});
 	});
 
@@ -82,30 +123,30 @@ export = () => {
 	});
 
 	describe("should support all roact property types", () => {
-		it("should be able to have keyed children", () => {
-			const KEY = "key1";
-			const KEY2 = "key2";
+		// it("should be able to have keyed children", () => {
+		// 	const KEY = "key1";
+		// 	const KEY2 = "key2";
 
-			const element = (
-				<screengui>
-					<frame Key={KEY} />
-					<frame Key={KEY2} />
-				</screengui>
-			);
+		// 	const element = (
+		// 		<screengui>
+		// 			<frame Key={KEY} />
+		// 			<frame Key={KEY2} />
+		// 		</screengui>
+		// 	);
 
-			const handle = Roact.mount(element);
+		// 	const handle = Roact.mount(element);
 
-			const frameKey = handle._children![KEY];
-			const frame2Key = handle._children![KEY2];
+		// 	const frameKey = handle._children![KEY];
+		// 	const frame2Key = handle._children![KEY2];
 
-			expect(frameKey).to.be.ok();
-			expect(frame2Key).to.be.ok();
-		});
+		// 	expect(frameKey).to.be.ok();
+		// 	expect(frame2Key).to.be.ok();
+		// });
 
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
 			const propElement = <textbutton Text={TEXT} />;
-			const propElementProps = propElement.props as Roact.Properties<TextButton>;
+			const propElementProps = propElement.props as Roact.Template<TextButton>;
 
 			expect(propElementProps.Text).to.equal(TEXT);
 		});
@@ -159,7 +200,8 @@ export = () => {
 
 				Roact.mount(<frame Ref={frameRef} />);
 
-				expect(frameRef.current).to.be.ok();
+				// expect(frameRef.current).to.be.ok();
+				expect(Type.of(frameRef)).to.equal(Type.Binding); // Refs are bindings
 			});
 
 			it("should handle function references properly", () => {
@@ -188,7 +230,7 @@ export = () => {
 					}
 
 					public didUpdate() {
-						expect(this.ref.current).to.be.ok();
+						expect(this.ref.getValue()).to.be.ok();
 					}
 				}
 
@@ -212,90 +254,164 @@ export = () => {
 		});
 	});
 
-	it("should be able to mount roact intrinsics", () => {
-		const handle = Roact.mount(<screengui />);
-		expect(handle._rbx!.ClassName).to.equal("ScreenGui");
+	it("should support array expressions", () => {
+		const expression = [<frame />];
+		expect(ElementKind.of(expression[0])).to.equal(ElementKind.Host);
+
+		const keyedExpression = ([<frame Key="Testing" />] as unknown) as Map<string, Roact.Element>;
+		expect(ElementKind.of(keyedExpression.get("Testing"))).to.equal(ElementKind.Host);
 	});
 
-	it("should be able to have Roact.Element[] expressions", () => {
-		const test = [<frame Key="One" />, <frame Key="Two" />];
-
-		const test2 = (
-			<screengui>
-				{test}
-				<frame Key="Three" />
-			</screengui>
+	it("should support JSX Fragments", () => {
+		const fragment = (
+			<Roact.Fragment>
+				<frame Key="TestKey" />
+			</Roact.Fragment>
 		);
 
-		const handle = Roact.mount(test2);
-		expect(handle._rbx!.FindFirstChild("One")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Two")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Three")).to.be.ok();
+		expect(Type.of(fragment)).to.equal(Type.Element);
+		expect(ElementKind.of(fragment)).to.equal(ElementKind.Fragment);
+		expect(ElementKind.of(((fragment as unknown) as FragmentLike).elements.TestKey)).to.equal(ElementKind.Host);
 	});
 
-	it("should be able to use Roact.Element[] expressions inside classes", () => {
-		class TestComponent extends Roact.Component {
-			public render(): Roact.Element {
-				const innerFrames = [<frame Key="Frame1" />, <frame Key="Frame2" />];
-
-				return <frame>{innerFrames}</frame>;
-			}
-		}
-
-		const test = <TestComponent />;
-
-		const handle = Roact.mount(test);
-		const returned = handle._child;
-
-		// expect the returned child to be a frame
-		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
-		expect(returned!._rbx!.FindFirstChild("Frame1")).to.be.ok();
-		expect(returned!._rbx!.FindFirstChild("Frame2")).to.be.ok();
+	it("Should default to using a Fragment for top-level keys", () => {
+		const test = <frame Key="Testing" />;
+		expect(Type.of(test)).to.equal(Type.Element);
+		expect(ElementKind.of(test)).to.equal(ElementKind.Fragment);
 	});
 
-	it("should allow using results from functions in expressions", () => {
-		function multipleElements(): Array<Roact.Element> {
-			return [<frame Key="Frame57" />, <frame Key="Frame103" />];
-		}
+	describe("BinaryExpressions", () => {
+		it("should support BinaryExpressions", () => {
+			let ref: Frame | undefined;
+			const test = <frame>{true && <frame Ref={rbx => (ref = rbx)} />}</frame>;
+			Roact.mount(test);
+			expect(ref).to.be.ok();
+		});
 
-		const test = <screengui>{multipleElements()}</screengui>;
+		it("should support BinaryExpressions with keys", () => {
+			const test = <frame>{true && <frame Key="TestFrame" />}</frame>;
+			const testProps = test.props as ExplicitProps;
 
-		const handle = Roact.mount(test);
-		expect(handle._rbx!.FindFirstChild("Frame57")).to.be.ok();
-		expect(handle._rbx!.FindFirstChild("Frame103")).to.be.ok();
+			expect(testProps[Roact.Children].TestFrame).to.be.ok();
+		});
 	});
 
-	it("should be able to use this.props[Roact.Children] expressions", () => {
-		class TestComponent extends Roact.Component {
-			constructor() {
-				super({});
-			}
-			public render(): Roact.Element {
-				return <frame>{this.props[Roact.Children]}</frame>;
-			}
-		}
+	describe("ConditionalExpressions", () => {
+		it("should support ConditionalExpressions", () => {
+			let ref: Frame | TextLabel | undefined;
+			let ref2: Frame | TextLabel | undefined;
+			const test = (
+				<frame>{false ? <frame Ref={rbx => (ref = rbx)} /> : <textlabel Ref={rbx => (ref = rbx)} />}</frame>
+			);
 
-		const test = (
-			<TestComponent>
-				<textlabel Key="TextLabel20" />
-			</TestComponent>
+			const test2 = (
+				<frame>{true ? <frame Ref={rbx => (ref2 = rbx)} /> : <textlabel Ref={rbx => (ref2 = rbx)} />}</frame>
+			);
+
+			Roact.mount(test);
+			Roact.mount(test2);
+
+			expect(ref).to.be.ok();
+			expect(typeIs(ref, "Instance") && ref.IsA("TextLabel")).to.equal(true);
+
+			expect(ref2).to.be.ok();
+			expect(typeIs(ref2, "Instance") && ref2.IsA("Frame")).to.equal(true);
+		});
+
+		it("should support ConditionalExpressions with keys (using fragments)", () => {
+			const test = <frame>{false ? <frame Key="IfTrue" /> : <textlabel Key="IfFalse" />}</frame>;
+			const test2 = <frame>{true ? <frame Key="IfTrue" /> : <textlabel Key="IfFalse" />}</frame>;
+
+			const testProps = test.props as ExplicitProps;
+			const test2Props = test2.props as ExplicitProps;
+
+			expect(ElementKind.of(testProps[Roact.Children])).to.equal(ElementKind.Fragment);
+			expect(ElementKind.of(test2Props[Roact.Children])).to.equal(ElementKind.Fragment);
+			expect(((testProps[Roact.Children] as unknown) as FragmentLike).elements.IfFalse).to.be.ok();
+			expect(((test2Props[Roact.Children] as unknown) as FragmentLike).elements.IfTrue).to.be.ok();
+		});
+	});
+
+	it("should support nesting maps", () => {
+		const map = new Map<string, Roact.Element>();
+		let ref: TextLabel | undefined;
+		const testLabel = <textlabel Ref={rbx => (ref = rbx)} Text="Texty" />;
+		map.set("Testing", testLabel);
+
+		const element = <screengui>{map}</screengui>;
+
+		expect(Type.of(element)).to.equal(Type.Element);
+		expect((element.props as ExplicitProps)[Roact.Children].Testing).to.equal(testLabel);
+
+		Roact.mount(element);
+		expect(ref).to.be.ok();
+		expect(typeIs(ref, "Instance") && ref.IsA("TextLabel") && ref.Text === "Texty").to.equal(true);
+	});
+
+	it("should support implicit true in JSX elements", () => {
+		const element = <textlabel TextWrapped />;
+
+		expect((element.props as ExplicitProps<TextLabel>).TextWrapped).to.equal(true);
+	});
+
+	it("should have correct-order prop joining", () => {
+		const TestProps = {
+			Active: false,
+			BackgroundColor3: Color3.fromRGB(220, 0, 0),
+		};
+
+		const element = <frame Active {...TestProps} BackgroundColor3={new Color3(0, 0, 0)} />;
+		const props = element.props as ExplicitProps<Frame>;
+
+		expect(props.Active).to.equal(false);
+		expect(props.BackgroundColor3).to.equal(new Color3(0, 0, 0));
+	});
+
+	it("should support passing identifier objects as events/changed handlers", () => {
+		const Events: RoactEvents<Frame> = {
+			MouseEnter: () => {},
+		};
+
+		const f = <frame Event={Events} />;
+		const props = f.props as ExplicitProps<Frame>;
+
+		// @ts-ignore because this is valid, but I can't infer the type for this
+		expect(props[Roact.Event.MouseEnter] as unknown).to.equal(Events.MouseEnter);
+	});
+
+	it("should support child elements as expressions", () => {
+		const f = <frame>{<textlabel Key="TestSubElement" />}</frame>;
+
+		const fProps = f.props as ExplicitProps<Frame>;
+		const testSubElement = fProps[Roact.Children].TestSubElement;
+		expect(testSubElement).to.be.ok();
+		expect(testSubElement!.component === "TextLabel");
+	});
+
+	it("should support multiple jsx expression types returning elements", () => {
+		const getElement = () => {
+			return <frame />;
+		};
+
+		const f = (
+			<frame>
+				{true && <frame Key="TrueFrame" />}
+				{getElement()}
+			</frame>
 		);
 
-		const handle = Roact.mount(test);
-		const returned = handle._child;
-
-		// expect the returned child to be a frame
-		expect(returned!._rbx!.IsA("Frame")).to.be.ok();
-
-		// expect there to be a textlabel called "Hello"
-		expect(returned!._rbx!.FindFirstChildOfClass("TextLabel")).to.be.ok();
-		expect(returned!._rbx!.FindFirstChild("TextLabel20")).to.be.ok();
+		const props = f.props as ExplicitProps<Frame>;
+		expect(props[Roact.Children].TrueFrame).to.be.ok();
+		expect(props[Roact.Children][1]).to.be.ok();
 	});
 
-	it("should support JSX element expressions used as statements", () => {
-		// tslint:disable-next-line: no-unused-expression
-		<screengui>
-			<imagebutton />
-		</screengui>;
+	it("should support roact element arrays as an expression", () => {
+		const test = [<frame Key="Test1" />, <frame Key="Test2" />];
+
+		const test2 = <frame>{test}</frame>;
+
+		const test2Props = test2.props as ExplicitProps<Frame>;
+		expect(test2Props[Roact.Children].Test1).to.be.ok();
+		expect(test2Props[Roact.Children].Test2).to.be.ok();
 	});
 };

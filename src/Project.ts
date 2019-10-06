@@ -21,10 +21,12 @@ const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
 
-const IGNORED_DIAGNOSTIC_CODES = [
+const IGNORED_DIAGNOSTIC_CODES = new Set([
 	2688, // "Cannot find type definition file for '{0}'."
 	6054, // "File '{0}' has unsupported extension. The only supported extensions are {1}."
-];
+]);
+
+const DEFAULT_PKG_VERSION = "UNKNOWN";
 
 const LUA_EXT = ".lua";
 function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
@@ -51,7 +53,13 @@ function joinIfNotAbsolute(basePath: string, relativePath: string) {
 
 async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
 	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
-		const newPath = path.join(destinationFolder, path.relative(sourceFolder, oldPath));
+		let innerPath = path.relative(sourceFolder, oldPath).split(path.sep);
+		const [first, second, ...rest] = innerPath;
+		if (first === "node_modules" && second === "@rbxts") {
+			innerPath = [first, ...rest];
+		}
+		const innerFolder = innerPath.join(path.sep);
+		const newPath = path.join(destinationFolder, innerFolder);
 
 		let source = await fs.readFile(oldPath, "utf8");
 
@@ -67,32 +75,38 @@ async function copyLuaFiles(sourceFolder: string, destinationFolder: string, tra
 }
 
 async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	async function searchForDeadFiles(dir: string) {
-		if (await fs.pathExists(dir)) {
-			for (const fileName of await fs.readdir(dir)) {
-				const filePath = path.join(dir, fileName);
+	async function searchForDeadFiles(dir: string, dest: string) {
+		if (await fs.pathExists(dest)) {
+			for (const fileName of await fs.readdir(dest)) {
+				const nextDest = path.join(dest, fileName);
+				const nextDir =
+					path.relative(destinationFolder, nextDest) === "node_modules"
+						? path.join(dir, fileName, "@rbxts")
+						: path.join(dir, fileName);
+
 				try {
-					const stats = await fs.stat(filePath);
+					const stats = await fs.stat(nextDest);
 					if (stats.isDirectory()) {
-						await searchForDeadFiles(filePath);
-						if ((await fs.readdir(dir)).length === 0) {
-							await fs.remove(filePath);
-							console.log("delete", "dir", filePath);
+						await searchForDeadFiles(nextDir, nextDest);
+						if ((await fs.readdir(nextDest)).length === 0) {
+							await fs.rmdir(nextDest);
+							console.log("delete", "dir", nextDest);
 						}
 					} else if (stats.isFile()) {
-						const relativeToDestFolder = path.relative(destinationFolder, filePath);
-						if (!(await fs.existsSync(path.join(sourceFolder, relativeToDestFolder)))) {
-							await fs.remove(filePath);
-							console.log("delete", "file", filePath);
+						if (
+							!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, nextDir))))
+						) {
+							await fs.unlink(nextDest);
+							console.log("delete", "file", nextDest);
 						}
 					}
 				} catch (e) {
-					console.log("failed to clean", filePath);
+					console.log("failed to clean", nextDest);
 				}
 			}
 		}
 	}
-	await searchForDeadFiles(destinationFolder);
+	await searchForDeadFiles(destinationFolder, destinationFolder);
 }
 
 async function copyAndCleanDeadLuaFiles(
@@ -127,6 +141,7 @@ export class Project {
 	public project: ts.Project = {} as ts.Project;
 	private compilerOptions: ts.CompilerOptions = {};
 	private projectPath = "";
+	private pkgVersion = DEFAULT_PKG_VERSION;
 
 	private rojoProject?: RojoProject;
 	private projectType = ProjectType.Package;
@@ -149,7 +164,7 @@ export class Project {
 		try {
 			fs.accessSync(this.configFilePath, fs.constants.R_OK | fs.constants.W_OK);
 		} catch (e) {
-			throw new Error("Project path does not exist!");
+			throw new ProjectError("Project path does not exist!", ProjectErrorType.BadProjectPath);
 		}
 
 		if (fs.statSync(this.configFilePath).isDirectory()) {
@@ -157,7 +172,7 @@ export class Project {
 		}
 
 		if (!fs.existsSync(this.configFilePath) || !fs.statSync(this.configFilePath).isFile()) {
-			throw new Error("Cannot find tsconfig.json!");
+			throw new ProjectError("Cannot find tsconfig.json!", ProjectErrorType.BadTsConfig);
 		}
 
 		this.projectPath = path.resolve(this.configFilePath, "..");
@@ -176,9 +191,16 @@ export class Project {
 			);
 		}
 
+		const pkgJsonPath = path.join(this.projectPath, "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			try {
+				this.pkgVersion = JSON.parse(fs.readFileSync(pkgJsonPath).toString()).version || DEFAULT_PKG_VERSION;
+			} catch (e) {}
+		}
+
 		const modulesPath = this.getModulesPath(this.projectPath);
 		if (!modulesPath) {
-			throw new Error("Unable to find node_modules");
+			throw new ProjectError("Unable to find node_modules", ProjectErrorType.BadNodeModules);
 		}
 		this.modulesPath = modulesPath;
 
@@ -670,6 +692,7 @@ export class Project {
 			this.projectType,
 			this.runtimeLibPath,
 			this.modulesPath,
+			this.pkgVersion,
 			this.rojoProject,
 			this.runtimeOverride,
 			this.logTruthyDifferences,
@@ -738,7 +761,7 @@ export class Project {
 			const diagnostics = file
 				.getPreEmitDiagnostics()
 				.filter(diagnostic => diagnostic.getCategory() === ts.DiagnosticCategory.Error)
-				.filter(diagnostic => IGNORED_DIAGNOSTIC_CODES.indexOf(diagnostic.getCode()) === -1);
+				.filter(diagnostic => !IGNORED_DIAGNOSTIC_CODES.has(diagnostic.getCode()));
 			for (const diagnostic of diagnostics) {
 				const diagnosticFile = diagnostic.getSourceFile();
 				const line = diagnostic.getLineNumber();
@@ -753,13 +776,27 @@ export class Project {
 
 				let messageText = diagnostic.getMessageText();
 				if (messageText instanceof ts.DiagnosticMessageChain) {
-					const textSegments = new Array<string>();
-					let chain: ts.DiagnosticMessageChain | undefined = messageText;
-					while (chain !== undefined) {
-						textSegments.push(chain.getMessageText());
-						chain = chain.getNext();
+					// I went with the safest bet here, since getNext returns an array of ts.DiagnosticMessageChain,
+					// and each element within those has a `.getNext()` method. That seems to me to imply
+					// a very real possibility that some of those `.getNext()` calls would return duplicates of the
+					// same thing. This will call all .getNext() methods, but will check to make sure we don't get
+					// duplicates.
+					const diagnosticMessages = [messageText];
+
+					for (let i = 0; i < diagnosticMessages.length; i++) {
+						const { [i]: message } = diagnosticMessages;
+						const nextMessages = message.getNext();
+
+						if (nextMessages) {
+							for (const nextMessage of nextMessages) {
+								if (!diagnosticMessages.includes(nextMessage)) {
+									diagnosticMessages.push(nextMessage);
+								}
+							}
+						}
 					}
-					messageText = textSegments.join("\n");
+
+					messageText = diagnosticMessages.map(msg => msg.getMessageText()).join("\n");
 				}
 				errors.push(prefix + red("Diagnostic Error: ") + messageText);
 			}

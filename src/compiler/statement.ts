@@ -28,7 +28,7 @@ import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isTypeStatement } from "../utility/type";
 
 export function compileStatement(state: CompilerState, node: ts.Statement): string {
-	if (isTypeStatement(node)) {
+	if (isTypeStatement(node) || (ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())) {
 		return "";
 	} else if (ts.TypeGuards.isBlock(node)) {
 		return compileBlock(state, node);
@@ -103,7 +103,7 @@ export function compileStatementedNode(state: CompilerState, node: ts.Node & ts.
 	state.exportStack.push(new Set<string>());
 	let result = "";
 
-	const shouldMakeHoistStack = !ts.TypeGuards.isCaseClause(node);
+	const shouldMakeHoistStack = !ts.TypeGuards.isCaseClause(node) && !ts.TypeGuards.isDefaultClause(node);
 
 	if (shouldMakeHoistStack) {
 		state.hoistStack.push(new Set<string>());

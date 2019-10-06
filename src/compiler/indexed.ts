@@ -31,7 +31,7 @@ export function isIdentifierDefinedInConst(exp: ts.Identifier) {
 	for (const def of exp.getDefinitions()) {
 		const node = def.getNode();
 		// Namespace name identifiers are not variables which can be changed at run-time
-		if (ts.TypeGuards.isNamespaceDeclaration(node.getParent())) {
+		if (ts.TypeGuards.isNamespaceDeclaration(node.getParent()!)) {
 			return true;
 		}
 
@@ -211,7 +211,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 }
 
 export function addOneToArrayIndex(valueStr: string) {
-	if (valueStr.indexOf("e") === -1 && valueStr.indexOf("E") === -1) {
+	if (!valueStr.includes("e") && !valueStr.includes("E")) {
 		const valueNumber = Number(valueStr);
 		if (!Number.isNaN(valueNumber)) {
 			return (valueNumber + 1).toString();

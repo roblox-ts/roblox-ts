@@ -107,7 +107,7 @@ export function compileObjectLiteralExpression(state: CompilerState, node: ts.Ob
 			if (ts.TypeGuards.isSpreadAssignment(prop)) {
 				line = assignMembers(state, line, id);
 			} else if (ts.TypeGuards.isMethodDeclaration(prop)) {
-				line = state.indent + compileMethodDeclaration(state, prop, id + ":").trimLeft();
+				line = state.indent + compileMethodDeclaration(state, prop, id).trimLeft();
 			} else {
 				line = state.indent + id + (line.startsWith("[") ? "" : ".") + line;
 			}

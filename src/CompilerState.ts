@@ -1,5 +1,6 @@
 import * as ts from "ts-morph";
 import { ProjectType } from ".";
+import { RoactElementType } from "./compiler";
 import { CompilerError, CompilerErrorType } from "./errors/CompilerError";
 import { RojoProject } from "./RojoProject";
 import { joinIndentedLines, removeBalancedParenthesisFromStringBorders, ScriptContext } from "./utility/general";
@@ -19,6 +20,7 @@ export class CompilerState {
 		public readonly projectType: ProjectType,
 		public readonly runtimeLibPath: Array<string>,
 		public readonly modulesPath: string,
+		public readonly pkgVersion: string,
 		public readonly rojoProject?: RojoProject,
 		public readonly runtimeOverride?: string,
 		public readonly logTruthyDifferences?: boolean,
@@ -116,6 +118,24 @@ export class CompilerState {
 		this.indent += "\t";
 	}
 
+	/**
+	 * Gets the roact element at the specified offset
+	 * @param index The offset, negative number = from top, positive number/zero = from bottom
+	 */
+	public roactGetElementType(index: number = -1) {
+		if (index < 0) {
+			const reverseIndex = this.roactElementStack.length + index;
+			if (reverseIndex >= 0) {
+				return this.roactElementStack[reverseIndex];
+			} else {
+				return undefined;
+			}
+		} else {
+			const element = this.roactElementStack[index];
+			return element;
+		}
+	}
+
 	public popIndent() {
 		this.indent = this.indent.substr(1);
 	}
@@ -166,8 +186,8 @@ export class CompilerState {
 	// export stack
 	public exportStack = new Array<Set<string>>();
 
-	public pushExport(name: string, node: ts.Node & ts.ExportableNode) {
-		if (!node.hasExportKeyword()) {
+	public pushExport(name: string, node: ts.Node) {
+		if (!ts.TypeGuards.isExportGetableNode(node) || !node.hasExportKeyword()) {
 			return;
 		}
 
@@ -213,7 +233,8 @@ export class CompilerState {
 	public continueId = -1;
 	public isModule = false;
 	public scriptContext = ScriptContext.None;
-	public roactIndent: number = 0;
+	public roactElementStack = new Array<RoactElementType>();
+	public roactKeyStack = new Array<string>();
 	public hasRoactImport: boolean = false;
 	public usesTSLibrary = false;
 }

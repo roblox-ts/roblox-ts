@@ -413,4 +413,42 @@ export = () => {
 		expect(b[8]).to.equal(`19`);
 		expect(c[9]).to.equal(1);
 	});
+
+	it("should support composing objects with methods and callbacks", () => {
+		interface Numerable {
+			n: number;
+		}
+
+		function add(this: Numerable, n: number) {
+			return (this.n += n);
+		}
+
+		const mul = function<T extends Numerable>(this: T, n: number) {
+			this.n *= n;
+			return this;
+		};
+
+		function h(n: number) {
+			expect(n).to.equal(5);
+		}
+
+		const obj = { add, n: 10, mul, h };
+		expect(obj.add(5)).to.equal(15);
+		expect(obj.mul(3).add(6)).to.equal(51);
+		obj.h(5);
+	});
+
+	it("should support object member functions as implicitly being methods", () => {
+		// don't ask me why, but for some reason non-method function members in objects are implicitly methods
+
+		const o = {
+			count: 1,
+
+			getCount: function() {
+				return this.count;
+			},
+		};
+
+		expect(o.getCount()).to.equal(1);
+	});
 };

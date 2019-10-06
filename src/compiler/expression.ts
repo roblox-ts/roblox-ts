@@ -30,6 +30,7 @@ import {
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
+import { isMethodDeclaration } from "./function";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
@@ -86,12 +87,16 @@ export function compileExpression(state: CompilerState, node: ts.Expression): st
 		return "nil";
 	} else if (ts.TypeGuards.isThisExpression(node)) {
 		if (
-			!node.getFirstAncestorByKind(ts.SyntaxKind.ClassDeclaration) &&
-			!node.getFirstAncestorByKind(ts.SyntaxKind.ObjectLiteralExpression) &&
-			!node.getFirstAncestorByKind(ts.SyntaxKind.ClassExpression)
+			!node.getFirstAncestor(
+				ancestor =>
+					isMethodDeclaration(ancestor) ||
+					ts.TypeGuards.isClassDeclaration(ancestor) ||
+					ts.TypeGuards.isObjectLiteralExpression(ancestor) ||
+					ts.TypeGuards.isClassExpression(ancestor),
+			)
 		) {
 			throw new CompilerError(
-				"'this' may only be used inside a class definition or object literal",
+				"'this' may only be used inside a class definition, object literal, or method function",
 				node,
 				CompilerErrorType.NoThisOutsideClass,
 			);

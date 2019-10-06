@@ -42,10 +42,12 @@ export enum CompilerErrorType {
 	RoactNoReservedMethods,
 	RoactInvalidSymbol,
 	RoactInvalidPrimitive,
+	RoactSelfClosingFragment,
 	RoactInvalidExpression,
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,
 	RoactInvalidPropertyExpression,
+	RoactInvalidKeyUsage,
 	UnexpectedObjectIndex,
 	NoDynamicImport,
 	InvalidIdentifier,
@@ -92,6 +94,7 @@ export enum CompilerErrorType {
 	IsolatedContainer,
 	UnexpectedExtensionType,
 	BadDestructSubType,
+	MixedMethodSet,
 }
 
 export class CompilerError extends LoggableError {

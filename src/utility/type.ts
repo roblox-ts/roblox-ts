@@ -3,7 +3,7 @@ import { CompilerDirective, getCompilerDirective, isIdentifierDefinedInConst } f
 import { PrecedingStatementContext } from "../CompilerState";
 import { skipNodesDownwards, skipNodesUpwardsLookAhead } from "./general";
 
-export const RBX_SERVICES: Array<string> = [
+const RBX_SERVICES = new Set([
 	"AssetService",
 	"BadgeService",
 	"Chat",
@@ -46,67 +46,72 @@ export const RBX_SERVICES: Array<string> = [
 	"UserInputService",
 	"VRService",
 	"Workspace",
-];
+]);
 
 export function isRbxService(name: string) {
-	return RBX_SERVICES.indexOf(name) !== -1;
+	return RBX_SERVICES.has(name);
 }
 
 export function isTypeStatement(node: ts.Node) {
 	return (
-		ts.TypeGuards.isEmptyStatement(node) ||
-		ts.TypeGuards.isTypeReferenceNode(node) ||
-		ts.TypeGuards.isTypeAliasDeclaration(node) ||
-		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
-	);
-}
-
-function isImport(node: ts.Node) {
-	return (
-		ts.TypeGuards.isImportSpecifier(node) ||
-		ts.TypeGuards.isImportClause(node) ||
-		ts.TypeGuards.isImportEqualsDeclaration(node)
-	);
-}
-
-function isExport(node: ts.Node) {
-	return ts.TypeGuards.isExportAssignment(node) || ts.TypeGuards.isExportSpecifier(node);
-}
-
-export function isType(node: ts.Node): boolean {
-	if (ts.TypeGuards.isIdentifier(node) || ts.TypeGuards.isExpressionWithTypeArguments(node)) {
-		return isType(node.getParent());
-	}
-
-	return (
-		node.getKindName() === "TypeQuery" ||
+		// Classes which implement
 		(ts.TypeGuards.isHeritageClause(node) && node.getToken() === ts.SyntaxKind.ImplementsKeyword) ||
 		ts.TypeGuards.isEmptyStatement(node) ||
 		ts.TypeGuards.isTypeReferenceNode(node) ||
 		ts.TypeGuards.isTypeAliasDeclaration(node) ||
 		ts.TypeGuards.isInterfaceDeclaration(node) ||
-		isImport(node) ||
-		isExport(node) ||
-		(ts.TypeGuards.isAmbientableNode(node) && node.hasDeclareKeyword())
+		(ts.TypeGuards.isEnumDeclaration(node) && node.isConstEnum())
 	);
 }
 
-export function isUsedAsType(node: ts.Identifier) {
+/** Helper function which determines whether a given node is a type.
+ * Note: This assumes that if `node` is a const enum then it is the bottom-level identifer.
+ * If this receives a propertyAccess or elementAccess to a const enum, it will return false.
+ */
+function isType(node: ts.Node) {
+	return (
+		isTypeStatement(node) ||
+		node
+			.getAncestors()
+			.some(ancestor => ancestor.getKind() === ts.SyntaxKind.TypeQuery || isTypeStatement(ancestor)) ||
+		// if it is a const enum, it is always a type, even if it isn't a type >:)
+		(ts.TypeGuards.isIdentifier(node) &&
+			node.getDefinitions().some(def =>
+				def
+					.getNode()
+					.getAncestors()
+					.some(ancestor => ts.TypeGuards.isEnumDeclaration(ancestor) && ancestor.isConstEnum()),
+			))
+	);
+}
+
+export function isUsedExclusivelyAsType(node: ts.Identifier) {
 	try {
 		for (const refSymbol of node.findReferences()) {
 			for (const refEntry of refSymbol.getReferences()) {
 				if (refEntry.getSourceFile() === node.getSourceFile()) {
 					const ref = skipNodesDownwards(refEntry.getNode());
-					if (!isType(ref)) {
-						return false;
-					}
-					if (
-						isExport(ref.getParent()) &&
-						ts.TypeGuards.isIdentifier(ref) &&
-						ref.getDefinitionNodes().some(n => !isType(n))
-					) {
-						return false;
+					const isInImportStatement = ref.getFirstAncestorByKind(ts.SyntaxKind.ImportDeclaration);
+
+					// We want to check all references in this file to see whether this identifier is ever used as a value.
+					// Import statements, however, don't count.
+					if (!isInImportStatement) {
+						const isInExportStatement = ref.getFirstAncestor(
+							ancestor =>
+								ts.TypeGuards.isExportAssignment(ancestor) ||
+								ts.TypeGuards.isExportDeclaration(ancestor),
+						);
+
+						// If it is in an export statement, then it does count, but only if there is a value-version of the identifier.
+						// Otherwise, if the ref is a non-type, then it counts
+						if (
+							isInExportStatement
+								? ts.TypeGuards.isIdentifier(ref) &&
+								  ref.getDefinitions().some(def => !isType(def.getNode()))
+								: !isType(ref)
+						) {
+							return false;
+						}
 					}
 				}
 			}
@@ -270,10 +275,14 @@ export function isEnumType(type: ts.Type) {
 	});
 }
 
-export function isIterableIteratorType(type: ts.Type) {
+export function isGeneratorType(type: ts.Type) {
 	return isSomeType(type, typeConstraint, t => {
 		const symbol = t.getSymbol();
-		return symbol ? symbol.getEscapedName() === "IterableIterator" : false;
+		if (symbol) {
+			const name = symbol.getEscapedName();
+			return name === "Generator" || name === "IterableIterator";
+		}
+		return false;
 	});
 }
 
@@ -423,24 +432,24 @@ export function isSetType(type: ts.Type) {
 	return getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
-export function isMethodType(type: ts.Type) {
+export function isFunctionType(type: ts.Type) {
 	return type.getCallSignatures().length > 0;
 }
 
 export function isArrayMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Array);
 }
 
 export function isMapMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Map);
 }
 
 export function isSetMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Set);
 }
 
 export function isStringMethodType(type: ts.Type) {
-	return isMethodType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
@@ -483,16 +492,6 @@ export function isTupleReturnTypeCall(node: ts.CallExpression) {
 	}
 }
 
-function isAncestorOf(ancestor: ts.Node, descendant: ts.Node) {
-	while (descendant) {
-		if (ancestor === descendant) {
-			return true;
-		}
-		descendant = descendant.getParent();
-	}
-	return false;
-}
-
 export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor = true): boolean {
 	if (ts.TypeGuards.isForStatement(ancestor)) {
 		return false;
@@ -520,7 +519,7 @@ export function shouldHoist(ancestor: ts.Node, id: ts.Identifier, checkAncestor 
 			return true;
 		}
 
-		if (checkAncestor && isAncestorOf(ancestor, ref)) {
+		if (checkAncestor && (ref === ancestor || ref.getFirstAncestor(a => a === ancestor))) {
 			return false;
 		} else {
 			let refAncestor: ts.Node | undefined = ref;

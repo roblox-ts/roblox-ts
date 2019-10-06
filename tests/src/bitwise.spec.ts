@@ -58,4 +58,10 @@ export = () => {
 		let f = -1;
 		expect((f >>>= 0)).to.equal(math.pow(2, 32) - 1);
 	});
+
+	it("should support bitwise with negative numbers", () => {
+		let x = -5;
+		x >>= 1;
+		expect(x).to.equal(-3);
+	});
 };
