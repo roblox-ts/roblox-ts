@@ -42,12 +42,6 @@ jobs:
         luarocks install dkjson
         luarocks install bit32
 
-    - name: Run TSLint
-      run: npm run tslint
-
-    - name: Run PrettyLint
-      run: npm run prettylint
-
     - name: Run Tests
       run: npm run ci
 
