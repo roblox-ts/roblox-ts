@@ -3,7 +3,7 @@ name: Lint
 on: [push, pull_request]
 
 jobs:
-  build:
+  lint:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
 
     runs-on: ubuntu-latest
