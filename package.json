@@ -37,7 +37,7 @@
 	"dependencies": {
 		"ajv": "^6.10.2",
 		"chokidar": "^3.2.1",
-		"cross-spawn": "^7.0.0",
+		"cross-spawn": "^7.0.1",
 		"fs-extra": "^8.1.0",
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
