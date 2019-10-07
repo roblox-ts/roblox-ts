@@ -7,6 +7,30 @@ on:
       - master
 
 jobs:
+  lint:
+    if: contains(github.event.commits[0].message, '[skip ci]') == false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@master
+        with:
+          submodules: recursive
+
+      - name: Install NodeJS
+        uses: actions/setup-node@master
+        with:
+          node-version: 10.x
+
+      - name: Install Node_modules
+        run: npm install
+
+      - name: Run TSLint
+        run: npm run tslint
+
+      - name: Run PrettyLint
+        run: npm run prettylint
+
   test:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
 
@@ -21,7 +45,6 @@ jobs:
         uses: actions/setup-node@master
         with:
           node-version: 10.x
-          registry-url: 'https://registry.npmjs.org'
 
       - name: Install Node_modules
         run: npm install
