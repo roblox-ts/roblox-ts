@@ -45,7 +45,7 @@
 		"ts-morph": "^4.2.0",
 		"universal-analytics": "^0.4.20",
 		"uuid": "^3.3.3",
-		"yargs": "^14.0.0"
+		"yargs": "^14.2.0"
 	},
 	"devDependencies": {
 		"@istanbuljs/nyc-config-typescript": "^0.1.3",
