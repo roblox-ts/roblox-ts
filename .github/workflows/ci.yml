@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+
 jobs:
   test:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
