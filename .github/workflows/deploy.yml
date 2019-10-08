@@ -6,6 +6,9 @@ on:
 
 jobs:
   deploy:
+
+    if: GITHUB_REPOSITORY == 'roblox-ts/roblox-ts'
+
     runs-on: ubuntu-latest
 
     steps:
