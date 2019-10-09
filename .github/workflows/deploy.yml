@@ -6,7 +6,6 @@ on:
 
 jobs:
   deploy:
-
     if: github.repository == 'roblox-ts/roblox-ts'
 
     runs-on: ubuntu-latest
