@@ -7,6 +7,7 @@ import {
 	CompilerDirective,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
+	sanitizeTemplate,
 	shouldWrapExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
@@ -186,7 +187,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 					if (typeof value === "number") {
 						return `${value}`;
 					} else if (typeof value === "string") {
-						return `"${value}"`;
+						return '"' + sanitizeTemplate(value) + '"';
 					}
 				}
 			} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
