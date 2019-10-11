@@ -181,6 +181,10 @@ function getImportPath(
 	moduleFile: ts.SourceFile,
 	node: ts.Node,
 ): string {
+	if (state.isPlayground) {
+		return "...";
+	}
+
 	if (isPathAncestorOf(state.modulesPath, moduleFile.getFilePath())) {
 		return getModuleImportPath(state, moduleFile);
 	}

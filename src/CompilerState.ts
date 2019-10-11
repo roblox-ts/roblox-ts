@@ -15,6 +15,7 @@ export interface DeclarationContext {
 
 export class CompilerState {
 	constructor(
+		public readonly isPlayground: boolean,
 		public readonly rootPath: string,
 		public readonly outPath: string,
 		public readonly projectType: ProjectType,
