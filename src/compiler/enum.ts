@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, getReadableExpressionName } from ".";
+import { checkReserved, getReadableExpressionName, sanitizeTemplate } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
@@ -25,7 +25,8 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		const safeIndex = safeLuaIndex(name, memberName);
 
 		if (typeof memberValue === "string") {
-			result += state.indent + `${safeIndex} = "${memberValue}";\n`;
+			const strForm = '"' + sanitizeTemplate(memberValue) + '"';
+			result += state.indent + `${safeIndex} = ${strForm};\n`;
 		} else if (typeof memberValue === "number") {
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${name}[${memberValue}] = "${memberName}";\n`;
