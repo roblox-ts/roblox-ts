@@ -182,7 +182,7 @@ function getImportPath(
 	node: ts.Node,
 ): string {
 	if (state.isPlayground) {
-		return "...";
+		return "TS.import(script, ...)";
 	}
 
 	if (isPathAncestorOf(state.modulesPath, moduleFile.getFilePath())) {
