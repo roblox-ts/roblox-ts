@@ -95,6 +95,7 @@ export enum CompilerErrorType {
 	UnexpectedExtensionType,
 	BadDestructSubType,
 	MixedMethodSet,
+	BadNamespaceExport,
 }
 
 export class CompilerError extends LoggableError {

@@ -397,6 +397,14 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 	const rhs = new Array<string>();
 
 	if (node.isNamespaceExport()) {
+		if (node.getSourceFile().isDeclarationFile()) {
+			throw new CompilerError(
+				"Namespace exports are not supported for .d.ts files!",
+				node,
+				CompilerErrorType.BadNamespaceExport,
+			);
+		}
+
 		state.usesTSLibrary = true;
 		let ancestorName: string;
 		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {
