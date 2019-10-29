@@ -193,15 +193,15 @@ end
 	Fast spawn: Spawns a thread with predictable timing.
 	Runs immediately instead of first cycle being deferred.
 ]]
-local spawnBindable = Instance.new("BindableEvent")
 function Promise.spawn(callback, ...)
+	local spawnBindable = Instance.new("BindableEvent")
 	local args = { ... }
 	local length = select("#", ...)
-	local connection = spawnBindable.Event:Connect(function()
+	spawnBindable.Event:Connect(function()
 		callback(unpack(args, 1, length))
 	end)
 	spawnBindable:Fire()
-	connection:Disconnect()
+	spawnBindable:Destroy()
 end
 
 --[[
