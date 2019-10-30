@@ -11,6 +11,11 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		return result;
 	}
 	const nameNode = node.getNameNode();
+
+	if (nameNode.getDefinitionNodes().some(definition => definition !== node)) {
+		throw new CompilerError("Enum merging is not allowed!", node, CompilerErrorType.NoEnumMerging);
+	}
+
 	const name = checkReserved(nameNode);
 	state.pushExport(name, node);
 	if (shouldHoist(node, nameNode)) {
@@ -31,7 +36,7 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${name}[${memberValue}] = "${memberName}";\n`;
 		} else if (member.hasInitializer()) {
-			const initializer = skipNodesDownwards(member.getInitializer()!);
+			const initializer = skipNodesDownwards(member.getInitializerOrThrow());
 			state.enterPrecedingStatementContext();
 			const expStr = getReadableExpressionName(state, initializer);
 			result += state.exitPrecedingStatementContextAndJoin();
