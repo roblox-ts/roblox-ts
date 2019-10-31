@@ -20,6 +20,7 @@
 - Changed our limited emulation of JS behavior where many array methods wouldn't call callbacks on empty values in arrays (we considered any `nil` value `empty`). Now, every callback in every array method gets called on every item within arrays, even `nil` values if applicable. This should be more straightforward and easier to understand (and easier for our type system). This change shouldn't affect most people, since we discourage using arrays with holes anyway.
 	- If you need to strip an array of `nil` values, use `Array.filter((v): v is NonNullable<typeof v> => v !== undefined);`
     - We should release a library for safely making arrays with holes for that niche use case, where `length` is tracked as a real value.
+- Declaring the same enum multiple times (merging) is no longer allowed. As a result `Object.keys` and `Object.values` now work with enums!
 
 ### **0.2.14**
 - Fixed analytics bug
