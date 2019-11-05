@@ -482,6 +482,11 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,
 	},
+	"noEnumMerging.spec.ts": {
+		message: "should not allow enum merging",
+		instance: CompilerError,
+		type: CompilerErrorType.NoEnumMerging,
+	},
 };
 /* tslint:enable:object-literal-sort-keys */
 
