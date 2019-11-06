@@ -540,6 +540,7 @@ function evaluateNestedExpressions(
 			expStrs.push(item.expStr);
 		}
 
+		// look-ahead and shorten exprs immediately after the current one
 		while (i < nestedExpressions.exprs.length && isCompileDataBooly(compileData)) {
 			const { [i]: next } = nestedExpressions.exprs;
 			if (canShorten(next)) {
@@ -612,9 +613,10 @@ function evaluateNestedCheckedExpressions(
 	state: CompilerState,
 	logicalState: LogicalBinaryState,
 	nestedExpressions: NestedExpressions,
-	first = getLast,
+	first = getLast(nestedExpressions),
 ) {
 	const expStrs = new Array<string>();
+
 	for (const expr of nestedExpressions.exprs) {
 		if (expr.isMeta) {
 			evaluateNestedCheckedExpressions(state, logicalState, expr);
@@ -736,6 +738,11 @@ state.declarationContext.set(exp, {
 });
 */
 
+function nonTruthyProcessor(tree: NestedExpressions) {
+	for (const expr of tree.exprs) {
+	}
+}
+
 export function compileLogicalBinary(
 	state: CompilerState,
 	lhs: ts.Expression,
@@ -755,6 +762,14 @@ export function compileLogicalBinary(
 
 	const tree = makeNestedExpressions(node, isAnd);
 	preprocessLogicalBinary(state, node, isAnd ? 2 : 1, tree);
+
+	// TODO: Add a second processor step
+
+	if (isInTruthyCheck) {
+	} else {
+		nonTruthyProcessor(tree);
+	}
+
 	console.log(logNestedExpression(tree));
 	const logicalState = makeLogicalBinaryState(state, tree);
 	return (isInTruthyCheck ? evaluateNestedCheckedExpressions : evaluateNestedExpressions)(state, logicalState, tree);
