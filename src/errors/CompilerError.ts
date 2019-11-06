@@ -42,10 +42,12 @@ export enum CompilerErrorType {
 	RoactNoReservedMethods,
 	RoactInvalidSymbol,
 	RoactInvalidPrimitive,
+	RoactSelfClosingFragment,
 	RoactInvalidExpression,
 	RoactInvalidCallExpression,
 	RoactInvalidIdentifierExpression,
 	RoactInvalidPropertyExpression,
+	RoactInvalidKeyUsage,
 	UnexpectedObjectIndex,
 	NoDynamicImport,
 	InvalidIdentifier,
@@ -93,6 +95,8 @@ export enum CompilerErrorType {
 	UnexpectedExtensionType,
 	BadDestructSubType,
 	MixedMethodSet,
+	BadNamespaceExport,
+  NoEnumMerging,
 	DeclarationBreak,
 }
 

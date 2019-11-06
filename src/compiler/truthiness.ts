@@ -2,7 +2,7 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState, PrecedingStatementContext } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
-import { skipNodesDownwards, skipNodesUpwardsLookAhead, joinIndentedLines } from "../utility/general";
+import { joinIndentedLines, skipNodesDownwards, skipNodesUpwardsLookAhead } from "../utility/general";
 import { yellow } from "../utility/text";
 import {
 	getType,

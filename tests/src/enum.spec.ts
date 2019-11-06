@@ -22,6 +22,16 @@ enum Soups {
 	$ = "DOLLARS",
 }
 
+enum EnumWithEscapedQuote {
+	// prettier-ignore
+	Quote = "\"",
+}
+
+const enum EnumWithEscapedQuoteConst {
+	// prettier-ignore
+	Quote = "\"",
+}
+
 const enum Person {
 	Validark,
 	Osyris,
@@ -97,4 +107,12 @@ export = () => {
 		Dog = "DOG",
 		Snake = "SNAKE",
 	}
+
+	it("should support enums with escaped quotes", () => {
+		expect(EnumWithEscapedQuote.Quote).to.equal('"');
+	});
+
+	it("should support const enums with escaped quotes", () => {
+		expect(EnumWithEscapedQuoteConst.Quote).to.equal('"');
+	});
 };

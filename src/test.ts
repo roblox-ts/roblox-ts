@@ -67,20 +67,65 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
 	},
-	"roactSubClass.spec.tsx": {
+	"roact/roactInitMethod.spec.ts": {
+		message: "should not allow init in Roact class",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactNoReservedMethods,
+	},
+	"roact/roactSubClass.spec.tsx": {
 		message: "should not allow subclasses of roact components",
 		instance: CompilerError,
 		type: CompilerErrorType.RoactSubClassesNotSupported,
 	},
-	"roactJsxText.spec.tsx": {
+	"roact/roactJsxText.spec.tsx": {
 		message: "should not allow text between jsx elements",
 		instance: CompilerError,
 		type: CompilerErrorType.RoactJsxTextNotSupported,
 	},
-	"roactNew.spec.tsx": {
+	"roact/roactReservedName.spec.tsx": {
+		message: "should not allow reserved roact names declared in classes",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactNoReservedMethods,
+	},
+	"roact/roactExtendMethod.spec.ts": {
+		message: "should not allow extend declared in roact classes",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactNoReservedMethods,
+	},
+	"roact/roactNew.spec.tsx": {
 		message: "should not allow roact components to be created with new keyword",
 		instance: CompilerError,
 		type: CompilerErrorType.RoactNoNewComponentAllowed,
+	},
+	"roact/jsxMethodDeclarationCallbackProperty.spec.tsx": {
+		message: "should not allow putting a method as a callback in jsx props",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidCallExpression,
+	},
+	"roact/jsxExpressionNonRoactIdentifier.spec.tsx": {
+		message: "should not allow invalid identifiers as jsx expressions",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidIdentifierExpression,
+	},
+	"roact/jsxExpressionNonElementReturningCall.spec.tsx": {
+		message: "should not allow invalid return types from jsx expressions with function calls",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidCallExpression,
+	},
+	"roact/jsxExpressionBinaryRight.spec.tsx": {
+		message: "should not allow binary jsx expressions that result in non-element values if true",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidExpression,
+	},
+	"roact/jsxExpressionConditionalIfFalse.spec.tsx": {
+		message: "should not allow conditional jsx expressions that result in non-element if false",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidExpression,
+	},
+	"roact/jsxExpressionConditionalIfTrue.spec.tsx": {
+		message: "should not allow conditional jsx expressions that result in non-element if true",
+		instance: CompilerError,
+		type: CompilerErrorType.RoactInvalidExpression,
 	},
 	"luaTupleInConditional.spec.ts": {
 		message: "should not allow LuaTuples in conditionals",
@@ -272,11 +317,6 @@ const errorMatrix: ErrorMatrix = {
 		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
-	"roactInitMethod.spec.ts": {
-		message: "should not allow init in Roact class",
-		instance: CompilerError,
-		type: CompilerErrorType.RoactNoReservedMethods,
-	},
 	"tupleLength1.spec.ts": {
 		message: "should not allow indexing the length property of tuples",
 		instance: CompilerError,
@@ -441,6 +481,11 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow definition changing of mixed methods/member functions",
 		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,
+	},
+	"noEnumMerging.spec.ts": {
+		message: "should not allow enum merging",
+		instance: CompilerError,
+		type: CompilerErrorType.NoEnumMerging,
 	},
 };
 /* tslint:enable:object-literal-sort-keys */

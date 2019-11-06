@@ -87,7 +87,9 @@ stds.roblox = {
 			fields = {
 				"split"
 			}
-		}
+		},
+
+		"__LEMUR__",
     }
 }
 

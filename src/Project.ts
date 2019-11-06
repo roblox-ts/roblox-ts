@@ -685,8 +685,9 @@ export class Project {
 		}
 	}
 
-	private createCompilerState() {
+	private createCompilerState(isPlayground = false) {
 		return new CompilerState(
+			isPlayground,
 			this.rootPath,
 			this.outPath,
 			this.projectType,
@@ -706,7 +707,7 @@ export class Project {
 		let exception: Error | undefined;
 		let compiledSource = "";
 		try {
-			compiledSource = compileSourceFile(this.createCompilerState(), sourceFile);
+			compiledSource = compileSourceFile(this.createCompilerState(true), sourceFile);
 		} catch (e) {
 			exception = e;
 		}
