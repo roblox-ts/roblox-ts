@@ -318,7 +318,7 @@ export function compileConstructorDeclaration(
 
 			// Allow passing a rest parameter to super.
 			if (hasRestParameter) {
-				result += state.indent + initializers.splice(0, 1) + "\n";
+				result += state.indent + initializers.shift() + "\n";
 			}
 
 			if (containsSuperExpression(bodyStatements[k])) {
