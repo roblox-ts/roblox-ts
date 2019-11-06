@@ -77,6 +77,9 @@ function compileParamDefault(state: CompilerState, exp: ts.Expression, name: str
 	].join("");
 }
 
+/**
+ * @returns True if it has a rest parameter
+ */
 export function getParameterData(
 	state: CompilerState,
 	paramNames: Array<string>,
@@ -84,6 +87,8 @@ export function getParameterData(
 	node: HasParameters,
 	defaults?: Array<string>,
 ) {
+	let hasRestParameter = false;
+
 	for (const param of node.getParameters()) {
 		const child = param.getFirstChild(
 			exp =>
@@ -116,6 +121,7 @@ export function getParameterData(
 		if (param.isRestParameter()) {
 			paramNames.push("...");
 			initializers.push(`local ${name} = { ... };`);
+			hasRestParameter = true;
 		} else {
 			paramNames.push(name);
 		}
@@ -137,6 +143,8 @@ export function getParameterData(
 			initializers.push(...compileBindingPattern(state, child, name));
 		}
 	}
+
+	return hasRestParameter;
 }
 
 function arrayAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
