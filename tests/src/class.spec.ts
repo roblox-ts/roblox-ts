@@ -200,6 +200,24 @@ export = () => {
 		const c = new C();
 	});
 
+	it("should support passing the rest parameter from constructor to super", () => {
+		class A {
+			constructor(...rest: unknown[]) {
+				expect(rest[0]).to.equal(10);
+				expect(rest[1]).to.equal(20);
+				expect(rest[2]).to.equal(30);
+			}
+		}
+
+		class B extends A {
+			constructor(...rest: unknown[]) {
+				super(...rest);
+			}
+		}
+
+		expect(() => new B(10, 20, 30)).never.throw();
+	});
+
 	it("should support class expressions", () => {
 		const Foo = class {
 			bar() {
