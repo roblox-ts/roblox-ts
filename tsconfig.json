@@ -14,11 +14,11 @@
 		"removeComments": true
 	},
 	"include": [
-		"src/**/*"
+		"src"
 	],
 	"exclude": [
-		"node_modules/**/*",
-		"out/**/*",
+		"node_modules",
+		"out",
 		"templates"
 	]
 }
