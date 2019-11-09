@@ -55,7 +55,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 	);
 }
 
-function getLeftHandSideParent(subExp: ts.Node, climb: number = 3) {
+function getLeftHandSideParent(subExp: ts.Node, climb = 3) {
 	let exp = skipNodesUpwards(subExp);
 
 	for (let i = 0; i < climb; i++) {
@@ -84,7 +84,7 @@ function compileCallArgumentsAndSeparateAndJoin(state: CompilerState, params: Ar
 function compileCallArgumentsAndSeparateWrapped(
 	state: CompilerState,
 	params: Array<ts.Expression>,
-	strict: boolean = false,
+	strict = false,
 	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
 ): [string, Array<string>] {
 	const [accessPath, ...compiledArgs] = compileCallArguments(state, params, undefined, compile);
@@ -110,7 +110,7 @@ function compileCallArgumentsAndSeparateWrapped(
 function compileCallArgumentsAndSeparateAndJoinWrapped(
 	state: CompilerState,
 	params: Array<ts.Expression>,
-	strict: boolean = false,
+	strict = false,
 ): [string, string] {
 	const [accessStr, compiledArgs] = compileCallArgumentsAndSeparateWrapped(state, params, strict);
 	return [accessStr, compiledArgs.join(", ")];
@@ -202,6 +202,7 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	let maxLength: string;
 	let fillString: string;
 
+	// eslint-disable-next-line prefer-const
 	[str, maxLength, fillString] = compileCallArguments(state, params);
 
 	if (
@@ -353,11 +354,10 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				return `${accessPath}[#${accessPath}] = nil`;
 			} else {
 				const node = getLeftHandSideParent(subExp, 2);
-				let id: string;
 				const len = state.pushPrecedingStatementToNewId(subExp, `#${accessPath}`);
 				const place = `${accessPath}[${len}]`;
 				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
-				id = state.pushToDeclarationOrNewId(node, place);
+				const id = state.pushToDeclarationOrNewId(node, place);
 				const context = state.getCurrentPrecedingStatementContext(subExp);
 				const { isPushed } = context;
 				state.pushPrecedingStatements(subExp, nullSet);
@@ -496,6 +496,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 
 			let accessPath: string;
 			let paramStr: string;
+			// eslint-disable-next-line prefer-const
 			[accessPath, paramStr] = compileCallArgumentsAndSeparateAndJoin(state, params);
 			const isStatement = getPropertyCallParentIsExpressionStatement(subExp);
 
@@ -556,6 +557,7 @@ function setKeyOfMapOrSet(kind: "map" | "set") {
 		let accessStr: string;
 		let key: string;
 		let value: string;
+		// eslint-disable-next-line prefer-const
 		[accessStr, key, value] = compileCallArguments(state, params);
 		const accessPath = getReadableExpressionName(state, root, accessStr);
 		if (kind === "map" && ts.TypeGuards.isSpreadElement(params[1])) {
@@ -649,10 +651,7 @@ function makeGlobalExpressionMacro(compose: (arg1: string, arg2: string) => stri
 			obj = id;
 		}
 
-		const compiledStr = compose(
-			obj,
-			type,
-		);
+		const compiledStr = compose(obj, type);
 
 		return appendDeclarationIfMissing(state, getLeftHandSideParent(subExp, 2), `(${compiledStr})`);
 	};
@@ -1001,9 +1000,11 @@ export function compileElementAccessCallExpression(
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
-	const accessedPath = compileElementAccessDataTypeExpression(state, expression, accessor)(
-		compileElementAccessBracketExpression(state, expression),
-	);
+	const accessedPath = compileElementAccessDataTypeExpression(
+		state,
+		expression,
+		accessor,
+	)(compileElementAccessBracketExpression(state, expression));
 	const params = node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>;
 	const isMethod = isDefinedAsMethod(expression)!;
 

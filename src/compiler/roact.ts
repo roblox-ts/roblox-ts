@@ -29,7 +29,7 @@ const RESERVED_METHOD_NAMES = new Set([
  * @param type The type
  * @param allowsUndefined Allow undefined
  */
-function isRoactElementType(type: ts.Type, allowsUndefined: boolean = true) {
+function isRoactElementType(type: ts.Type, allowsUndefined = true) {
 	const unionTypeName = type.getText();
 	return unionTypeName === ROACT_ELEMENT_TYPE || (unionTypeName === "undefined" && allowsUndefined);
 }
@@ -631,7 +631,7 @@ function generateRoactChildren(state: CompilerState, isFragment: boolean, childC
 		} else if (ts.TypeGuards.isJsxExpression(child)) {
 			if (childStack.length > 0) {
 				roactCombineStack.push(state.indent + joinAndWrapInTable(state, childStack));
-				childStack = new Array();
+				childStack = [];
 			}
 
 			// If there's no expression, it will be a comment.

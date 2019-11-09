@@ -60,7 +60,7 @@ export class CompilerState {
 		return id;
 	}
 
-	public currentConditionalContext: string = "";
+	public currentConditionalContext = "";
 	private precedingStatementContexts = new Array<PrecedingStatementContext>();
 
 	public getCurrentPrecedingStatementContext(node: ts.Node) {
@@ -95,7 +95,7 @@ export class CompilerState {
 		return this.precedingStatementContexts.pop()!;
 	}
 
-	public exitPrecedingStatementContextAndJoin(numTabs: number = 0) {
+	public exitPrecedingStatementContextAndJoin(numTabs = 0) {
 		return joinIndentedLines(this.exitPrecedingStatementContext(), numTabs);
 	}
 
@@ -123,7 +123,7 @@ export class CompilerState {
 	 * Gets the roact element at the specified offset
 	 * @param index The offset, negative number = from top, positive number/zero = from bottom
 	 */
-	public roactGetElementType(index: number = -1) {
+	public roactGetElementType(index = -1) {
 		if (index < 0) {
 			const reverseIndex = this.roactElementStack.length + index;
 			if (reverseIndex >= 0) {
@@ -236,6 +236,6 @@ export class CompilerState {
 	public scriptContext = ScriptContext.None;
 	public roactElementStack = new Array<RoactElementType>();
 	public roactKeyStack = new Array<string>();
-	public hasRoactImport: boolean = false;
+	public hasRoactImport = false;
 	public usesTSLibrary = false;
 }

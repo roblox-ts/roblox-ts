@@ -25,11 +25,8 @@ jobs:
       - name: Install Node_modules
         run: npm install
 
-      - name: Run TSLint
-        run: npm run tslint
-
-      - name: Run PrettyLint
-        run: npm run prettylint
+      - name: Run ESLint
+        run: npm run eslint
 
   test:
     if: contains(github.event.commits[0].message, '[skip ci]') == false

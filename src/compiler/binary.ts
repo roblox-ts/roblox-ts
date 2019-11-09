@@ -10,7 +10,7 @@ import {
 	isIdentifierDefinedInExportLet,
 	shouldWrapExpression,
 } from ".";
-import { CompilerState, PrecedingStatementContext } from "../CompilerState";
+import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import {
@@ -205,7 +205,6 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 		lhs = skipNodesDownwards(lhs);
 		let isLhsIdentifier = ts.TypeGuards.isIdentifier(lhs) && !isIdentifierDefinedInExportLet(lhs);
 
-		let rhsStrContext: PrecedingStatementContext;
 		let hasOpenContext = false;
 		let stashedInnerStr: (() => string) | undefined;
 
@@ -268,7 +267,7 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 			rhsStr = compileExpression(state, rhs);
 		}
 
-		rhsStrContext = state.exitPrecedingStatementContext();
+		const rhsStrContext = state.exitPrecedingStatementContext();
 
 		const previouslhs = isEqualsOperation
 			? ""

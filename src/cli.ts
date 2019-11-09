@@ -14,6 +14,7 @@ const argv = yargs
 
 	// version
 	.alias("v", "version")
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	.version(require("../package.json").version as string)
 	.describe("version", "show version information")
 

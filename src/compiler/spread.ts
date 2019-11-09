@@ -64,9 +64,9 @@ export function compileSpreadableList(
 				lastContext = contexts[contexts.length - 1] as Array<PrecedingStatementContext>;
 				lastElement = args[args.length - 1] as Array<ts.Expression>;
 			} else {
-				last = new Array();
-				lastContext = new Array() as Array<PrecedingStatementContext>;
-				lastElement = new Array();
+				last = [];
+				lastContext = [] as Array<PrecedingStatementContext>;
+				lastElement = [];
 
 				parts.push(last);
 				contexts.push(lastContext);
@@ -164,7 +164,7 @@ export function compileSpreadableList(
 export function compileSpreadableListAndJoin(
 	state: CompilerState,
 	elements: Array<ts.Expression>,
-	shouldWrapInConcat: boolean = true,
+	shouldWrapInConcat = true,
 	compile: (state: CompilerState, expression: ts.Expression) => string = compileExpression,
 ) {
 	let params = compileSpreadableList(state, elements, compile)

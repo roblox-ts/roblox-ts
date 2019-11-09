@@ -11,480 +11,384 @@ import { red } from "./utility/text";
 interface ErrorMatrix {
 	[propName: string]: {
 		message: string;
-		instance: any;
-		type?: CompilerErrorType;
+		type: CompilerErrorType;
 	};
 }
 
+const DIAGNOSTIC_TEST_NAME = "diagnostic.spec.ts";
+
 /* tslint:disable:object-literal-sort-keys */
 const errorMatrix: ErrorMatrix = {
-	"diagnostic.spec.ts": {
-		message: "should not allow diagnostic errors",
-		instance: DiagnosticError,
-	},
 	"var.spec.ts": {
 		message: "should not allow var keyword",
-		instance: CompilerError,
 		type: CompilerErrorType.NoVarKeyword,
 	},
 	"reservedLuaKeywords.spec.ts": {
 		message: "should not allow usage of reserved lua keywords",
-		instance: CompilerError,
 		type: CompilerErrorType.ReservedKeyword,
 	},
 	"breakLabel.spec.ts": {
 		message: "should not allow usage of break labels",
-		instance: CompilerError,
 		type: CompilerErrorType.NoLabeledStatement,
 	},
 	"continueLabel.spec.ts": {
 		message: "should not allow usage of continue labels",
-		instance: CompilerError,
 		type: CompilerErrorType.NoLabeledStatement,
 	},
 	"constructorReturn.spec.ts": {
 		message: "should not allow return in class constructor",
-		instance: CompilerError,
 		type: CompilerErrorType.NoConstructorReturn,
 	},
 	"null.spec.ts": {
 		message: "should not allow usage of null",
-		instance: CompilerError,
 		type: CompilerErrorType.NoNull,
 	},
 	"reservedMetamethod.spec.ts": {
 		message: "should not allow usage of reserved metamethod names",
-		instance: CompilerError,
 		type: CompilerErrorType.ReservedMethodName,
 	},
 	"spreadDestructure.spec.ts": {
 		message: "should not allow usage of spread in destructure statements",
-		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
 	},
 	"spreadDestructure2.spec.ts": {
 		message: "should not allow usage of spread in destructure statements",
-		instance: CompilerError,
 		type: CompilerErrorType.SpreadDestructuring,
 	},
 	"roact/roactInitMethod.spec.ts": {
 		message: "should not allow init in Roact class",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
 	},
 	"roact/roactSubClass.spec.tsx": {
 		message: "should not allow subclasses of roact components",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactSubClassesNotSupported,
 	},
 	"roact/roactJsxText.spec.tsx": {
 		message: "should not allow text between jsx elements",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactJsxTextNotSupported,
 	},
 	"roact/roactReservedName.spec.tsx": {
 		message: "should not allow reserved roact names declared in classes",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
 	},
 	"roact/roactExtendMethod.spec.ts": {
 		message: "should not allow extend declared in roact classes",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactNoReservedMethods,
 	},
 	"roact/roactNew.spec.tsx": {
 		message: "should not allow roact components to be created with new keyword",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactNoNewComponentAllowed,
 	},
 	"roact/jsxMethodDeclarationCallbackProperty.spec.tsx": {
 		message: "should not allow putting a method as a callback in jsx props",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidCallExpression,
 	},
 	"roact/jsxExpressionNonRoactIdentifier.spec.tsx": {
 		message: "should not allow invalid identifiers as jsx expressions",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidIdentifierExpression,
 	},
 	"roact/jsxExpressionNonElementReturningCall.spec.tsx": {
 		message: "should not allow invalid return types from jsx expressions with function calls",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidCallExpression,
 	},
 	"roact/jsxExpressionBinaryRight.spec.tsx": {
 		message: "should not allow binary jsx expressions that result in non-element values if true",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidExpression,
 	},
 	"roact/jsxExpressionConditionalIfFalse.spec.tsx": {
 		message: "should not allow conditional jsx expressions that result in non-element if false",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidExpression,
 	},
 	"roact/jsxExpressionConditionalIfTrue.spec.tsx": {
 		message: "should not allow conditional jsx expressions that result in non-element if true",
-		instance: CompilerError,
 		type: CompilerErrorType.RoactInvalidExpression,
 	},
 	"luaTupleInConditional.spec.ts": {
 		message: "should not allow LuaTuples in conditionals",
-		instance: CompilerError,
 		type: CompilerErrorType.LuaTupleInConditional,
 	},
 	"luaTupleInIf.spec.ts": {
 		message: "should not allow LuaTuples in if statements",
-		instance: CompilerError,
 		type: CompilerErrorType.LuaTupleInConditional,
 	},
 	"luaTupleInElseIf.spec.ts": {
 		message: "should not allow LuaTuples in else if statements",
-		instance: CompilerError,
 		type: CompilerErrorType.LuaTupleInConditional,
 	},
 	"reservedId.spec.ts": {
 		message: "should not allow reserved identifiers to be used",
-		instance: CompilerError,
 		type: CompilerErrorType.RobloxTSReservedIdentifier,
 	},
 	"invalidAccess.spec.server.ts": {
 		message: "should not allow client only API to be accessed by server code",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidClientOnlyAPIAccess,
 	},
 	"invalidAccess.spec.client.ts": {
 		message: "should not allow server only API to be accessed by client code",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidServerOnlyAPIAccess,
 	},
 	"equalsEquals.ts": {
 		message: "should not allow ==",
-		instance: CompilerError,
 		type: CompilerErrorType.NoEqualsEquals,
 	},
 	"exclamationEquals.ts": {
 		message: "should not allow !=",
-		instance: CompilerError,
 		type: CompilerErrorType.NoExclamationEquals,
 	},
 	"dynamicImport.spec.ts": {
 		message: "should not allow dynamic imports",
-		instance: CompilerError,
 		type: CompilerErrorType.NoDynamicImport,
 	},
 	"macroIndex.spec.ts": {
 		message: "should not allowing indexing macro methods without call",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidMacroIndex,
 	},
 	"classPrototype.spec.ts": {
 		message: "should not allowing indexing class prototype",
-		instance: CompilerError,
 		type: CompilerErrorType.NoClassPrototype,
 	},
 	"indexFunction.spec.ts": {
 		message: "should not allowing indexing functions",
-		instance: CompilerError,
 		type: CompilerErrorType.NoFunctionIndex,
 	},
 	"invalidMetamethod.spec.ts": {
 		message: "should not allowing reserved metamethods",
-		instance: CompilerError,
 		type: CompilerErrorType.UndefinableMetamethod,
 	},
 	"unexpectedInitializerForOf.spec.ts": {
 		message: "should not allow expressions as initializers in for-of loops",
-		instance: CompilerError,
 		type: CompilerErrorType.UnexpectedInitializer,
 	},
 	"disallowForIn.spec.ts": {
 		message: "should not allow for-in loops",
-		instance: CompilerError,
 		type: CompilerErrorType.ForInLoop,
 	},
 	"exportNonModule.spec.server.ts": {
 		message: "should not allow exporting from a non-ModuleScript",
-		instance: CompilerError,
 		type: CompilerErrorType.ExportInNonModuleScript,
 	},
 	"typeof.spec.ts": {
 		message: "should not allow typeof operator",
-		instance: CompilerError,
 		type: CompilerErrorType.NoTypeOf,
 	},
 	"any/index.spec.ts": {
 		message: "should not allow indexing type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/call.spec.ts": {
 		message: "should not allow calling type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/pass.spec.ts": {
 		message: "should not allow passing type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/computedAccess.spec.ts": {
 		message: "should not allow computed accessing type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/computedAccess2.spec.ts": {
 		message: "should not allow computed accessing type any #2",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"any/func.spec.ts": {
 		message: "should not allow functions that return type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/add.spec.ts": {
 		message: "should not allow adding type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/sub.spec.ts": {
 		message: "should not allow subtracting type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/mul.spec.ts": {
 		message: "should not allow multiplying type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/div.spec.ts": {
 		message: "should not allow dividing type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"any/unary.spec.ts": {
 		message: "should not allow unary operators on type any",
-		instance: CompilerError,
 		type: CompilerErrorType.NoAny,
 	},
 	"methodDestructure/arr.spec.1.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/arr.spec.2.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/arr.spec.3.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidMacroIndex,
 	},
 	"methodDestructure/arr.spec.4.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/arr.spec.5.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/arr.spec.6.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.BadDestructuringType,
 	},
 	"methodDestructure/arr.spec.7.ts": {
 		message: "should not allow method indexing from arrays",
-		instance: CompilerError,
 		type: CompilerErrorType.BadDestructuringType,
 	},
 	"methodDestructure/map.spec.1.ts": {
 		message: "should not allow indexing from Maps",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/map.spec.2.ts": {
 		message: "should not allow indexing from Maps",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"methodDestructure/union.spec.ts": {
 		message: "should not allow Array and Object unions to be indexed from",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidComputedIndex,
 	},
 	"tupleLength1.spec.ts": {
 		message: "should not allow indexing the length property of tuples",
-		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
 	"tupleLength2.spec.ts": {
 		message: "should not allow indexing the length property of tuples",
-		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
 	"tupleLength3.spec.ts": {
 		message: "should not allow indexing the length property of tuples",
-		instance: CompilerError,
 		type: CompilerErrorType.TupleLength,
 	},
 	"extendedMapClass.spec.ts": {
 		message: "should not allow creating classes which extend Map",
-		instance: CompilerError,
 		type: CompilerErrorType.BadClassExtends,
 	},
 	"extendedSetClass.spec.ts": {
 		message: "should not allow creating classes which extend Set",
-		instance: CompilerError,
 		type: CompilerErrorType.BadClassExtends,
 	},
 	"getters.spec.ts": {
 		message: "should not allow getters",
-		instance: CompilerError,
 		type: CompilerErrorType.GettersSettersDisallowed,
 	},
 	"setters.spec.ts": {
 		message: "should not allow setters",
-		instance: CompilerError,
 		type: CompilerErrorType.GettersSettersDisallowed,
 	},
 	"staticGetters.spec.ts": {
 		message: "should not allow getters",
-		instance: CompilerError,
 		type: CompilerErrorType.GettersSettersDisallowed,
 	},
 	"staticSetters.spec.ts": {
 		message: "should not allow setters",
-		instance: CompilerError,
 		type: CompilerErrorType.GettersSettersDisallowed,
 	},
 	"funcExpMethodCall.spec.ts": {
 		message: "should not allow calling from function method expressions",
-		instance: CompilerError,
 		type: CompilerErrorType.BadFunctionExpressionMethodCall,
 	},
 	"superCallback.spec.ts": {
 		message: "should not allow super callback calls!",
-		instance: CompilerError,
 		type: CompilerErrorType.BadSuperCall,
 	},
 	"extendArrayIterator.spec.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
-		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
 	"extendArrayIterator.spec.1.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
-		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
 	"extendArrayIterator.spec.2.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
-		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
 	"extendArrayIterator.spec.3.ts": {
 		message: "should not allow Symbol.iterator on classes which extend from Array",
-		instance: CompilerError,
 		type: CompilerErrorType.DefaultIteratorOnArrayExtension,
 	},
 	"computedMethodInClass.spec.ts": {
 		message: "should not allow computed method names in classes",
-		instance: CompilerError,
 		type: CompilerErrorType.ClassWithComputedMethodNames,
 	},
 	"requireGmatchForOfDestructure.spec.ts": {
 		message: "should force destructuring on gmatch",
-		instance: CompilerError,
 		type: CompilerErrorType.BadForOfInitializer,
 	},
 	"invalidNames/catch.spec.ts": {
 		message: "should not allow invalid identifiers to be used (catch.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/variableDeclaration.spec.ts": {
 		message: "should not allow invalid identifiers to be used (variableDeclaration.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/destruct.spec.ts": {
 		message: "should not allow invalid identifiers to be used (destruct.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/destructAlias.spec.ts": {
 		message: "should not allow invalid identifiers to be used (destructAlias.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/function.spec.ts": {
 		message: "should not allow invalid identifiers to be used (function.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/namespace.spec.ts": {
 		message: "should not allow invalid identifiers to be used (namespace.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/functionExpression.spec.ts": {
 		message: "should not allow invalid identifiers to be used (functionExpression.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/class.spec.ts": {
 		message: "should not allow invalid identifiers to be used (class.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/arrDestruct.spec.ts": {
 		message: "should not allow invalid identifiers to be used (arrDestruct.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/flatDestruct.spec.ts": {
 		message: "should not allow invalid identifiers to be used (flatDestruct.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/enum.spec.ts": {
 		message: "should not allow invalid identifiers to be used (enum.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"invalidNames/parameter.spec.ts": {
 		message: "should not allow invalid identifiers to be used (parameter.spec.ts)",
-		instance: CompilerError,
 		type: CompilerErrorType.InvalidIdentifier,
 	},
 	"method-callback/conflictingDefinitions.spec.ts": {
 		message: "should not allow definition overloading of mixed methods/member functions",
-		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodCall,
 	},
 	"method-callback/conflictingClassMethods.spec.ts": {
 		message: "should not allow definition clashing of mixed methods/member functions",
-		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodCall,
 	},
 	"method-callback/conflictingObjectMethodSet.spec.ts": {
 		message: "should not allow definition changing of mixed methods/member functions",
-		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,
 	},
 	"method-callback/conflictingVars.spec.ts": {
 		message: "should not allow definition changing of mixed methods/member functions",
-		instance: CompilerError,
 		type: CompilerErrorType.MixedMethodSet,
 	},
 	"noEnumMerging.spec.ts": {
 		message: "should not allow enum merging",
-		instance: CompilerError,
 		type: CompilerErrorType.NoEnumMerging,
 	},
 };
@@ -545,24 +449,43 @@ describe("compile integration tests", () => testFolder(srcFolder));
 
 describe("compile integration tests for imports", () => testFolder(path.join(srcFolder, "imports")));
 
-describe("compile error unit tests", () => {
+function catchUnexpectedError(e: unknown, done: Mocha.Done) {
+	if (e instanceof CompilerError) {
+		done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
+	} else if (e instanceof ProjectError) {
+		done(`Unexpected ProjectError: ${ProjectErrorType[e.type]}`);
+	} else if (e instanceof DiagnosticError) {
+		done(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
+	} else {
+		done(`Unexpected error: ${String(e)}`);
+	}
+}
+
+describe("compile DiagnosticError unit tests", () => {
+	it("should not allow diagnostic errors", done => {
+		compile(path.join(srcFolder, "errors", DIAGNOSTIC_TEST_NAME))
+			.then(() => done("Did not throw!"))
+			.catch(e => {
+				if (e instanceof DiagnosticError) {
+					done();
+				} else {
+					catchUnexpectedError(e, done);
+				}
+			});
+	});
+});
+
+describe("compile CompilerError unit tests", () => {
 	for (const file in errorMatrix) {
-		it(errorMatrix[file].message, done => {
+		const errorInfo = errorMatrix[file];
+		it(errorInfo.message, done => {
 			compile(path.join(srcFolder, "errors", file))
 				.then(() => done("Did not throw!"))
 				.catch(e => {
-					if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === undefined) {
+					if (e instanceof CompilerError && errorInfo.type === e.type) {
 						done();
-					} else if (e instanceof errorMatrix[file].instance && errorMatrix[file].type === e.type) {
-						done();
-					} else if (e instanceof CompilerError) {
-						done(`Unexpected CompilerError: ${CompilerErrorType[e.type]}`);
-					} else if (e instanceof ProjectError) {
-						done(`Unexpected ProjectError: ${ProjectErrorType[e.type]}`);
-					} else if (e instanceof DiagnosticError) {
-						done(`Unexpected DiagnosticError:\n${e.errors.join("\n")}`);
 					} else {
-						done(`Unexpected error: ${String(e)}`);
+						catchUnexpectedError(e, done);
 					}
 				});
 		});

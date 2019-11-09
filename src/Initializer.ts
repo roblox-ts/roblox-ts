@@ -16,7 +16,7 @@ const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
 export abstract class Initializer {
 	private static step = 0;
-	public static async doStep(message: string, callback: () => Promise<any>) {
+	public static async doStep(message: string, callback: () => Promise<unknown>) {
 		const start = Date.now();
 		process.stdout.write(`\t${++this.step} - ${message}`);
 		await callback();

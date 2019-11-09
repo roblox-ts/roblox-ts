@@ -15,7 +15,10 @@ import { getType, inheritsFrom, isTupleType } from "../utility/type";
 
 function compileMapElement(state: CompilerState, element: ts.Expression) {
 	if (ts.TypeGuards.isArrayLiteralExpression(element)) {
-		const [key, value] = compileCallArguments(state, element.getElements().map(e => skipNodesDownwards(e)));
+		const [key, value] = compileCallArguments(
+			state,
+			element.getElements().map(e => skipNodesDownwards(e)),
+		);
 		return `[${key}] = ${value};\n`;
 	} else if (ts.TypeGuards.isCallExpression(element) && isTupleType(element.getReturnType())) {
 		const key = state.getNewId();

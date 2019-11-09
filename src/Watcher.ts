@@ -18,7 +18,7 @@ const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	usePolling: true,
 };
 
-async function time(callback: () => any) {
+async function time(callback: () => Promise<void>) {
 	const start = Date.now();
 	try {
 		await callback();
