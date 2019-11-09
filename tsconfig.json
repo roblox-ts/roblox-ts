@@ -8,7 +8,6 @@
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
-		"sourceMap": true,
 		"noUnusedLocals": true,
 		"esModuleInterop": true,
 		"removeComments": true
