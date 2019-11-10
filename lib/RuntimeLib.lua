@@ -504,7 +504,7 @@ end
 
 function TS.array_every(list, callback)
 	for i = 1, #list do
-		if callback(list[i], i - 1, list) == false then
+		if not callback(list[i], i - 1, list) then
 			return false
 		end
 	end
