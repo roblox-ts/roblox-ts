@@ -449,10 +449,10 @@ export = () => {
 
 		const array1 = [1, 30, 4, 21, 100000].sort();
 		expect(array1[0]).to.equal(1);
-		expect(array1[1]).to.equal(100000);
+		expect(array1[1]).to.equal(4);
 		expect(array1[2]).to.equal(21);
 		expect(array1[3]).to.equal(30);
-		expect(array1[4]).to.equal(4);
+		expect(array1[4]).to.equal(100000);
 	});
 
 	// it("should support flat", () => {
