@@ -372,22 +372,9 @@ function TS.array_filter(list, callback)
 	return result
 end
 
-local function sortFallback(a, b)
-	return tostring(a) < tostring(b)
-end
-
 function TS.array_sort(list, callback)
-	local sorted = array_copy(list)
-
-	if callback then
-		table.sort(sorted, function(a, b)
-			return 0 < callback(a, b)
-		end)
-	else
-		table.sort(sorted, sortFallback)
-	end
-
-	return sorted
+	table.sort(list, callback)
+	return list
 end
 
 TS.array_toString = toString
