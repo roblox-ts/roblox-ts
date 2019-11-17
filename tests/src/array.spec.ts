@@ -455,43 +455,43 @@ export = () => {
 		expect(array1[4]).to.equal(4);
 	});
 
-	it("should support flat", () => {
-		const arr1 = [1, 2, [3, 4]];
-		const x = arr1.flat();
-		expect(x[0]).to.equal(1);
-		expect(x[1]).to.equal(2);
-		expect(x[2]).to.equal(3);
-		expect(x[3]).to.equal(4);
+	// it("should support flat", () => {
+	// 	const arr1 = [1, 2, [3, 4]];
+	// 	const x = arr1.flat();
+	// 	expect(x[0]).to.equal(1);
+	// 	expect(x[1]).to.equal(2);
+	// 	expect(x[2]).to.equal(3);
+	// 	expect(x[3]).to.equal(4);
 
-		const arr2 = [1, 2, [3, 4, [5, 6]]];
-		const y = arr2.flat(1) as [number, number, number, number, [number, number]];
-		expect(y[0]).to.equal(1);
-		expect(y[1]).to.equal(2);
-		expect(y[2]).to.equal(3);
-		expect(y[3]).to.equal(4);
-		expect(y[4][0]).to.equal(5);
-		expect(y[4][1]).to.equal(6);
-		// [1, 2, 3, 4, [5, 6]]
+	// 	const arr2 = [1, 2, [3, 4, [5, 6]]];
+	// 	const y = arr2.flat(1) as [number, number, number, number, [number, number]];
+	// 	expect(y[0]).to.equal(1);
+	// 	expect(y[1]).to.equal(2);
+	// 	expect(y[2]).to.equal(3);
+	// 	expect(y[3]).to.equal(4);
+	// 	expect(y[4][0]).to.equal(5);
+	// 	expect(y[4][1]).to.equal(6);
+	// 	// [1, 2, 3, 4, [5, 6]]
 
-		const arr3 = [1, 2, [3, 4, [5, 6]]];
-		const z = arr3.flat(2);
+	// 	const arr3 = [1, 2, [3, 4, [5, 6]]];
+	// 	const z = arr3.flat(2);
 
-		expect(z[0]).to.equal(1);
-		expect(z[1]).to.equal(2);
-		expect(z[2]).to.equal(3);
-		expect(z[3]).to.equal(4);
-		expect(z[4]).to.equal(5);
-		expect(z[5]).to.equal(6);
-		// [1, 2, 3, 4, 5, 6]
+	// 	expect(z[0]).to.equal(1);
+	// 	expect(z[1]).to.equal(2);
+	// 	expect(z[2]).to.equal(3);
+	// 	expect(z[3]).to.equal(4);
+	// 	expect(z[4]).to.equal(5);
+	// 	expect(z[5]).to.equal(6);
+	// 	// [1, 2, 3, 4, 5, 6]
 
-		const arr4 = [1, 2, 4, 5];
-		const a = arr4.flat();
-		// [1, 2, 4, 5]
-		expect(a[0]).to.equal(1);
-		expect(a[1]).to.equal(2);
-		expect(a[2]).to.equal(4);
-		expect(a[3]).to.equal(5);
-	});
+	// 	const arr4 = [1, 2, 4, 5];
+	// 	const a = arr4.flat();
+	// 	// [1, 2, 4, 5]
+	// 	expect(a[0]).to.equal(1);
+	// 	expect(a[1]).to.equal(2);
+	// 	expect(a[2]).to.equal(4);
+	// 	expect(a[3]).to.equal(5);
+	// });
 
 	it("should support copyWithin", () => {
 		const array1 = ["a", "b", "c", "d", "e"];
