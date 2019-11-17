@@ -660,4 +660,17 @@ export = () => {
 	it("should support Array constructor", () => {
 		expect(new Array(10).isEmpty()).to.equal(true);
 	});
+
+	it("should support Array.mapFiltered", () => {
+		class A {
+			static i = 0;
+
+			f() {
+				return ++A.i > 5 ? { x: A.i } : undefined;
+			}
+		}
+
+		const arr = [new A(), new A(), new A(), new A(), new A(), new A(), new A(), new A()];
+		expect(arr.mapFiltered(a => a.f()).reduce((a, c) => a + c.x, 0)).to.equal(21);
+	})
 };

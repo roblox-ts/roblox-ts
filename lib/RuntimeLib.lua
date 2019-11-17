@@ -361,6 +361,22 @@ end
 
 TS.array_map = array_map
 
+function TS.array_mapFiltered(list, callback)
+    local new = {}
+    local index = 1
+
+    for i = 1, #list do
+        local result = callback(list[i], i - 1, list)
+
+        if result ~= nil then
+            new[index] = result
+            index = index + 1
+        end
+    end
+
+    return new
+end
+
 function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
