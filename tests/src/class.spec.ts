@@ -304,7 +304,7 @@ export = () => {
 			constructor(arr?: ReadonlyArray<number>) {
 				super();
 				if (arr) {
-					super.push(...arr.sort((a, b) => b - a));
+					super.push(...[...arr].sort());
 				}
 			}
 			public unshift() {
