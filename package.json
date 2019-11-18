@@ -52,7 +52,7 @@
 		"@types/uuid": "^3.4.6",
 		"@types/yargs": "^13.0.3",
 		"@typescript-eslint/eslint-plugin": "^2.8.0",
-		"@typescript-eslint/parser": "^2.7.0",
+		"@typescript-eslint/parser": "^2.8.0",
 		"eslint": "^6.6.0",
 		"eslint-config-prettier": "^6.6.0",
 		"eslint-plugin-prettier": "^3.1.1",
