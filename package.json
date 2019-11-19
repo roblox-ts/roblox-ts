@@ -11,7 +11,9 @@
 		"rbxtsc": "out/cli.js"
 	},
 	"scripts": {
-		"eslint": "npx eslint \"src/**/*.ts\" --max-warnings 0",
+		"eslint-src": "npx eslint \"src/**/*.ts\" --max-warnings 0",
+		"eslint-tests": "npx eslint \"tests/**/*.ts\" --max-warnings 0",
+		"eslint": "npm run eslint-src && npm run eslint-tests",
 		"build": "npx tsc",
 		"test-compile": "mocha --timeout 0 --recursive out/test.js",
 		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
@@ -61,8 +63,7 @@
 		"mocha": "^6.2.2",
 		"nyc": "^14.1.1",
 		"prettier": "^1.19.1",
-		"prettylint": "^1.0.0",
-		"tslint": "^5.20.1"
+		"prettylint": "^1.0.0"
 	},
 	"files": [
 		"out",
