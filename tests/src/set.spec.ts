@@ -303,7 +303,9 @@ export = () => {
 
 	it("should support difference", () => {
 		// the symmetric difference of  { 7, 8, 9, 10 } and { 9, 10, 11, 12 } is the set { 7, 8, 11, 12 }
-		const set1 = new Set<number>([7, 8]).add(9).add(10);
+		const set1 = new Set<number>([7, 8])
+			.add(9)
+			.add(10);
 		const set2 = new Set<number>([11])
 			.add(9)
 			.add(10)

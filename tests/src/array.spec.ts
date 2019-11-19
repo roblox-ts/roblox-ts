@@ -282,7 +282,11 @@ export = () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
-		const a = [[0, 1], [2, 3], [4, 5]].reduce(reducer);
+		const a = [
+			[0, 1],
+			[2, 3],
+			[4, 5],
+		].reduce(reducer);
 		expect(a[0]).to.equal(0);
 		expect(a[1]).to.equal(1);
 		expect(a[2]).to.equal(2);
@@ -295,7 +299,11 @@ export = () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
-		const a = [[0, 1], [2, 3], [4, 5]].reduceRight(reducer);
+		const a = [
+			[0, 1],
+			[2, 3],
+			[4, 5],
+		].reduceRight(reducer);
 		expect(a[0]).to.equal(4);
 		expect(a[1]).to.equal(5);
 		expect(a[2]).to.equal(2);
@@ -578,7 +586,7 @@ export = () => {
 	});
 
 	it("should support array.entries", () => {
-		function array_entries<T>(arr: Array<T>) {
+		function arrayEntries<T>(arr: Array<T>) {
 			let i = 0;
 			const results = new Array<[number, T]>();
 			for (const v of arr) {
@@ -597,7 +605,7 @@ export = () => {
 		}
 
 		const arr = [..."Hello, world!"];
-		compare(array_entries(arr), arr.entries());
+		compare(arrayEntries(arr), arr.entries());
 	});
 
 	it("should support spreading non-apparent types", () => {
@@ -650,7 +658,7 @@ export = () => {
 			? [A, B, C, D, E, F, G, H]
 			: Array<unknown>; // default, if user has more than 8 args then wtf they doing with their lives?!?
 
-		function f<C extends Array<any>>(arr: StaticArguments<C>) {
+		function f<C extends Array<unknown>>(arr: StaticArguments<C>) {
 			return [...arr];
 		}
 
@@ -672,5 +680,5 @@ export = () => {
 
 		const arr = [new A(), new A(), new A(), new A(), new A(), new A(), new A(), new A()];
 		expect(arr.mapFiltered(a => a.f()).reduce((a, c) => a + c.x, 0)).to.equal(21);
-	})
+	});
 };

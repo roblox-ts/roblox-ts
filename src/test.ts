@@ -17,7 +17,6 @@ interface ErrorMatrix {
 
 const DIAGNOSTIC_TEST_NAME = "diagnostic.spec.ts";
 
-/* tslint:disable:object-literal-sort-keys */
 const errorMatrix: ErrorMatrix = {
 	"var.spec.ts": {
 		message: "should not allow var keyword",
@@ -392,7 +391,6 @@ const errorMatrix: ErrorMatrix = {
 		type: CompilerErrorType.NoEnumMerging,
 	},
 };
-/* tslint:enable:object-literal-sort-keys */
 
 const compilerArgs = {
 	ci: true,

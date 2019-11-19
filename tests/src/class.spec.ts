@@ -49,7 +49,7 @@ export = () => {
 
 	it("should inhereit methods", () => {
 		class Animal {
-			public move(distanceInMeters: number = 0) {
+			public move(distanceInMeters = 0) {
 				return `Animal moved ${distanceInMeters}m.`;
 			}
 		}
@@ -178,7 +178,7 @@ export = () => {
 		expect(bar.baz()).to.equal("AB");
 
 		class A<T> extends Array<T> {
-			constructor(s: string = "") {
+			constructor(s = "") {
 				expect(super()).to.equal(undefined);
 			}
 		}
@@ -202,7 +202,7 @@ export = () => {
 
 	it("should support passing the rest parameter from constructor to super", () => {
 		class A {
-			constructor(...rest: unknown[]) {
+			constructor(...rest: Array<unknown>) {
 				expect(rest[0]).to.equal(10);
 				expect(rest[1]).to.equal(20);
 				expect(rest[2]).to.equal(30);
@@ -210,7 +210,7 @@ export = () => {
 		}
 
 		class B extends A {
-			constructor(...rest: unknown[]) {
+			constructor(...rest: Array<unknown>) {
 				super(...rest);
 			}
 		}

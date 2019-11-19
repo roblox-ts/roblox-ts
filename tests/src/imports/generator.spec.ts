@@ -271,7 +271,7 @@ export = () => {
 	});
 
 	it("should support using Symbol.iterator directly", () => {
-		function* range(start: number, last: number, iter: number = 1) {
+		function* range(start: number, last: number, iter = 1) {
 			for (let i = start; i <= last; i += iter) yield i;
 		}
 
