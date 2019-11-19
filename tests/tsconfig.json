@@ -21,5 +21,12 @@
 		// optional, non-configurable
 		"jsx": "react",
 		"jsxFactory": "Roact.createElement"
-	}
+	},
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"node_modules",
+		"out"
+	]
 }
