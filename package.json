@@ -24,7 +24,9 @@
 	},
 	"nyc": {
 		"all": true,
-		"include": [ "out/compiler/**" ]
+		"include": [
+			"out/compiler/**"
+		]
 	},
 	"author": "",
 	"license": "MIT",
