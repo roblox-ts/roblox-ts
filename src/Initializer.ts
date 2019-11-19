@@ -42,7 +42,12 @@ export abstract class Initializer {
 				await cmd("npm", ["init", "-y", "--scope", "@rbxts"]);
 				const pkgJsonPath = path.join(dir, "package.json");
 				const pkgJson = await fs.readJson(pkgJsonPath);
-				pkgJson.private = false;
+				pkgJson.publishConfig = {
+					access: "public",
+				};
+				pkgJson.scripts = {
+					prepublishOnly: "rbxtsc",
+				};
 				pkgJson.main = "out/init.lua";
 				pkgJson.types = "out/index.d.ts";
 				await fs.outputFile(pkgJsonPath, JSON.stringify(pkgJson, null, 2));
