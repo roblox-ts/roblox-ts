@@ -377,6 +377,29 @@ function TS.array_mapFiltered(list, callback)
     return new
 end
 
+local function getArraySizeSlow(list)
+    local result = 0
+    for index in pairs(list) do
+        if index > result then
+            result = index
+        end
+    end
+    return result
+end
+
+function TS.array_filterUndefined(list)
+	local length = 0
+	local result = {}
+	for i = 1, getArraySizeSlow(list) do
+		local value = list[i]
+		if value ~= nil then
+			length = length + 1
+			result[length] = value
+		end
+	end
+	return result
+end
+
 function TS.array_filter(list, callback)
 	local result = {}
 	for i = 1, #list do
