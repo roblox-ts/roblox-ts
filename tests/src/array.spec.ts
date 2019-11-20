@@ -683,7 +683,7 @@ export = () => {
 	});
 
 	it("should support Array.filterUndefined", () => {
-		function foo(...args: unknown[]) {
+		function foo(...args: Array<unknown>) {
 			const safeArgs = args.filterUndefined();
 			expect(safeArgs[0]).to.equal("A");
 			expect(safeArgs[1]).to.equal("B");
