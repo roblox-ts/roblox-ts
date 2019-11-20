@@ -681,4 +681,14 @@ export = () => {
 		const arr = [new A(), new A(), new A(), new A(), new A(), new A(), new A(), new A()];
 		expect(arr.mapFiltered(a => a.f()).reduce((a, c) => a + c.x, 0)).to.equal(21);
 	});
+
+	it("should support Array.filterUndefined", () => {
+		function foo(...args: Array<unknown>) {
+			const safeArgs = args.filterUndefined();
+			expect(safeArgs[0]).to.equal("A");
+			expect(safeArgs[1]).to.equal("B");
+			expect(safeArgs[2]).to.equal("C");
+		}
+		foo(undefined, "A", undefined, "B", undefined, "C", undefined);
+	});
 };
