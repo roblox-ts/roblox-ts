@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: pascalgn/automerge-action@master
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.merge_token }}"
           MERGE_METHOD: squash
           MERGE_LABELS: ''
           MERGE_RETRIES: 12
