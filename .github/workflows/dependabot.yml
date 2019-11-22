@@ -1,0 +1,15 @@
+name: Merge Dependabot
+
+on: pull_request
+
+jobs:
+  merge:
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: pascalgn/automerge-action@master
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_METHOD: squash
+          MERGE_LABELS: ''
+          MERGE_RETRIES: 12
