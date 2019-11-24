@@ -26,7 +26,7 @@ end
 function table.create(size, value)
 	local t = {}
 	for i = 1, size do
-		t[i] = value or nil
+		t[i] = value
 	end
 	return t
 end
