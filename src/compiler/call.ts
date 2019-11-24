@@ -321,6 +321,32 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
 		},
 	],
+
+	[
+		"indexOf",
+		(state, params) => {
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
+
+			if (fromIndex !== undefined) {
+				return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex)}, true) or 0) - 1`;
+			} else {
+				return `(string.find(${accessPath}, ${matchParam}, 1, true) or 0) - 1`;
+			}
+		},
+	],
+
+	[
+		"includes",
+		(state, params) => {
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
+
+			if (fromIndex !== undefined) {
+				return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex)}, true) ~= nil)`;
+			} else {
+				return `(string.find(${accessPath}, ${matchParam}, 1, true) ~= nil)`;
+			}
+		},
+	],
 ]);
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
@@ -554,9 +580,9 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const [accessPath, indexParamStr, fromIndex] = compileCallArguments(state, params);
 
 			if (fromIndex !== undefined) {
-				return `(not not table.find(${accessPath}, ${indexParamStr}, ${addOneToArrayIndex(fromIndex)}))`;
+				return `(table.find(${accessPath}, ${indexParamStr}, ${addOneToArrayIndex(fromIndex)}) ~= nil)`;
 			} else {
-				return `(not not table.find(${accessPath}, ${indexParamStr}))`;
+				return `(table.find(${accessPath}, ${indexParamStr}) ~= nil)`;
 			}
 		},
 	],
