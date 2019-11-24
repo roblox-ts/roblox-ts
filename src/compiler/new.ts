@@ -227,13 +227,9 @@ export function compileNewExpression(
 				result
 			);
 		} else if (args.length === 2) {
-			const [length, value] = args;
-			result =
-				"table.create(" +
-				compileExpression(state, length) +
-				", " +
-				compileExpression(state, value) +
-				")";
+			const [length, value] = compileCallArguments(state, args);
+
+			result = "table.create(" + length + ", " + value + ")";
 			return appendDeclarationIfMissing(
 				state,
 				skipNodesUpwards(node.getParent()),
