@@ -157,7 +157,7 @@ function compileSetMapConstructorHelper(
 	}
 }
 
-const ARRAY_NIL_LIMIT = 200;
+const ARRAY_NIL_LIMIT = 10;
 
 export function compileNewExpression(state: CompilerState, node: ts.NewExpression) {
 	const expNode = skipNodesDownwards(node.getExpression());
@@ -184,24 +184,8 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 		let result = `{`;
 		if (args.length === 1) {
 			const arg = args[0];
-			if (
-				ts.TypeGuards.isNumericLiteral(arg) &&
-				arg.getText().match(/^\d+$/) &&
-				arg.getLiteralValue() <= ARRAY_NIL_LIMIT
-			) {
-				const literalValue = arg.getLiteralValue();
-				if (literalValue !== 0) {
-					result += ", nil".repeat(literalValue).substring(1) + " ";
-				}
-			} else {
-				throw new CompilerError(
-					"Invalid argument #1 passed into ArrayConstructor. Expected a simple integer fewer or equal to " +
-						ARRAY_NIL_LIMIT +
-						".",
-					node,
-					CompilerErrorType.BadBuiltinConstructorCall,
-				);
-			}
+			result = "table.create(" + compileExpression(state, arg) + ")";
+			return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result);
 		} else if (args.length !== 0) {
 			throw new CompilerError(
 				"Invalid arguments passed into ArrayConstructor!",
