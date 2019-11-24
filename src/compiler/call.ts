@@ -548,6 +548,19 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		},
 	],
 
+	[
+		"includes",
+		(state, params) => {
+			const [accessPath, indexParamStr, fromIndex] = compileCallArguments(state, params);
+
+			if (fromIndex !== undefined) {
+				return `(not not table.find(${accessPath}, ${indexParamStr}, ${addOneToArrayIndex(fromIndex)}))`;
+			} else {
+				return `(not not table.find(${accessPath}, ${indexParamStr}))`;
+			}
+		},
+	],
+
 	["isEmpty", isMapOrSetOrArrayEmpty],
 ]);
 
