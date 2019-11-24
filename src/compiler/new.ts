@@ -184,8 +184,8 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 
 		let result = `{`;
 		if (args.length === 1) {
-			const arg = args[0];
-			result = "table.create(" + compileExpression(state, arg) + ")";
+			const [length] = compileCallArguments(state, args);
+			result = "table.create(" + length + ")";
 			return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result);
 		} else if (args.length === 2) {
 			const [length, value] = compileCallArguments(state, args);
