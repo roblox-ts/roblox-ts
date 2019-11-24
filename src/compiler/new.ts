@@ -157,8 +157,6 @@ function compileSetMapConstructorHelper(
 	}
 }
 
-const ARRAY_NIL_LIMIT = 10;
-
 export function compileNewExpression(state: CompilerState, node: ts.NewExpression) {
 	const expNode = skipNodesDownwards(node.getExpression());
 	const expressionType = getType(expNode);
