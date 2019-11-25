@@ -12,4 +12,4 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.merge_token }}"
           MERGE_METHOD: squash
           MERGE_LABELS: ''
-          MERGE_RETRIES: 12
+          MERGE_RETRIES: 99
