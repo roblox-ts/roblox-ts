@@ -232,16 +232,27 @@ local function copy(object)
 	return result
 end
 
-local function deepCopy(object)
+local function deepCopyHelper(object, encountered)
 	local result = {}
+	encountered[object] = result
+
 	for k, v in pairs(object) do
-		if type(v) == "table" then
-			result[k] = deepCopy(v)
-		else
-			result[k] = v
+		if type(k) == "table" then
+			k = encountered[k] or deepCopyHelper(k, encountered)
 		end
+
+		if type(v) == "table" then
+			v = encountered[v] or deepCopyHelper(v, encountered)
+		end
+
+		result[k] = v
 	end
+
 	return result
+end
+
+local function deepCopy(object)
+	return deepCopyHelper(object, {})
 end
 
 local function deepEquals(a, b)
