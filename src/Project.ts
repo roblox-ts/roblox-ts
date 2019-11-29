@@ -13,6 +13,7 @@ import { RojoProjectError } from "./errors/RojoProjectError";
 import { NetworkType, RojoProject } from "./RojoProject";
 import { transformPathToLua } from "./utility/general";
 import { red, yellow } from "./utility/text";
+import cluster from "cluster";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -131,6 +132,7 @@ interface ProjectOptions {
 	noInclude?: boolean;
 	minify?: boolean;
 	ci?: boolean;
+	multithread?: boolean;
 	logTruthyChanges?: boolean;
 }
 
@@ -158,6 +160,7 @@ export class Project {
 	private readonly rojoOverridePath: string | undefined;
 	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
+	private readonly multithread: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
 
 	public reloadProject() {
@@ -217,6 +220,10 @@ export class Project {
 		}
 	}
 
+	public getSourceFile(fileNameOrPath: string) {
+		return this.project.getSourceFile(fileNameOrPath);
+	}
+
 	public reloadRojo() {
 		if (this.rojoFilePath) {
 			try {
@@ -274,6 +281,7 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
+			this.multithread = opts.multithread === true;
 			this.logTruthyDifferences = opts.logTruthyChanges;
 
 			const rootPath = this.compilerOptions.rootDir;
@@ -320,6 +328,7 @@ export class Project {
 			this.noInclude = true;
 			this.minify = false;
 			this.rootPath = "";
+			this.multithread = false;
 			this.outPath = "";
 			this.modulesPath = "";
 			this.ci = false;
@@ -644,14 +653,53 @@ export class Project {
 	}
 
 	public async compileAll() {
-		await this.compileFiles(this.project.getSourceFiles());
-		if (process.exitCode === 0) {
-			await this.copyLuaFiles();
-			if (this.compilerOptions.declaration) {
-				await this.copyDtsFiles();
+		if (this.multithread) {
+			if (cluster.isWorker) {
+				throw `Cannot call compileAll in worker`;
+			} else {
+				let workerCount = 0;
+				for (const _ of Object.keys(cluster.workers)) {
+					workerCount++;
+				}
+
+				const files = this.project.getSourceFiles().map(f => f.getFilePath());
+				let total = files.length;
+				let offset = 0;
+				const splitToCPUs = Math.ceil(files.length / workerCount);
+				const remainderFiles = files.length % splitToCPUs;
+				// console.log(`Total: ${files.length} Count: ${count}, Remains: ${remains}`);
+
+				for (const workerId of Object.keys(cluster.workers)) {
+					const worker = cluster.workers[workerId]!;
+					const toSlice = total >= splitToCPUs ? splitToCPUs : remainderFiles;
+					console.log(
+						`Starting compilation on worker with ${toSlice} files to compile, starting at offset ${offset}`,
+					);
+					const f = files.slice(offset, offset + toSlice);
+					worker.send({ compileFiles: f });
+					total -= toSlice;
+					offset += toSlice;
+					console.log(`Total: ${toSlice}, Offset: ${offset}`);
+				}
+
+				console.log(`** [Main] processing Lua, declaration, runtime and packages...`);
+				await this.copyLuaFiles();
+				if (this.compilerOptions.declaration) {
+					await this.copyDtsFiles();
+				}
+				await this.copyIncludeFiles();
+				await this.copyModuleFiles();
 			}
-			await this.copyIncludeFiles();
-			await this.copyModuleFiles();
+		} else {
+			await this.compileFiles(this.project.getSourceFiles());
+			if (process.exitCode === 0) {
+				await this.copyLuaFiles();
+				if (this.compilerOptions.declaration) {
+					await this.copyDtsFiles();
+				}
+				await this.copyIncludeFiles();
+				await this.copyModuleFiles();
+			}
 		}
 	}
 
