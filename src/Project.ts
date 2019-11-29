@@ -672,17 +672,12 @@ export class Project {
 				for (const workerId of Object.keys(cluster.workers)) {
 					const worker = cluster.workers[workerId]!;
 					const toSlice = total >= splitToCPUs ? splitToCPUs : remainderFiles;
-					console.log(
-						`Starting compilation on worker with ${toSlice} files to compile, starting at offset ${offset}`,
-					);
 					const f = files.slice(offset, offset + toSlice);
 					worker.send({ compileFiles: f });
 					total -= toSlice;
 					offset += toSlice;
-					console.log(`Total: ${toSlice}, Offset: ${offset}`);
 				}
 
-				console.log(`** [Main] processing Lua, declaration, runtime and packages...`);
 				await this.copyLuaFiles();
 				if (this.compilerOptions.declaration) {
 					await this.copyDtsFiles();

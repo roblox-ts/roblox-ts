@@ -5,11 +5,11 @@ import { setAnalyticsDisabled } from "./analytics";
 import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
-import { red } from "./utility/text";
+import { red, lightblue } from "./utility/text";
 import { Watcher } from "./Watcher";
 import cluster from "cluster";
 import os from "os";
-import { ProjectError, CompilerError } from ".";
+import { ProjectWorker } from "./Workers";
 
 // cli interface
 const argv = yargs
@@ -104,20 +104,6 @@ const argv = yargs
 	// parse
 	.parse();
 
-async function time(callback: () => Promise<void>, workerId: number) {
-	const start = Date.now();
-	try {
-		await callback();
-	} catch (e) {
-		if (e instanceof ProjectError || e instanceof CompilerError) {
-			process.exitCode = 0;
-		} else {
-			throw e;
-		}
-	}
-	console.log(`** [Worker ${workerId}] Done, took ${Date.now() - start} ms!`);
-}
-
 void (async () => {
 	try {
 		if (cluster.isMaster) {
@@ -126,6 +112,7 @@ void (async () => {
 				for (let i = 0; i < numCPU; i++) {
 					cluster.fork();
 				}
+				console.log(lightblue(`roblox-ts - using ${numCPU} threads (-m)`));
 			}
 
 			if (argv.noAnalytics !== undefined) {
@@ -138,19 +125,7 @@ void (async () => {
 				await new Project(argv).compileAll();
 			}
 		} else if (cluster.isWorker) {
-			console.log(`** [Worker ${process.pid}] started.`);
-			const project = new Project(argv);
-			cluster.worker.on("message", async data => {
-				if ("compileFiles" in data) {
-					console.log(
-						`** [Worker ${process.pid}] processing ${data.compileFiles.length} files. (starting with ${data.compileFiles[0]})`,
-					);
-
-					await time(async () => {
-						await project.compileFiles(data.compileFiles.map((f: string) => project.getSourceFile(f)));
-					}, process.pid);
-				}
-			});
+			new ProjectWorker(new Project(argv));
 		}
 	} catch (e) {
 		if (e instanceof LoggableError) {
