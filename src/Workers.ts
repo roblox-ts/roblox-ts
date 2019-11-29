@@ -2,6 +2,7 @@ import { Project } from "./Project";
 import cluster from "cluster";
 import { ProjectError, CompilerError } from ".";
 import { lightblue } from "./utility/text";
+import os from "os";
 
 async function time(callback: () => Promise<void>) {
 	const start = Date.now();
@@ -14,7 +15,7 @@ async function time(callback: () => Promise<void>) {
 			throw e;
 		}
 	}
-	ProjectWorker.log(`Done, took ${Date.now() - start} ms!`);
+	ProjectClusterWorker.log(`Done, took ${Date.now() - start} ms!`);
 }
 
 interface CompileFiles {
@@ -25,10 +26,49 @@ function isCompileFilesMessage(data: {}): data is CompileFiles {
 	return typeof data === "object" && "compileFiles" in data;
 }
 
-export class ProjectWorker {
+export namespace ProjectClusterMaster {
+	const workers = new Array<cluster.Worker>();
+	export function createWorkers(numWorkers = os.cpus().length) {
+		console.log(lightblue(`roblox-ts - using ${numWorkers} threads (-m)`));
+		for (let i = 0; i < numWorkers; i++) {
+			workers.push(cluster.fork());
+		}
+	}
+
+	export function forEachWorker(fn: (worker: cluster.Worker) => void) {
+		for (const workerId of Object.keys(cluster.workers)) {
+			fn(cluster.workers[workerId]!);
+		}
+	}
+
+	function getWorkerCount() {
+		let workerCount = 0;
+		for (const _ of Object.keys(cluster.workers)) {
+			workerCount++;
+		}
+		return workerCount;
+	}
+
+	export function multiCompileAll(filePaths: Array<string>) {
+		const workerCount = getWorkerCount();
+		let total = filePaths.length;
+		let offset = 0;
+		const splitToCPUs = Math.ceil(filePaths.length / workerCount);
+		const remainderFiles = filePaths.length % splitToCPUs;
+		forEachWorker(worker => {
+			const toSlice = total >= splitToCPUs ? splitToCPUs : remainderFiles;
+			const f = filePaths.slice(offset, offset + toSlice);
+			worker.send({ compileFiles: f });
+			total -= toSlice;
+			offset += toSlice;
+		});
+	}
+}
+
+export class ProjectClusterWorker {
 	private onMessage = async (data: {}) => {
 		if (isCompileFilesMessage(data)) {
-			ProjectWorker.log(`Started compilation of ${data.compileFiles.length} files`);
+			ProjectClusterWorker.log(`Started compilation of ${data.compileFiles.length} files`);
 			await time(async () => {
 				await this.project.compileFiles(data.compileFiles.map(f => this.project.getSourceFile(f)!));
 			});
@@ -41,7 +81,7 @@ export class ProjectWorker {
 
 	constructor(private project: Project) {
 		if (cluster.isWorker) {
-			ProjectWorker.log("Worker started.");
+			ProjectClusterWorker.log("Worker started.");
 			cluster.worker.on("message", this.onMessage);
 		} else {
 			throw `Tried creating a worker in master thread!`;
