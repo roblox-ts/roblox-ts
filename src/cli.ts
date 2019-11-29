@@ -5,11 +5,10 @@ import { setAnalyticsDisabled } from "./analytics";
 import { LoggableError } from "./errors/LoggableError";
 import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
-import { red, lightblue } from "./utility/text";
+import { red } from "./utility/text";
 import { Watcher } from "./Watcher";
 import cluster from "cluster";
-import os from "os";
-import { ProjectWorker } from "./Workers";
+import { ProjectClusterWorker, ProjectClusterMaster } from "./Workers";
 
 // cli interface
 const argv = yargs
@@ -114,11 +113,7 @@ void (async () => {
 	try {
 		if (cluster.isMaster) {
 			if (argv.m) {
-				const numCPU = argv.threads || os.cpus().length;
-				for (let i = 0; i < numCPU; i++) {
-					cluster.fork();
-				}
-				console.log(lightblue(`roblox-ts - using ${numCPU} threads (-m)`));
+				ProjectClusterMaster.createWorkers(argv.threads);
 			} else {
 				if (argv.threads) {
 					throw new Error(
@@ -137,7 +132,7 @@ void (async () => {
 				await new Project(argv).compileAll();
 			}
 		} else if (cluster.isWorker) {
-			new ProjectWorker(new Project(argv));
+			new ProjectClusterWorker(new Project(argv));
 		}
 	} catch (e) {
 		if (e instanceof LoggableError) {

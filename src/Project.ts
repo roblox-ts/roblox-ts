@@ -14,6 +14,7 @@ import { NetworkType, RojoProject } from "./RojoProject";
 import { transformPathToLua } from "./utility/general";
 import { red, yellow } from "./utility/text";
 import cluster from "cluster";
+import { ProjectClusterMaster } from "./Workers";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -654,29 +655,9 @@ export class Project {
 
 	public async compileAll() {
 		if (this.multithread) {
-			if (cluster.isWorker) {
-				throw `Cannot call compileAll in worker`;
-			} else {
-				let workerCount = 0;
-				for (const _ of Object.keys(cluster.workers)) {
-					workerCount++;
-				}
-
+			if (cluster.isMaster) {
 				const files = this.project.getSourceFiles().map(f => f.getFilePath());
-				let total = files.length;
-				let offset = 0;
-				const splitToCPUs = Math.ceil(files.length / workerCount);
-				const remainderFiles = files.length % splitToCPUs;
-				// console.log(`Total: ${files.length} Count: ${count}, Remains: ${remains}`);
-
-				for (const workerId of Object.keys(cluster.workers)) {
-					const worker = cluster.workers[workerId]!;
-					const toSlice = total >= splitToCPUs ? splitToCPUs : remainderFiles;
-					const f = files.slice(offset, offset + toSlice);
-					worker.send({ compileFiles: f });
-					total -= toSlice;
-					offset += toSlice;
-				}
+				ProjectClusterMaster.multiCompileAll(files);
 
 				await this.copyLuaFiles();
 				if (this.compilerOptions.declaration) {
