@@ -37,7 +37,13 @@ const argv = yargs
 	.option("m", {
 		alias: "multithread",
 		boolean: true,
-		describe: "Used to run --watch on multi workers.",
+		describe: "Used to run on multiple workers",
+	})
+
+	.option("threads", {
+		// default: os.cpus().length,
+		number: true,
+		describe: "Number of workers - defaults to num CPU cores",
 	})
 
 	// project
@@ -108,11 +114,17 @@ void (async () => {
 	try {
 		if (cluster.isMaster) {
 			if (argv.m) {
-				const numCPU = os.cpus().length;
+				const numCPU = argv.threads || os.cpus().length;
 				for (let i = 0; i < numCPU; i++) {
 					cluster.fork();
 				}
 				console.log(lightblue(`roblox-ts - using ${numCPU} threads (-m)`));
+			} else {
+				if (argv.threads) {
+					throw new Error(
+						`To use the --threads option, you must specify multithread using -m or (--multithread)`,
+					);
+				}
 			}
 
 			if (argv.noAnalytics !== undefined) {
