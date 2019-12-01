@@ -7,8 +7,6 @@ import { InitializeMode, Initializer } from "./Initializer";
 import { Project } from "./Project";
 import { red } from "./utility/text";
 import { Watcher } from "./Watcher";
-import cluster from "cluster";
-import { ProjectClusterWorker, ProjectClusterMaster } from "./Workers";
 
 // cli interface
 const argv = yargs
@@ -34,15 +32,9 @@ const argv = yargs
 	})
 
 	.option("m", {
-		alias: "multithread",
-		boolean: true,
-		describe: "Used to run on multiple workers",
-	})
-
-	.option("threads", {
-		// default: os.cpus().length,
+		alias: "threads",
 		number: true,
-		describe: "Number of workers - defaults to num CPU cores",
+		describe: "The amount of threads to use for compilation. Use 0 for automatic.",
 	})
 
 	// project
@@ -111,28 +103,14 @@ const argv = yargs
 
 void (async () => {
 	try {
-		if (cluster.isMaster) {
-			if (argv.m) {
-				ProjectClusterMaster.createWorkers(argv.threads);
-			} else {
-				if (argv.threads) {
-					throw new Error(
-						`To use the --threads option, you must specify multithread using -m or (--multithread)`,
-					);
-				}
-			}
-
-			if (argv.noAnalytics !== undefined) {
-				await setAnalyticsDisabled(argv.noAnalytics);
-			} else if (argv.init !== undefined) {
-				await Initializer.init(argv.init as InitializeMode);
-			} else if (argv.watch === true) {
-				new Watcher(new Project(argv), argv.onSuccess).start();
-			} else {
-				await new Project(argv).compileAll();
-			}
-		} else if (cluster.isWorker) {
-			new ProjectClusterWorker(new Project(argv));
+		if (argv.noAnalytics !== undefined) {
+			await setAnalyticsDisabled(argv.noAnalytics);
+		} else if (argv.init !== undefined) {
+			await Initializer.init(argv.init as InitializeMode);
+		} else if (argv.watch === true) {
+			new Watcher(new Project(argv), argv.onSuccess).start();
+		} else {
+			await new Project(argv).compileAll();
 		}
 	} catch (e) {
 		if (e instanceof LoggableError) {

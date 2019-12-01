@@ -3,6 +3,7 @@ import cluster from "cluster";
 import { ProjectError, CompilerError } from ".";
 import { lightblue } from "./utility/text";
 import os from "os";
+// import { Worker, isMainThread , parentPort, workerData } from "worker_threads";
 
 async function time(callback: () => Promise<void>) {
 	const start = Date.now();
