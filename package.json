@@ -40,7 +40,7 @@
 		"klaw": "^3.0.0",
 		"luamin": "^1.0.4",
 		"node-persist": "^3.0.5",
-		"ts-morph": "^5.0.0",
+		"ts-morph": "^6.0.0",
 		"universal-analytics": "^0.4.20",
 		"uuid": "^3.3.3",
 		"yargs": "^15.0.2"
