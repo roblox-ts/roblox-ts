@@ -343,7 +343,7 @@ export class Project {
 					target: ts.ts.ScriptTarget.ES2015,
 					typeRoots: ["node_modules/@rbxts"],
 				},
-				useVirtualFileSystem: true,
+				useInMemoryFileSystem: true,
 			});
 		}
 	}
@@ -493,7 +493,7 @@ export class Project {
 	public async addFile(filePath: string) {
 		const ext = path.extname(filePath);
 		if (ext === ".ts" || ext === ".tsx") {
-			this.project.addExistingSourceFile(filePath);
+			this.project.addSourceFileAtPath(filePath);
 		}
 	}
 
@@ -518,7 +518,7 @@ export class Project {
 				);
 			}
 		} else {
-			this.project.addExistingSourceFile(filePath);
+			this.project.addSourceFileAtPath(filePath);
 		}
 	}
 
