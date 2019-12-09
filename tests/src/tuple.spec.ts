@@ -159,7 +159,7 @@ export = () => {
 	});
 
 	it("should allow LuaTuples to have Array<> inside", () => {
-		function foo(): LuaTuple<[number, number, ...Array<string | undefined>] | Array<undefined>> {
+		function foo(): LuaTuple<[number, number, ...Array<string>] | []> {
 			return [1, 2, "3"];
 		}
 

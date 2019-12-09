@@ -1,6 +1,10 @@
 export = () => {
 	it("should support map constructor", () => {
-		const map = new Map([["foo", 1], ["bar", 2], ["baz", 3]]);
+		const map = new Map([
+			["foo", 1],
+			["bar", 2],
+			["baz", 3],
+		]);
 		expect(map.get("foo")).to.equal(1);
 		expect(map.get("bar")).to.equal(2);
 		expect(map.get("baz")).to.equal(3);
@@ -123,7 +127,13 @@ export = () => {
 	});
 
 	it("should support values", () => {
-		const map = new Map<string, number>([["b", 2], ["c", 4], ["a", 9]]).set("a", 1).set("c", 3);
+		const map = new Map<string, number>([
+			["b", 2],
+			["c", 4],
+			["a", 9],
+		])
+			.set("a", 1)
+			.set("c", 3);
 		const a = map.values();
 		expect(a.some(v => v === 1)).to.equal(true);
 		expect(a.some(v => v === 2)).to.equal(true);
@@ -131,9 +141,17 @@ export = () => {
 	});
 
 	it("should support constructor parameters", () => {
-		const arr: ReadonlyArray<[string, number]> = [["a", 1], ["b", 2], ["c", 3]];
+		const arr: ReadonlyArray<[string, number]> = [
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		];
 
-		const map = new Map<string, number>([["a", 1], ["b", 2], ["c", 3]]);
+		const map = new Map<string, number>([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
 		const map2 = new Map<string, number>(arr);
 
 		{
@@ -163,9 +181,16 @@ export = () => {
 
 	it("should support the spread operator on maps", () => {
 		expect(
-			[...new Map([["a", 97], ["b", 98]]), ...new Map([["c", 99], ["d", 100]])].every(
-				([l, n]) => l === string.char(n),
-			),
+			[
+				...new Map([
+					["a", 97],
+					["b", 98],
+				]),
+				...new Map([
+					["c", 99],
+					["d", 100],
+				]),
+			].every(([l, n]) => l === string.char(n)),
 		).to.equal(true);
 	});
 
@@ -175,12 +200,16 @@ export = () => {
 		(c!!! = a!!!).set(1, 2);
 		expect(a!.get(1)).to.equal(2);
 
-		const b = new Map<string, number[]>([["a", [123]]]);
+		const b = new Map<string, Array<number>>([["a", [123]]]);
 		expect(b.get("a")![0]).to.equal(123);
 	});
 
 	it("should support creating ReadonlyMaps", () => {
-		const map = new ReadonlyMap([["foo", 1], ["bar", 2], ["baz", 3]]);
+		const map = new ReadonlyMap([
+			["foo", 1],
+			["bar", 2],
+			["baz", 3],
+		]);
 		expect(map.get("foo")).to.equal(1);
 		expect(map.get("bar")).to.equal(2);
 		expect(map.get("baz")).to.equal(3);

@@ -283,6 +283,8 @@ export function compileConstructorDeclaration(
 	hasSuper: boolean,
 	isRoact: boolean,
 ) {
+	let hasRestParameter = false;
+
 	if (isRoact && !node) {
 		return "";
 	}
@@ -294,7 +296,7 @@ export function compileConstructorDeclaration(
 
 	state.pushIdStack();
 	if (node) {
-		getParameterData(state, paramNames, initializers, node, defaults);
+		hasRestParameter = getParameterData(state, paramNames, initializers, node, defaults);
 	} else if (!inheritsFromArray) {
 		paramNames.push("...");
 	}
@@ -313,6 +315,11 @@ export function compileConstructorDeclaration(
 
 			const bodyStatements = body.getStatements();
 			let k = 0;
+
+			// Allow passing a rest parameter to super.
+			if (hasRestParameter) {
+				result += state.indent + initializers.shift() + "\n";
+			}
 
 			if (containsSuperExpression(bodyStatements[k])) {
 				result += compileStatement(state, bodyStatements[k++]);

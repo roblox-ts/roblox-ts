@@ -1,13 +1,15 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 import Vector, { a, b, c, foo, Fruits, letVar } from "./export";
-import export_equals from "./export_equals";
-import export_equals2 = require("./export_equals");
+import exportEquals from "./export_equals";
+import exportEquals2 = require("./export_equals");
 import { x, y, z } from "./export_dec";
 import * as ns from "./namespaceExport";
 
 export = () => {
 	it("should support import/export equals", () => {
-		expect(export_equals.foo).to.equal("bar");
-		expect(export_equals2.foo).to.equal("bar");
+		expect(exportEquals.foo).to.equal("bar");
+		expect(exportEquals2.foo).to.equal("bar");
 	});
 
 	it("should support namespace import/export", () => {

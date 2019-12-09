@@ -76,7 +76,7 @@ enum ForOfLoopType {
 	ArrayEntries,
 	String,
 	IterableFunction,
-	Symbol_iterator,
+	SymbolIterator,
 	IterableLuaTuple,
 }
 
@@ -129,7 +129,8 @@ function getLoopType(
 							data = iter.next();
 						} while (
 							!data.done &&
-							(data.value.type === PropertyCallExpType.Array && data.value.exp.getName() === "reverse")
+							data.value.type === PropertyCallExpType.Array &&
+							data.value.exp.getName() === "reverse"
 						);
 
 						return [
@@ -177,7 +178,7 @@ function getLoopType(
 			return [exp, ForOfLoopType.IterableFunction, reversed, backwards];
 		}
 	} else {
-		return [exp, ForOfLoopType.Symbol_iterator, reversed, backwards];
+		return [exp, ForOfLoopType.SymbolIterator, reversed, backwards];
 	}
 }
 
@@ -192,9 +193,9 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	let varName: string;
 
 	/** The key to be used in the for loop. If it is the empty string, it is irrelevant. */
-	let key: string = "";
+	let key = "";
 	/** The value to be used in the for loop. If it is the empty string, it is irrelevant. */
-	let value: string = "";
+	let value = "";
 	/** The expression to iterate through */
 	let expStr = compileExpression(state, exp);
 	let result = "";
@@ -283,7 +284,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			case ForOfLoopType.IterableFunction:
 				key = varName;
 				break;
-			case ForOfLoopType.Symbol_iterator: {
+			case ForOfLoopType.SymbolIterator: {
 				if (!isGeneratorType(getType(exp))) {
 					expStr = getReadableExpressionName(state, exp, expStr);
 					expStr = `${expStr}[TS.Symbol_iterator](${expStr})`;
@@ -299,7 +300,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 	if (isNumericForLoop) {
 		let accessor: string;
-		let loopEndValue: string = `#${expStr}`;
+		let loopEndValue = `#${expStr}`;
 
 		if (key) {
 			accessor =

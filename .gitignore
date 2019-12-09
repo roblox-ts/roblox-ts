@@ -5,5 +5,5 @@ coverage
 node_modules
 out
 .DS_Store
-.vscode
+.vscode/launch.json
 .history

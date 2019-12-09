@@ -23,7 +23,6 @@ export = () => {
 	});
 
 	// prettier-ignore
-	/* tslint:disable */
 	it("should understand string literals", () => {
 		expect("foo").to.equal("foo");
 		expect('foo').to.equal("foo");
@@ -37,7 +36,6 @@ export = () => {
 		expect(`"`).to.equal("\"");
 		expect('"').to.equal("\"");
 	});
-	/* tslint:enable */
 
 	it("should add strings", () => {
 		expect("a" + "b").to.equal("ab");

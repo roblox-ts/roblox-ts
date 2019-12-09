@@ -115,8 +115,7 @@ export = () => {
 					} else if (Size === ButtonSize.Small) {
 						return <textbutton Ref={buttonRef} {...smallButtonProps} {...overloadProps} />;
 					} else {
-						error("Size specified not supported.");
-						return <textbutton />; // just to shut tslint up.
+						throw "Size specified not supported.";
 					}
 				}
 			}

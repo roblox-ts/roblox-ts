@@ -16,7 +16,7 @@ const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
 export abstract class Initializer {
 	private static step = 0;
-	public static async doStep(message: string, callback: () => Promise<any>) {
+	public static async doStep(message: string, callback: () => Promise<unknown>) {
 		const start = Date.now();
 		process.stdout.write(`\t${++this.step} - ${message}`);
 		await callback();
@@ -42,7 +42,12 @@ export abstract class Initializer {
 				await cmd("npm", ["init", "-y", "--scope", "@rbxts"]);
 				const pkgJsonPath = path.join(dir, "package.json");
 				const pkgJson = await fs.readJson(pkgJsonPath);
-				pkgJson.private = false;
+				pkgJson.publishConfig = {
+					access: "public",
+				};
+				pkgJson.scripts = {
+					prepublishOnly: "rbxtsc",
+				};
 				pkgJson.main = "out/init.lua";
 				pkgJson.types = "out/index.d.ts";
 				await fs.outputFile(pkgJsonPath, JSON.stringify(pkgJson, null, 2));

@@ -6,7 +6,7 @@ import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility/general"
 
 interface RojoTreeProperty {
 	Type: string;
-	Value: any;
+	Value: unknown;
 }
 
 interface RojoTreeMetadata {

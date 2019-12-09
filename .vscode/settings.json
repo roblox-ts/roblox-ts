@@ -1,0 +1,27 @@
+{
+	"[typescript]": {
+		"editor.formatOnSave": false,
+		"editor.formatOnPaste": false,
+		"editor.formatOnType": false
+	},
+	"[typescriptreact]": {
+		"editor.formatOnSave": false,
+		"editor.formatOnPaste": false,
+		"editor.formatOnType": false
+	},
+	"eslint.validate": [
+		"javascript",
+		"javascriptreact",
+		{
+			"language": "typescript",
+			"autoFix": true
+		},
+		{
+			"language": "typescriptreact",
+			"autoFix": true
+		}
+	],
+	"eslint.packageManager": "npm",
+	"eslint.run": "onType",
+	"eslint.autoFixOnSave": true,
+}

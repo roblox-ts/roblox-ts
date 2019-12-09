@@ -73,7 +73,7 @@ function getRelativeImportPath(state: CompilerState, sourceFile: ts.SourceFile, 
 		relative[relative.length - 1] = stripExtensions(relative[relative.length - 1]);
 	}
 
-	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 function getRelativeImportPathRojo(
@@ -105,7 +105,7 @@ function getRelativeImportPathRojo(
 		start += ".Parent";
 	}
 
-	return `TS.import(script, ${start}, ${relative.map(v => `"${v}"`).join(", ")})`;
+	return `TS.import(${["script", start, ...relative.map(v => `"${v}"`)].join(", ")})`;
 }
 
 const moduleCache = new Map<string, string>();
@@ -135,6 +135,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	if (moduleCache.has(moduleName)) {
 		mainPath = moduleCache.get(moduleName)!;
 	} else {
+		// eslint-disable-next-line
 		const pkgJson = require(path.join(state.modulesPath, scope, moduleName, "package.json"));
 		mainPath = pkgJson.main as string;
 		moduleCache.set(moduleName, mainPath);
@@ -181,6 +182,10 @@ function getImportPath(
 	moduleFile: ts.SourceFile,
 	node: ts.Node,
 ): string {
+	if (state.isPlayground) {
+		return "TS.import(script, ...)";
+	}
+
 	if (isPathAncestorOf(state.modulesPath, moduleFile.getFilePath())) {
 		return getModuleImportPath(state, moduleFile);
 	}
@@ -393,6 +398,14 @@ export function compileExportDeclaration(state: CompilerState, node: ts.ExportDe
 	const rhs = new Array<string>();
 
 	if (node.isNamespaceExport()) {
+		if (node.getSourceFile().isDeclarationFile()) {
+			throw new CompilerError(
+				"Namespace exports are not supported for .d.ts files!",
+				node,
+				CompilerErrorType.BadNamespaceExport,
+			);
+		}
+
 		state.usesTSLibrary = true;
 		let ancestorName: string;
 		if (ts.TypeGuards.isNamespaceDeclaration(ancestor)) {

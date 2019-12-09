@@ -199,7 +199,10 @@ export = () => {
 	it("should support for-of loops over Map literals", () => {
 		const hit = new Set<string>();
 		let n = 0;
-		for (const v of new Map([["1", "2"], ["3", "4"]])) {
+		for (const v of new Map([
+			["1", "2"],
+			["3", "4"],
+		])) {
 			hit.add(v[0]);
 			hit.add(v[1]);
 			n++;
@@ -210,7 +213,10 @@ export = () => {
 
 	it("should support for-of loops over Maps", () => {
 		const hit = new Set<string>();
-		const map = new Map([["1", "2"], ["3", "4"]]);
+		const map = new Map([
+			["1", "2"],
+			["3", "4"],
+		]);
 		let n = 0;
 		for (const v of map) {
 			hit.add(v[0]);
@@ -223,7 +229,10 @@ export = () => {
 
 	it("should support optimized destructuring in for-of loops over Maps", () => {
 		const hit = new Set<string>();
-		const map = new Map([["1", "2"], ["3", "4"]]);
+		const map = new Map([
+			["1", "2"],
+			["3", "4"],
+		]);
 		let n = 0;
 		for (const [k, v] of map) {
 			hit.add(k);
@@ -236,7 +245,12 @@ export = () => {
 
 	it("should support destructuring optimized destructuring in for-of loops over Maps", () => {
 		let n = 0;
-		for (const [[i, j], [k, v]] of new Map<[string, string], [string, string]>([[["1", "2"], ["3", "4"]]])) {
+		for (const [[i, j], [k, v]] of new Map<[string, string], [string, string]>([
+			[
+				["1", "2"],
+				["3", "4"],
+			],
+		])) {
 			expect(i).to.equal("1");
 			expect(j).to.equal("2");
 			expect(k).to.equal("3");
@@ -363,11 +377,11 @@ export = () => {
 	});
 
 	it("should support optimized reversed/entries loops", () => {
-		function array_entries<T>(arr: Array<T>) {
+		function arrayEntries<T>(arr: Array<T>) {
 			return arr.entries();
 		}
 
-		function array_reverse<T>(arr: Array<T>) {
+		function arrayReverse<T>(arr: Array<T>) {
 			return arr.reverse();
 		}
 
@@ -387,14 +401,14 @@ export = () => {
 				for (const result of array.reverse()) {
 					results.push([i++, result]);
 				}
-				compare(results, array_entries(array_reverse(array)));
+				compare(results, arrayEntries(arrayReverse(array)));
 			}
 			{
 				const results = new Array<[number, T]>();
 				for (const result of array.entries().reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_entries(array)));
+				compare(results, arrayReverse(arrayEntries(array)));
 			}
 
 			{
@@ -402,7 +416,7 @@ export = () => {
 				for (const result of array.reverse().entries()) {
 					results.push(result);
 				}
-				compare(results, array_entries(array_reverse(array)));
+				compare(results, arrayEntries(arrayReverse(array)));
 			}
 
 			{
@@ -413,7 +427,7 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_entries(array_reverse(array))));
+				compare(results, arrayReverse(arrayEntries(arrayReverse(array))));
 			}
 
 			{
@@ -425,7 +439,7 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_entries(array_reverse(array_reverse(array)))));
+				compare(results, arrayReverse(arrayEntries(arrayReverse(arrayReverse(array)))));
 			}
 
 			{
@@ -437,7 +451,7 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_reverse(array_entries(array_reverse(array)))));
+				compare(results, arrayReverse(arrayReverse(arrayEntries(arrayReverse(array)))));
 			}
 
 			{
@@ -450,7 +464,7 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array))))));
+				compare(results, arrayReverse(arrayEntries(arrayReverse(arrayReverse(arrayReverse(array))))));
 			}
 
 			{
@@ -466,7 +480,7 @@ export = () => {
 				}
 				compare(
 					results,
-					array_reverse(array_reverse(array_entries(array_reverse(array_reverse(array_reverse(array)))))),
+					arrayReverse(arrayReverse(arrayEntries(arrayReverse(arrayReverse(arrayReverse(array)))))),
 				);
 			}
 
@@ -479,7 +493,7 @@ export = () => {
 					.reverse()) {
 					results.push(result);
 				}
-				compare(results, array_reverse(array_entries(array_reverse(array))));
+				compare(results, arrayReverse(arrayEntries(arrayReverse(array))));
 			}
 
 			{
@@ -512,7 +526,7 @@ export = () => {
 				}
 
 				const results4 = new Array<[number, T]>();
-				for (const v of array_reverse(array)) {
+				for (const v of arrayReverse(array)) {
 					results4.push([0, v]);
 				}
 				compare(results0, results4);

@@ -4,11 +4,14 @@ import { luaStringify } from "../utility/general";
 
 const BUILT_INS = new Set(["Promise", "Symbol", "typeIs", "opcall"]);
 
-const replacements = new Map<string, string>([["undefined", "nil"], ["typeOf", "typeof"]]);
+const replacements = new Map<string, string>([
+	["undefined", "nil"],
+	["typeOf", "typeof"],
+]);
 
 const PKG_VERSION_ID = "PKG_VERSION";
 
-export function compileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition: boolean = false) {
+export function compileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition = false) {
 	let name = node.getText();
 
 	const replacement = replacements.get(name);

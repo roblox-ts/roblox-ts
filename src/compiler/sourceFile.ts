@@ -7,6 +7,7 @@ import { RojoProject } from "../RojoProject";
 import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
 import { isRbxService } from "../utility/type";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version: VERSION } = require("./../../package.json") as {
 	version: string;
 };
