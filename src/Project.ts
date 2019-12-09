@@ -13,6 +13,7 @@ import { RojoProjectError } from "./errors/RojoProjectError";
 import { NetworkType, RojoProject } from "./RojoProject";
 import { transformPathToLua } from "./utility/general";
 import { red, yellow } from "./utility/text";
+import { createFileCompilationWorkers } from "./workers";
 
 const MINIMUM_RBX_TYPES_VERSION = 223;
 
@@ -124,13 +125,14 @@ export enum ProjectType {
 	Package,
 }
 
-interface ProjectOptions {
+export interface ProjectOptions {
 	project?: string;
 	includePath?: string;
 	rojo?: string;
 	noInclude?: boolean;
 	minify?: boolean;
 	ci?: boolean;
+	threads?: number;
 	logTruthyChanges?: boolean;
 }
 
@@ -159,6 +161,8 @@ export class Project {
 	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
 	private readonly luaSourceTransformer: typeof minify | undefined;
+
+	private readonly numThreads: number | undefined;
 
 	public reloadProject() {
 		try {
@@ -217,6 +221,10 @@ export class Project {
 		}
 	}
 
+	public getSourceFile(fileNameOrPath: string) {
+		return this.project.getSourceFile(fileNameOrPath);
+	}
+
 	public reloadRojo() {
 		if (this.rojoFilePath) {
 			try {
@@ -261,7 +269,7 @@ export class Project {
 		}
 	}
 
-	constructor(opts: ProjectOptions = {}) {
+	constructor(public readonly opts: ProjectOptions = {}) {
 		// cli mode
 		if (opts.project !== undefined && opts.includePath !== undefined && opts.rojo !== undefined) {
 			this.configFilePath = path.resolve(opts.project);
@@ -274,6 +282,7 @@ export class Project {
 			this.rojoOverridePath = opts.rojo !== "" ? joinIfNotAbsolute(this.projectPath, opts.rojo) : undefined;
 
 			this.ci = opts.ci === true;
+			this.numThreads = opts.threads;
 			this.logTruthyDifferences = opts.logTruthyChanges;
 
 			const rootPath = this.compilerOptions.rootDir;
@@ -644,14 +653,27 @@ export class Project {
 	}
 
 	public async compileAll() {
-		await this.compileFiles(this.project.getSourceFiles());
-		if (process.exitCode === 0) {
+		const files = this.project.getSourceFiles();
+
+		if (this.numThreads !== undefined) {
+			await createFileCompilationWorkers(this, files, this.numThreads !== 0 ? this.numThreads : undefined);
+
 			await this.copyLuaFiles();
 			if (this.compilerOptions.declaration) {
 				await this.copyDtsFiles();
 			}
 			await this.copyIncludeFiles();
 			await this.copyModuleFiles();
+		} else {
+			await this.compileFiles(files);
+			if (process.exitCode === 0) {
+				await this.copyLuaFiles();
+				if (this.compilerOptions.declaration) {
+					await this.copyDtsFiles();
+				}
+				await this.copyIncludeFiles();
+				await this.copyModuleFiles();
+			}
 		}
 	}
 

@@ -31,6 +31,12 @@ const argv = yargs
 		describe: "enable watch mode",
 	})
 
+	.option("m", {
+		alias: "threads",
+		number: true,
+		describe: "The amount of threads to use for compilation. Use 0 for automatic.",
+	})
+
 	// project
 	.option("p", {
 		alias: "project",
