@@ -327,11 +327,9 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
 
-			if (fromIndex !== undefined) {
-				return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex)}, true) or 0) - 1`;
-			} else {
-				return `(string.find(${accessPath}, ${matchParam}, 1, true) or 0) - 1`;
-			}
+			return `((string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
+				fromIndex ?? "0",
+			)}, true) or 0) - 1)`;
 		},
 	],
 
@@ -340,11 +338,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
 
-			if (fromIndex !== undefined) {
-				return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex)}, true) ~= nil)`;
-			} else {
-				return `(string.find(${accessPath}, ${matchParam}, 1, true) ~= nil)`;
-			}
+			return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex ?? "0")}, true) ~= nil)`;
 		},
 	],
 ]);

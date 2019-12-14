@@ -33,8 +33,7 @@ end
 
 -- pollyfill for table.find - lemur doesn't support this just yet
 function table.find(t, value, init)
-	init = init or 1
-	for i = init, #t do
+	for i = init or 1, #t do
 		if t[i] == value then
 			return i
 		end

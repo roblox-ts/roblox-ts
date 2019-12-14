@@ -178,29 +178,11 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	}
 
 	if (inheritsFrom(expressionType, "ArrayConstructor")) {
-		if (args.length === 0) {
-			return "{}";
-		}
-
-		let result = `{`;
-		if (args.length === 1) {
-			const [length] = compileCallArguments(state, args);
-			result = "table.create(" + length + ")";
-			return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result);
-		} else if (args.length === 2) {
-			const [length, value] = compileCallArguments(state, args);
-
-			result = "table.create(" + length + ", " + value + ")";
-			return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result);
-		} else if (args.length !== 0) {
-			throw new CompilerError(
-				"Invalid arguments passed into ArrayConstructor!",
-				node,
-				CompilerErrorType.BadBuiltinConstructorCall,
-			);
-		}
-
-		return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result + `}`);
+		return appendDeclarationIfMissing(
+			state,
+			skipNodesUpwards(node.getParent()),
+			args.length === 0 ? "{}" : `table.create(${compileCallArgumentsAndJoin(state, args)})`,
+		);
 	}
 
 	if (inheritsFrom(expressionType, "MapConstructor") || inheritsFrom(expressionType, "ReadonlyMapConstructor")) {
