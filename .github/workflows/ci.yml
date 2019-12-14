@@ -17,13 +17,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install NodeJS
-        uses: actions/setup-node@master
-        with:
-          node-version: 12.x
-
-      - name: Install Node_modules
-        run: npm install
+      - uses: bahmutov/npm-install@v1
 
       - name: Run ESLint
         run: npm run eslint
@@ -38,13 +32,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install NodeJS
-        uses: actions/setup-node@master
-        with:
-          node-version: 12.x
-
-      - name: Install Node_modules
-        run: npm install
+      - uses: bahmutov/npm-install@v1
 
       - name: Install Latest @rbxts/types for tests
         run: |
