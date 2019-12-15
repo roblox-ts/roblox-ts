@@ -42,7 +42,10 @@ function compileSetElement(state: CompilerState, element: ts.Expression) {
 
 const compileMapSetElement = new Map<
 	"set" | "map",
-	{ addMethodName: string; compile: (state: CompilerState, element: ts.Expression) => string }
+	{
+		addMethodName: string;
+		compile: (state: CompilerState, element: ts.Expression) => string;
+	}
 >([
 	["map", { compile: compileMapElement, addMethodName: "set" }],
 	["set", { compile: compileSetElement, addMethodName: "add" }],
@@ -157,8 +160,6 @@ function compileSetMapConstructorHelper(
 	}
 }
 
-const ARRAY_NIL_LIMIT = 200;
-
 export function compileNewExpression(state: CompilerState, node: ts.NewExpression) {
 	const expNode = skipNodesDownwards(node.getExpression());
 	const expressionType = getType(expNode);
@@ -177,40 +178,11 @@ export function compileNewExpression(state: CompilerState, node: ts.NewExpressio
 	}
 
 	if (inheritsFrom(expressionType, "ArrayConstructor")) {
-		if (args.length === 0) {
-			return "{}";
-		}
-
-		let result = `{`;
-		if (args.length === 1) {
-			const arg = args[0];
-			if (
-				ts.TypeGuards.isNumericLiteral(arg) &&
-				arg.getText().match(/^\d+$/) &&
-				arg.getLiteralValue() <= ARRAY_NIL_LIMIT
-			) {
-				const literalValue = arg.getLiteralValue();
-				if (literalValue !== 0) {
-					result += ", nil".repeat(literalValue).substring(1) + " ";
-				}
-			} else {
-				throw new CompilerError(
-					"Invalid argument #1 passed into ArrayConstructor. Expected a simple integer fewer or equal to " +
-						ARRAY_NIL_LIMIT +
-						".",
-					node,
-					CompilerErrorType.BadBuiltinConstructorCall,
-				);
-			}
-		} else if (args.length !== 0) {
-			throw new CompilerError(
-				"Invalid arguments passed into ArrayConstructor!",
-				node,
-				CompilerErrorType.BadBuiltinConstructorCall,
-			);
-		}
-
-		return appendDeclarationIfMissing(state, skipNodesUpwards(node.getParent()), result + `}`);
+		return appendDeclarationIfMissing(
+			state,
+			skipNodesUpwards(node.getParent()),
+			args.length === 0 ? "{}" : `table.create(${compileCallArgumentsAndJoin(state, args)})`,
+		);
 	}
 
 	if (inheritsFrom(expressionType, "MapConstructor") || inheritsFrom(expressionType, "ReadonlyMapConstructor")) {
