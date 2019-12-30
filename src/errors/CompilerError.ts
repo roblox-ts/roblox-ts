@@ -96,7 +96,7 @@ export enum CompilerErrorType {
 	BadDestructSubType,
 	MixedMethodSet,
 	BadNamespaceExport,
-  NoEnumMerging,
+	NoEnumMerging,
 	DeclarationBreak,
 }
 

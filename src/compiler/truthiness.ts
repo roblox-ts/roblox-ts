@@ -123,7 +123,7 @@ function makeNestedExpressions(
 	return {
 		compileData,
 		exp,
-		exprs: new Array(),
+		exprs: [],
 		isAnd,
 		isMeta: true,
 		parent,
