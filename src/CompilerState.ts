@@ -61,8 +61,8 @@ export class CompilerState {
 	}
 
 	// TODO: Remove the unused Truthy ones
-	public currentConditionalContext: string = "";
-	public currentTruthyContext: string = "";
+	public currentConditionalContext = "";
+	public currentTruthyContext = "";
 	public topTruthyNode?: ts.BinaryExpression;
 	public hasTruthyContextBeenUsed?: boolean;
 	public binaryRhsExpressions = new Map<ts.Expression, ts.Expression>();
@@ -100,7 +100,7 @@ export class CompilerState {
 		return this.precedingStatementContexts.pop()!;
 	}
 
-	public exitPrecedingStatementContextAndJoin(numTabs: number = 0) {
+	public exitPrecedingStatementContextAndJoin(numTabs = 0) {
 		return joinIndentedLines(this.exitPrecedingStatementContext(), numTabs);
 	}
 
@@ -128,7 +128,7 @@ export class CompilerState {
 	 * Gets the roact element at the specified offset
 	 * @param index The offset, negative number = from top, positive number/zero = from bottom
 	 */
-	public roactGetElementType(index: number = -1) {
+	public roactGetElementType(index = -1) {
 		if (index < 0) {
 			const reverseIndex = this.roactElementStack.length + index;
 			if (reverseIndex >= 0) {
@@ -241,6 +241,6 @@ export class CompilerState {
 	public scriptContext = ScriptContext.None;
 	public roactElementStack = new Array<RoactElementType>();
 	public roactKeyStack = new Array<string>();
-	public hasRoactImport: boolean = false;
+	public hasRoactImport = false;
 	public usesTSLibrary = false;
 }

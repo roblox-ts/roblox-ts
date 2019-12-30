@@ -13,23 +13,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1
         with:
           submodules: recursive
 
-      - name: Install NodeJS
-        uses: actions/setup-node@master
-        with:
-          node-version: 10.x
+      - uses: bahmutov/npm-install@v1
 
-      - name: Install Node_modules
-        run: npm install
-
-      - name: Run TSLint
-        run: npm run tslint
-
-      - name: Run PrettyLint
-        run: npm run prettylint
+      - name: Run ESLint
+        run: npm run eslint
 
   test:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
@@ -37,17 +28,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1
         with:
           submodules: recursive
 
-      - name: Install NodeJS
-        uses: actions/setup-node@master
-        with:
-          node-version: 10.x
-
-      - name: Install Node_modules
-        run: npm install
+      - uses: bahmutov/npm-install@v1
 
       - name: Install Latest @rbxts/types for tests
         run: |

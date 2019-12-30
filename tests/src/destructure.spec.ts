@@ -6,7 +6,10 @@ export = () => {
 	});
 
 	it("should destructure nested arrays", () => {
-		const [[a, b], [c, d]] = [[7, 2], [8, 9]];
+		const [[a, b], [c, d]] = [
+			[7, 2],
+			[8, 9],
+		];
 		expect(a).to.equal(7);
 		expect(b).to.equal(2);
 		expect(c).to.equal(8);
@@ -250,14 +253,12 @@ export = () => {
 			d: 100,
 			1: 100,
 
-			// tslint:disable
 			// prettier-ignore
 			"e":100
 		};
 
 		const f = (): "6" => "6";
 
-		// tslint:disable
 		// prettier-ignore
 		({ a: o.a, b: o.b, "9": o.c, 5: o.d, [f()]: o["e"], c: o[1] } = { a: 1, b: 2, c: 3, "9": 4, 5: 5, ["6"]: 6 });
 
@@ -350,7 +351,11 @@ export = () => {
 	});
 
 	it("should properly destruct maps", () => {
-		const [a, , c] = new Map([["a", 1], ["b", 2], ["c", 3]]);
+		const [a, , c] = new Map([
+			["a", 1],
+			["b", 2],
+			["c", 3],
+		]);
 		expect(a[0]).to.equal("a");
 		expect(a[1]).to.equal(1);
 		expect(c[0]).to.equal("b");

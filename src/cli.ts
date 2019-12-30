@@ -14,6 +14,7 @@ const argv = yargs
 
 	// version
 	.alias("v", "version")
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	.version(require("../package.json").version as string)
 	.describe("version", "show version information")
 
@@ -28,6 +29,12 @@ const argv = yargs
 		alias: "watch",
 		boolean: true,
 		describe: "enable watch mode",
+	})
+
+	.option("m", {
+		alias: "threads",
+		number: true,
+		describe: "The amount of threads to use for compilation. Use 0 for automatic.",
 	})
 
 	// project

@@ -282,7 +282,11 @@ export = () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
-		const a = [[0, 1], [2, 3], [4, 5]].reduce(reducer);
+		const a = [
+			[0, 1],
+			[2, 3],
+			[4, 5],
+		].reduce(reducer);
 		expect(a[0]).to.equal(0);
 		expect(a[1]).to.equal(1);
 		expect(a[2]).to.equal(2);
@@ -295,7 +299,11 @@ export = () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
 			return accum.concat(value);
 		}
-		const a = [[0, 1], [2, 3], [4, 5]].reduceRight(reducer);
+		const a = [
+			[0, 1],
+			[2, 3],
+			[4, 5],
+		].reduceRight(reducer);
 		expect(a[0]).to.equal(4);
 		expect(a[1]).to.equal(5);
 		expect(a[2]).to.equal(2);
@@ -449,49 +457,49 @@ export = () => {
 
 		const array1 = [1, 30, 4, 21, 100000].sort();
 		expect(array1[0]).to.equal(1);
-		expect(array1[1]).to.equal(100000);
+		expect(array1[1]).to.equal(4);
 		expect(array1[2]).to.equal(21);
 		expect(array1[3]).to.equal(30);
-		expect(array1[4]).to.equal(4);
+		expect(array1[4]).to.equal(100000);
 	});
 
-	it("should support flat", () => {
-		const arr1 = [1, 2, [3, 4]];
-		const x = arr1.flat();
-		expect(x[0]).to.equal(1);
-		expect(x[1]).to.equal(2);
-		expect(x[2]).to.equal(3);
-		expect(x[3]).to.equal(4);
+	// it("should support flat", () => {
+	// 	const arr1 = [1, 2, [3, 4]];
+	// 	const x = arr1.flat();
+	// 	expect(x[0]).to.equal(1);
+	// 	expect(x[1]).to.equal(2);
+	// 	expect(x[2]).to.equal(3);
+	// 	expect(x[3]).to.equal(4);
 
-		const arr2 = [1, 2, [3, 4, [5, 6]]];
-		const y = arr2.flat(1) as [number, number, number, number, [number, number]];
-		expect(y[0]).to.equal(1);
-		expect(y[1]).to.equal(2);
-		expect(y[2]).to.equal(3);
-		expect(y[3]).to.equal(4);
-		expect(y[4][0]).to.equal(5);
-		expect(y[4][1]).to.equal(6);
-		// [1, 2, 3, 4, [5, 6]]
+	// 	const arr2 = [1, 2, [3, 4, [5, 6]]];
+	// 	const y = arr2.flat(1) as [number, number, number, number, [number, number]];
+	// 	expect(y[0]).to.equal(1);
+	// 	expect(y[1]).to.equal(2);
+	// 	expect(y[2]).to.equal(3);
+	// 	expect(y[3]).to.equal(4);
+	// 	expect(y[4][0]).to.equal(5);
+	// 	expect(y[4][1]).to.equal(6);
+	// 	// [1, 2, 3, 4, [5, 6]]
 
-		const arr3 = [1, 2, [3, 4, [5, 6]]];
-		const z = arr3.flat(2);
+	// 	const arr3 = [1, 2, [3, 4, [5, 6]]];
+	// 	const z = arr3.flat(2);
 
-		expect(z[0]).to.equal(1);
-		expect(z[1]).to.equal(2);
-		expect(z[2]).to.equal(3);
-		expect(z[3]).to.equal(4);
-		expect(z[4]).to.equal(5);
-		expect(z[5]).to.equal(6);
-		// [1, 2, 3, 4, 5, 6]
+	// 	expect(z[0]).to.equal(1);
+	// 	expect(z[1]).to.equal(2);
+	// 	expect(z[2]).to.equal(3);
+	// 	expect(z[3]).to.equal(4);
+	// 	expect(z[4]).to.equal(5);
+	// 	expect(z[5]).to.equal(6);
+	// 	// [1, 2, 3, 4, 5, 6]
 
-		const arr4 = [1, 2, 4, 5];
-		const a = arr4.flat();
-		// [1, 2, 4, 5]
-		expect(a[0]).to.equal(1);
-		expect(a[1]).to.equal(2);
-		expect(a[2]).to.equal(4);
-		expect(a[3]).to.equal(5);
-	});
+	// 	const arr4 = [1, 2, 4, 5];
+	// 	const a = arr4.flat();
+	// 	// [1, 2, 4, 5]
+	// 	expect(a[0]).to.equal(1);
+	// 	expect(a[1]).to.equal(2);
+	// 	expect(a[2]).to.equal(4);
+	// 	expect(a[3]).to.equal(5);
+	// });
 
 	it("should support copyWithin", () => {
 		const array1 = ["a", "b", "c", "d", "e"];
@@ -578,7 +586,7 @@ export = () => {
 	});
 
 	it("should support array.entries", () => {
-		function array_entries<T>(arr: Array<T>) {
+		function arrayEntries<T>(arr: Array<T>) {
 			let i = 0;
 			const results = new Array<[number, T]>();
 			for (const v of arr) {
@@ -597,7 +605,7 @@ export = () => {
 		}
 
 		const arr = [..."Hello, world!"];
-		compare(array_entries(arr), arr.entries());
+		compare(arrayEntries(arr), arr.entries());
 	});
 
 	it("should support spreading non-apparent types", () => {
@@ -650,7 +658,7 @@ export = () => {
 			? [A, B, C, D, E, F, G, H]
 			: Array<unknown>; // default, if user has more than 8 args then wtf they doing with their lives?!?
 
-		function f<C extends Array<any>>(arr: StaticArguments<C>) {
+		function f<C extends Array<unknown>>(arr: StaticArguments<C>) {
 			return [...arr];
 		}
 
@@ -659,5 +667,28 @@ export = () => {
 
 	it("should support Array constructor", () => {
 		expect(new Array(10).isEmpty()).to.equal(true);
+	});
+
+	it("should support Array.mapFiltered", () => {
+		class A {
+			static i = 0;
+
+			f() {
+				return ++A.i > 5 ? { x: A.i } : undefined;
+			}
+		}
+
+		const arr = [new A(), new A(), new A(), new A(), new A(), new A(), new A(), new A()];
+		expect(arr.mapFiltered(a => a.f()).reduce((a, c) => a + c.x, 0)).to.equal(21);
+	});
+
+	it("should support Array.filterUndefined", () => {
+		function foo(...args: Array<unknown>) {
+			const safeArgs = args.filterUndefined();
+			expect(safeArgs[0]).to.equal("A");
+			expect(safeArgs[1]).to.equal("B");
+			expect(safeArgs[2]).to.equal("C");
+		}
+		foo(undefined, "A", undefined, "B", undefined, "C", undefined);
 	});
 };

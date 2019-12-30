@@ -8,17 +8,16 @@
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
-		"sourceMap": true,
 		"noUnusedLocals": true,
 		"esModuleInterop": true,
 		"removeComments": true
 	},
 	"include": [
-		"src/**/*"
+		"src"
 	],
 	"exclude": [
-		"node_modules/**/*",
-		"out/**/*",
+		"node_modules",
+		"out",
 		"templates"
 	]
 }

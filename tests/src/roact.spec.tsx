@@ -7,7 +7,7 @@ const RoactModule = game
 	.WaitForChild("node_modules")
 	.WaitForChild("roact")
 	.WaitForChild("roact")
-	.WaitForChild<ModuleScript>("src");
+	.WaitForChild("src") as ModuleScript;
 
 declare interface ElementKind {
 	Portal: symbol;
@@ -17,7 +17,7 @@ declare interface ElementKind {
 	Fragment: symbol;
 	of: (value: unknown) => boolean;
 }
-const ElementKind = require(RoactModule.WaitForChild<ModuleScript>("ElementKind")) as ElementKind;
+const ElementKind = require(RoactModule.WaitForChild("ElementKind") as ModuleScript) as ElementKind;
 
 declare interface Type {
 	Binding: symbol;
@@ -29,7 +29,7 @@ declare interface Type {
 	VirtualTree: symbol;
 	of: (value: unknown) => boolean;
 }
-const Type = require(RoactModule.WaitForChild<ModuleScript>("Type")) as Type;
+const Type = require(RoactModule.WaitForChild("Type") as ModuleScript) as Type;
 
 type ExplicitProps<P = {}> = Partial<P> & {
 	[Roact.Children]: { [name: string]: Roact.Element | undefined };
@@ -375,6 +375,7 @@ export = () => {
 		const f = <frame Event={Events} />;
 		const props = f.props as ExplicitProps<Frame>;
 
+		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore because this is valid, but I can't infer the type for this
 		expect(props[Roact.Event.MouseEnter] as unknown).to.equal(Events.MouseEnter);
 	});

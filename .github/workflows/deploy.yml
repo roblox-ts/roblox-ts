@@ -1,9 +1,6 @@
 name: Deploy
 
 on:
-  push:
-    branches:
-      - master
   schedule:
     - cron: '0 7 * * *'
 
@@ -14,18 +11,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v1
         with:
           submodules: recursive
 
       - name: Install NodeJS
         uses: actions/setup-node@master
         with:
-          node-version: 10.x
+          node-version: 12.x
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install Node_modules
-        run: npm install
+      - uses: bahmutov/npm-install@v1
 
       - name: Build
         run: npm run build

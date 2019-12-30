@@ -135,6 +135,7 @@ function getModuleImportPath(state: CompilerState, moduleFile: ts.SourceFile) {
 	if (moduleCache.has(moduleName)) {
 		mainPath = moduleCache.get(moduleName)!;
 	} else {
+		// eslint-disable-next-line
 		const pkgJson = require(path.join(state.modulesPath, scope, moduleName, "package.json"));
 		mainPath = pkgJson.main as string;
 		moduleCache.set(moduleName, mainPath);

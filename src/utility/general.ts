@@ -14,7 +14,7 @@ export function safeLuaIndex(parent: string, child: string) {
 	}
 }
 
-export function joinIndentedLines(lines: Array<string>, numTabs: number = 0) {
+export function joinIndentedLines(lines: Array<string>, numTabs = 0) {
 	if (lines.length > 0) {
 		if (numTabs > 0) {
 			const sep = "\t".repeat(numTabs);
