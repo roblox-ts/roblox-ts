@@ -42,7 +42,7 @@
 		"node-persist": "^3.0.5",
 		"ts-morph": "^6.0.2",
 		"universal-analytics": "^0.4.20",
-		"uuid": "^3.3.3",
+		"uuid": "^3.4.0",
 		"yargs": "^15.1.0"
 	},
 	"devDependencies": {
