@@ -55,7 +55,7 @@ TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
 local function isPlugin()
-	return RunService:IsStudio() and pcall(function() game:GetService("CoreGui") end)
+	return RunService:IsStudio() and pcall(function() return game:GetService("CoreGui").Name end)
 end
 
 -- module resolution
