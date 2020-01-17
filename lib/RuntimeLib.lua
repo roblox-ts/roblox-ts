@@ -54,14 +54,18 @@ end
 TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
+local function isPlugin()
+	return RunService:IsStudio() and pcall(function() game:GetService("CoreGui") end)
+end
+
 -- module resolution
 function TS.getModule(object, moduleName)
 	if not __LEMUR__ and object:IsDescendantOf(ReplicatedFirst) then
-		warn("node_modules should not be used from ReplicatedFirst")
+		warn("roblox-ts packages should not be used from ReplicatedFirst!")
 	end
 
 	-- ensure modules have fully replicated
-	if not __LEMUR__ and RunService:IsClient() and not game:IsLoaded() then
+	if not __LEMUR__ and RunService:IsClient() and not isPlugin() and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
