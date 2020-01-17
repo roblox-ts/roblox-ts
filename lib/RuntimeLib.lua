@@ -54,8 +54,8 @@ end
 TS.Symbol = Symbol
 TS.Symbol_iterator = Symbol("Symbol.iterator")
 
-local function isPlugin()
-	return RunService:IsStudio() and pcall(function() return game:GetService("CoreGui").Name end)
+local function isPlugin(object)
+	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
 -- module resolution
@@ -65,7 +65,7 @@ function TS.getModule(object, moduleName)
 	end
 
 	-- ensure modules have fully replicated
-	if not __LEMUR__ and RunService:IsClient() and not isPlugin() and not game:IsLoaded() then
+	if not __LEMUR__ and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
