@@ -89,13 +89,18 @@ export enum ScriptType {
 	Server,
 	Client,
 	Module,
+	JsonDataModule,
 }
 
 export function getScriptType(file: ts.SourceFile): ScriptType {
 	const filePath = file.getFilePath();
 	const ext = path.extname(filePath);
-	if (ext !== ".ts" && ext !== ".tsx") {
+	if (ext !== ".ts" && ext !== ".tsx" && ext !== ".json") {
 		throw new CompilerError(`Unexpected extension type: ${ext}`, file, CompilerErrorType.UnexpectedExtensionType);
+	}
+
+	if (ext === ".json") {
+		return ScriptType.JsonDataModule;
 	}
 
 	const subext = path.extname(path.basename(filePath, ext));
