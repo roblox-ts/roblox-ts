@@ -99,11 +99,20 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 		throw new CompilerError(`Unexpected extension type: ${ext}`, file, CompilerErrorType.UnexpectedExtensionType);
 	}
 
+	const subext = path.extname(path.basename(filePath, ext));
+
 	if (ext === ".json") {
+		if (subext) {
+			throw new CompilerError(
+				"JSON imports can only be used as ModuleScripts! (remove .server or .client from the module name)",
+				file,
+				CompilerErrorType.UnexpectedExtensionType,
+			);
+		}
+
 		return ScriptType.JsonDataModule;
 	}
 
-	const subext = path.extname(path.basename(filePath, ext));
 	if (subext === ".server") {
 		return ScriptType.Server;
 	} else if (subext === ".client") {
