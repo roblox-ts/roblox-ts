@@ -90,7 +90,6 @@ export function compileSourceFile(state: CompilerState, node: ts.SourceFile) {
 		if (scriptType === ScriptType.Module) {
 			result += state.indent + "return nil;\n";
 		} else if (scriptType === ScriptType.JsonDataModule) {
-			result += state.indent + "_.default = _;\n";
 			result += state.indent + "return _;\n";
 		}
 	}

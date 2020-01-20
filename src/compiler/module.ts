@@ -252,6 +252,8 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 			CompilerErrorType.MissingModuleFile,
 		);
 	}
+
+	const isJsonFile = path.extname(moduleFile.getFilePath()) === ".json";
 	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node);
 
 	let result = "";
@@ -283,7 +285,7 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		}
 
 		lhs.push(defaultImportExp);
-		rhs.push(`.default`);
+		rhs.push(isJsonFile ? `` : `.default`);
 		unlocalizedImports.push("");
 	}
 
