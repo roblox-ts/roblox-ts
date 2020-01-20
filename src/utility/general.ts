@@ -102,7 +102,7 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 	const subext = path.extname(path.basename(filePath, ext));
 
 	if (ext === ".json") {
-		if (subext) {
+		if (subext === ".server" || subext === ".client") {
 			throw new CompilerError(
 				"JSON imports can only be used as ModuleScripts! (remove .server or .client from the module name)",
 				file,
