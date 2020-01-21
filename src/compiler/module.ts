@@ -255,7 +255,6 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		);
 	}
 
-	const isJsonFile = getScriptType(moduleFile) === ScriptType.JsonDataModule;
 	const luaPath = getImportPath(state, node.getSourceFile(), moduleFile, node);
 
 	let result = "";
@@ -287,7 +286,11 @@ export function compileImportDeclaration(state: CompilerState, node: ts.ImportDe
 		}
 
 		lhs.push(defaultImportExp);
-		rhs.push(isJsonFile ? `` : `.default`);
+		if (getScriptType(moduleFile) === ScriptType.JsonDataModule) {
+			rhs.push(``);
+		} else {
+			rhs.push(`.default`);
+		}
 		unlocalizedImports.push("");
 	}
 
