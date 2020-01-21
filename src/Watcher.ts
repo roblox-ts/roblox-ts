@@ -55,8 +55,8 @@ export class Watcher {
 		}
 
 		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx" || ext === ".lua") {
-			console.log("Change detected, compiling..");
+		if (ext === ".ts" || ext === ".tsx" || ext === ".lua" || ext === ".json") {
+			console.log("Change detected, compiling...");
 			try {
 				await this.project.refreshFile(filePath);
 			} catch (e) {
