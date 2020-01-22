@@ -1,7 +1,7 @@
 {
 	"name": "roblox-ts",
-	"version": "0.2.14",
-	"description": "",
+	"version": "0.3.0",
+	"description": "A TypeScript-to-Lua Compiler for Roblox",
 	"main": "out/index.js",
 	"repository": {
 		"type": "git",
