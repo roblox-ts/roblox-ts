@@ -501,7 +501,7 @@ export class Project {
 
 	public async addFile(filePath: string) {
 		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx") {
+		if (ext === ".ts" || ext === ".tsx" || ext === ".json") {
 			this.project.addSourceFileAtPath(filePath);
 		}
 	}
@@ -551,6 +551,7 @@ export class Project {
 						let exists = false;
 						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
 						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx"));
+						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".json"));
 						exists =
 							exists ||
 							(baseName === "init" &&
@@ -563,6 +564,10 @@ export class Project {
 							exists ||
 							(baseName === "init" &&
 								(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx")));
+						exists =
+							exists ||
+							(baseName === "init" &&
+								(await fs.pathExists(path.join(rootPath, "index") + subext + ".json")));
 						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua"));
 
 						if (!exists) {
