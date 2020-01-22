@@ -23,7 +23,7 @@ local function newFolder(name, parent, content)
 end
 
 -- polyfill for table.create - lemur doesn't support this yet.
-function table.create(size, value)
+function table.create(size, value) -- luacheck: ignore
 	local t = {}
 	for i = 1, size do
 		t[i] = value
@@ -32,7 +32,7 @@ function table.create(size, value)
 end
 
 -- pollyfill for table.find - lemur doesn't support this just yet
-function table.find(t, value, init)
+function table.find(t, value, init) -- luacheck: ignore
 	for i = init or 1, #t do
 		if t[i] == value then
 			return i
