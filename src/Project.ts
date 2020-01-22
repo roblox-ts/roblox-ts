@@ -679,7 +679,7 @@ export class Project {
 
 	public async compileFileByPath(filePath: string, compileReferencingFiles = false) {
 		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx") {
+		if (ext === ".ts" || ext === ".tsx" || ext === ".json") {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new ProjectError(
