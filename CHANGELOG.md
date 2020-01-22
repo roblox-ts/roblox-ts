@@ -21,6 +21,7 @@
 	- If you need to strip an array of `nil` values, use `Array.filter((v): v is NonNullable<typeof v> => v !== undefined);`
     - We should release a library for safely making arrays with holes for that niche use case, where `length` is tracked as a real value.
 - Declaring the same enum multiple times (merging) is no longer allowed. As a result `Object.keys` and `Object.values` now work with enums!
+- Added support for importing .json files! They will compile to .lua files. (Thanks to Vorlias)
 
 ### **0.2.14**
 - Fixed analytics bug
