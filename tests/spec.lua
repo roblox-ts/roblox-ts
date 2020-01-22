@@ -52,7 +52,7 @@ local modulesFolder = newFolder("node_modules", robloxTsFolder)
 newFolder("roact", modulesFolder, "tests/node_modules/@rbxts/roact")
 
 -- TestEZ
-local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/lib")
+local testEZFolder = newFolder("TestEZ", ReplicatedStorage, "vendor/testez/src")
 
 -- Testing code
 local testsFolder = newFolder("src", ReplicatedStorage)
