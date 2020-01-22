@@ -376,7 +376,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				const node = getLeftHandSideParent(subExp, 2);
 				const len = state.pushPrecedingStatementToNewId(subExp, `#${accessPath}`);
 				const place = `${accessPath}[${len}]`;
-				const nullSet = state.indent + `${place} = nil; -- ${subExp.getText()}.pop\n`;
+				const nullSet = state.indent + `${place} = nil;\n`;
 				const id = state.pushToDeclarationOrNewId(node, place);
 				const context = state.getCurrentPrecedingStatementContext(subExp);
 				const { isPushed } = context;
@@ -414,10 +414,7 @@ const ARRAY_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			const context = state.getCurrentPrecedingStatementContext(subExp);
 			const { isPushed } = context;
 
-			state.pushPrecedingStatements(
-				subExp,
-				state.indent + `${removingPlace} = ${lastPlace}; -- ${subExp.getText()}.unorderedRemove\n`,
-			);
+			state.pushPrecedingStatements(subExp, state.indent + `${removingPlace} = ${lastPlace};\n`);
 
 			const nullSet = state.indent + `${lastPlace} = nil`;
 
