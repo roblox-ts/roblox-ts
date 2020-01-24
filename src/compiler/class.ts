@@ -46,7 +46,7 @@ const LUA_RESERVED_METAMETHODS = [
 function nonGetterOrSetter(prop: ts.ClassInstancePropertyTypes) {
 	if (ts.TypeGuards.isGetAccessorDeclaration(prop) || ts.TypeGuards.isSetAccessorDeclaration(prop)) {
 		throw new CompilerError(
-			"Getters and Setters are disallowed! See https://github.com/roblox-ts/roblox-ts/issues/457",
+			"Getters and Setters are not supported! See https://github.com/roblox-ts/roblox-ts/issues/457",
 			prop,
 			CompilerErrorType.GettersSettersDisallowed,
 		);

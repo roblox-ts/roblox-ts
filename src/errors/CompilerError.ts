@@ -67,7 +67,6 @@ export enum CompilerErrorType {
 	BadSpreadType,
 	YieldNotInExpressionStatement,
 	NonStringThrow,
-	TryReturn,
 	BadSwitchDefaultPosition,
 	BadEnum,
 	BadLuaTupleStatement,
@@ -97,6 +96,7 @@ export enum CompilerErrorType {
 	MixedMethodSet,
 	BadNamespaceExport,
 	NoEnumMerging,
+	NoTryStatement,
 }
 
 export class CompilerError extends LoggableError {
