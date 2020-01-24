@@ -1,0 +1,2 @@
+export {}
+try {} catch {}

@@ -390,6 +390,10 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow enum merging",
 		type: CompilerErrorType.NoEnumMerging,
 	},
+	"try.spec.ts": {
+		message: "should not allow try statements",
+		type: CompilerErrorType.NoTryStatement,
+	},
 };
 
 const compilerArgs = {

@@ -19,7 +19,6 @@ import {
 	compileReturnStatement,
 	compileSwitchStatement,
 	compileThrowStatement,
-	compileTryStatement,
 	compileVariableStatement,
 	compileWhileStatement,
 } from ".";
@@ -54,8 +53,6 @@ export function compileStatement(state: CompilerState, node: ts.Statement): stri
 		return compileExpressionStatement(state, node);
 	} else if (ts.TypeGuards.isContinueStatement(node)) {
 		return compileContinueStatement(state, node);
-	} else if (ts.TypeGuards.isForInStatement(node)) {
-		throw new CompilerError("For..in loops are disallowed!", node, CompilerErrorType.ForInLoop);
 	} else if (ts.TypeGuards.isForOfStatement(node)) {
 		return compileForOfStatement(state, node);
 	} else if (ts.TypeGuards.isForStatement(node)) {
@@ -74,8 +71,14 @@ export function compileStatement(state: CompilerState, node: ts.Statement): stri
 		return compileExportAssignment(state, node);
 	} else if (ts.TypeGuards.isSwitchStatement(node)) {
 		return compileSwitchStatement(state, node);
+	} else if (ts.TypeGuards.isForInStatement(node)) {
+		throw new CompilerError("For..in loops are disallowed!", node, CompilerErrorType.ForInLoop);
 	} else if (ts.TypeGuards.isTryStatement(node)) {
-		return compileTryStatement(state, node);
+		throw new CompilerError(
+			"Try statements are not supported! See https://github.com/roblox-ts/roblox-ts/issues/873",
+			node,
+			CompilerErrorType.NoTryStatement,
+		);
 	} else if (ts.TypeGuards.isLabeledStatement(node)) {
 		throw new CompilerError("Labeled statements are not supported!", node, CompilerErrorType.NoLabeledStatement);
 	}
