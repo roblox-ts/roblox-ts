@@ -98,6 +98,8 @@ const argv = yargs
 		describe: "logs changes to truthiness evaluation from Lua truthiness rules",
 	})
 
+	.wrap(yargs.terminalWidth())
+
 	// parse
 	.parse();
 
