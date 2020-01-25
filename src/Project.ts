@@ -541,7 +541,7 @@ export class Project {
 		if (this.numThreads !== undefined) {
 			await createFileCompilationWorkers(this, files, this.numThreads !== 0 ? this.numThreads : undefined);
 		} else {
-			// await this.compileFiles(files);
+			await this.compileFiles(files);
 		}
 
 		if (process.exitCode === 0) {
