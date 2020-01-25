@@ -22,7 +22,8 @@
 		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
 		"coverage": "nyc report --reporter=lcov",
 		"prepublishOnly": "npm run build",
-		"types": "cd tests && npm install @rbxts/types"
+		"types": "cd tests && npm install @rbxts/types",
+		"devlink": "cd devlink && npm link"
 	},
 	"nyc": {
 		"all": true,
