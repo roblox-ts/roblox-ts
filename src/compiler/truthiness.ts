@@ -2,13 +2,13 @@ import * as ts from "ts-morph";
 import { compileExpression } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { warn } from "../errors/Warning";
 import {
 	joinIndentedLines,
 	makeSetStatement,
 	removeBalancedParenthesisFromStringBorders,
 	skipNodesUpwardsLookAhead,
 } from "../utility/general";
-import { yellow } from "../utility/text";
 import {
 	getType,
 	isBoolishTypeLax,
@@ -216,18 +216,14 @@ export function compileTruthyCheck(
 	const result = checks.join(" and ");
 
 	if (state.logTruthyDifferences && (checkNon0 || checkNaN || checkEmptyString)) {
-		console.log(
-			"%s:%d:%d - %s %s",
-			exp.getSourceFile().getFilePath(),
-			exp.getStartLineNumber(),
-			exp.getNonWhitespaceStart() - exp.getStartLinePos(),
-			yellow("Compiler Warning:"),
+		warn(
 			"`" +
 				exp.getText() +
 				"` will be checked against " +
 				[checkNon0 ? "0" : undefined, checkNaN ? "NaN" : undefined, checkEmptyString ? `""` : undefined]
 					.filter(a => a !== undefined)
 					.join(", "),
+			exp,
 		);
 	}
 

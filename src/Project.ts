@@ -11,6 +11,7 @@ import { DiagnosticError } from "./errors/DiagnosticError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { RojoProjectError } from "./errors/RojoProjectError";
+import { warn } from "./errors/Warning";
 import { NetworkType, RojoProject } from "./RojoProject";
 import { cleanDirRecursive, copyLuaFiles, shouldCleanRelative } from "./utility/fs";
 import { isUsedJson, shouldCompileFile, transformPathToLua } from "./utility/general";
@@ -414,7 +415,7 @@ export class Project {
 			}
 
 			if (candidates.length > 1) {
-				console.log(yellow(`Warning! Multiple *.project.json files found, using ${candidates[0]}`));
+				warn(`Multiple *.project.json files found, using ${candidates[0]}`);
 			}
 			return candidates[0];
 		}
@@ -469,6 +470,8 @@ export class Project {
 				if (await fs.pathExists(path.join(rootPath, "init") + subext + LUA_EXT)) return true;
 				if (await fs.pathExists(path.join(rootPath, "index") + subext + TS_EXT)) return true;
 				if (await fs.pathExists(path.join(rootPath, "index") + subext + TSX_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, "init") + subext + TS_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, "init") + subext + TSX_EXT)) return true;
 				if (isUsedJson(this.project, path.join(rootPath, "index") + subext + JSON_EXT)) return true;
 			} else {
 				if (await fs.pathExists(path.join(rootPath, baseName) + subext + TS_EXT)) return true;
@@ -725,6 +728,13 @@ export class Project {
 			for (const sourceFile of files) {
 				if (!sourceFile.isDeclarationFile()) {
 					const filePath = sourceFile.getFilePath();
+
+					let baseName = path.basename(filePath, path.extname(filePath));
+					baseName = path.basename(baseName, path.extname(baseName));
+					if (baseName === "init") {
+						warn("init.ts files are not supported!");
+					}
+
 					const outPath = transformPathToLua(this.rootPath, this.outPath, filePath);
 					let source = compileSourceFile(this.createCompilerState(), sourceFile);
 
