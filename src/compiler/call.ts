@@ -1075,6 +1075,10 @@ export function compilePropertyCallExpression(
 ) {
 	checkApiAccess(state, expression.getNameNode());
 
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
+
 	let property = expression.getName();
 	const params = [
 		skipNodesDownwards(expression.getExpression()),

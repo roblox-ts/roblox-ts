@@ -143,6 +143,10 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = getType(exp);
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
 
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
+
 	if (
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"
@@ -279,5 +283,8 @@ export function compileElementAccessDataTypeExpression(
 }
 
 export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
 	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
 }

@@ -97,6 +97,7 @@ export enum CompilerErrorType {
 	BadNamespaceExport,
 	NoEnumMerging,
 	NoTryStatement,
+	TS37,
 }
 
 export class CompilerError extends LoggableError {
