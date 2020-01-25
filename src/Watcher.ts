@@ -104,11 +104,6 @@ export class Watcher {
 		}
 	}
 
-	private pushToQueue(event: WatchEvent) {
-		this.watchEventQueue.push(event);
-		void this.startProcessingQueue();
-	}
-
 	private async startProcessingQueue() {
 		if (!this.processing) {
 			this.processing = true;
@@ -125,6 +120,11 @@ export class Watcher {
 			}
 			this.processing = false;
 		}
+	}
+
+	private pushToQueue(event: WatchEvent) {
+		this.watchEventQueue.push(event);
+		void this.startProcessingQueue();
 	}
 
 	public start() {
