@@ -1,6 +1,4 @@
 import chokidar from "chokidar";
-import fs from "fs";
-import path from "path";
 import { CompilerError } from "./errors/CompilerError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
