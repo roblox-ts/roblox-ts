@@ -35,7 +35,10 @@ if (isCompileFilesWorker(workerData)) {
 	time(async () => {
 		const project = new Project(projectOptions);
 		await project.compileFiles(compileFiles.map(f => project.getSourceFile(f)!));
-	}).then(() => {
-		parentPort?.postMessage({ type: "compileFiles", state: "completed", files: compileFiles.length });
-	});
+	}).then(
+		() => {
+			parentPort?.postMessage({ type: "compileFiles", state: "completed", files: compileFiles.length });
+		},
+		() => {},
+	);
 }

@@ -5,7 +5,7 @@ import { CompilerError } from "./errors/CompilerError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
 import { Project } from "./Project";
-import { clearContextCache, cmd } from "./utility/general";
+import { clearContextCache, cmd, shouldCompileFile } from "./utility/general";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
@@ -17,6 +17,11 @@ const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	interval: 100,
 	usePolling: true,
 };
+
+interface WatchEvent {
+	type: "change" | "add" | "unlink";
+	itemPath: string;
+}
 
 async function time(callback: () => Promise<void>) {
 	const start = Date.now();
@@ -33,7 +38,8 @@ async function time(callback: () => Promise<void>) {
 }
 
 export class Watcher {
-	private isCompiling = false;
+	private watchEventQueue = new Array<WatchEvent>();
+	private processing = false;
 	private hasUpdateAllSucceeded = false;
 
 	constructor(private project: Project, private onSuccessCmd = "") {}
@@ -54,8 +60,7 @@ export class Watcher {
 			return;
 		}
 
-		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx" || ext === ".lua" || ext === ".json") {
+		if (shouldCompileFile(this.project.project, filePath)) {
 			console.log("Change detected, compiling...");
 			try {
 				await this.project.refreshFile(filePath);
@@ -79,6 +84,8 @@ export class Watcher {
 			if (process.exitCode === 0) {
 				await this.onSuccess();
 			}
+		} else {
+			await this.project.copyFile(filePath);
 		}
 	}
 
@@ -97,31 +104,37 @@ export class Watcher {
 		}
 	}
 
+	private pushToQueue(event: WatchEvent) {
+		this.watchEventQueue.push(event);
+		void this.startProcessingQueue();
+	}
+
+	private async startProcessingQueue() {
+		if (!this.processing) {
+			this.processing = true;
+			while (this.watchEventQueue.length > 0) {
+				const event = this.watchEventQueue.shift()!;
+				if (event.type === "change") {
+					await this.update(event.itemPath);
+				} else if (event.type === "add") {
+					await this.project.addFile(event.itemPath);
+					await this.update(event.itemPath);
+				} else if (event.type === "unlink") {
+					await this.project.removeFile(event.itemPath);
+				}
+			}
+			this.processing = false;
+		}
+	}
+
 	public start() {
 		chokidar
-			.watch(this.project.getRootDirOrThrow(), CHOKIDAR_OPTIONS)
-			.on("change", async (filePath: string) => {
-				if (!this.isCompiling) {
-					this.isCompiling = true;
-					await this.update(filePath);
-					this.isCompiling = false;
-				}
-			})
-			.on("add", async (filePath: string) => {
-				if (!this.isCompiling) {
-					this.isCompiling = true;
-					await this.project.addFile(filePath);
-					await this.update(filePath);
-					this.isCompiling = false;
-				}
-			})
-			.on("unlink", async (filePath: string) => {
-				if (!this.isCompiling) {
-					this.isCompiling = true;
-					await this.project.removeFile(filePath);
-					this.isCompiling = false;
-				}
-			});
+			.watch(this.project.rootPath, CHOKIDAR_OPTIONS)
+			.on("addDir", itemPath => this.pushToQueue({ type: "add", itemPath }))
+			.on("unlinkDir", itemPath => this.pushToQueue({ type: "unlink", itemPath }))
+			.on("change", itemPath => this.pushToQueue({ type: "change", itemPath }))
+			.on("add", itemPath => this.pushToQueue({ type: "add", itemPath }))
+			.on("unlink", itemPath => this.pushToQueue({ type: "unlink", itemPath }));
 
 		if (this.project.configFilePath) {
 			chokidar.watch(this.project.configFilePath, CHOKIDAR_OPTIONS).on("change", async () => {

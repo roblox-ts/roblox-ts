@@ -4,6 +4,7 @@ import path from "path";
 import * as ts from "ts-morph";
 import { isValidLuaIdentifier } from "../compiler";
 import { CompilerState } from "../CompilerState";
+import { CLIENT_SUBEXT, DTS_EXT, JSON_EXT, LUA_EXT, SERVER_SUBEXT, TSX_EXT, TS_EXT } from "../constants";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
@@ -95,14 +96,14 @@ export enum ScriptType {
 export function getScriptType(file: ts.SourceFile): ScriptType {
 	const filePath = file.getFilePath();
 	const ext = path.extname(filePath);
-	if (ext !== ".ts" && ext !== ".tsx" && ext !== ".json") {
+	if (ext !== TS_EXT && ext !== TSX_EXT && ext !== JSON_EXT) {
 		throw new CompilerError(`Unexpected extension type: ${ext}`, file, CompilerErrorType.UnexpectedExtensionType);
 	}
 
 	const subext = path.extname(path.basename(filePath, ext));
 
-	if (ext === ".json") {
-		if (subext === ".server" || subext === ".client") {
+	if (ext === JSON_EXT) {
+		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
 			throw new CompilerError(
 				"JSON imports can only be used as ModuleScripts! (remove .server or .client from the module name)",
 				file,
@@ -113,9 +114,9 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 		return ScriptType.JsonDataModule;
 	}
 
-	if (subext === ".server") {
+	if (subext === SERVER_SUBEXT) {
 		return ScriptType.Server;
-	} else if (subext === ".client") {
+	} else if (subext === CLIENT_SUBEXT) {
 		return ScriptType.Client;
 	} else {
 		return ScriptType.Module;
@@ -272,7 +273,7 @@ export function transformPathToLua(rootPath: string, outPath: string, filePath: 
 	if (name === "index") {
 		name = "init";
 	}
-	const luaName = name + exts.join("") + ".lua";
+	const luaName = name + exts.join("") + LUA_EXT;
 	return path.join(outPath, relativeToRoot, luaName);
 }
 
@@ -327,4 +328,27 @@ export function luaStringify(str: string): string {
 		}
 		return `[${eq}[${str}]${eq}]`;
 	}
+}
+
+export function isUsedJson(project: ts.Project, filePath: string) {
+	if (path.extname(filePath) === JSON_EXT) {
+		const sourceFile = project.getSourceFile(filePath);
+		if (sourceFile) {
+			return sourceFile.getReferencingSourceFiles().length > 0;
+		}
+	}
+	return false;
+}
+
+export function shouldCompileFile(project: ts.Project, filePath: string) {
+	const ext = path.extname(filePath);
+	if (ext === TS_EXT) {
+		const basename = path.basename(filePath, ext);
+		const subext = path.extname(basename);
+		if (ext + subext === DTS_EXT) {
+			return false;
+		}
+		return true;
+	}
+	return ext === TSX_EXT || isUsedJson(project, filePath);
 }

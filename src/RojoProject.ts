@@ -1,6 +1,7 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
+import { CLIENT_SUBEXT, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "./constants";
 import { RojoProjectError } from "./errors/RojoProjectError";
 import { arrayStartsWith, isPathAncestorOf, stripExts } from "./utility/general";
 
@@ -32,13 +33,12 @@ interface RojoFile {
 const ajv = new Ajv();
 
 const ROJO_METADATA_REGEX = /^\$/;
-const LUA_EXT = ".lua";
 const FOLDER_EXT = "";
 
 const SUB_EXT_TYPE_MAP = new Map<string, string>([
-	["", "ModuleScript"],
-	[".server", "Script"],
-	[".client", "LocalScript"],
+	[MODULE_SUBEXT, "ModuleScript"],
+	[SERVER_SUBEXT, "Script"],
+	[CLIENT_SUBEXT, "LocalScript"],
 ]);
 
 const DEFAULT_ISOLATED_CONTAINERS = [
