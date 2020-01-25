@@ -507,16 +507,6 @@ export class Project {
 		}
 	}
 
-	public async copyModuleFiles() {
-		if (this.projectType !== ProjectType.Package) {
-			const includeNodeModulesPath = path.join(this.includePath, "node_modules");
-			const rbxTsModulesPath = path.join(this.modulesPath, "@rbxts");
-			if (await fs.pathExists(rbxTsModulesPath)) {
-				await copyLuaFiles(rbxTsModulesPath, includeNodeModulesPath);
-			}
-		}
-	}
-
 	public async copyFile(filePath: string) {
 		if (filePath.startsWith(this.rootPath)) {
 			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
@@ -557,7 +547,6 @@ export class Project {
 		if (process.exitCode === 0) {
 			await this.copyFiles();
 			await this.copyIncludeFiles();
-			// await this.copyModuleFiles();
 		}
 	}
 
