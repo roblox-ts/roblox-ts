@@ -6,12 +6,14 @@ import * as ts from "ts-morph";
 import { addEvent } from "./analytics";
 import { compileSourceFile } from "./compiler";
 import { CompilerState } from "./CompilerState";
+import { DTS_EXT, JSON_EXT, LUA_EXT, TSX_EXT, TS_EXT } from "./constants";
 import { DiagnosticError } from "./errors/DiagnosticError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { RojoProjectError } from "./errors/RojoProjectError";
 import { NetworkType, RojoProject } from "./RojoProject";
-import { transformPathToLua } from "./utility/general";
+import { cleanDirRecursive, copyLuaFiles, shouldCleanRelative } from "./utility/fs";
+import { isUsedJson, shouldCompileFile, transformPathToLua } from "./utility/general";
 import { red, yellow } from "./utility/text";
 import { createFileCompilationWorkers } from "./workers";
 
@@ -29,94 +31,12 @@ const IGNORED_DIAGNOSTIC_CODES = new Set([
 
 const DEFAULT_PKG_VERSION = "UNKNOWN";
 
-const LUA_EXT = ".lua";
-function getLuaFiles(sourceFolder: string): Promise<Array<string>> {
-	return new Promise((resolve, reject) => {
-		const result = new Array<string>();
-		klaw(sourceFolder)
-			.on("data", item => {
-				if (item.stats.isFile() && path.extname(item.path) === LUA_EXT) {
-					result.push(item.path);
-				}
-			})
-			.on("end", () => resolve(result))
-			.on("error", reject);
-	});
-}
-
 function joinIfNotAbsolute(basePath: string, relativePath: string) {
 	if (path.isAbsolute(relativePath)) {
 		return relativePath;
 	} else {
 		return path.join(basePath, relativePath);
 	}
-}
-
-async function copyLuaFiles(sourceFolder: string, destinationFolder: string, transform?: (input: string) => string) {
-	(await getLuaFiles(sourceFolder)).forEach(async oldPath => {
-		let innerPath = path.relative(sourceFolder, oldPath).split(path.sep);
-		const [first, second, ...rest] = innerPath;
-		if (first === "node_modules" && second === "@rbxts") {
-			innerPath = [first, ...rest];
-		}
-		const innerFolder = innerPath.join(path.sep);
-		const newPath = path.join(destinationFolder, innerFolder);
-
-		let source = await fs.readFile(oldPath, "utf8");
-
-		if (transform) {
-			source = transform(source);
-		}
-
-		if (!(await fs.pathExists(newPath)) || (await fs.readFile(newPath, "utf8")) !== source) {
-			await fs.ensureFile(newPath);
-			await fs.writeFile(newPath, source);
-		}
-	});
-}
-
-async function cleanDeadLuaFiles(sourceFolder: string, destinationFolder: string) {
-	async function searchForDeadFiles(dir: string, dest: string) {
-		if (await fs.pathExists(dest)) {
-			for (const fileName of await fs.readdir(dest)) {
-				const nextDest = path.join(dest, fileName);
-				const nextDir =
-					path.relative(destinationFolder, nextDest) === "node_modules"
-						? path.join(dir, fileName, "@rbxts")
-						: path.join(dir, fileName);
-
-				try {
-					const stats = await fs.stat(nextDest);
-					if (stats.isDirectory()) {
-						await searchForDeadFiles(nextDir, nextDest);
-						if ((await fs.readdir(nextDest)).length === 0) {
-							await fs.rmdir(nextDest);
-							console.log("delete", "dir", nextDest);
-						}
-					} else if (stats.isFile()) {
-						if (
-							!(await fs.pathExists(path.join(sourceFolder, path.relative(destinationFolder, nextDir))))
-						) {
-							await fs.unlink(nextDest);
-							console.log("delete", "file", nextDest);
-						}
-					}
-				} catch (e) {
-					console.log("failed to clean", nextDest);
-				}
-			}
-		}
-	}
-	await searchForDeadFiles(destinationFolder, destinationFolder);
-}
-
-async function copyAndCleanDeadLuaFiles(
-	sourceFolder: string,
-	destinationFolder: string,
-	transform?: (input: string) => string,
-) {
-	await copyLuaFiles(sourceFolder, destinationFolder, transform);
-	await cleanDeadLuaFiles(sourceFolder, destinationFolder);
 }
 
 export enum ProjectType {
@@ -141,6 +61,9 @@ export class Project {
 	public rojoFilePath: string | undefined;
 
 	public project: ts.Project = {} as ts.Project;
+	public readonly rootPath: string;
+	public readonly outPath: string;
+
 	private compilerOptions: ts.CompilerOptions = {};
 	private projectPath = "";
 	private pkgVersion = DEFAULT_PKG_VERSION;
@@ -155,8 +78,6 @@ export class Project {
 	private readonly minify: boolean;
 	public readonly logTruthyDifferences: boolean | undefined;
 
-	private readonly rootPath: string;
-	private readonly outPath: string;
 	private readonly rojoOverridePath: string | undefined;
 	private readonly runtimeOverride: string | undefined;
 	private readonly ci: boolean;
@@ -500,9 +421,10 @@ export class Project {
 	}
 
 	public async addFile(filePath: string) {
-		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx" || ext === ".json") {
+		if (shouldCompileFile(this.project, filePath)) {
 			this.project.addSourceFileAtPath(filePath);
+		} else {
+			await this.copyFile(filePath);
 		}
 	}
 
@@ -511,7 +433,11 @@ export class Project {
 		if (sourceFile) {
 			this.project.removeSourceFile(sourceFile);
 		}
-		await this.cleanDirRecursive(this.outPath);
+		await cleanDirRecursive(
+			this.rootPath,
+			this.outPath,
+			async (src, dest, filePath) => !(await this.originalFileExists(src, dest, filePath)),
+		);
 	}
 
 	public async refreshFile(filePath: string) {
@@ -531,160 +457,112 @@ export class Project {
 		}
 	}
 
-	public async cleanDirRecursive(dir: string) {
-		if (await fs.pathExists(dir)) {
-			for (const name of await fs.readdir(dir)) {
-				const filePath = path.join(dir, name);
-				if ((await fs.stat(filePath)).isDirectory()) {
-					await this.cleanDirRecursive(filePath);
-					if ((await fs.readdir(filePath)).length === 0) {
-						await fs.rmdir(filePath);
-					}
-				} else {
-					let ext = path.extname(filePath);
-					let baseName = path.basename(filePath, ext);
-					let subext = path.extname(baseName);
-					baseName = path.basename(baseName, subext);
-					const relativeToOut = path.dirname(path.relative(this.outPath, filePath));
-					const rootPath = path.join(this.rootPath, relativeToOut);
-					if (ext === ".lua") {
-						let exists = false;
-						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
-						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx"));
-						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".json"));
-						exists =
-							exists ||
-							(baseName === "init" &&
-								(await fs.pathExists(path.join(rootPath, "init") + subext + ".lua")));
-						exists =
-							exists ||
-							(baseName === "init" &&
-								(await fs.pathExists(path.join(rootPath, "index") + subext + ".ts")));
-						exists =
-							exists ||
-							(baseName === "init" &&
-								(await fs.pathExists(path.join(rootPath, "index") + subext + ".tsx")));
-						exists =
-							exists ||
-							(baseName === "init" &&
-								(await fs.pathExists(path.join(rootPath, "index") + subext + ".json")));
-						exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".lua"));
-
-						if (!exists) {
-							await fs.remove(filePath);
-							console.log("remove", filePath);
-						}
-					} else if (subext === ".d" && ext === ".ts") {
-						if (!this.compilerOptions.declaration) {
-							await fs.remove(filePath);
-							console.log("remove", filePath);
-						} else {
-							ext = subext + ext;
-							baseName = path.basename(filePath, ext);
-							subext = path.extname(baseName);
-							baseName = path.basename(baseName, subext);
-
-							let exists = false;
-							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".d.ts"));
-							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".ts"));
-							exists = exists || (await fs.pathExists(path.join(rootPath, baseName) + subext + ".tsx"));
-
-							if (!exists) {
-								await fs.remove(filePath);
-								console.log("remove", filePath);
-							}
-						}
-					}
-				}
+	public async originalFileExists(src: string, dest: string, filePath: string) {
+		let ext = path.extname(filePath);
+		let baseName = path.basename(filePath, ext);
+		let subext = path.extname(baseName);
+		baseName = path.basename(baseName, subext);
+		const relativeToOut = path.dirname(path.relative(dest, filePath));
+		const rootPath = path.join(src, relativeToOut);
+		if (ext === LUA_EXT) {
+			if (baseName === "init") {
+				if (await fs.pathExists(path.join(rootPath, "init") + subext + LUA_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, "index") + subext + TS_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, "index") + subext + TSX_EXT)) return true;
+				if (isUsedJson(this.project, path.join(rootPath, "index") + subext + JSON_EXT)) return true;
+			} else {
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + TS_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + TSX_EXT)) return true;
+				if (isUsedJson(this.project, path.join(rootPath, baseName) + subext + JSON_EXT)) return true;
 			}
-		}
-	}
-
-	public getRootDirOrThrow() {
-		if (!this.rootPath) {
-			throw new ProjectError("Could not find rootDir!", ProjectErrorType.MissingRootDir);
-		}
-		return this.rootPath;
-	}
-
-	public async copyModuleFiles() {
-		if (this.projectType !== ProjectType.Package) {
-			const modulesPath = path.join(this.includePath, "node_modules");
-			const rbxTsModulesPath = path.resolve(this.modulesPath, "@rbxts");
-			if (await fs.pathExists(rbxTsModulesPath)) {
-				for (const name of await fs.readdir(rbxTsModulesPath)) {
-					const oldModulePath = path.join(rbxTsModulesPath, name);
-					const newModulePath = path.join(modulesPath, name);
-					await copyAndCleanDeadLuaFiles(oldModulePath, newModulePath, this.luaSourceTransformer);
-				}
+		} else if (subext + ext === DTS_EXT) {
+			if (!this.compilerOptions.declaration) {
+				return false;
+			} else {
+				ext = subext + ext;
+				baseName = path.basename(filePath, ext);
+				subext = path.extname(baseName);
+				baseName = path.basename(baseName, subext);
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + DTS_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + TS_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + TSX_EXT)) return true;
+				if (await fs.pathExists(path.join(rootPath, baseName) + subext + JSON_EXT)) return true;
 			}
+		} else if (ext === JSON_EXT) {
+			if (isUsedJson(this.project, path.join(rootPath, baseName) + subext + JSON_EXT)) return false;
 		}
+		if (await fs.pathExists(path.join(rootPath, baseName) + subext + ext)) return true;
+		return false;
 	}
 
 	public async copyIncludeFiles() {
 		if (!this.noInclude && this.projectType !== ProjectType.Package) {
-			await copyLuaFiles(LIB_PATH, this.includePath, this.luaSourceTransformer);
+			const includeNodeModulesPath = path.join(this.includePath, "node_modules");
+			await copyLuaFiles(
+				LIB_PATH,
+				this.includePath,
+				async (src, dest, itemPath) =>
+					!itemPath.startsWith(includeNodeModulesPath) && (await shouldCleanRelative(src, dest, itemPath)),
+			);
 		}
 	}
 
-	public async copyLuaFiles() {
-		await copyLuaFiles(this.rootPath, this.outPath, this.luaSourceTransformer);
+	public async copyModuleFiles() {
+		if (this.projectType !== ProjectType.Package) {
+			const includeNodeModulesPath = path.join(this.includePath, "node_modules");
+			const rbxTsModulesPath = path.join(this.modulesPath, "@rbxts");
+			if (await fs.pathExists(rbxTsModulesPath)) {
+				await copyLuaFiles(rbxTsModulesPath, includeNodeModulesPath);
+			}
+		}
 	}
 
-	public async copyDtsFiles() {
-		const dtsFiles = new Array<string>();
-		await new Promise(resolve => {
-			klaw(this.rootPath)
-				.on("data", item => {
-					if (item.path.endsWith(".d.ts")) {
-						dtsFiles.push(item.path);
+	public async copyFile(filePath: string) {
+		if (filePath.startsWith(this.rootPath)) {
+			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
+				overwrite: true,
+			});
+		}
+	}
+
+	public async copyFiles() {
+		await fs.copy(this.rootPath, this.outPath, {
+			recursive: true,
+			overwrite: true,
+			filter: src => {
+				const ext = path.extname(src);
+				if (ext === TS_EXT) {
+					const basename = path.basename(src, ext);
+					const subext = path.extname(basename);
+					if (subext + ext === DTS_EXT) {
+						return this.compilerOptions.declaration === true;
 					}
-				})
-				.on("end", () => resolve());
+				}
+				return !shouldCompileFile(this.project, src);
+			},
 		});
-		return Promise.all(
-			dtsFiles.map(filePath => {
-				return new Promise(resolve => {
-					const outPath = path.join(this.outPath, path.relative(this.rootPath, filePath));
-					void fs.readFile(filePath).then(buffer => {
-						const contents = buffer.toString();
-						void fs.ensureFile(outPath).then(() => {
-							void fs.writeFile(outPath, contents).then(() => resolve());
-						});
-					});
-				});
-			}),
-		);
 	}
 
 	public async compileAll() {
 		const files = this.project.getSourceFiles();
 
+		process.exitCode = 0;
+
 		if (this.numThreads !== undefined) {
 			await createFileCompilationWorkers(this, files, this.numThreads !== 0 ? this.numThreads : undefined);
-
-			await this.copyLuaFiles();
-			if (this.compilerOptions.declaration) {
-				await this.copyDtsFiles();
-			}
-			await this.copyIncludeFiles();
-			await this.copyModuleFiles();
 		} else {
-			await this.compileFiles(files);
-			if (process.exitCode === 0) {
-				await this.copyLuaFiles();
-				if (this.compilerOptions.declaration) {
-					await this.copyDtsFiles();
-				}
-				await this.copyIncludeFiles();
-				await this.copyModuleFiles();
-			}
+			// await this.compileFiles(files);
+		}
+
+		if (process.exitCode === 0) {
+			await this.copyFiles();
+			await this.copyIncludeFiles();
+			// await this.copyModuleFiles();
 		}
 	}
 
 	public async compileFileByPath(filePath: string, compileReferencingFiles = false) {
-		const ext = path.extname(filePath);
-		if (ext === ".ts" || ext === ".tsx" || ext === ".json") {
+		if (shouldCompileFile(this.project, filePath)) {
 			const sourceFile = this.project.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new ProjectError(
@@ -702,13 +580,17 @@ export class Project {
 					}
 				}
 			}
+
 			if (compileReferencingFiles) {
 				getReferencingFiles(sourceFile);
+				for (const refFile of sourceFile.getReferencedSourceFiles()) {
+					if (path.extname(refFile.getFilePath()) === JSON_EXT) {
+						files.add(refFile);
+					}
+				}
 			}
 
 			return this.compileFiles([...files]);
-		} else if (ext === ".lua") {
-			await this.copyLuaFiles();
 		}
 	}
 
@@ -833,7 +715,11 @@ export class Project {
 	}
 
 	public async compileFiles(files: Array<ts.SourceFile>) {
-		await this.cleanDirRecursive(this.outPath);
+		await cleanDirRecursive(
+			this.rootPath,
+			this.outPath,
+			async (src, dest, filePath) => !(await this.originalFileExists(src, dest, filePath)),
+		);
 
 		process.exitCode = 0;
 
