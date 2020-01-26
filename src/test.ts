@@ -390,6 +390,10 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow try statements",
 		type: CompilerErrorType.NoTryStatement,
 	},
+	"invalidAccess.spec.ts": {
+		message: "should not allow access to reserved TS globals",
+		type: CompilerErrorType.RobloxTSReservedIdentifier,
+	},
 };
 
 const compilerArgs = {

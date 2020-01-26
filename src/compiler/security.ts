@@ -89,7 +89,9 @@ const LUA_RESERVED_NAMESPACES = new Set([
 	"Ray",
 ]);
 
-const TS_RESERVED_KEYWORDS = new Set(["undefined", "TS", "globalThis", "table", "_continue_"]);
+const TS_RESERVED_KEYWORDS = new Set(["undefined", "TS"]);
+
+const TS_RESERVED_ACCESS = new Set(["globalThis", "arguments"]);
 
 const LUA_RESERVED_KEYWORDS = new Set([
 	"and",
@@ -146,6 +148,19 @@ export function checkReserved(node: ts.Node) {
 			`Cannot use '${name}' as identifier (reserved Lua namespace)`,
 			node,
 			CompilerErrorType.ReservedNamespace,
+		);
+	}
+	checkReservedAccess(node);
+	return name;
+}
+
+export function checkReservedAccess(node: ts.Node) {
+	const name = node.getText();
+	if (TS_RESERVED_ACCESS.has(name)) {
+		throw new CompilerError(
+			`Cannot access '${name}' (reserved for roblox-ts)`,
+			node,
+			CompilerErrorType.RobloxTSReservedIdentifier,
 		);
 	}
 	return name;
