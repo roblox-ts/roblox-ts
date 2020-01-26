@@ -3,7 +3,7 @@ import fs from "fs-extra";
 import path from "path";
 import { CLIENT_SUBEXT, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "./constants";
 import { RojoProjectError } from "./errors/RojoProjectError";
-import { isPathAncestorOf, stripExtensions } from "./utility/fs";
+import { isPathAncestorOf } from "./utility/fs";
 import { arrayStartsWith } from "./utility/general";
 
 interface RojoTreeProperty {
@@ -70,6 +70,17 @@ export enum NetworkType {
 	Unknown,
 	Client,
 	Server,
+}
+
+// does not use path.basename() intentionally!
+function stripExts(filePath: string) {
+	const ext = path.extname(filePath);
+	filePath = filePath.slice(0, -ext.length);
+	const subext = path.extname(filePath);
+	if (subext.length > 0) {
+		filePath = filePath.slice(0, -subext.length);
+	}
+	return filePath;
 }
 
 export class RojoProject {
@@ -170,7 +181,7 @@ export class RojoProject {
 				}
 			} else {
 				if (isPathAncestorOf(partition.fsPath, filePath)) {
-					const relative = path.relative(partition.fsPath, stripExtensions(filePath)).split(path.sep);
+					const relative = path.relative(partition.fsPath, stripExts(filePath)).split(path.sep);
 					if (relative[relative.length - 1] === "init") {
 						relative.pop();
 					}
