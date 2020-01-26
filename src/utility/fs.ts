@@ -58,7 +58,43 @@ export async function copyLuaFiles(
 	});
 }
 
-export function isDescendantOf(ancestor: string, descendant: string) {
-	console.log(path.relative(ancestor, descendant));
-	return !path.relative(ancestor, descendant).startsWith("..");
+export function transformPathToLua(rootPath: string, outPath: string, filePath: string) {
+	const relativeToRoot = path.dirname(path.relative(rootPath, filePath));
+	let name = path.basename(filePath, path.extname(filePath));
+	const exts = new Array<string>();
+	while (true) {
+		const ext = path.extname(name);
+		if (ext.length > 0) {
+			exts.unshift(ext);
+			name = path.basename(name, ext);
+		} else {
+			break;
+		}
+	}
+	if (exts[exts.length - 1] === ".d") {
+		exts.pop();
+	}
+	if (name === "index") {
+		name = "init";
+	}
+	const luaName = name + exts.join("") + LUA_EXT;
+	return path.join(outPath, relativeToRoot, luaName);
+}
+
+export function stripExtensions(fileName: string): string {
+	const ext = path.extname(fileName);
+	if (ext.length > 0) {
+		return stripExtensions(path.basename(fileName, ext));
+	} else {
+		return fileName;
+	}
+}
+
+export function isPathAncestorOf(ancestor: string, descendant: string) {
+	if (ancestor === descendant) {
+		return true;
+	} else {
+		const relative = path.relative(ancestor, descendant);
+		return !relative.startsWith("..") && !path.isAbsolute(relative);
+	}
 }

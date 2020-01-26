@@ -5,15 +5,14 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { FileRelation, RojoProject } from "../RojoProject";
+import { isPathAncestorOf, transformPathToLua } from "../utility/fs";
 import {
-	isPathAncestorOf,
+	getScriptType,
 	safeLuaIndex,
+	ScriptType,
 	skipNodesDownwards,
 	skipNodesUpwards,
 	stripExtensions,
-	transformPathToLua,
-	getScriptType,
-	ScriptType,
 } from "../utility/general";
 import { isRbxService, isUsedExclusivelyAsType } from "../utility/type";
 

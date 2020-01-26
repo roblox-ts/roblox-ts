@@ -4,7 +4,8 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { RojoProject } from "../RojoProject";
-import { getScriptContext, getScriptType, ScriptType, transformPathToLua } from "../utility/general";
+import { transformPathToLua } from "../utility/fs";
+import { getScriptContext, getScriptType, ScriptType } from "../utility/general";
 import { isRbxService } from "../utility/type";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

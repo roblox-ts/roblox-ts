@@ -4,7 +4,7 @@ import path from "path";
 import * as ts from "ts-morph";
 import { isValidLuaIdentifier } from "../compiler";
 import { CompilerState } from "../CompilerState";
-import { CLIENT_SUBEXT, DTS_EXT, JSON_EXT, LUA_EXT, SERVER_SUBEXT, TSX_EXT, TS_EXT } from "../constants";
+import { CLIENT_SUBEXT, DTS_EXT, JSON_EXT, SERVER_SUBEXT, TSX_EXT, TS_EXT } from "../constants";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 
 export function safeLuaIndex(parent: string, child: string) {
@@ -71,15 +71,6 @@ export function removeBalancedParenthesisFromStringBorders(str: string) {
 // console.log(`"${removeBalancedParenthesisFromStringBorders("(5 + (x))")}"`);
 // console.log(`"${removeBalancedParenthesisFromStringBorders("()()")}"`);
 // console.log(`"${removeBalancedParenthesisFromStringBorders("(()())")}"`);
-
-export function stripExtensions(fileName: string): string {
-	const ext = path.extname(fileName);
-	if (ext.length > 0) {
-		return stripExtensions(path.basename(fileName, ext));
-	} else {
-		return fileName;
-	}
-}
 
 const scriptContextCache = new Map<string, ScriptContext>();
 export function clearContextCache() {
@@ -251,48 +242,6 @@ export function makeSetStatement(state: CompilerState, varToSet: string, value: 
 		return state.indent + `return ${value};\n`;
 	} else {
 		return state.indent + `${varToSet} = ${value};\n`;
-	}
-}
-
-export function transformPathToLua(rootPath: string, outPath: string, filePath: string) {
-	const relativeToRoot = path.dirname(path.relative(rootPath, filePath));
-	let name = path.basename(filePath, path.extname(filePath));
-	const exts = new Array<string>();
-	while (true) {
-		const ext = path.extname(name);
-		if (ext.length > 0) {
-			exts.unshift(ext);
-			name = path.basename(name, ext);
-		} else {
-			break;
-		}
-	}
-	if (exts[exts.length - 1] === ".d") {
-		exts.pop();
-	}
-	if (name === "index") {
-		name = "init";
-	}
-	const luaName = name + exts.join("") + LUA_EXT;
-	return path.join(outPath, relativeToRoot, luaName);
-}
-
-export function stripExts(filePath: string) {
-	const ext = path.extname(filePath);
-	filePath = filePath.slice(0, -ext.length);
-	const subext = path.extname(filePath);
-	if (subext.length > 0) {
-		filePath = filePath.slice(0, -subext.length);
-	}
-	return filePath;
-}
-
-export function isPathAncestorOf(ancestor: string, descendant: string) {
-	if (ancestor === descendant) {
-		return true;
-	} else {
-		const relative = path.relative(ancestor, descendant);
-		return !relative.startsWith("..") && !path.isAbsolute(relative);
 	}
 }
 
