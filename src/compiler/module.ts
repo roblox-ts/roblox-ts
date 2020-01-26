@@ -5,15 +5,8 @@ import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { ProjectType } from "../Project";
 import { FileRelation, RojoProject } from "../RojoProject";
-import { isPathAncestorOf, transformPathToLua } from "../utility/fs";
-import {
-	getScriptType,
-	safeLuaIndex,
-	ScriptType,
-	skipNodesDownwards,
-	skipNodesUpwards,
-	stripExtensions,
-} from "../utility/general";
+import { isPathAncestorOf, stripExtensions, transformPathToLua } from "../utility/fs";
+import { getScriptType, safeLuaIndex, ScriptType, skipNodesDownwards, skipNodesUpwards } from "../utility/general";
 import { isRbxService, isUsedExclusivelyAsType } from "../utility/type";
 
 function isDefinitionALet(def: ts.DefinitionInfo<ts.ts.DefinitionInfo>) {
