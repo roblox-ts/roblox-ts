@@ -118,14 +118,6 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow reserved identifiers to be used",
 		type: CompilerErrorType.RobloxTSReservedIdentifier,
 	},
-	"invalidAccess.spec.server.ts": {
-		message: "should not allow client only API to be accessed by server code",
-		type: CompilerErrorType.InvalidClientOnlyAPIAccess,
-	},
-	"invalidAccess.spec.client.ts": {
-		message: "should not allow server only API to be accessed by client code",
-		type: CompilerErrorType.InvalidServerOnlyAPIAccess,
-	},
 	"equalsEquals.ts": {
 		message: "should not allow ==",
 		type: CompilerErrorType.NoEqualsEquals,
