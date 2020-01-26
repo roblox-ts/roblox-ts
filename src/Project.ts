@@ -13,7 +13,7 @@ import { ProjectError, ProjectErrorType } from "./errors/ProjectError";
 import { RojoProjectError } from "./errors/RojoProjectError";
 import { warn } from "./errors/Warning";
 import { NetworkType, RojoProject } from "./RojoProject";
-import { cleanDirRecursive, copyLuaFiles, shouldCleanRelative } from "./utility/fs";
+import { cleanDirRecursive, copyLuaFiles, shouldCleanRelative, isDescendantOf } from "./utility/fs";
 import { isUsedJson, shouldCompileFile, transformPathToLua } from "./utility/general";
 import { red, yellow } from "./utility/text";
 import { createFileCompilationWorkers } from "./workers";
@@ -505,13 +505,14 @@ export class Project {
 				LIB_PATH,
 				this.includePath,
 				async (src, dest, itemPath) =>
-					!itemPath.startsWith(includeNodeModulesPath) && (await shouldCleanRelative(src, dest, itemPath)),
+					!isDescendantOf(includeNodeModulesPath, itemPath) &&
+					(await shouldCleanRelative(src, dest, itemPath)),
 			);
 		}
 	}
 
 	public async copyFile(filePath: string) {
-		if (filePath.startsWith(this.rootPath)) {
+		if (isDescendantOf(this.rootPath, filePath)) {
 			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
 				overwrite: true,
 			});

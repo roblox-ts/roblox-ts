@@ -57,3 +57,8 @@ export async function copyLuaFiles(
 		filter: src => foldersContainingLua.has(src) || path.extname(src) === LUA_EXT,
 	});
 }
+
+export function isDescendantOf(ancestor: string, descendant: string) {
+	console.log(path.relative(ancestor, descendant));
+	return !path.relative(ancestor, descendant).startsWith("..");
+}
