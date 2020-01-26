@@ -1,3 +1,31 @@
+### **0.3.1**
+- Try/Catch is now banned. See issue #873 for more details.
+- Reworked file copying logic! roblox-ts now copies any file/folder it doesn't compile from src -> out.
+	- This is useful for things like Rojo's *.meta.json files
+- JSON modules can now be imported like regular modules. This requires `"resolveJsonModule": true,` in tsconfig.json
+	- JSON files that get compiled to .lua will _not_ be copied over as .json
+- Fixed bug where you could access `arguments` and `globalThis` (TS global variables we don't support)
+- --help command now fills full width of terminal
+
+- **BREAKING CHANGE** - node_modules no longer copies under `include`
+	- You must now add `node_modules/@rbxts` manually into your rojo default.project.json.
+	- It should sit under your `include` folder.
+	- So if your `include` part looked like this before:
+	```JSON
+	"rbxts_include": {
+		"$path": "include",
+	},
+	```
+	- It should now look like this:
+	```JSON
+	"rbxts_include": {
+		"$path": "include",
+		"node_modules": {
+			"$path": "node_modules/@rbxts"
+		}
+	},
+	```
+
 ### **0.3.0**
 - Truthiness Rework: Truthiness is now evaluated like in TypeScript/JavaScript. `0`, `""`, and `NaN` are now falsy.
 	- Added compiler option `--logTruthyChanges`, which displays all code affected by the truthiness change.
