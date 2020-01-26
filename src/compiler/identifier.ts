@@ -1,6 +1,7 @@
 import * as ts from "ts-morph";
 import { CompilerState } from "../CompilerState";
 import { luaStringify } from "../utility/general";
+import { checkReservedAccess } from ".";
 
 const BUILT_INS = new Set(["Promise", "Symbol", "typeIs", "opcall"]);
 
@@ -13,6 +14,8 @@ const PKG_VERSION_ID = "PKG_VERSION";
 
 export function compileIdentifier(state: CompilerState, node: ts.Identifier, isDefinition = false) {
 	let name = node.getText();
+
+	checkReservedAccess(node);
 
 	const replacement = replacements.get(name);
 	if (replacement) {
