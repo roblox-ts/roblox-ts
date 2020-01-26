@@ -2,6 +2,7 @@ import * as ts from "ts-morph";
 import { HasParameters } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
+import { warn } from "../errors/Warning";
 import { ScriptContext } from "../utility/general";
 import { bold, yellow } from "../utility/text";
 import { getType, isAnyType } from "../utility/type";
@@ -250,22 +251,14 @@ export function checkApiAccess(state: CompilerState, node: ts.Node) {
 			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
 			CompilerDirective.Client
 		) {
-			throw new CompilerError(
-				"Server script attempted to access a client-only API!",
-				node,
-				CompilerErrorType.InvalidClientOnlyAPIAccess,
-			);
+			warn("Server script attempted to access a client-only API!", node);
 		}
 	} else if (state.scriptContext === ScriptContext.Client) {
 		if (
 			getCompilerDirective(symbol, [CompilerDirective.Client, CompilerDirective.Server]) ===
 			CompilerDirective.Server
 		) {
-			throw new CompilerError(
-				"Client script attempted to access a server-only API!",
-				node,
-				CompilerErrorType.InvalidServerOnlyAPIAccess,
-			);
+			warn("Client script attempted to access a server-only API!", node);
 		}
 	}
 }

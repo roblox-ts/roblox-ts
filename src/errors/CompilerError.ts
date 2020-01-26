@@ -30,8 +30,6 @@ export enum CompilerErrorType {
 	BadBinaryExpression,
 	BadPrefixUnaryExpression,
 	BadPostfixUnaryExpression,
-	InvalidClientOnlyAPIAccess,
-	InvalidServerOnlyAPIAccess,
 	NoFunctionIndex,
 	NoClassPrototype,
 	ExportInNonModuleScript,
