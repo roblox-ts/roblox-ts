@@ -26,7 +26,8 @@
 				"singleQuote": false,
 				"printWidth": 120,
 				"tabWidth": 4,
-				"useTabs": true
+				"useTabs": true,
+				"endOfLine": "auto"
 			}
 		],
 		"@typescript-eslint/array-type": [
@@ -36,7 +37,12 @@
 				"readonly": "generic"
 			}
 		],
-		"@typescript-eslint/no-floating-promises": ["error", { "ignoreVoid": true }],
+		"@typescript-eslint/no-floating-promises": [
+			"error",
+			{
+				"ignoreVoid": true
+			}
+		],
 		"@typescript-eslint/no-unused-vars": "off",
 		"@typescript-eslint/explicit-function-return-type": "off",
 		"@typescript-eslint/interface-name-prefix": "off",
