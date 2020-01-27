@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { checkReserved, getReadableExpressionName, wrapQuotesAndSanitizeTemplate } from ".";
+import { checkReserved, getReadableExpressionName } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
@@ -45,8 +45,9 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 					),
 				)};\n`;
 		} else if (typeof memberValue === "number") {
-			result += state.indent + `${safeIndex} = ${memberValue};\n`;
-			result += state.indent + `${inverseId}[${memberValue}] = "${memberName}";\n`;
+			const num = compileExpression(state, member.getFirstChildByKindOrThrow(ts.SyntaxKind.NumericLiteral));
+			result += state.indent + `${safeIndex} = ${num};\n`;
+			result += state.indent + `${inverseId}[${num}] = "${memberName}";\n`;
 		} else if (member.hasInitializer()) {
 			const initializer = skipNodesDownwards(member.getInitializerOrThrow());
 			state.enterPrecedingStatementContext();

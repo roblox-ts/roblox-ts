@@ -14,7 +14,6 @@ import {
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
 } from "../utility/type";
-import { wrapQuotesAndSanitizeTemplate } from "./template";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
 	const { length } = elements;

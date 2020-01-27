@@ -292,32 +292,19 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`#${
-					compileCallArgumentsAndSeparateAndJoinWrapped(
-						state,
-						params,
-						true
-					)[0]
-				}`
+				`#${compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true)[0]}`,
 			);
-		}
+		},
 	],
 	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
 	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
-	[
-		"trimRight",
-		wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)
-	],
+	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
 	[
 		"split",
 		(state, params) => {
-			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(
-				state,
-				params,
-				true
-			);
+			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
 			return `string.split(${str}, ${args})`;
-		}
+		},
 	],
 	["slice", macroStringIndexFunction("sub", [1], [2])],
 	["sub", macroStringIndexFunction("sub", [1, 2])],
@@ -327,7 +314,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			state.usesTSLibrary = true;
 			return `TS.string_find_wrap(${findMacro(state, params)!})`;
-		}
+		},
 	],
 	["match", macroStringIndexFunction("match", [2])],
 
@@ -337,117 +324,87 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				padAmbiguous(state, params).join(" .. ")
-			)
+				padAmbiguous(state, params).join(" .. "),
+			),
 	],
 
 	[
 		"padEnd",
 		(state, params) => {
 			const [a, b] = padAmbiguous(state, params);
-			return appendDeclarationIfMissing(
-				state,
-				getLeftHandSideParent(params[0]),
-				[b, a].join(" .. ")
-			);
-		}
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
+		},
 	],
 
 	[
 		"indexOf",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(
-				state,
-				params
-			);
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
 
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`((string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
-					fromIndex ?? "0"
-				)}, true) or 0) - 1)`
+				`((string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex ?? "0")}, true) or 0) - 1)`,
 			);
-		}
+		},
 	],
 
 	[
 		"includes",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(
-				state,
-				params
-			);
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
 
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
-					fromIndex ?? "0"
-				)}, true) ~= nil)`
+				`(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex ?? "0")}, true) ~= nil)`,
 			);
-		}
+		},
 	],
 
 	[
 		"startsWith",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(
-				state,
-				params
-			) as [string, string, string | undefined];
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params) as [
+				string,
+				string,
+				string | undefined,
+			];
 
 			// TODO: write something like padAmbiguous
-			const id0 = state.pushPrecedingStatementToNewId(
-				params[0],
-				accessPath
-			);
-			const id1 = state.pushPrecedingStatementToNewId(
-				params[1],
-				matchParam
-			);
-			const id2 = state.pushPrecedingStatementToNewId(
-				params[2],
-				fromIndex ?? "0"
-			);
+			const id0 = state.pushPrecedingStatementToNewId(params[0], accessPath);
+			const id1 = state.pushPrecedingStatementToNewId(params[1], matchParam);
+			const id2 = state.pushPrecedingStatementToNewId(params[2], fromIndex ?? "0");
 
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`
+				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`,
 			);
-		}
+		},
 	],
 
 	[
 		"endsWith",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(
-				state,
-				params
-			) as [string, string, string | undefined];
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params) as [
+				string,
+				string,
+				string | undefined,
+			];
 
 			// TODO: write something like padAmbiguous
-			const id0 = state.pushPrecedingStatementToNewId(
-				params[0],
-				accessPath
-			);
-			const id1 = state.pushPrecedingStatementToNewId(
-				params[1],
-				matchParam
-			);
-			const id2 = state.pushPrecedingStatementToNewId(
-				params[2],
-				fromIndex ?? "0"
-			);
+			const id0 = state.pushPrecedingStatementToNewId(params[0], accessPath);
+			const id1 = state.pushPrecedingStatementToNewId(params[1], matchParam);
+			const id2 = state.pushPrecedingStatementToNewId(params[2], fromIndex ?? "0");
 
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`
+				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`,
 			);
-		}
-	]
+		},
+	],
 ]);
 
 "".startsWith;

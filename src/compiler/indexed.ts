@@ -7,7 +7,6 @@ import {
 	CompilerDirective,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
-	wrapQuotesAndSanitizeTemplate,
 	shouldWrapExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
@@ -137,16 +136,14 @@ export function getReadableExpressionName(
 	}
 }
 
-export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
-	const exp = skipNodesDownwards(node.getExpression());
-	const propertyStr = node.getName();
-	const expType = getType(exp);
+// TODO: Combine logic here for ts.PropertyAccessExpression and ts.ElementAccessExpression
+function assertIndexType(
+	state: CompilerState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+	valDec: ts.Node | undefined,
+	propertyStr: string,
+) {
 	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
-
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
-	}
-
 	if (
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"
@@ -164,6 +161,52 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		);
 	}
 
+	if (valDec) {
+		if (
+			ts.TypeGuards.isFunctionDeclaration(valDec) ||
+			ts.TypeGuards.isArrowFunction(valDec) ||
+			ts.TypeGuards.isFunctionExpression(valDec) ||
+			ts.TypeGuards.isMethodDeclaration(valDec)
+		) {
+			throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
+		} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
+			if (valDec.isConstEnum()) {
+				const member = valDec.getMemberOrThrow(propertyStr);
+				const value = member.getValue();
+				if (typeof value === "number") {
+					return compileExpression(state, member.getFirstChildByKindOrThrow(ts.SyntaxKind.NumericLiteral));
+				} else if (typeof value === "string") {
+					return compileExpression(
+						state,
+						member.getFirstChildOrThrow(
+							(child): child is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+								ts.TypeGuards.isStringLiteral(child) ||
+								ts.TypeGuards.isNoSubstitutionTemplateLiteral(child),
+						),
+					);
+				}
+			}
+		} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
+			if (propertyStr === "prototype") {
+				throw new CompilerError(
+					"Class prototypes are not supported!",
+					node,
+					CompilerErrorType.NoClassPrototype,
+				);
+			}
+		}
+	}
+}
+
+export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
+	const exp = skipNodesDownwards(node.getExpression());
+	const propertyStr = node.getName();
+	const expType = getType(exp);
+
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
+
 	const nameNode = node.getNameNode();
 	checkApiAccess(state, nameNode);
 
@@ -176,42 +219,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 
 	const symbol = expType.getSymbol();
 	if (symbol) {
-		const valDec = symbol.getValueDeclaration();
-		if (valDec) {
-			if (
-				ts.TypeGuards.isFunctionDeclaration(valDec) ||
-				ts.TypeGuards.isArrowFunction(valDec) ||
-				ts.TypeGuards.isFunctionExpression(valDec) ||
-				ts.TypeGuards.isMethodDeclaration(valDec)
-			) {
-				throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
-			} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
-				if (valDec.isConstEnum()) {
-					const member = valDec.getMemberOrThrow(propertyStr);
-					const value = member.getValue();
-					if (typeof value === "number") {
-						return `${value}`;
-					} else if (typeof value === "string") {
-						return compileExpression(
-							state,
-							member.getFirstChildOrThrow(
-								(child): child is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
-									ts.TypeGuards.isStringLiteral(child) ||
-									ts.TypeGuards.isNoSubstitutionTemplateLiteral(child),
-							),
-						);
-					}
-				}
-			} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
-				if (propertyStr === "prototype") {
-					throw new CompilerError(
-						"Class prototypes are not supported!",
-						node,
-						CompilerErrorType.NoClassPrototype,
-					);
-				}
-			}
-		}
+		assertIndexType(state, node, symbol.getValueDeclaration(), propertyStr);
 	}
 
 	let expStr = compileExpression(state, exp);
