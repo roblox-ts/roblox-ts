@@ -1,5 +1,5 @@
 import * as ts from "ts-morph";
-import { sanitizeTemplate } from ".";
+import { wrapQuotesAndSanitizeTemplate } from ".";
 import { CompilerState } from "../CompilerState";
 
 export function compileBooleanLiteral(state: CompilerState, node: ts.BooleanLiteral) {
@@ -31,7 +31,7 @@ export function compileNumericLiteral(state: CompilerState, node: ts.NumericLite
 
 export function compileStringLiteral(state: CompilerState, node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral) {
 	if (ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
-		return '"' + sanitizeTemplate(node.getText().slice(1, -1)) + '"';
+		return wrapQuotesAndSanitizeTemplate(node.getText().slice(1, -1));
 	} else {
 		return node.getText();
 	}

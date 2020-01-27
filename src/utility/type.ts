@@ -562,7 +562,7 @@ export function shouldPushToPrecedingStatement(
  */
 export function isConstantExpression(node: ts.Expression, maxDepth: number = Number.MAX_VALUE): boolean {
 	if (maxDepth >= 0) {
-		if (ts.TypeGuards.isStringLiteral(node)) {
+		if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 			return true;
 		} else if (ts.TypeGuards.isNumericLiteral(node)) {
 			return true;

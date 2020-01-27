@@ -7,7 +7,7 @@ import {
 	CompilerDirective,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
-	sanitizeTemplate,
+	wrapQuotesAndSanitizeTemplate,
 	shouldWrapExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
@@ -187,11 +187,19 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 				throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
 			} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
 				if (valDec.isConstEnum()) {
-					const value = valDec.getMemberOrThrow(propertyStr).getValue();
+					const member = valDec.getMemberOrThrow(propertyStr);
+					const value = member.getValue();
 					if (typeof value === "number") {
 						return `${value}`;
 					} else if (typeof value === "string") {
-						return '"' + sanitizeTemplate(value) + '"';
+						return compileExpression(
+							state,
+							member.getFirstChildOrThrow(
+								(child): child is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+									ts.TypeGuards.isStringLiteral(child) ||
+									ts.TypeGuards.isNoSubstitutionTemplateLiteral(child),
+							),
+						);
 					}
 				}
 			} else if (ts.TypeGuards.isClassDeclaration(valDec)) {

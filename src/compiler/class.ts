@@ -77,7 +77,10 @@ function compileClassProperty(
 			propStr = `[${expStr}]`;
 		} else if (ts.TypeGuards.isComputedPropertyName(propNameNode)) {
 			const computedExp = propNameNode.getExpression();
-			if (ts.TypeGuards.isStringLiteral(computedExp)) {
+			if (
+				ts.TypeGuards.isStringLiteral(computedExp) ||
+				ts.TypeGuards.isNoSubstitutionTemplateLiteral(computedExp)
+			) {
 				checkMethodReserved(computedExp.getLiteralText(), prop);
 			}
 			const computedExpStr = compileExpression(state, computedExp);

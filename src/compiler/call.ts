@@ -34,6 +34,7 @@ import {
 	shouldPushToPrecedingStatement,
 	superExpressionClassInheritsFromArray,
 } from "../utility/type";
+import { getLuaStringLength } from "./template";
 
 const STRING_MACRO_METHODS = new Set(["format", "gmatch", "gsub", "lower", "rep", "reverse", "upper"]);
 
@@ -49,6 +50,7 @@ export function shouldWrapExpression(subExp: ts.Node, strict: boolean) {
 			(!ts.TypeGuards.isCallExpression(subExp) &&
 				!ts.TypeGuards.isPropertyAccessExpression(subExp) &&
 				!ts.TypeGuards.isStringLiteral(subExp) &&
+				!ts.TypeGuards.isNoSubstitutionTemplateLiteral(subExp) &&
 				!ts.TypeGuards.isNewExpression(subExp) &&
 				!ts.TypeGuards.isClassExpression(subExp) &&
 				!ts.TypeGuards.isNumericLiteral(subExp)))
@@ -197,7 +199,11 @@ function macroStringIndexFunction(
 const findMacro = macroStringIndexFunction("find", [2]);
 
 function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
-	const [strParam, maxLengthParam, fillStringParam] = params;
+	const [strParam, maxLengthParam, fillStringParam] = params as [
+		ts.Expression,
+		ts.Expression,
+		ts.Expression | undefined,
+	];
 	let str: string;
 	let maxLength: string;
 	let fillString: string;
@@ -207,6 +213,7 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 
 	if (
 		!ts.TypeGuards.isStringLiteral(strParam) &&
+		!ts.TypeGuards.isNoSubstitutionTemplateLiteral(strParam) &&
 		(!ts.TypeGuards.isIdentifier(strParam) || isIdentifierDefinedInExportLet(strParam))
 	) {
 		str = state.pushPrecedingStatementToNewId(strParam, str);
@@ -224,8 +231,11 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 			fillString = `(${fillString})`;
 		}
 
-		if (ts.TypeGuards.isStringLiteral(fillStringParam)) {
-			fillStringLength = `${fillStringParam.getLiteralText().length}`;
+		if (
+			ts.TypeGuards.isStringLiteral(fillStringParam) ||
+			ts.TypeGuards.isNoSubstitutionTemplateLiteral(fillStringParam)
+		) {
+			fillStringLength = `${getLuaStringLength(fillStringParam.getLiteralText())}`;
 		} else {
 			fillStringLength = `#${fillString}`;
 		}
@@ -234,18 +244,25 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	let targetLength: string;
 	let repititions: string | undefined;
 	let rawRepititions: number | undefined;
-	if (ts.TypeGuards.isStringLiteral(strParam)) {
-		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
-			const literalTargetLength = maxLengthParam.getLiteralValue() - strParam.getLiteralText().length;
 
-			if (fillStringParam === undefined || ts.TypeGuards.isStringLiteral(fillStringParam)) {
-				rawRepititions = literalTargetLength / (fillStringParam ? fillStringParam.getLiteralText().length : 1);
+	if (ts.TypeGuards.isStringLiteral(strParam) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(strParam)) {
+		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
+			const literalTargetLength =
+				maxLengthParam.getLiteralValue() - getLuaStringLength(strParam.getLiteralText());
+
+			if (
+				fillStringParam === undefined ||
+				ts.TypeGuards.isStringLiteral(fillStringParam) ||
+				ts.TypeGuards.isNoSubstitutionTemplateLiteral(fillStringParam)
+			) {
+				rawRepititions =
+					literalTargetLength / (fillStringParam ? getLuaStringLength(fillStringParam.getLiteralText()) : 1);
 				repititions = `${Math.ceil(rawRepititions)}`;
 			}
 
 			targetLength = `${literalTargetLength}`;
 		} else {
-			targetLength = `${maxLength} - ${strParam.getLiteralText().length}`;
+			targetLength = `${maxLength} - ${getLuaStringLength(strParam.getLiteralText())}`;
 			if (fillStringLength !== "1") {
 				targetLength = state.pushPrecedingStatementToNewId(maxLengthParam, `${targetLength}`);
 			}
@@ -260,15 +277,12 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	const doNotTrim =
 		(rawRepititions !== undefined && rawRepititions === Math.ceil(rawRepititions)) || fillStringLength === "1";
 
-	return [
-		`${fillString}:rep(${repititions ||
-			(fillStringLength === "1"
-				? targetLength
-				: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})${
-			doNotTrim ? "" : `:sub(1, ${targetLength})`
-		}`,
-		str,
-	];
+	const repeatedStr = `string.rep(${fillString}, ${repititions ||
+		(fillStringLength === "1"
+			? targetLength
+			: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})`;
+
+	return [doNotTrim ? repeatedStr : `string.sub(${repeatedStr}, 1, ${targetLength})`, str];
 }
 
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
@@ -278,19 +292,32 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			return appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				`#${compileCallArgumentsAndSeparateAndJoinWrapped(state, params)[0]}`,
+				`#${
+					compileCallArgumentsAndSeparateAndJoinWrapped(
+						state,
+						params,
+						true
+					)[0]
+				}`
 			);
-		},
+		}
 	],
 	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
 	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
-	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
+	[
+		"trimRight",
+		wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)
+	],
 	[
 		"split",
 		(state, params) => {
-			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true);
+			const [str, args] = compileCallArgumentsAndSeparateAndJoinWrapped(
+				state,
+				params,
+				true
+			);
 			return `string.split(${str}, ${args})`;
-		},
+		}
 	],
 	["slice", macroStringIndexFunction("sub", [1], [2])],
 	["sub", macroStringIndexFunction("sub", [1, 2])],
@@ -300,7 +327,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		(state, params) => {
 			state.usesTSLibrary = true;
 			return `TS.string_find_wrap(${findMacro(state, params)!})`;
-		},
+		}
 	],
 	["match", macroStringIndexFunction("match", [2])],
 
@@ -310,38 +337,120 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				padAmbiguous(state, params).join(" .. "),
-			),
+				padAmbiguous(state, params).join(" .. ")
+			)
 	],
 
 	[
 		"padEnd",
 		(state, params) => {
 			const [a, b] = padAmbiguous(state, params);
-			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
-		},
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				[b, a].join(" .. ")
+			);
+		}
 	],
 
 	[
 		"indexOf",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(
+				state,
+				params
+			);
 
-			return `((string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
-				fromIndex ?? "0",
-			)}, true) or 0) - 1)`;
-		},
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`((string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
+					fromIndex ?? "0"
+				)}, true) or 0) - 1)`
+			);
+		}
 	],
 
 	[
 		"includes",
 		(state, params) => {
-			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params);
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(
+				state,
+				params
+			);
 
-			return `(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex ?? "0")}, true) ~= nil)`;
-		},
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(
+					fromIndex ?? "0"
+				)}, true) ~= nil)`
+			);
+		}
 	],
+
+	[
+		"startsWith",
+		(state, params) => {
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(
+				state,
+				params
+			) as [string, string, string | undefined];
+
+			// TODO: write something like padAmbiguous
+			const id0 = state.pushPrecedingStatementToNewId(
+				params[0],
+				accessPath
+			);
+			const id1 = state.pushPrecedingStatementToNewId(
+				params[1],
+				matchParam
+			);
+			const id2 = state.pushPrecedingStatementToNewId(
+				params[2],
+				fromIndex ?? "0"
+			);
+
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`
+			);
+		}
+	],
+
+	[
+		"endsWith",
+		(state, params) => {
+			const [accessPath, matchParam, fromIndex] = compileCallArguments(
+				state,
+				params
+			) as [string, string, string | undefined];
+
+			// TODO: write something like padAmbiguous
+			const id0 = state.pushPrecedingStatementToNewId(
+				params[0],
+				accessPath
+			);
+			const id1 = state.pushPrecedingStatementToNewId(
+				params[1],
+				matchParam
+			);
+			const id2 = state.pushPrecedingStatementToNewId(
+				params[2],
+				fromIndex ?? "0"
+			);
+
+			return appendDeclarationIfMissing(
+				state,
+				getLeftHandSideParent(params[0]),
+				`(string.sub(${id0}, ${id2} + 1, ${id2} + #${id1}) == ${id1})`
+			);
+		}
+	]
 ]);
+
+"".startsWith;
 
 STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
 STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
