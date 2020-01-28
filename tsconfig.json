@@ -1,23 +1,10 @@
 {
-	"compilerOptions": {
-		"declaration": true,
-		"module": "commonjs",
-		"outDir": "out",
-		"rootDir": "src",
-		"target": "es6",
-		"strict": true,
-		"noFallthroughCasesInSwitch": true,
-		"strictNullChecks": true,
-		"noUnusedLocals": true,
-		"esModuleInterop": true,
-		"removeComments": true
-	},
-	"include": [
-		"src"
-	],
-	"exclude": [
-		"node_modules",
-		"out",
-		"templates"
+	"files": [],
+	"references": [
+		{ "path": "./src/CLI" },
+		{ "path": "./src/LuaAST" },
+		{ "path": "./src/LuaRenderer" },
+		{ "path": "./src/TSTransformer" },
+		{ "path": "./src/Shared" },
 	]
 }

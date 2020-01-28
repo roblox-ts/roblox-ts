@@ -1,6 +1,6 @@
 import * as lua from ".";
-import { identity } from "../util/identity";
-import { getKeysAsInt } from "../util/getKeysAsNumber";
+import { identity } from "../Shared/util/identity";
+import { getKeysAsInt } from "../Shared/util/getKeysAsNumber";
 
 function makeGuard<T extends keyof lua.NodeByKind>(kind: T) {
 	return (node: lua.Node): node is lua.NodeByKind[T] => node.kind === kind;

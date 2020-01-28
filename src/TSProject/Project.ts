@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { ProjectOptions } from "./types";
-import { compileSourceFile } from "./nodes/sourceFile";
-import { TransformState } from "./TransformState";
+import { ProjectOptions } from "./../TSTransformer/types";
+import { compileSourceFile } from "./../TSTransformer/nodes/sourceFile";
+import { TransformState } from "./../TSTransformer/TransformState";
 
 function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {

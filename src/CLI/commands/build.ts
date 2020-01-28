@@ -1,8 +1,8 @@
 import ts from "typescript";
 import yargs from "yargs";
-import { Project } from "../../TSTransformer/Project";
+import { Project } from "../../TSProject/Project";
 import { ProjectOptions } from "../../TSTransformer/types";
-import { identity } from "../../util/identity";
+import { identity } from "../../Shared/util/identity";
 import { CLIError } from "../errors/CLIError";
 
 const DEFAULT_BUILD_FLAGS: ProjectOptions = {

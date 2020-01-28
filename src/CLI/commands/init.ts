@@ -1,5 +1,5 @@
 import yargs from "yargs";
-import { identity } from "../../util/identity";
+import { identity } from "../../Shared/util/identity";
 
 const command = "init";
 
