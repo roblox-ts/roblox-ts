@@ -1,11 +1,16 @@
 // helper creation
 import * as lua from "LuaAST";
 
+type AllowedFieldTypes = lua.Node | lua.List<lua.Node> | boolean | number | string;
+
+type FilterProps<T, U> = { [K in keyof T]: T[K] extends U ? T[K] : never };
+type FilteredNodeByKind<T extends keyof lua.NodeByKind> = FilterProps<lua.NodeByKind[T], AllowedFieldTypes>;
+
 // creation
 export function create<T extends keyof lua.NodeByKind>(
 	kind: T,
 	fields: {
-		[K in Exclude<keyof lua.NodeByKind[T], keyof lua.Node>]: lua.NodeByKind[T][K];
+		[K in Exclude<keyof FilteredNodeByKind<T>, keyof lua.Node>]: FilteredNodeByKind<T>[K];
 	},
 ): lua.NodeByKind[T] {
 	// super hack!
