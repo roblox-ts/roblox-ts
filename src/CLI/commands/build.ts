@@ -1,7 +1,7 @@
 import ts from "typescript";
 import yargs from "yargs";
-import { Project } from "../../TSProject/Project";
-import { ProjectOptions } from "../../TSTransformer/types";
+import { Project } from "../../TSProject";
+import { ProjectOptions } from "../../TSTransformer";
 import { identity } from "../../Shared/util/identity";
 import { CLIError } from "../errors/CLIError";
 

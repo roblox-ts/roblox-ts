@@ -1,6 +1,6 @@
 import ts from "typescript";
 import { ProjectOptions } from "./../TSTransformer/types";
-import { compileSourceFile } from "./../TSTransformer/nodes/sourceFile";
+import { transformSourceFile } from "./../TSTransformer/nodes/sourceFile";
 import { TransformState } from "./../TSTransformer/TransformState";
 
 function createParseConfigFileHost(): ts.ParseConfigFileHost {
@@ -29,7 +29,7 @@ export class Project {
 	public compile() {
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
-				compileSourceFile(new TransformState(), sourceFile);
+				transformSourceFile(new TransformState(), sourceFile);
 			}
 		}
 	}
