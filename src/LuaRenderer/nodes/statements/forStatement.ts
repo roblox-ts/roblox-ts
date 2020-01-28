@@ -4,16 +4,12 @@ import { RenderState } from "LuaRenderer";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderForStatement(state: RenderState, node: lua.ForStatement) {
-	let result = "";
-
 	const idsStr = lua.list.mapToArray(node.ids, id => render(state, id)).join(", ");
 	const expStr = render(state, node.expression);
 
+	let result = "";
 	result += state.indent + `for ${idsStr} in ${expStr} do\n`;
-	state.pushIndent();
-	result += renderStatements(state, node.statements);
-	state.popIndent();
+	result += state.block(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
-
 	return result;
 }

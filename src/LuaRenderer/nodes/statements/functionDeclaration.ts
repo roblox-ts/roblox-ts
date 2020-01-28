@@ -5,11 +5,13 @@ import { renderParameters } from "LuaRenderer/util/parameters";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderFunctionDeclaration(state: RenderState, node: lua.FunctionDeclaration) {
+	const hasLocal = lua.isIdentifier(node.name);
+	const nameStr = render(state, node.name);
+	const paramStr = renderParameters(state, node);
+
 	let result = "";
-	result += state.indent + `local function ${render(state, node.name)}(${renderParameters(state, node)})\n`;
-	state.pushIndent();
-	result += renderStatements(state, node.statements);
-	state.popIndent();
+	result += state.indent + `${hasLocal ? "local " : ""}function ${nameStr}(${paramStr})\n`;
+	result += state.block(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
 	return result;
 }

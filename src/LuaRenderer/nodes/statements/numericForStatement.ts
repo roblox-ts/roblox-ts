@@ -4,8 +4,6 @@ import { RenderState } from "LuaRenderer";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderNumericForStatement(state: RenderState, node: lua.NumericForStatement) {
-	let result = "";
-
 	const idStr = render(state, node.id);
 	const minStr = render(state, node.min);
 	const maxStr = render(state, node.max);
@@ -18,11 +16,9 @@ export function renderNumericForStatement(state: RenderState, node: lua.NumericF
 		predicateStr = `${minStr}, ${maxStr}`;
 	}
 
+	let result = "";
 	result += state.indent + `for ${idStr} = ${predicateStr} do\n`;
-	state.pushIndent();
-	result += renderStatements(state, node.statements);
-	state.popIndent();
+	result += state.block(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
-
 	return result;
 }

@@ -9,12 +9,8 @@ export function renderFunctionExpression(state: RenderState, node: lua.FunctionE
 	}
 
 	let result = "";
-
 	result += `function(${renderParameters(state, node)})\n`;
-	state.pushIndent();
-	result += renderStatements(state, node.statements);
-	state.popIndent();
+	result += state.block(() => renderStatements(state, node.statements));
 	result += state.indent + `end`;
-
 	return result;
 }

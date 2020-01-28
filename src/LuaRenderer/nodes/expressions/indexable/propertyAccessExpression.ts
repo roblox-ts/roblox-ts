@@ -4,5 +4,6 @@ import { RenderState } from "LuaRenderer";
 
 export function renderPropertyAccessExpression(state: RenderState, node: lua.PropertyAccessExpression) {
 	const expStr = render(state, node.expression);
-	return `${expStr}.${node.name}`;
+	const nameStr = render(state, node.name);
+	return `${expStr}.${nameStr}`;
 }

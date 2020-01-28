@@ -8,10 +8,9 @@ export function renderMap(state: RenderState, node: lua.Map) {
 	}
 
 	let result = "{\n";
-	state.pushIndent();
-	lua.list.forEach(node.fields, field => (result += state.indent + `${render(state, field)},`));
-	state.popIndent();
-	result += "}";
-
+	state.block(() => {
+		lua.list.forEach(node.fields, field => (result += state.indent + `${render(state, field)},\n`));
+	});
+	result += state.indent + "}";
 	return result;
 }

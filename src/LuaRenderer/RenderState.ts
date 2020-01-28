@@ -3,12 +3,19 @@ import * as lua from "LuaAST";
 export class RenderState {
 	public indent = "";
 
-	public pushIndent() {
+	private pushIndent() {
 		this.indent += "\t";
 	}
 
-	public popIndent() {
+	private popIndent() {
 		this.indent = this.indent.substr(1);
+	}
+
+	public block<T>(callback: () => T) {
+		this.pushIndent();
+		const result = callback();
+		this.popIndent();
+		return result;
 	}
 
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
