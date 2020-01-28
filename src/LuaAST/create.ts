@@ -124,10 +124,6 @@ export function bool(value: boolean) {
 	}
 }
 
-export function field(name: string, value: lua.Expression) {
-	return lua.create(lua.SyntaxKind.MapField, { name: lua.id(name), value });
-}
-
 export function whileDo(condition: lua.Expression, statements: Array<lua.Statement> = []) {
 	return lua.create(lua.SyntaxKind.WhileStatement, {
 		condition,
@@ -149,4 +145,30 @@ export function primitive(value: undefined | boolean | number | string) {
 	} else {
 		return lua.create(lua.SyntaxKind.StringLiteral, { value });
 	}
+}
+
+export function table() {
+	return lua.create(lua.SyntaxKind.Array, { members: lua.list.make<lua.Expression>() });
+}
+
+export function array(members: Array<lua.Expression> = []) {
+	return lua.create(lua.SyntaxKind.Array, {
+		members: lua.list.make(...members),
+	});
+}
+
+export function set(members: Array<lua.Expression> = []) {
+	return lua.create(lua.SyntaxKind.Set, {
+		members: lua.list.make(...members),
+	});
+}
+
+export function mapField(index: lua.Expression, value: lua.Expression) {
+	return lua.create(lua.SyntaxKind.MapField, { index, value });
+}
+
+export function map(fields: Array<[lua.Expression, lua.Expression]> = []) {
+	return lua.create(lua.SyntaxKind.Map, {
+		fields: lua.list.make(...fields.map(([index, value]) => lua.mapField(index, value))),
+	});
 }
