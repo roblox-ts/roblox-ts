@@ -12,7 +12,7 @@
 	},
 	"scripts": {
 		"eslint": "npx eslint \"src/**/*.ts\" --max-warnings 0",
-		"build": "npx tsc",
+		"build": "npx ttsc -b",
 		"test-compile": "mocha --timeout 0 --recursive out/test.js",
 		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
 		"test-run": "lua tests/spec.lua",
