@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer/RenderState";
+import { RenderState } from "LuaRenderer";
 
 export function renderStatements(state: RenderState, statements: lua.List<lua.Statement>) {
 	let result = "";

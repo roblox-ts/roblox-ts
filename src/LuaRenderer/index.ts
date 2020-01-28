@@ -84,3 +84,5 @@ export function render<T extends lua.SyntaxKind>(state: RenderState, node: lua.N
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return KIND_TO_RENDERER[node.kind](state, node as any);
 }
+
+export { RenderState };

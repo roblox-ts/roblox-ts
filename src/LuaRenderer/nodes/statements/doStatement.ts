@@ -1,5 +1,5 @@
 import * as lua from "LuaAST";
-import { RenderState } from "LuaRenderer/RenderState";
+import { RenderState } from "LuaRenderer";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderDoStatement(state: RenderState, node: lua.DoStatement) {
