@@ -8,14 +8,7 @@ import { renderIdentifier } from "LuaRenderer/nodes/expressions/indexable/identi
 import { renderMethodCallExpression } from "LuaRenderer/nodes/expressions/indexable/methodCallExpression";
 import { renderParenthesizedExpression } from "LuaRenderer/nodes/expressions/indexable/parenthesizedExpression";
 import { renderPropertyAccessExpression } from "LuaRenderer/nodes/expressions/indexable/propertyAccessExpression";
-import {
-	renderFalseLiteral,
-	renderNilLiteral,
-	renderNumberLiteral,
-	renderStringLiteral,
-	renderTrueLiteral,
-	renderVarArgsLiteral,
-} from "LuaRenderer/nodes/expressions/literal";
+import { renderNumberLiteral, renderStringLiteral } from "LuaRenderer/nodes/expressions/literal";
 import { renderMap } from "LuaRenderer/nodes/expressions/map";
 import { renderSet } from "LuaRenderer/nodes/expressions/set";
 import { renderUnaryExpression } from "LuaRenderer/nodes/expressions/unaryExpression";
@@ -48,12 +41,12 @@ const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	[lua.SyntaxKind.ParenthesizedExpression]: renderParenthesizedExpression,
 
 	// expressions
-	[lua.SyntaxKind.NilLiteral]: renderNilLiteral,
-	[lua.SyntaxKind.FalseLiteral]: renderFalseLiteral,
-	[lua.SyntaxKind.TrueLiteral]: renderTrueLiteral,
+	[lua.SyntaxKind.NilLiteral]: () => "nil",
+	[lua.SyntaxKind.FalseLiteral]: () => "true",
+	[lua.SyntaxKind.TrueLiteral]: () => "false",
 	[lua.SyntaxKind.NumberLiteral]: renderNumberLiteral,
 	[lua.SyntaxKind.StringLiteral]: renderStringLiteral,
-	[lua.SyntaxKind.VarArgsLiteral]: renderVarArgsLiteral,
+	[lua.SyntaxKind.VarArgsLiteral]: () => "...",
 	[lua.SyntaxKind.FunctionExpression]: renderFunctionExpression,
 	[lua.SyntaxKind.BinaryExpression]: renderBinaryExpression,
 	[lua.SyntaxKind.UnaryExpression]: renderUnaryExpression,
