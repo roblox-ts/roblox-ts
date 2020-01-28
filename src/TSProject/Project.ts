@@ -1,5 +1,4 @@
 import ts from "typescript";
-import { ProjectOptions } from "./../TSTransformer/types";
 import { transformSourceFile } from "./../TSTransformer/nodes/sourceFile";
 import { TransformState } from "./../TSTransformer/TransformState";
 
@@ -14,16 +13,31 @@ function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	};
 }
 
+const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
+	includePath: "include",
+	rojo: "",
+};
+
+export interface ProjectOptions {
+	includePath: string;
+	rojo: string;
+}
+
 export class Project {
 	private readonly program: ts.Program;
 
-	constructor(tsConfigPath: string, options: ProjectOptions) {
+	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
+		const options: ProjectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
 		if (parsedCommandLine === undefined) throw new Error();
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: parsedCommandLine.options,
 		});
+	}
+
+	public getRootDir() {
+		return this.program.getCompilerOptions().rootDir ?? ts.getDefaultCompilerOptions().rootDir;
 	}
 
 	public compile() {

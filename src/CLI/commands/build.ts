@@ -1,15 +1,9 @@
 import ts from "typescript";
 import yargs from "yargs";
-import { Project } from "../../TSProject";
-import { ProjectOptions } from "../../TSTransformer";
+import { Project, ProjectOptions } from "../../TSProject";
 import { identity } from "../../Shared/util/identity";
 import { CLIError } from "../errors/CLIError";
-
-const DEFAULT_BUILD_FLAGS: ProjectOptions = {
-	includePath: "include",
-	rojo: "",
-	watch: false,
-};
+import { Watcher } from "../modules/Watcher";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
 	if (tsConfigPath !== undefined) {
@@ -20,9 +14,16 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 	}
 }
 
-export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & { project: string }>>({
+interface CLIOptions {
+	project: string;
+	watch: boolean;
+}
+
+export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
 	command: ["$0", "build"],
+
 	describe: "Build a project",
+
 	builder: () =>
 		yargs
 			.option("project", {
@@ -31,7 +32,13 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & { project: s
 				default: ".",
 				describe: "project path",
 			})
-			// DO NOT PROVIDE DEFAULTS BELOW HERE
+			.option("watch", {
+				alias: "w",
+				boolean: true,
+				default: false,
+				describe: "enable watch mode",
+			})
+			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("includePath", {
 				alias: "i",
 				string: true,
@@ -40,12 +47,8 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & { project: s
 			.option("rojo", {
 				string: true,
 				describe: "Manually select Rojo configuration file",
-			})
-			.option("watch", {
-				alias: "w",
-				boolean: true,
-				describe: "enable watch mode",
 			}),
+
 	handler: argv => {
 		const tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
 		if (tsConfigPath === undefined) {
@@ -53,9 +56,13 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & { project: s
 		}
 
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
-		const projectOptions: ProjectOptions = Object.assign({}, DEFAULT_BUILD_FLAGS, tsConfigProjectOptions, argv);
+		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);
 
-		const project = new Project(tsConfigPath, projectOptions);
-		project.compile();
+		if (argv.watch) {
+			new Watcher(tsConfigPath, projectOptions);
+		} else {
+			const project = new Project(tsConfigPath, projectOptions);
+			project.compile();
+		}
 	},
 });
