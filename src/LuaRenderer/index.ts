@@ -1,7 +1,7 @@
 import * as lua from "../LuaAST";
+import { identity } from "../Shared/util/identity";
 import { renderArray } from "./nodes/expressions/array";
 import { renderBinaryExpression } from "./nodes/expressions/binaryExpression";
-import { renderFalseLiteral } from "./nodes/expressions/falseLiteral";
 import { renderFunctionExpression } from "./nodes/expressions/functionExpression";
 import { renderCallExpression } from "./nodes/expressions/indexable/callExpression";
 import { renderComputedIndexExpression } from "./nodes/expressions/indexable/computedIndexExpression";
@@ -9,14 +9,17 @@ import { renderIdentifier } from "./nodes/expressions/indexable/identifier";
 import { renderMethodCallExpression } from "./nodes/expressions/indexable/methodCallExpression";
 import { renderParenthesizedExpression } from "./nodes/expressions/indexable/parenthesizedExpression";
 import { renderPropertyAccessExpression } from "./nodes/expressions/indexable/propertyAccessExpression";
+import {
+	renderFalseLiteral,
+	renderNilLiteral,
+	renderNumberLiteral,
+	renderStringLiteral,
+	renderTrueLiteral,
+	renderVarArgsLiteral,
+} from "./nodes/expressions/literal";
 import { renderMap } from "./nodes/expressions/map";
-import { renderNilLiteral } from "./nodes/expressions/nilLiteral";
-import { renderNumberLiteral } from "./nodes/expressions/numberLiteral";
 import { renderSet } from "./nodes/expressions/set";
-import { renderStringLiteral } from "./nodes/expressions/stringLiteral";
-import { renderTrueLiteral } from "./nodes/expressions/trueLiteral";
 import { renderUnaryExpression } from "./nodes/expressions/unaryExpression";
-import { renderVarArgsLiteral } from "./nodes/expressions/varArgsLiteral";
 import { renderMapField } from "./nodes/fields/mapField";
 import { renderAssignment } from "./nodes/statements/assignment";
 import { renderCallStatement } from "./nodes/statements/callStatement";
@@ -33,52 +36,51 @@ import { renderVariableDeclaration } from "./nodes/statements/variableDeclaratio
 import { renderWhileStatement } from "./nodes/statements/whileStatement";
 import { RenderState } from "./RenderState";
 
-export function render(state: RenderState, node: lua.Node): string {
-	// weird syntax so that it's easy to sort lines
+type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByKind[T]) => string;
 
+const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	// indexable expressions
-	if (false) return "";
-	else if (lua.isIdentifier(node)) return renderIdentifier(state, node);
-	else if (lua.isComputedIndexExpression(node)) return renderComputedIndexExpression(state, node);
-	else if (lua.isPropertyAccessExpression(node)) return renderPropertyAccessExpression(state, node);
-	else if (lua.isCallExpression(node)) return renderCallExpression(state, node);
-	else if (lua.isMethodCallExpression(node)) return renderMethodCallExpression(state, node);
-	else if (lua.isParenthesizedExpression(node)) return renderParenthesizedExpression(state, node);
+	[lua.SyntaxKind.Identifier]: renderIdentifier,
+	[lua.SyntaxKind.ComputedIndexExpression]: renderComputedIndexExpression,
+	[lua.SyntaxKind.PropertyAccessExpression]: renderPropertyAccessExpression,
+	[lua.SyntaxKind.CallExpression]: renderCallExpression,
+	[lua.SyntaxKind.MethodCallExpression]: renderMethodCallExpression,
+	[lua.SyntaxKind.ParenthesizedExpression]: renderParenthesizedExpression,
 
 	// expressions
-	if (false) return "";
-	else if (lua.isNilLiteral(node)) return renderNilLiteral(state, node);
-	else if (lua.isFalseLiteral(node)) return renderFalseLiteral(state, node);
-	else if (lua.isTrueLiteral(node)) return renderTrueLiteral(state, node);
-	else if (lua.isNumberLiteral(node)) return renderNumberLiteral(state, node);
-	else if (lua.isStringLiteral(node)) return renderStringLiteral(state, node);
-	else if (lua.isVarArgsLiteral(node)) return renderVarArgsLiteral(state, node);
-	else if (lua.isFunctionExpression(node)) return renderFunctionExpression(state, node);
-	else if (lua.isBinaryExpression(node)) return renderBinaryExpression(state, node);
-	else if (lua.isUnaryExpression(node)) return renderUnaryExpression(state, node);
-	else if (lua.isArray(node)) return renderArray(state, node);
-	else if (lua.isMap(node)) return renderMap(state, node);
-	else if (lua.isSet(node)) return renderSet(state, node);
+	[lua.SyntaxKind.NilLiteral]: renderNilLiteral,
+	[lua.SyntaxKind.FalseLiteral]: renderFalseLiteral,
+	[lua.SyntaxKind.TrueLiteral]: renderTrueLiteral,
+	[lua.SyntaxKind.NumberLiteral]: renderNumberLiteral,
+	[lua.SyntaxKind.StringLiteral]: renderStringLiteral,
+	[lua.SyntaxKind.VarArgsLiteral]: renderVarArgsLiteral,
+	[lua.SyntaxKind.FunctionExpression]: renderFunctionExpression,
+	[lua.SyntaxKind.BinaryExpression]: renderBinaryExpression,
+	[lua.SyntaxKind.UnaryExpression]: renderUnaryExpression,
+	[lua.SyntaxKind.Array]: renderArray,
+	[lua.SyntaxKind.Map]: renderMap,
+	[lua.SyntaxKind.Set]: renderSet,
 
 	// statements
-	if (false) return "";
-	else if (lua.isAssignment(node)) return renderAssignment(state, node);
-	else if (lua.isCallStatement(node)) return renderCallStatement(state, node);
-	else if (lua.isDoStatement(node)) return renderDoStatement(state, node);
-	else if (lua.isWhileStatement(node)) return renderWhileStatement(state, node);
-	else if (lua.isRepeatStatement(node)) return renderRepeatStatement(state, node);
-	else if (lua.isIfStatement(node)) return renderIfStatement(state, node);
-	else if (lua.isNumericForStatement(node)) return renderNumericForStatement(state, node);
-	else if (lua.isForStatement(node)) return renderForStatement(state, node);
-	else if (lua.isFunctionDeclaration(node)) return renderFunctionDeclaration(state, node);
-	else if (lua.isMethodDeclaration(node)) return renderMethodDeclaration(state, node);
-	else if (lua.isVariableDeclaration(node)) return renderVariableDeclaration(state, node);
-	else if (lua.isReturnStatement(node)) return renderReturnStatement(state, node);
-	else if (lua.isComment(node)) return renderComment(state, node);
+	[lua.SyntaxKind.Assignment]: renderAssignment,
+	[lua.SyntaxKind.CallStatement]: renderCallStatement,
+	[lua.SyntaxKind.DoStatement]: renderDoStatement,
+	[lua.SyntaxKind.WhileStatement]: renderWhileStatement,
+	[lua.SyntaxKind.RepeatStatement]: renderRepeatStatement,
+	[lua.SyntaxKind.IfStatement]: renderIfStatement,
+	[lua.SyntaxKind.NumericForStatement]: renderNumericForStatement,
+	[lua.SyntaxKind.ForStatement]: renderForStatement,
+	[lua.SyntaxKind.FunctionDeclaration]: renderFunctionDeclaration,
+	[lua.SyntaxKind.MethodDeclaration]: renderMethodDeclaration,
+	[lua.SyntaxKind.VariableDeclaration]: renderVariableDeclaration,
+	[lua.SyntaxKind.ReturnStatement]: renderReturnStatement,
+	[lua.SyntaxKind.Comment]: renderComment,
 
 	// fields
-	if (false) return "";
-	else if (lua.isMapField(node)) return renderMapField(state, node);
+	[lua.SyntaxKind.MapField]: renderMapField,
+});
 
-	throw `Unexpected node! ${lua.SyntaxKind[node.kind]}`;
+export function render<T extends lua.SyntaxKind>(state: RenderState, node: lua.Node<T>): string {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	return KIND_TO_RENDERER[node.kind](state, node as any);
 }
