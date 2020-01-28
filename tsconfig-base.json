@@ -6,7 +6,7 @@
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
-		"noUnusedLocals": true,
+		// "noUnusedLocals": true,
 		"esModuleInterop": true,
 		"removeComments": true,
 		"composite": true
