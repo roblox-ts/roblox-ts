@@ -11,6 +11,5 @@
 		{ "path": "./src/LuaAST" },
 		{ "path": "./src/LuaRenderer" },
 		{ "path": "./src/TSTransformer" },
-		{ "path": "./src/Test" },
 	]
 }
