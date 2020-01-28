@@ -7,9 +7,10 @@ export function renderNumberLiteral(state: RenderState, node: lua.NumberLiteral)
 }
 
 export function renderStringLiteral(state: RenderState, node: lua.StringLiteral) {
-	if (!node.value.includes('"')) {
+	const isMultiline = !node.value.includes("\n");
+	if (!isMultiline && !node.value.includes('"')) {
 		return `"${node.value}"`;
-	} else if (!node.value.includes("'")) {
+	} else if (!isMultiline && !node.value.includes("'")) {
 		return `'${node.value}'`;
 	} else {
 		let amtEquals = 0;
