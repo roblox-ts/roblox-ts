@@ -1,10 +1,15 @@
 {
 	"files": [],
+	"compilerOptions": {
+		"composite": true
+	},
 	"references": [
+		{ "path": "./src/Shared" },
 		{ "path": "./src/CLI" },
+		{ "path": "./src/TSProject" },
 		{ "path": "./src/LuaAST" },
 		{ "path": "./src/LuaRenderer" },
 		{ "path": "./src/TSTransformer" },
-		{ "path": "./src/Shared" },
+		{ "path": "./src/Test" },
 	]
 }
