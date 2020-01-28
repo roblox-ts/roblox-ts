@@ -1,18 +1,10 @@
+import path from "path";
+import { ProjectError } from "TSProject/errors/ProjectError";
+import { createParseConfigFileHost } from "TSProject/util/createParseConfigFileHost";
+import { formatDiagnostics } from "TSProject/util/formatDiagnostics";
 import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
 import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
-import path from "path";
-
-function createParseConfigFileHost(): ts.ParseConfigFileHost {
-	return {
-		fileExists: ts.sys.fileExists,
-		getCurrentDirectory: ts.sys.getCurrentDirectory,
-		onUnRecoverableConfigFileDiagnostic: d => console.error(ts.flattenDiagnosticMessageText(d.messageText, "\n")),
-		readDirectory: ts.sys.readDirectory,
-		readFile: ts.sys.readFile,
-		useCaseSensitiveFileNames: true,
-	};
-}
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -36,13 +28,23 @@ export class Project {
 		this.tsConfigPath = tsConfigPath;
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
-		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
-		if (parsedCommandLine === undefined) throw new Error();
+		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(
+			tsConfigPath,
+			ts.getDefaultCompilerOptions(),
+			createParseConfigFileHost(),
+		);
+		if (parsedCommandLine === undefined) {
+			throw new ProjectError("Unable to load TS program!");
+		}
+
+		if (parsedCommandLine.errors.length > 0) {
+			throw new ProjectError(formatDiagnostics(parsedCommandLine.errors));
+		}
+
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: parsedCommandLine.options,
 		});
-
 		this.rootDir = this.program.getCompilerOptions().rootDir ?? path.resolve(path.dirname(this.tsConfigPath));
 	}
 

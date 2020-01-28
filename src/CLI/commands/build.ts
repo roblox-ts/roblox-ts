@@ -2,6 +2,8 @@ import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
 import { identity } from "Shared/util/identity";
 import { Project, ProjectOptions } from "TSProject";
+import { DiagnosticError } from "TSProject/errors/DiagnosticError";
+import { ProjectError } from "TSProject/errors/ProjectError";
 import ts from "typescript";
 import yargs from "yargs";
 
@@ -61,8 +63,16 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>
 		if (argv.watch) {
 			new Watcher(tsConfigPath, projectOptions);
 		} else {
-			const project = new Project(tsConfigPath, projectOptions);
-			project.compile();
+			try {
+				const project = new Project(tsConfigPath, projectOptions);
+				project.compile();
+			} catch (e) {
+				if (e instanceof ProjectError || e instanceof DiagnosticError) {
+					e.log();
+				} else {
+					throw e;
+				}
+			}
 		}
 	},
 });
