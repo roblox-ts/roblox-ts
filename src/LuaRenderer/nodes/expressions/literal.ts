@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import { RenderState } from "LuaRenderer";
 
 export function renderNumberLiteral(state: RenderState, node: lua.NumberLiteral) {
+	// TODO: exponents?
 	return `${node.value}`;
 }
 
