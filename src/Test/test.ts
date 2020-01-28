@@ -1,8 +1,8 @@
 import * as fs from "fs";
+import * as lua from "LuaAST";
+import { RenderState } from "LuaRenderer/RenderState";
+import { renderStatements } from "LuaRenderer/util/statements";
 import * as path from "path";
-import * as lua from "../LuaAST";
-import { RenderState } from "../LuaRenderer/RenderState";
-import { renderStatements } from "../LuaRenderer/util/statements";
 
 const ast = lua.list.make<lua.Statement>();
 

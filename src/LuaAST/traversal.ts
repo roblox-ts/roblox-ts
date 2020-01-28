@@ -1,4 +1,4 @@
-import * as lua from ".";
+import * as lua from "LuaAST";
 
 // if this errors, it means there's an enum in enums.ts that is not defined in mapping.d.ts/nodes.d.ts
 

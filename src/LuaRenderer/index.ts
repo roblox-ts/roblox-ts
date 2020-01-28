@@ -1,14 +1,13 @@
-import * as lua from "../LuaAST";
-import { identity } from "../Shared/util/identity";
-import { renderArray } from "./nodes/expressions/array";
-import { renderBinaryExpression } from "./nodes/expressions/binaryExpression";
-import { renderFunctionExpression } from "./nodes/expressions/functionExpression";
-import { renderCallExpression } from "./nodes/expressions/indexable/callExpression";
-import { renderComputedIndexExpression } from "./nodes/expressions/indexable/computedIndexExpression";
-import { renderIdentifier } from "./nodes/expressions/indexable/identifier";
-import { renderMethodCallExpression } from "./nodes/expressions/indexable/methodCallExpression";
-import { renderParenthesizedExpression } from "./nodes/expressions/indexable/parenthesizedExpression";
-import { renderPropertyAccessExpression } from "./nodes/expressions/indexable/propertyAccessExpression";
+import * as lua from "LuaAST";
+import { renderArray } from "LuaRenderer/nodes/expressions/array";
+import { renderBinaryExpression } from "LuaRenderer/nodes/expressions/binaryExpression";
+import { renderFunctionExpression } from "LuaRenderer/nodes/expressions/functionExpression";
+import { renderCallExpression } from "LuaRenderer/nodes/expressions/indexable/callExpression";
+import { renderComputedIndexExpression } from "LuaRenderer/nodes/expressions/indexable/computedIndexExpression";
+import { renderIdentifier } from "LuaRenderer/nodes/expressions/indexable/identifier";
+import { renderMethodCallExpression } from "LuaRenderer/nodes/expressions/indexable/methodCallExpression";
+import { renderParenthesizedExpression } from "LuaRenderer/nodes/expressions/indexable/parenthesizedExpression";
+import { renderPropertyAccessExpression } from "LuaRenderer/nodes/expressions/indexable/propertyAccessExpression";
 import {
 	renderFalseLiteral,
 	renderNilLiteral,
@@ -16,25 +15,26 @@ import {
 	renderStringLiteral,
 	renderTrueLiteral,
 	renderVarArgsLiteral,
-} from "./nodes/expressions/literal";
-import { renderMap } from "./nodes/expressions/map";
-import { renderSet } from "./nodes/expressions/set";
-import { renderUnaryExpression } from "./nodes/expressions/unaryExpression";
-import { renderMapField } from "./nodes/fields/mapField";
-import { renderAssignment } from "./nodes/statements/assignment";
-import { renderCallStatement } from "./nodes/statements/callStatement";
-import { renderComment } from "./nodes/statements/comment";
-import { renderDoStatement } from "./nodes/statements/doStatement";
-import { renderForStatement } from "./nodes/statements/forStatement";
-import { renderFunctionDeclaration } from "./nodes/statements/functionDeclaration";
-import { renderIfStatement } from "./nodes/statements/ifStatement";
-import { renderMethodDeclaration } from "./nodes/statements/methodDeclaration";
-import { renderNumericForStatement } from "./nodes/statements/numericForStatement";
-import { renderRepeatStatement } from "./nodes/statements/repeatStatement";
-import { renderReturnStatement } from "./nodes/statements/returnStatement";
-import { renderVariableDeclaration } from "./nodes/statements/variableDeclaration";
-import { renderWhileStatement } from "./nodes/statements/whileStatement";
-import { RenderState } from "./RenderState";
+} from "LuaRenderer/nodes/expressions/literal";
+import { renderMap } from "LuaRenderer/nodes/expressions/map";
+import { renderSet } from "LuaRenderer/nodes/expressions/set";
+import { renderUnaryExpression } from "LuaRenderer/nodes/expressions/unaryExpression";
+import { renderMapField } from "LuaRenderer/nodes/fields/mapField";
+import { renderAssignment } from "LuaRenderer/nodes/statements/assignment";
+import { renderCallStatement } from "LuaRenderer/nodes/statements/callStatement";
+import { renderComment } from "LuaRenderer/nodes/statements/comment";
+import { renderDoStatement } from "LuaRenderer/nodes/statements/doStatement";
+import { renderForStatement } from "LuaRenderer/nodes/statements/forStatement";
+import { renderFunctionDeclaration } from "LuaRenderer/nodes/statements/functionDeclaration";
+import { renderIfStatement } from "LuaRenderer/nodes/statements/ifStatement";
+import { renderMethodDeclaration } from "LuaRenderer/nodes/statements/methodDeclaration";
+import { renderNumericForStatement } from "LuaRenderer/nodes/statements/numericForStatement";
+import { renderRepeatStatement } from "LuaRenderer/nodes/statements/repeatStatement";
+import { renderReturnStatement } from "LuaRenderer/nodes/statements/returnStatement";
+import { renderVariableDeclaration } from "LuaRenderer/nodes/statements/variableDeclaration";
+import { renderWhileStatement } from "LuaRenderer/nodes/statements/whileStatement";
+import { RenderState } from "LuaRenderer/RenderState";
+import { identity } from "Shared/util/identity";
 
 type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByKind[T]) => string;
 

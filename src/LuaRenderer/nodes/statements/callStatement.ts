@@ -1,6 +1,6 @@
-import { render } from "../..";
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
 
 /**
  * returns true if the next sibling node is a CallStatement, skipping over any Comment nodes

@@ -1,6 +1,6 @@
-import { render } from "../..";
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
 
 export function renderUnaryExpression(state: RenderState, node: lua.UnaryExpression) {
 	const expStr = render(state, node);

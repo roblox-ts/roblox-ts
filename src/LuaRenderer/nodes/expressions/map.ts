@@ -1,6 +1,6 @@
-import { RenderState } from "../../RenderState";
-import * as lua from "../../../LuaAST";
-import { render } from "../..";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
 
 export function renderMap(state: RenderState, node: lua.Map) {
 	if (!node.fields.head) {

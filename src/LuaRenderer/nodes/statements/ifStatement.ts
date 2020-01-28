@@ -1,7 +1,7 @@
-import { render } from "../..";
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
-import { renderStatements } from "../../util/statements";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
+import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderIfStatement(state: RenderState, node: lua.IfStatement) {
 	let result = "";

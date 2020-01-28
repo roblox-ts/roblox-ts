@@ -1,4 +1,4 @@
-import * as lua from ".";
+import * as lua from "LuaAST";
 
 export type ListNode<T extends lua.Node> = {
 	prev?: lua.ListNode<T>;

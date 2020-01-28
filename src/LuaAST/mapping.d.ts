@@ -1,4 +1,4 @@
-import * as lua from ".";
+import * as lua from "LuaAST";
 
 export interface IndexableExpressionByKind {
 	[lua.SyntaxKind.Identifier]: lua.Identifier;

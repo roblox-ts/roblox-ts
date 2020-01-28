@@ -1,1 +1,2 @@
-export * from "./Project";
+export * from "TSProject/Project";
+

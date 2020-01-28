@@ -1,4 +1,4 @@
-import * as lua from "../LuaAST";
+import * as lua from "LuaAST";
 
 export class RenderState {
 	public indent = "";

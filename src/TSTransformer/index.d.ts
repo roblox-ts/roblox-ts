@@ -1,1 +1,2 @@
-export { transformSourceFile } from "./nodes/sourceFile";
+export { transformSourceFile } from "TSTransformer/nodes/sourceFile";
+

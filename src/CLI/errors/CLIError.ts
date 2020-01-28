@@ -1,4 +1,4 @@
-import { LoggableError } from "../../Shared/errors/LoggableError";
+import { LoggableError } from "Shared/errors/LoggableError";
 
 export class CLIError extends LoggableError {
 	log() {

@@ -1,4 +1,4 @@
-import { Project, ProjectOptions } from "../../TSProject";
+import { Project, ProjectOptions } from "TSProject";
 
 export class Watcher {
 	private project!: Project;

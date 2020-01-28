@@ -1,7 +1,7 @@
-import { render } from "../..";
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
-import { isValidLuaIdentifier } from "../../util/isValidLuaIdentifier";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
+import { isValidLuaIdentifier } from "LuaRenderer/util/isValidLuaIdentifier";
 
 export function renderMapField(state: RenderState, node: lua.MapField) {
 	const valueStr = render(state, node.value);

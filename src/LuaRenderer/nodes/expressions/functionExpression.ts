@@ -1,7 +1,7 @@
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
-import { renderParameters } from "../../util/parameters";
-import { renderStatements } from "../../util/statements";
+import * as lua from "LuaAST";
+import { RenderState } from "LuaRenderer/RenderState";
+import { renderParameters } from "LuaRenderer/util/parameters";
+import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderFunctionExpression(state: RenderState, node: lua.FunctionExpression) {
 	let result = "";

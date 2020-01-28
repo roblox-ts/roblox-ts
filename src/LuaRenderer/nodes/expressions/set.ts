@@ -1,6 +1,6 @@
-import { RenderState } from "../../RenderState";
-import * as lua from "../../../LuaAST";
-import { render } from "../..";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
 
 export function renderSet(state: RenderState, node: lua.Set) {
 	if (!node.members.head) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
+import { CLIError } from "CLI/errors/CLIError";
 import yargs from "yargs";
-import { CLIError } from "./errors/CLIError";
 
 const cli = yargs
 	// help

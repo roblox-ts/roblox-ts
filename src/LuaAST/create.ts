@@ -1,5 +1,5 @@
 // helper creation
-import * as lua from ".";
+import * as lua from "LuaAST";
 
 // creation
 export function create<T extends keyof lua.NodeByKind>(

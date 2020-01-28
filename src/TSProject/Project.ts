@@ -1,6 +1,6 @@
+import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
+import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
-import { transformSourceFile } from "./../TSTransformer/nodes/sourceFile";
-import { TransformState } from "./../TSTransformer/TransformState";
 
 function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {

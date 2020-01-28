@@ -1,4 +1,4 @@
-import * as lua from ".";
+import * as lua from "LuaAST";
 
 // base types
 export interface Node<T extends lua.SyntaxKind = lua.SyntaxKind> {

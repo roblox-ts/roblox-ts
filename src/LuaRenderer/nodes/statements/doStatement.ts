@@ -1,6 +1,6 @@
-import * as lua from "../../../LuaAST";
-import { RenderState } from "../../RenderState";
-import { renderStatements } from "../../util/statements";
+import * as lua from "LuaAST";
+import { RenderState } from "LuaRenderer/RenderState";
+import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderDoStatement(state: RenderState, node: lua.DoStatement) {
 	let result = "";

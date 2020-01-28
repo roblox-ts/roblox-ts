@@ -1,9 +1,9 @@
+import { CLIError } from "CLI/errors/CLIError";
+import { Watcher } from "CLI/modules/Watcher";
+import { identity } from "Shared/util/identity";
+import { Project, ProjectOptions } from "TSProject";
 import ts from "typescript";
 import yargs from "yargs";
-import { Project, ProjectOptions } from "../../TSProject";
-import { identity } from "../../Shared/util/identity";
-import { CLIError } from "../errors/CLIError";
-import { Watcher } from "../modules/Watcher";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
 	if (tsConfigPath !== undefined) {

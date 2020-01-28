@@ -1,7 +1,7 @@
-import { render } from "../../..";
-import * as lua from "../../../../LuaAST";
-import { RenderState } from "../../../RenderState";
-import { renderArguments } from "../../../util/arguments";
+import * as lua from "LuaAST";
+import { render } from "LuaRenderer";
+import { RenderState } from "LuaRenderer/RenderState";
+import { renderArguments } from "LuaRenderer/util/arguments";
 
 export function renderMethodCallExpression(state: RenderState, node: lua.MethodCallExpression) {
 	const expStr = render(state, node.expression);
