@@ -17,7 +17,7 @@ export namespace list {
 		return { value };
 	}
 
-	export function make<T extends lua.Node>(...values: T[]): lua.List<T> {
+	export function make<T extends lua.Node>(...values: Array<T>): lua.List<T> {
 		if (values.length > 0) {
 			const head = lua.list.makeNode(values[0]);
 			let tail = head;
