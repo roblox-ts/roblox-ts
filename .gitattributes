@@ -1,2 +1,5 @@
 *.ts linguist-language=TypeScript
-* text=auto
+* text eol=lf
+
+# *.ts text eol=lf
+# * text=auto
