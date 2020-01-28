@@ -1,0 +1,9 @@
+*.cmd
+coverage.lcov
+.nyc_output
+coverage
+node_modules
+out
+.DS_Store
+.vscode/launch.json
+.history

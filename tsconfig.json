@@ -1,0 +1,23 @@
+{
+	"compilerOptions": {
+		"declaration": true,
+		"module": "commonjs",
+		"outDir": "out",
+		"rootDir": "src",
+		"target": "es6",
+		"strict": true,
+		"noFallthroughCasesInSwitch": true,
+		"strictNullChecks": true,
+		"noUnusedLocals": true,
+		"esModuleInterop": true,
+		"removeComments": true
+	},
+	"include": [
+		"src"
+	],
+	"exclude": [
+		"node_modules",
+		"out",
+		"templates"
+	]
+}

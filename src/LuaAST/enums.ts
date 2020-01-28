@@ -1,0 +1,65 @@
+export enum SyntaxKind {
+	// indexable expressions
+	Identifier,
+	ComputedIndexExpression,
+	PropertyAccessExpression,
+	CallExpression,
+	MethodCallExpression,
+	ParenthesizedExpression,
+
+	// expressions
+	NilLiteral,
+	FalseLiteral,
+	TrueLiteral,
+	NumberLiteral,
+	StringLiteral,
+	VarArgsLiteral,
+	FunctionExpression,
+	BinaryExpression,
+	UnaryExpression,
+	Array,
+	Map,
+	Set,
+
+	// statements
+	Assignment,
+	CallStatement,
+	DoStatement,
+	WhileStatement,
+	RepeatStatement,
+	IfStatement,
+	NumericForStatement,
+	ForStatement,
+	FunctionDeclaration,
+	MethodDeclaration,
+	VariableDeclaration,
+	ReturnStatement,
+	Comment,
+
+	// fields
+	MapField,
+}
+
+export enum BinaryOperator {
+	Plus,
+	Minus,
+	Asterisk,
+	Slash,
+	Caret,
+	Percent,
+	DotDot,
+	LessThan,
+	LessThanEqual,
+	MoreThan,
+	MoreThanEqual,
+	EqualEqual,
+	TildeEqual,
+	And,
+	Or,
+}
+
+export enum UnaryOperator {
+	Minus,
+	Not,
+	Octothorpe,
+}
