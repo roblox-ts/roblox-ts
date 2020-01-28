@@ -1,6 +1,7 @@
 import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
 import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
+import path from "path";
 
 function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {
@@ -26,8 +27,13 @@ export interface ProjectOptions {
 export class Project {
 	private readonly program: ts.Program;
 
+	private readonly tsConfigPath: string;
+	private readonly options: ProjectOptions;
+
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
-		const options: ProjectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
+		this.tsConfigPath = tsConfigPath;
+		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
+
 		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
 		if (parsedCommandLine === undefined) throw new Error();
 		this.program = ts.createProgram({
@@ -37,7 +43,7 @@ export class Project {
 	}
 
 	public getRootDir() {
-		return this.program.getCompilerOptions().rootDir ?? ts.getDefaultCompilerOptions().rootDir;
+		return this.program.getCompilerOptions().rootDir ?? path.resolve(path.dirname(this.tsConfigPath));
 	}
 
 	public compile() {
