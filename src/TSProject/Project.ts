@@ -25,8 +25,10 @@ export interface ProjectOptions {
 }
 
 export class Project {
-	private readonly program: ts.Program;
+	public readonly rootDir: string;
+	public readonly rojoFilePath: string | undefined;
 
+	private readonly program: ts.Program;
 	private readonly tsConfigPath: string;
 	private readonly options: ProjectOptions;
 
@@ -40,10 +42,8 @@ export class Project {
 			rootNames: parsedCommandLine.fileNames,
 			options: parsedCommandLine.options,
 		});
-	}
 
-	public getRootDir() {
-		return this.program.getCompilerOptions().rootDir ?? path.resolve(path.dirname(this.tsConfigPath));
+		this.rootDir = this.program.getCompilerOptions().rootDir ?? path.resolve(path.dirname(this.tsConfigPath));
 	}
 
 	public compile() {
