@@ -1,9 +1,9 @@
 import ts from "typescript";
 import { TransformState } from "../TransformState";
-import { compileStatement } from "./statement";
+import { transformStatement } from "./statement";
 
-export function compileSourceFile(state: TransformState, node: ts.SourceFile) {
+export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
 	for (const statement of node.statements) {
-		compileStatement(state, statement);
+		transformStatement(state, statement);
 	}
 }
