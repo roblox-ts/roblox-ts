@@ -139,7 +139,7 @@ export interface ForStatement extends lua.Statement<lua.SyntaxKind.ForStatement>
 }
 
 export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasArguments {
-	name: lua.Identifier;
+	name: lua.IndexableExpression;
 	statements: lua.List<lua.Statement>;
 }
 
@@ -164,6 +164,6 @@ export interface Comment extends lua.Statement<lua.SyntaxKind.Comment> {
 
 // fields
 export interface MapField extends lua.Field<lua.SyntaxKind.MapField> {
-	name: lua.Expression;
+	index: lua.Expression;
 	value: lua.Expression;
 }
