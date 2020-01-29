@@ -7,7 +7,7 @@ The CLI should create TSProject instances as needed based on input from the user
 Only behavior unique to CLI environments should go here. Any behavior that is common to both the CLI and the playground environments belongs in TSProject.
 
 
-### Structure
+## Structure
 
 **commands/** - stores all of the yargs-based subcommands for the cli interface
 
