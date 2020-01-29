@@ -1,16 +1,13 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
+
+const UNARY_OPERATOR_MAP = {
+	[lua.UnaryOperator.Minus]: "-",
+	[lua.UnaryOperator.Not]: "not ",
+	[lua.UnaryOperator.Octothorpe]: "#",
+};
 
 export function renderUnaryExpression(state: RenderState, node: lua.UnaryExpression) {
 	const expStr = render(state, node);
-	if (node.operator === lua.UnaryOperator.Minus) {
-		return `-${expStr}`;
-	} else if (node.operator === lua.UnaryOperator.Not) {
-		return `not ${expStr}`;
-	} else if (node.operator === lua.UnaryOperator.Octothorpe) {
-		return `#${expStr}`;
-	} else {
-		throw `Unexpected operator! ${lua.BinaryOperator[node.operator]} `;
-	}
+	return `${UNARY_OPERATOR_MAP[node.operator]}${expStr}`;
 }
