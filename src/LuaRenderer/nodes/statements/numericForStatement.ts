@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderNumericForStatement(state: RenderState, node: lua.NumericForStatement) {

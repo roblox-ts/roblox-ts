@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 import { renderParameters } from "LuaRenderer/util/parameters";
 import { renderStatements } from "LuaRenderer/util/statements";
 

@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 
 export function renderAssignment(state: RenderState, node: lua.Assignment) {
 	const leftStr = render(state, node.left);

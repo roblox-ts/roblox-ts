@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 
 export function renderVariableDeclaration(state: RenderState, node: lua.VariableDeclaration) {
 	const idStr = render(state, node.id);

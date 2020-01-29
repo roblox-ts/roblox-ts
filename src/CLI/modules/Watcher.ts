@@ -1,5 +1,5 @@
-import { Project, ProjectOptions } from "TSProject";
 import chokidar from "chokidar";
+import { Project, ProjectOptions } from "TSProject";
 
 interface WatchEvent {
 	type: "change" | "add" | "unlink";

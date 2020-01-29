@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 import { isValidLuaIdentifier } from "LuaRenderer/util/isValidLuaIdentifier";
 
 export function renderMapField(state: RenderState, node: lua.MapField) {

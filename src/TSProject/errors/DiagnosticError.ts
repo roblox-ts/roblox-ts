@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import { LoggableError } from "Shared/errors/LoggableError";
-import ts from "typescript";
 import { formatDiagnostics } from "TSProject/util/formatDiagnostics";
+import ts from "typescript";
 
 // force colors
 chalk.level = 1;

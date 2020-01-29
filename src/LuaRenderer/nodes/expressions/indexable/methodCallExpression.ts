@@ -1,6 +1,5 @@
 import * as lua from "LuaAST";
-import { render } from "LuaRenderer";
-import { RenderState } from "LuaRenderer";
+import { render, RenderState } from "LuaRenderer";
 import { renderArguments } from "LuaRenderer/util/arguments";
 
 export function renderMethodCallExpression(state: RenderState, node: lua.MethodCallExpression) {
