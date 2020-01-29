@@ -27,6 +27,7 @@ import { renderReturnStatement } from "LuaRenderer/nodes/statements/returnStatem
 import { renderVariableDeclaration } from "LuaRenderer/nodes/statements/variableDeclaration";
 import { renderWhileStatement } from "LuaRenderer/nodes/statements/whileStatement";
 import { RenderState } from "LuaRenderer/RenderState";
+import { renderStatements } from "LuaRenderer/util/statements";
 import { identity } from "Shared/util/identity";
 
 type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByKind[T]) => string;
@@ -76,6 +77,10 @@ const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 export function render<T extends lua.SyntaxKind>(state: RenderState, node: lua.Node<T>): string {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return KIND_TO_RENDERER[node.kind](state, node as any);
+}
+
+export function renderAST(ast: lua.List<lua.Statement>): string {
+	return renderStatements(new RenderState(), ast);
 }
 
 export { RenderState };
