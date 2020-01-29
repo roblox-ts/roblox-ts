@@ -1,7 +1,7 @@
 import path from "path";
+import { DiagnosticError } from "TSProject/errors/DiagnosticError";
 import { ProjectError } from "TSProject/errors/ProjectError";
 import { createParseConfigFileHost } from "TSProject/util/createParseConfigFileHost";
-import { formatDiagnostics } from "TSProject/util/formatDiagnostics";
 import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
 import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
@@ -38,7 +38,7 @@ export class Project {
 		}
 
 		if (parsedCommandLine.errors.length > 0) {
-			throw new ProjectError(formatDiagnostics(parsedCommandLine.errors));
+			throw new DiagnosticError(parsedCommandLine.errors);
 		}
 
 		this.program = ts.createProgram({
