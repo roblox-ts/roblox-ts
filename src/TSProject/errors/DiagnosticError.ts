@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import { LoggableError } from "Shared/errors/LoggableError";
-import { formatDiagnostics } from "TSProject/util/formatDiagnostics";
+import { formatDiagnostics } from "TSProject/util/tsUtil";
 import ts from "typescript";
 
 // force colors

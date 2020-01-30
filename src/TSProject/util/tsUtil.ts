@@ -1,5 +1,14 @@
+import { EOL } from "os";
 import { DiagnosticError } from "TSProject/errors/DiagnosticError";
 import ts from "typescript";
+
+export function formatDiagnostics(diagnostics: Array<ts.Diagnostic>) {
+	return ts.formatDiagnosticsWithColorAndContext(diagnostics, {
+		getCurrentDirectory: () => process.cwd(),
+		getCanonicalFileName: fileName => fileName,
+		getNewLine: () => EOL,
+	});
+}
 
 export function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {
