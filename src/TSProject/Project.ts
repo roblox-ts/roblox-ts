@@ -32,6 +32,7 @@ export class Project {
 			ts.getDefaultCompilerOptions(),
 			createParseConfigFileHost(),
 		);
+
 		if (parsedCommandLine === undefined) {
 			throw new ProjectError("Unable to load TS program!");
 		}
