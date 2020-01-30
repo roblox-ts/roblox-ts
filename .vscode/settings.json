@@ -2,5 +2,6 @@
 	"editor.defaultFormatter": "dbaeumer.vscode-eslint",
 	"editor.formatOnSave": true,
 	"eslint.format.enable": true,
-	"files.eol": "\n"
+	"files.eol": "\n",
+	"typescript.tsdk": "node_modules\\typescript\\lib"
 }

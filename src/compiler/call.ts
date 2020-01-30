@@ -190,9 +190,9 @@ function macroStringIndexFunction(
 				return id;
 			},
 		);
-		return `${accessPath}:${methodName}(${compiledArgs
-			.map((arg, j, args) => (arg === "" ? args[j - 1] : arg))
-			.join(", ")})`;
+		return `string.${methodName}(${[accessPath, ...compiledArgs.map((arg, j, args) => arg || args[j - 1])].join(
+			", ",
+		)})`;
 	};
 }
 
@@ -296,9 +296,9 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			);
 		},
 	],
-	["trim", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)%s*$")`)],
-	["trimLeft", wrapExpFunc(accessPath => `${accessPath}:match("^%s*(.-)$")`)],
-	["trimRight", wrapExpFunc(accessPath => `${accessPath}:match("^(.-)%s*$")`)],
+	["trim", wrapExpFunc(accessPath => `string.match(${accessPath}, "^%s*(.-)%s*$")`)],
+	["trimStart", wrapExpFunc(accessPath => `string.match(${accessPath}, "^%s*(.-)$")`)],
+	["trimEnd", wrapExpFunc(accessPath => `string.match(${accessPath}, "^(.-)%s*$")`)],
 	[
 		"split",
 		(state, params) => {
@@ -324,7 +324,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 			appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
-				padAmbiguous(state, params).join(" .. "),
+				`(${padAmbiguous(state, params).join(" .. ")})`,
 			),
 	],
 
@@ -332,7 +332,7 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 		"padEnd",
 		(state, params) => {
 			const [a, b] = padAmbiguous(state, params);
-			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), [b, a].join(" .. "));
+			return appendDeclarationIfMissing(state, getLeftHandSideParent(params[0]), `(${[b, a].join(" .. ")})`);
 		},
 	],
 
@@ -387,6 +387,10 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"endsWith",
 		(state, params) => {
+			// One option is to implement startsWith/endsWith with string.find, using ^ or $ appropriately.
+			// string.find(str, "^" .. string.gsub(${str}, "([%%%^%$%(%)%.%[%]%*%+%-%?])", "%%%1"), math.max(0, startingNumber + 1))
+			// I think this could work best, since in most cases you should be able to statically do: .replace(/[-\$%\(-\+\.\?\[\]^]/gu, "%%$1")
+
 			const [accessPath, matchParam, fromIndex] = compileCallArguments(state, params) as [
 				string,
 				string,
@@ -407,10 +411,6 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	],
 ]);
 
-"".startsWith;
-
-STRING_REPLACE_METHODS.set("trimStart", STRING_REPLACE_METHODS.get("trimLeft")!);
-STRING_REPLACE_METHODS.set("trimEnd", STRING_REPLACE_METHODS.get("trimRight")!);
 
 const isMapOrSetOrArrayEmpty: ReplaceFunction = (state, params) =>
 	appendDeclarationIfMissing(
