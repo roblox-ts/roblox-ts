@@ -32,6 +32,7 @@ function y(str: string) {
 
 export function validateCompilerOptions(
 	opts: ts.CompilerOptions,
+	modulesPath: string,
 ): asserts opts is ts.CompilerOptions & typeof ENFORCED_OPTIONS & ExtraOptionChecks {
 	const errors = new Array<string>();
 
@@ -60,7 +61,7 @@ export function validateCompilerOptions(
 
 	let typesFound = false;
 	if (opts.typeRoots) {
-		const typesPath = path.resolve(this.modulesPath, "@rbxts");
+		const typesPath = path.resolve(modulesPath, "@rbxts");
 		for (const typeRoot of opts.typeRoots) {
 			if (path.normalize(typeRoot) === typesPath) {
 				typesFound = true;
