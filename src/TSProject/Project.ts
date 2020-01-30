@@ -46,7 +46,8 @@ export class Project {
 		}
 
 		const compilerOptions = parsedCommandLine.options;
-		validateCompilerOptions(compilerOptions);
+		const modulesPath = ""; // TODO
+		validateCompilerOptions(compilerOptions, modulesPath);
 
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
