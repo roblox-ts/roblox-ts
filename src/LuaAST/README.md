@@ -4,19 +4,19 @@
 
 **index.ts** - re-exports all exported values in each file
 
-**enums.d.ts** - enums for lua.SyntaxKind, lua.BinaryOperator, lua.UnaryOperator
+**types/enums.d.ts** - enums for lua.SyntaxKind, lua.BinaryOperator, lua.UnaryOperator
 
-**nodes.d.ts** - contains interfaces that describe each node
+**types/nodes.d.ts** - contains interfaces that describe each node
 
-**mapping.d.ts** - contains interfaces to describe the mapping of each node to IndexableExpression, Expression, Statement, and Field
+**impl/mapping.d.ts** - contains interfaces to describe the mapping of each node to IndexableExpression, Expression, Statement, and Field
 
-**create.ts** - helper functions for creating nodes
+**impl/create.ts** - helper functions for creating nodes
 
-**traversal.ts** - helper functions for traversing nodes
+**impl/traversal.ts** - helper functions for traversing nodes
 
-**typeGuards.ts** - helper functions for determining what a particular node is
+**impl/typeGuards.ts** - helper functions for determining what a particular node is
 
-**List.ts** - types + helper functions for lua.List<T> and lua.ListNode<T>
+**impl/List.ts** - types + helper functions for lua.List<T> and lua.ListNode<T>
 
 ## Adding a new node
 
