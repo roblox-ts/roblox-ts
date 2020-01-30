@@ -1,9 +1,10 @@
 import path from "path";
 import { DiagnosticError } from "TSProject/errors/DiagnosticError";
 import { ProjectError } from "TSProject/errors/ProjectError";
-import { createParseConfigFileHost } from "TSProject/util/tsUtil";
-import ts from "typescript";
 import * as fsUtil from "TSProject/util/fsUtil";
+import { createParseConfigFileHost } from "TSProject/util/tsUtil";
+import { validateCompilerOptions } from "TSProject/util/validateCompilerOptions";
+import ts from "typescript";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -17,9 +18,11 @@ export interface ProjectOptions {
 
 export class Project {
 	public readonly rootDirs: Set<string>;
+	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
 
 	private readonly program: ts.Program;
+	private readonly parsedCommandLine: ts.ParsedCommandLine;
 	private readonly tsConfigPath: string;
 	private readonly options: ProjectOptions;
 
@@ -36,28 +39,34 @@ export class Project {
 		if (parsedCommandLine === undefined) {
 			throw new ProjectError("Unable to load TS program!");
 		}
+		this.parsedCommandLine = parsedCommandLine;
 
 		if (parsedCommandLine.errors.length > 0) {
 			throw new DiagnosticError(parsedCommandLine.errors);
 		}
 
+		const compilerOptions = parsedCommandLine.options;
+		validateCompilerOptions(compilerOptions);
+
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
-			options: parsedCommandLine.options,
+			options: compilerOptions,
 		});
 
 		this.rootDirs = new Set<string>();
-		if (parsedCommandLine.options.rootDir) {
-			this.rootDirs.add(parsedCommandLine.options.rootDir);
+		if (compilerOptions.rootDir) {
+			this.rootDirs.add(compilerOptions.rootDir);
 		}
-		if (parsedCommandLine.options.rootDirs) {
-			for (const dir of parsedCommandLine.options.rootDirs) {
+		if (compilerOptions.rootDirs) {
+			for (const dir of compilerOptions.rootDirs) {
 				this.rootDirs.add(dir);
 			}
 		}
 		if (this.rootDirs.size === 0) {
 			this.rootDirs.add(path.resolve(path.dirname(this.tsConfigPath)));
 		}
+
+		this.outDir = compilerOptions.outDir!;
 	}
 
 	private getRootDirForFilePath(filePath: string) {
@@ -66,17 +75,15 @@ export class Project {
 				return rootDir;
 			}
 		}
+		throw new ProjectError(`Unable to find rootDir for "${filePath}"`);
 	}
 
-	private getOutDirForFilePath(filePath: string) {}
-
-	public compile() {
-		console.log([...this.rootDirs]);
-		console.log(this.program.getRootFileNames());
-		// for (const sourceFile of this.program.getSourceFiles()) {
-		// 	if (!sourceFile.isDeclarationFile) {
-		// 		transformSourceFile(new TransformState(), sourceFile);
-		// 	}
-		// }
+	private getOutDirForFilePath(filePath: string) {
+		if (this.rootDirs.size === 1) {
+			return this.outDir;
+		}
+		return path.join(this.outDir, path.basename(this.getRootDirForFilePath(filePath)));
 	}
+
+	public compile() {}
 }

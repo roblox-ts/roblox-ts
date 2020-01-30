@@ -5,8 +5,8 @@ import { LoggableError } from "Shared/errors/LoggableError";
 chalk.level = 1;
 
 export class ProjectError extends LoggableError {
-	constructor(message: string) {
-		super(message);
+	constructor(private message: string) {
+		super();
 	}
 
 	public log() {
