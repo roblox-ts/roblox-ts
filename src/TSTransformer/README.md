@@ -11,5 +11,6 @@ The system needs to be designed to support the following:
 - Hoisting
 - Temporary Variables
 - 0, "", NaN should be Falsy
+- Check variable modification
 
 Ideally, these should be done in a way that makes it hard for us to mess it up and mostly automatic from an individual `transformX()`'s perspective.
