@@ -7,10 +7,11 @@ import { render, RenderState } from "LuaRenderer";
 function needsSemicolon(state: RenderState): boolean {
 	let listNode = state.peekListNode()?.next;
 	while (listNode) {
-		if (lua.isCallStatement(listNode.value)) {
-			return true;
+		const node = listNode.value;
+		if (lua.isCallStatement(node)) {
+			return lua.isParenthesizedExpression(node.expression);
 		}
-		if (lua.isComment(listNode.value)) {
+		if (lua.isComment(node)) {
 			listNode = listNode.next;
 		} else {
 			break;
