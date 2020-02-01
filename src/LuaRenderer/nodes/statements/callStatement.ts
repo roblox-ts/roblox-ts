@@ -9,7 +9,7 @@ function needsSemicolon(state: RenderState): boolean {
 	while (listNode) {
 		const node = listNode.value;
 		if (lua.isCallStatement(node)) {
-			return lua.isParenthesizedExpression(node.expression);
+			return lua.isParenthesizedExpression(node.expression.expression);
 		}
 		if (lua.isComment(node)) {
 			listNode = listNode.next;
