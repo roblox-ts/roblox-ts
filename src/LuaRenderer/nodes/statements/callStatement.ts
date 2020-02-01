@@ -2,7 +2,12 @@ import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
 
 /**
- * returns true if the next sibling node is a CallStatement, skipping over any Comment nodes
+ * returns true if the next sibling node is a:
+ *
+ * 	- CallStatement
+ * 		- CallExpression | MethodCallExpression
+ * 			- ParenthesizedExpression
+ * skipping over any Comment nodes
  */
 function needsSemicolon(state: RenderState): boolean {
 	let listNode = state.peekListNode()?.next;
