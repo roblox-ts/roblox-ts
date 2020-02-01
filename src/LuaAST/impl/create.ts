@@ -75,7 +75,7 @@ export function methodDec(
 	expression: lua.IndexableExpression,
 	name: string,
 	args: Array<lua.Identifier> = [],
-	hasVarArgs: boolean,
+	hasVarArgs = false,
 	statements: Array<lua.Statement> = [],
 ) {
 	return lua.create(lua.SyntaxKind.MethodDeclaration, {
@@ -94,26 +94,26 @@ export function varDec(name: string, value: lua.Expression) {
 	});
 }
 
-export function call(expression: lua.Expression, params: Array<lua.Expression>) {
+export function call(expression: lua.Expression, params: Array<lua.Expression> = []) {
 	return lua.create(lua.SyntaxKind.CallStatement, {
 		expression: lua.callExp(expression, params),
 	});
 }
 
-export function methodCall(expression: lua.Expression, methodName: string, params: Array<lua.Expression>) {
+export function methodCall(expression: lua.Expression, methodName: string, params: Array<lua.Expression> = []) {
 	return lua.create(lua.SyntaxKind.CallStatement, {
 		expression: lua.methodCallExp(expression, methodName, params),
 	});
 }
 
-export function callExp(expression: lua.Expression, params: Array<lua.Expression>) {
+export function callExp(expression: lua.Expression, params: Array<lua.Expression> = []) {
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.isIndexableExpression(expression) ? expression : lua.parentheses(expression),
 		params: lua.list.make(...params),
 	});
 }
 
-export function methodCallExp(expression: lua.Expression, methodName: string, params: Array<lua.Expression>) {
+export function methodCallExp(expression: lua.Expression, methodName: string, params: Array<lua.Expression> = []) {
 	return lua.create(lua.SyntaxKind.MethodCallExpression, {
 		expression: lua.isIndexableExpression(expression) ? expression : lua.parentheses(expression),
 		name: lua.id(methodName),
