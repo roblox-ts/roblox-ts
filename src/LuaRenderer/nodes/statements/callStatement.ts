@@ -26,10 +26,5 @@ function needsSemicolon(state: RenderState): boolean {
 }
 
 export function renderCallStatement(state: RenderState, node: lua.CallStatement) {
-	const expStr = render(state, node.expression);
-	if (needsSemicolon(state)) {
-		return state.indent + `${expStr};\n`;
-	} else {
-		return state.indent + `${expStr}\n`;
-	}
+	return state.indent + `${render(state, node.expression)}${needsSemicolon(state) ? ";" : ""}\n`;
 }
