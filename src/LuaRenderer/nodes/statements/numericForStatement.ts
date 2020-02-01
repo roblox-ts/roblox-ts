@@ -7,12 +7,9 @@ export function renderNumericForStatement(state: RenderState, node: lua.NumericF
 	const minStr = render(state, node.min);
 	const maxStr = render(state, node.max);
 
-	let predicateStr: string;
+	let predicateStr = `${minStr}, ${maxStr}`;
 	if (node.step) {
-		const stepStr = render(state, node.step);
-		predicateStr = `${minStr}, ${maxStr}, ${stepStr}`;
-	} else {
-		predicateStr = `${minStr}, ${maxStr}`;
+		predicateStr += `, ${render(state, node.step)}`;
 	}
 
 	let result = "";

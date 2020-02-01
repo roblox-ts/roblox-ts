@@ -8,6 +8,5 @@ const UNARY_OPERATOR_MAP = {
 };
 
 export function renderUnaryExpression(state: RenderState, node: lua.UnaryExpression) {
-	const expStr = render(state, node);
-	return `${UNARY_OPERATOR_MAP[node.operator]}${expStr}`;
+	return `${UNARY_OPERATOR_MAP[node.operator]}${render(state, node)}`;
 }

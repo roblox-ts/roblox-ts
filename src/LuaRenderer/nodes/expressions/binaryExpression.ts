@@ -20,7 +20,5 @@ const BINARY_OPERATOR_MAP = {
 };
 
 export function renderBinaryExpression(state: RenderState, node: lua.BinaryExpression) {
-	const leftStr = render(state, node.left);
-	const rightStr = render(state, node.right);
-	return `${leftStr} ${BINARY_OPERATOR_MAP[node.operator]} ${rightStr}`;
+	return `${render(state, node.left)} ${BINARY_OPERATOR_MAP[node.operator]} ${render(state, node.right)}`;
 }
