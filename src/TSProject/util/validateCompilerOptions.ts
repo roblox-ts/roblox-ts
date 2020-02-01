@@ -1,7 +1,7 @@
 import chalk from "chalk";
-import ts from "typescript";
 import path from "path";
 import { ProjectError } from "TSProject/errors/ProjectError";
+import ts from "typescript";
 
 // force colors
 chalk.level = 1;

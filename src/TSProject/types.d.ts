@@ -1,4 +1,4 @@
-import ts from "typescript";
+import "typescript";
 
 declare module "typescript" {
 	interface SourceFile {
