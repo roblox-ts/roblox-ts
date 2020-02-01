@@ -8,6 +8,7 @@ const ast = lua.list.make<lua.Statement>();
 
 lua.list.push(ast, lua.comment("Case #1"));
 lua.list.push(ast, lua.call(lua.parentheses(lua.func())));
+lua.list.push(ast, lua.call(lua.parentheses(lua.func())));
 lua.list.push(ast, lua.call(lua.id("print")));
 lua.list.push(ast, lua.call(lua.id("print")));
 
