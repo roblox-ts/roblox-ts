@@ -166,7 +166,19 @@ function getTruthyCompileData(state: CompilerState, exp: ts.Expression) {
 	const checkNaN = isUnknown || isNumberTypeLax(expType);
 	const checkNon0 = isUnknown || checkNaN || isLiterally0Lax(expType);
 	const checkEmptyString = isUnknown || isFalsyStringTypeLax(expType);
-	const checkLuaTruthy = isUnknown || isBoolishTypeLax(expType);
+
+	/**
+	We are going to set checkLuaTruthy to always be true just in case the developer encounters a situation like so:
+
+	```ts
+	const [a] = new Array<string>(); // a is typed as a `string` when it should be `undefined`
+
+	if (a) { // should we only check if a ~= ""?  No, we should check `a ~= "" and a`
+
+	}
+	```
+	*/
+	const checkLuaTruthy = true; // isUnknown || isBoolishTypeLax(expType);
 	const numRefs = 2 * +checkNaN + +checkNon0 + +checkEmptyString + +checkLuaTruthy;
 
 	return { checkNon0, checkNaN, checkEmptyString, checkLuaTruthy, numRefs };
