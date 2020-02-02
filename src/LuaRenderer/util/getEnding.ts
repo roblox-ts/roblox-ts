@@ -3,10 +3,13 @@ import { RenderState } from "LuaRenderer";
 
 function endsWithIndexableExpressionInner(node: lua.Expression): boolean {
 	if (lua.isIndexableExpression(node)) {
+		// a or (a) or a.b or a[b] or a()
 		return true;
 	} else if (lua.isBinaryExpression(node)) {
+		// a + b
 		return endsWithIndexableExpressionInner(node.right);
 	} else if (lua.isUnaryExpression(node)) {
+		// -a
 		return endsWithIndexableExpressionInner(node.expression);
 	}
 	return false;
