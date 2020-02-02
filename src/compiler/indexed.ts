@@ -145,6 +145,24 @@ function assertIndexType(
 	exp: ts.LeftHandSideExpression,
 	expType: ts.Type,
 ) {
+	console.log(
+		node.getKindName() +
+			" " +
+			node.getText() +
+			" " +
+			valDec?.getKindName() +
+			" " +
+			valDec?.getText() +
+			" " +
+			propertyStr +
+			" " +
+			exp.getKindName() +
+			" " +
+			exp.getText() +
+			" " +
+			expType.getText(),
+	);
+
 	if (
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"
@@ -244,13 +262,10 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		return safeLuaIndex("self", propertyStr);
 	}
 
-	const symbol = expType.getSymbol();
-	if (symbol) {
-		const enumStr = assertIndexType(state, node, symbol.getValueDeclaration(), propertyStr, exp, expType);
+	const enumStr = assertIndexType(state, node, expType.getSymbol()?.getValueDeclaration(), propertyStr, exp, expType);
 
-		if (enumStr !== undefined) {
-			return enumStr;
-		}
+	if (enumStr !== undefined) {
+		return enumStr;
 	}
 
 	let expStr = compileExpression(state, exp);
@@ -311,7 +326,7 @@ export function compileElementAccessDataTypeExpression(
 	node: ts.ElementAccessExpression,
 	expStr = "",
 ) {
-	const exp = skipNodesDownwards(node.getExpression());
+	const exp = skipNodesDownwards(checkNonAny(node.getExpression()));
 	const expType = getType(exp);
 
 	const symbol = expType.getSymbol();
