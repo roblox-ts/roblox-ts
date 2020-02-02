@@ -1,4 +1,4 @@
-import { transformStatement } from "TSTransformer/nodes/statement";
+import { transformStatement } from "TSTransformer/nodes/statements/statement";
 import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
 
