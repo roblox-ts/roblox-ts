@@ -18,8 +18,8 @@ export function compileYieldExpression(state: CompilerState, node: ts.YieldExpre
 		const id = state.getNewId();
 		let result = `for ${id} in ${compileExpression(state, exp!)}.next do\n`;
 		state.pushIndent();
-		result += state.indent + `if ${id}.done then break end;\n`;
-		result += state.indent + `coroutine.yield(${id});\n`;
+		result += state.indent + `if ${id}.done then break; end;\n`;
+		result += state.indent + `coroutine.yield(${id}.value);\n`;
 		state.popIndent();
 		result += state.indent + `end`;
 		state.popIdStack();
