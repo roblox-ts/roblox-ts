@@ -145,24 +145,6 @@ function assertIndexType(
 	exp: ts.LeftHandSideExpression,
 	expType: ts.Type,
 ) {
-	console.log(
-		node.getKindName() +
-			" " +
-			node.getText() +
-			" " +
-			valDec?.getKindName() +
-			" " +
-			valDec?.getText() +
-			" " +
-			propertyStr +
-			" " +
-			exp.getKindName() +
-			" " +
-			exp.getText() +
-			" " +
-			expType.getText(),
-	);
-
 	if (
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"

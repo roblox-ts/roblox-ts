@@ -29,8 +29,6 @@ export function getLuaStringLength(str: string) {
 	) {
 		currentCodePoint = str.codePointAt(i)!; // we check i < length
 
-		// console.log(currentCodePoint);
-
 		// See: https://en.wikipedia.org/wiki/UTF-8#Description
 		numLuaCharacters +=
 			currentCodePoint > 0x007f ? (currentCodePoint > 0x07ff ? (currentCodePoint > 0xffff ? 4 : 3) : 2) : 1;
