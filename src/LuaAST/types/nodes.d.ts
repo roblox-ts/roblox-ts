@@ -150,8 +150,8 @@ export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDe
 }
 
 export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.VariableDeclaration> {
-	id: lua.Identifier;
-	value: lua.Expression;
+	left: lua.Identifier;
+	right: lua.Expression;
 }
 
 export interface ReturnStatement extends lua.Statement<lua.SyntaxKind.ReturnStatement> {
