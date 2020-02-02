@@ -72,9 +72,9 @@ export interface ParenthesizedExpression extends lua.Expression<lua.SyntaxKind.P
 }
 
 export interface BinaryExpression extends lua.Expression<lua.SyntaxKind.BinaryExpression> {
-	left: lua.Node;
+	left: lua.Expression;
 	operator: lua.BinaryOperator;
-	right: lua.Node;
+	right: lua.Expression;
 }
 
 export interface UnaryExpression extends lua.Expression<lua.SyntaxKind.UnaryExpression> {
