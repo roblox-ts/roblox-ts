@@ -45,9 +45,8 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 					),
 				)};\n`;
 		} else if (typeof memberValue === "number") {
-			const num = compileExpression(state, member.getFirstChildByKindOrThrow(ts.SyntaxKind.NumericLiteral));
-			result += state.indent + `${safeIndex} = ${num};\n`;
-			result += state.indent + `${inverseId}[${num}] = "${memberName}";\n`;
+			result += state.indent + `${safeIndex} = ${memberValue};\n`;
+			result += state.indent + `${inverseId}[${memberValue}] = "${memberName}";\n`;
 		} else if (member.hasInitializer()) {
 			const initializer = skipNodesDownwards(member.getInitializerOrThrow());
 			state.enterPrecedingStatementContext();

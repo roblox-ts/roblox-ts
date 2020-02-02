@@ -201,6 +201,7 @@ function assertIndexType(
 				}
 				const value = member.getValue();
 				if (typeof value === "number") {
+					console.log("mem2: " + member.getKindName() + " " + member.getText() + " " + value);
 					return compileExpression(state, member.getFirstChildByKindOrThrow(ts.SyntaxKind.NumericLiteral));
 				} else if (typeof value === "string") {
 					return compileExpression(

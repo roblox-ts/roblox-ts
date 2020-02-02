@@ -322,18 +322,12 @@ const UTF8_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 	[
 		"size",
-		(state, params) => {
-			console.log(
-				"size",
-				getLeftHandSideParent(params[0]).getKindName(),
-				getLeftHandSideParent(params[0]).getText(),
-			);
-			return appendDeclarationIfMissing(
+		(state, params) =>
+			appendDeclarationIfMissing(
 				state,
 				getLeftHandSideParent(params[0]),
 				`#${compileCallArgumentsAndSeparateAndJoinWrapped(state, params, true)[0]}`,
-			);
-		},
+			),
 	],
 	["trim", wrapExpFunc(accessPath => `string.match(${accessPath}, "^%s*(.-)%s*$")`)],
 	["trimStart", wrapExpFunc(accessPath => `string.match(${accessPath}, "^%s*(.-)$")`)],
