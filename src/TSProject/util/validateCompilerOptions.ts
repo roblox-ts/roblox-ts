@@ -30,8 +30,8 @@ function y(str: string) {
 	return chalk.yellowBright(str);
 }
 
-function validateTypeRoots(modulesPath: string, typeRoots: Array<string>) {
-	const typesPath = path.resolve(modulesPath, "@rbxts");
+function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
+	const typesPath = path.resolve(nodeModulesPath, "@rbxts");
 	for (const typeRoot of typeRoots) {
 		if (path.normalize(typeRoot) === typesPath) {
 			return true;
@@ -42,7 +42,7 @@ function validateTypeRoots(modulesPath: string, typeRoots: Array<string>) {
 
 export function validateCompilerOptions(
 	opts: ts.CompilerOptions,
-	modulesPath: string,
+	nodeModulesPath: string,
 ): asserts opts is ts.CompilerOptions & typeof ENFORCED_OPTIONS & ExtraOptionChecks {
 	const errors = new Array<string>();
 
@@ -75,7 +75,7 @@ export function validateCompilerOptions(
 		errors.push(`${y(`"isolatedModules"`)} must be ${y(`true`)}`);
 	}
 
-	if (opts.typeRoots === undefined || !validateTypeRoots(modulesPath, opts.typeRoots)) {
+	if (opts.typeRoots === undefined || !validateTypeRoots(nodeModulesPath, opts.typeRoots)) {
 		errors.push(`${y(`"typeRoots"`)} must contain ${y(`[ "node_modules/@rbxts" ]`)}`);
 	}
 

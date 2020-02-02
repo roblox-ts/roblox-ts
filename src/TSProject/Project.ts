@@ -17,6 +17,8 @@ export interface ProjectOptions {
 }
 
 export class Project {
+	public readonly projectPath: string;
+	public readonly nodeModulesPath: string;
 	public readonly rootDirs: Set<string>;
 	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
@@ -28,6 +30,9 @@ export class Project {
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.tsConfigPath = tsConfigPath;
+		this.projectPath = path.dirname(tsConfigPath);
+		this.nodeModulesPath = path.join(this.projectPath, "node_modules");
+
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(
@@ -46,8 +51,7 @@ export class Project {
 		}
 
 		const compilerOptions = parsedCommandLine.options;
-		const modulesPath = ""; // TODO
-		validateCompilerOptions(compilerOptions, modulesPath);
+		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
 
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
