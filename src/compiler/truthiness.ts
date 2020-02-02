@@ -11,7 +11,6 @@ import {
 } from "../utility/general";
 import {
 	getType,
-	isBoolishTypeLax,
 	isFalsyStringTypeLax,
 	isLiterally0Lax,
 	isNumberTypeLax,
