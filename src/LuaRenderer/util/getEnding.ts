@@ -19,6 +19,9 @@ function startsWithParenthesisInner(node: lua.Expression): boolean {
 	if (lua.isParenthesizedExpression(node)) {
 		// (a)
 		return true;
+	} else if (lua.isCallExpression(node) || lua.isMethodCallExpression(node)) {
+		// (a)() || (a):b()
+		return startsWithParenthesisInner(node.expression);
 	} else if (lua.isPropertyAccessExpression(node) || lua.isComputedIndexExpression(node)) {
 		// (a).b or (a)[b]
 		return startsWithParenthesisInner(node.expression);
