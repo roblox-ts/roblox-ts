@@ -212,9 +212,33 @@ function objectAccessor(
 	return safeLuaIndex(t, name);
 }
 
-function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
-	const id = state.pushPrecedingStatementToNewId(node, `utf8.offset(${t}, ${key})`);
-	return `${id} and string.match(${t}, "[%z\\1-\\127\\194-\\244][\\128-\\191]*", ${id})`;
+// function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
+// 	const id = state.pushPrecedingStatementToNewId(node, `utf8.offset(${t}, ${key})`);
+// 	return `${id} and string.match(${t}, "[%z\\1-\\127\\194-\\244][\\128-\\191]*", ${id})`;
+// }
+
+function stringAccessor(
+	state: CompilerState,
+	node: ts.Node,
+	t: string,
+	key: number,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	let id: string;
+	if (idStack.length === 0) {
+		id = state.pushPrecedingStatementToNewId(node, `string.gmatch(${t}, "[%z\\1-\\127\\194-\\244][\\128-\\191]*")`);
+		idStack.push(id);
+	} else {
+		[id] = idStack;
+	}
+
+	if (isHole) {
+		state.pushPrecedingStatements(node, state.indent + `${id}();\n`);
+		return "";
+	} else {
+		return `${id}()`;
+	}
 }
 
 function setAccessor(state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) {
