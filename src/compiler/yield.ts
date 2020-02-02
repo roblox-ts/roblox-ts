@@ -18,22 +18,13 @@ export function compileYieldExpression(state: CompilerState, node: ts.YieldExpre
 		const id = state.getNewId();
 		let result = `for ${id} in ${compileExpression(state, exp!)}.next do\n`;
 		state.pushIndent();
-		result += state.indent + `if ${id}.done then break end;\n`;
-		result += state.indent + `coroutine.yield(${id});\n`;
+		result += state.indent + `if ${id}.done then break; end;\n`;
+		result += state.indent + `coroutine.yield(${id}.value);\n`;
 		state.popIndent();
 		result += state.indent + `end`;
 		state.popIdStack();
 		return result;
 	} else {
-		state.enterPrecedingStatementContext();
-		const value = exp ? compileExpression(state, exp) : "nil";
-		let result = state.exitPrecedingStatementContextAndJoin();
-		result += state.indent + `coroutine.yield({\n`;
-		state.pushIndent();
-		result += state.indent + `value = ${value};\n`;
-		result += state.indent + `done = false;\n`;
-		state.popIndent();
-		result += state.indent + `})`;
-		return result;
+		return `coroutine.yield(${exp ? compileExpression(state, exp) : ""})`;
 	}
 }
