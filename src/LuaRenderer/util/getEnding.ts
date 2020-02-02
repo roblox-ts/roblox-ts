@@ -44,7 +44,21 @@ function getNextNonComment(state: RenderState) {
 	return listNode?.value;
 }
 
-export function needsSemicolon(state: RenderState, node: lua.Statement) {
+/**
+ * Intelligently resolves if the given statement needs to end with a `;` or not.
+ *
+ * Used to avoid "ambiguous syntax" errors in Lua.
+ *
+ * This is only necessary in statements which can end in an IndexableExpression:
+ * - CallStatement
+ * - VariableDeclaration
+ * - Assignment
+ */
+export function getEnding(state: RenderState, node: lua.Statement) {
 	const nextStatement = getNextNonComment(state);
-	return nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement);
+	if (nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement)) {
+		return ";";
+	} else {
+		return "";
+	}
 }
