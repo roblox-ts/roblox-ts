@@ -2,5 +2,8 @@ import * as lua from "LuaAST";
 import { RenderState } from "LuaRenderer";
 
 export function renderComment(state: RenderState, node: lua.Comment) {
-	return state.indent + `-- ${node.text}\n`;
+	return node.text
+		.split("\n")
+		.map(value => state.indent + `-- ${value}\n`)
+		.join("");
 }
