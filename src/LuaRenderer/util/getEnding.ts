@@ -45,7 +45,7 @@ function getNextNonComment(state: RenderState) {
 }
 
 /**
- * Intelligently resolves if the given statement needs to end with a `;` or not.
+ * Resolves if the given statement needs to end with a `;` or not.
  *
  * Used to avoid "ambiguous syntax" errors in Lua.
  *
