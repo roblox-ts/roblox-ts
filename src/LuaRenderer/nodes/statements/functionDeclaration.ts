@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
-import { renderParameters } from "LuaRenderer/util/parameters";
+import { renderParameters } from "LuaRenderer/util/renderParameters";
 import { renderStatements } from "LuaRenderer/util/statements";
 
 export function renderFunctionDeclaration(state: RenderState, node: lua.FunctionDeclaration) {

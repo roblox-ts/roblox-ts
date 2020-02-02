@@ -16,7 +16,7 @@ export interface Statement<T extends keyof lua.StatementByKind = keyof lua.State
 
 export interface Field<T extends keyof lua.FieldByKind = keyof lua.FieldByKind> extends lua.Node<T> {}
 
-export interface HasArguments {
+export interface HasParameters {
 	args: lua.List<lua.Identifier>;
 	hasVarArgs: boolean;
 }
@@ -38,7 +38,7 @@ export interface StringLiteral extends lua.Expression<lua.SyntaxKind.StringLiter
 
 export interface VarArgsLiteral extends lua.Expression<lua.SyntaxKind.VarArgsLiteral> {}
 
-export interface FunctionExpression extends lua.Expression<lua.SyntaxKind.FunctionExpression>, HasArguments {
+export interface FunctionExpression extends lua.Expression<lua.SyntaxKind.FunctionExpression>, HasParameters {
 	statements: lua.List<lua.Statement>;
 }
 
@@ -138,12 +138,12 @@ export interface ForStatement extends lua.Statement<lua.SyntaxKind.ForStatement>
 	statements: lua.List<lua.Statement>;
 }
 
-export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasArguments {
+export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasParameters {
 	name: lua.IndexableExpression;
 	statements: lua.List<lua.Statement>;
 }
 
-export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDeclaration>, HasArguments {
+export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDeclaration>, HasParameters {
 	expression: lua.IndexableExpression;
 	name: lua.Identifier;
 	statements: lua.List<lua.Statement>;
