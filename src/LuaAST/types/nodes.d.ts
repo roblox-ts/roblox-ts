@@ -139,7 +139,7 @@ export interface ForStatement extends lua.Statement<lua.SyntaxKind.ForStatement>
 }
 
 export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasParameters {
-	name: lua.IndexableExpression;
+	name: lua.Identifier | lua.PropertyAccessExpression;
 	statements: lua.List<lua.Statement>;
 }
 

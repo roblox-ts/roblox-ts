@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { NoInfer } from "Shared/util/types";
 
 export type ListNode<T extends lua.Node> = {
 	prev?: lua.ListNode<T>;
@@ -49,7 +50,7 @@ export namespace list {
 
 // list utility functions
 export namespace list {
-	export function push<T extends lua.Node>(list: lua.List<T>, value: T) {
+	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
 		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
@@ -86,7 +87,7 @@ export namespace list {
 		}
 	}
 
-	export function unshift<T extends lua.Node>(list: lua.List<T>, value: T) {
+	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
 		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;
@@ -97,7 +98,7 @@ export namespace list {
 		list.head = node;
 	}
 
-	export function forEach<T extends lua.Node>(list: lua.List<T>, callback: (value: T) => void) {
+	export function forEach<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
 		let node = list.head;
 		while (node) {
 			callback(node.value);
@@ -105,7 +106,7 @@ export namespace list {
 		}
 	}
 
-	export function forEachRev<T extends lua.Node>(list: lua.List<T>, callback: (value: T) => void) {
+	export function forEachRev<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
 		let node = list.tail;
 		while (node) {
 			callback(node.value);
@@ -113,13 +114,13 @@ export namespace list {
 		}
 	}
 
-	export function mapToArray<T extends lua.Node, U>(list: lua.List<T>, callback: (value: T) => U): Array<U> {
+	export function mapToArray<T extends lua.Node, U>(list: lua.List<T>, callback: (value: NoInfer<T>) => U): Array<U> {
 		const result = new Array<U>();
 		lua.list.forEach(list, value => result.push(callback(value)));
 		return result;
 	}
 
-	export function toString<T extends lua.Node>(list: lua.List<T>, toStr: (value: T) => string) {
+	export function toString<T extends lua.Node>(list: lua.List<T>, toStr: (value: NoInfer<T>) => string) {
 		const strs = mapToArray(list, value => toStr(value));
 		if (strs.length > 0) {
 			return `[ ${strs.join(", ")} ]`;
@@ -128,7 +129,7 @@ export namespace list {
 		}
 	}
 
-	export function every<T extends lua.Node>(list: lua.List<T>, callback: (value: T) => boolean) {
+	export function every<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
 		let node = list.head;
 		while (node) {
 			if (!callback(node.value)) {
@@ -139,7 +140,7 @@ export namespace list {
 		return true;
 	}
 
-	export function any<T extends lua.Node>(list: lua.List<T>, callback: (value: T) => boolean) {
+	export function any<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
 		let node = list.head;
 		while (node) {
 			if (callback(node.value)) {
@@ -166,7 +167,7 @@ export namespace list {
 		}
 	}
 
-	export function insertAfter<T extends lua.Node>(node: lua.ListNode<T>, value: T) {
+	export function insertAfter<T extends lua.Node>(node: lua.ListNode<T>, value: NoInfer<T>) {
 		const newNode = lua.list.makeNode(value);
 		const origNext = node.next;
 		node.next = newNode;
