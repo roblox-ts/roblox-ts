@@ -24,7 +24,7 @@ import { isUsedJson, shouldCompileFile } from "./utility/general";
 import { red, yellow } from "./utility/text";
 import { createFileCompilationWorkers } from "./workers";
 
-const MINIMUM_RBX_TYPES_VERSION = 223;
+const MINIMUM_RBX_TYPES_VERSION = 324;
 
 const LIB_PATH = path.resolve(__dirname, "..", "lib");
 const ROJO_FILE_REGEX = /^.+\.project\.json$/;

@@ -952,7 +952,6 @@ const compilePropertyMethod = (
 export const enum PropertyCallExpType {
 	None = -1,
 	Array,
-	BuiltInStringMethod,
 	String,
 	PromiseThen,
 	SymbolFor,
@@ -1167,10 +1166,6 @@ export function compilePropertyCallExpression(
 		case PropertyCallExpType.ObjectConstructor: {
 			return compilePropertyMethod(state, property, params.slice(1), "Object", OBJECT_REPLACE_METHODS);
 		}
-		// case PropertyCallExpType.BuiltInStringMethod: {
-		// 	const [accessPath, compiledArgs] = compileCallArguments(state, params);
-		// 	return `string.${property}(${accessPath}, ${compiledArgs})`;
-		// }
 		case PropertyCallExpType.PromiseThen: {
 			const [accessPath, compiledArgs] = compileCallArgumentsAndSeparateAndJoin(state, params);
 			return `${accessPath}:andThen(${compiledArgs})`;
