@@ -287,10 +287,23 @@ export function isGeneratorType(type: ts.Type) {
 }
 
 export function isIterableFunctionType(type: ts.Type) {
-	return isSomeType(type, check, t => {
-		const symbol = t.getAliasSymbol();
-		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
-	});
+	return isSomeType(type, typeConstraint, t => t.getSymbol()?.getEscapedName() === "IterableFunction" ?? false);
+}
+
+export function isDoubleDecrementedIterator(type: ts.Type) {
+	return isSomeType(
+		type,
+		typeConstraint,
+		t => t.getSymbol()?.getEscapedName() === "DoubleDecrementedIterableFunction" ?? false,
+	);
+}
+
+export function isFirstDecrementedIterableFunction(type: ts.Type) {
+	return isSomeType(
+		type,
+		typeConstraint,
+		t => t.getSymbol()?.getEscapedName() === "FirstDecrementedIterableFunction" ?? false,
+	);
 }
 
 function getCompilerDirectiveHelper(
@@ -450,6 +463,10 @@ export function isSetMethodType(type: ts.Type) {
 
 export function isStringMethodType(type: ts.Type) {
 	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
+}
+
+export function isUtf8FunctionType(type: ts.Type) {
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Utf8);
 }
 
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;

@@ -13,6 +13,8 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
+	isFirstDecrementedIterableFunction,
+	isDoubleDecrementedIterator,
 } from "../utility/type";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
@@ -187,6 +189,17 @@ export function compileSpreadableListAndJoin(
 
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
 	const expType = getType(expression);
+
+	if (isFirstDecrementedIterableFunction(expType) || isDoubleDecrementedIterator(expType)) {
+		throw new CompilerError(
+			`Roblox-ts currently does not support spreading this type of expression: ${compileExpression(
+				state,
+				expression,
+			)}`,
+			expression,
+			CompilerErrorType.TS37,
+		);
+	}
 
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;

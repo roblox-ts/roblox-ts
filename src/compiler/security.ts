@@ -186,6 +186,7 @@ export const enum CompilerDirective {
 	Map = "map",
 	Set = "set",
 	String = "string",
+	Utf8 = "utf8",
 }
 
 function getCompilerDirectiveFromDeclaration(
