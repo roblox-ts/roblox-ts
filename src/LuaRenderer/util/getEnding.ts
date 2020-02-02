@@ -1,16 +1,24 @@
 import * as lua from "LuaAST";
 import { RenderState } from "LuaRenderer";
 
+function endsWithIndexableExpressionInner(node: lua.Expression): boolean {
+	if (lua.isIndexableExpression(node)) {
+		return true;
+	} else if (lua.isBinaryExpression(node)) {
+		return endsWithIndexableExpressionInner(node.right);
+	} else if (lua.isUnaryExpression(node)) {
+		return endsWithIndexableExpressionInner(node.expression);
+	}
+	return false;
+}
+
 function endsWithIndexableExpression(node: lua.Statement) {
 	if (lua.isCallStatement(node)) {
 		// a()
 		return true;
-	} else if (lua.isVariableDeclaration(node) && lua.isIndexableExpression(node.right)) {
-		// local a = b
-		return true;
-	} else if (lua.isAssignment(node) && lua.isIndexableExpression(node.right)) {
-		// a = b
-		return true;
+	} else if (lua.isVariableDeclaration(node) || lua.isAssignment(node)) {
+		// local a = b or a = b
+		return endsWithIndexableExpressionInner(node.right);
 	}
 	return false;
 }
