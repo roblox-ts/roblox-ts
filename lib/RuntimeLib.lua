@@ -196,6 +196,26 @@ function TS.async(callback)
 	end
 end
 
+function TS.generator(c)
+	c = coroutine.create(c)
+
+	local o = {
+		next = function(...)
+			if coroutine.status(c) == "dead" then
+				return { done = true }
+			else
+				local success, value = coroutine.resume(c, ...)
+				if success == false then error(value, 2) end
+				return { value = value, done = coroutine.status(c) == "dead" }
+			end
+		end
+	}
+
+	o[TS.Symbol_iterator] = function() return o end
+
+	return o
+end
+
 local function package(...)
 	return select("#", ...), {...}
 end
