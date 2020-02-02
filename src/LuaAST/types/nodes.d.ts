@@ -17,8 +17,8 @@ export interface Statement<T extends keyof lua.StatementByKind = keyof lua.State
 export interface Field<T extends keyof lua.FieldByKind = keyof lua.FieldByKind> extends lua.Node<T> {}
 
 export interface HasParameters {
-	args: lua.List<lua.Identifier>;
-	hasVarArgs: boolean;
+	parameters: lua.List<lua.Identifier>;
+	hasDotDotDot: boolean;
 }
 
 // expressions
@@ -58,13 +58,13 @@ export interface PropertyAccessExpression extends lua.Expression<lua.SyntaxKind.
 
 export interface CallExpression extends lua.Expression<lua.SyntaxKind.CallExpression> {
 	expression: lua.IndexableExpression;
-	params: lua.List<lua.Expression>;
+	args: lua.List<lua.Expression>;
 }
 
 export interface MethodCallExpression extends lua.Expression<lua.SyntaxKind.MethodCallExpression> {
 	name: lua.Identifier;
 	expression: lua.IndexableExpression;
-	params: lua.List<lua.Expression>;
+	args: lua.List<lua.Expression>;
 }
 
 export interface ParenthesizedExpression extends lua.Expression<lua.SyntaxKind.ParenthesizedExpression> {
