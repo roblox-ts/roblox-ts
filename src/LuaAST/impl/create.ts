@@ -89,8 +89,8 @@ export function methodDec(
 
 export function varDec(name: string, value: lua.Expression) {
 	return lua.create(lua.SyntaxKind.VariableDeclaration, {
-		id: lua.id(name),
-		value,
+		left: lua.id(name),
+		right: value,
 	});
 }
 
