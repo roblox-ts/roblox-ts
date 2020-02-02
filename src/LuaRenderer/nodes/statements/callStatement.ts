@@ -1,30 +1,7 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
-
-/**
- * returns true if the next sibling node is a:
- *
- * 	CallStatement
- * 		CallExpression | MethodCallExpression
- * 			ParenthesizedExpression
- *
- * skipping over any Comment nodes
- */
-function needsSemicolon(state: RenderState): boolean {
-	let listNode = state.peekListNode()?.next;
-	while (listNode) {
-		const node = listNode.value;
-		if (lua.isCallStatement(node)) {
-			return lua.isParenthesizedExpression(node.expression.expression);
-		} else if (lua.isComment(node)) {
-			listNode = listNode.next;
-		} else {
-			break;
-		}
-	}
-	return false;
-}
+import { needsSemicolon } from "LuaRenderer/util/needsSemicolon";
 
 export function renderCallStatement(state: RenderState, node: lua.CallStatement) {
-	return state.indent + `${render(state, node.expression)}${needsSemicolon(state) ? ";" : ""}\n`;
+	return state.indent + `${render(state, node.expression)}${needsSemicolon(state, node) ? ";" : ""}\n`;
 }
