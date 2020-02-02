@@ -815,6 +815,8 @@ function TS.map_new(pairs)
 	return result
 end
 
+TS.Object_fromEntries = TS.map_new
+
 function TS.map_clear(map)
 	for key in pairs(map) do
 		map[key] = nil
