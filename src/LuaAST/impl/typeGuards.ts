@@ -1,6 +1,4 @@
 import * as lua from "LuaAST";
-import { getKeysAsInt } from "Shared/util/getKeysAsNumber";
-import { identity } from "Shared/util/identity";
 
 function makeGuard<T extends keyof lua.NodeByKind>(kind: T) {
 	return (node: lua.Node): node is lua.NodeByKind[T] => node.kind === kind;
@@ -14,22 +12,8 @@ export const isCallExpression = makeGuard(lua.SyntaxKind.CallExpression);
 export const isMethodCallExpression = makeGuard(lua.SyntaxKind.MethodCallExpression);
 export const isParenthesizedExpression = makeGuard(lua.SyntaxKind.ParenthesizedExpression);
 
-// enforces set has at least one of every key in lua.IndexableExpressionByKind
-const INDEXABLE_EXPRESSION_KINDS: Set<lua.SyntaxKind> = new Set(
-	getKeysAsInt(
-		identity<{ [K in keyof lua.IndexableExpressionByKind]: true }>({
-			[lua.SyntaxKind.Identifier]: true,
-			[lua.SyntaxKind.ComputedIndexExpression]: true,
-			[lua.SyntaxKind.PropertyAccessExpression]: true,
-			[lua.SyntaxKind.CallExpression]: true,
-			[lua.SyntaxKind.MethodCallExpression]: true,
-			[lua.SyntaxKind.ParenthesizedExpression]: true,
-		}),
-	),
-);
-
 export function isIndexableExpression(node: lua.Node): node is lua.IndexableExpression {
-	return INDEXABLE_EXPRESSION_KINDS.has(node.kind);
+	return node.kind >= lua.SyntaxKind.FirstIndexableExpression && node.kind <= lua.SyntaxKind.LastIndexableExpression;
 }
 
 // expressions
@@ -46,37 +30,8 @@ export const isArray = makeGuard(lua.SyntaxKind.Array);
 export const isMap = makeGuard(lua.SyntaxKind.Map);
 export const isSet = makeGuard(lua.SyntaxKind.Set);
 
-// enforces set has at least one of every key in lua.ExpressionByKind
-const EXPRESSION_KINDS: Set<lua.SyntaxKind> = new Set(
-	getKeysAsInt(
-		identity<{ [K in keyof lua.ExpressionByKind]: true }>({
-			// indexable expressions
-			[lua.SyntaxKind.Identifier]: true,
-			[lua.SyntaxKind.ComputedIndexExpression]: true,
-			[lua.SyntaxKind.PropertyAccessExpression]: true,
-			[lua.SyntaxKind.CallExpression]: true,
-			[lua.SyntaxKind.MethodCallExpression]: true,
-			[lua.SyntaxKind.ParenthesizedExpression]: true,
-
-			// other expressions
-			[lua.SyntaxKind.NilLiteral]: true,
-			[lua.SyntaxKind.FalseLiteral]: true,
-			[lua.SyntaxKind.TrueLiteral]: true,
-			[lua.SyntaxKind.NumberLiteral]: true,
-			[lua.SyntaxKind.StringLiteral]: true,
-			[lua.SyntaxKind.VarArgsLiteral]: true,
-			[lua.SyntaxKind.FunctionExpression]: true,
-			[lua.SyntaxKind.BinaryExpression]: true,
-			[lua.SyntaxKind.UnaryExpression]: true,
-			[lua.SyntaxKind.Array]: true,
-			[lua.SyntaxKind.Map]: true,
-			[lua.SyntaxKind.Set]: true,
-		}),
-	),
-);
-
 export function isExpression(node: lua.Node): node is lua.Expression {
-	return EXPRESSION_KINDS.has(node.kind);
+	return node.kind >= lua.SyntaxKind.FirstExpression && node.kind <= lua.SyntaxKind.LastExpression;
 }
 
 // statements
@@ -94,56 +49,26 @@ export const isVariableDeclaration = makeGuard(lua.SyntaxKind.VariableDeclaratio
 export const isReturnStatement = makeGuard(lua.SyntaxKind.ReturnStatement);
 export const isComment = makeGuard(lua.SyntaxKind.Comment);
 
-// enforces set has at least one of every key in lua.StatementByKind
-const STATEMENT_KINDS: Set<lua.SyntaxKind> = new Set(
-	getKeysAsInt(
-		identity<{ [K in keyof lua.StatementByKind]: true }>({
-			[lua.SyntaxKind.Assignment]: true,
-			[lua.SyntaxKind.CallStatement]: true,
-			[lua.SyntaxKind.DoStatement]: true,
-			[lua.SyntaxKind.WhileStatement]: true,
-			[lua.SyntaxKind.RepeatStatement]: true,
-			[lua.SyntaxKind.IfStatement]: true,
-			[lua.SyntaxKind.NumericForStatement]: true,
-			[lua.SyntaxKind.ForStatement]: true,
-			[lua.SyntaxKind.FunctionDeclaration]: true,
-			[lua.SyntaxKind.MethodDeclaration]: true,
-			[lua.SyntaxKind.VariableDeclaration]: true,
-			[lua.SyntaxKind.ReturnStatement]: true,
-			[lua.SyntaxKind.Comment]: true,
-		}),
-	),
-);
-
 export function isStatement(node: lua.Node): node is lua.Statement {
-	return STATEMENT_KINDS.has(node.kind);
+	return node.kind >= lua.SyntaxKind.FirstStatement && node.kind <= lua.SyntaxKind.LastStatement;
 }
 
 // fields
 export const isMapField = makeGuard(lua.SyntaxKind.MapField);
 
-// enforces set has at least one of every key in lua.FieldByKind
-const FIELD_KINDS: Set<lua.SyntaxKind> = new Set(
-	getKeysAsInt(
-		identity<{ [K in keyof lua.FieldByKind]: true }>({
-			[lua.SyntaxKind.MapField]: true,
-		}),
-	),
-);
-
 export function isField(node: lua.Node): node is lua.Field {
-	return FIELD_KINDS.has(node.kind);
+	return node.kind >= lua.SyntaxKind.FirstField && node.kind <= lua.SyntaxKind.LastField;
 }
 
 export function isNode(value: unknown): value is lua.Node {
 	if (typeof value === "object" && value !== null && "kind" in value) {
 		// hack
-		const node = value as { kind: unknown };
-		if (typeof node.kind === "number") {
-			return EXPRESSION_KINDS.has(node.kind) || STATEMENT_KINDS.has(node.kind) || FIELD_KINDS.has(node.kind);
-		} else {
-			return false;
-		}
+		const { kind } = value as { kind: unknown };
+		return (
+			typeof kind === "number" &&
+			kind >= lua.SyntaxKind.FirstIndexableExpression &&
+			kind <= lua.SyntaxKind.LastField
+		);
 	}
 	return false;
 }

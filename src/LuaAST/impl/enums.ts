@@ -40,6 +40,17 @@ export enum SyntaxKind {
 	MapField,
 }
 
+export enum SyntaxKind {
+	FirstIndexableExpression = Identifier,
+	LastIndexableExpression = ParenthesizedExpression,
+	FirstExpression = Identifier,
+	LastExpression = Set,
+	FirstStatement = Assignment,
+	LastStatement = Comment,
+	FirstField = MapField,
+	LastField = MapField,
+}
+
 export enum BinaryOperator {
 	Plus,
 	Minus,
