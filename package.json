@@ -21,7 +21,7 @@
 		"test": "npm run build && npm run test-compile && npm run test-run",
 		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
 		"coverage": "nyc report --reporter=lcov",
-		"prepublishOnly": "npm run build",
+		"prepare": "npm run build",
 		"types": "cd tests && npm install @rbxts/types",
 		"devlink": "cd devlink && npm link"
 	},
