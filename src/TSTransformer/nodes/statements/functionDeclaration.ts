@@ -1,9 +1,9 @@
 import * as lua from "LuaAST";
+import { TransformState } from "TSTransformer";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/identifier";
-import { TransformState } from "TSTransformer/TransformState";
-import ts from "typescript";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import { transformParameters } from "TSTransformer/util/transformParameters";
+import { transformStatementList } from "TSTransformer/util/transformStatementList";
+import ts from "typescript";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.name) {

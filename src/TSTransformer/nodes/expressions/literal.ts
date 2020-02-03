@@ -1,5 +1,5 @@
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import ts from "typescript";
 
 export function transformBooleanLiteral(state: TransformState, node: ts.BooleanLiteral) {

@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/expression";
-import { TransformState } from "TSTransformer/TransformState";
 import ts from "typescript";
 
 function getOperator(operatorToken: ts.BinaryOperatorToken) {
