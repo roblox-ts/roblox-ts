@@ -10,7 +10,14 @@ export type ListNode<T extends lua.Node> = {
 export type List<T extends lua.Node> = {
 	head?: lua.ListNode<T>;
 	tail?: lua.ListNode<T>;
+	readonly: boolean;
 };
+
+function checkReadonly<T extends lua.Node>(list: lua.List<T>) {
+	if (list.readonly) {
+		throw new Error("Cannot mutate readonly lua.List<T>!");
+	}
+}
 
 // list creation functions
 export namespace list {
@@ -30,10 +37,31 @@ export namespace list {
 				}
 				tail = node;
 			}
-			return { head, tail };
+			return { head, tail, readonly: false };
 		} else {
-			return {};
+			return { readonly: false };
 		}
+	}
+
+	export function join<T extends lua.Node>(...lists: Array<lua.List<T>>): lua.List<T> {
+		const nonEmptyLists = lists.filter(list => list.head !== undefined && list.tail !== undefined);
+		if (nonEmptyLists.length === 0) {
+			return { readonly: false };
+		}
+
+		const newList = lua.list.make<T>();
+		newList.head = nonEmptyLists[0].head;
+		newList.tail = nonEmptyLists[nonEmptyLists.length - 1].tail;
+		for (let i = 1; i < nonEmptyLists.length; i++) {
+			const list = nonEmptyLists[i];
+			const prevList = nonEmptyLists[i - 1];
+			checkReadonly(list);
+			checkReadonly(prevList);
+			list.readonly = true;
+			list.head!.prev = prevList.tail!;
+			prevList.tail!.next = list.head!;
+		}
+		return newList;
 	}
 }
 
@@ -51,6 +79,7 @@ export namespace list {
 // list utility functions
 export namespace list {
 	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
+		checkReadonly(list);
 		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
@@ -62,6 +91,7 @@ export namespace list {
 	}
 
 	export function pop<T extends lua.Node>(list: lua.List<T>): T | undefined {
+		checkReadonly(list);
 		if (list.tail) {
 			const tail = list.tail;
 			if (tail.prev) {
@@ -75,6 +105,7 @@ export namespace list {
 	}
 
 	export function shift<T extends lua.Node>(list: lua.List<T>): T | undefined {
+		checkReadonly(list);
 		if (list.head) {
 			const head = list.head;
 			if (head.next) {
@@ -88,6 +119,7 @@ export namespace list {
 	}
 
 	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
+		checkReadonly(list);
 		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;

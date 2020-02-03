@@ -8,6 +8,14 @@ function getOperator(operatorToken: ts.BinaryOperatorToken) {
 		return lua.BinaryOperator.Plus;
 	} else if (operatorToken.kind === ts.SyntaxKind.MinusToken) {
 		return lua.BinaryOperator.Minus;
+	} else if (operatorToken.kind === ts.SyntaxKind.AsteriskToken) {
+		return lua.BinaryOperator.Asterisk;
+	} else if (operatorToken.kind === ts.SyntaxKind.SlashToken) {
+		return lua.BinaryOperator.Slash;
+	} else if (operatorToken.kind === ts.SyntaxKind.AsteriskAsteriskToken) {
+		return lua.BinaryOperator.Caret;
+	} else if (operatorToken.kind === ts.SyntaxKind.PercentToken) {
+		return lua.BinaryOperator.Percent;
 	}
 	throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorToken.kind]}`);
 }

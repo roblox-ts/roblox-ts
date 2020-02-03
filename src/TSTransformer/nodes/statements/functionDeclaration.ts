@@ -10,12 +10,14 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		throw new Error("Unnamed functiond declaration?");
 	}
 
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
+
 	return lua.list.make(
 		lua.create(lua.SyntaxKind.FunctionDeclaration, {
 			name: transformIdentifier(state, node.name),
-			hasDotDotDot: false,
-			parameters: transformParameters(state, node.parameters),
-			statements: transformStatementList(state, node.body?.statements ?? []),
+			hasDotDotDot,
+			parameters,
+			statements: lua.list.join(statements, transformStatementList(state, node.body?.statements ?? [])),
 		}),
 	);
 }
