@@ -2,7 +2,30 @@ import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
 import { renderStatements } from "LuaRenderer/util/statements";
 
+function renderShorthandIfStatement(state: RenderState, node: lua.IfStatement) {
+	const statementStr = renderStatements(state, node.statements).trim();
+	return state.indent + `if ${render(state, node.condition)} then ${statementStr} end\n`;
+}
+
+function shouldRenderShorthand(node: lua.IfStatement): boolean {
+	return (
+		lua.isBinaryExpression(node.condition) &&
+		lua.isIdentifier(node.condition.left) &&
+		lua.isNilLiteral(node.condition.right) &&
+		lua.list.isList(node.elseBody) &&
+		node.elseBody.head === undefined &&
+		node.statements.head !== undefined &&
+		node.statements.head === node.statements.tail &&
+		lua.isAssignment(node.statements.head.value)
+	);
+}
+
 export function renderIfStatement(state: RenderState, node: lua.IfStatement) {
+	// if no elseBody, and only one statement
+	if (shouldRenderShorthand(node)) {
+		return renderShorthandIfStatement(state, node);
+	}
+
 	let result = "";
 
 	result += state.indent + `if ${render(state, node.condition)} then\n`;
