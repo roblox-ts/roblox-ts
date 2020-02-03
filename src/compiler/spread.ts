@@ -13,6 +13,8 @@ import {
 	isStringType,
 	isTupleReturnTypeCall,
 	shouldPushToPrecedingStatement,
+	isFirstDecrementedIterableFunction,
+	isDoubleDecrementedIterator,
 } from "../utility/type";
 
 export function shouldCompileAsSpreadableList(elements: Array<ts.Expression>) {
@@ -188,6 +190,17 @@ export function compileSpreadableListAndJoin(
 export function compileSpreadExpression(state: CompilerState, expression: ts.Expression) {
 	const expType = getType(expression);
 
+	if (isFirstDecrementedIterableFunction(expType) || isDoubleDecrementedIterator(expType)) {
+		throw new CompilerError(
+			`Roblox-ts currently does not support spreading this type of expression: ${compileExpression(
+				state,
+				expression,
+			)}`,
+			expression,
+			CompilerErrorType.TS37,
+		);
+	}
+
 	if (isSetType(expType)) {
 		state.usesTSLibrary = true;
 		return `TS.set_values(${compileExpression(state, expression)})`;
@@ -200,8 +213,18 @@ export function compileSpreadExpression(state: CompilerState, expression: ts.Exp
 		if (ts.TypeGuards.isStringLiteral(expression)) {
 			const text = expression.getText();
 			const quote = text.slice(-1);
-			const segments = text.slice(1, -1).match(/\\?(\r\n|[^])/gu);
-			return segments ? "{ " + segments.map(a => quote + a + quote).join(", ") + " }" : "{}";
+			const contents =
+				text
+					.slice(1, -1)
+					.match(/\\(?:x[\dA-Fa-f]{2}|u\{[\dA-Fa-f]+\}|[0-7]{1,3})|\\?(?:\r\n|[^])/gu)
+					?.map((a, i, s) =>
+						a === "\\\r" || a === "\\\r\n" || a === "\\\n"
+							? `\n` + state.indent + "\t"
+							: quote.concat(a, quote, i === s.length - 1 ? "" : ", "),
+					)
+					.join("") ?? "";
+
+			return contents ? "{ " + contents + " }" : "{}";
 		} else {
 			state.usesTSLibrary = true;
 			return `TS.string_spread(${compileExpression(state, expression)})`;

@@ -926,6 +926,36 @@ TS.set_size = getNumKeys
 
 TS.set_toString = toString
 
+function TS.string_startsWith(str1, str2, pos)
+	local n1 = #str1
+	local n2 = #str2
+
+	if pos == nil or pos ~= pos then
+		pos = 0
+	else
+		pos = math.clamp(pos, 0, n1)
+	end
+
+	local last = pos + n2;
+	return last <= n1 and string.sub(str1, pos + 1, last) == str2
+end
+
+function TS.string_endsWith(str1, str2, pos)
+	local n1 = #str1
+	local n2 = #str2
+
+	if pos == nil then
+		pos = n1
+	elseif pos ~= pos then
+		pos = 0
+	else
+		pos = math.clamp(pos, 0, n1)
+	end
+
+	local start = pos - n2 + 1;
+	return start > 0 and string.sub(str1, start, pos) == str2
+end
+
 -- spread cache functions
 function TS.string_spread(str)
 	local results = {}

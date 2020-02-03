@@ -331,14 +331,14 @@ export = () => {
 	});
 
 	it("should properly destruct gmatch #2", () => {
-		const [a, b, c] = "a,b,c".gmatch("[^,]+");
+		const [[a], [b], [c]] = "a,b,c".gmatch("[^,]+");
 		expect(a).to.equal("a");
 		expect(b).to.equal("b");
 		expect(c).to.equal("c");
 	});
 
 	it("should properly destruct gmatch #3", () => {
-		const [, a, b, c] = "z,a,b,c".gmatch("[^,]+");
+		const [, [a], [b], [c]] = "z,a,b,c".gmatch("[^,]+");
 		expect(a).to.equal("a");
 		expect(b).to.equal("b");
 		expect(c).to.equal("c");

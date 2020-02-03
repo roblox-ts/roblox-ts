@@ -19,6 +19,9 @@ import {
 	isMapType,
 	isSetType,
 	isStringType,
+	isDoubleDecrementedIterator,
+	isFirstDecrementedIterableFunction,
+	isTupleType,
 } from "../utility/type";
 
 function getVariableName(state: CompilerState, lhs: ts.Node, statements: Array<string>) {
@@ -78,6 +81,8 @@ enum ForOfLoopType {
 	IterableFunction,
 	SymbolIterator,
 	IterableLuaTuple,
+	SinglyDecrementedVariables,
+	DoublyDecrementedVariables,
 }
 
 function* propertyAccessExpressionTypeIter(state: CompilerState, exp: ts.Expression) {
@@ -170,9 +175,12 @@ function getLoopType(
 		return [exp, ForOfLoopType.Array, reversed, backwards];
 	} else if (isStringType(expType)) {
 		return [exp, ForOfLoopType.String, reversed, backwards];
+	} else if (isFirstDecrementedIterableFunction(expType)) {
+		return [exp, ForOfLoopType.SinglyDecrementedVariables, reversed, backwards];
+	} else if (isDoubleDecrementedIterator(expType)) {
+		return [exp, ForOfLoopType.DoublyDecrementedVariables, reversed, backwards];
 	} else if (isIterableFunctionType(expType)) {
-		// Hack
-		if (expType.getText().match("<LuaTuple<")) {
+		if (isTupleType(expType.getTypeArguments()[0])) {
 			return [exp, ForOfLoopType.IterableLuaTuple, reversed, backwards];
 		} else {
 			return [exp, ForOfLoopType.IterableFunction, reversed, backwards];
@@ -210,7 +218,9 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 	if (
 		loopType === ForOfLoopType.Entries ||
 		loopType === ForOfLoopType.ArrayEntries ||
-		loopType === ForOfLoopType.IterableLuaTuple
+		loopType === ForOfLoopType.IterableLuaTuple ||
+		loopType === ForOfLoopType.SinglyDecrementedVariables ||
+		loopType === ForOfLoopType.DoublyDecrementedVariables
 	) {
 		if (loopType === ForOfLoopType.ArrayEntries) {
 			expStr = getReadableExpressionName(state, exp, expStr);
@@ -221,6 +231,7 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 
 		if (ts.TypeGuards.isArrayBindingPattern(lhs)) {
 			const elements = lhs.getElements();
+
 			const [first, second] = elements as [
 				ts.BindingElement | ts.OmittedExpression | undefined,
 				ts.BindingElement | ts.OmittedExpression | undefined,
@@ -243,6 +254,16 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 						: "_",
 				);
 			}
+
+			if (loopType === ForOfLoopType.DoublyDecrementedVariables) {
+				statements.unshift(
+					...[key ? `${key} = ${key} - 1;` : "", value ? `${value} = ${value} - 1;` : ""].filter(
+						a => a !== "",
+					),
+				);
+			} else if (key && loopType === ForOfLoopType.SinglyDecrementedVariables) {
+				statements.unshift(`${key} = ${key} - 1;`);
+			}
 		} else {
 			if (loopType === ForOfLoopType.IterableLuaTuple) {
 				throw new CompilerError(
@@ -258,7 +279,14 @@ export function compileForOfStatement(state: CompilerState, node: ts.ForOfStatem
 			key = state.getNewId();
 			value = state.getNewId();
 			varName = getVariableName(state, lhs, statements);
-			statements.unshift(`local ${varName} = {${key}, ${value}};`);
+
+			const sub1 =
+				loopType === ForOfLoopType.SinglyDecrementedVariables ||
+				loopType === ForOfLoopType.DoublyDecrementedVariables
+					? " - 1"
+					: "";
+			const sub2 = loopType === ForOfLoopType.DoublyDecrementedVariables ? " - 1" : "";
+			statements.unshift(`local ${varName} = { ${key + sub1}, ${value + sub2} };`);
 		}
 	} else {
 		varName = getVariableName(state, lhs, statements);

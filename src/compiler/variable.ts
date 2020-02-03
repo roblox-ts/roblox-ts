@@ -13,6 +13,8 @@ import {
 	isSetType,
 	isTupleType,
 	shouldHoist,
+	isFirstDecrementedIterableFunction,
+	isDoubleDecrementedIterator,
 } from "../utility/type";
 import { compileBindingPatternAndJoin } from "./binding";
 import { isValidLuaIdentifier } from "./security";
@@ -129,6 +131,8 @@ export function compileVariableDeclaration(state: CompilerState, node: ts.Variab
 				!isSetType(rhsType) &&
 				!isGeneratorType(rhsType) &&
 				!isIterableFunctionType(rhsType) &&
+				!isFirstDecrementedIterableFunction(rhsType) &&
+				!isDoubleDecrementedIterator(rhsType) &&
 				(isObjectType(rhsType) || ts.TypeGuards.isThisExpression(rhs))
 			) {
 				state.usesTSLibrary = true;

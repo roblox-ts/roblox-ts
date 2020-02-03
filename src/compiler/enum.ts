@@ -1,9 +1,10 @@
 import * as ts from "ts-morph";
-import { checkReserved, getReadableExpressionName, sanitizeTemplate } from ".";
+import { checkReserved, getReadableExpressionName } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
 import { safeLuaIndex, skipNodesDownwards } from "../utility/general";
 import { shouldHoist } from "../utility/type";
+import { compileExpression } from "./expression";
 
 export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclaration) {
 	let result = "";
@@ -33,8 +34,16 @@ export function compileEnumDeclaration(state: CompilerState, node: ts.EnumDeclar
 		const memberValue = member.getValue();
 		const safeIndex = safeLuaIndex(name, memberName);
 		if (typeof memberValue === "string") {
-			const strForm = '"' + sanitizeTemplate(memberValue) + '"';
-			result += state.indent + `${safeIndex} = ${strForm};\n`;
+			result +=
+				state.indent +
+				`${safeIndex} = ${compileExpression(
+					state,
+					member.getFirstChildOrThrow(
+						(child): child is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+							ts.TypeGuards.isStringLiteral(child) ||
+							ts.TypeGuards.isNoSubstitutionTemplateLiteral(child),
+					),
+				)};\n`;
 		} else if (typeof memberValue === "number") {
 			result += state.indent + `${safeIndex} = ${memberValue};\n`;
 			result += state.indent + `${inverseId}[${memberValue}] = "${memberName}";\n`;

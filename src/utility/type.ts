@@ -287,10 +287,23 @@ export function isGeneratorType(type: ts.Type) {
 }
 
 export function isIterableFunctionType(type: ts.Type) {
-	return isSomeType(type, check, t => {
-		const symbol = t.getAliasSymbol();
-		return symbol ? symbol.getEscapedName() === "IterableFunction" : false;
-	});
+	return isSomeType(type, typeConstraint, t => t.getSymbol()?.getEscapedName() === "IterableFunction" ?? false);
+}
+
+export function isDoubleDecrementedIterator(type: ts.Type) {
+	return isSomeType(
+		type,
+		typeConstraint,
+		t => t.getSymbol()?.getEscapedName() === "DoubleDecrementedIterableFunction" ?? false,
+	);
+}
+
+export function isFirstDecrementedIterableFunction(type: ts.Type) {
+	return isSomeType(
+		type,
+		typeConstraint,
+		t => t.getSymbol()?.getEscapedName() === "FirstDecrementedIterableFunction" ?? false,
+	);
 }
 
 function getCompilerDirectiveHelper(
@@ -452,6 +465,10 @@ export function isStringMethodType(type: ts.Type) {
 	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.String);
 }
 
+export function isUtf8FunctionType(type: ts.Type) {
+	return isFunctionType(type) && getCompilerDirectiveWithConstraint(type, CompilerDirective.Utf8);
+}
+
 const LUA_TUPLE_REGEX = /^LuaTuple<[^]+>$/;
 
 export function isTupleType(node: ts.TypeNode | ts.Type) {
@@ -562,7 +579,7 @@ export function shouldPushToPrecedingStatement(
  */
 export function isConstantExpression(node: ts.Expression, maxDepth: number = Number.MAX_VALUE): boolean {
 	if (maxDepth >= 0) {
-		if (ts.TypeGuards.isStringLiteral(node)) {
+		if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 			return true;
 		} else if (ts.TypeGuards.isNumericLiteral(node)) {
 			return true;

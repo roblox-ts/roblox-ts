@@ -25,6 +25,8 @@ import {
 	isStringMethodType,
 	isStringType,
 	isTupleType,
+	isDoubleDecrementedIterator,
+	isFirstDecrementedIterableFunction,
 } from "../utility/type";
 import { compileIdentifier } from "./identifier";
 import { checkReserved } from "./security";
@@ -210,8 +212,33 @@ function objectAccessor(
 	return safeLuaIndex(t, name);
 }
 
-function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
-	return `string.sub(${t}, ${key}, ${key})`;
+// function stringAccessor(state: CompilerState, node: ts.Node, t: string, key: number) {
+// 	const id = state.pushPrecedingStatementToNewId(node, `utf8.offset(${t}, ${key})`);
+// 	return `${id} and string.match(${t}, "[%z\\1-\\127\\194-\\244][\\128-\\191]*", ${id})`;
+// }
+
+function stringAccessor(
+	state: CompilerState,
+	node: ts.Node,
+	t: string,
+	key: number,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	let id: string;
+	if (idStack.length === 0) {
+		id = state.pushPrecedingStatementToNewId(node, `string.gmatch(${t}, "[%z\\1-\\127\\194-\\244][\\128-\\191]*")`);
+		idStack.push(id);
+	} else {
+		[id] = idStack;
+	}
+
+	if (isHole) {
+		state.pushPrecedingStatements(node, state.indent + `${id}();\n`);
+		return "";
+	} else {
+		return `${id}()`;
+	}
 }
 
 function setAccessor(state: CompilerState, node: ts.Node, t: string, key: number, idStack: Array<string>) {
@@ -282,6 +309,60 @@ function iterableFunctionAccessor(
 	}
 }
 
+function iterableFunctionTupleAccessor(
+	state: CompilerState,
+	node: ts.Node,
+	t: string,
+	key: number,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	if (isHole) {
+		state.pushPrecedingStatements(node, state.indent + `${t}();\n`);
+		return "";
+	} else {
+		return `{ ${t}() }`;
+	}
+}
+
+function firstDecrementedIterableAccessor(
+	state: CompilerState,
+	node: ts.Node,
+	t: string,
+	key: number,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	if (isHole) {
+		state.pushPrecedingStatements(node, state.indent + `${t}();\n`);
+		return "";
+	} else {
+		const id1 = state.getNewId();
+		const id2 = state.getNewId();
+		state.pushPrecedingStatements(node, state.indent + `local ${id1}, ${id2} = ${t}();\n`);
+		return `{ ${id1} and ${id1} - 1, ${id2} }`;
+	}
+}
+
+function doubleDecrementedIteratorAccessor(
+	state: CompilerState,
+	node: ts.Node,
+	t: string,
+	key: number,
+	idStack: Array<string>,
+	isHole = false,
+) {
+	if (isHole) {
+		state.pushPrecedingStatements(node, state.indent + `${t}();\n`);
+		return "";
+	} else {
+		const id1 = state.getNewId();
+		const id2 = state.getNewId();
+		state.pushPrecedingStatements(node, state.indent + `local ${id1}, ${id2} = ${t}();\n`);
+		return `{ ${id1} and ${id1} - 1, ${id2} and ${id2} - 1 }`;
+	}
+}
+
 function getAccessorForBindingNode(bindingPattern: ts.Node) {
 	return getAccessorForBindingType(bindingPattern, getType(bindingPattern), bindingPattern);
 }
@@ -296,7 +377,11 @@ function getAccessorForBindingType(binding: ts.Node, type: ts.Type | Array<ts.Ty
 	} else if (isMapType(type)) {
 		return mapAccessor;
 	} else if (isIterableFunctionType(type)) {
-		return iterableFunctionAccessor;
+		return isTupleType(type.getTypeArguments()[0]) ? iterableFunctionTupleAccessor : iterableFunctionAccessor;
+	} else if (isFirstDecrementedIterableFunction(type)) {
+		return firstDecrementedIterableAccessor;
+	} else if (isDoubleDecrementedIterator(type)) {
+		return doubleDecrementedIteratorAccessor;
 	} else if (
 		isGeneratorType(type) ||
 		isObjectType(type) ||

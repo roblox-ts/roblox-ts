@@ -7,7 +7,6 @@ import {
 	CompilerDirective,
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
-	sanitizeTemplate,
 	shouldWrapExpression,
 } from ".";
 import { CompilerState } from "../CompilerState";
@@ -137,16 +136,15 @@ export function getReadableExpressionName(
 	}
 }
 
-export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
-	const exp = skipNodesDownwards(node.getExpression());
-	const propertyStr = node.getName();
-	const expType = getType(exp);
-	const propertyAccessExpressionType = getPropertyAccessExpressionType(state, node);
-
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
-	}
-
+/** Errors for bad indexing. Returns a string if it is supposed to be a const enum. */
+function assertIndexType(
+	state: CompilerState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+	valDec: ts.Node | undefined,
+	propertyStr: string,
+	exp: ts.LeftHandSideExpression,
+	expType: ts.Type,
+) {
 	if (
 		getCompilerDirectiveWithLaxConstraint(expType, CompilerDirective.Array, t => t.isTuple()) &&
 		propertyStr === "length"
@@ -156,12 +154,84 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 			node,
 			CompilerErrorType.TupleLength,
 		);
-	} else if (propertyAccessExpressionType !== PropertyCallExpType.None) {
+	} else if (
+		ts.TypeGuards.isPropertyAccessExpression(node) &&
+		getPropertyAccessExpressionType(state, node) !== PropertyCallExpType.None
+	) {
 		throw new CompilerError(
 			`Invalid property access! Cannot index non-member "${propertyStr}" (a roblox-ts macro function)`,
 			node,
 			CompilerErrorType.InvalidMacroIndex,
 		);
+	}
+
+	if (valDec) {
+		if (
+			ts.TypeGuards.isFunctionDeclaration(valDec) ||
+			ts.TypeGuards.isArrowFunction(valDec) ||
+			ts.TypeGuards.isFunctionExpression(valDec) ||
+			ts.TypeGuards.isMethodDeclaration(valDec)
+		) {
+			throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
+		} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
+			if (valDec.isConstEnum()) {
+				const member = valDec.getMembers().find(m => {
+					const name = m.getNameNode();
+					if (ts.TypeGuards.isIdentifier(name)) {
+						return name.getText() === propertyStr;
+					} else if (ts.TypeGuards.isStringLiteral(name)) {
+						return name.getLiteralText() === propertyStr;
+					} else {
+						throw new CompilerError(
+							`Unexpected const enum node: ${name.getKindName()} ${name.getText()}`,
+							name,
+							CompilerErrorType.BadExpression,
+							true,
+						);
+					}
+				});
+
+				if (member === undefined) {
+					throw new CompilerError(
+						`Unable to find const enum ${propertyStr} in ${valDec.getText()}`,
+						valDec,
+						CompilerErrorType.BadExpression,
+						true,
+					);
+				}
+				const value = member.getValue();
+				if (typeof value === "number") {
+					return `${value}`;
+				} else if (typeof value === "string") {
+					return compileExpression(
+						state,
+						member.getFirstChildOrThrow(
+							(child): child is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral =>
+								ts.TypeGuards.isStringLiteral(child) ||
+								ts.TypeGuards.isNoSubstitutionTemplateLiteral(child),
+						),
+					);
+				}
+			}
+		} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
+			if (propertyStr === "prototype") {
+				throw new CompilerError(
+					"Class prototypes are not supported!",
+					node,
+					CompilerErrorType.NoClassPrototype,
+				);
+			}
+		}
+	}
+}
+
+export function compilePropertyAccessExpression(state: CompilerState, node: ts.PropertyAccessExpression) {
+	const exp = skipNodesDownwards(checkNonAny(node.getExpression()));
+	const propertyStr = node.getName();
+	const expType = getType(exp);
+
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
 	}
 
 	const nameNode = node.getNameNode();
@@ -174,36 +244,10 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 		return safeLuaIndex("self", propertyStr);
 	}
 
-	const symbol = expType.getSymbol();
-	if (symbol) {
-		const valDec = symbol.getValueDeclaration();
-		if (valDec) {
-			if (
-				ts.TypeGuards.isFunctionDeclaration(valDec) ||
-				ts.TypeGuards.isArrowFunction(valDec) ||
-				ts.TypeGuards.isFunctionExpression(valDec) ||
-				ts.TypeGuards.isMethodDeclaration(valDec)
-			) {
-				throw new CompilerError("Cannot index a function value!", node, CompilerErrorType.NoFunctionIndex);
-			} else if (ts.TypeGuards.isEnumDeclaration(valDec)) {
-				if (valDec.isConstEnum()) {
-					const value = valDec.getMemberOrThrow(propertyStr).getValue();
-					if (typeof value === "number") {
-						return `${value}`;
-					} else if (typeof value === "string") {
-						return '"' + sanitizeTemplate(value) + '"';
-					}
-				}
-			} else if (ts.TypeGuards.isClassDeclaration(valDec)) {
-				if (propertyStr === "prototype") {
-					throw new CompilerError(
-						"Class prototypes are not supported!",
-						node,
-						CompilerErrorType.NoClassPrototype,
-					);
-				}
-			}
-		}
+	const enumStr = assertIndexType(state, node, expType.getSymbol()?.getValueDeclaration(), propertyStr, exp, expType);
+
+	if (enumStr !== undefined) {
+		return enumStr;
 	}
 
 	let expStr = compileExpression(state, exp);
@@ -264,18 +308,39 @@ export function compileElementAccessDataTypeExpression(
 	node: ts.ElementAccessExpression,
 	expStr = "",
 ) {
-	const expNode = skipNodesDownwards(checkNonAny(node.getExpression()));
+	const exp = skipNodesDownwards(checkNonAny(node.getExpression()));
+	const expType = getType(exp);
 
-	if (expStr === "") {
-		if (ts.TypeGuards.isCallExpression(expNode) && isTupleReturnTypeCall(expNode)) {
-			expStr = compileCallExpression(state, expNode, true);
-			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
-		} else {
-			expStr = compileExpression(state, expNode);
+	const symbol = expType.getSymbol();
+	if (symbol) {
+		const arg = node.getArgumentExpressionOrThrow();
+
+		if (ts.TypeGuards.isStringLiteral(arg) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(arg)) {
+			const enumStr = assertIndexType(
+				state,
+				node,
+				symbol.getValueDeclaration(),
+				arg.getLiteralText(),
+				exp,
+				expType,
+			);
+
+			if (enumStr !== undefined) {
+				return () => enumStr;
+			}
 		}
 	}
 
-	if (shouldWrapExpression(expNode, false)) {
+	if (expStr === "") {
+		if (ts.TypeGuards.isCallExpression(exp) && isTupleReturnTypeCall(exp)) {
+			expStr = compileCallExpression(state, exp, true);
+			return (argExpStr: string) => (argExpStr === "1" ? `(${expStr})` : `(select(${argExpStr}, ${expStr}))`);
+		} else {
+			expStr = compileExpression(state, exp);
+		}
+	}
+
+	if (shouldWrapExpression(exp, false)) {
 		return (argExpStr: string) => `(${expStr})[${argExpStr}]`;
 	} else {
 		return (argExpStr: string) => `${expStr}[${argExpStr}]`;
@@ -286,5 +351,6 @@ export function compileElementAccessExpression(state: CompilerState, node: ts.El
 	if (node.hasQuestionDotToken()) {
 		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
 	}
+
 	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
 }

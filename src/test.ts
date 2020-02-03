@@ -258,6 +258,22 @@ const errorMatrix: ErrorMatrix = {
 		message: "should not allow indexing the length property of tuples",
 		type: CompilerErrorType.TupleLength,
 	},
+	"tupleLength4.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"tupleLength5.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"tupleLength6.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
+	"tupleLength7.spec.ts": {
+		message: "should not allow indexing the length property of tuples",
+		type: CompilerErrorType.InvalidComputedIndex,
+	},
 	"extendedMapClass.spec.ts": {
 		message: "should not allow creating classes which extend Map",
 		type: CompilerErrorType.BadClassExtends,

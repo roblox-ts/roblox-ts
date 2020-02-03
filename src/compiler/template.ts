@@ -4,14 +4,47 @@ import { CompilerState } from "../CompilerState";
 import { skipNodesDownwards } from "../utility/general";
 import { getType, isStringType } from "../utility/type";
 
-export function sanitizeTemplate(str: string) {
-	str = str.replace(/(^|[^\\](?:\\\\)*)"/g, '$1\\"'); // replace " with \"
-	str = str.replace(/(\r?\n|\r)/g, "\\$1"); // prefix new lines with \
-	return str;
+/** Equivalent to Lua's `#(str)`/`str:len()`
+ *
+ * Iterates over each codePoint in a given string and determines how many bytes would be necessary in utf-8 (Lua's string encoding)
+ */
+export function getLuaStringLength(str: string) {
+	let numLuaCharacters = 0;
+
+	for (
+		let i = 0, { length } = str, currentCodePoint: number;
+		i < length;
+		/*	when codePointAt returns a value over 0xffff it is encoded as two surrogate halves in JS
+			e.g. "\u{1F4A9}" is of length 2 and is encoded like so: ["\u{1F4A9}".charCodeAt(0), "\u{1F4A9}".charCodeAt(1)] -> [55357, 56489]
+			`codePointAt` grabs 2 surrogate halves at a time if possible, which means we need to add 2 to the iterator in that case
+			["\u{1F4A9}".codePointAt(0), "\u{1F4A9}".codePointAt(1)] -> [128169, 56489]
+				notice how the second value is the same as the second charCode in the original encoding.
+				that's because at the first position, we can grab the character at `0` and greedily grab the character at `1`
+				hence, the second position was already read and we should skip to charCodeAt(2) (when 2 is fewer than `length`)
+
+			"In UTF-16, code points greater than or equal to 2^16 are encoded using two 16-bit code units."
+			Source: https://en.wikipedia.org/wiki/UTF-16#History
+		*/
+		i += currentCodePoint > 0xffff ? 2 : 1
+	) {
+		currentCodePoint = str.codePointAt(i)!; // we check i < length
+
+		// See: https://en.wikipedia.org/wiki/UTF-8#Description
+		numLuaCharacters +=
+			currentCodePoint > 0x007f ? (currentCodePoint > 0x07ff ? (currentCodePoint > 0xffff ? 4 : 3) : 2) : 1;
+	}
+
+	return numLuaCharacters;
 }
 
-function wrapQuotes(s: string) {
-	return `"${s}"`;
+export function wrapQuotesAndSanitizeTemplate(str: string) {
+	return (
+		'"' +
+		str
+			.replace(/\\*"/g, w => (w.length % 2 ? "\\" + w : w)) // replace " with \"
+			.replace(/(\r?\n|\r)/g, "\\$1") + // prefix new lines with \
+		'"'
+	);
 }
 
 interface TemplateParts {
@@ -27,25 +60,23 @@ function getTemplateParts(
 	if (ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 		return {
 			expressions: [],
-			literals: [wrapQuotes(sanitizeTemplate(node.getText().slice(1, -1)))],
+			literals: [wrapQuotesAndSanitizeTemplate(node.getText().slice(1, -1))],
 		};
 	} else {
 		const literals = [
-			wrapQuotes(
-				sanitizeTemplate(
-					node
-						.getHead()
-						.getText()
-						.slice(1, -2),
-				),
+			wrapQuotesAndSanitizeTemplate(
+				node
+					.getHead()
+					.getText()
+					.slice(1, -2),
 			),
 		];
 
 		for (const span of node.getTemplateSpans()) {
 			const literal = span.getLiteral();
 			literals.push(
-				wrapQuotes(
-					sanitizeTemplate(literal.getText().slice(1, ts.TypeGuards.isTemplateMiddle(literal) ? -2 : -1)),
+				wrapQuotesAndSanitizeTemplate(
+					literal.getText().slice(1, ts.TypeGuards.isTemplateMiddle(literal) ? -2 : -1),
 				),
 			);
 		}
