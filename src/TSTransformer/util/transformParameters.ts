@@ -6,9 +6,10 @@ import ts from "typescript";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.UnaryExpression, {
-			expression: paramId,
-			operator: lua.UnaryOperator.Not,
+		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: paramId,
+			operator: lua.BinaryOperator.EqualEqual,
+			right: lua.create(lua.SyntaxKind.NilLiteral, {}),
 		}),
 		elseBody: lua.list.make(),
 		statements: lua.list.make(
