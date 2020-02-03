@@ -90,6 +90,23 @@ export namespace list {
 		list.tail = node;
 	}
 
+	export function pushList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
+		checkReadonly(list);
+		checkReadonly(other);
+		other.readonly = true;
+
+		if (other.head && other.tail) {
+			if (list.head && list.tail) {
+				list.tail.next = other.head;
+				other.head.prev = list.tail;
+				list.tail = other.tail;
+			} else {
+				list.head = other.head;
+				list.tail = other.tail;
+			}
+		}
+	}
+
 	export function pop<T extends lua.Node>(list: lua.List<T>): T | undefined {
 		checkReadonly(list);
 		if (list.tail) {
