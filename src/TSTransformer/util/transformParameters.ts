@@ -26,27 +26,30 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 	let hasDotDotDot = false;
 
 	for (const tsParam of tsParams) {
-		if (!ts.isIdentifier(tsParam.name)) {
-			throw new Error();
-		}
-		const paramId = transformIdentifier(state, tsParam.name);
-		if (tsParam.dotDotDotToken) {
-			hasDotDotDot = true;
-			lua.list.push(
-				statements,
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: paramId,
-					right: lua.create(lua.SyntaxKind.Array, {
-						members: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
+		state.statement(initializerStatements => {
+			if (!ts.isIdentifier(tsParam.name)) {
+				throw new Error();
+			}
+			const paramId = transformIdentifier(state, tsParam.name);
+			if (tsParam.dotDotDotToken) {
+				hasDotDotDot = true;
+				lua.list.push(
+					initializerStatements,
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: paramId,
+						right: lua.create(lua.SyntaxKind.Array, {
+							members: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
+						}),
 					}),
-				}),
-			);
-		} else {
-			lua.list.push(parameters, paramId);
-		}
-		if (tsParam.initializer) {
-			lua.list.push(statements, transformParamInitializer(state, paramId, tsParam.initializer));
-		}
+				);
+			} else {
+				lua.list.push(parameters, paramId);
+			}
+			if (tsParam.initializer) {
+				lua.list.push(initializerStatements, transformParamInitializer(state, paramId, tsParam.initializer));
+			}
+			lua.list.pushList(statements, initializerStatements);
+		});
 	}
 
 	return {

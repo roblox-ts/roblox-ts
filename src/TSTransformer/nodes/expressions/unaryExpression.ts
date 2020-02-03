@@ -13,7 +13,7 @@ function pushToVarIfNonId(state: TransformState, expression: lua.Expression) {
 		return expression;
 	}
 	const temp = getNewId();
-	state.addPrereqStatement(
+	state.prereq(
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
 			left: temp,
 			right: expression,
@@ -26,14 +26,14 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 	const id = pushToVarIfNonId(state, transformExpression(state, node.operand));
 	const origValue = getNewId();
 
-	state.addPrereqStatement(
+	state.prereq(
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
 			left: origValue,
 			right: id,
 		}),
 	);
 
-	state.addPrereqStatement(
+	state.prereq(
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: id,
 			right: lua.create(lua.SyntaxKind.BinaryExpression, {
@@ -51,7 +51,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
 		const id = pushToVarIfNonId(state, transformExpression(state, node.operand));
-		state.addPrereqStatement(
+		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: id,
 				right: lua.create(lua.SyntaxKind.BinaryExpression, {

@@ -13,8 +13,8 @@ export function transformStatementList(state: TransformState, statements: Readon
 		const transformedStatements = transformStatement(state, statement);
 		state.prereqStatementsStack.pop();
 
-		lua.list.forEach(prereqStatements, s => lua.list.push(result, s));
-		lua.list.forEach(transformedStatements, s => lua.list.push(result, s));
+		lua.list.pushList(result, prereqStatements);
+		lua.list.pushList(result, transformedStatements);
 	}
 
 	return result;
