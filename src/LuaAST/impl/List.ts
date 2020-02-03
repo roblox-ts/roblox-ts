@@ -1,6 +1,8 @@
 import * as lua from "LuaAST";
 import { NoInfer } from "Shared/util/types";
 
+const LIST_MARKER = Symbol("List");
+
 export type ListNode<T extends lua.Node> = {
 	prev?: lua.ListNode<T>;
 	next?: lua.ListNode<T>;
@@ -8,6 +10,7 @@ export type ListNode<T extends lua.Node> = {
 };
 
 export type List<T extends lua.Node> = {
+	[LIST_MARKER]: true;
 	head?: lua.ListNode<T>;
 	tail?: lua.ListNode<T>;
 	readonly: boolean;
@@ -37,16 +40,16 @@ export namespace list {
 				}
 				tail = node;
 			}
-			return { head, tail, readonly: false };
+			return { [LIST_MARKER]: true, head, tail, readonly: false };
 		} else {
-			return { readonly: false };
+			return { [LIST_MARKER]: true, readonly: false };
 		}
 	}
 
 	export function join<T extends lua.Node>(...lists: Array<lua.List<T>>): lua.List<T> {
 		const nonEmptyLists = lists.filter(list => list.head !== undefined && list.tail !== undefined);
 		if (nonEmptyLists.length === 0) {
-			return { readonly: false };
+			return lua.list.make();
 		}
 
 		const newList = lua.list.make<T>();
@@ -68,11 +71,8 @@ export namespace list {
 // type guard
 export namespace list {
 	export function isList(value: unknown): value is lua.List<lua.Node> {
-		return (
-			typeof value === "object" &&
-			value !== null &&
-			(("head" in value && "tail" in value) || Object.keys(value).length === 0)
-		);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return typeof value === "object" && (value as any)[LIST_MARKER] === true;
 	}
 }
 
