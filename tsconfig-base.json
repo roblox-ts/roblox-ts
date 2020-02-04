@@ -11,6 +11,7 @@
 		"esModuleInterop": true,
 		"removeComments": true,
 		"composite": true,
+		"sourceMap": true,
 
 		"baseUrl": "src",
 		"plugins": [{ "transform": "typescript-transform-paths" }],
