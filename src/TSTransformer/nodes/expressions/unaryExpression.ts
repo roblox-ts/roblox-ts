@@ -1,26 +1,9 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/expression";
+import { getNewId } from "TSTransformer/util/getNewId";
+import { pushToVarIfNonId } from "TSTransformer/util/pushToVarIfNonId";
 import ts from "typescript";
-
-let id = 0;
-function getNewId() {
-	return lua.id(`_${id++}`);
-}
-
-function pushToVarIfNonId(state: TransformState, expression: lua.Expression) {
-	if (lua.isIdentifier(expression)) {
-		return expression;
-	}
-	const temp = getNewId();
-	state.prereq(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: temp,
-			right: expression,
-		}),
-	);
-	return temp;
-}
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const id = pushToVarIfNonId(state, transformExpression(state, node.operand));

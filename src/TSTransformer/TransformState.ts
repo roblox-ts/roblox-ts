@@ -1,7 +1,14 @@
 import * as lua from "LuaAST";
+import ts from "typescript";
 
 export class TransformState {
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();
+
+	public readonly typeChecker: ts.TypeChecker;
+
+	constructor(typeChecker: ts.TypeChecker) {
+		this.typeChecker = typeChecker;
+	}
 
 	public prereq(statement: lua.Statement) {
 		const prereqStatements = this.prereqStatementsStack[this.prereqStatementsStack.length - 1];
