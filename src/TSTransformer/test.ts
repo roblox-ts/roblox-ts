@@ -14,7 +14,6 @@ const sourceFile = ts.createSourceFile(
 
 const luaAST = transformSourceFile(new TransformState(), sourceFile);
 
-console.log("write ast.json");
 fs.writeFileSync(path.resolve(__dirname, "..", "..", "ast.json"), lua.visualizeAST(luaAST));
 
 const luaSource = renderAST(luaAST);
