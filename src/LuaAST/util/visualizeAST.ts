@@ -57,6 +57,6 @@ export function visualizeAST(ast: lua.List<lua.Statement>) {
 			}
 			return value;
 		},
-		4,
+		"\t",
 	);
 }
