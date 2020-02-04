@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 import { getNewId } from "TSTransformer/util/getNewId";
-import { pushToVarIfNonId } from "TSTransformer/util/pushToVarIfNonId";
+import { pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {

@@ -2,6 +2,8 @@ import * as lua from "LuaAST";
 import ts from "typescript";
 
 export class TransformState {
+	constructor(public readonly typeChecker: ts.TypeChecker) {}
+
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();
 
 	public prereq(statement: lua.Statement) {
