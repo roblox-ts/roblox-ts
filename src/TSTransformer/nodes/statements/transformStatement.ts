@@ -5,7 +5,7 @@ import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/tra
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
-import { getKindName } from "TSTransformer/util/ast";
+import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
 
 export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
