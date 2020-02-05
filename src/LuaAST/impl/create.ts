@@ -1,7 +1,7 @@
 // helper creation
 import * as lua from "LuaAST";
 
-type AllowedFieldTypes = lua.Node | lua.List<lua.Node> | boolean | number | string;
+type AllowedFieldTypes = lua.Node | lua.List<lua.Node> | boolean | number | string | undefined;
 
 type FilterProps<T, U> = { [K in keyof T]: T[K] extends U ? T[K] : never };
 type FilteredNodeByKind<T extends keyof lua.NodeByKind> = FilterProps<lua.NodeByKind[T], AllowedFieldTypes>;
@@ -31,6 +31,10 @@ export function create<T extends keyof lua.NodeByKind>(
 
 export function tempId() {
 	return lua.create(lua.SyntaxKind.TemporaryIdentifier, { name: "" });
+}
+
+export function nil() {
+	return lua.create(lua.SyntaxKind.NilLiteral, {});
 }
 
 export function number(value: number) {

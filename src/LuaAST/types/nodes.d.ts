@@ -155,7 +155,7 @@ export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDe
 
 export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.VariableDeclaration> {
 	left: lua.Identifier | lua.TemporaryIdentifier;
-	right: lua.Expression;
+	right: lua.Expression | undefined;
 }
 
 export interface ReturnStatement extends lua.Statement<lua.SyntaxKind.ReturnStatement> {
