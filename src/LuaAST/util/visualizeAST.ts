@@ -27,7 +27,7 @@ function visualizeNode(node: lua.Node) {
 	}
 }
 
-export function visualizeAST(ast: lua.List<lua.Statement>) {
+export function visualizeAST(ast: lua.Node | lua.List<lua.Node>) {
 	return JSON.stringify(
 		ast,
 		function(key, value) {
