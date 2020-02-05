@@ -13,14 +13,7 @@ function pushToVar(state: TransformState, expression: lua.Expression) {
 }
 
 export function pushToVarIfComplex(state: TransformState, expression: lua.Expression) {
-	if (
-		lua.isIdentifier(expression) ||
-		lua.isNumberLiteral(expression) ||
-		lua.isStringLiteral(expression) ||
-		lua.isTrueLiteral(expression) ||
-		lua.isFalseLiteral(expression) ||
-		lua.isNilLiteral(expression)
-	) {
+	if (lua.isSimple(expression)) {
 		return expression;
 	}
 	return pushToVar(state, expression);

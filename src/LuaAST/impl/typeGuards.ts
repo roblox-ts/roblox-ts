@@ -1,11 +1,11 @@
 import * as lua from "LuaAST";
 
-function makeGuard<T extends keyof lua.NodeByKind>(kind: T) {
-	return (node: lua.Node): node is lua.NodeByKind[T] => node.kind === kind;
+function makeGuard<T extends keyof lua.NodeByKind>(...kinds: [...Array<T>]) {
+	return (node: lua.Node): node is lua.NodeByKind[T] => kinds.some(v => v === node.kind);
 }
 
 // indexable expressions
-export const isIdentifier = makeGuard(lua.SyntaxKind.Identifier);
+export const isIdentifier = makeGuard(lua.SyntaxKind.Identifier, lua.SyntaxKind.TemporaryIdentifier);
 export const isTemporaryIdentifier = makeGuard(lua.SyntaxKind.TemporaryIdentifier);
 export const isComputedIndexExpression = makeGuard(lua.SyntaxKind.ComputedIndexExpression);
 export const isPropertyAccessExpression = makeGuard(lua.SyntaxKind.PropertyAccessExpression);
@@ -73,3 +73,13 @@ export function isNode(value: unknown): value is lua.Node {
 	}
 	return false;
 }
+
+export const isSimple = makeGuard(
+	lua.SyntaxKind.Identifier,
+	lua.SyntaxKind.TemporaryIdentifier,
+	lua.SyntaxKind.NilLiteral,
+	lua.SyntaxKind.TrueLiteral,
+	lua.SyntaxKind.FalseLiteral,
+	lua.SyntaxKind.NumberLiteral,
+	lua.SyntaxKind.StringLiteral,
+);
