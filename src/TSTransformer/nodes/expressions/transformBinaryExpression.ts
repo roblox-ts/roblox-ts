@@ -4,26 +4,16 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformLogical } from "TSTransformer/util/transformLogical";
 import ts from "typescript";
 
-function getOperator(operatorKind: ts.BinaryOperator) {
-	if (operatorKind === ts.SyntaxKind.PlusToken) {
-		return lua.BinaryOperator.Plus;
-	} else if (operatorKind === ts.SyntaxKind.MinusToken) {
-		return lua.BinaryOperator.Minus;
-	} else if (operatorKind === ts.SyntaxKind.AsteriskToken) {
-		return lua.BinaryOperator.Asterisk;
-	} else if (operatorKind === ts.SyntaxKind.SlashToken) {
-		return lua.BinaryOperator.Slash;
-	} else if (operatorKind === ts.SyntaxKind.AsteriskAsteriskToken) {
-		return lua.BinaryOperator.Caret;
-	} else if (operatorKind === ts.SyntaxKind.PercentToken) {
-		return lua.BinaryOperator.Percent;
-	} else if (operatorKind === ts.SyntaxKind.EqualsEqualsEqualsToken) {
-		return lua.BinaryOperator.EqualEqual;
-	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsEqualsToken) {
-		return lua.BinaryOperator.TildeEqual;
-	}
-	throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
-}
+const SIMPLE_OPERATOR_MAP = new Map([
+	[ts.SyntaxKind.PlusToken, lua.BinaryOperator.Plus],
+	[ts.SyntaxKind.MinusToken, lua.BinaryOperator.Minus],
+	[ts.SyntaxKind.AsteriskToken, lua.BinaryOperator.Asterisk],
+	[ts.SyntaxKind.SlashToken, lua.BinaryOperator.Slash],
+	[ts.SyntaxKind.AsteriskAsteriskToken, lua.BinaryOperator.Caret],
+	[ts.SyntaxKind.PercentToken, lua.BinaryOperator.Percent],
+	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualEqual],
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEqual],
+]);
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
@@ -36,9 +26,14 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return transformLogical(state, node);
 	}
 
+	const operator = SIMPLE_OPERATOR_MAP.get(operatorKind);
+	if (operator === undefined) {
+		throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
+	}
+
 	return lua.create(lua.SyntaxKind.BinaryExpression, {
 		left: transformExpression(state, node.left),
-		operator: getOperator(operatorKind),
+		operator,
 		right: transformExpression(state, node.right),
 	});
 }
