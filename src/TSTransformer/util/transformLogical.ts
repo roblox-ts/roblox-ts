@@ -63,6 +63,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 		lua.tempId(),
 		(conditionId, exp) =>
 			transformConditional(
+				state,
 				conditionId,
 				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
 			),
@@ -81,6 +82,7 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 				operator: lua.UnaryOperator.Not,
 				expression: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 					expression: transformConditional(
+						state,
 						conditionId,
 						tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
 					),

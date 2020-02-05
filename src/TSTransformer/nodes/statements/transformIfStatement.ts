@@ -26,6 +26,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	let condition = transformExpression(state, node.expression);
 	if (!ts.isBinaryExpression(node.expression)) {
 		condition = transformConditional(
+			state,
 			condition,
 			tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node.expression), state.typeChecker),
 		);

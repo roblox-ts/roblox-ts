@@ -1,5 +1,7 @@
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
+import { TransformState } from "TSTransformer/TransformState";
+import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 
 function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua.BinaryOperator): lua.Expression {
 	if (expressions.length === 1) {
@@ -13,10 +15,18 @@ function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua
 	}
 }
 
-export function transformConditional(exp: lua.Expression, nodeType: tsst.SimpleType) {
+export function transformConditional(state: TransformState, exp: lua.Expression, nodeType: tsst.SimpleType) {
 	const checks = new Array<lua.Expression>();
 
-	if (tsst.isAssignableToValue(nodeType, 0)) {
+	const isAssignableToZero = tsst.isAssignableToValue(nodeType, 0);
+	const isAssignableToNaN = tsst.isAssignableToValue(nodeType, NaN);
+	const isAssignableToEmptyString = tsst.isAssignableToValue(nodeType, "");
+
+	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
+		exp = pushToVarIfComplex(state, exp);
+	}
+
+	if (isAssignableToZero) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
@@ -26,7 +36,7 @@ export function transformConditional(exp: lua.Expression, nodeType: tsst.SimpleT
 		);
 	}
 
-	if (tsst.isAssignableToValue(nodeType, NaN)) {
+	if (isAssignableToNaN) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
@@ -36,7 +46,7 @@ export function transformConditional(exp: lua.Expression, nodeType: tsst.SimpleT
 		);
 	}
 
-	if (tsst.isAssignableToValue(nodeType, "")) {
+	if (isAssignableToEmptyString) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
