@@ -22,15 +22,19 @@ function transformLogicalInner(
 	logicChain: Array<ts.Expression>,
 	index = 0,
 ) {
-	return state.statement(() => {
+	const statements = state.statement(() => {
 		const exp = transformExpression(state, logicChain[index]);
 		if (index === 0) {
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: conditionId,
-					right: exp,
-				}),
-			);
+			if (lua.isTemporaryIdentifier(exp)) {
+				conditionId = exp;
+			} else {
+				state.prereq(
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: conditionId,
+						right: exp,
+					}),
+				);
+			}
 		} else {
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
@@ -40,22 +44,23 @@ function transformLogicalInner(
 			);
 		}
 		if (index < logicChain.length - 1) {
+			const { statements } = transformLogicalInner(state, conditionId, buildCondition, logicChain, index + 1);
 			state.prereq(
 				lua.create(lua.SyntaxKind.IfStatement, {
 					condition: buildCondition(conditionId, logicChain[index]),
-					statements: transformLogicalInner(state, conditionId, buildCondition, logicChain, index + 1),
+					statements,
 					elseBody: lua.list.make(),
 				}),
 			);
 		}
 	});
+	return { statements, conditionId };
 }
 
 function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = lua.tempId();
-	const statements = transformLogicalInner(
+	const { statements, conditionId } = transformLogicalInner(
 		state,
-		conditionId,
+		lua.tempId(),
 		(conditionId, exp) =>
 			transformConditional(
 				conditionId,
@@ -68,10 +73,9 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 }
 
 function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = lua.tempId();
-	const statements = transformLogicalInner(
+	const { statements, conditionId } = transformLogicalInner(
 		state,
-		conditionId,
+		lua.tempId(),
 		(conditionId, exp) =>
 			lua.create(lua.SyntaxKind.UnaryExpression, {
 				operator: lua.UnaryOperator.Not,
@@ -89,10 +93,9 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 }
 
 function transformLogicalNullishCoalescing(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = lua.tempId();
-	const statements = transformLogicalInner(
+	const { statements, conditionId } = transformLogicalInner(
 		state,
-		conditionId,
+		lua.tempId(),
 		conditionId =>
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: conditionId,
