@@ -4,7 +4,7 @@ import { renderAST } from "LuaRenderer";
 import os from "os";
 import path from "path";
 import { TransformState } from "TSTransformer";
-import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
+import { transformSourceFile } from "TSTransformer/nodes/transformSourceFile";
 import ts from "typescript";
 
 const FILE_NAME = "test.ts";
