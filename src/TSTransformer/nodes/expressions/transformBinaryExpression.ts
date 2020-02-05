@@ -1,8 +1,8 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
-import ts from "typescript";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformLogical } from "TSTransformer/util/transformLogical";
+import ts from "typescript";
 
 function getOperator(operatorKind: ts.BinaryOperator) {
 	if (operatorKind === ts.SyntaxKind.PlusToken) {

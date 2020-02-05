@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/identifier";
+import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/util/transformParameters";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "typescript";

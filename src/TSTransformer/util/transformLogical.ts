@@ -1,8 +1,7 @@
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { getNewId } from "TSTransformer/util/getNewId";
 import { transformConditional } from "TSTransformer/util/transformConditional";
 import ts from "typescript";
 

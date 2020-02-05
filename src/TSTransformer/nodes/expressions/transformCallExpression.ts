@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts from "typescript";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 
 function convertToIndexableExpression(expression: lua.Expression) {
 	if (lua.isIndexableExpression(expression)) {

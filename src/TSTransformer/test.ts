@@ -1,11 +1,11 @@
 import fs from "fs";
+import * as lua from "LuaAST";
 import { renderAST } from "LuaRenderer";
+import os from "os";
 import path from "path";
 import { TransformState } from "TSTransformer";
 import { transformSourceFile } from "TSTransformer/nodes/sourceFile";
 import ts from "typescript";
-import * as lua from "LuaAST";
-import os from "os";
 
 const FILE_NAME = "test.ts";
 const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).toString();

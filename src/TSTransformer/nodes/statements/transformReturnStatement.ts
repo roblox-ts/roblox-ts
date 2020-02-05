@@ -1,7 +1,7 @@
-import { TransformState } from "TSTransformer";
-import ts from "typescript";
 import * as lua from "LuaAST";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
+import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import ts from "typescript";
 
 export function transformReturnStatement(state: TransformState, node: ts.ReturnStatement) {
 	const result = lua.list.make<lua.Statement>();

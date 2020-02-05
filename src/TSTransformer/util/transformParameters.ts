@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/identifier";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {

@@ -1,10 +1,10 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformExpressionStatement } from "TSTransformer/nodes/statements/expressionStatement";
-import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/functionDeclaration";
-import { transformIfStatement } from "TSTransformer/nodes/statements/ifStatement";
-import { transformReturnStatement } from "TSTransformer/nodes/statements/returnStatement";
-import { transformVariableStatement } from "TSTransformer/nodes/statements/variableStatement";
+import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
+import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/transformFunctionDeclaration";
+import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
+import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
+import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { getKindName } from "TSTransformer/util/ast";
 import ts from "typescript";
 

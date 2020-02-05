@@ -1,10 +1,5 @@
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
-import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
 import * as tsst from "ts-simple-type";
-import { transformBinaryExpression } from "TSTransformer/nodes/expressions/binaryExpression";
 
 function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua.BinaryOperator): lua.Expression {
 	if (expressions.length === 1) {
