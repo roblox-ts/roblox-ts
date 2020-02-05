@@ -4,6 +4,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/expression"
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 import * as tsst from "ts-simple-type";
+import { transformBinaryExpression } from "TSTransformer/nodes/expressions/binaryExpression";
 
 function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua.BinaryOperator): lua.Expression {
 	if (expressions.length === 1) {
@@ -17,15 +18,13 @@ function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua
 	}
 }
 
-export function transformConditional(state: TransformState, node: ts.Expression) {
-	const id = pushToVarIfComplex(state, transformExpression(state, node));
-	const nodeType = tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node), state.typeChecker);
+export function transformConditional(exp: lua.Expression, nodeType: tsst.SimpleType) {
 	const checks = new Array<lua.Expression>();
 
 	if (tsst.isAssignableToValue(nodeType, 0)) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id,
+				left: exp,
 				operator: lua.BinaryOperator.TildeEqual,
 				right: lua.create(lua.SyntaxKind.NumberLiteral, { value: 0 }),
 			}),
@@ -35,9 +34,9 @@ export function transformConditional(state: TransformState, node: ts.Expression)
 	if (tsst.isAssignableToValue(nodeType, NaN)) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id,
+				left: exp,
 				operator: lua.BinaryOperator.EqualEqual,
-				right: id,
+				right: exp,
 			}),
 		);
 	}
@@ -45,14 +44,14 @@ export function transformConditional(state: TransformState, node: ts.Expression)
 	if (tsst.isAssignableToValue(nodeType, "")) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id,
+				left: exp,
 				operator: lua.BinaryOperator.TildeEqual,
 				right: lua.create(lua.SyntaxKind.StringLiteral, { value: "" }),
 			}),
 		);
 	}
 
-	checks.push(id);
+	checks.push(exp);
 
 	return binaryExpressionChain(checks, lua.BinaryOperator.And);
 }

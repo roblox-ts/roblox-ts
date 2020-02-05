@@ -7,13 +7,15 @@ import ts from "typescript";
 import * as lua from "LuaAST";
 import os from "os";
 
-const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).toString();
 const FILE_NAME = "test.ts";
+const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).toString();
 
 const sourceFile = ts.createSourceFile(FILE_NAME, tsSource, ts.ScriptTarget.ES2017);
 
-function createCompilerHost(): ts.CompilerHost {
-	return {
+const program = ts.createProgram({
+	options: ts.getDefaultCompilerOptions(),
+	rootNames: ["test.ts"],
+	host: {
 		fileExists(fileName) {
 			return fileName === FILE_NAME;
 		},
@@ -30,13 +32,7 @@ function createCompilerHost(): ts.CompilerHost {
 		getCanonicalFileName: fileName => fileName,
 		useCaseSensitiveFileNames: () => true,
 		getNewLine: () => os.EOL,
-	};
-}
-
-const program = ts.createProgram({
-	options: ts.getDefaultCompilerOptions(),
-	rootNames: ["test.ts"],
-	host: createCompilerHost(),
+	},
 });
 
 const luaAST = transformSourceFile(new TransformState(program.getTypeChecker()), sourceFile);

@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 import ts from "typescript";
+import { transformLogical } from "TSTransformer/util/transformLogical";
 
 function getOperator(operatorKind: ts.BinaryOperator) {
 	if (operatorKind === ts.SyntaxKind.PlusToken) {
@@ -22,6 +23,10 @@ function getOperator(operatorKind: ts.BinaryOperator) {
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
+
+	if (operatorKind === ts.SyntaxKind.AmpersandAmpersandToken || operatorKind === ts.SyntaxKind.BarBarToken) {
+		return transformLogical(state, node);
+	}
 
 	return lua.create(lua.SyntaxKind.BinaryExpression, {
 		left: transformExpression(state, node.left),

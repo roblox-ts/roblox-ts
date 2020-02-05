@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
+import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 import { transformStatement } from "TSTransformer/nodes/statements/statement";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformConditional } from "TSTransformer/util/transformConditional";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "typescript";
 
@@ -21,7 +21,7 @@ function transformElseStatement(
 }
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement) {
-	const condition = transformConditional(state, node.expression);
+	const condition = transformExpression(state, node.expression);
 
 	const statements = transformStatementList(
 		state,
