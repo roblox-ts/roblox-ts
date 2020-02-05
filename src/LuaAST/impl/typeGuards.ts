@@ -6,6 +6,7 @@ function makeGuard<T extends keyof lua.NodeByKind>(kind: T) {
 
 // indexable expressions
 export const isIdentifier = makeGuard(lua.SyntaxKind.Identifier);
+export const isTemporaryIdentifier = makeGuard(lua.SyntaxKind.TemporaryIdentifier);
 export const isComputedIndexExpression = makeGuard(lua.SyntaxKind.ComputedIndexExpression);
 export const isPropertyAccessExpression = makeGuard(lua.SyntaxKind.PropertyAccessExpression);
 export const isCallExpression = makeGuard(lua.SyntaxKind.CallExpression);
