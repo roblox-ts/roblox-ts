@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformConditional } from "TSTransformer/util/transformConditional";
+import { wrapConditional } from "TSTransformer/util/wrapConditional";
 import ts from "typescript";
 
 function buildLogicChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
@@ -62,7 +62,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 		state,
 		lua.tempId(),
 		(conditionId, exp) =>
-			transformConditional(
+			wrapConditional(
 				state,
 				conditionId,
 				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
@@ -78,7 +78,7 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 		state,
 		lua.tempId(),
 		(conditionId, exp) => {
-			let expression = transformConditional(
+			let expression = wrapConditional(
 				state,
 				conditionId,
 				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),

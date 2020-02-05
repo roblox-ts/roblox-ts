@@ -15,7 +15,7 @@ function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua
 	}
 }
 
-export function transformConditional(state: TransformState, exp: lua.Expression, nodeType: tsst.SimpleType) {
+export function wrapConditional(state: TransformState, exp: lua.Expression, nodeType: tsst.SimpleType) {
 	const checks = new Array<lua.Expression>();
 
 	const isAssignableToZero = tsst.isAssignableToValue(nodeType, 0);

@@ -3,7 +3,7 @@ import * as tsst from "ts-simple-type";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformConditional } from "TSTransformer/util/transformConditional";
+import { wrapConditional } from "TSTransformer/util/wrapConditional";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "typescript";
 
@@ -23,14 +23,11 @@ function transformElseStatement(
 }
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement) {
-	let condition = transformExpression(state, node.expression);
-	if (!ts.isBinaryExpression(node.expression)) {
-		condition = transformConditional(
-			state,
-			condition,
-			tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node.expression), state.typeChecker),
-		);
-	}
+	const condition = wrapConditional(
+		state,
+		transformExpression(state, node.expression),
+		tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node.expression), state.typeChecker),
+	);
 
 	const statements = transformStatementList(
 		state,
