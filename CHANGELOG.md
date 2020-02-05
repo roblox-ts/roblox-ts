@@ -6,7 +6,10 @@
 	- JSON files that get compiled to .lua will _not_ be copied over as .json
 - Fixed bug where you could access `arguments` and `globalThis` (TS global variables we don't support)
 - --help command now fills full width of terminal
-
+- Added string.startsWith/endsWith
+- Added utf8 library support
+- Made string destructuring grab the proper codepoint
+- Add Object.fromEntries
 - **BREAKING CHANGE** - node_modules no longer copies under `include`
 	- You must now add `node_modules/@rbxts` manually into your rojo default.project.json.
 	- It should sit under your `include` folder.
