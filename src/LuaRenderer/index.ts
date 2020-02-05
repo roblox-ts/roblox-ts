@@ -1,7 +1,4 @@
 import * as lua from "LuaAST";
-import { renderArray } from "LuaRenderer/nodes/expressions/renderArray";
-import { renderBinaryExpression } from "LuaRenderer/nodes/expressions/renderBinaryExpression";
-import { renderFunctionExpression } from "LuaRenderer/nodes/expressions/renderFunctionExpression";
 import { renderCallExpression } from "LuaRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuaRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
 import { renderIdentifier } from "LuaRenderer/nodes/expressions/indexable/renderIdentifier";
@@ -9,6 +6,9 @@ import { renderMethodCallExpression } from "LuaRenderer/nodes/expressions/indexa
 import { renderParenthesizedExpression } from "LuaRenderer/nodes/expressions/indexable/renderParenthesizedExpression";
 import { renderPropertyAccessExpression } from "LuaRenderer/nodes/expressions/indexable/renderPropertyAccessExpression";
 import { renderTemporaryIdentifier } from "LuaRenderer/nodes/expressions/indexable/renderTemporaryIdentifier";
+import { renderArray } from "LuaRenderer/nodes/expressions/renderArray";
+import { renderBinaryExpression } from "LuaRenderer/nodes/expressions/renderBinaryExpression";
+import { renderFunctionExpression } from "LuaRenderer/nodes/expressions/renderFunctionExpression";
 import { renderNumberLiteral, renderStringLiteral } from "LuaRenderer/nodes/expressions/renderLiteral";
 import { renderMap } from "LuaRenderer/nodes/expressions/renderMap";
 import { renderSet } from "LuaRenderer/nodes/expressions/renderSet";
