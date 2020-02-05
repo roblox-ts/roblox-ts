@@ -21,7 +21,7 @@ function endsWithIndexableExpression(node: lua.Statement) {
 		return true;
 	} else if (lua.isVariableDeclaration(node) || lua.isAssignment(node)) {
 		// local a = b or a = b
-		return endsWithIndexableExpressionInner(node.right);
+		return endsWithIndexableExpressionInner(node.right ?? node.left);
 	}
 	return false;
 }
