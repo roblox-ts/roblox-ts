@@ -187,7 +187,7 @@ export class Project {
 			const modulesRojoPath = this.rojoProject.getRbxFromFile(path.join(this.modulesPath, "@rbxts")).path;
 			if (!modulesRojoPath) {
 				throw new ProjectError(
-					"Could not find node_modules in Rojo configuration!",
+					"Could not find node_modules/@rbxts in Rojo configuration!",
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
