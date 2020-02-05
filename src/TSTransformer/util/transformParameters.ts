@@ -34,7 +34,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 			throw new Error();
 		}
 		const paramStatements = lua.list.make<lua.Statement>();
-		const paramId = transformIdentifier(state, tsParam.name);
+		const paramId = transformIdentifier(state, tsParam.name, true);
 		if (tsParam.dotDotDotToken) {
 			hasDotDotDot = true;
 			lua.list.push(

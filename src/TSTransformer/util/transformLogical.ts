@@ -1,10 +1,10 @@
 import * as lua from "LuaAST";
+import * as tsst from "ts-simple-type";
+import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 import { TransformState } from "TSTransformer/TransformState";
 import { getNewId } from "TSTransformer/util/getNewId";
 import { transformConditional } from "TSTransformer/util/transformConditional";
 import ts from "typescript";
-import * as tsst from "ts-simple-type";
-import { transformExpression } from "TSTransformer/nodes/expressions/expression";
 
 function buildLogicChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 	const result = new Array<ts.Expression>();
@@ -19,35 +19,32 @@ function buildLogicChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 function transformLogicalInner(
 	state: TransformState,
 	conditionId: lua.Identifier,
-	invertCondition: boolean,
+	buildCondition: (conditionId: lua.Identifier, exp: ts.Expression) => lua.Expression,
 	logicChain: Array<ts.Expression>,
 	index = 0,
 ) {
 	return state.statement(() => {
 		const exp = transformExpression(state, logicChain[index]);
-		state.prereq(
-			lua.create(index === 0 ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
-				left: conditionId,
-				right: exp,
-			}),
-		);
+		if (index === 0) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: conditionId,
+					right: exp,
+				}),
+			);
+		} else {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: conditionId,
+					right: exp,
+				}),
+			);
+		}
 		if (index < logicChain.length - 1) {
-			let condition: lua.Expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-				expression: transformConditional(
-					conditionId,
-					tsst.toSimpleType(state.typeChecker.getTypeAtLocation(logicChain[index]), state.typeChecker),
-				),
-			});
-			if (invertCondition) {
-				condition = lua.create(lua.SyntaxKind.UnaryExpression, {
-					operator: lua.UnaryOperator.Not,
-					expression: condition,
-				});
-			}
 			state.prereq(
 				lua.create(lua.SyntaxKind.IfStatement, {
-					condition,
-					statements: transformLogicalInner(state, conditionId, invertCondition, logicChain, index + 1),
+					condition: buildCondition(conditionId, logicChain[index]),
+					statements: transformLogicalInner(state, conditionId, buildCondition, logicChain, index + 1),
 					elseBody: lua.list.make(),
 				}),
 			);
@@ -60,7 +57,13 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 	const statements = transformLogicalInner(
 		state,
 		conditionId,
-		false,
+		(conditionId, exp) =>
+			lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+				expression: transformConditional(
+					conditionId,
+					tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
+				),
+			}),
 		buildLogicChain(node, ts.SyntaxKind.AmpersandAmpersandToken),
 	);
 	lua.list.forEach(statements, s => state.prereq(s));
@@ -72,8 +75,34 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 	const statements = transformLogicalInner(
 		state,
 		conditionId,
-		true,
+		(conditionId, exp) =>
+			lua.create(lua.SyntaxKind.UnaryExpression, {
+				operator: lua.UnaryOperator.Not,
+				expression: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+					expression: transformConditional(
+						conditionId,
+						tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
+					),
+				}),
+			}),
 		buildLogicChain(node, ts.SyntaxKind.BarBarToken),
+	);
+	lua.list.forEach(statements, s => state.prereq(s));
+	return conditionId;
+}
+
+function transformLogicalNullishCoalescing(state: TransformState, node: ts.BinaryExpression): lua.Expression {
+	const conditionId = getNewId();
+	const statements = transformLogicalInner(
+		state,
+		conditionId,
+		conditionId =>
+			lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: conditionId,
+				operator: lua.BinaryOperator.EqualEqual,
+				right: lua.create(lua.SyntaxKind.NilLiteral, {}),
+			}),
+		buildLogicChain(node, ts.SyntaxKind.QuestionQuestionToken),
 	);
 	lua.list.forEach(statements, s => state.prereq(s));
 	return conditionId;
@@ -84,6 +113,8 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		return transformLogicalAnd(state, node);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
 		return transformLogicalOr(state, node);
+	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
+		return transformLogicalNullishCoalescing(state, node);
 	}
 	throw new Error("???");
 }

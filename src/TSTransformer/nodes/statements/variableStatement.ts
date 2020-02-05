@@ -12,7 +12,7 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		lua.list.push(
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: transformIdentifier(state, node.name),
+				left: transformIdentifier(state, node.name, true),
 				right:
 					node.initializer !== undefined
 						? transformExpression(state, node.initializer)

@@ -14,7 +14,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	return lua.list.make(
 		lua.create(lua.SyntaxKind.FunctionDeclaration, {
-			name: transformIdentifier(state, node.name),
+			name: transformIdentifier(state, node.name, true),
 			hasDotDotDot,
 			parameters,
 			statements: lua.list.join(statements, transformStatementList(state, node.body?.statements ?? [])),
