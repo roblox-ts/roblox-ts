@@ -65,7 +65,7 @@ function TS.getModule(object, moduleName)
 	end
 
 	-- ensure modules have fully replicated
-	if not __LEMUR__ and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
+	if not __LEMUR__ and RunService:IsRunning() and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
