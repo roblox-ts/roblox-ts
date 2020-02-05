@@ -5,8 +5,11 @@ import { transformCallExpression } from "TSTransformer/nodes/expressions/transfo
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformNumericLiteral, transformStringLiteral } from "TSTransformer/nodes/expressions/transformLiteral";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
-import { transformPostfixUnaryExpression, transformPrefixUnaryExpression } from "TSTransformer/nodes/expressions/transformUnaryExpression";
-import { getKindName } from "TSTransformer/util/ast";
+import {
+	transformPostfixUnaryExpression,
+	transformPrefixUnaryExpression,
+} from "TSTransformer/nodes/expressions/transformUnaryExpression";
+import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
