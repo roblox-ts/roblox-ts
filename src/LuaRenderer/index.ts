@@ -45,8 +45,8 @@ const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 
 	// expressions
 	[lua.SyntaxKind.NilLiteral]: () => "nil",
-	[lua.SyntaxKind.FalseLiteral]: () => "true",
-	[lua.SyntaxKind.TrueLiteral]: () => "false",
+	[lua.SyntaxKind.FalseLiteral]: () => "false",
+	[lua.SyntaxKind.TrueLiteral]: () => "true",
 	[lua.SyntaxKind.NumberLiteral]: renderNumberLiteral,
 	[lua.SyntaxKind.StringLiteral]: renderStringLiteral,
 	[lua.SyntaxKind.VarArgsLiteral]: () => "...",
