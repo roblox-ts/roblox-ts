@@ -2,11 +2,12 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
+import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import {
+	transformBooleanLiteral,
 	transformNumericLiteral,
 	transformStringLiteral,
-	transformBooleanLiteral,
 } from "TSTransformer/nodes/expressions/transformLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
@@ -33,6 +34,7 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	else if (ts.isBinaryExpression(node)) return transformBinaryExpression(state, node);
 	else if (ts.isObjectLiteralExpression(node)) return transformObjectLiteralExpression(state, node);
 	else if (ts.isObjectLiteralExpression(node)) return transformObjectLiteralExpression(state, node);
+	else if (ts.isConditionalExpression(node)) return transformConditionalExpression(state, node);
 	else if (isBooleanLiteral(node)) return transformBooleanLiteral(state, node);
 
 	throw new Error(`Unknown expression: ${getKindName(node)}`);
