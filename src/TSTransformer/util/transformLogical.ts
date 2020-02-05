@@ -32,16 +32,16 @@ function transformLogicalInner(
 			}),
 		);
 		if (index < logicChain.length - 1) {
-			let condition = transformConditional(
-				conditionId,
-				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(logicChain[index]), state.typeChecker),
-			);
+			let condition: lua.Expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+				expression: transformConditional(
+					conditionId,
+					tsst.toSimpleType(state.typeChecker.getTypeAtLocation(logicChain[index]), state.typeChecker),
+				),
+			});
 			if (invertCondition) {
 				condition = lua.create(lua.SyntaxKind.UnaryExpression, {
 					operator: lua.UnaryOperator.Not,
-					expression: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-						expression: condition,
-					}),
+					expression: condition,
 				});
 			}
 			state.prereq(
