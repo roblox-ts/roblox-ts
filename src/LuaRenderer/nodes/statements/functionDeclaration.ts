@@ -10,7 +10,7 @@ export function renderFunctionDeclaration(state: RenderState, node: lua.Function
 
 	let result = "";
 	result += state.indent + `${hasLocal ? "local " : ""}function ${nameStr}(${paramStr})\n`;
-	result += state.block(() => renderStatements(state, node.statements));
+	result += state.scope(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
 	return result;
 }

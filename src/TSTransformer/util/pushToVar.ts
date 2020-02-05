@@ -1,9 +1,8 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { getNewId } from "TSTransformer/util/getNewId";
 
 function pushToVar(state: TransformState, expression: lua.Expression) {
-	const temp = getNewId();
+	const temp = lua.tempId();
 	state.prereq(
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
 			left: temp,

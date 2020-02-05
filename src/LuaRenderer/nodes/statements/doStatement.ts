@@ -5,7 +5,7 @@ import { renderStatements } from "LuaRenderer/util/statements";
 export function renderDoStatement(state: RenderState, node: lua.DoStatement) {
 	let result = "";
 	result += state.indent + "do\n";
-	result += state.block(() => renderStatements(state, node.statements));
+	result += state.scope(() => renderStatements(state, node.statements));
 	result += state.indent + "end\n";
 	return result;
 }

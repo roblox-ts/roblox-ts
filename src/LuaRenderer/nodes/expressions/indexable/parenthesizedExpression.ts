@@ -7,8 +7,5 @@ export function renderParenthesizedExpression(state: RenderState, node: lua.Pare
 	while (lua.isParenthesizedExpression(expression)) {
 		expression = expression.expression;
 	}
-	if (lua.isParenthesizedExpression(node.expression) || lua.isIdentifier(node.expression)) {
-		return render(state, node.expression);
-	}
 	return `(${render(state, node.expression)})`;
 }

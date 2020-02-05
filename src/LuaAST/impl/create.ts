@@ -29,6 +29,10 @@ export function create<T extends keyof lua.NodeByKind>(
 	return node;
 }
 
+export function tempId() {
+	return lua.create(lua.SyntaxKind.TemporaryIdentifier, { name: "" });
+}
+
 export function number(value: number) {
 	return lua.create(lua.SyntaxKind.NumberLiteral, { value });
 }

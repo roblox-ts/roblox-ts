@@ -8,7 +8,7 @@ export function renderForStatement(state: RenderState, node: lua.ForStatement) {
 
 	let result = "";
 	result += state.indent + `for ${idsStr} in ${expStr} do\n`;
-	result += state.block(() => renderStatements(state, node.statements));
+	result += state.scope(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
 	return result;
 }

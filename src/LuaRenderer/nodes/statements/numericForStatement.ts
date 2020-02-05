@@ -14,7 +14,7 @@ export function renderNumericForStatement(state: RenderState, node: lua.NumericF
 
 	let result = "";
 	result += state.indent + `for ${idStr} = ${predicateStr} do\n`;
-	result += state.block(() => renderStatements(state, node.statements));
+	result += state.scope(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
 	return result;
 }

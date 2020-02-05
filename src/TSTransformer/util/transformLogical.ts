@@ -18,8 +18,8 @@ function buildLogicChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 
 function transformLogicalInner(
 	state: TransformState,
-	conditionId: lua.Identifier,
-	buildCondition: (conditionId: lua.Identifier, exp: ts.Expression) => lua.Expression,
+	conditionId: lua.TemporaryIdentifier,
+	buildCondition: (conditionId: lua.TemporaryIdentifier, exp: ts.Expression) => lua.Expression,
 	logicChain: Array<ts.Expression>,
 	index = 0,
 ) {
@@ -53,17 +53,15 @@ function transformLogicalInner(
 }
 
 function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = getNewId();
+	const conditionId = lua.tempId();
 	const statements = transformLogicalInner(
 		state,
 		conditionId,
 		(conditionId, exp) =>
-			lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-				expression: transformConditional(
-					conditionId,
-					tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
-				),
-			}),
+			transformConditional(
+				conditionId,
+				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
+			),
 		buildLogicChain(node, ts.SyntaxKind.AmpersandAmpersandToken),
 	);
 	lua.list.forEach(statements, s => state.prereq(s));
@@ -71,7 +69,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 }
 
 function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = getNewId();
+	const conditionId = lua.tempId();
 	const statements = transformLogicalInner(
 		state,
 		conditionId,
@@ -92,7 +90,7 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 }
 
 function transformLogicalNullishCoalescing(state: TransformState, node: ts.BinaryExpression): lua.Expression {
-	const conditionId = getNewId();
+	const conditionId = lua.tempId();
 	const statements = transformLogicalInner(
 		state,
 		conditionId,
