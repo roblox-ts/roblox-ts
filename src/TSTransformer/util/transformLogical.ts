@@ -77,17 +77,24 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 	const { statements, conditionId } = transformLogicalInner(
 		state,
 		lua.tempId(),
-		(conditionId, exp) =>
-			lua.create(lua.SyntaxKind.UnaryExpression, {
+		(conditionId, exp) => {
+			let expression = transformConditional(
+				state,
+				conditionId,
+				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
+			);
+
+			if (!lua.isSimple(expression)) {
+				expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+					expression,
+				});
+			}
+
+			return lua.create(lua.SyntaxKind.UnaryExpression, {
 				operator: lua.UnaryOperator.Not,
-				expression: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-					expression: transformConditional(
-						state,
-						conditionId,
-						tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
-					),
-				}),
-			}),
+				expression,
+			});
+		},
 		buildLogicChain(node, ts.SyntaxKind.BarBarToken),
 	);
 	lua.list.forEach(statements, s => state.prereq(s));
