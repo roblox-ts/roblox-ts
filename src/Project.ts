@@ -183,6 +183,15 @@ export class Project {
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
+
+			const modulesRojoPath = this.rojoProject.getRbxFromFile(path.join(this.modulesPath, "@rbxts")).path;
+			if (!modulesRojoPath) {
+				throw new ProjectError(
+					"Could not find node_modules in Rojo configuration!",
+					ProjectErrorType.BadRojoInclude,
+				);
+			}
+
 			let type: ProjectType.Game | ProjectType.Model;
 			if (this.rojoProject.isGame()) {
 				type = ProjectType.Game;
