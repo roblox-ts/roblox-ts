@@ -188,7 +188,7 @@ export class Project {
 			if (!modulesRojoPath) {
 				throw new ProjectError(
 					"Could not find node_modules/@rbxts in Rojo configuration! See https://github.com/roblox-ts/roblox-ts/releases/tag/0.3.1",
-					ProjectErrorType.BadRojoInclude
+					ProjectErrorType.BadRojoInclude,
 				);
 			}
 
