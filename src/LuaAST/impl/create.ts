@@ -152,18 +152,6 @@ export function comment(text: string) {
 	return lua.create(lua.SyntaxKind.Comment, { text });
 }
 
-export function primitive(value: undefined | boolean | number | string) {
-	if (typeof value === "undefined") {
-		return lua.create(lua.SyntaxKind.NilLiteral, {});
-	} else if (typeof value === "boolean") {
-		return lua.create(value ? lua.SyntaxKind.TrueLiteral : lua.SyntaxKind.FalseLiteral, {});
-	} else if (typeof value === "number") {
-		return lua.create(lua.SyntaxKind.NumberLiteral, { value });
-	} else {
-		return lua.create(lua.SyntaxKind.StringLiteral, { value });
-	}
-}
-
 export function table() {
 	return lua.create(lua.SyntaxKind.Array, { members: lua.list.make<lua.Expression>() });
 }

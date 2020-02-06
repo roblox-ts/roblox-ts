@@ -4,12 +4,9 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import ts from "typescript";
 
 export function transformReturnStatement(state: TransformState, node: ts.ReturnStatement) {
-	const result = lua.list.make<lua.Statement>();
-
-	const expression = node.expression
-		? transformExpression(state, node.expression)
-		: lua.create(lua.SyntaxKind.NilLiteral, {});
-	lua.list.push(result, lua.create(lua.SyntaxKind.ReturnStatement, { expression }));
-
-	return result;
+	return lua.list.make(
+		lua.create(lua.SyntaxKind.ReturnStatement, {
+			expression: node.expression ? transformExpression(state, node.expression) : lua.nil(),
+		}),
+	);
 }

@@ -10,7 +10,7 @@ export function transformIdentifier(
 ): lua.Identifier | lua.NilLiteral;
 export function transformIdentifier(state: TransformState, node: ts.Identifier): lua.Identifier | lua.NilLiteral {
 	if (node.text === "undefined") {
-		return lua.create(lua.SyntaxKind.NilLiteral, {});
+		return lua.nil();
 	}
 	return lua.create(lua.SyntaxKind.Identifier, {
 		name: node.text,

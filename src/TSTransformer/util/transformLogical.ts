@@ -109,7 +109,7 @@ function transformLogicalNullishCoalescing(state: TransformState, node: ts.Binar
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: conditionId,
 				operator: lua.BinaryOperator.EqualEqual,
-				right: lua.create(lua.SyntaxKind.NilLiteral, {}),
+				right: lua.nil(),
 			}),
 		buildLogicChain(node, ts.SyntaxKind.QuestionQuestionToken),
 	);
