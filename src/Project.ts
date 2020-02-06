@@ -187,8 +187,8 @@ export class Project {
 			const modulesRojoPath = this.rojoProject.getRbxFromFile(path.join(this.modulesPath, "@rbxts")).path;
 			if (!modulesRojoPath) {
 				throw new ProjectError(
-					"Could not find node_modules/@rbxts in Rojo configuration!",
-					ProjectErrorType.BadRojoInclude,
+					"Could not find node_modules/@rbxts in Rojo configuration! See https://github.com/roblox-ts/roblox-ts/releases/tag/0.3.1",
+					ProjectErrorType.BadRojoInclude
 				);
 			}
 
