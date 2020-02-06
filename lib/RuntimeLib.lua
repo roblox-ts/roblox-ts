@@ -220,21 +220,19 @@ local function package(...)
 	return select("#", ...), {...}
 end
 
-function TS.await(promise)
-	if not Promise.is(promise) then
-		return promise
-	end
-
-	local size, result = package(promise:await())
-	local ok = table.remove(result, 1)
+local function assertAwait(ok, ...)
 	if ok then
-		if size > 2 then
-			return result
-		else
-			return result[1]
-		end
+		return ...
 	else
-		error(ok == nil and "The awaited Promise was cancelled" or (size > 2 and result[1] or result), 2)
+		error(ok == nil and "The awaited Promise was cancelled" or (...), 2)
+	end
+end
+
+function TS.await(promise)
+	if Promise.is(promise) then
+		return assertAwait(promise:await())
+	else
+		return promise
 	end
 end
 
