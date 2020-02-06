@@ -35,11 +35,7 @@ export class Project {
 
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
-		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(
-			tsConfigPath,
-			ts.getDefaultCompilerOptions(),
-			createParseConfigFileHost(),
-		);
+		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
 
 		if (parsedCommandLine === undefined) {
 			throw new ProjectError("Unable to load TS program!");
@@ -71,7 +67,7 @@ export class Project {
 			this.rootDirs.add(path.resolve(path.dirname(this.tsConfigPath)));
 		}
 
-		this.outDir = compilerOptions.outDir!;
+		this.outDir = compilerOptions.outDir;
 	}
 
 	private getRootDirForFilePath(filePath: string) {
