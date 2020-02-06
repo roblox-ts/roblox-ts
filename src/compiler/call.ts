@@ -853,6 +853,10 @@ export function compileCallExpression(
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
+
 	const exp = skipNodesDownwards(checkNonAny(checkNonImportExpression(node.getExpression())));
 	let result: string;
 
