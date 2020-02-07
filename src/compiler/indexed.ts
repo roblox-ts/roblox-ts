@@ -231,7 +231,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const expType = getType(exp);
 
 	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
 	}
 
 	const nameNode = node.getNameNode();
@@ -349,7 +349,7 @@ export function compileElementAccessDataTypeExpression(
 
 export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
 	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
 	}
 
 	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
