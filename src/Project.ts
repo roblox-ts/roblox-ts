@@ -540,6 +540,9 @@ export class Project {
 			overwrite: true,
 			filter: src => {
 				const ext = path.extname(src);
+				if (fs.lstatSync(src).isSymbolicLink()) {
+					return false;
+				}
 				if (ext === TS_EXT) {
 					const basename = path.basename(src, ext);
 					const subext = path.extname(basename);
