@@ -854,7 +854,7 @@ export function compileCallExpression(
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
 	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
 	}
 
 	const exp = skipNodesDownwards(checkNonAny(checkNonImportExpression(node.getExpression())));
@@ -1086,6 +1086,9 @@ export function compileElementAccessCallExpression(
 	node: ts.CallExpression,
 	expression: ts.ElementAccessExpression,
 ) {
+	if (expression.hasQuestionDotToken()) {
+		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
+	}
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
@@ -1121,8 +1124,8 @@ export function compilePropertyCallExpression(
 ) {
 	checkApiAccess(state, expression.getNameNode());
 
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	if (expression.hasQuestionDotToken()) {
+		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
 	}
 
 	let property = expression.getName();
