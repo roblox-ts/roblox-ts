@@ -1086,6 +1086,9 @@ export function compileElementAccessCallExpression(
 	node: ts.CallExpression,
 	expression: ts.ElementAccessExpression,
 ) {
+	if (expression.hasQuestionDotToken()) {
+		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
+	}
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
@@ -1121,7 +1124,7 @@ export function compilePropertyCallExpression(
 ) {
 	checkApiAccess(state, expression.getNameNode());
 
-	if (node.hasQuestionDotToken()) {
+	if (expression.hasQuestionDotToken()) {
 		throw new CompilerError("TS 3.7 features are not supported yet!", node, CompilerErrorType.TS37);
 	}
 
