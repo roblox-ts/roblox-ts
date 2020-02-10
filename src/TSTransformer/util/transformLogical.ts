@@ -20,22 +20,21 @@ function splitBinaryChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 
 function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 	const chain = splitBinaryChain(node, ts.SyntaxKind.AmpersandAmpersandToken).map((original, index, array) => {
-		const nodeType = state.typeChecker.getTypeAtLocation(original);
+		const type = state.typeChecker.getTypeAtLocation(original);
 		let expression!: lua.Expression;
 		const statements = state.statement(() => (expression = transformExpression(state, original)));
-		const willWrap = index < array.length - 1 && willWrapConditional(state, nodeType);
-		const canInline = lua.list.isEmpty(statements) && !willWrap;
-		const type = state.typeChecker.getTypeAtLocation(original);
-		return { type, expression, statements, canInline };
+		const willWrap = index < array.length - 1 && willWrapConditional(state, type);
+		const inline = lua.list.isEmpty(statements) && !willWrap;
+		return { type, expression, statements, inline };
 	});
 
 	// merge inline expressions
 	for (let i = 0; i < chain.length; i++) {
 		const info = chain[i];
-		if (info.canInline) {
+		if (info.inline) {
 			const exps = [info.expression];
 			const j = i + 1;
-			while (j < chain.length && chain[j].canInline) {
+			while (j < chain.length && chain[j].inline) {
 				exps.push(chain[j].expression);
 				chain.splice(j, 1);
 			}
@@ -44,7 +43,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 	}
 
 	// single inline, no temp variable needed
-	if (chain.length === 1 && chain[0].canInline) {
+	if (chain.length === 1 && chain[0].inline) {
 		return chain[0].expression;
 	}
 
