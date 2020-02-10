@@ -13,7 +13,15 @@ const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).t
 const sourceFile = ts.createSourceFile(FILE_NAME, tsSource, ts.ScriptTarget.ES2017);
 
 const program = ts.createProgram({
-	options: ts.getDefaultCompilerOptions(),
+	options: {
+		downlevelIteration: true,
+		module: ts.ModuleKind.CommonJS,
+		noLib: true,
+		strict: true,
+		target: ts.ScriptTarget.ES2015,
+		allowSyntheticDefaultImports: true,
+		isolatedModules: true,
+	},
 	rootNames: ["test.ts"],
 	host: {
 		fileExists(fileName) {
