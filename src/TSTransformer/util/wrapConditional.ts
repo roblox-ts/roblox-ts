@@ -21,6 +21,8 @@ export function wrapConditional(state: TransformState, exp: lua.Expression, node
 	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
 	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
 
+	console.log(tsst.toTypeString(simpleType), isAssignableToZero, isAssignableToNaN, isAssignableToEmptyString);
+
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = pushToVarIfComplex(state, exp);
 	}
@@ -35,7 +37,8 @@ export function wrapConditional(state: TransformState, exp: lua.Expression, node
 		);
 	}
 
-	if (isAssignableToNaN) {
+	// workaround for https://github.com/microsoft/TypeScript/issues/32778
+	if (isAssignableToZero || isAssignableToNaN) {
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
