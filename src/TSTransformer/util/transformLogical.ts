@@ -1,16 +1,14 @@
 import * as lua from "LuaAST";
-import * as tsst from "ts-simple-type";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { wrapConditional, willWrapConditional } from "TSTransformer/util/wrapConditional";
-import ts from "typescript";
-import { render, RenderState, renderAST } from "LuaRenderer";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
+import { willWrapConditional, wrapConditional } from "TSTransformer/util/wrapConditional";
+import ts from "typescript";
 
 /**
  * Splits `node` recursively by binary operator `operatorKind` into an Array<ts.Expression>
  */
-function splitChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
+function splitBinaryChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 	const result = new Array<ts.Expression>();
 	while (ts.isBinaryExpression(node) && node.operatorToken.kind === operatorKind) {
 		result.unshift(node.right);
@@ -20,17 +18,8 @@ function splitChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 	return result;
 }
 
-function findLastIndex<T>(array: Array<T>, callback: (value: T) => boolean) {
-	for (let i = array.length - 1; i >= 0; i--) {
-		if (callback(array[i])) {
-			return i;
-		}
-	}
-	return -1;
-}
-
 function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
-	const chain = splitChain(node, ts.SyntaxKind.AmpersandAmpersandToken).map((original, index, array) => {
+	const chain = splitBinaryChain(node, ts.SyntaxKind.AmpersandAmpersandToken).map((original, index, array) => {
 		const nodeType = state.typeChecker.getTypeAtLocation(original);
 		let expression!: lua.Expression;
 		const statements = state.statement(() => (expression = transformExpression(state, original)));
@@ -40,26 +29,30 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 		return { type, expression, statements, canInline };
 	});
 
-	const lastIndex = findLastIndex(chain, v => !v.canInline);
+	// merge inline expressions
+	for (let i = 0; i < chain.length; i++) {
+		const info = chain[i];
+		if (info.canInline) {
+			const exps = [info.expression];
+			const j = i + 1;
+			while (j < chain.length && chain[j].canInline) {
+				exps.push(chain[j].expression);
+				chain.splice(j, 1);
+			}
+			info.expression = binaryExpressionChain(exps, lua.BinaryOperator.And);
+		}
+	}
 
-	const prereqExps = chain.slice(0, lastIndex + 1);
-	const inlineExps = chain.slice(lastIndex + 1);
-
-	const finalChain = binaryExpressionChain(
-		inlineExps.map(v => v.expression),
-		lua.BinaryOperator.And,
-	);
-
-	if (prereqExps.length === 0) {
-		return finalChain;
+	// single inline, no temp variable needed
+	if (chain.length === 1 && chain[0].canInline) {
+		return chain[0].expression;
 	}
 
 	const conditionId = lua.tempId();
 
 	function buildPrereqs(index = 0) {
 		const expInfo = chain[index];
-		if (index <= lastIndex) {
-			const condition = wrapConditional(state, conditionId, expInfo.type);
+		if (index < chain.length - 1) {
 			state.prereqList(expInfo.statements);
 			state.prereq(
 				lua.create(index === 0 ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
@@ -69,7 +62,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 			);
 			state.prereq(
 				lua.create(lua.SyntaxKind.IfStatement, {
-					condition,
+					condition: wrapConditional(state, conditionId, expInfo.type),
 					statements: state.statement(() => buildPrereqs(index + 1)),
 					elseBody: lua.list.make(),
 				}),
@@ -78,7 +71,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: conditionId,
-					right: finalChain,
+					right: expInfo.expression,
 				}),
 			);
 		}
