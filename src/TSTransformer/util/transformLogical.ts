@@ -34,23 +34,58 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression) {
 		const nodeType = state.typeChecker.getTypeAtLocation(original);
 		let expression!: lua.Expression;
 		const statements = state.statement(() => (expression = transformExpression(state, original)));
-		let willWrap = false;
-		if (index < array.length - 1) {
-			willWrap = willWrapConditional(state, nodeType);
-		}
+		const willWrap = index < array.length - 1 && willWrapConditional(state, nodeType);
 		const canInline = lua.list.isEmpty(statements) && !willWrap;
-		return { original, expression, statements, canInline };
+		const type = state.typeChecker.getTypeAtLocation(original);
+		return { type, expression, statements, canInline };
 	});
 
 	const lastIndex = findLastIndex(chain, v => !v.canInline);
 
-	const expsWithPrereq = chain.slice(0, lastIndex + 1);
-	const expsWithoutPrereq = chain.slice(lastIndex + 1);
+	const prereqExps = chain.slice(0, lastIndex + 1);
+	const inlineExps = chain.slice(lastIndex + 1);
 
-	console.log(expsWithPrereq.map(v => render(new RenderState(), v.expression)));
-	console.log(expsWithoutPrereq.map(v => render(new RenderState(), v.expression)));
+	const finalChain = binaryExpressionChain(
+		inlineExps.map(v => v.expression),
+		lua.BinaryOperator.And,
+	);
 
-	return lua.tempId();
+	if (prereqExps.length === 0) {
+		return finalChain;
+	}
+
+	const conditionId = lua.tempId();
+
+	function buildPrereqs(index = 0) {
+		const expInfo = chain[index];
+		if (index <= lastIndex) {
+			const condition = wrapConditional(state, conditionId, expInfo.type);
+			state.prereqList(expInfo.statements);
+			state.prereq(
+				lua.create(index === 0 ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
+					left: conditionId,
+					right: expInfo.expression,
+				}),
+			);
+			state.prereq(
+				lua.create(lua.SyntaxKind.IfStatement, {
+					condition,
+					statements: state.statement(() => buildPrereqs(index + 1)),
+					elseBody: lua.list.make(),
+				}),
+			);
+		} else {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: conditionId,
+					right: finalChain,
+				}),
+			);
+		}
+	}
+	buildPrereqs();
+
+	return conditionId;
 }
 
 export function transformLogical(state: TransformState, node: ts.BinaryExpression): lua.Expression {

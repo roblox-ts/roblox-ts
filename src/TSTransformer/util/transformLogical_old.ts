@@ -61,12 +61,7 @@ function transformLogicalAnd(state: TransformState, node: ts.BinaryExpression): 
 	const { statements, conditionId } = transformLogicalInner(
 		state,
 		lua.tempId(),
-		(conditionId, exp) =>
-			wrapConditional(
-				state,
-				conditionId,
-				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
-			),
+		(conditionId, exp) => wrapConditional(state, conditionId, state.typeChecker.getTypeAtLocation(exp)),
 		buildLogicChain(node, ts.SyntaxKind.AmpersandAmpersandToken),
 	);
 	lua.list.forEach(statements, s => state.prereq(s));
@@ -78,11 +73,7 @@ function transformLogicalOr(state: TransformState, node: ts.BinaryExpression): l
 		state,
 		lua.tempId(),
 		(conditionId, exp) => {
-			let expression = wrapConditional(
-				state,
-				conditionId,
-				tsst.toSimpleType(state.typeChecker.getTypeAtLocation(exp), state.typeChecker),
-			);
+			let expression = wrapConditional(state, conditionId, state.typeChecker.getTypeAtLocation(exp));
 
 			if (!lua.isSimple(expression)) {
 				expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
