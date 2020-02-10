@@ -21,8 +21,6 @@ export function wrapConditional(state: TransformState, exp: lua.Expression, node
 	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
 	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
 
-	console.log(tsst.toTypeString(simpleType), isAssignableToZero, isAssignableToNaN, isAssignableToEmptyString);
-
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = pushToVarIfComplex(state, exp);
 	}
