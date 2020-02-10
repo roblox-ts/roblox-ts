@@ -18,7 +18,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const condition = wrapConditional(
 		state,
 		transformExpression(state, node.condition),
-		tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node.condition), state.typeChecker),
+		state.typeChecker.getTypeAtLocation(node.condition),
 	);
 
 	const statements = state.statement(() => {

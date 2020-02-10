@@ -147,6 +147,10 @@ export namespace list {
 		list.head = node;
 	}
 
+	export function isEmpty<T extends lua.Node>(list: lua.List<T>) {
+		return list.head === undefined;
+	}
+
 	export function forEach<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
 		let node = list.head;
 		while (node) {

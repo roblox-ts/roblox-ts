@@ -7,11 +7,11 @@ export class TransformState {
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();
 
 	public prereq(statement: lua.Statement) {
-		const prereqStatements = this.prereqStatementsStack[this.prereqStatementsStack.length - 1];
-		if (prereqStatements === undefined) {
-			throw "???";
-		}
-		lua.list.push(prereqStatements, statement);
+		lua.list.push(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statement);
+	}
+
+	public prereqList(statements: lua.List<lua.Statement>) {
+		lua.list.pushList(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statements);
 	}
 
 	public pushPrereqStatementsStack() {

@@ -26,7 +26,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	const condition = wrapConditional(
 		state,
 		transformExpression(state, node.expression),
-		tsst.toSimpleType(state.typeChecker.getTypeAtLocation(node.expression), state.typeChecker),
+		state.typeChecker.getTypeAtLocation(node.expression),
 	);
 
 	const statements = transformStatementList(

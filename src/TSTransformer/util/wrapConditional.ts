@@ -1,26 +1,25 @@
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer/TransformState";
+import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
+import ts from "typescript";
 
-function binaryExpressionChain(expressions: Array<lua.Expression>, operator: lua.BinaryOperator): lua.Expression {
-	if (expressions.length === 1) {
-		return expressions[0];
-	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: expressions[0],
-			operator,
-			right: binaryExpressionChain(expressions.slice(1), operator),
-		});
-	}
+export function willWrapConditional(state: TransformState, nodeType: ts.Type) {
+	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
+	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
+	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
+	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
+	return isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString;
 }
 
-export function wrapConditional(state: TransformState, exp: lua.Expression, nodeType: tsst.SimpleType) {
+export function wrapConditional(state: TransformState, exp: lua.Expression, nodeType: ts.Type) {
 	const checks = new Array<lua.Expression>();
 
-	const isAssignableToZero = tsst.isAssignableToValue(nodeType, 0);
-	const isAssignableToNaN = tsst.isAssignableToValue(nodeType, NaN);
-	const isAssignableToEmptyString = tsst.isAssignableToValue(nodeType, "");
+	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
+	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
+	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
+	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = pushToVarIfComplex(state, exp);
