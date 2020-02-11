@@ -33,7 +33,6 @@ export async function copyLuaFiles(
 	shouldClean: (src: string, dest: string, itemPath: string) => Promise<boolean> = shouldCleanRelative,
 ) {
 	await cleanDirRecursive(src, dest, shouldClean);
-	console.log("eeeeeee");
 	const foldersContainingLua = new Set<string>();
 
 	async function checkContainsLua(dir: string): Promise<boolean> {
