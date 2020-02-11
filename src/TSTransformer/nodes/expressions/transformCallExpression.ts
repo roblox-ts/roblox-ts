@@ -13,15 +13,27 @@ function convertToIndexableExpression(expression: lua.Expression) {
 
 function transformArguments(state: TransformState, args: ReadonlyArray<ts.Expression>) {
 	const argsList = args.map(arg => state.capturePrereqs(() => transformExpression(state, arg)));
-	const lastArgsIndexWithPrereqs = findLastIndex(argsList, item => lua.list.isEmpty(item.statements));
+	const lastArgWithPrereqsIndex = findLastIndex(argsList, item => !lua.list.isEmpty(item.statements));
 
 	const result = lua.list.make<lua.Expression>();
 
-	for (let i = 0; i <= lastArgsIndexWithPrereqs; i++) {}
-
-	for (const arg of args) {
-		lua.list.push(result, transformExpression(state, arg));
+	for (let i = 0; i < argsList.length; i++) {
+		const info = argsList[i];
+		state.prereqList(info.statements);
+		let expression = info.expression;
+		if (i <= lastArgWithPrereqsIndex && !lua.isTemporaryIdentifier(expression)) {
+			const tempId = lua.tempId();
+			expression = tempId;
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: tempId,
+					right: info.expression,
+				}),
+			);
+		}
+		lua.list.push(result, expression);
 	}
+
 	return result;
 }
 
