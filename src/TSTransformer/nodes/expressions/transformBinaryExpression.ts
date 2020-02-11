@@ -22,6 +22,12 @@ const SIMPLE_OPERATOR_MAP = new Map([
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
+	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
+		throw "operator '==' is not supported! Use '===' instead.";
+	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
+		throw "operator '!=' is not supported! Use '!==' instead.";
+	}
+
 	if (
 		operatorKind === ts.SyntaxKind.AmpersandAmpersandToken ||
 		operatorKind === ts.SyntaxKind.BarBarToken ||
