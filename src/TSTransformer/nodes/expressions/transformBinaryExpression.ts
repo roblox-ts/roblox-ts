@@ -11,8 +11,8 @@ const SIMPLE_OPERATOR_MAP = new Map([
 	[ts.SyntaxKind.SlashToken, lua.BinaryOperator.Slash],
 	[ts.SyntaxKind.AsteriskAsteriskToken, lua.BinaryOperator.Caret],
 	[ts.SyntaxKind.PercentToken, lua.BinaryOperator.Percent],
-	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualEqual],
-	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEqual],
+	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualEquals],
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEquals],
 ]);
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {

@@ -29,7 +29,7 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
-				operator: lua.BinaryOperator.TildeEqual,
+				operator: lua.BinaryOperator.TildeEquals,
 				right: lua.create(lua.SyntaxKind.NumberLiteral, { value: 0 }),
 			}),
 		);
@@ -40,7 +40,7 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
-				operator: lua.BinaryOperator.EqualEqual,
+				operator: lua.BinaryOperator.EqualEquals,
 				right: exp,
 			}),
 		);
@@ -50,7 +50,7 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
-				operator: lua.BinaryOperator.TildeEqual,
+				operator: lua.BinaryOperator.TildeEquals,
 				right: lua.create(lua.SyntaxKind.StringLiteral, { value: "" }),
 			}),
 		);
