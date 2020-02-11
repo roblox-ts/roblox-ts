@@ -36,8 +36,7 @@ function getLogicalChain(
 ): Array<LogicalChainItem> {
 	return splitBinaryChain(node, binaryOperatorKind).map(original => {
 		const type = state.typeChecker.getTypeAtLocation(original);
-		let expression!: lua.Expression;
-		const statements = state.statement(() => (expression = transformExpression(state, original)));
+		const { expression, statements } = state.capturePrereqs(() => transformExpression(state, original));
 		return { type, expression, statements, inline: false };
 	});
 }

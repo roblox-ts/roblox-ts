@@ -28,6 +28,12 @@ export class TransformState {
 		return poppedValue;
 	}
 
+	public capturePrereqs(callback: () => lua.Expression) {
+		let expression!: lua.Expression;
+		const statements = this.statement(() => (expression = callback()));
+		return { expression, statements };
+	}
+
 	/**
 	 * Used to create a "synthetic" `lua.Statement`
 	 *

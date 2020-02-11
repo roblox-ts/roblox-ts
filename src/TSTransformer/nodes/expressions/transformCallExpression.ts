@@ -1,6 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { findLastIndex } from "Shared/util/findLastIndex";
 import ts from "typescript";
 
 function convertToIndexableExpression(expression: lua.Expression) {
@@ -11,11 +12,17 @@ function convertToIndexableExpression(expression: lua.Expression) {
 }
 
 function transformArguments(state: TransformState, args: ReadonlyArray<ts.Expression>) {
-	const argsList = lua.list.make<lua.Expression>();
+	const argsList = args.map(arg => state.capturePrereqs(() => transformExpression(state, arg)));
+	const lastArgsIndexWithPrereqs = findLastIndex(argsList, item => lua.list.isEmpty(item.statements));
+
+	const result = lua.list.make<lua.Expression>();
+
+	for (let i = 0; i <= lastArgsIndexWithPrereqs; i++) {}
+
 	for (const arg of args) {
-		lua.list.push(argsList, transformExpression(state, arg));
+		lua.list.push(result, transformExpression(state, arg));
 	}
-	return argsList;
+	return result;
 }
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression): lua.CallExpression {
