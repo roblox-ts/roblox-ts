@@ -48,13 +48,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: id,
 			operator,
-			right: transformExpression(state, node.right),
+			right,
 		});
 	} else {
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: transformExpression(state, node.left),
+			left,
 			operator,
-			right: transformExpression(state, node.right),
+			right,
 		});
 	}
 }
