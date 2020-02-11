@@ -39,23 +39,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	if (!lua.list.isEmpty(rightStatements)) {
 		const id = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: id,
-				right: left,
-			}),
-		);
+		state.prereq(lua.create(lua.SyntaxKind.VariableDeclaration, { left: id, right: left }));
 		state.prereqList(rightStatements);
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: id,
-			operator,
-			right,
-		});
+		return lua.create(lua.SyntaxKind.BinaryExpression, { left: id, operator, right });
 	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left,
-			operator,
-			right,
-		});
+		return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
 	}
 }
