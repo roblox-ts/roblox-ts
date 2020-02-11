@@ -1,8 +1,7 @@
 import * as lua from "LuaAST";
-import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { wrapConditional } from "TSTransformer/util/wrapConditional";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import ts from "typescript";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
@@ -15,7 +14,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		}),
 	);
 
-	const condition = wrapConditional(
+	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.condition),
 		state.typeChecker.getTypeAtLocation(node.condition),

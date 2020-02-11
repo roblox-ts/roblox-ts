@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
-import { willWrapConditional, wrapConditional } from "TSTransformer/util/wrapConditional";
+import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import ts from "typescript";
 
 interface LogicalChainItem {
@@ -15,7 +15,7 @@ interface LogicalChainItem {
 /**
  * Splits `node` recursively by binary operator `operatorKind` into an Array<ts.Expression>
  */
-function splitBinaryChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
+function flattenByOperator(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 	const result = new Array<ts.Expression>();
 	while (ts.isBinaryExpression(node) && node.operatorToken.kind === operatorKind) {
 		result.unshift(node.right);
@@ -26,33 +26,23 @@ function splitBinaryChain(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 }
 
 /**
- * Builds an Arra<LogicalChainItem> using `splitBinaryChain` and
+ * Builds an Array<LogicalChainItem> using `splitBinaryChain` and
  * captures all of the prerequisite statements for each expression
  */
 function getLogicalChain(
 	state: TransformState,
 	node: ts.BinaryExpression,
 	binaryOperatorKind: ts.SyntaxKind,
+	enableInlining: boolean,
 ): Array<LogicalChainItem> {
-	return splitBinaryChain(node, binaryOperatorKind).map(original => {
+	return flattenByOperator(node, binaryOperatorKind).map((original, index, array) => {
 		const type = state.typeChecker.getTypeAtLocation(original);
 		const { expression, statements } = state.capturePrereqs(() => transformExpression(state, original));
-		return { type, expression, statements, inline: false };
-	});
-}
-
-/**
- * Calls `getLogicalChain` and then computes `inline` for each LogicalChainItem.
- */
-function getLogicalChainWithInlines(
-	state: TransformState,
-	node: ts.BinaryExpression,
-	binaryOperatorKind: ts.SyntaxKind,
-): Array<LogicalChainItem> {
-	return getLogicalChain(state, node, binaryOperatorKind).map((item, index, array) => {
-		const { type, expression, statements } = item;
-		const willWrap = index < array.length - 1 && willWrapConditional(state, type);
-		const inline = lua.list.isEmpty(statements) && !willWrap;
+		let inline = false;
+		if (enableInlining) {
+			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(state, type);
+			inline = lua.list.isEmpty(statements) && !willWrap;
+		}
 		return { type, expression, statements, inline };
 	});
 }
@@ -107,16 +97,16 @@ function mergeInlineExpressions(chain: Array<LogicalChainItem>, binaryOperator: 
 }
 
 /**
- * Solves the simple case for `&&`/`||` where items can be inlined into `and`/`or` expressions.
+ * Solves the simple case for `&&` / `||` where items can be inlined into `and` / `or` expressions.
  */
-function transformSimpleLogical(
+function buildInlineConditionExpression(
 	state: TransformState,
 	node: ts.BinaryExpression,
 	tsBinaryOperator: ts.SyntaxKind,
 	luaBinaryOperator: lua.BinaryOperator,
 	buildCondition: (conditionId: lua.TemporaryIdentifier, type: ts.Type) => lua.Expression,
 ) {
-	const chain = getLogicalChainWithInlines(state, node, tsBinaryOperator);
+	const chain = getLogicalChain(state, node, tsBinaryOperator, true);
 	mergeInlineExpressions(chain, luaBinaryOperator);
 
 	// single inline, no temp variable needed
@@ -131,21 +121,21 @@ function transformSimpleLogical(
 
 export function transformLogical(state: TransformState, node: ts.BinaryExpression): lua.Expression {
 	if (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
-		return transformSimpleLogical(
+		return buildInlineConditionExpression(
 			state,
 			node,
 			node.operatorToken.kind,
 			lua.BinaryOperator.And,
-			(conditionId, type) => wrapConditional(state, conditionId, type),
+			(conditionId, type) => createTruthinessChecks(state, conditionId, type),
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
-		return transformSimpleLogical(
+		return buildInlineConditionExpression(
 			state,
 			node,
 			node.operatorToken.kind,
 			lua.BinaryOperator.Or,
 			(conditionId, type) => {
-				let expression = wrapConditional(state, conditionId, type);
+				let expression = createTruthinessChecks(state, conditionId, type);
 
 				if (!lua.isSimple(expression)) {
 					expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
@@ -165,7 +155,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		  - doesn't use wrapConditional
 		  - cannot inline
 		*/
-		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken);
+		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
 		const conditionId = lua.tempId();
 		buildLogicalChainPrereqs(state, chain, conditionId, conditionId =>
 			lua.create(lua.SyntaxKind.BinaryExpression, {

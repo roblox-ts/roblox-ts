@@ -1,9 +1,8 @@
 import * as lua from "LuaAST";
-import * as tsst from "ts-simple-type";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { TransformState } from "TSTransformer/TransformState";
-import { wrapConditional } from "TSTransformer/util/wrapConditional";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "typescript";
 
@@ -23,7 +22,7 @@ function transformElseStatement(
 }
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement) {
-	const condition = wrapConditional(
+	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.expression),
 		state.typeChecker.getTypeAtLocation(node.expression),

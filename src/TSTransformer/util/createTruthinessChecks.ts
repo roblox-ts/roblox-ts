@@ -5,7 +5,7 @@ import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain"
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
-export function willWrapConditional(state: TransformState, nodeType: ts.Type) {
+export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
 	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
 	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
 	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
@@ -13,7 +13,7 @@ export function willWrapConditional(state: TransformState, nodeType: ts.Type) {
 	return isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString;
 }
 
-export function wrapConditional(state: TransformState, exp: lua.Expression, nodeType: ts.Type) {
+export function createTruthinessChecks(state: TransformState, exp: lua.Expression, nodeType: ts.Type) {
 	const checks = new Array<lua.Expression>();
 
 	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
