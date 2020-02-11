@@ -1,8 +1,34 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { ensureExecutionOrder } from "TSTransformer/util/ensureExecutionOrder";
 import { transformLogical } from "TSTransformer/util/transformLogical";
 import ts from "typescript";
+
+// ASSIGNMENT
+// - EqualsToken
+// - PlusEqualsToken
+// - MinusEqualsToken
+// - AsteriskEqualsToken
+// - AsteriskAsteriskEqualsToken
+// - SlashEqualsToken
+// - PercentEqualsToken
+
+// BINARY
+// - LessThanLessThanToken
+// - GreaterThanGreaterThanToken
+// - GreaterThanGreaterThanGreaterThanToken
+// - AmpersandToken
+// - BarToken
+// - CaretToken
+// - TildeToken
+
+// BINARY ASSIGNMENT
+// - LessThanLessThanEqualsToken
+// - GreaterThanGreaterThanEqualsToken
+// - GreaterThanGreaterThanGreaterThanEqualsToken
+// - AmpersandEqualsToken
+// - BarEqualsToken
+// - CaretEqualsToken
 
 const SIMPLE_OPERATOR_MAP = new Map([
 	[ts.SyntaxKind.LessThanToken, lua.BinaryOperator.LessThan],
@@ -22,12 +48,14 @@ const SIMPLE_OPERATOR_MAP = new Map([
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
+	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		throw "operator '==' is not supported! Use '===' instead.";
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		throw "operator '!=' is not supported! Use '!==' instead.";
 	}
 
+	// logical
 	if (
 		operatorKind === ts.SyntaxKind.AmpersandAmpersandToken ||
 		operatorKind === ts.SyntaxKind.BarBarToken ||
@@ -41,18 +69,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 	}
 
-	const left = transformExpression(state, node.left);
-
-	const { expression: right, statements: rightStatements } = state.capturePrereqs(() =>
-		transformExpression(state, node.right),
-	);
-
-	if (!lua.list.isEmpty(rightStatements)) {
-		const id = lua.tempId();
-		state.prereq(lua.create(lua.SyntaxKind.VariableDeclaration, { left: id, right: left }));
-		state.prereqList(rightStatements);
-		return lua.create(lua.SyntaxKind.BinaryExpression, { left: id, operator, right });
-	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
-	}
+	const [left, right] = ensureExecutionOrder(state, [node.left, node.right]);
+	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
 }
