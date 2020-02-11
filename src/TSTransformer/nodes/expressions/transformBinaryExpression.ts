@@ -31,9 +31,30 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 	}
 
-	return lua.create(lua.SyntaxKind.BinaryExpression, {
-		left: transformExpression(state, node.left),
-		operator,
-		right: transformExpression(state, node.right),
-	});
+	const left = transformExpression(state, node.left);
+
+	const { expression: right, statements: rightStatements } = state.capturePrereqs(() =>
+		transformExpression(state, node.right),
+	);
+
+	if (!lua.list.isEmpty(rightStatements)) {
+		const id = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: id,
+				right: left,
+			}),
+		);
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: id,
+			operator,
+			right: transformExpression(state, node.right),
+		});
+	} else {
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: transformExpression(state, node.left),
+			operator,
+			right: transformExpression(state, node.right),
+		});
+	}
 }

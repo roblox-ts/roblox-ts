@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
+import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { findLastIndex } from "Shared/util/findLastIndex";
 import ts from "typescript";
 
 function convertToIndexableExpression(expression: lua.Expression) {
