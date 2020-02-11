@@ -1,5 +1,10 @@
 import * as lua from "LuaAST";
 
+/**
+ * Combines multiple lua.Expression objects into a chain of lua.BinaryExpressions
+ *
+ * i.e. using `and` as our operator, `[a, b, c]` -> `a and b and c`
+ */
 export function binaryExpressionChain(
 	expressions: Array<lua.Expression>,
 	operator: lua.BinaryOperator,

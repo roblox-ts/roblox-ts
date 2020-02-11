@@ -14,6 +14,8 @@ interface LogicalChainItem {
 
 /**
  * Splits `node` recursively by binary operator `operatorKind` into an Array<ts.Expression>
+ *
+ * i.e. using `&&` as our operator, `a && b && c` -> `[a, b, c]`
  */
 function flattenByOperator(node: ts.Expression, operatorKind: ts.SyntaxKind) {
 	const result = new Array<ts.Expression>();
@@ -79,7 +81,16 @@ function buildLogicalChainPrereqs(
 }
 
 /**
- * Merges neighboring inline LogicalChainItems together, builds new expressions using `binaryOperator`
+ * Merges any neighboring inline LogicalChainItems together, builds new expressions using `binaryOperator`
+ *
+ * i.e. using `and` as our operator,
+ * ```TS
+ * [{ expression: a, inline: true }, { expression: b, inline: true }, { expression: c, inline: false }]
+ * ```
+ * turns into
+ * ```TS
+ * [{ expression: a and b, inline: true }, { expression: c, inline: false }]
+ * ```
  */
 function mergeInlineExpressions(chain: Array<LogicalChainItem>, binaryOperator: lua.BinaryOperator) {
 	for (let i = 0; i < chain.length; i++) {
@@ -107,9 +118,10 @@ function buildInlineConditionExpression(
 	buildCondition: (conditionId: lua.TemporaryIdentifier, type: ts.Type) => lua.Expression,
 ) {
 	const chain = getLogicalChain(state, node, tsBinaryOperator, true);
+
 	mergeInlineExpressions(chain, luaBinaryOperator);
 
-	// single inline, no temp variable needed
+	// single inline at the end, no temp variable needed
 	if (chain.length === 1 && chain[0].inline) {
 		return chain[0].expression;
 	}
