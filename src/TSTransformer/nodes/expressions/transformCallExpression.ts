@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
 function convertToIndexableExpression(expression: lua.Expression) {
@@ -22,14 +23,7 @@ function transformArguments(state: TransformState, args: ReadonlyArray<ts.Expres
 		state.prereqList(info.statements);
 		let expression = info.expression;
 		if (i <= lastArgWithPrereqsIndex && !lua.isTemporaryIdentifier(expression)) {
-			const tempId = lua.tempId();
-			expression = tempId;
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: tempId,
-					right: info.expression,
-				}),
-			);
+			expression = pushToVar(state, info.expression);
 		}
 		lua.list.push(result, expression);
 	}
