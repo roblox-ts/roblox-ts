@@ -7,7 +7,7 @@ import ts from "typescript";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.name) {
-		throw new Error("Unnamed functiond declaration?");
+		throw new Error("Unnamed function declaration?");
 	}
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
