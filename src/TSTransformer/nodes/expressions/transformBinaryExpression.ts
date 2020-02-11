@@ -45,6 +45,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				right: left,
 			}),
 		);
+		state.prereqList(rightStatements);
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: id,
 			operator,
