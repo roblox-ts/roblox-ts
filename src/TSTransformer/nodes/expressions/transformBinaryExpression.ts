@@ -5,14 +5,18 @@ import { transformLogical } from "TSTransformer/util/transformLogical";
 import ts from "typescript";
 
 const SIMPLE_OPERATOR_MAP = new Map([
+	[ts.SyntaxKind.LessThanToken, lua.BinaryOperator.LessThan],
+	[ts.SyntaxKind.GreaterThanToken, lua.BinaryOperator.GreaterThan],
+	[ts.SyntaxKind.LessThanEqualsToken, lua.BinaryOperator.LessThanEquals],
+	[ts.SyntaxKind.GreaterThanEqualsToken, lua.BinaryOperator.GreaterThanEquals],
+	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualsEquals],
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEquals],
 	[ts.SyntaxKind.PlusToken, lua.BinaryOperator.Plus],
 	[ts.SyntaxKind.MinusToken, lua.BinaryOperator.Minus],
 	[ts.SyntaxKind.AsteriskToken, lua.BinaryOperator.Asterisk],
-	[ts.SyntaxKind.SlashToken, lua.BinaryOperator.Slash],
 	[ts.SyntaxKind.AsteriskAsteriskToken, lua.BinaryOperator.Caret],
+	[ts.SyntaxKind.SlashToken, lua.BinaryOperator.Slash],
 	[ts.SyntaxKind.PercentToken, lua.BinaryOperator.Percent],
-	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualEquals],
-	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEquals],
 ]);
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {

@@ -160,7 +160,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		buildLogicalChainPrereqs(state, chain, conditionId, conditionId =>
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: conditionId,
-				operator: lua.BinaryOperator.EqualEquals,
+				operator: lua.BinaryOperator.EqualsEquals,
 				right: lua.nil(),
 			}),
 		);

@@ -40,7 +40,7 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 		checks.push(
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: exp,
-				operator: lua.BinaryOperator.EqualEquals,
+				operator: lua.BinaryOperator.EqualsEquals,
 				right: exp,
 			}),
 		);
