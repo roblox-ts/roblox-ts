@@ -15,7 +15,8 @@ export async function cleanDirRecursive(
 	if (await fs.pathExists(dir)) {
 		for (const name of await fs.readdir(dir)) {
 			const itemPath = path.join(dir, name);
-			if ((await fs.stat(itemPath)).isDirectory()) {
+			const stats = await fs.lstat(itemPath);
+			if (stats.isDirectory() && !stats.isSymbolicLink()) {
 				await cleanDirRecursive(src, dest, shouldClean, itemPath);
 			}
 			if (await shouldClean(src, dest, itemPath)) {
@@ -32,7 +33,6 @@ export async function copyLuaFiles(
 	shouldClean: (src: string, dest: string, itemPath: string) => Promise<boolean> = shouldCleanRelative,
 ) {
 	await cleanDirRecursive(src, dest, shouldClean);
-
 	const foldersContainingLua = new Set<string>();
 
 	async function checkContainsLua(dir: string): Promise<boolean> {

@@ -528,10 +528,18 @@ export class Project {
 
 	public async copyFile(filePath: string) {
 		if (isPathAncestorOf(this.rootPath, filePath)) {
-			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
-				overwrite: true,
-				filter: src => !shouldCompileFile(this.project, src),
-			});
+			if (fs.lstatSync(filePath).isSymbolicLink()) {
+				// Don't copy the symlink (that's undesired behavior because the target is not what we want)
+				// Instead just create a directory with a new name.
+				fs.promises
+					.mkdir(path.join(this.outPath, path.relative(this.rootPath, filePath)), { recursive: true })
+					.catch(_ => {});
+			} else {
+				await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
+					overwrite: true,
+					filter: src => !shouldCompileFile(this.project, src),
+				});
+			}
 		}
 	}
 
