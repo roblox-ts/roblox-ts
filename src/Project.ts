@@ -530,6 +530,7 @@ export class Project {
 		if (isPathAncestorOf(this.rootPath, filePath)) {
 			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
 				overwrite: true,
+				filter: src => !shouldCompileFile(this.project, src),
 			});
 		}
 	}
