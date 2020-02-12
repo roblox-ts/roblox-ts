@@ -4,7 +4,7 @@ import { isValidLuaIdentifier } from "LuaRenderer/util/isValidLuaIdentifier";
 
 export function renderPropertyAccessExpression(state: RenderState, node: lua.PropertyAccessExpression) {
 	const expStr = render(state, node.expression);
-	const nameStr = render(state, node.name);
+	const nameStr = node.name;
 	if (isValidLuaIdentifier(nameStr)) {
 		return `${expStr}.${nameStr}`;
 	} else {

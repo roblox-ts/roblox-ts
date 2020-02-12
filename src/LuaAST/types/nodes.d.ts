@@ -57,7 +57,7 @@ export interface ComputedIndexExpression extends lua.Expression<lua.SyntaxKind.C
 
 export interface PropertyAccessExpression extends lua.Expression<lua.SyntaxKind.PropertyAccessExpression> {
 	expression: lua.IndexableExpression;
-	name: lua.Identifier | lua.TemporaryIdentifier;
+	name: string;
 }
 
 export interface CallExpression extends lua.Expression<lua.SyntaxKind.CallExpression> {
