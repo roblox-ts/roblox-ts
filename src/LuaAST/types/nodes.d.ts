@@ -66,7 +66,7 @@ export interface CallExpression extends lua.Expression<lua.SyntaxKind.CallExpres
 }
 
 export interface MethodCallExpression extends lua.Expression<lua.SyntaxKind.MethodCallExpression> {
-	name: lua.Identifier | lua.TemporaryIdentifier;
+	name: string;
 	expression: lua.IndexableExpression;
 	args: lua.List<lua.Expression>;
 }
