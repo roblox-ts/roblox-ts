@@ -128,7 +128,7 @@ export function callExp(expression: lua.Expression, args: Array<lua.Expression> 
 export function methodCallExp(expression: lua.Expression, methodName: string, args: Array<lua.Expression> = []) {
 	return lua.create(lua.SyntaxKind.MethodCallExpression, {
 		expression: lua.isIndexableExpression(expression) ? expression : lua.parentheses(expression),
-		name: lua.id(methodName),
+		name: methodName,
 		args: lua.list.make(...args),
 	});
 }
