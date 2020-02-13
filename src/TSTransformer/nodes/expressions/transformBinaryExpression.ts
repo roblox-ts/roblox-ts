@@ -1,6 +1,14 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { ensureExecutionOrder } from "TSTransformer/util/ensureExecutionOrder";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import {
+	getAssignmentExpression,
+	getCompoundAssignmentExpression,
+	isAssignmentOperator,
+	isCompoundAssignmentOperator,
+} from "TSTransformer/util/assignment";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { getWritableExpression } from "TSTransformer/util/getWritableExpression";
 import { transformLogical } from "TSTransformer/util/transformLogical";
 import ts from "typescript";
 
@@ -64,11 +72,26 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return transformLogical(state, node);
 	}
 
-	const operator = SIMPLE_OPERATOR_MAP.get(operatorKind);
-	if (operator === undefined) {
+	if (isAssignmentOperator(operatorKind)) {
+		const [writable, value] = ensureTransformOrder(state, [
+			() => getWritableExpression(state, node.left),
+			() => transformExpression(state, node.right),
+		]);
+		if (isCompoundAssignmentOperator(operatorKind)) {
+			return getCompoundAssignmentExpression(state, writable, operatorKind, value);
+		} else {
+			return getAssignmentExpression(state, writable, value);
+		}
+	}
+
+	const simpleOperator = SIMPLE_OPERATOR_MAP.get(operatorKind);
+	if (simpleOperator === undefined) {
 		throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 	}
 
-	const [left, right] = ensureExecutionOrder(state, [node.left, node.right]);
-	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
+	const [left, right] = ensureTransformOrder(state, [
+		() => transformExpression(state, node.left),
+		() => transformExpression(state, node.right),
+	]);
+	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator: simpleOperator, right });
 }

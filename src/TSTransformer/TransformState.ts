@@ -2,7 +2,11 @@ import * as lua from "LuaAST";
 import ts from "typescript";
 
 export class TransformState {
-	constructor(public readonly typeChecker: ts.TypeChecker) {}
+	private readonly sourceFileText: string;
+
+	constructor(public readonly typeChecker: ts.TypeChecker, sourceFile: ts.SourceFile) {
+		this.sourceFileText = sourceFile.getFullText();
+	}
 
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();
 
@@ -32,6 +36,13 @@ export class TransformState {
 		let expression!: lua.Expression;
 		const statements = this.statement(() => (expression = callback()));
 		return { expression, statements };
+	}
+
+	public getLeadingComments(node: ts.Node) {
+		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
+		return commentRanges
+			.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
+			.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
 	}
 
 	/**

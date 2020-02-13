@@ -21,6 +21,12 @@ export interface HasParameters {
 	hasDotDotDot: boolean;
 }
 
+export type WritableExpression =
+	| lua.Identifier
+	| lua.TemporaryIdentifier
+	| lua.PropertyAccessExpression
+	| lua.ComputedIndexExpression;
+
 // expressions
 export interface NilLiteral extends lua.Expression<lua.SyntaxKind.NilLiteral> {}
 
@@ -100,7 +106,7 @@ export interface Set extends lua.Expression<lua.SyntaxKind.Set> {
 
 // statements
 export interface Assignment extends lua.Statement<lua.SyntaxKind.Assignment> {
-	left: lua.Identifier | lua.TemporaryIdentifier | lua.PropertyAccessExpression | lua.ComputedIndexExpression;
+	left: lua.WritableExpression;
 	right: lua.Expression;
 }
 

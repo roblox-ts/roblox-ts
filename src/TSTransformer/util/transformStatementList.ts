@@ -7,11 +7,8 @@ export function transformStatementList(state: TransformState, statements: Readon
 	const result = lua.list.make<lua.Statement>();
 
 	for (const statement of statements) {
-		const prereqStatements = lua.list.make<lua.Statement>();
-
-		state.prereqStatementsStack.push(prereqStatements);
-		const transformedStatements = transformStatement(state, statement);
-		state.prereqStatementsStack.pop();
+		let transformedStatements!: lua.List<lua.Statement>;
+		const prereqStatements = state.statement(() => (transformedStatements = transformStatement(state, statement)));
 
 		lua.list.pushList(result, prereqStatements);
 		lua.list.pushList(result, transformedStatements);

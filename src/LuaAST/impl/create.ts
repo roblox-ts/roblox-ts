@@ -33,6 +33,10 @@ export function tempId() {
 	return lua.create(lua.SyntaxKind.TemporaryIdentifier, { name: "" });
 }
 
+export function emptyId() {
+	return lua.create(lua.SyntaxKind.Identifier, { name: "_" });
+}
+
 export function nil() {
 	return lua.create(lua.SyntaxKind.NilLiteral, {});
 }
