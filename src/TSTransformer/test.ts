@@ -9,7 +9,7 @@ import ts from "typescript";
 
 const FILE_NAME = "test.ts";
 const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).toString();
-const sourceFile = ts.createSourceFile(FILE_NAME, tsSource, ts.ScriptTarget.ES2017);
+const sourceFile = ts.createSourceFile(FILE_NAME, tsSource, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
 
 const program = ts.createProgram({
 	options: {
@@ -17,11 +17,11 @@ const program = ts.createProgram({
 		module: ts.ModuleKind.CommonJS,
 		noLib: true,
 		strict: true,
-		target: ts.ScriptTarget.ES2015,
+		target: ts.ScriptTarget.ESNext,
 		allowSyntheticDefaultImports: true,
 		isolatedModules: true,
 	},
-	rootNames: ["test.ts"],
+	rootNames: [FILE_NAME],
 	host: {
 		fileExists: fileName => fileName === FILE_NAME,
 		getSourceFile: fileName => (fileName === FILE_NAME ? sourceFile : undefined),
