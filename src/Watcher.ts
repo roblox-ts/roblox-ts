@@ -1,4 +1,5 @@
-import chokidar from "chokidar";
+import fs from "fs-extra";
+import chokidar, { FSWatcher } from "chokidar";
 import { CompilerError } from "./errors/CompilerError";
 import { LoggableError } from "./errors/LoggableError";
 import { ProjectError } from "./errors/ProjectError";
@@ -39,6 +40,7 @@ export class Watcher {
 	private watchEventQueue = new Array<WatchEvent>();
 	private processing = false;
 	private hasUpdateAllSucceeded = false;
+	private watcher: FSWatcher | undefined = undefined;
 
 	constructor(private project: Project, private onSuccessCmd = "") {}
 
@@ -107,10 +109,14 @@ export class Watcher {
 			this.processing = true;
 			while (this.watchEventQueue.length > 0) {
 				const event = this.watchEventQueue.shift()!;
+
 				if (event.type === "change") {
 					await this.update(event.itemPath);
 				} else if (event.type === "add") {
-					await this.project.addFile(event.itemPath);
+					if ((await fs.lstat(event.itemPath)).isSymbolicLink()) {
+						// Chokidar internal problems requires us to restart the watcher
+						this.start(true);
+					}
 					await this.update(event.itemPath);
 				} else if (event.type === "unlink") {
 					await this.project.removeFile(event.itemPath);
@@ -125,8 +131,12 @@ export class Watcher {
 		void this.startProcessingQueue();
 	}
 
-	public start() {
-		chokidar
+	public start(noInitialCompileLogs?: boolean) {
+		if (this.watcher) {
+			void this.watcher.close();
+		}
+
+		this.watcher = chokidar
 			.watch(this.project.rootPath, CHOKIDAR_OPTIONS)
 			.on("addDir", itemPath => this.pushToQueue({ type: "add", itemPath }))
 			.on("unlinkDir", itemPath => this.pushToQueue({ type: "unlink", itemPath }))
@@ -150,8 +160,10 @@ export class Watcher {
 			});
 		}
 
-		console.log("Running in watch mode..");
-		console.log("Starting initial compile..");
+		if (!noInitialCompileLogs) {
+			console.log("Running in watch mode..");
+			console.log("Starting initial compile..");
+		}
 		void this.updateAll();
 	}
 }
