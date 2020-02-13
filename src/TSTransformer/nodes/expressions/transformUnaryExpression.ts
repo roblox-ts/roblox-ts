@@ -1,9 +1,25 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { getWritableExpression } from "TSTransformer/util/getWritableExpression";
+import { getWritableExpression, LuaWritable } from "TSTransformer/util/getWritableExpression";
 import { pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
+
+export function getAssignmentStatement(
+	writable: LuaWritable,
+	operator: lua.BinaryOperator,
+	value: lua.Expression,
+	origValue?: lua.TemporaryIdentifier,
+): lua.Assignment {
+	return lua.create(lua.SyntaxKind.Assignment, {
+		left: writable,
+		right: lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: origValue !== undefined && !lua.isIdentifier(writable) ? origValue : writable,
+			operator,
+			right: value,
+		}),
+	});
+}
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = getWritableExpression(state, node.operand);
@@ -16,17 +32,9 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 		}),
 	);
 
-	const left = lua.isIdentifier(writable) ? writable : origValue;
 	const operator = node.operator === ts.SyntaxKind.PlusPlusToken ? lua.BinaryOperator.Plus : lua.BinaryOperator.Minus;
-	const right = lua.number(1);
 
-	state.prereq(
-		lua.create(lua.SyntaxKind.Assignment, {
-			left: writable,
-			right: lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right }),
-		}),
-	);
-
+	state.prereq(getAssignmentStatement(writable, operator, lua.number(1), origValue));
 	return origValue;
 }
 

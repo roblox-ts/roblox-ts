@@ -5,10 +5,13 @@ import { ensureExecutionOrder } from "TSTransformer/util/ensureExecutionOrder";
 import { pushToVar, pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
-export function getWritableExpression(
-	state: TransformState,
-	node: ts.Expression,
-): lua.Identifier | lua.TemporaryIdentifier | lua.PropertyAccessExpression | lua.ComputedIndexExpression {
+export type LuaWritable =
+	| lua.Identifier
+	| lua.TemporaryIdentifier
+	| lua.PropertyAccessExpression
+	| lua.ComputedIndexExpression;
+
+export function getWritableExpression(state: TransformState, node: ts.Expression): LuaWritable {
 	if (ts.isPropertyAccessExpression(node)) {
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 			expression: pushToVarIfNonId(state, transformExpression(state, node.expression)),
