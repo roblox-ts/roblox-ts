@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"declaration": true,
 		"module": "commonjs",
-		"target": "es2017",
-		"lib": ["es2017"],
+		"target": "ES2019",
+		"lib": ["ES2019"],
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
