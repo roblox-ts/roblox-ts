@@ -47,6 +47,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
+// TODO: pass in ts-simple-type SimpleType here?
 export function createBinaryFromOperator(
 	left: lua.Expression,
 	operatorKind: ts.SyntaxKind,
