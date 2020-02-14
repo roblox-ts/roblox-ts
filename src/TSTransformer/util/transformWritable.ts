@@ -18,10 +18,7 @@ export function transformWritableExpression(
 			name: node.name.text,
 		});
 	} else if (ts.isElementAccessExpression(node)) {
-		const [expression, index] = ensureTransformOrder(state, [
-			() => transformExpression(state, node.expression),
-			() => transformExpression(state, node.argumentExpression),
-		]);
+		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: push(state, expression),
 			index: addOneIfNumber(index),

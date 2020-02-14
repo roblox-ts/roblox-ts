@@ -8,17 +8,15 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 // hack for now until we can detect arrays
 export function addOneIfNumber(expression: lua.Expression) {
 	if (lua.isNumberLiteral(expression)) {
-		expression.value++;
+		return lua.create(lua.SyntaxKind.NumberLiteral, {
+			value: expression.value + 1,
+		});
 	}
 	return expression;
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {
-	const [expression, index] = ensureTransformOrder(state, [
-		() => transformExpression(state, node.expression),
-		() => transformExpression(state, node.argumentExpression),
-	]);
-
+	const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfNumber(index),

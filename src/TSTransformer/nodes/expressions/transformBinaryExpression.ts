@@ -77,9 +77,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 	}
 
-	const [left, right] = ensureTransformOrder(state, [
-		() => transformExpression(state, node.left),
-		() => transformExpression(state, node.right),
-	]);
+	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
 	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator: simpleOperator, right });
 }
