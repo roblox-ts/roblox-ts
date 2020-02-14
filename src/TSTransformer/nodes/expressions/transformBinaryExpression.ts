@@ -73,6 +73,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (isAssignmentOperator(operatorKind)) {
+		// TODO: ensureTransformOrder when writable is non-id?
 		const writable = getWritableExpression(state, node.left);
 		const value = transformExpression(state, node.right);
 		if (isCompoundAssignmentOperator(operatorKind)) {

@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformIdentifier, transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
@@ -34,7 +34,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 			throw new Error();
 		}
 		const paramStatements = lua.list.make<lua.Statement>();
-		const paramId = transformIdentifier(state, tsParam.name, true);
+		const paramId = transformIdentifierDefined(state, tsParam.name);
 		if (tsParam.dotDotDotToken) {
 			hasDotDotDot = true;
 			lua.list.push(
