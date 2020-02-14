@@ -18,14 +18,14 @@ export function isUnaryAssignmentOperator(
 	return operator === ts.SyntaxKind.PlusPlusToken || operator === ts.SyntaxKind.MinusMinusToken;
 }
 
-export function getAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
+export function createAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: writable,
 		right: value,
 	});
 }
 
-export function getAssignmentExpression(
+export function createAssignmentExpression(
 	state: TransformState,
 	writable: lua.WritableExpression,
 	value: lua.Expression,
@@ -50,19 +50,19 @@ export function getAssignmentExpression(
 	}
 }
 
-export function getCompoundAssignmentStatement(
+export function createCompoundAssignmentStatement(
 	writable: lua.WritableExpression,
 	operator: ts.SyntaxKind,
 	value: lua.Expression,
 ) {
-	return getAssignmentStatement(writable, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentStatement(writable, createBinaryFromOperator(writable, operator, value));
 }
 
-export function getCompoundAssignmentExpression(
+export function createCompoundAssignmentExpression(
 	state: TransformState,
 	writable: lua.WritableExpression,
 	operator: ts.SyntaxKind,
 	value: lua.Expression,
 ) {
-	return getAssignmentExpression(state, writable, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentExpression(state, writable, createBinaryFromOperator(writable, operator, value));
 }

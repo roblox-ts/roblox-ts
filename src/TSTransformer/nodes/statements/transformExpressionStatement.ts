@@ -2,32 +2,24 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
-	getCompoundAssignmentStatement,
+	createCompoundAssignmentStatement,
 	isCompoundAssignmentOperator,
 	isUnaryAssignmentOperator,
 	isAssignmentOperator,
-	getAssignmentStatement,
+	createAssignmentStatement,
 } from "TSTransformer/util/assignment";
-import { getWritableExpression } from "TSTransformer/util/getWritableExpression";
+import { transformWritableExpression, transformWritableAssignment } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
-
-function transformAssignmentStatement(state: TransformState, node: ts.BinaryExpression) {
-	return getAssignmentStatement(getWritableExpression(state, node.left), transformExpression(state, node.right));
-}
-
-function transformCompoundAssignmentStatement(state: TransformState, node: ts.BinaryExpression) {
-	return getCompoundAssignmentStatement(
-		getWritableExpression(state, node.left),
-		node.operatorToken.kind,
-		transformExpression(state, node.right),
-	);
-}
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
-	return getCompoundAssignmentStatement(getWritableExpression(state, node.operand), node.operator, lua.number(1));
+	return createCompoundAssignmentStatement(
+		transformWritableExpression(state, node.operand),
+		node.operator,
+		lua.number(1),
+	);
 }
 
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
@@ -35,10 +27,11 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 	if (ts.isBinaryExpression(expression)) {
 		const operator = expression.operatorToken.kind;
 		if (isAssignmentOperator(operator)) {
+			const { writable, value } = transformWritableAssignment(state, expression.left, expression.right);
 			if (isCompoundAssignmentOperator(operator)) {
-				return lua.list.make(transformCompoundAssignmentStatement(state, expression));
+				return lua.list.make(createCompoundAssignmentStatement(writable, operator, value));
 			} else {
-				return lua.list.make(transformAssignmentStatement(state, expression));
+				return lua.list.make(createAssignmentStatement(writable, value));
 			}
 		}
 	} else if (

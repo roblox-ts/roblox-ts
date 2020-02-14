@@ -2,24 +2,15 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
-	getAssignmentExpression,
-	getCompoundAssignmentExpression,
+	createAssignmentExpression,
+	createCompoundAssignmentExpression,
 	isAssignmentOperator,
 	isCompoundAssignmentOperator,
 } from "TSTransformer/util/assignment";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { getWritableExpression } from "TSTransformer/util/getWritableExpression";
 import { transformLogical } from "TSTransformer/util/transformLogical";
+import { transformWritableAssignment } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
-
-// ASSIGNMENT
-// - EqualsToken
-// - PlusEqualsToken
-// - MinusEqualsToken
-// - AsteriskEqualsToken
-// - AsteriskAsteriskEqualsToken
-// - SlashEqualsToken
-// - PercentEqualsToken
 
 // BINARY
 // - LessThanLessThanToken
@@ -73,13 +64,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (isAssignmentOperator(operatorKind)) {
-		// TODO: ensureTransformOrder when writable is non-id?
-		const writable = getWritableExpression(state, node.left);
-		const value = transformExpression(state, node.right);
+		const { writable, value } = transformWritableAssignment(state, node.left, node.right);
 		if (isCompoundAssignmentOperator(operatorKind)) {
-			return getCompoundAssignmentExpression(state, writable, operatorKind, value);
+			return createCompoundAssignmentExpression(state, writable, operatorKind, value);
 		} else {
-			return getAssignmentExpression(state, writable, value);
+			return createAssignmentExpression(state, writable, value);
 		}
 	}
 
