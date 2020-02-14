@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
 
 function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
@@ -12,7 +12,7 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		lua.list.push(
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: transformIdentifier(state, node.name, true),
+				left: transformIdentifierDefined(state, node.name),
 				right: node.initializer !== undefined ? transformExpression(state, node.initializer) : lua.nil(),
 			}),
 		);

@@ -73,10 +73,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (isAssignmentOperator(operatorKind)) {
-		const [writable, value] = ensureTransformOrder(state, [
-			() => getWritableExpression(state, node.left),
-			() => transformExpression(state, node.right),
-		]);
+		// TODO: ensureTransformOrder when writable is non-id?
+		const writable = getWritableExpression(state, node.left);
+		const value = transformExpression(state, node.right);
 		if (isCompoundAssignmentOperator(operatorKind)) {
 			return getCompoundAssignmentExpression(state, writable, operatorKind, value);
 		} else {
