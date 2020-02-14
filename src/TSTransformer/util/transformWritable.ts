@@ -1,8 +1,9 @@
 import * as lua from "LuaAST";
+import { addOneIfNumber } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVarIfNonId, pushToVar } from "TSTransformer/util/pushToVar";
+import { pushToVar, pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
 export function transformWritableExpression(
@@ -23,7 +24,7 @@ export function transformWritableExpression(
 		]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: push(state, expression),
-			index,
+			index: addOneIfNumber(index),
 		});
 	} else {
 		const transformed = transformExpression(state, node);
