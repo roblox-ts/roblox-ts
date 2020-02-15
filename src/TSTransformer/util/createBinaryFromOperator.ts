@@ -1,5 +1,7 @@
 import * as lua from "LuaAST";
+import * as tsst from "ts-simple-type";
 import ts from "typescript";
+import { NodeWithType } from "TSTransformer/types/NodeWithType";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison
@@ -47,29 +49,53 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
-// TODO: pass in ts-simple-type SimpleType here?
+function isStringType(type: tsst.SimpleType) {
+	return type.kind === tsst.SimpleTypeKind.STRING || type.kind === tsst.SimpleTypeKind.STRING_LITERAL;
+}
+
+function createToString(expression: lua.Expression) {
+	return lua.create(lua.SyntaxKind.CallExpression, {
+		expression: lua.id("tostring"),
+		args: lua.list.make(expression),
+	});
+}
+
+function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType<lua.Expression>) {
+	const leftIsString = isStringType(left.type);
+	const rightIsString = isStringType(right.type);
+	if (leftIsString || rightIsString) {
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: leftIsString ? left.node : createToString(left.node),
+			operator: lua.BinaryOperator.DotDot,
+			right: rightIsString ? right.node : createToString(right.node),
+		});
+	} else {
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: left.node,
+			operator: lua.BinaryOperator.Plus,
+			right: right.node,
+		});
+	}
+}
+
 export function createBinaryFromOperator(
-	left: lua.Expression,
+	left: NodeWithType<lua.Expression>,
 	operatorKind: ts.SyntaxKind,
-	right: lua.Expression,
+	right: NodeWithType<lua.Expression>,
 ): lua.Expression {
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: left,
+			left: left.node,
 			operator,
-			right: right,
+			right: right.node,
 		});
 	}
 
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: left,
-			operator: lua.BinaryOperator.Plus,
-			right: right,
-		});
+		return createBinaryAdd(left, right);
 	}
 
 	// bitwise
@@ -80,7 +106,7 @@ export function createBinaryFromOperator(
 				expression: lua.id("bit32"),
 				name: bit32Name,
 			}),
-			args: lua.list.make(left, right),
+			args: lua.list.make(left.node, right.node),
 		});
 	}
 

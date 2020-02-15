@@ -2,13 +2,18 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
+	createAssignmentStatement,
 	createCompoundAssignmentStatement,
+	isAssignmentOperator,
 	isCompoundAssignmentOperator,
 	isUnaryAssignmentOperator,
-	isAssignmentOperator,
-	createAssignmentStatement,
 } from "TSTransformer/util/assignment";
-import { transformWritableExpression, transformWritableAssignment } from "TSTransformer/util/transformWritable";
+import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
+import {
+	transformWritableAssignment,
+	transformWritableExpressionWithType,
+	transformWritableAssignmentWithType,
+} from "TSTransformer/util/transformWritable";
 import ts from "typescript";
 
 function transformUnaryExpressionStatement(
@@ -16,9 +21,9 @@ function transformUnaryExpressionStatement(
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
 	return createCompoundAssignmentStatement(
-		transformWritableExpression(state, node.operand),
+		transformWritableExpressionWithType(state, node.operand),
 		node.operator,
-		lua.number(1),
+		createNodeWithType(lua.number(1)),
 	);
 }
 
@@ -27,11 +32,11 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 	if (ts.isBinaryExpression(expression)) {
 		const operator = expression.operatorToken.kind;
 		if (isAssignmentOperator(operator)) {
-			const { writable, value } = transformWritableAssignment(state, expression.left, expression.right);
+			const { writable, value } = transformWritableAssignmentWithType(state, expression.left, expression.right);
 			if (isCompoundAssignmentOperator(operator)) {
 				return lua.list.make(createCompoundAssignmentStatement(writable, operator, value));
 			} else {
-				return lua.list.make(createAssignmentStatement(writable, value));
+				return lua.list.make(createAssignmentStatement(writable.node, value.node));
 			}
 		}
 	} else if (

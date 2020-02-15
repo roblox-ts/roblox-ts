@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import * as tsst from "ts-simple-type";
 import ts from "typescript";
 
 export class TransformState {
@@ -43,6 +44,10 @@ export class TransformState {
 		return commentRanges
 			.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
 			.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
+	}
+
+	public getSimpleType(node: ts.Node) {
+		return tsst.toSimpleType(this.typeChecker.getTypeAtLocation(node), this.typeChecker);
 	}
 
 	/**

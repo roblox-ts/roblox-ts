@@ -13,7 +13,7 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
 				left: transformIdentifierDefined(state, node.name),
-				right: node.initializer !== undefined ? transformExpression(state, node.initializer) : lua.nil(),
+				right: node.initializer !== undefined ? transformExpression(state, node.initializer) : undefined,
 			}),
 		);
 	});

@@ -1,5 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
@@ -51,18 +52,18 @@ export function createAssignmentExpression(
 }
 
 export function createCompoundAssignmentStatement(
-	writable: lua.WritableExpression,
+	writable: NodeWithType<lua.WritableExpression>,
 	operator: ts.SyntaxKind,
-	value: lua.Expression,
+	value: NodeWithType<lua.Expression>,
 ) {
-	return createAssignmentStatement(writable, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentStatement(writable.node, createBinaryFromOperator(writable, operator, value));
 }
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
-	writable: lua.WritableExpression,
+	writable: NodeWithType<lua.WritableExpression>,
 	operator: ts.SyntaxKind,
-	value: lua.Expression,
+	value: NodeWithType<lua.Expression>,
 ) {
-	return createAssignmentExpression(state, writable, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentExpression(state, writable.node, createBinaryFromOperator(writable, operator, value));
 }

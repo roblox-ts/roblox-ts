@@ -8,8 +8,10 @@ import {
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { transformLogical } from "TSTransformer/util/transformLogical";
-import { transformWritableAssignment } from "TSTransformer/util/transformWritable";
+import { transformWritableAssignment, transformWritableAssignmentWithType } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
+
+import * as tsst from "ts-simple-type";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
@@ -31,14 +33,25 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (isAssignmentOperator(operatorKind)) {
-		const { writable, value } = transformWritableAssignment(state, node.left, node.right);
+		const { writable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
 		if (isCompoundAssignmentOperator(operatorKind)) {
 			return createCompoundAssignmentExpression(state, writable, operatorKind, value);
 		} else {
-			return createAssignmentExpression(state, writable, value);
+			return createAssignmentExpression(state, writable.node, value.node);
 		}
 	}
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
-	return createBinaryFromOperator(left, operatorKind, right);
+
+	return createBinaryFromOperator(
+		{
+			node: left,
+			type: state.getSimpleType(node.left),
+		},
+		operatorKind,
+		{
+			node: right,
+			type: state.getSimpleType(node.right),
+		},
+	);
 }

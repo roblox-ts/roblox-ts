@@ -2,8 +2,9 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
-import { transformWritableExpression } from "TSTransformer/util/transformWritable";
+import { transformWritableExpression, transformWritableExpressionWithType } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
+import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = transformWritableExpression(state, node.operand);
@@ -37,9 +38,9 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
 		return createCompoundAssignmentExpression(
 			state,
-			transformWritableExpression(state, node.operand),
+			transformWritableExpressionWithType(state, node.operand),
 			node.operator,
-			lua.number(1),
+			createNodeWithType(lua.number(1)),
 		);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		return lua.create(lua.SyntaxKind.UnaryExpression, {
