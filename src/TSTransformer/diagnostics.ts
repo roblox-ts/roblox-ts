@@ -18,7 +18,10 @@ export namespace diagnostics {
 	export const noLabeledStatement = diagnostic("labels are not allowed!");
 
 	// banned expressions
-	export const noNull = diagnostic("`null` is not allowed!");
+	export const noNullLiteral = diagnostic("`null` is not allowed!");
+	export const noTypeOfExpression = diagnostic(
+		"'typeof' operator is not supported! Use `typeIs(value, type)` or `typeOf(value)` instead.",
+	);
 
 	// banned features
 }

@@ -33,9 +33,23 @@ function isNullLiteral(node: ts.Node): node is ts.NullLiteral {
 }
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
+	// banned expressions
+	let diagnostic: ts.Diagnostic | undefined;
+
+	if (false) throw "";
+	else if (isNullLiteral(node)) diagnostic = diagnostics.noNullLiteral(node);
+	else if (ts.isTypeOfExpression(node)) diagnostic = diagnostics.noTypeOfExpression(node);
+
+	if (diagnostic) {
+		state.diagnostics.push(diagnostic);
+		return lua.emptyId();
+	}
+
+	// custom type guards
 	if (false) throw "";
 	if (isBooleanLiteral(node)) return transformBooleanLiteral(state, node);
 
+	// regular transformations
 	if (false) throw "";
 	else if (ts.isArrayLiteralExpression(node)) return transformArrayLiteralExpression(state, node);
 	else if (ts.isBinaryExpression(node)) return transformBinaryExpression(state, node);
@@ -51,11 +65,6 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	else if (ts.isPrefixUnaryExpression(node)) return transformPrefixUnaryExpression(state, node);
 	else if (ts.isPropertyAccessExpression(node)) return transformPropertyAccessExpression(state, node);
 	else if (ts.isStringLiteral(node)) return transformStringLiteral(state, node);
-
-	if (isNullLiteral(node)) {
-		state.diagnostics.push(diagnostics.noNull(node));
-		return lua.emptyId();
-	}
 
 	throw new Error(`Unknown expression: ${getKindName(node)}`);
 }
