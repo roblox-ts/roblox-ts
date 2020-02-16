@@ -46,7 +46,7 @@ const luaAST = transformSourceFile(state, sourceFile);
 fs.writeFileSync(path.resolve(__dirname, "..", "..", "ast.json"), lua.visualizeAST(luaAST));
 
 if (state.diagnostics.length > 0) {
-	console.log(formatDiagnostics(state.diagnostics));
+	console.log(formatDiagnostics(state.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts"));
 	process.exit(1);
 }
 

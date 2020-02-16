@@ -1,10 +1,17 @@
 import ts from "typescript";
 import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
+import chalk from "chalk";
+
+chalk.level = 1;
 
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
+function suggestion(text: string) {
+	return "Suggestion: " + chalk.yellowBright(text);
+}
+
 function issue(id: number) {
-	return `${REPO_URL}/issues/${id}`;
+	return "More information: " + chalk.grey(`${REPO_URL}/issues/${id}`);
 }
 
 function diagnostic(...messages: Array<string>) {
@@ -13,16 +20,17 @@ function diagnostic(...messages: Array<string>) {
 
 export namespace diagnostics {
 	// banned statements
-	export const noTryStatement = diagnostic(`try-catch statements are not allowed!`, `See ${issue(873)}`);
-	export const noForInStatement = diagnostic("for-in loop statements are not allowed!");
-	export const noLabeledStatement = diagnostic("labels are not allowed!");
+	export const noTryStatement = diagnostic("try-catch statements are not supported!", issue(873));
+	export const noForInStatement = diagnostic("for-in loop statements are not supported!");
+	export const noLabeledStatement = diagnostic("labels are not supported!");
 
 	// banned expressions
-	export const noNullLiteral = diagnostic("`null` is not allowed!");
+	export const noNullLiteral = diagnostic("`null` is not supported!", suggestion("Use `undefined` instead."));
 	export const noTypeOfExpression = diagnostic(
 		"'typeof' operator is not supported!",
-		"Use `typeIs(value, type)` or `typeOf(value)` instead.",
+		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	);
 
 	// banned features
+	export const noGetterSetter = diagnostic("Getters and Setters are not supported!", issue(457));
 }
