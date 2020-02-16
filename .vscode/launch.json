@@ -1,0 +1,15 @@
+{
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "Launch Program",
+			"preLaunchTask": "build",
+			"program": "${workspaceFolder}/out/TSTransformer/test.js",
+			"sourceMaps": true,
+			"skipFiles": [
+				"<node_internals>/**"
+			]
+		}
+	]
+}
