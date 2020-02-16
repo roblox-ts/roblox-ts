@@ -9,9 +9,20 @@ export function transformStatementList(state: TransformState, statements: Readon
 	for (const statement of statements) {
 		let transformedStatements!: lua.List<lua.Statement>;
 		const prereqStatements = state.statement(() => (transformedStatements = transformStatement(state, statement)));
-
 		lua.list.pushList(result, prereqStatements);
+		for (const comment of state.getLeadingComments(statement)) {
+			lua.list.push(result, lua.comment(comment));
+		}
 		lua.list.pushList(result, transformedStatements);
+	}
+
+	if (statements.length > 0) {
+		const lastParentToken = statements[statements.length - 1].parent.getLastToken();
+		if (lastParentToken) {
+			for (const comment of state.getLeadingComments(lastParentToken)) {
+				lua.list.push(result, lua.comment(comment));
+			}
+		}
 	}
 
 	return result;
