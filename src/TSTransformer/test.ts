@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 import { renderAST } from "LuaRenderer";
 import os from "os";
 import path from "path";
+import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { TransformState } from "TSTransformer";
 import { transformSourceFile } from "TSTransformer/nodes/transformSourceFile";
 import ts from "typescript";
@@ -35,8 +36,19 @@ const program = ts.createProgram({
 	},
 });
 
-const luaAST = transformSourceFile(new TransformState(program.getTypeChecker(), sourceFile), sourceFile);
+const preEmitDiagnostics = ts.getPreEmitDiagnostics(program, sourceFile);
+if (preEmitDiagnostics.length > 0) {
+	console.log(formatDiagnostics(preEmitDiagnostics));
+}
+
+const state = new TransformState(program.getTypeChecker(), sourceFile);
+const luaAST = transformSourceFile(state, sourceFile);
 fs.writeFileSync(path.resolve(__dirname, "..", "..", "ast.json"), lua.visualizeAST(luaAST));
+
+if (state.diagnostics.length > 0) {
+	console.log(formatDiagnostics(state.diagnostics));
+	process.exit(1);
+}
 
 const luaSource = renderAST(luaAST);
 fs.writeFileSync(path.resolve(__dirname, "..", "..", "out.lua"), luaSource);

@@ -5,6 +5,8 @@ import ts from "typescript";
 export class TransformState {
 	private readonly sourceFileText: string;
 
+	public readonly diagnostics = new Array<ts.Diagnostic>();
+
 	constructor(public readonly typeChecker: ts.TypeChecker, sourceFile: ts.SourceFile) {
 		this.sourceFileText = sourceFile.getFullText();
 	}

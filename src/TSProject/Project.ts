@@ -1,8 +1,8 @@
 import path from "path";
 import { DiagnosticError } from "TSProject/errors/DiagnosticError";
 import { ProjectError } from "TSProject/errors/ProjectError";
+import { createParseConfigFileHost } from "TSProject/util/createParseConfigFileHost";
 import * as fsUtil from "TSProject/util/fsUtil";
-import { createParseConfigFileHost } from "TSProject/util/tsUtil";
 import { validateCompilerOptions } from "TSProject/util/validateCompilerOptions";
 import ts from "typescript";
 

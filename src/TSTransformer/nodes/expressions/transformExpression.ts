@@ -20,9 +20,16 @@ import {
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
+import { Node } from "LuaAST";
+import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
+import { diagnostics } from "TSTransformer/diagnostics";
 
 function isBooleanLiteral(node: ts.Node): node is ts.BooleanLiteral {
 	return ts.isToken(node) && (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword);
+}
+
+function isNullLiteral(node: ts.Node): node is ts.NullLiteral {
+	return node.kind === ts.SyntaxKind.NullKeyword;
 }
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
@@ -44,6 +51,11 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	else if (ts.isPrefixUnaryExpression(node)) return transformPrefixUnaryExpression(state, node);
 	else if (ts.isPropertyAccessExpression(node)) return transformPropertyAccessExpression(state, node);
 	else if (ts.isStringLiteral(node)) return transformStringLiteral(state, node);
+
+	if (isNullLiteral(node)) {
+		state.diagnostics.push(diagnostics.noNull(node));
+		return lua.emptyId();
+	}
 
 	throw new Error(`Unknown expression: ${getKindName(node)}`);
 }
