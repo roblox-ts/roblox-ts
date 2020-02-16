@@ -19,19 +19,19 @@ function diagnostic(...messages: Array<string>) {
 	return (node: ts.Node) => createDiagnosticWithLocation(messages.join("\n"), node);
 }
 
-export namespace diagnostics {
+export const diagnostics = {
 	// banned statements
-	export const noTryStatement = diagnostic("try-catch statements are not supported!", issue(873));
-	export const noForInStatement = diagnostic("for-in loop statements are not supported!");
-	export const noLabeledStatement = diagnostic("labels are not supported!");
+	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
+	noForInStatement: diagnostic("for-in loop statements are not supported!"),
+	noLabeledStatement: diagnostic("labels are not supported!"),
 
 	// banned expressions
-	export const noNullLiteral = diagnostic("`null` is not supported!", suggestion("Use `undefined` instead."));
-	export const noTypeOfExpression = diagnostic(
+	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
+	noTypeOfExpression: diagnostic(
 		"`typeof` operator is not supported!",
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
-	);
+	),
 
 	// banned features
-	export const noGetterSetter = diagnostic("Getters and Setters are not supported!", issue(457));
-}
+	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
+};
