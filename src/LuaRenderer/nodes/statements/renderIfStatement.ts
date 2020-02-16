@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
-import { renderStatements } from "LuaRenderer/util/statements";
+import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 function renderShorthandIfStatement(state: RenderState, node: lua.IfStatement) {
 	const statementStr = renderStatements(state, node.statements).trim();

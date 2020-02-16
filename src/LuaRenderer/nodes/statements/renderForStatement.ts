@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
-import { renderStatements } from "LuaRenderer/util/statements";
+import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 export function renderForStatement(state: RenderState, node: lua.ForStatement) {
 	const idsStr = lua.list.mapToArray(node.ids, id => render(state, id)).join(", ");

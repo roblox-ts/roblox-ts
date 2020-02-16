@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
 import { renderParameters } from "LuaRenderer/util/renderParameters";
-import { renderStatements } from "LuaRenderer/util/statements";
+import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 export function renderMethodDeclaration(state: RenderState, node: lua.MethodDeclaration) {
 	let result = "";

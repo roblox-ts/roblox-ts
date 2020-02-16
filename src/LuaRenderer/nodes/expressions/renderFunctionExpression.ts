@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { RenderState } from "LuaRenderer";
 import { renderParameters } from "LuaRenderer/util/renderParameters";
-import { renderStatements } from "LuaRenderer/util/statements";
+import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 export function renderFunctionExpression(state: RenderState, node: lua.FunctionExpression) {
 	if (!node.statements.head) {

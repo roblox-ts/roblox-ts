@@ -28,7 +28,7 @@ import { renderReturnStatement } from "LuaRenderer/nodes/statements/renderReturn
 import { renderVariableDeclaration } from "LuaRenderer/nodes/statements/renderVariableDeclaration";
 import { renderWhileStatement } from "LuaRenderer/nodes/statements/renderWhileStatement";
 import { RenderState } from "LuaRenderer/RenderState";
-import { renderStatements } from "LuaRenderer/util/statements";
+import { renderStatements } from "LuaRenderer/util/renderStatements";
 import { identity } from "Shared/util/identity";
 
 type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByKind[T]) => string;
