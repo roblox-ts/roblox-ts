@@ -20,7 +20,8 @@ export namespace diagnostics {
 	// banned expressions
 	export const noNullLiteral = diagnostic("`null` is not allowed!");
 	export const noTypeOfExpression = diagnostic(
-		"'typeof' operator is not supported! Use `typeIs(value, type)` or `typeOf(value)` instead.",
+		"'typeof' operator is not supported!",
+		"Use `typeIs(value, type)` or `typeOf(value)` instead.",
 	);
 
 	// banned features
