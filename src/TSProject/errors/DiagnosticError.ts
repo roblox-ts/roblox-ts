@@ -4,7 +4,7 @@ import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import ts from "typescript";
 
 // force colors
-chalk.level = 1;
+chalk.level = chalk.Level.Basic;
 
 export class DiagnosticError extends LoggableError {
 	constructor(private diagnostics: Array<ts.Diagnostic>) {

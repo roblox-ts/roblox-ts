@@ -2,7 +2,8 @@ import ts from "typescript";
 import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 import chalk from "chalk";
 
-chalk.level = 1;
+// force colors
+chalk.level = chalk.Level.Basic;
 
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
@@ -27,7 +28,7 @@ export namespace diagnostics {
 	// banned expressions
 	export const noNullLiteral = diagnostic("`null` is not supported!", suggestion("Use `undefined` instead."));
 	export const noTypeOfExpression = diagnostic(
-		"'typeof' operator is not supported!",
+		"`typeof` operator is not supported!",
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	);
 

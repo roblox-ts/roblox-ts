@@ -4,7 +4,7 @@ import { ProjectError } from "TSProject/errors/ProjectError";
 import ts from "typescript";
 
 // force colors
-chalk.level = 1;
+chalk.level = chalk.Level.Basic;
 
 const ENFORCED_OPTIONS = {
 	downlevelIteration: true,
