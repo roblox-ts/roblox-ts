@@ -24,6 +24,7 @@ export const diagnostics = {
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
 	noForInStatement: diagnostic("for-in loop statements are not supported!"),
 	noLabeledStatement: diagnostic("labels are not supported!"),
+	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
 	// banned expressions
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),

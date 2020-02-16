@@ -23,11 +23,13 @@ function isDeclaredStatement(node: ts.Statement) {
 	return false;
 }
 
-export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
-	const result = lua.list.make<lua.Statement>();
+type StatementTransformer<T extends ts.Statement> = (node: T) => lua.List<lua.Statement>;
 
+const STATEMENT_TRANSFORMERS = {};
+
+export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
 	// no emit
-	if (isTypeStatement(node) || isDeclaredStatement(node) || ts.isEmptyStatement(node)) return result;
+	if (isTypeStatement(node) || isDeclaredStatement(node) || ts.isEmptyStatement(node)) return lua.list.make();
 
 	// banned statements
 	let diagnostic: ts.Diagnostic | undefined;
@@ -36,21 +38,21 @@ export function transformStatement(state: TransformState, node: ts.Statement): l
 	else if (ts.isTryStatement(node)) diagnostic = diagnostics.noTryStatement(node);
 	else if (ts.isForInStatement(node)) diagnostic = diagnostics.noForInStatement(node);
 	else if (ts.isLabeledStatement(node)) diagnostic = diagnostics.noLabeledStatement(node);
+	else if (ts.isDebuggerStatement(node)) diagnostic = diagnostics.noDebuggerStatement(node);
 
 	if (diagnostic) {
 		state.diagnostics.push(diagnostic);
-		return result;
+		return lua.list.make();
 	}
 
 	// regular transformations
 	if (false) throw "";
-	else if (ts.isBlock(node)) lua.list.pushList(result, transformBlock(state, node));
-	else if (ts.isExpressionStatement(node)) lua.list.pushList(result, transformExpressionStatement(state, node));
-	else if (ts.isFunctionDeclaration(node)) lua.list.pushList(result, transformFunctionDeclaration(state, node));
-	else if (ts.isIfStatement(node)) lua.list.pushList(result, transformIfStatement(state, node));
-	else if (ts.isReturnStatement(node)) lua.list.pushList(result, transformReturnStatement(state, node));
-	else if (ts.isVariableStatement(node)) lua.list.pushList(result, transformVariableStatement(state, node));
-	else throw new Error(`Unknown statement: ${getKindName(node)}`);
+	else if (ts.isBlock(node)) return transformBlock(state, node);
+	else if (ts.isExpressionStatement(node)) return transformExpressionStatement(state, node);
+	else if (ts.isFunctionDeclaration(node)) return transformFunctionDeclaration(state, node);
+	else if (ts.isIfStatement(node)) return transformIfStatement(state, node);
+	else if (ts.isReturnStatement(node)) return transformReturnStatement(state, node);
+	else if (ts.isVariableStatement(node)) return transformVariableStatement(state, node);
 
-	return result;
+	throw new Error(`Unknown statement: ${getKindName(node)}`);
 }
