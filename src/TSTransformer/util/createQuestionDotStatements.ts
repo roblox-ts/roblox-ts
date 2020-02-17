@@ -2,6 +2,16 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer/TransformState";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 
+/**
+ * Creates the following scaffolding:
+ * ```Lua
+ * local _0 = (expression)
+ * if _0 ~= nil then
+ * 	_0 = (createIfNotUndefinedExp(id))
+ * end
+ * ```
+ * returns `_0`
+ */
 export function createQuestionDotStatements(
 	state: TransformState,
 	expression: lua.Expression,
