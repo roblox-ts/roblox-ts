@@ -1,5 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/transformFunctionDeclaration";
@@ -8,51 +9,43 @@ import { transformReturnStatement } from "TSTransformer/nodes/statements/transfo
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
-import { diagnostics } from "TSTransformer/diagnostics";
 
-function isTypeStatement(node: ts.Statement) {
-	return ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node);
-}
+const NO_EMIT = () => lua.list.make<lua.Statement>();
 
-function isDeclaredStatement(node: ts.Statement) {
-	for (const modifier of node.modifiers ?? []) {
-		if (modifier.kind === ts.SyntaxKind.DeclareKeyword) {
-			return true;
-		}
-	}
-	return false;
-}
+const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
+	state.diagnostics.push(factory(node));
+	return NO_EMIT();
+};
 
-type StatementTransformer<T extends ts.Statement> = (node: T) => lua.List<lua.Statement>;
-
-const STATEMENT_TRANSFORMERS = {};
-
-export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
+const STATEMENT_TRANSFORMERS = {
 	// no emit
-	if (isTypeStatement(node) || isDeclaredStatement(node) || ts.isEmptyStatement(node)) return lua.list.make();
+	[ts.SyntaxKind.InterfaceDeclaration]: NO_EMIT,
+	[ts.SyntaxKind.TypeAliasDeclaration]: NO_EMIT,
 
 	// banned statements
-	let diagnostic: ts.Diagnostic | undefined;
+	[ts.SyntaxKind.TryStatement]: DIAGNOSTIC(diagnostics.noTryStatement),
+	[ts.SyntaxKind.ForInStatement]: DIAGNOSTIC(diagnostics.noForInStatement),
+	[ts.SyntaxKind.LabeledStatement]: DIAGNOSTIC(diagnostics.noLabeledStatement),
+	[ts.SyntaxKind.DebuggerStatement]: DIAGNOSTIC(diagnostics.noDebuggerStatement),
 
-	if (false) throw "";
-	else if (ts.isTryStatement(node)) diagnostic = diagnostics.noTryStatement(node);
-	else if (ts.isForInStatement(node)) diagnostic = diagnostics.noForInStatement(node);
-	else if (ts.isLabeledStatement(node)) diagnostic = diagnostics.noLabeledStatement(node);
-	else if (ts.isDebuggerStatement(node)) diagnostic = diagnostics.noDebuggerStatement(node);
+	// regular transforms
+	[ts.SyntaxKind.Block]: transformBlock,
+	[ts.SyntaxKind.ExpressionStatement]: transformExpressionStatement,
+	[ts.SyntaxKind.FunctionDeclaration]: transformFunctionDeclaration,
+	[ts.SyntaxKind.IfStatement]: transformIfStatement,
+	[ts.SyntaxKind.ReturnStatement]: transformReturnStatement,
+	[ts.SyntaxKind.VariableStatement]: transformVariableStatement,
+};
 
-	if (diagnostic) {
-		state.diagnostics.push(diagnostic);
-		return lua.list.make();
+export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
+	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
+
+	const transformer = STATEMENT_TRANSFORMERS[node.kind as keyof typeof STATEMENT_TRANSFORMERS] as
+		| ((state: TransformState, node: ts.Statement) => lua.List<lua.Statement>)
+		| undefined;
+	if (transformer) {
+		return transformer(state, node);
 	}
-
-	// regular transformations
-	if (false) throw "";
-	else if (ts.isBlock(node)) return transformBlock(state, node);
-	else if (ts.isExpressionStatement(node)) return transformExpressionStatement(state, node);
-	else if (ts.isFunctionDeclaration(node)) return transformFunctionDeclaration(state, node);
-	else if (ts.isIfStatement(node)) return transformIfStatement(state, node);
-	else if (ts.isReturnStatement(node)) return transformReturnStatement(state, node);
-	else if (ts.isVariableStatement(node)) return transformVariableStatement(state, node);
 
 	throw new Error(`Unknown statement: ${getKindName(node)}`);
 }

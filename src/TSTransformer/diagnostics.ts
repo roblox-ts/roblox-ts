@@ -19,6 +19,8 @@ function diagnostic(...messages: Array<string>) {
 	return (node: ts.Node) => createDiagnosticWithLocation(messages.join("\n"), node);
 }
 
+export type DiagnosticFactory = (node: ts.Node) => ts.Diagnostic;
+
 export const diagnostics = {
 	// banned statements
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
