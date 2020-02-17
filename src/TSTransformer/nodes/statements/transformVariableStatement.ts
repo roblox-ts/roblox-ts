@@ -7,7 +7,7 @@ import ts from "typescript";
 function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
 	return state.statement(statements => {
 		if (!ts.isIdentifier(node.name)) {
-			throw new Error("Unsupported");
+			throw "???";
 		}
 		lua.list.push(
 			statements,
