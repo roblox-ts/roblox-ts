@@ -23,11 +23,9 @@ import {
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
 
-const NO_EMIT = () => lua.emptyId();
-
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.diagnostics.push(factory(node));
-	return NO_EMIT();
+	return lua.emptyId();
 };
 
 const EXPRESSION_TRANSFORMERS = {
