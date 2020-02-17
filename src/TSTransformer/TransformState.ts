@@ -7,6 +7,10 @@ export class TransformState {
 
 	public readonly diagnostics = new Array<ts.Diagnostic>();
 
+	public addDiagnostic(diagnostic: ts.Diagnostic) {
+		this.diagnostics.push(diagnostic);
+	}
+
 	constructor(public readonly typeChecker: ts.TypeChecker, sourceFile: ts.SourceFile) {
 		this.sourceFileText = sourceFile.getFullText();
 	}

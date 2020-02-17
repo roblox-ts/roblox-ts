@@ -13,7 +13,7 @@ import ts from "typescript";
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
-	state.diagnostics.push(factory(node));
+	state.addDiagnostic(factory(node));
 	return NO_EMIT();
 };
 

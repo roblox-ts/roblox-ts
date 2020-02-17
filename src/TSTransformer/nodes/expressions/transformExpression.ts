@@ -24,7 +24,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
-	state.diagnostics.push(factory(node));
+	state.addDiagnostic(factory(node));
 	return lua.emptyId();
 };
 
