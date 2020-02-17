@@ -2,11 +2,12 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import ts from "typescript";
 
-export function transformBooleanLiteral(state: TransformState, node: ts.BooleanLiteral) {
-	return lua.create(
-		node.kind === ts.SyntaxKind.TrueKeyword ? lua.SyntaxKind.TrueLiteral : lua.SyntaxKind.FalseLiteral,
-		{},
-	);
+export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
+	return lua.create(lua.SyntaxKind.TrueLiteral, {});
+}
+
+export function transformFalseKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
+	return lua.create(lua.SyntaxKind.FalseLiteral, {});
 }
 
 export function transformNumericLiteral(state: TransformState, node: ts.NumericLiteral) {
