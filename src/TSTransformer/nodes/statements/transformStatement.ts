@@ -17,32 +17,33 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return NO_EMIT();
 };
 
-const STATEMENT_TRANSFORMERS = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StatementTransformer = (state: TransformState, node: any) => lua.List<lua.Statement>;
+
+const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// no emit
-	[ts.SyntaxKind.InterfaceDeclaration]: NO_EMIT,
-	[ts.SyntaxKind.TypeAliasDeclaration]: NO_EMIT,
+	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
+	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
 
 	// banned statements
-	[ts.SyntaxKind.TryStatement]: DIAGNOSTIC(diagnostics.noTryStatement),
-	[ts.SyntaxKind.ForInStatement]: DIAGNOSTIC(diagnostics.noForInStatement),
-	[ts.SyntaxKind.LabeledStatement]: DIAGNOSTIC(diagnostics.noLabeledStatement),
-	[ts.SyntaxKind.DebuggerStatement]: DIAGNOSTIC(diagnostics.noDebuggerStatement),
+	[ts.SyntaxKind.TryStatement, DIAGNOSTIC(diagnostics.noTryStatement)],
+	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(diagnostics.noForInStatement)],
+	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(diagnostics.noLabeledStatement)],
+	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(diagnostics.noDebuggerStatement)],
 
 	// regular transforms
-	[ts.SyntaxKind.Block]: transformBlock,
-	[ts.SyntaxKind.ExpressionStatement]: transformExpressionStatement,
-	[ts.SyntaxKind.FunctionDeclaration]: transformFunctionDeclaration,
-	[ts.SyntaxKind.IfStatement]: transformIfStatement,
-	[ts.SyntaxKind.ReturnStatement]: transformReturnStatement,
-	[ts.SyntaxKind.VariableStatement]: transformVariableStatement,
-};
+	[ts.SyntaxKind.Block, transformBlock],
+	[ts.SyntaxKind.ExpressionStatement, transformExpressionStatement],
+	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
+	[ts.SyntaxKind.IfStatement, transformIfStatement],
+	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
+	[ts.SyntaxKind.VariableStatement, transformVariableStatement],
+]);
 
 export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
 
-	const transformer = STATEMENT_TRANSFORMERS[node.kind as keyof typeof STATEMENT_TRANSFORMERS] as
-		| ((state: TransformState, node: ts.Statement) => lua.List<lua.Statement>)
-		| undefined;
+	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);
 	}

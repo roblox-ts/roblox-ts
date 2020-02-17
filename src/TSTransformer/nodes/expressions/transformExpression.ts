@@ -28,34 +28,35 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 	return lua.emptyId();
 };
 
-const EXPRESSION_TRANSFORMERS = {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ExpressionTransformer = (state: TransformState, node: any) => lua.Expression;
+
+const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
-	[ts.SyntaxKind.NullKeyword]: DIAGNOSTIC(diagnostics.noNullLiteral),
-	[ts.SyntaxKind.TypeOfExpression]: DIAGNOSTIC(diagnostics.noTypeOfExpression),
+	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(diagnostics.noNullLiteral)],
+	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
 
 	// regular transforms
-	[ts.SyntaxKind.TrueKeyword]: transformTrueKeyword,
-	[ts.SyntaxKind.FalseKeyword]: transformFalseKeyword,
-	[ts.SyntaxKind.ArrayLiteralExpression]: transformArrayLiteralExpression,
-	[ts.SyntaxKind.BinaryExpression]: transformBinaryExpression,
-	[ts.SyntaxKind.CallExpression]: transformCallExpression,
-	[ts.SyntaxKind.ConditionalExpression]: transformConditionalExpression,
-	[ts.SyntaxKind.ElementAccessExpression]: transformElementAccessExpression,
-	[ts.SyntaxKind.Identifier]: transformIdentifier,
-	[ts.SyntaxKind.NumericLiteral]: transformNumericLiteral,
-	[ts.SyntaxKind.ObjectLiteralExpression]: transformObjectLiteralExpression,
-	[ts.SyntaxKind.ObjectLiteralExpression]: transformObjectLiteralExpression,
-	[ts.SyntaxKind.ParenthesizedExpression]: transformParenthesizedExpression,
-	[ts.SyntaxKind.PostfixUnaryExpression]: transformPostfixUnaryExpression,
-	[ts.SyntaxKind.PrefixUnaryExpression]: transformPrefixUnaryExpression,
-	[ts.SyntaxKind.PropertyAccessExpression]: transformPropertyAccessExpression,
-	[ts.SyntaxKind.StringLiteral]: transformStringLiteral,
-};
+	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
+	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
+	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
+	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
+	[ts.SyntaxKind.CallExpression, transformCallExpression],
+	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
+	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
+	[ts.SyntaxKind.Identifier, transformIdentifier],
+	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
+	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
+	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
+	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
+	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
+	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
+	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
+	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
-	const transformer = EXPRESSION_TRANSFORMERS[node.kind as keyof typeof EXPRESSION_TRANSFORMERS] as
-		| ((state: TransformState, node: ts.Expression) => lua.Expression)
-		| undefined;
+	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);
 	}
