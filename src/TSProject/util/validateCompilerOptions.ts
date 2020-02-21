@@ -11,7 +11,6 @@ const ENFORCED_OPTIONS = {
 	moduleResolution: ts.ModuleResolutionKind.NodeJs,
 	noLib: true,
 	strict: true,
-	downlevelIteration: true,
 	allowSyntheticDefaultImports: true,
 	isolatedModules: true,
 } as const;
@@ -47,10 +46,6 @@ export function validateCompilerOptions(
 	const errors = new Array<string>();
 
 	// required compiler options
-	if (opts.downlevelIteration !== ENFORCED_OPTIONS.downlevelIteration) {
-		errors.push(`${y(`"downlevelIteration"`)} must be ${y(`true`)}`);
-	}
-
 	if (opts.noLib !== ENFORCED_OPTIONS.noLib) {
 		errors.push(`${y(`"noLib"`)} must be ${y(`true`)}`);
 	}
