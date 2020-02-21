@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import ts from "typescript";
+import { pushToVar } from "TSTransformer/util/pushToVar";
 
 // hack for now until we can detect arrays
 export function addOneIfNumber(expression: lua.Expression) {
@@ -20,7 +21,15 @@ export function transformElementAccessExpressionInner(
 	expression: lua.IndexableExpression,
 	argumentExpression: ts.Expression,
 ) {
-	const index = transformExpression(state, argumentExpression);
+	const { expression: index, statements } = state.capturePrereqs(() =>
+		transformExpression(state, argumentExpression),
+	);
+	if (!lua.list.isEmpty(statements)) {
+		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			expression: pushToVar(state, expression),
+			index: addOneIfNumber(index),
+		});
+	}
 	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfNumber(index),
