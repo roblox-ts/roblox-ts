@@ -47,7 +47,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.Identifier, transformIdentifier],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
-	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
 	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
