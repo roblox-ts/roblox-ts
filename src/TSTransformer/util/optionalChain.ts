@@ -61,8 +61,10 @@ function createCallItem(state: TransformState, node: ts.CallExpression): CallIte
 	};
 }
 
+type ChainItem = PropertyAccessItem | ElementAccessItem | CallItem;
+
 export function flattenOptionalChain(state: TransformState, expression: ts.Expression) {
-	const chain = new Array<PropertyAccessItem | ElementAccessItem | CallItem>();
+	const chain = new Array<ChainItem>();
 	while (true) {
 		if (ts.isPropertyAccessExpression(expression)) {
 			chain.unshift(createPropertyAccessItem(state, expression));
@@ -100,7 +102,15 @@ function removeUndefined(type: tsst.SimpleType): tsst.SimpleType {
 	}
 }
 
-// function transformChainItem(state: TransformState, item: )
+function transformChainItem(state: TransformState, expression: lua.Expression, item: ChainItem) {
+	if (item.kind === OptionalChainItemKind.Call) {
+		return transformCallExpressionInner(state, convertToIndexableExpression(expression), item.args);
+	} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
+		return transformPropertyAccessExpressionInner(state, convertToIndexableExpression(expression), item.name);
+	} else {
+		return transformElementAccessExpressionInner(state, convertToIndexableExpression(expression), item.expression);
+	}
+}
 
 export function transformOptionalChain(
 	state: TransformState,
@@ -110,17 +120,7 @@ export function transformOptionalChain(
 
 	let result = transformExpression(state, expression);
 	for (const item of chain) {
-		if (item.kind === OptionalChainItemKind.Call) {
-			result = transformCallExpressionInner(state, convertToIndexableExpression(result), item.args);
-		} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
-			result = transformPropertyAccessExpressionInner(state, convertToIndexableExpression(result), item.name);
-		} else {
-			result = transformElementAccessExpressionInner(
-				state,
-				convertToIndexableExpression(result),
-				item.expression,
-			);
-		}
+		result = transformChainItem(state, result, item);
 	}
 
 	return result;
