@@ -7,11 +7,11 @@ import ts from "typescript";
 chalk.level = chalk.Level.Basic;
 
 const ENFORCED_OPTIONS = {
-	downlevelIteration: true,
-	module: ts.ModuleKind.CommonJS,
+	target: ts.ScriptTarget.ESNext,
+	moduleResolution: ts.ModuleResolutionKind.NodeJs,
 	noLib: true,
 	strict: true,
-	target: ts.ScriptTarget.ES2015,
+	downlevelIteration: true,
 	allowSyntheticDefaultImports: true,
 	isolatedModules: true,
 } as const;
@@ -51,10 +51,6 @@ export function validateCompilerOptions(
 		errors.push(`${y(`"downlevelIteration"`)} must be ${y(`true`)}`);
 	}
 
-	if (opts.module !== ENFORCED_OPTIONS.module) {
-		errors.push(`${y(`"module"`)} must be ${y(`"commonjs"`)}`);
-	}
-
 	if (opts.noLib !== ENFORCED_OPTIONS.noLib) {
 		errors.push(`${y(`"noLib"`)} must be ${y(`true`)}`);
 	}
@@ -65,6 +61,10 @@ export function validateCompilerOptions(
 
 	if (opts.target !== ENFORCED_OPTIONS.target) {
 		errors.push(`${y(`"target"`)} must be ${y(`"es6"`)}`);
+	}
+
+	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {
+		errors.push(`${y(`"module"`)} must be ${y(`"commonjs"`)}`);
 	}
 
 	if (opts.allowSyntheticDefaultImports !== ENFORCED_OPTIONS.allowSyntheticDefaultImports) {
