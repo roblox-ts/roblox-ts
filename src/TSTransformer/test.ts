@@ -36,7 +36,14 @@ const program = ts.createProgram({
 	},
 });
 
-const preEmitDiagnostics = ts.getPreEmitDiagnostics(program, sourceFile);
+const IGNORED_DIAGNOSTIC_CODES = new Set([
+	2318, // Cannot find global type '%s'.
+	1208, // All files must be modules when the '--isolatedModules' flag is provided.
+]);
+
+const preEmitDiagnostics = ts
+	.getPreEmitDiagnostics(program, sourceFile)
+	.filter(v => !IGNORED_DIAGNOSTIC_CODES.has(v.code));
 if (preEmitDiagnostics.length > 0) {
 	console.log(formatDiagnostics(preEmitDiagnostics));
 }
