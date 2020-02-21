@@ -15,11 +15,9 @@ const ENFORCED_OPTIONS = {
 	isolatedModules: true,
 } as const;
 
-type NotUndefined<T> = T extends undefined ? never : T;
-
 interface ExtraOptionChecks {
-	typeRoots: NotUndefined<ts.CompilerOptions["typeRoots"]>;
-	outDir: NotUndefined<ts.CompilerOptions["outDir"]>;
+	typeRoots: Exclude<ts.CompilerOptions["typeRoots"], undefined>;
+	outDir: Exclude<ts.CompilerOptions["outDir"], undefined>;
 	jsx?: ts.JsxEmit.React;
 	jsxFactory?: "Roact.createElement";
 }
