@@ -2,6 +2,8 @@ import ts from "typescript";
 import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 import chalk from "chalk";
 
+export type DiagnosticFactory = (node: ts.Node) => ts.Diagnostic;
+
 // force colors
 chalk.level = chalk.Level.Basic;
 
@@ -15,11 +17,9 @@ function issue(id: number) {
 	return "More information: " + chalk.grey(`${REPO_URL}/issues/${id}`);
 }
 
-function diagnostic(...messages: Array<string>) {
+function diagnostic(...messages: Array<string>): DiagnosticFactory {
 	return (node: ts.Node) => createDiagnosticWithLocation(messages.join("\n"), node);
 }
-
-export type DiagnosticFactory = (node: ts.Node) => ts.Diagnostic;
 
 export const diagnostics = {
 	// banned statements

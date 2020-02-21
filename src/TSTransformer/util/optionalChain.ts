@@ -1,6 +1,12 @@
+import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
-import ts, { ElementAccessExpression } from "typescript";
+import { transformCallExpressionInner } from "TSTransformer/nodes/expressions/transformCallExpression";
+import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import ts from "typescript";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -94,23 +100,28 @@ function removeUndefined(type: tsst.SimpleType): tsst.SimpleType {
 	}
 }
 
-export function debugOptionalChain(
+// function transformChainItem(state: TransformState, item: )
+
+export function transformOptionalChain(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.CallExpression,
-) {
+): lua.Expression {
 	const { chain, expression } = flattenOptionalChain(state, node);
 
-	console.log(
-		expression.getText(),
-		chain.map(v => ({
-			type: tsst.toTypeString(removeUndefined(tsst.toSimpleType(v.type, state.typeChecker))),
-			optional: v.optional,
-			value:
-				v.kind === OptionalChainItemKind.PropertyAccess
-					? v.name
-					: v.kind === OptionalChainItemKind.ElementAccess
-					? v.expression.getText()
-					: v.args.map(v => v.getText()),
-		})),
-	);
+	let result = transformExpression(state, expression);
+	for (const item of chain) {
+		if (item.kind === OptionalChainItemKind.Call) {
+			result = transformCallExpressionInner(state, convertToIndexableExpression(result), item.args);
+		} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
+			result = transformPropertyAccessExpressionInner(state, convertToIndexableExpression(result), item.name);
+		} else {
+			result = transformElementAccessExpressionInner(
+				state,
+				convertToIndexableExpression(result),
+				item.expression,
+			);
+		}
+	}
+
+	return result;
 }
