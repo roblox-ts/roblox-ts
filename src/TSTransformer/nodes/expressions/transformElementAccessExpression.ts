@@ -24,12 +24,12 @@ export function transformElementAccessExpressionInner(
 	const { expression: index, statements } = state.capturePrereqs(() =>
 		transformExpression(state, argumentExpression),
 	);
+
 	if (!lua.list.isEmpty(statements)) {
-		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: pushToVar(state, expression),
-			index: addOneIfNumber(index),
-		});
+		expression = pushToVar(state, expression);
+		state.prereqList(statements);
 	}
+
 	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfNumber(index),
