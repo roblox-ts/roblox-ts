@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
+import { pushToVar } from "./pushToVar";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -112,16 +113,80 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 	}
 }
 
+function transformOptionalChainInner(
+	state: TransformState,
+	chain: Array<ChainItem>,
+	expression: lua.Expression,
+	tempId: lua.TemporaryIdentifier | undefined = undefined,
+	index = 0,
+): lua.Expression {
+	const item = chain[index];
+	if (item.optional) {
+		if (tempId === undefined) {
+			tempId = lua.tempId();
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: tempId,
+					right: expression,
+				}),
+			);
+		} else {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: tempId,
+					right: expression,
+				}),
+			);
+		}
+
+		if (index + 1 < chain.length) {
+			const { expression: inner, statements } = state.capturePrereqs(() =>
+				transformOptionalChainInner(state, chain, transformChainItem(state, tempId!, item), tempId, index + 1),
+			);
+
+			if (tempId !== inner) {
+				lua.list.push(
+					statements,
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: tempId,
+						right: inner,
+					}),
+				);
+			}
+
+			state.prereq(
+				lua.create(lua.SyntaxKind.IfStatement, {
+					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: tempId,
+						operator: lua.BinaryOperator.TildeEquals,
+						right: lua.nil(),
+					}),
+					statements,
+					elseBody: lua.list.make(),
+				}),
+			);
+		}
+
+		return tempId;
+	} else {
+		if (index + 1 < chain.length) {
+			return transformOptionalChainInner(
+				state,
+				chain,
+				transformChainItem(state, expression, item),
+				tempId,
+				index + 1,
+			);
+		} else {
+			return transformChainItem(state, expression, item);
+		}
+	}
+}
+
 export function transformOptionalChain(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.CallExpression,
 ): lua.Expression {
 	const { chain, expression } = flattenOptionalChain(state, node);
-
-	let result = transformExpression(state, expression);
-	for (const item of chain) {
-		result = transformChainItem(state, result, item);
-	}
-
-	return result;
+	return transformOptionalChainInner(state, chain, transformExpression(state, expression));
 }

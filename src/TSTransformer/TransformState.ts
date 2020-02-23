@@ -5,6 +5,8 @@ import ts from "typescript";
 export class TransformState {
 	private readonly sourceFileText: string;
 
+	public readonly projectVersion = "0.0.0";
+
 	public readonly diagnostics = new Array<ts.Diagnostic>();
 
 	public addDiagnostic(diagnostic: ts.Diagnostic) {
