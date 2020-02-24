@@ -1,9 +1,11 @@
+import fs from "fs-extra";
+import { renderAST } from "LuaRenderer";
 import path from "path";
 import { DiagnosticError } from "TSProject/errors/DiagnosticError";
 import { ProjectError } from "TSProject/errors/ProjectError";
 import { createParseConfigFileHost } from "TSProject/util/createParseConfigFileHost";
-import * as fsUtil from "TSProject/util/fsUtil";
 import { validateCompilerOptions } from "TSProject/util/validateCompilerOptions";
+import { transformSourceFile, TransformState } from "TSTransformer";
 import ts from "typescript";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -19,7 +21,7 @@ export interface ProjectOptions {
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
-	public readonly rootDirs: Set<string>;
+	public readonly rootDir: string;
 	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
 
@@ -54,37 +56,30 @@ export class Project {
 			options: compilerOptions,
 		});
 
-		this.rootDirs = new Set<string>();
-		if (compilerOptions.rootDir) {
-			this.rootDirs.add(compilerOptions.rootDir);
-		}
-		if (compilerOptions.rootDirs) {
-			for (const dir of compilerOptions.rootDirs) {
-				this.rootDirs.add(dir);
-			}
-		}
-		if (this.rootDirs.size === 0) {
-			this.rootDirs.add(path.resolve(path.dirname(this.tsConfigPath)));
-		}
-
+		this.rootDir = compilerOptions.rootDir;
 		this.outDir = compilerOptions.outDir;
 	}
 
-	private getRootDirForFilePath(filePath: string) {
-		for (const rootDir of this.rootDirs) {
-			if (fsUtil.isPathDescendantOf(filePath, rootDir)) {
-				return rootDir;
+	private getOutPath(filePath: string) {
+		const ext = path.extname(filePath);
+		if (ext === ".ts") filePath = filePath.slice(0, -ext.length);
+		const subExt = path.extname(filePath);
+		if (subExt === ".d") filePath = filePath.slice(0, -subExt.length);
+
+		const relativeToRoot = path.relative(this.rootDir, filePath);
+		return path.join(this.outDir, relativeToRoot + ".lua");
+	}
+
+	public compile() {
+		for (const sourceFile of this.program.getSourceFiles()) {
+			if (!sourceFile.isDeclarationFile) {
+				const luaAST = transformSourceFile(
+					new TransformState(this.program.getTypeChecker(), sourceFile),
+					sourceFile,
+				);
+				const luaSource = renderAST(luaAST);
+				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
 			}
 		}
-		throw new ProjectError(`Unable to find rootDir for "${filePath}"`);
 	}
-
-	private getOutDirForFilePath(filePath: string) {
-		if (this.rootDirs.size === 1) {
-			return this.outDir;
-		}
-		return path.join(this.outDir, path.basename(this.getRootDirForFilePath(filePath)));
-	}
-
-	public compile() {}
 }

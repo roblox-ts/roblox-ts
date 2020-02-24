@@ -7,7 +7,6 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
-import { pushToVar } from "./pushToVar";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -120,6 +119,7 @@ function transformOptionalChainInner(
 	tempId: lua.TemporaryIdentifier | undefined = undefined,
 	index = 0,
 ): lua.Expression {
+	if (index >= chain.length) return expression;
 	const item = chain[index];
 	if (item.optional) {
 		if (tempId === undefined) {
@@ -139,47 +139,41 @@ function transformOptionalChainInner(
 			);
 		}
 
-		if (index + 1 < chain.length) {
-			const { expression: inner, statements } = state.capturePrereqs(() =>
-				transformOptionalChainInner(state, chain, transformChainItem(state, tempId!, item), tempId, index + 1),
-			);
+		const { expression: newValue, statements } = state.capturePrereqs(() =>
+			transformOptionalChainInner(state, chain, transformChainItem(state, tempId!, item), tempId, index + 1),
+		);
 
-			if (tempId !== inner) {
-				lua.list.push(
-					statements,
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: tempId,
-						right: inner,
-					}),
-				);
-			}
-
-			state.prereq(
-				lua.create(lua.SyntaxKind.IfStatement, {
-					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: tempId,
-						operator: lua.BinaryOperator.TildeEquals,
-						right: lua.nil(),
-					}),
-					statements,
-					elseBody: lua.list.make(),
+		if (lua.list.isEmpty(statements)) {
+			lua.list.push(
+				statements,
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: tempId,
+					right: newValue,
 				}),
 			);
 		}
 
+		state.prereq(
+			lua.create(lua.SyntaxKind.IfStatement, {
+				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: tempId,
+					operator: lua.BinaryOperator.TildeEquals,
+					right: lua.nil(),
+				}),
+				statements,
+				elseBody: lua.list.make(),
+			}),
+		);
+
 		return tempId;
 	} else {
-		if (index + 1 < chain.length) {
-			return transformOptionalChainInner(
-				state,
-				chain,
-				transformChainItem(state, expression, item),
-				tempId,
-				index + 1,
-			);
-		} else {
-			return transformChainItem(state, expression, item);
-		}
+		return transformOptionalChainInner(
+			state,
+			chain,
+			transformChainItem(state, expression, item),
+			tempId,
+			index + 1,
+		);
 	}
 }
 

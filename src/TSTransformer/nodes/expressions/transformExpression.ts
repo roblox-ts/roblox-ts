@@ -13,6 +13,7 @@ import {
 	transformStringLiteral,
 	transformTrueKeyword,
 } from "TSTransformer/nodes/expressions/transformLiteral";
+import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
@@ -52,6 +53,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+	[ts.SyntaxKind.NewExpression, transformNewExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {

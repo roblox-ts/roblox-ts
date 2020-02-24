@@ -17,6 +17,7 @@ const ENFORCED_OPTIONS = {
 
 interface ExtraOptionChecks {
 	typeRoots: Exclude<ts.CompilerOptions["typeRoots"], undefined>;
+	rootDir: Exclude<ts.CompilerOptions["rootDir"], undefined>;
 	outDir: Exclude<ts.CompilerOptions["outDir"], undefined>;
 	jsx?: ts.JsxEmit.React;
 	jsxFactory?: "Roact.createElement";
@@ -53,11 +54,11 @@ export function validateCompilerOptions(
 	}
 
 	if (opts.target !== ENFORCED_OPTIONS.target) {
-		errors.push(`${y(`"target"`)} must be ${y(`"es6"`)}`);
+		errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
 	}
 
 	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {
-		errors.push(`${y(`"module"`)} must be ${y(`"commonjs"`)}`);
+		errors.push(`${y(`"moduleResolution"`)} must be ${y(`"Node"`)}`);
 	}
 
 	if (opts.allowSyntheticDefaultImports !== ENFORCED_OPTIONS.allowSyntheticDefaultImports) {
@@ -73,8 +74,8 @@ export function validateCompilerOptions(
 	}
 
 	// configurable compiler options
-	if (opts.rootDir === undefined && opts.rootDirs === undefined) {
-		errors.push(`${y(`"rootDir"`)} or ${y(`"rootDirs"`)} must be defined`);
+	if (opts.rootDir === undefined) {
+		errors.push(`${y(`"rootDir"`)} must be defined`);
 	}
 
 	if (opts.outDir === undefined) {

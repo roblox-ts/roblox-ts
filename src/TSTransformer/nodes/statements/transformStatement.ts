@@ -24,6 +24,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// no emit
 	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
 	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
+	[ts.SyntaxKind.ExportDeclaration, NO_EMIT], // TODO: remove this
 
 	// banned statements
 	[ts.SyntaxKind.TryStatement, DIAGNOSTIC(diagnostics.noTryStatement)],
