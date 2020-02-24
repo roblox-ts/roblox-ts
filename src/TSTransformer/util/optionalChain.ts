@@ -108,6 +108,7 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 	} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
 		return transformPropertyAccessExpressionInner(state, convertToIndexableExpression(expression), item.name);
 	} else {
+		// OptionalChainItemKind.ElementAccess
 		return transformElementAccessExpressionInner(state, convertToIndexableExpression(expression), item.expression);
 	}
 }

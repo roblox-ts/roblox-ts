@@ -13,12 +13,6 @@ export function transformCallExpressionInner(
 	return lua.create(lua.SyntaxKind.CallExpression, { expression, args });
 }
 
-function isMethod(state: TransformState, node: ts.CallExpression) {
-	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
-	return symbol && (symbol.flags & ts.SymbolFlags.Method) === ts.SymbolFlags.Method;
-}
-
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
-	console.log(node.getText(), isMethod(state, node));
 	return transformOptionalChain(state, node);
 }
