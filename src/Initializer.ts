@@ -79,10 +79,8 @@ export abstract class Initializer {
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
-		if (dependencyMode === DependencyMode.off) {
-			// Skip compiling because @rbxts/types might not be installed
-		} else {
-			// Package manager in use, @rbxts/types has been installed, compile
+		// If no package manager, skip compiling because @rbxts/types might not be installed
+		if (dependencyMode !== DependencyMode.off) {
 			await this.doStep(
 				"Compiling",
 				async () =>
