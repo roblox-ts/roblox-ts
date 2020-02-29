@@ -62,19 +62,20 @@ export abstract class Initializer {
 			}
 		});
 
-    switch (dependencyMode) {
-      case DependencyMode.npm: {
-        await this.doStep("Installing @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
-        break;
-      }
-      case DependencyMode.pnpm: {
-        await this.doStep("Installing @rbxts/types", () => cmd("pnpm", ["i", "-D", "@rbxts/types"]));
-        break;
-      }
-      case DependencyMode.off: {
-        break;
-      }
-    }
+		switch (dependencyMode) {
+			case DependencyMode.npm:
+			case DependencyMode.pnpm: {
+				await this.doStep("Installing @rbxts/types", () => cmd(dependencyMode, ["i", "-D", "@rbxts/types"]));
+				break;
+			}
+			case DependencyMode.yarn: {
+				await this.doStep("Installing @rbxts/types", () => cmd("yarn", ["add", "--dev", "@rbxts/types"]));
+				break;
+			}
+			case DependencyMode.off: {
+				break;
+			}
+		}
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
