@@ -84,8 +84,8 @@ const argv = yargs
 		choices: [InitializeMode.Game, InitializeMode.Model, InitializeMode.Plugin, InitializeMode.Package],
 		conflicts: ["w", "no-analytics"],
 		type: "string",
-  })
-  
+	})
+
 	// dependency mode
 	.option("dependencies", {
 		alias: "d",
