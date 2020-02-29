@@ -13,11 +13,11 @@ export enum InitializeMode {
 }
 
 export enum DependencyMode {
-  npm = "npm",
-  pnpm = "pnpm",
-  off = "off",
+	npm = "npm",
+	pnpm = "pnpm",
+	yarn = "yarn",
+	off = "off",
 }
-
 const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
 export abstract class Initializer {
