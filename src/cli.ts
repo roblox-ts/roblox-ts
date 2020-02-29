@@ -3,7 +3,7 @@
 import yargs from "yargs";
 import { setAnalyticsDisabled } from "./analytics";
 import { LoggableError } from "./errors/LoggableError";
-import { InitializeMode, Initializer } from "./Initializer";
+import { InitializeMode, Initializer, DependencyMode } from "./Initializer";
 import { Project } from "./Project";
 import { red } from "./utility/text";
 import { Watcher } from "./Watcher";
@@ -84,7 +84,16 @@ const argv = yargs
 		choices: [InitializeMode.Game, InitializeMode.Model, InitializeMode.Plugin, InitializeMode.Package],
 		conflicts: ["w", "no-analytics"],
 		type: "string",
-	})
+  })
+  
+  // dependency mode
+  .option("dependencies", {
+    alias: "d",
+    default: DependencyMode.npm,
+    choices: [DependencyMode.npm, DependencyMode.pnpm, DependencyMode.off],
+    type: "string",
+    describe: "Package manager to use, when running --init",
+  })
 
 	// noAnalytics
 	.option("noAnalytics", {
@@ -108,7 +117,7 @@ void (async () => {
 		if (argv.noAnalytics !== undefined) {
 			await setAnalyticsDisabled(argv.noAnalytics);
 		} else if (argv.init !== undefined) {
-			await Initializer.init(argv.init as InitializeMode);
+			await Initializer.init(argv.init as InitializeMode, argv.dependencies as DependencyMode);
 		} else if (argv.watch === true) {
 			new Watcher(new Project(argv), argv.onSuccess).start();
 		} else {

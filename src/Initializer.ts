@@ -12,6 +12,12 @@ export enum InitializeMode {
 	Package = "package",
 }
 
+export enum DependencyMode {
+  npm = "npm",
+  pnpm = "pnpm",
+  off = "off",
+}
+
 const TEMPLATE_DIR = path.join(__dirname, "..", "templates");
 
 export abstract class Initializer {
@@ -23,7 +29,7 @@ export abstract class Initializer {
 		process.stdout.write(` ( ${Date.now() - start} ms )\n`);
 	}
 
-	public static async init(mode: InitializeMode) {
+	public static async init(mode: InitializeMode, dependencyMode: DependencyMode) {
 		const dir = process.cwd();
 
 		const srcPath = path.join(dir, "src");
@@ -56,7 +62,19 @@ export abstract class Initializer {
 			}
 		});
 
-		await this.doStep("Installing @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
+    switch (dependencyMode) {
+      case DependencyMode.npm: {
+        await this.doStep("Installing @rbxts/types", () => cmd("npm", ["i", "-D", "@rbxts/types"]));
+        break;
+      }
+      case DependencyMode.pnpm: {
+        await this.doStep("Installing @rbxts/types", () => cmd("pnpm", ["i", "-D", "@rbxts/types"]));
+        break;
+      }
+      case DependencyMode.off: {
+        break;
+      }
+    }
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
