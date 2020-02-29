@@ -86,14 +86,14 @@ const argv = yargs
 		type: "string",
   })
   
-  // dependency mode
-  .option("dependencies", {
-    alias: "d",
-    default: DependencyMode.npm,
-    choices: [DependencyMode.npm, DependencyMode.pnpm, DependencyMode.off],
-    type: "string",
-    describe: "Package manager to use, when running --init",
-  })
+	// dependency mode
+	.option("dependencies", {
+		alias: "d",
+		default: DependencyMode.npm,
+		choices: [DependencyMode.npm, DependencyMode.pnpm, DependencyMode.yarn, DependencyMode.off],
+		type: "string",
+		describe: "Package manager to use, when running --init",
+	})
 
 	// noAnalytics
 	.option("noAnalytics", {
