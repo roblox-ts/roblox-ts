@@ -79,15 +79,20 @@ export abstract class Initializer {
 
 		await this.doStep("Copying files", () => fs.copy(path.join(TEMPLATE_DIR, mode), dir));
 
-		await this.doStep(
-			"Compiling",
-			async () =>
-				await new Project({
-					includePath: "include",
-					project: dir,
-					rojo: "",
-				}).compileAll(),
-		);
+		if (dependencyMode === DependencyMode.off) {
+			// Skip compiling because @rbxts/types might not be installed
+		} else {
+			// Package manager in use, @rbxts/types has been installed, compile
+			await this.doStep(
+				"Compiling",
+				async () =>
+					await new Project({
+						includePath: "include",
+						project: dir,
+						rojo: "",
+					}).compileAll(),
+			);
+		}
 
 		console.log("Run `rbxtsc` to compile!");
 	}
