@@ -435,6 +435,8 @@ export function compileBinaryExpression(state: CompilerState, node: ts.BinaryExp
 	} else if (opKind === ts.SyntaxKind.InstanceOfKeyword) {
 		state.usesTSLibrary = true;
 		return `TS.instanceof(${lhsStr}, ${rhsStr})`;
+	} else if (opKind === ts.SyntaxKind.QuestionQuestionToken) {
+		throw new CompilerError("The `??` operator is not supported yet!", opToken, CompilerErrorType.TS37);
 	} else {
 		throw new CompilerError(
 			`Unexpected BinaryExpression (${node.getOperatorToken().getKindName()})  in compileBinaryExpression #2`,

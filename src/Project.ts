@@ -183,6 +183,15 @@ export class Project {
 					ProjectErrorType.BadRojoInclude,
 				);
 			}
+
+			const modulesRojoPath = this.rojoProject.getRbxFromFile(path.join(this.modulesPath, "@rbxts")).path;
+			if (!modulesRojoPath) {
+				throw new ProjectError(
+					"Could not find node_modules/@rbxts in Rojo configuration! See https://github.com/roblox-ts/roblox-ts/releases/tag/0.3.1",
+					ProjectErrorType.BadRojoInclude,
+				);
+			}
+
 			let type: ProjectType.Game | ProjectType.Model;
 			if (this.rojoProject.isGame()) {
 				type = ProjectType.Game;
@@ -521,6 +530,7 @@ export class Project {
 		if (isPathAncestorOf(this.rootPath, filePath)) {
 			await fs.copy(filePath, path.join(this.outPath, path.relative(this.rootPath, filePath)), {
 				overwrite: true,
+				filter: src => !shouldCompileFile(this.project, src),
 			});
 		}
 	}
@@ -531,6 +541,9 @@ export class Project {
 			overwrite: true,
 			filter: src => {
 				const ext = path.extname(src);
+				if (fs.lstatSync(src).isSymbolicLink()) {
+					return false;
+				}
 				if (ext === TS_EXT) {
 					const basename = path.basename(src, ext);
 					const subext = path.extname(basename);

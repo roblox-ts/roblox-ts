@@ -85,7 +85,7 @@ export = () => {
 
 	it("should unpack function return tuples with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, number]> {
-			return [101, 203];
+			return [101, 203] as LuaTuple<[number, number]>;
 		}
 		const [a, b] = foo();
 		expect(a).to.equal(101);
@@ -101,7 +101,7 @@ export = () => {
 
 	it("should support functions returning tuple calls with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, string]> {
-			return [1, "2"];
+			return [1, "2"] as LuaTuple<[number, string]>;
 		}
 
 		function bar() {
@@ -115,11 +115,11 @@ export = () => {
 
 	it("should support wrapping tuple returns in tuple with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, string]> {
-			return [1, "2"];
+			return [1, "2"] as LuaTuple<[number, string]>;
 		}
 
 		function bar(): LuaTuple<[[number, string], boolean]> {
-			return [foo(), true];
+			return ([foo(), true] as unknown) as LuaTuple<[[number, string], boolean]>;
 		}
 
 		const [[a, b], c] = bar();
@@ -132,7 +132,7 @@ export = () => {
 		let itWorked = false;
 		function foo(): LuaTuple<[number, string]> {
 			itWorked = true;
-			return [1, "2"];
+			return [1, "2"] as LuaTuple<[number, string]>;
 		}
 		foo();
 		expect(itWorked).to.equal(true);
@@ -141,7 +141,7 @@ export = () => {
 	it("should support indirect tuple returns with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, number, number]> {
 			const result: [number, number, number] = [1, 2, 3];
-			return result;
+			return result as LuaTuple<[number, number, number]>;
 		}
 		const [x, y, z] = foo();
 		expect(x).to.equal(1);
@@ -152,7 +152,7 @@ export = () => {
 	it("should allow tuples access to array functions with LuaTuple<T>", () => {
 		function foo(): LuaTuple<[number, number, number]> {
 			const result: [number, number, number] = [1, 2, 3];
-			return result;
+			return result as LuaTuple<[number, number, number]>;
 		}
 
 		expect(foo().pop()).to.equal(3);
@@ -160,7 +160,7 @@ export = () => {
 
 	it("should allow LuaTuples to have Array<> inside", () => {
 		function foo(): LuaTuple<[number, number, ...Array<string>] | []> {
-			return [1, 2, "3"];
+			return ([1, 2, "3"] as unknown) as LuaTuple<[number, number, ...Array<string>] | []>;
 		}
 
 		expect(foo().pop()).to.equal("3");
@@ -168,7 +168,7 @@ export = () => {
 
 	it("should support assigning from LuaTuples", () => {
 		function foo(): LuaTuple<[number, number]> {
-			return [101, 203];
+			return [101, 203] as LuaTuple<[number, number]>;
 		}
 
 		let a = 0;
@@ -180,7 +180,7 @@ export = () => {
 
 	it("should support assigning from LuaTuples with omitted expressions", () => {
 		function foo(): LuaTuple<[number, number, number]> {
-			return [101, 203, 345];
+			return [101, 203, 345] as LuaTuple<[number, number, number]>;
 		}
 
 		let a = 0;
@@ -192,7 +192,7 @@ export = () => {
 
 	it("should support nested assigning from LuaTuples", () => {
 		function foo(): LuaTuple<[number, [number, number]]> {
-			return [101, [203, 345]];
+			return [101, [203, 345]] as LuaTuple<[number, [number, number]]>;
 		}
 
 		let a = 0;
@@ -204,7 +204,7 @@ export = () => {
 
 	it("should support nested assigning from LuaTuples", () => {
 		function foo(): LuaTuple<[number, { a: number; b: number }]> {
-			return [101, { a: 203, b: 345 }];
+			return [101, { a: 203, b: 345 }] as LuaTuple<[number, { a: number; b: number }]>;
 		}
 
 		let a = 0;

@@ -5,7 +5,10 @@
 		"ReplicatedStorage": {
 			"$className": "ReplicatedStorage",
 			"include": {
-				"$path": "../lib"
+				"$path": "../lib",
+				"node_modules": {
+					"$path": "node_modules/@rbxts"
+				}
 			},
 			"src": {
 				"$className": "Folder",
