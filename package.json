@@ -44,7 +44,7 @@
 		"ts-morph": "^6.0.3",
 		"universal-analytics": "^0.4.20",
 		"uuid": "^3.4.0",
-		"yargs": "^15.1.0"
+		"yargs": "^15.2.0"
 	},
 	"devDependencies": {
 		"@types/cross-spawn": "^6.0.1",
