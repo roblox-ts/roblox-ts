@@ -93,6 +93,14 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 
 	const subext = path.extname(path.basename(filePath, ext));
 
+	if (subext !== "" && subext !== SERVER_SUBEXT && subext !== CLIENT_SUBEXT) {
+		throw new CompilerError(
+				"Only .client, .server and none are allowed as subextensions! (remove any extra . from the module name)",
+				file,
+				CompilerErrorType.UnexpectedExtensionType,
+		);
+	}
+
 	if (ext === JSON_EXT) {
 		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
 			throw new CompilerError(
