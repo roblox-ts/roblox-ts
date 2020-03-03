@@ -95,9 +95,9 @@ export function getScriptType(file: ts.SourceFile): ScriptType {
 
 	if (subext !== "" && subext !== SERVER_SUBEXT && subext !== CLIENT_SUBEXT) {
 		throw new CompilerError(
-				"Only .client, .server and none are allowed as subextensions! (remove any extra . from the module name)",
-				file,
-				CompilerErrorType.UnexpectedExtensionType,
+			"Only .client, .server and none are allowed as subextensions! (remove any extra . from the module name)",
+			file,
+			CompilerErrorType.UnexpectedExtensionType,
 		);
 	}
 
