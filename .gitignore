@@ -7,6 +7,4 @@ out
 .DS_Store
 .history
 
-out.lua
-ast.json
-input
+test

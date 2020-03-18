@@ -9,7 +9,7 @@ import { transformSourceFile } from "TSTransformer/nodes/transformSourceFile";
 import ts from "typescript";
 
 const FILE_NAME = "test.ts";
-const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "input")).toString();
+const tsSource = fs.readFileSync(path.resolve(__dirname, "..", "..", "test", "input")).toString();
 const sourceFile = ts.createSourceFile(FILE_NAME, tsSource, ts.ScriptTarget.ESNext, true, ts.ScriptKind.TSX);
 
 const program = ts.createProgram({
@@ -50,7 +50,7 @@ if (preEmitDiagnostics.length > 0) {
 
 const state = new TransformState(program.getTypeChecker(), sourceFile);
 const luaAST = transformSourceFile(state, sourceFile);
-fs.writeFileSync(path.resolve(__dirname, "..", "..", "ast.json"), lua.visualizeAST(luaAST));
+fs.writeFileSync(path.resolve(__dirname, "..", "..", "test", "ast.json"), lua.visualizeAST(luaAST));
 
 if (state.diagnostics.length > 0) {
 	console.log(formatDiagnostics(state.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts"));
@@ -58,4 +58,4 @@ if (state.diagnostics.length > 0) {
 }
 
 const luaSource = renderAST(luaAST);
-fs.writeFileSync(path.resolve(__dirname, "..", "..", "out.lua"), luaSource);
+fs.writeFileSync(path.resolve(__dirname, "..", "..", "test", "out.lua"), luaSource);
