@@ -144,7 +144,7 @@ function transformOptionalChainInner(
 			transformOptionalChainInner(state, chain, transformChainItem(state, tempId!, item), tempId, index + 1),
 		);
 
-		if (lua.list.isEmpty(statements)) {
+		if (tempId !== newValue) {
 			lua.list.push(
 				statements,
 				lua.create(lua.SyntaxKind.Assignment, {
