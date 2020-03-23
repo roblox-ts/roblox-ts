@@ -26,6 +26,7 @@ export class Project {
 	public readonly rojoFilePath: string | undefined;
 
 	private readonly program: ts.Program;
+	private readonly typeChecker: ts.TypeChecker;
 	private readonly parsedCommandLine: ts.ParsedCommandLine;
 	private readonly tsConfigPath: string;
 	private readonly options: ProjectOptions;
@@ -51,13 +52,15 @@ export class Project {
 		const compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
 
+		this.rootDir = compilerOptions.rootDir;
+		this.outDir = compilerOptions.outDir;
+
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: compilerOptions,
 		});
 
-		this.rootDir = compilerOptions.rootDir;
-		this.outDir = compilerOptions.outDir;
+		this.typeChecker = this.program.getTypeChecker();
 	}
 
 	private getOutPath(filePath: string) {
@@ -73,10 +76,7 @@ export class Project {
 	public compile() {
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
-				const luaAST = transformSourceFile(
-					new TransformState(this.program.getTypeChecker(), sourceFile),
-					sourceFile,
-				);
+				const luaAST = transformSourceFile(new TransformState(this.typeChecker, sourceFile), sourceFile);
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
 			}
