@@ -1,10 +1,10 @@
 import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
-import { DiagnosticError } from "TSProject/errors/DiagnosticError";
-import { ProjectError } from "TSProject/errors/ProjectError";
-import { createParseConfigFileHost } from "TSProject/util/createParseConfigFileHost";
-import { validateCompilerOptions } from "TSProject/util/validateCompilerOptions";
+import { DiagnosticError } from "Project/errors/DiagnosticError";
+import { ProjectError } from "Project/errors/ProjectError";
+import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
+import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { transformSourceFile, TransformState } from "TSTransformer";
 import ts from "typescript";
 

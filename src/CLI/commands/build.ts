@@ -1,9 +1,9 @@
 import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
 import { identity } from "Shared/util/identity";
-import { Project, ProjectOptions } from "TSProject";
-import { DiagnosticError } from "TSProject/errors/DiagnosticError";
-import { ProjectError } from "TSProject/errors/ProjectError";
+import { Project, ProjectOptions } from "Project";
+import { DiagnosticError } from "Project/errors/DiagnosticError";
+import { ProjectError } from "Project/errors/ProjectError";
 import ts from "typescript";
 import yargs from "yargs";
 

@@ -1,4 +1,4 @@
-# roblox-ts TSProject
+# roblox-ts Project
 
 Controls the orchestration of:
 - loading options from tsconfig.json,

@@ -1,4 +1,4 @@
-import { DiagnosticError } from "TSProject/errors/DiagnosticError";
+import { DiagnosticError } from "Project/errors/DiagnosticError";
 import ts from "typescript";
 
 export function createParseConfigFileHost(): ts.ParseConfigFileHost {

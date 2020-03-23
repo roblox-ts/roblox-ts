@@ -5,5 +5,5 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 - [CLI](./CLI/README.md)
 - [LuaAST](./LuaAST/README.md)
 - [LuaRenderer](./LuaRenderer/README.md)
-- [TSProject](./TSProject/README.md)
+- [Project](./Project/README.md)
 - [TSTransformer](./TSTransformer/README.md)

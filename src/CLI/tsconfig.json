@@ -6,6 +6,6 @@
 	},
 	"references": [
 		{ "path": "../Shared" },
-		{ "path": "../TSProject" },
+		{ "path": "../Project" },
 	],
 }

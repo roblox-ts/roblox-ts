@@ -1,6 +1,6 @@
 import chalk from "chalk";
 import path from "path";
-import { ProjectError } from "TSProject/errors/ProjectError";
+import { ProjectError } from "Project/errors/ProjectError";
 import ts from "typescript";
 
 // force colors
