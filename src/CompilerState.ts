@@ -28,6 +28,7 @@ export class CompilerState {
 	) {}
 	public declarationContext = new Map<ts.Node, DeclarationContext>();
 	public alreadyCheckedTruthyConditionals = new Array<ts.Node>();
+	public alreadyCompiled = new Map<ts.Expression, string>(); // hack responsibly, kids.
 
 	public pushToDeclarationOrNewId(
 		node: ts.Node,

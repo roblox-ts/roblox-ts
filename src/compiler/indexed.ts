@@ -8,6 +8,7 @@ import {
 	getPropertyAccessExpressionType,
 	PropertyCallExpType,
 	shouldWrapExpression,
+	assertUnquestionable,
 } from ".";
 import { CompilerState } from "../CompilerState";
 import { CompilerError, CompilerErrorType } from "../errors/CompilerError";
@@ -230,9 +231,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	const propertyStr = node.getName();
 	const expType = getType(exp);
 
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
-	}
+	assertUnquestionable(node);
 
 	const nameNode = node.getNameNode();
 	checkApiAccess(state, nameNode);
@@ -241,7 +240,7 @@ export function compilePropertyAccessExpression(state: CompilerState, node: ts.P
 	checkNonAny(nameNode);
 
 	if (ts.TypeGuards.isSuperExpression(exp)) {
-		return safeLuaIndex("self", propertyStr);
+		return safeLuaIndex("super", propertyStr);
 	}
 
 	const enumStr = assertIndexType(state, node, expType.getSymbol()?.getValueDeclaration(), propertyStr, exp, expType);
@@ -348,9 +347,6 @@ export function compileElementAccessDataTypeExpression(
 }
 
 export function compileElementAccessExpression(state: CompilerState, node: ts.ElementAccessExpression) {
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
-	}
-
+	assertUnquestionable(node);
 	return compileElementAccessDataTypeExpression(state, node)(compileElementAccessBracketExpression(state, node));
 }
