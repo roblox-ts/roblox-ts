@@ -33,13 +33,6 @@ import { isIdentifierWhoseDefinitionMatchesNode, skipNodesDownwards, skipNodesUp
 import { isMethodDeclaration } from "./function";
 
 export function compileExpression(state: CompilerState, node: ts.Expression): string {
-	if (ts.TypeGuards.isExpression(node)) {
-		const compiledSource = state.alreadyCompiled.get(node);
-		if (compiledSource) {
-			return compiledSource;
-		}
-	}
-
 	if (ts.TypeGuards.isStringLiteral(node) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(node)) {
 		return compileStringLiteral(state, node);
 	} else if (ts.TypeGuards.isNumericLiteral(node)) {
