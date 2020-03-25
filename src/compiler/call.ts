@@ -243,8 +243,8 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	}
 
 	let targetLength: string;
-	let repititions: string | undefined;
-	let rawRepititions: number | undefined;
+	let repetitions: string | undefined;
+	let rawRepetitions: number | undefined;
 
 	if (ts.TypeGuards.isStringLiteral(strParam) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(strParam)) {
 		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
@@ -256,9 +256,9 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 				ts.TypeGuards.isStringLiteral(fillStringParam) ||
 				ts.TypeGuards.isNoSubstitutionTemplateLiteral(fillStringParam)
 			) {
-				rawRepititions =
+				rawRepetitions =
 					literalTargetLength / (fillStringParam ? getLuaStringLength(fillStringParam.getLiteralText()) : 1);
-				repititions = `${Math.ceil(rawRepititions)}`;
+				repetitions = `${Math.ceil(rawRepetitions)}`;
 			}
 
 			targetLength = `${literalTargetLength}`;
@@ -276,9 +276,9 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	}
 
 	const doNotTrim =
-		(rawRepititions !== undefined && rawRepititions === Math.ceil(rawRepititions)) || fillStringLength === "1";
+		(rawRepetitions !== undefined && rawRepetitions === Math.ceil(rawRepetitions)) || fillStringLength === "1";
 
-	const repeatedStr = `string.rep(${fillString}, ${repititions ||
+	const repeatedStr = `string.rep(${fillString}, ${repetitions ||
 		(fillStringLength === "1"
 			? targetLength
 			: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})`;

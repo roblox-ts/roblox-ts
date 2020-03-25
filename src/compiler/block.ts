@@ -19,3 +19,4 @@ export function compileBlock(state: CompilerState, node: ts.Block) {
 	}
 	return result;
 }
+// ===
