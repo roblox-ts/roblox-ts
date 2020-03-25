@@ -940,6 +940,7 @@ export function compileCallExpression(
 		let callPath = compileExpression(state, exp);
 
 		if (node.hasQuestionDotToken()) {
+			assertUnquestionable(node);
 			const id = ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent()!))
 				? ""
 				: state.pushPrecedingStatementToNewId(exp, "");
