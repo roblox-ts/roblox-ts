@@ -208,16 +208,16 @@ export = () => {
 		assertEquals("abc".startsWith("abcd", -0), false);
 		assertEquals("abc".startsWith("bcde", -0), false);
 
-		assertEquals("abc".startsWith("", +0), true);
-		assertEquals("abc".startsWith("\0", +0), false);
-		assertEquals("abc".startsWith("a", +0), true);
-		assertEquals("abc".startsWith("b", +0), false);
-		assertEquals("abc".startsWith("ab", +0), true);
-		assertEquals("abc".startsWith("bc", +0), false);
-		assertEquals("abc".startsWith("abc", +0), true);
-		assertEquals("abc".startsWith("bcd", +0), false);
-		assertEquals("abc".startsWith("abcd", +0), false);
-		assertEquals("abc".startsWith("bcde", +0), false);
+		assertEquals("abc".startsWith("", 0), true);
+		assertEquals("abc".startsWith("\0", 0), false);
+		assertEquals("abc".startsWith("a", 0), true);
+		assertEquals("abc".startsWith("b", 0), false);
+		assertEquals("abc".startsWith("ab", 0), true);
+		assertEquals("abc".startsWith("bc", 0), false);
+		assertEquals("abc".startsWith("abc", 0), true);
+		assertEquals("abc".startsWith("bcd", 0), false);
+		assertEquals("abc".startsWith("abcd", 0), false);
+		assertEquals("abc".startsWith("bcde", 0), false);
 
 		assertEquals("abc".startsWith("", 1), true);
 		assertEquals("abc".startsWith("\0", 1), false);
@@ -230,32 +230,32 @@ export = () => {
 		assertEquals("abc".startsWith("abcd", 1), false);
 		assertEquals("abc".startsWith("bcde", 1), false);
 
-		assertEquals("abc".startsWith("", +Infinity), true);
-		assertEquals("abc".startsWith("\0", +Infinity), false);
-		assertEquals("abc".startsWith("a", +Infinity), false);
-		assertEquals("abc".startsWith("b", +Infinity), false);
-		assertEquals("abc".startsWith("ab", +Infinity), false);
-		assertEquals("abc".startsWith("bc", +Infinity), false);
-		assertEquals("abc".startsWith("abc", +Infinity), false);
-		assertEquals("abc".startsWith("bcd", +Infinity), false);
-		assertEquals("abc".startsWith("abcd", +Infinity), false);
-		assertEquals("abc".startsWith("bcde", +Infinity), false);
+		assertEquals("abc".startsWith("", Infinity), true);
+		assertEquals("abc".startsWith("\0", Infinity), false);
+		assertEquals("abc".startsWith("a", Infinity), false);
+		assertEquals("abc".startsWith("b", Infinity), false);
+		assertEquals("abc".startsWith("ab", Infinity), false);
+		assertEquals("abc".startsWith("bc", Infinity), false);
+		assertEquals("abc".startsWith("abc", Infinity), false);
+		assertEquals("abc".startsWith("bcd", Infinity), false);
+		assertEquals("abc".startsWith("abcd", Infinity), false);
+		assertEquals("abc".startsWith("bcde", Infinity), false);
 
 		assertEquals("[a-z]+(bar)?".startsWith("[a-z]+"), true);
 		assertEquals("[a-z]+(bar)?".startsWith("(bar)?", 6), true);
 
 		// https://mathiasbynens.be/notes/javascript-unicode#poo-test
-		const string = "I\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\u2603\u{1F4A9}";
-		assertEquals(string.startsWith(""), true);
-		assertEquals(string.startsWith("\xF1t\xEBr"), false);
-		assertEquals(string.startsWith("\xF1t\xEBr", 1), true);
-		assertEquals(string.startsWith("\xE0liz\xE6"), false);
-		assertEquals(string.startsWith("\xE0liz\xE6", 11), true);
-		assertEquals(string.startsWith("\xF8n\u{2603}\u{1F4A9}"), false);
-		assertEquals(string.startsWith("\xF8n\u{2603}\u{1F4A9}", 18), true);
-		assertEquals(string.startsWith("\u{2603}"), false);
-		assertEquals(string.startsWith("\u{2603}", 20), true);
-		assertEquals(string.startsWith("\u{1F4A9}"), false);
-		assertEquals(string.startsWith("\u{1F4A9}", 21), true);
+		const str = "I\xF1t\xEBrn\xE2ti\xF4n\xE0liz\xE6ti\xF8n\u2603\u{1F4A9}";
+		assertEquals(str.startsWith(""), true);
+		assertEquals(str.startsWith("\xF1t\xEBr"), false);
+		assertEquals(str.startsWith("\xF1t\xEBr", 1), true);
+		assertEquals(str.startsWith("\xE0liz\xE6"), false);
+		assertEquals(str.startsWith("\xE0liz\xE6", 11), true);
+		assertEquals(str.startsWith("\xF8n\u{2603}\u{1F4A9}"), false);
+		assertEquals(str.startsWith("\xF8n\u{2603}\u{1F4A9}", 18), true);
+		assertEquals(str.startsWith("\u{2603}"), false);
+		assertEquals(str.startsWith("\u{2603}", 20), true);
+		assertEquals(str.startsWith("\u{1F4A9}"), false);
+		assertEquals(str.startsWith("\u{1F4A9}", 21), true);
 	});
 };
