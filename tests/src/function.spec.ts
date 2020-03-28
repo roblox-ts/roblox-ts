@@ -277,6 +277,6 @@ export = () => {
 			}, // wouldn't compile previously because it is a named function
 		};
 		const { saferNum } = obj;
-		print(saferNum(5));
+		expect(saferNum(5)).to.equal(5);
 	});
 };
