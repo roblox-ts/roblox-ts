@@ -270,5 +270,13 @@ export = () => {
 		((n: 5) => {
 			expect(n).to.equal(5);
 		})(5);
+
+		const obj = {
+			saferNum: function funcName(n: number): number {
+				return n === n && n > 0 ? n : 0;
+			}, // wouldn't compile previously because it is a named function
+		};
+		const { saferNum } = obj;
+		print(saferNum(5));
 	});
 };
