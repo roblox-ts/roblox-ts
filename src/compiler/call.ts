@@ -941,29 +941,6 @@ export function compileCallExpression(
 
 		if (node.hasQuestionDotToken()) {
 			assertUnquestionable(node);
-			const id = ts.TypeGuards.isExpressionStatement(skipNodesUpwards(node.getParent()!))
-				? ""
-				: state.pushPrecedingStatementToNewId(exp, "");
-
-			callPath = state.pushPrecedingStatementToNewId(exp, callPath);
-
-			// a little code duplication here, but, this is temporary anyway
-			result = `${callPath}(${compileCallArgumentsAndJoin(
-				state,
-				params,
-				isDefinedAsMethod(exp) ? "nil" : undefined,
-			)})`;
-
-			if (!doNotWrapTupleReturn) {
-				result = `{ ${result} }`;
-			}
-
-			state.pushPrecedingStatements(exp, state.indent + `if ${callPath} ~= nil then\n`);
-			state.pushIndent();
-			state.pushPrecedingStatements(exp, state.indent + `${id && id + " = "}${result};\n`);
-			state.popIndent();
-			state.pushPrecedingStatements(exp, state.indent + `end;\n`);
-			return id;
 		} else if (
 			ts.TypeGuards.isBinaryExpression(exp) ||
 			ts.TypeGuards.isArrowFunction(exp) ||
