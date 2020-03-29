@@ -18,7 +18,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 	);
 
 	const readable = lua.isIdentifier(writable) ? writable : origValue;
-	const operator = node.operator === ts.SyntaxKind.PlusPlusToken ? lua.BinaryOperator.Plus : lua.BinaryOperator.Minus;
+	const operator: lua.BinaryOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+" : "-";
 
 	state.prereq(
 		lua.create(lua.SyntaxKind.Assignment, {
@@ -45,12 +45,12 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		return lua.create(lua.SyntaxKind.UnaryExpression, {
 			expression: transformExpression(state, node.operand),
-			operator: lua.UnaryOperator.Minus,
+			operator: "-",
 		});
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
 		return lua.create(lua.SyntaxKind.UnaryExpression, {
 			expression: transformExpression(state, node.operand),
-			operator: lua.UnaryOperator.Not,
+			operator: "not",
 		});
 	} else {
 		throw new Error(`Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);

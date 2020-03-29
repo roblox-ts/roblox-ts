@@ -8,7 +8,7 @@ function transformParamInitializer(state: TransformState, paramId: lua.Identifie
 	return lua.create(lua.SyntaxKind.IfStatement, {
 		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: paramId,
-			operator: lua.BinaryOperator.EqualsEquals,
+			operator: "==",
 			right: lua.nil(),
 		}),
 		elseBody: lua.list.make(),

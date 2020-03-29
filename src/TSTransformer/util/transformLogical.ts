@@ -133,34 +133,24 @@ function buildInlineConditionExpression(
 
 export function transformLogical(state: TransformState, node: ts.BinaryExpression): lua.Expression {
 	if (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
-		return buildInlineConditionExpression(
-			state,
-			node,
-			node.operatorToken.kind,
-			lua.BinaryOperator.And,
-			(conditionId, type) => createTruthinessChecks(state, conditionId, type),
+		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "and", (conditionId, type) =>
+			createTruthinessChecks(state, conditionId, type),
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
-		return buildInlineConditionExpression(
-			state,
-			node,
-			node.operatorToken.kind,
-			lua.BinaryOperator.Or,
-			(conditionId, type) => {
-				let expression = createTruthinessChecks(state, conditionId, type);
+		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", (conditionId, type) => {
+			let expression = createTruthinessChecks(state, conditionId, type);
 
-				if (!lua.isSimple(expression)) {
-					expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-						expression,
-					});
-				}
-
-				return lua.create(lua.SyntaxKind.UnaryExpression, {
-					operator: lua.UnaryOperator.Not,
+			if (!lua.isSimple(expression)) {
+				expression = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 					expression,
 				});
-			},
-		);
+			}
+
+			return lua.create(lua.SyntaxKind.UnaryExpression, {
+				operator: "not",
+				expression,
+			});
+		});
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
 		/*
 		  nullish coalescing is similar to and/or transformation, but:
@@ -172,7 +162,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		buildLogicalChainPrereqs(state, chain, conditionId, conditionId =>
 			lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: conditionId,
-				operator: lua.BinaryOperator.EqualsEquals,
+				operator: "==",
 				right: lua.nil(),
 			}),
 		);

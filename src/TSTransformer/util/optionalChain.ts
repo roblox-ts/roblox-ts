@@ -158,7 +158,7 @@ function transformOptionalChainInner(
 			lua.create(lua.SyntaxKind.IfStatement, {
 				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 					left: tempId,
-					operator: lua.BinaryOperator.TildeEquals,
+					operator: "~=",
 					right: lua.nil(),
 				}),
 				statements,

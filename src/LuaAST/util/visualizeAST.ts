@@ -39,11 +39,11 @@ export function visualizeAST(ast: lua.Node | lua.List<lua.Node>) {
 			}
 			if (this.kind === lua.SyntaxKind.UnaryExpression) {
 				if (key === "operator") {
-					return lua.UnaryOperator[value];
+					return value;
 				}
 			} else if (this.kind === lua.SyntaxKind.BinaryExpression) {
 				if (key === "operator") {
-					return lua.BinaryOperator[value];
+					return value;
 				}
 			}
 			if (key === "parent") {
