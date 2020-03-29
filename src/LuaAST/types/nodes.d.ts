@@ -4,6 +4,8 @@ import * as lua from "LuaAST";
 export interface Node<T extends lua.SyntaxKind = lua.SyntaxKind> {
 	kind: T;
 	parent?: lua.Node;
+	prev?: lua.Node<T>;
+	next?: lua.Node<T>;
 }
 
 export interface IndexableExpression<

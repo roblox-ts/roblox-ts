@@ -17,7 +17,7 @@ function shouldRenderShorthand(node: lua.IfStatement): boolean {
 		node.elseBody.head === undefined &&
 		node.statements.head !== undefined &&
 		node.statements.head === node.statements.tail &&
-		lua.isAssignment(node.statements.head.value)
+		lua.isAssignment(node.statements.head)
 	);
 }
 

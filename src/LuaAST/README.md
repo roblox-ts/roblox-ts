@@ -16,7 +16,7 @@
 
 **impl/typeGuards.ts** - helper functions for determining what a particular node is
 
-**impl/List.ts** - types + helper functions for lua.List<T> and lua.ListNode<T>
+**impl/List.ts** - types + helper functions for lua.List<T>
 
 ## Adding a new node
 

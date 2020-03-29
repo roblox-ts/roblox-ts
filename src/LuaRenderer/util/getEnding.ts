@@ -53,11 +53,11 @@ function startsWithParenthesis(node: lua.Statement) {
 }
 
 function getNextNonComment(state: RenderState) {
-	let listNode = state.peekListNode()?.next;
-	while (listNode && lua.isComment(listNode.value)) {
-		listNode = listNode.next;
+	let statement = state.peekStatementStack()?.next;
+	while (statement && lua.isComment(statement)) {
+		statement = statement.next;
 	}
-	return listNode?.value;
+	return statement;
 }
 
 /**
