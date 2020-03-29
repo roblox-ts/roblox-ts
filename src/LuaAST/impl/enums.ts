@@ -41,6 +41,7 @@ export enum SyntaxKind {
 	MapField,
 }
 
+// used to detect what category a given kind falls into
 export enum SyntaxKind {
 	FirstIndexableExpression = Identifier,
 	LastIndexableExpression = ParenthesizedExpression,
@@ -50,28 +51,4 @@ export enum SyntaxKind {
 	LastStatement = Comment,
 	FirstField = MapField,
 	LastField = MapField,
-}
-
-export enum BinaryOperator {
-	Plus,
-	Minus,
-	Asterisk,
-	Slash,
-	Caret,
-	Percent,
-	DotDot,
-	LessThan,
-	LessThanEquals,
-	GreaterThan,
-	GreaterThanEquals,
-	EqualsEquals,
-	TildeEquals,
-	And,
-	Or,
-}
-
-export enum UnaryOperator {
-	Minus,
-	Not,
-	Octothorpe,
 }

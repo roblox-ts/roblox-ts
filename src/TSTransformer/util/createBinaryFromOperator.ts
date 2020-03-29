@@ -5,30 +5,30 @@ import { NodeWithType } from "TSTransformer/types/NodeWithType";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison
-	[ts.SyntaxKind.LessThanToken, lua.BinaryOperator.LessThan],
-	[ts.SyntaxKind.GreaterThanToken, lua.BinaryOperator.GreaterThan],
-	[ts.SyntaxKind.LessThanEqualsToken, lua.BinaryOperator.LessThanEquals],
-	[ts.SyntaxKind.GreaterThanEqualsToken, lua.BinaryOperator.GreaterThanEquals],
-	[ts.SyntaxKind.EqualsEqualsEqualsToken, lua.BinaryOperator.EqualsEquals],
-	[ts.SyntaxKind.ExclamationEqualsEqualsToken, lua.BinaryOperator.TildeEquals],
+	[ts.SyntaxKind.LessThanToken, "<"],
+	[ts.SyntaxKind.GreaterThanToken, ">"],
+	[ts.SyntaxKind.LessThanEqualsToken, "<="],
+	[ts.SyntaxKind.GreaterThanEqualsToken, ">="],
+	[ts.SyntaxKind.EqualsEqualsEqualsToken, "=="],
+	[ts.SyntaxKind.ExclamationEqualsEqualsToken, "~="],
 
 	// math
-	[ts.SyntaxKind.MinusToken, lua.BinaryOperator.Minus],
-	[ts.SyntaxKind.AsteriskToken, lua.BinaryOperator.Asterisk],
-	[ts.SyntaxKind.SlashToken, lua.BinaryOperator.Slash],
-	[ts.SyntaxKind.AsteriskAsteriskToken, lua.BinaryOperator.Caret],
-	[ts.SyntaxKind.PercentToken, lua.BinaryOperator.Percent],
+	[ts.SyntaxKind.MinusToken, "-"],
+	[ts.SyntaxKind.AsteriskToken, "*"],
+	[ts.SyntaxKind.SlashToken, "/"],
+	[ts.SyntaxKind.AsteriskAsteriskToken, "^"],
+	[ts.SyntaxKind.PercentToken, "%"],
 
 	// compound assignment
-	[ts.SyntaxKind.MinusEqualsToken, lua.BinaryOperator.Minus],
-	[ts.SyntaxKind.AsteriskEqualsToken, lua.BinaryOperator.Asterisk],
-	[ts.SyntaxKind.SlashEqualsToken, lua.BinaryOperator.Slash],
-	[ts.SyntaxKind.AsteriskAsteriskEqualsToken, lua.BinaryOperator.Caret],
-	[ts.SyntaxKind.PercentEqualsToken, lua.BinaryOperator.Percent],
+	[ts.SyntaxKind.MinusEqualsToken, "-"],
+	[ts.SyntaxKind.AsteriskEqualsToken, "*"],
+	[ts.SyntaxKind.SlashEqualsToken, "/"],
+	[ts.SyntaxKind.AsteriskAsteriskEqualsToken, "^"],
+	[ts.SyntaxKind.PercentEqualsToken, "%"],
 
 	// unary
-	[ts.SyntaxKind.PlusPlusToken, lua.BinaryOperator.Plus],
-	[ts.SyntaxKind.MinusMinusToken, lua.BinaryOperator.Minus],
+	[ts.SyntaxKind.PlusPlusToken, "+"],
+	[ts.SyntaxKind.MinusMinusToken, "-"],
 ]);
 
 const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
@@ -66,13 +66,13 @@ function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType
 	if (leftIsString || rightIsString) {
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: leftIsString ? left.node : createToString(left.node),
-			operator: lua.BinaryOperator.DotDot,
+			operator: "..",
 			right: rightIsString ? right.node : createToString(right.node),
 		});
 	} else {
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: left.node,
-			operator: lua.BinaryOperator.Plus,
+			operator: "+",
 			right: right.node,
 		});
 	}

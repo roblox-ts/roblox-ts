@@ -11,7 +11,7 @@ function shouldRenderShorthand(node: lua.IfStatement): boolean {
 	return (
 		lua.isBinaryExpression(node.condition) &&
 		lua.isIdentifier(node.condition.left) &&
-		node.condition.operator === lua.BinaryOperator.EqualsEquals &&
+		node.condition.operator === "==" &&
 		lua.isNilLiteral(node.condition.right) &&
 		lua.list.isList(node.elseBody) &&
 		node.elseBody.head === undefined &&
