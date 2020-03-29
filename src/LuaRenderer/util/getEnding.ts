@@ -52,8 +52,8 @@ function startsWithParenthesis(node: lua.Statement) {
 	}
 }
 
-function getNextNonComment(state: RenderState) {
-	let statement = state.peekStatementStack()?.next;
+function getNextNonComment(node: lua.Statement) {
+	let statement = node.next;
 	while (statement && lua.isComment(statement)) {
 		statement = statement.next;
 	}
@@ -70,8 +70,8 @@ function getNextNonComment(state: RenderState) {
  * - VariableDeclaration
  * - Assignment
  */
-export function getEnding(state: RenderState, node: lua.Statement) {
-	const nextStatement = getNextNonComment(state);
+export function getEnding(node: lua.Statement) {
+	const nextStatement = getNextNonComment(node);
 	if (nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement)) {
 		return ";";
 	} else {

@@ -6,8 +6,8 @@ export function renderVariableDeclaration(state: RenderState, node: lua.Variable
 	const leftStr = render(state, node.left);
 	if (node.right) {
 		const rightStr = render(state, node.right);
-		return state.indent + `local ${leftStr} = ${rightStr}${getEnding(state, node)}\n`;
+		return state.indent + `local ${leftStr} = ${rightStr}${getEnding(node)}\n`;
 	} else {
-		return state.indent + `local ${leftStr}${getEnding(state, node)}\n`;
+		return state.indent + `local ${leftStr}${getEnding(node)}\n`;
 	}
 }

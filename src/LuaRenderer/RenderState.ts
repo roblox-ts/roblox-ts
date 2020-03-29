@@ -76,18 +76,4 @@ export class RenderState {
 		this.seenTempNodes.set(node, name);
 		return name;
 	}
-
-	private readonly statementStack = new Array<lua.Statement>();
-
-	public pushStatementStack(statement: lua.Statement) {
-		this.statementStack.push(statement);
-	}
-
-	public peekStatementStack(): lua.Statement | undefined {
-		return this.statementStack[this.statementStack.length - 1];
-	}
-
-	public popStatementStack() {
-		return this.statementStack.pop();
-	}
 }
