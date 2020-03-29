@@ -12,10 +12,8 @@ export function renderStatements(state: RenderState, statements: lua.List<lua.St
 	let result = "";
 	let statement = statements.head;
 	while (statement !== undefined) {
-		state.pushStatementStack(statement);
 		result += render(state, statement);
 		statement = statement.next;
-		state.popStatementStack();
 	}
 	return result;
 }
