@@ -4,18 +4,18 @@ import { render, RenderState } from "LuaRenderer";
 /**
  * Renders the given list of statements.
  *
- * Pushes each listNode onto the state.listNodesStack as it gets
+ * Pushes each statement onto the state.statementStack as it gets
  * rendered to give context to other statements as they render.
  * Useful for getting the next or previous sibling statement.
  */
 export function renderStatements(state: RenderState, statements: lua.List<lua.Statement>) {
 	let result = "";
-	let listNode = statements.head;
-	while (listNode !== undefined) {
-		state.pushListNode(listNode);
-		result += render(state, listNode.value);
-		listNode = listNode.next;
-		state.popListNode();
+	let statement = statements.head;
+	while (statement !== undefined) {
+		state.pushStatementStack(statement);
+		result += render(state, statement);
+		statement = statement.next;
+		state.popStatementStack();
 	}
 	return result;
 }

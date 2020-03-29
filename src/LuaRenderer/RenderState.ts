@@ -77,17 +77,17 @@ export class RenderState {
 		return name;
 	}
 
-	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
+	private readonly statementStack = new Array<lua.Statement>();
 
-	public pushListNode(listNode: lua.ListNode<lua.Statement>) {
-		this.listNodesStack.push(listNode);
+	public pushStatementStack(statement: lua.Statement) {
+		this.statementStack.push(statement);
 	}
 
-	public peekListNode(): lua.ListNode<lua.Statement> | undefined {
-		return this.listNodesStack[this.listNodesStack.length - 1];
+	public peekStatementStack(): lua.Statement | undefined {
+		return this.statementStack[this.statementStack.length - 1];
 	}
 
-	public popListNode() {
-		return this.listNodesStack.pop();
+	public popStatementStack() {
+		return this.statementStack.pop();
 	}
 }
