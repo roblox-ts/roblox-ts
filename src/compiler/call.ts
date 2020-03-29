@@ -243,8 +243,8 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	}
 
 	let targetLength: string;
-	let repititions: string | undefined;
-	let rawRepititions: number | undefined;
+	let repetitions: string | undefined;
+	let rawRepetitions: number | undefined;
 
 	if (ts.TypeGuards.isStringLiteral(strParam) || ts.TypeGuards.isNoSubstitutionTemplateLiteral(strParam)) {
 		if (maxLengthParam && ts.TypeGuards.isNumericLiteral(maxLengthParam)) {
@@ -256,9 +256,9 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 				ts.TypeGuards.isStringLiteral(fillStringParam) ||
 				ts.TypeGuards.isNoSubstitutionTemplateLiteral(fillStringParam)
 			) {
-				rawRepititions =
+				rawRepetitions =
 					literalTargetLength / (fillStringParam ? getLuaStringLength(fillStringParam.getLiteralText()) : 1);
-				repititions = `${Math.ceil(rawRepititions)}`;
+				repetitions = `${Math.ceil(rawRepetitions)}`;
 			}
 
 			targetLength = `${literalTargetLength}`;
@@ -276,9 +276,9 @@ function padAmbiguous(state: CompilerState, params: Array<ts.Expression>) {
 	}
 
 	const doNotTrim =
-		(rawRepititions !== undefined && rawRepititions === Math.ceil(rawRepititions)) || fillStringLength === "1";
+		(rawRepetitions !== undefined && rawRepetitions === Math.ceil(rawRepetitions)) || fillStringLength === "1";
 
-	const repeatedStr = `string.rep(${fillString}, ${repititions ||
+	const repeatedStr = `string.rep(${fillString}, ${repetitions ||
 		(fillStringLength === "1"
 			? targetLength
 			: `math.ceil(${targetLength} / ${fillStringLength ? fillStringLength : 1})`)})`;
@@ -393,6 +393,18 @@ const STRING_REPLACE_METHODS: ReplaceMap = new Map<string, ReplaceFunction>([
 				`(string.find(${accessPath}, ${matchParam}, ${addOneToArrayIndex(fromIndex ?? "0")}, true) ~= nil)`,
 			);
 		},
+	],
+	[
+		"startsWith",
+		(state, params) => (
+			(state.usesTSLibrary = true), `TS.string_startsWith(${compileCallArgumentsAndJoin(state, params)})`
+		),
+	],
+	[
+		"endsWith",
+		(state, params) => (
+			(state.usesTSLibrary = true), `TS.string_endsWith(${compileCallArgumentsAndJoin(state, params)})`
+		),
 	],
 ]);
 
@@ -848,15 +860,21 @@ function checkNonImportExpression(exp: ts.LeftHandSideExpression) {
 	return exp;
 }
 
+export function assertUnquestionable(node: ts.QuestionDotTokenableNode & ts.Node) {
+	if (node.hasQuestionDotToken()) {
+		throw new CompilerError(
+			`You can't use a \`?.\` token with ${node.getText()}`,
+			node,
+			CompilerErrorType.BadMethodCall,
+		);
+	}
+}
+
 export function compileCallExpression(
 	state: CompilerState,
 	node: ts.CallExpression,
 	doNotWrapTupleReturn = !isTupleReturnTypeCall(node),
 ) {
-	if (node.hasQuestionDotToken()) {
-		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
-	}
-
 	const exp = skipNodesDownwards(checkNonAny(checkNonImportExpression(node.getExpression())));
 	let result: string;
 
@@ -868,6 +886,7 @@ export function compileCallExpression(
 		const params = node.getArguments().map(arg => skipNodesDownwards(arg)) as Array<ts.Expression>;
 
 		if (ts.TypeGuards.isSuperExpression(exp)) {
+			assertUnquestionable(node);
 			if (superExpressionClassInheritsFromArray(exp, false)) {
 				if (params.length > 0) {
 					throw new CompilerError(
@@ -888,6 +907,7 @@ export function compileCallExpression(
 		const isSubstitutableMethod = GLOBAL_REPLACE_METHODS.get(exp.getText());
 
 		if (isSubstitutableMethod) {
+			assertUnquestionable(node);
 			const str = isSubstitutableMethod(state, params);
 
 			if (str) {
@@ -902,7 +922,9 @@ export function compileCallExpression(
 				if (
 					definitionParent &&
 					ts.TypeGuards.isFunctionExpression(definitionParent) &&
-					isFunctionExpressionMethod(definitionParent)
+					isFunctionExpressionMethod(definitionParent) &&
+					// make sure this is actually inside the definition, since getDefinitions can scope from destructured methods
+					node.getFirstAncestor(ancestor => ancestor === definitionParent)
 				) {
 					const alternative =
 						"this." + (skipNodesUpwards(definitionParent.getParent()) as ts.PropertyAssignment).getName();
@@ -916,14 +938,22 @@ export function compileCallExpression(
 		}
 
 		let callPath = compileExpression(state, exp);
-		if (
+
+		if (node.hasQuestionDotToken()) {
+			assertUnquestionable(node);
+		} else if (
 			ts.TypeGuards.isBinaryExpression(exp) ||
 			ts.TypeGuards.isArrowFunction(exp) ||
 			(ts.TypeGuards.isFunctionExpression(exp) && !exp.getNameNode())
 		) {
 			callPath = `(${callPath})`;
 		}
-		result = `${callPath}(${compileCallArgumentsAndJoin(state, params)})`;
+
+		result = `${callPath}(${compileCallArgumentsAndJoin(
+			state,
+			params,
+			isDefinedAsMethod(exp) ? "nil" : undefined,
+		)})`;
 	}
 
 	if (!doNotWrapTupleReturn) {
@@ -969,7 +999,12 @@ export function getPropertyAccessExpressionType(
 ): PropertyCallExpType {
 	checkApiAccess(state, expression.getNameNode());
 
-	const expType = getType(expression);
+	let expType = getType(expression);
+
+	if (expression.hasQuestionDotToken()) {
+		expType = expType.getNonNullableType();
+	}
+
 	const property = expression.getName();
 
 	if (isArrayMethodType(expType)) {
@@ -1086,9 +1121,7 @@ export function compileElementAccessCallExpression(
 	node: ts.CallExpression,
 	expression: ts.ElementAccessExpression,
 ) {
-	if (expression.hasQuestionDotToken()) {
-		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
-	}
+	assertUnquestionable(expression);
 	const expExp = skipNodesDownwards(expression.getExpression());
 	const accessor = ts.TypeGuards.isSuperExpression(expExp) ? "super" : getReadableExpressionName(state, expExp);
 
@@ -1123,10 +1156,7 @@ export function compilePropertyCallExpression(
 	expression: ts.PropertyAccessExpression,
 ) {
 	checkApiAccess(state, expression.getNameNode());
-
-	if (expression.hasQuestionDotToken()) {
-		throw new CompilerError("The `?.` operator is not supported yet!", node, CompilerErrorType.TS37);
-	}
+	assertUnquestionable(expression);
 
 	let property = expression.getName();
 	const params = [
