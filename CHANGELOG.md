@@ -1,3 +1,12 @@
+### **0.3.2**
+- `foo?.()` is now disallowed. It didn't work before and would compile incorrectly, but it will work in the refactor!
+- Improved Rojo config error language
+- Small optimizations to await operator
+- Prevent symbolic links from being overwritten
+- Fixed string.startsWith/endsWith
+- Fixed issue with named functions stored as methods wouldn't compile if destructured
+- Fixed issue where method functions do not pass in an extra nil parameter when lacking a callsite
+
 ### **0.3.1**
 - Try/Catch is now banned. See issue #873 for more details.
 - Reworked file copying logic! roblox-ts now copies any file/folder it doesn't compile from src -> out.
