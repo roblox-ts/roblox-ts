@@ -60,9 +60,12 @@ export class RenderState {
 	private getNewTempName(prefix: string) {
 		let n = 0;
 		let name: string;
+		if (prefix.length > 0) {
+			prefix = `_${prefix}`;
+		}
 		do {
-			name = `_${n}`;
-		} while (this.nameExists(`_${n++}`));
+			name = `${prefix}_${n++}`;
+		} while (this.nameExists(name));
 		this.registerName(name);
 		return name;
 	}
