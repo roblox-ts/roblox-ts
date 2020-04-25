@@ -1,9 +1,10 @@
 import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
-import { identity } from "Shared/util/identity";
+import path from "path";
 import { Project, ProjectOptions } from "Project";
 import { DiagnosticError } from "Project/errors/DiagnosticError";
 import { ProjectError } from "Project/errors/ProjectError";
+import { identity } from "Shared/util/identity";
 import ts from "typescript";
 import yargs from "yargs";
 
@@ -53,7 +54,7 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>
 
 	handler: argv => {
 		const tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
-		if (tsConfigPath === undefined) {
+		if (tsConfigPath === undefined || !path.isAbsolute(tsConfigPath)) {
 			throw new CLIError("Unable to find tsconfig.json!");
 		}
 
