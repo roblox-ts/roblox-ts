@@ -43,6 +43,7 @@ interface PropertyCallItem extends OptionalChainItem {
 	kind: OptionalChainItemKind.PropertyCall;
 	name: string;
 	callOptional: boolean;
+	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
 }
 
@@ -82,6 +83,7 @@ function createPropertyCallItem(
 		optional: node.expression.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
 		name: node.expression.name.text,
+		callType: state.typeChecker.getTypeAtLocation(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
