@@ -42,7 +42,7 @@ interface CallItem extends OptionalChainItem {
 interface PropertyCallItem extends OptionalChainItem {
 	kind: OptionalChainItemKind.PropertyCall;
 	name: string;
-	optionalCall: boolean;
+	callOptional: boolean;
 	args: ReadonlyArray<ts.Expression>;
 }
 
@@ -82,7 +82,7 @@ function createPropertyCallItem(
 		optional: node.expression.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
 		name: node.expression.name.text,
-		optionalCall: node.questionDotToken !== undefined,
+		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
 }
@@ -185,7 +185,7 @@ function transformOptionalChainInnerHelper(
 	const selfParam = lua.tempId();
 
 	if (item.kind === OptionalChainItemKind.PropertyCall) {
-		if (item.optionalCall && isMethod) {
+		if (item.callOptional && isMethod) {
 			state.prereq(
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
 					left: selfParam,
@@ -200,7 +200,7 @@ function transformOptionalChainInnerHelper(
 			expression = tempId;
 		}
 
-		if (item.optionalCall) {
+		if (item.callOptional) {
 			expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 				expression: convertToIndexableExpression(expression),
 				name: item.name,
@@ -212,7 +212,7 @@ function transformOptionalChainInnerHelper(
 		tempId = createOrSetTempId(state, tempId, expression);
 
 		let newExpression: lua.Expression;
-		if (item.kind === OptionalChainItemKind.PropertyCall && item.optionalCall) {
+		if (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional) {
 			const args = lua.list.make(...ensureTransformOrder(state, item.args));
 			if (isMethod) {
 				lua.list.unshift(args, selfParam);
@@ -244,7 +244,7 @@ function transformOptionalChainInnerHelper(
 		return tempId;
 	});
 
-	if (item.kind === OptionalChainItemKind.PropertyCall && item.optional && item.optionalCall) {
+	if (item.kind === OptionalChainItemKind.PropertyCall && item.optional && item.callOptional) {
 		state.prereq(createNilCheck(tempId!, statements));
 	} else {
 		state.prereqList(statements);
@@ -262,7 +262,7 @@ function transformOptionalChainInner(
 ): lua.Expression {
 	if (index >= chain.length) return expression;
 	const item = chain[index];
-	if (item.optional || (item.kind === OptionalChainItemKind.PropertyCall && item.optionalCall)) {
+	if (item.optional || (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional)) {
 		return transformOptionalChainInnerHelper(state, chain, expression, tempId, index);
 	} else {
 		return transformOptionalChainInner(
