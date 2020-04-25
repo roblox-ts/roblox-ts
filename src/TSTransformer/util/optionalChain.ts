@@ -174,87 +174,6 @@ function createNilCheck(tempId: TemporaryIdentifier, statements: lua.List<lua.St
 	});
 }
 
-function transformOptionalChainInnerHelper(
-	state: TransformState,
-	chain: Array<ChainItem>,
-	expression: lua.Expression,
-	tempId: lua.TemporaryIdentifier | undefined,
-	index: number,
-) {
-	const item = chain[index];
-
-	const isMethod = true;
-	const selfParam = lua.tempId();
-
-	if (item.kind === OptionalChainItemKind.PropertyCall) {
-		if (item.callOptional && isMethod) {
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: selfParam,
-					right: expression,
-				}),
-			);
-			expression = selfParam;
-		}
-
-		if (item.optional) {
-			tempId = createOrSetTempId(state, tempId, expression);
-			expression = tempId;
-		}
-
-		if (item.callOptional) {
-			expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: convertToIndexableExpression(expression),
-				name: item.name,
-			});
-		}
-	}
-
-	const { statements, expression: result } = state.capturePrereqs(() => {
-		tempId = createOrSetTempId(state, tempId, expression);
-
-		let newExpression: lua.Expression;
-		if (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional) {
-			const args = lua.list.make(...ensureTransformOrder(state, item.args));
-			if (isMethod) {
-				lua.list.unshift(args, selfParam);
-			}
-			newExpression = lua.create(lua.SyntaxKind.CallExpression, {
-				expression: tempId,
-				args,
-			});
-		} else {
-			newExpression = transformChainItem(state, tempId, item);
-		}
-
-		const { expression: newValue, statements } = state.capturePrereqs(() =>
-			transformOptionalChainInner(state, chain, newExpression, tempId, index + 1),
-		);
-
-		if (tempId !== newValue) {
-			lua.list.push(
-				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: tempId,
-					right: newValue,
-				}),
-			);
-		}
-
-		state.prereq(createNilCheck(tempId, statements));
-
-		return tempId;
-	});
-
-	if (item.kind === OptionalChainItemKind.PropertyCall && item.optional && item.callOptional) {
-		state.prereq(createNilCheck(tempId!, statements));
-	} else {
-		state.prereqList(statements);
-	}
-
-	return result;
-}
-
 function transformOptionalChainInner(
 	state: TransformState,
 	chain: Array<ChainItem>,
@@ -265,7 +184,80 @@ function transformOptionalChainInner(
 	if (index >= chain.length) return expression;
 	const item = chain[index];
 	if (item.optional || (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional)) {
-		return transformOptionalChainInnerHelper(state, chain, expression, tempId, index);
+		let isMethod = false;
+		let selfParam: lua.TemporaryIdentifier | undefined;
+
+		if (item.kind === OptionalChainItemKind.PropertyCall) {
+			isMethod = true; // TODO: solve isMethod
+			if (item.callOptional && isMethod) {
+				selfParam = lua.tempId();
+				state.prereq(
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: selfParam,
+						right: expression,
+					}),
+				);
+				expression = selfParam;
+			}
+
+			if (item.optional) {
+				tempId = createOrSetTempId(state, tempId, expression);
+				expression = tempId;
+			}
+
+			if (item.callOptional) {
+				expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+					expression: convertToIndexableExpression(expression),
+					name: item.name,
+				});
+			}
+		}
+
+		// capture so we can wrap later if necessary
+		const { statements, expression: result } = state.capturePrereqs(() => {
+			tempId = createOrSetTempId(state, tempId, expression);
+
+			let newExpression: lua.Expression;
+			if (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional) {
+				// TODO: assert not macro
+				const args = lua.list.make(...ensureTransformOrder(state, item.args));
+				if (isMethod) {
+					lua.list.unshift(args, selfParam!);
+				}
+				newExpression = lua.create(lua.SyntaxKind.CallExpression, {
+					expression: tempId,
+					args,
+				});
+			} else {
+				newExpression = transformChainItem(state, tempId, item);
+			}
+
+			const { expression: newValue, statements } = state.capturePrereqs(() =>
+				transformOptionalChainInner(state, chain, newExpression, tempId, index + 1),
+			);
+
+			if (tempId !== newValue) {
+				lua.list.push(
+					statements,
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: tempId,
+						right: newValue,
+					}),
+				);
+			}
+
+			state.prereq(createNilCheck(tempId, statements));
+
+			return tempId;
+		});
+
+		if (item.kind === OptionalChainItemKind.PropertyCall && item.optional && item.callOptional) {
+			state.prereq(createNilCheck(tempId!, statements));
+		} else {
+			state.prereqList(statements);
+		}
+
+		return result;
 	} else {
 		return transformOptionalChainInner(
 			state,
