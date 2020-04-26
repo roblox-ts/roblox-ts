@@ -1,10 +1,12 @@
 import * as lua from "LuaAST";
+import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { isMethodCall } from "TSTransformer/util/isMethodCall";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
-import ts from "typescript";
 import { pushToVar } from "TSTransformer/util/pushToVar";
+import ts from "typescript";
 
 // hack for now until we can detect arrays
 export function addOneIfNumber(expression: lua.Expression) {
@@ -18,9 +20,14 @@ export function addOneIfNumber(expression: lua.Expression) {
 
 export function transformElementAccessExpressionInner(
 	state: TransformState,
+	node: ts.ElementAccessExpression,
 	expression: lua.IndexableExpression,
 	argumentExpression: ts.Expression,
 ) {
+	if (isMethodCall(state, node)) {
+		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
+	}
+
 	const { expression: index, statements } = state.capturePrereqs(() =>
 		transformExpression(state, argumentExpression),
 	);

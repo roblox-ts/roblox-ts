@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import {
 	transformCallExpressionInner,
+	transformElementCallExpressionInner,
 	transformPropertyCallExpressionInner,
 } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
@@ -20,6 +21,7 @@ enum OptionalChainItemKind {
 	ElementAccess,
 	Call,
 	PropertyCall,
+	ElementCall,
 }
 
 interface OptionalChainItem {
@@ -49,6 +51,15 @@ interface PropertyCallItem extends OptionalChainItem {
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression };
 	kind: OptionalChainItemKind.PropertyCall;
 	name: string;
+	callOptional: boolean;
+	callType: ts.Type;
+	args: ReadonlyArray<ts.Expression>;
+}
+
+interface ElementCallItem extends OptionalChainItem {
+	node: ts.CallExpression & { expression: ts.ElementAccessExpression };
+	kind: OptionalChainItemKind.ElementCall;
+	expression: ts.Expression;
 	callOptional: boolean;
 	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
@@ -84,10 +95,7 @@ function createCallItem(state: TransformState, node: ts.CallExpression): CallIte
 	};
 }
 
-function createPropertyCallItem(
-	state: TransformState,
-	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-): PropertyCallItem {
+function createPropertyCallItem(state: TransformState, node: PropertyCallItem["node"]): PropertyCallItem {
 	return {
 		node,
 		kind: OptionalChainItemKind.PropertyCall,
@@ -100,7 +108,20 @@ function createPropertyCallItem(
 	};
 }
 
-type ChainItem = PropertyAccessItem | ElementAccessItem | CallItem | PropertyCallItem;
+function createElementCallItem(state: TransformState, node: ElementCallItem["node"]): ElementCallItem {
+	return {
+		node,
+		kind: OptionalChainItemKind.ElementCall,
+		optional: node.expression.questionDotToken !== undefined,
+		type: state.typeChecker.getTypeAtLocation(node.expression),
+		expression: node.expression.argumentExpression,
+		callType: state.typeChecker.getTypeAtLocation(node),
+		callOptional: node.questionDotToken !== undefined,
+		args: node.arguments,
+	};
+}
+
+type ChainItem = PropertyAccessItem | ElementAccessItem | CallItem | PropertyCallItem | ElementCallItem;
 
 export function flattenOptionalChain(state: TransformState, expression: ts.Expression) {
 	const chain = new Array<ChainItem>();
@@ -115,12 +136,10 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 			// this is a bit of a mess..
 			const subExp = expression.expression;
 			if (ts.isPropertyAccessExpression(subExp)) {
-				chain.unshift(
-					createPropertyCallItem(
-						state,
-						expression as ts.CallExpression & { expression: ts.PropertyAccessExpression },
-					),
-				);
+				chain.unshift(createPropertyCallItem(state, expression as PropertyCallItem["node"]));
+				expression = subExp.expression;
+			} else if (ts.isElementAccessExpression(subExp)) {
+				chain.unshift(createElementCallItem(state, expression as ElementCallItem["node"]));
 				expression = subExp.expression;
 			} else {
 				chain.unshift(createCallItem(state, expression));
@@ -138,11 +157,13 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 	if (item.kind === OptionalChainItemKind.PropertyAccess) {
 		return transformPropertyAccessExpressionInner(state, item.node, indexableExpression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
-		return transformElementAccessExpressionInner(state, indexableExpression, item.expression);
+		return transformElementAccessExpressionInner(state, item.node, indexableExpression, item.expression);
 	} else if (item.kind === OptionalChainItemKind.Call) {
 		return transformCallExpressionInner(state, item.node, indexableExpression, item.args);
 	} else if (item.kind === OptionalChainItemKind.PropertyCall) {
 		return transformPropertyCallExpressionInner(state, item.node, indexableExpression, item.name, item.args);
+	} else if (item.kind === OptionalChainItemKind.ElementCall) {
+		return transformElementCallExpressionInner(state, item.node, indexableExpression, item.expression, item.args);
 	}
 	throw new Error("???");
 }
@@ -179,6 +200,10 @@ function createNilCheck(tempId: TemporaryIdentifier, statements: lua.List<lua.St
 	});
 }
 
+function isCompoundCall(item: ChainItem): item is PropertyCallItem | ElementCallItem {
+	return item.kind === OptionalChainItemKind.PropertyCall || item.kind === OptionalChainItemKind.ElementCall;
+}
+
 function transformOptionalChainInner(
 	state: TransformState,
 	chain: Array<ChainItem>,
@@ -188,11 +213,11 @@ function transformOptionalChainInner(
 ): lua.Expression {
 	if (index >= chain.length) return expression;
 	const item = chain[index];
-	if (item.optional || (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional)) {
+	if (item.optional || (isCompoundCall(item) && item.callOptional)) {
 		let isMethod = false;
 		let selfParam: lua.TemporaryIdentifier | undefined;
 
-		if (item.kind === OptionalChainItemKind.PropertyCall) {
+		if (isCompoundCall(item)) {
 			isMethod = isMethodCall(state, item.node.expression);
 			if (item.callOptional && isMethod) {
 				selfParam = pushToVar(state, expression);
@@ -205,10 +230,17 @@ function transformOptionalChainInner(
 			}
 
 			if (item.callOptional) {
-				expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression: convertToIndexableExpression(expression),
-					name: item.name,
-				});
+				if (item.kind === OptionalChainItemKind.PropertyCall) {
+					expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression: convertToIndexableExpression(expression),
+						name: item.name,
+					});
+				} else {
+					expression = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: transformExpression(state, item.expression),
+					});
+				}
 			}
 		}
 
@@ -217,7 +249,7 @@ function transformOptionalChainInner(
 			tempId = createOrSetTempId(state, tempId, expression);
 
 			let newExpression: lua.Expression;
-			if (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional) {
+			if (isCompoundCall(item) && item.callOptional) {
 				const symbol = state.typeChecker.getTypeAtLocation(item.node.expression).symbol;
 				const macro = state.macroManager.getPropertyCallMacro(symbol);
 				if (macro) {
@@ -256,7 +288,7 @@ function transformOptionalChainInner(
 			return tempId;
 		});
 
-		if (item.kind === OptionalChainItemKind.PropertyCall && item.optional && item.callOptional) {
+		if (isCompoundCall(item) && item.optional && item.callOptional) {
 			state.prereq(createNilCheck(tempId!, statements));
 		} else {
 			state.prereqList(statements);

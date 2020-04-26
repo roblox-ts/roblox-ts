@@ -31,29 +31,45 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	return false;
 }
 
-function isMethodCallInner(state: TransformState, node: ts.PropertyAccessExpression, type: ts.Type): boolean {
+function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
+	if (type.isUnion() || type.isIntersection()) {
+		for (const t of type.types) {
+			walkTypes(t, callback);
+		}
+	} else {
+		callback(type);
+	}
+}
+
+function isMethodCallInner(
+	state: TransformState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+	type: ts.Type,
+): boolean {
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
-	for (const declaration of type.symbol.declarations) {
-		if (ts.isTypeLiteralNode(declaration)) {
-			for (const callSignature of type.getCallSignatures()) {
-				if (callSignature.declaration) {
-					if (isMethodDeclaration(state, callSignature.declaration)) {
-						hasMethodDefinition = true;
-					} else {
-						hasCallbackDefinition = true;
+	walkTypes(type, t => {
+		for (const declaration of t.symbol.declarations) {
+			if (ts.isTypeLiteralNode(declaration)) {
+				for (const callSignature of t.getCallSignatures()) {
+					if (callSignature.declaration) {
+						if (isMethodDeclaration(state, callSignature.declaration)) {
+							hasMethodDefinition = true;
+						} else {
+							hasCallbackDefinition = true;
+						}
 					}
 				}
-			}
-		} else {
-			if (isMethodDeclaration(state, declaration)) {
-				hasMethodDefinition = true;
 			} else {
-				hasCallbackDefinition = true;
+				if (isMethodDeclaration(state, declaration)) {
+					hasMethodDefinition = true;
+				} else {
+					hasCallbackDefinition = true;
+				}
 			}
 		}
-	}
+	});
 
 	if (hasMethodDefinition && hasCallbackDefinition) {
 		state.addDiagnostic(diagnostics.noMixedTypeCall(node));
@@ -64,7 +80,10 @@ function isMethodCallInner(state: TransformState, node: ts.PropertyAccessExpress
 
 const isMethodCallCache = new Map<ts.Symbol, boolean>();
 
-export function isMethodCall(state: TransformState, node: ts.PropertyAccessExpression): boolean {
+export function isMethodCall(
+	state: TransformState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+): boolean {
 	const type = state.typeChecker.getTypeAtLocation(node);
 	return getOrDefault(isMethodCallCache, type.symbol, () => isMethodCallInner(state, node, type));
 }
