@@ -6,7 +6,7 @@ export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.Sy
 	return lua.create(lua.SyntaxKind.TrueLiteral, {});
 }
 
-export function transformFalseKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
+export function transformFalseKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.FalseKeyword>) {
 	return lua.create(lua.SyntaxKind.FalseLiteral, {});
 }
 
