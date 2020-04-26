@@ -1,11 +1,11 @@
 import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
-import { DiagnosticError } from "Project/errors/DiagnosticError";
-import { ProjectError } from "Project/errors/ProjectError";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { ProjectError } from "Shared/errors/ProjectError";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
-import { transformSourceFile, TransformState } from "TSTransformer";
+import { transformSourceFile, TransformState, MacroManager } from "TSTransformer";
 import ts from "typescript";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -27,12 +27,10 @@ export class Project {
 
 	private readonly program: ts.Program;
 	private readonly typeChecker: ts.TypeChecker;
-	private readonly parsedCommandLine: ts.ParsedCommandLine;
-	private readonly tsConfigPath: string;
 	private readonly options: ProjectOptions;
+	private readonly macroManager: MacroManager;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
-		this.tsConfigPath = tsConfigPath;
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules");
 
@@ -43,7 +41,6 @@ export class Project {
 		if (parsedCommandLine === undefined) {
 			throw new ProjectError("Unable to load TS program!");
 		}
-		this.parsedCommandLine = parsedCommandLine;
 
 		if (parsedCommandLine.errors.length > 0) {
 			throw new DiagnosticError(parsedCommandLine.errors);
@@ -61,6 +58,8 @@ export class Project {
 		});
 
 		this.typeChecker = this.program.getTypeChecker();
+
+		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
 	}
 
 	private getOutPath(filePath: string) {
@@ -76,7 +75,10 @@ export class Project {
 	public compile() {
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
-				const luaAST = transformSourceFile(new TransformState(this.typeChecker, sourceFile), sourceFile);
+				const luaAST = transformSourceFile(
+					new TransformState(this.typeChecker, this.macroManager, sourceFile),
+					sourceFile,
+				);
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
 			}

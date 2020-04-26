@@ -25,6 +25,7 @@ export interface HasParameters {
 
 export type WritableExpression =
 	| lua.Identifier
+	| lua.EmptyIdentifier
 	| lua.TemporaryIdentifier
 	| lua.PropertyAccessExpression
 	| lua.ComputedIndexExpression;
@@ -53,6 +54,8 @@ export interface FunctionExpression extends lua.Expression<lua.SyntaxKind.Functi
 export interface Identifier extends lua.Expression<lua.SyntaxKind.Identifier> {
 	name: string;
 }
+
+export interface EmptyIdentifier extends lua.Expression<lua.SyntaxKind.EmptyIdentifier> {}
 
 export interface TemporaryIdentifier extends lua.Expression<lua.SyntaxKind.TemporaryIdentifier> {
 	name: string;
@@ -162,7 +165,7 @@ export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDe
 }
 
 export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.VariableDeclaration> {
-	left: lua.Identifier | lua.TemporaryIdentifier;
+	left: lua.Identifier | lua.EmptyIdentifier | lua.TemporaryIdentifier;
 	right: lua.Expression | undefined;
 }
 

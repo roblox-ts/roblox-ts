@@ -25,21 +25,25 @@ interface OptionalChainItem {
 }
 
 interface PropertyAccessItem extends OptionalChainItem {
+	node: ts.PropertyAccessExpression;
 	kind: OptionalChainItemKind.PropertyAccess;
 	name: string;
 }
 
 interface ElementAccessItem extends OptionalChainItem {
+	node: ts.ElementAccessExpression;
 	kind: OptionalChainItemKind.ElementAccess;
 	expression: ts.Expression;
 }
 
 interface CallItem extends OptionalChainItem {
+	node: ts.CallExpression;
 	kind: OptionalChainItemKind.Call;
 	args: ReadonlyArray<ts.Expression>;
 }
 
 interface PropertyCallItem extends OptionalChainItem {
+	node: ts.CallExpression & { expression: ts.PropertyAccessExpression };
 	kind: OptionalChainItemKind.PropertyCall;
 	name: string;
 	callOptional: boolean;
@@ -49,6 +53,7 @@ interface PropertyCallItem extends OptionalChainItem {
 
 function createPropertyAccessItem(state: TransformState, node: ts.PropertyAccessExpression): PropertyAccessItem {
 	return {
+		node,
 		kind: OptionalChainItemKind.PropertyAccess,
 		optional: node.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
@@ -58,6 +63,7 @@ function createPropertyAccessItem(state: TransformState, node: ts.PropertyAccess
 
 function createElementAccessItem(state: TransformState, node: ts.ElementAccessExpression): ElementAccessItem {
 	return {
+		node,
 		kind: OptionalChainItemKind.ElementAccess,
 		optional: node.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
@@ -67,6 +73,7 @@ function createElementAccessItem(state: TransformState, node: ts.ElementAccessEx
 
 function createCallItem(state: TransformState, node: ts.CallExpression): CallItem {
 	return {
+		node,
 		kind: OptionalChainItemKind.Call,
 		optional: node.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
@@ -79,6 +86,7 @@ function createPropertyCallItem(
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
 ): PropertyCallItem {
 	return {
+		node,
 		kind: OptionalChainItemKind.PropertyCall,
 		optional: node.expression.questionDotToken !== undefined,
 		type: state.typeChecker.getTypeAtLocation(node.expression),
@@ -131,7 +139,7 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 	} else if (item.kind === OptionalChainItemKind.Call) {
 		return transformCallExpressionInner(state, indexableExpression, item.args);
 	} else if (item.kind === OptionalChainItemKind.PropertyCall) {
-		return transformPropertyCallExpressionInner(state, indexableExpression, item.name, item.args);
+		return transformPropertyCallExpressionInner(state, item.node, indexableExpression, item.name, item.args);
 	}
 	throw new Error("???");
 }

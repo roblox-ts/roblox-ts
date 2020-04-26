@@ -1,6 +1,7 @@
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import ts from "typescript";
+import { MacroManager } from "TSTransformer";
 
 export class TransformState {
 	private readonly sourceFileText: string;
@@ -13,7 +14,11 @@ export class TransformState {
 		this.diagnostics.push(diagnostic);
 	}
 
-	constructor(public readonly typeChecker: ts.TypeChecker, sourceFile: ts.SourceFile) {
+	constructor(
+		public readonly typeChecker: ts.TypeChecker,
+		public readonly macroManager: MacroManager,
+		sourceFile: ts.SourceFile,
+	) {
 		this.sourceFileText = sourceFile.getFullText();
 	}
 

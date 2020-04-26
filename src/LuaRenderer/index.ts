@@ -1,6 +1,7 @@
 import * as lua from "LuaAST";
 import { renderCallExpression } from "LuaRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuaRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
+import { renderEmptyIdentifier } from "LuaRenderer/nodes/expressions/indexable/renderEmptyIdentifier";
 import { renderIdentifier } from "LuaRenderer/nodes/expressions/indexable/renderIdentifier";
 import { renderMethodCallExpression } from "LuaRenderer/nodes/expressions/indexable/renderMethodCallExpression";
 import { renderParenthesizedExpression } from "LuaRenderer/nodes/expressions/indexable/renderParenthesizedExpression";
@@ -36,6 +37,7 @@ type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByK
 const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	// indexable expressions
 	[lua.SyntaxKind.Identifier]: renderIdentifier,
+	[lua.SyntaxKind.EmptyIdentifier]: renderEmptyIdentifier,
 	[lua.SyntaxKind.TemporaryIdentifier]: renderTemporaryIdentifier,
 	[lua.SyntaxKind.ComputedIndexExpression]: renderComputedIndexExpression,
 	[lua.SyntaxKind.PropertyAccessExpression]: renderPropertyAccessExpression,

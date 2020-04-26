@@ -4,7 +4,7 @@ import { renderAST } from "LuaRenderer";
 import os from "os";
 import path from "path";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
-import { TransformState } from "TSTransformer";
+import { TransformState, MacroManager } from "TSTransformer";
 import { transformSourceFile } from "TSTransformer/nodes/transformSourceFile";
 import ts from "typescript";
 
@@ -48,7 +48,8 @@ if (preEmitDiagnostics.length > 0) {
 	console.log(formatDiagnostics(preEmitDiagnostics));
 }
 
-const state = new TransformState(program.getTypeChecker(), sourceFile);
+const typeChecker = program.getTypeChecker();
+const state = new TransformState(typeChecker, new MacroManager(program, typeChecker, ""), sourceFile);
 const luaAST = transformSourceFile(state, sourceFile);
 fs.writeFileSync(path.resolve(__dirname, "..", "..", "test", "ast.json"), lua.visualizeAST(luaAST));
 

@@ -34,7 +34,7 @@ export function tempId(name = "") {
 }
 
 export function emptyId() {
-	return lua.create(lua.SyntaxKind.Identifier, { name: "_" });
+	return lua.create(lua.SyntaxKind.EmptyIdentifier, {});
 }
 
 export function nil() {

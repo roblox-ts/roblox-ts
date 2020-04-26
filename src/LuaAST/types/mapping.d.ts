@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 
 export interface IndexableExpressionByKind {
 	[lua.SyntaxKind.Identifier]: lua.Identifier;
+	[lua.SyntaxKind.EmptyIdentifier]: lua.EmptyIdentifier;
 	[lua.SyntaxKind.TemporaryIdentifier]: lua.TemporaryIdentifier;
 	[lua.SyntaxKind.ComputedIndexExpression]: lua.ComputedIndexExpression;
 	[lua.SyntaxKind.PropertyAccessExpression]: lua.PropertyAccessExpression;

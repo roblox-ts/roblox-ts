@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import ts from "typescript";
+import { type } from "os";
 
 export function transformCallExpressionInner(
 	state: TransformState,
@@ -15,10 +16,16 @@ export function transformCallExpressionInner(
 
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
+	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
 	expression: lua.IndexableExpression,
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	const macro = state.macroManager.getPropertyCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
+	if (macro) {
+		return macro(state, node);
+	}
+
 	const isMethod = true;
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
