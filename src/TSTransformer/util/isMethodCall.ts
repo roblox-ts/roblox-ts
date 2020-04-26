@@ -7,8 +7,8 @@ function hasTypeFlag(flags: ts.TypeFlags, flagToCheck: ts.TypeFlags) {
 	return (flags & flagToCheck) === flagToCheck;
 }
 
-function getThisParameter(node: ts.SignatureDeclaration) {
-	const firstParam = node.parameters[0];
+function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
+	const firstParam = parameters[0];
 	if (firstParam) {
 		const name = firstParam.name;
 		if (ts.isIdentifier(name) && name.text === "this") {
@@ -17,12 +17,9 @@ function getThisParameter(node: ts.SignatureDeclaration) {
 	}
 }
 
-function isMethodDeclaration(
-	state: TransformState,
-	node: ts.Node,
-): node is ts.MethodDeclaration | ts.FunctionExpression {
+function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	if (ts.isFunctionLike(node)) {
-		const thisParam = getThisParameter(node);
+		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
 			const thisType = state.typeChecker.getTypeAtLocation(thisParam);
 			return !hasTypeFlag(thisType.flags, ts.TypeFlags.Void);
@@ -43,10 +40,22 @@ function isMethodCallInner(
 	let hasCallbackDefinition = false;
 
 	for (const declaration of type.symbol.declarations) {
-		if (isMethodDeclaration(state, declaration)) {
-			hasMethodDefinition = true;
+		if (ts.isTypeLiteralNode(declaration)) {
+			for (const callSignature of type.getCallSignatures()) {
+				if (callSignature.declaration) {
+					if (isMethodDeclaration(state, callSignature.declaration)) {
+						hasMethodDefinition = true;
+					} else {
+						hasCallbackDefinition = true;
+					}
+				}
+			}
 		} else {
-			hasCallbackDefinition = true;
+			if (isMethodDeclaration(state, declaration)) {
+				hasMethodDefinition = true;
+			} else {
+				hasCallbackDefinition = true;
+			}
 		}
 	}
 
