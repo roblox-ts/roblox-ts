@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { TemporaryIdentifier } from "LuaAST";
 import { TransformState } from "TSTransformer";
 import {
 	transformCallExpressionInner,
@@ -9,8 +10,8 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
-import { TemporaryIdentifier } from "LuaAST";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -150,13 +151,7 @@ function createOrSetTempId(
 	expression: lua.Expression,
 ) {
 	if (tempId === undefined) {
-		tempId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: tempId,
-				right: expression,
-			}),
-		);
+		tempId = pushToVar(state, expression);
 	} else {
 		if (tempId !== expression) {
 			state.prereq(
@@ -198,13 +193,7 @@ function transformOptionalChainInner(
 		if (item.kind === OptionalChainItemKind.PropertyCall) {
 			isMethod = true; // TODO: solve isMethod
 			if (item.callOptional && isMethod) {
-				selfParam = lua.tempId();
-				state.prereq(
-					lua.create(lua.SyntaxKind.VariableDeclaration, {
-						left: selfParam,
-						right: expression,
-					}),
-				);
+				selfParam = pushToVar(state, expression);
 				expression = selfParam;
 			}
 
