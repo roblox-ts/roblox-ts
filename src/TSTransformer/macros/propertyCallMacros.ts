@@ -1,22 +1,19 @@
 import * as lua from "LuaAST";
-import { Macro } from "TSTransformer/macros/types";
+import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 
-export type PropertyCallMacro = Macro<ts.CallExpression & { expression: ts.PropertyAccessExpression }, lua.Expression>;
-export type PropertyCallMacroList = { [methodName: string]: PropertyCallMacro };
-
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node) => {
-		const [left, right] = ensureTransformOrder(state, [node.expression, node.arguments[0]]);
+		const [left, right] = ensureTransformOrder(state, [node.expression.expression, node.arguments[0]]);
 		return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
 	};
 }
 
-const ARRAY_METHODS: PropertyCallMacroList = {
+const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node) => {
 		return lua.tempId();
 	},
@@ -58,11 +55,11 @@ const ARRAY_METHODS: PropertyCallMacroList = {
 	},
 };
 
-const SET_METHODS: PropertyCallMacroList = {};
+const SET_METHODS: MacroList<PropertyCallMacro> = {};
 
-const MAP_METHODS: PropertyCallMacroList = {};
+const MAP_METHODS: MacroList<PropertyCallMacro> = {};
 
-export const PROPERTY_CALL_MACROS: { [className: string]: PropertyCallMacroList } = {
+export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
 	CFrame: {
 		add: makeMathMethod("+"),
@@ -103,7 +100,6 @@ export const PROPERTY_CALL_MACROS: { [className: string]: PropertyCallMacroList 
 	},
 
 	Array: ARRAY_METHODS,
-
 	Set: SET_METHODS,
 	WeakSet: SET_METHODS,
 	Map: MAP_METHODS,

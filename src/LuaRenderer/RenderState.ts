@@ -20,11 +20,11 @@ export class RenderState {
 
 	private scopeStack: Array<Set<string>> = [new Set()];
 
-	private pushScope() {
+	public pushScope() {
 		this.scopeStack.push(new Set(this.peekScopeStack()));
 	}
 
-	private popScope() {
+	public popScope() {
 		this.scopeStack.pop();
 	}
 
@@ -35,7 +35,7 @@ export class RenderState {
 	private peekScopeStackOrThrow() {
 		const result = this.peekScopeStack();
 		if (result === undefined) {
-			throw "???";
+			throw new Error("???");
 		}
 		return result;
 	}
@@ -58,11 +58,11 @@ export class RenderState {
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 
 	private getNewTempName(prefix: string) {
-		let n = 0;
-		let name: string;
 		if (prefix.length > 0) {
 			prefix = `_${prefix}`;
 		}
+		let n = 0;
+		let name: string;
 		do {
 			name = `${prefix}_${n++}`;
 		} while (this.nameExists(name));

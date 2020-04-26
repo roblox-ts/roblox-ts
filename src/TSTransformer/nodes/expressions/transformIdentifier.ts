@@ -8,9 +8,16 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 	});
 }
 
-export function transformIdentifier(state: TransformState, node: ts.Identifier): lua.Identifier | lua.NilLiteral {
-	if (node.text === "undefined") {
-		return lua.nil();
+export function transformIdentifier(state: TransformState, node: ts.Identifier) {
+	const symbol = state.typeChecker.getSymbolAtLocation(node);
+	if (symbol) {
+		if (state.typeChecker.isUndefinedSymbol(symbol)) {
+			return lua.nil();
+		}
+		const macro = state.macroManager.getIdentifierMacro(symbol);
+		if (macro) {
+			return macro(state, node);
+		}
 	}
 	return transformIdentifierDefined(state, node);
 }

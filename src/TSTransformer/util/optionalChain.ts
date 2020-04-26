@@ -1,6 +1,7 @@
 import * as lua from "LuaAST";
 import { TemporaryIdentifier } from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { diagnostics } from "TSTransformer/diagnostics";
 import {
 	transformCallExpressionInner,
 	transformPropertyCallExpressionInner,
@@ -138,7 +139,7 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
 		return transformElementAccessExpressionInner(state, indexableExpression, item.expression);
 	} else if (item.kind === OptionalChainItemKind.Call) {
-		return transformCallExpressionInner(state, indexableExpression, item.args);
+		return transformCallExpressionInner(state, item.node, indexableExpression, item.args);
 	} else if (item.kind === OptionalChainItemKind.PropertyCall) {
 		return transformPropertyCallExpressionInner(state, item.node, indexableExpression, item.name, item.args);
 	}
@@ -216,7 +217,13 @@ function transformOptionalChainInner(
 
 			let newExpression: lua.Expression;
 			if (item.kind === OptionalChainItemKind.PropertyCall && item.callOptional) {
-				// TODO: assert not macro
+				const symbol = state.typeChecker.getTypeAtLocation(item.node.expression).symbol;
+				const macro = state.macroManager.getPropertyCallMacro(symbol);
+				if (macro) {
+					state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
+					return lua.emptyId();
+				}
+
 				const args = lua.list.make(...ensureTransformOrder(state, item.args));
 				if (isMethod) {
 					lua.list.unshift(args, selfParam!);

@@ -13,6 +13,6 @@ export class DiagnosticError extends LoggableError {
 
 	public log() {
 		console.log(chalk.redBright("Diagnostic Error:"));
-		console.log(formatDiagnostics(this.diagnostics));
+		console.log(formatDiagnostics(this.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts"));
 	}
 }

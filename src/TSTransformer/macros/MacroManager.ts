@@ -1,8 +1,11 @@
 import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { PropertyCallMacro, PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
-import { ConstructorMacro, CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
+import { CALL_MACROS } from "TSTransformer/macros/callMacros";
+import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
+import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
+import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
+import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import ts from "typescript";
 
 const INCLUDE_FILES = ["roblox.d.ts", "es.d.ts", "macro_math.d.ts"];
@@ -13,13 +16,25 @@ interface InterfaceInfo {
 	methods: Map<string, Array<ts.Symbol>>;
 }
 
+function getOrDefault<K, V>(map: Map<K, V>, key: K, getDefaultValue: () => V) {
+	let value = map.get(key);
+	if (!value) {
+		value = getDefaultValue();
+		map.set(key, value);
+	}
+	return value;
+}
+
 export class MacroManager {
-	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
+	private identifierMacros = new Map<ts.Symbol, IdentifierMacro>();
+	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
+	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
+		const identifiers = new Map<string, Array<ts.Symbol>>();
+		const functions = new Map<string, Array<ts.Symbol>>();
 		const interfaces = new Map<string, InterfaceInfo>();
-		const functions = new Map<string, ts.FunctionDeclaration>();
 
 		const typesPath = path.join(nodeModulesPath, "@rbxts", "types", "include");
 		for (const fileName of INCLUDE_FILES) {
@@ -34,17 +49,27 @@ export class MacroManager {
 			}
 
 			for (const statement of sourceFile.statements) {
-				if (ts.isInterfaceDeclaration(statement)) {
-					const className = statement.name.text;
-					let interfaceInfo = interfaces.get(className);
-					if (!interfaceInfo) {
-						interfaceInfo = {
-							symbols: new Array<ts.Symbol>(),
-							constructors: new Array<ts.Symbol>(),
-							methods: new Map<string, Array<ts.Symbol>>(),
-						};
-						interfaces.set(className, interfaceInfo);
+				if (ts.isVariableStatement(statement)) {
+					for (const declaration of statement.declarationList.declarations) {
+						if (ts.isIdentifier(declaration.name)) {
+							const identifierName = declaration.name.text;
+							const identifierSymbols = getOrDefault(
+								identifiers,
+								identifierName,
+								() => new Array<ts.Symbol>(),
+							);
+							identifierSymbols.push(declaration.symbol);
+						}
 					}
+				} else if (ts.isFunctionDeclaration(statement)) {
+					const functionSymbols = getOrDefault(functions, statement.name!.text, () => new Array<ts.Symbol>());
+					functionSymbols.push(typeChecker.getTypeAtLocation(statement).symbol);
+				} else if (ts.isInterfaceDeclaration(statement)) {
+					const interfaceInfo = getOrDefault(interfaces, statement.name.text, () => ({
+						symbols: new Array<ts.Symbol>(),
+						constructors: new Array<ts.Symbol>(),
+						methods: new Map<string, Array<ts.Symbol>>(),
+					}));
 
 					interfaceInfo.symbols.push(typeChecker.getTypeAtLocation(statement).symbol);
 
@@ -63,44 +88,70 @@ export class MacroManager {
 							interfaceInfo.constructors.push(member.symbol);
 						}
 					}
-				} else if (ts.isFunctionDeclaration(statement)) {
-					functions.set(statement.name!.text, statement);
 				}
 			}
 		}
 
-		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
-			const interfaceInfo = interfaces.get(className);
-			if (!interfaceInfo) {
-				throw new ProjectError(`(MacroManager) No interface for ${className}`);
+		for (const [identifierName, macro] of Object.entries(IDENTIFIER_MACROS)) {
+			const identifierSymbols = identifiers.get(identifierName);
+			if (!identifierSymbols) {
+				throw new ProjectError(`(MacroManager) No identifier found for ${identifierName}`);
 			}
-			for (const [methodName, macro] of Object.entries(methods)) {
-				const methodSymbols = interfaceInfo.methods.get(methodName);
-				if (!methodSymbols) {
-					throw new ProjectError(`(MacroManager) No method for ${className}.${methodName}`);
-				}
-				for (const methodSymbol of methodSymbols) {
-					this.propertyCallMacros.set(methodSymbol, macro);
-				}
+			for (const symbol of identifierSymbols) {
+				this.identifierMacros.set(symbol, macro);
+			}
+		}
+
+		for (const [funcName, macro] of Object.entries(CALL_MACROS)) {
+			const functionSymbols = functions.get(funcName);
+			if (!functionSymbols) {
+				throw new ProjectError(`(MacroManager) No function found for ${funcName}`);
+			}
+			for (const symbol of functionSymbols) {
+				this.callMacros.set(symbol, macro);
 			}
 		}
 
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
-				throw new ProjectError(`(MacroManager) No interface for ${className}`);
+				throw new ProjectError(`(MacroManager) No interface found for ${className}`);
 			}
 			for (const symbol of interfaceInfo.constructors) {
 				this.constructorMacros.set(symbol, macro);
 			}
 		}
+
+		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
+			const interfaceInfo = interfaces.get(className);
+			if (!interfaceInfo) {
+				throw new ProjectError(`(MacroManager) No interface found for ${className}`);
+			}
+			for (const [methodName, macro] of Object.entries(methods)) {
+				const methodSymbols = interfaceInfo.methods.get(methodName);
+				if (!methodSymbols) {
+					throw new ProjectError(`(MacroManager) No method found for ${className}.${methodName}`);
+				}
+				for (const methodSymbol of methodSymbols) {
+					this.propertyCallMacros.set(methodSymbol, macro);
+				}
+			}
+		}
 	}
 
-	public getPropertyCallMacro(symbol: ts.Symbol) {
-		return this.propertyCallMacros.get(symbol);
+	public getIdentifierMacro(symbol: ts.Symbol) {
+		return this.identifierMacros.get(symbol);
+	}
+
+	public getCallMacro(symbol: ts.Symbol) {
+		return this.callMacros.get(symbol);
 	}
 
 	public getConstructorMacro(symbol: ts.Symbol) {
 		return this.constructorMacros.get(symbol);
+	}
+
+	public getPropertyCallMacro(symbol: ts.Symbol) {
+		return this.propertyCallMacros.get(symbol);
 	}
 }

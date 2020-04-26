@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifier, transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
@@ -31,7 +31,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 
 	for (const tsParam of tsParams) {
 		if (!ts.isIdentifier(tsParam.name)) {
-			throw "???";
+			throw new Error("???");
 		}
 		const paramStatements = lua.list.make<lua.Statement>();
 		const paramId = transformIdentifierDefined(state, tsParam.name);

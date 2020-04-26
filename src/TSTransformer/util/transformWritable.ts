@@ -29,7 +29,7 @@ export function transformWritableExpression(
 		if (lua.isIdentifier(transformed)) {
 			return transformed;
 		} else {
-			throw "???";
+			throw new Error("???");
 		}
 	}
 }

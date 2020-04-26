@@ -7,9 +7,15 @@ import { type } from "os";
 
 export function transformCallExpressionInner(
 	state: TransformState,
+	node: ts.CallExpression,
 	expression: lua.IndexableExpression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	const macro = state.macroManager.getCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
+	if (macro) {
+		return macro(state, node);
+	}
+
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
 	return lua.create(lua.SyntaxKind.CallExpression, { expression, args });
 }

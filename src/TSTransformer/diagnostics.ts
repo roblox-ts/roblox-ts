@@ -37,4 +37,7 @@ export const diagnostics = {
 
 	// banned features
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
+
+	// macro methods
+	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
 };

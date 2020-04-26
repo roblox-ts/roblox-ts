@@ -73,15 +73,24 @@ export class Project {
 	}
 
 	public compile() {
+		const totalDiagnostics = new Array<ts.Diagnostic>();
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
-				const luaAST = transformSourceFile(
-					new TransformState(this.typeChecker, this.macroManager, sourceFile),
-					sourceFile,
-				);
-				const luaSource = renderAST(luaAST);
-				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
+				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
+				totalDiagnostics.push(...preEmitDiagnostics);
+
+				const transformState = new TransformState(this.typeChecker, this.macroManager, sourceFile);
+				const luaAST = transformSourceFile(transformState, sourceFile);
+				totalDiagnostics.push(...transformState.diagnostics);
+
+				if (totalDiagnostics.length === 0) {
+					const luaSource = renderAST(luaAST);
+					fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
+				}
 			}
+		}
+		if (totalDiagnostics.length > 0) {
+			throw new DiagnosticError(totalDiagnostics);
 		}
 	}
 }

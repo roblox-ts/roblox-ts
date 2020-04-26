@@ -19,16 +19,13 @@ export interface Statement<T extends keyof lua.StatementByKind = keyof lua.State
 export interface Field<T extends keyof lua.FieldByKind = keyof lua.FieldByKind> extends lua.Node<T> {}
 
 export interface HasParameters {
-	parameters: lua.List<lua.Identifier | lua.TemporaryIdentifier>;
+	parameters: lua.List<lua.AnyIdentifier>;
 	hasDotDotDot: boolean;
 }
 
-export type WritableExpression =
-	| lua.Identifier
-	| lua.EmptyIdentifier
-	| lua.TemporaryIdentifier
-	| lua.PropertyAccessExpression
-	| lua.ComputedIndexExpression;
+export type AnyIdentifier = lua.Identifier | lua.EmptyIdentifier | lua.TemporaryIdentifier;
+
+export type WritableExpression = lua.AnyIdentifier | lua.PropertyAccessExpression | lua.ComputedIndexExpression;
 
 // expressions
 export interface NilLiteral extends lua.Expression<lua.SyntaxKind.NilLiteral> {}
@@ -140,7 +137,7 @@ export interface IfStatement extends lua.Statement<lua.SyntaxKind.IfStatement> {
 }
 
 export interface NumericForStatement extends lua.Statement<lua.SyntaxKind.NumericForStatement> {
-	id: lua.Identifier | lua.TemporaryIdentifier;
+	id: lua.AnyIdentifier;
 	min: lua.Expression;
 	max: lua.Expression;
 	step?: lua.Expression;
@@ -148,24 +145,24 @@ export interface NumericForStatement extends lua.Statement<lua.SyntaxKind.Numeri
 }
 
 export interface ForStatement extends lua.Statement<lua.SyntaxKind.ForStatement> {
-	ids: lua.List<lua.Identifier | lua.TemporaryIdentifier>;
+	ids: lua.List<lua.AnyIdentifier>;
 	expression: lua.Expression;
 	statements: lua.List<lua.Statement>;
 }
 
 export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasParameters {
-	name: lua.Identifier | lua.TemporaryIdentifier | lua.PropertyAccessExpression;
+	name: lua.AnyIdentifier | lua.PropertyAccessExpression;
 	statements: lua.List<lua.Statement>;
 }
 
 export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDeclaration>, HasParameters {
 	expression: lua.IndexableExpression;
-	name: lua.Identifier | lua.TemporaryIdentifier;
+	name: lua.AnyIdentifier;
 	statements: lua.List<lua.Statement>;
 }
 
 export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.VariableDeclaration> {
-	left: lua.Identifier | lua.EmptyIdentifier | lua.TemporaryIdentifier;
+	left: lua.AnyIdentifier;
 	right: lua.Expression | undefined;
 }
 

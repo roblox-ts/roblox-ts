@@ -168,5 +168,5 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		);
 		return conditionId;
 	}
-	throw "???";
+	throw new Error("???");
 }
