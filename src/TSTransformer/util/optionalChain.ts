@@ -245,37 +245,36 @@ function transformOptionalChainInner(
 		}
 
 		// capture so we can wrap later if necessary
-		const { statements, expression: result } = state.capturePrereqs(() => {
+		const { expression: result, statements: prereqStatements } = state.capturePrereqs(() => {
 			tempId = createOrSetTempId(state, tempId, expression);
 
-			let newExpression: lua.Expression;
-			if (isCompoundCall(item) && item.callOptional) {
-				const symbol = state.typeChecker.getTypeAtLocation(item.node.expression).symbol;
-				const macro = state.macroManager.getPropertyCallMacro(symbol);
-				if (macro) {
-					state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
-					return lua.emptyId();
+			const { expression: newValue, statements: ifStatements } = state.capturePrereqs(() => {
+				let newExpression: lua.Expression;
+				if (isCompoundCall(item) && item.callOptional) {
+					const symbol = state.typeChecker.getTypeAtLocation(item.node.expression).symbol;
+					const macro = state.macroManager.getPropertyCallMacro(symbol);
+					if (macro) {
+						state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
+						return lua.emptyId();
+					}
+
+					const args = lua.list.make(...ensureTransformOrder(state, item.args));
+					if (isMethod) {
+						lua.list.unshift(args, selfParam!);
+					}
+					newExpression = lua.create(lua.SyntaxKind.CallExpression, {
+						expression: tempId!,
+						args,
+					});
+				} else {
+					newExpression = transformChainItem(state, tempId!, item);
 				}
+				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
+			});
 
-				const args = lua.list.make(...ensureTransformOrder(state, item.args));
-				if (isMethod) {
-					lua.list.unshift(args, selfParam!);
-				}
-				newExpression = lua.create(lua.SyntaxKind.CallExpression, {
-					expression: tempId,
-					args,
-				});
-			} else {
-				newExpression = transformChainItem(state, tempId, item);
-			}
-
-			const { expression: newValue, statements } = state.capturePrereqs(() =>
-				transformOptionalChainInner(state, chain, newExpression, tempId, index + 1),
-			);
-
-			if (tempId !== newValue) {
+			if (tempId !== newValue && !lua.isEmptyIdentifier(newValue)) {
 				lua.list.push(
-					statements,
+					ifStatements,
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: tempId,
 						right: newValue,
@@ -283,15 +282,15 @@ function transformOptionalChainInner(
 				);
 			}
 
-			state.prereq(createNilCheck(tempId, statements));
+			state.prereq(createNilCheck(tempId, ifStatements));
 
 			return tempId;
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {
-			state.prereq(createNilCheck(tempId!, statements));
+			state.prereq(createNilCheck(tempId!, prereqStatements));
 		} else {
-			state.prereqList(statements);
+			state.prereqList(prereqStatements);
 		}
 
 		return result;
