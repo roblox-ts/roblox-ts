@@ -31,11 +31,7 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	return false;
 }
 
-function isMethodCallInner(
-	state: TransformState,
-	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-	type: ts.Type,
-): boolean {
+function isMethodCallInner(state: TransformState, node: ts.PropertyAccessExpression, type: ts.Type): boolean {
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
@@ -60,7 +56,7 @@ function isMethodCallInner(
 	}
 
 	if (hasMethodDefinition && hasCallbackDefinition) {
-		state.addDiagnostic(diagnostics.mixedTypeCall(node));
+		state.addDiagnostic(diagnostics.noMixedTypeCall(node));
 	}
 
 	return hasMethodDefinition;
@@ -68,10 +64,7 @@ function isMethodCallInner(
 
 const isMethodCallCache = new Map<ts.Symbol, boolean>();
 
-export function isMethodCall(
-	state: TransformState,
-	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-): boolean {
-	const type = state.typeChecker.getTypeAtLocation(node.expression);
+export function isMethodCall(state: TransformState, node: ts.PropertyAccessExpression): boolean {
+	const type = state.typeChecker.getTypeAtLocation(node);
 	return getOrDefault(isMethodCallCache, type.symbol, () => isMethodCallInner(state, node, type));
 }

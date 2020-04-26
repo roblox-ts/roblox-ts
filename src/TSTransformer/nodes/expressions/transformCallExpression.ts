@@ -32,7 +32,7 @@ export function transformPropertyCallExpressionInner(
 		return macro(state, node);
 	}
 
-	const isMethod = isMethodCall(state, node);
+	const isMethod = isMethodCall(state, node.expression);
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
 	if (isMethod) {

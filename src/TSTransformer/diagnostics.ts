@@ -40,7 +40,11 @@ export const diagnostics = {
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
-	mixedTypeCall: diagnostic(
+	noMixedTypeCall: diagnostic(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+	),
+	noIndexWithoutCall: diagnostic(
+		"Cannot index a method without calling it!",
+		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
 };

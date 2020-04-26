@@ -136,7 +136,7 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 function transformChainItem(state: TransformState, expression: lua.Expression, item: ChainItem) {
 	const indexableExpression = convertToIndexableExpression(expression);
 	if (item.kind === OptionalChainItemKind.PropertyAccess) {
-		return transformPropertyAccessExpressionInner(state, indexableExpression, item.name);
+		return transformPropertyAccessExpressionInner(state, item.node, indexableExpression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
 		return transformElementAccessExpressionInner(state, indexableExpression, item.expression);
 	} else if (item.kind === OptionalChainItemKind.Call) {
@@ -193,7 +193,7 @@ function transformOptionalChainInner(
 		let selfParam: lua.TemporaryIdentifier | undefined;
 
 		if (item.kind === OptionalChainItemKind.PropertyCall) {
-			isMethod = isMethodCall(state, item.node);
+			isMethod = isMethodCall(state, item.node.expression);
 			if (item.callOptional && isMethod) {
 				selfParam = pushToVar(state, expression);
 				expression = selfParam;
