@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { getOrDefault } from "Shared/util/getOrDefault";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
@@ -14,15 +15,6 @@ interface InterfaceInfo {
 	symbols: Array<ts.Symbol>;
 	constructors: Array<ts.Symbol>;
 	methods: Map<string, Array<ts.Symbol>>;
-}
-
-function getOrDefault<K, V>(map: Map<K, V>, key: K, getDefaultValue: () => V) {
-	let value = map.get(key);
-	if (!value) {
-		value = getDefaultValue();
-		map.set(key, value);
-	}
-	return value;
 }
 
 export class MacroManager {
