@@ -167,6 +167,12 @@ export namespace list {
 		return result;
 	}
 
+	export function toArray<T extends lua.Node>(list: lua.List<T>): Array<T> {
+		const result = new Array<T>();
+		lua.list.forEach(list, value => result.push(value));
+		return result;
+	}
+
 	export function toString<T extends lua.Node>(list: lua.List<T>, toStr: (value: NoInfer<T>) => string) {
 		const strs = mapToArray(list, value => toStr(value));
 		if (strs.length > 0) {
