@@ -78,15 +78,15 @@ export class Project {
 			if (!sourceFile.isDeclarationFile) {
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
+				if (totalDiagnostics.length > 0) continue;
 
 				const transformState = new TransformState(this.typeChecker, this.macroManager, sourceFile);
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
+				if (totalDiagnostics.length > 0) continue;
 
-				if (totalDiagnostics.length === 0) {
-					const luaSource = renderAST(luaAST);
-					fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
-				}
+				const luaSource = renderAST(luaAST);
+				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
 			}
 		}
 		if (totalDiagnostics.length > 0) {
