@@ -40,4 +40,7 @@ export const diagnostics = {
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
+	mixedTypeCall: diagnostic(
+		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
+	),
 };

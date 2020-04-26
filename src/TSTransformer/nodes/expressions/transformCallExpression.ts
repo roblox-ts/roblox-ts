@@ -3,7 +3,7 @@ import { TransformState } from "TSTransformer";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import ts from "typescript";
-import { type } from "os";
+import { isMethodCall } from "TSTransformer/util/isMethodCall";
 
 export function transformCallExpressionInner(
 	state: TransformState,
@@ -32,7 +32,7 @@ export function transformPropertyCallExpressionInner(
 		return macro(state, node);
 	}
 
-	const isMethod = true;
+	const isMethod = isMethodCall(state, node);
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
 	if (isMethod) {
