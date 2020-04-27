@@ -28,7 +28,8 @@ Ideally, these should be done in a way that makes it hard for us to mess it up a
 - [X] StringLiteral
 - [X] ArrayLiteralExpression
 - [X] AsExpression
-- [X] UnaryExpression
+- [X] PostfixUnaryExpression
+- [X] PrefixUnaryExpression
 - [X] BinaryExpression
 - [X] CallExpression
 - [X] ConditionalExpression
@@ -41,6 +42,14 @@ Ideally, these should be done in a way that makes it hard for us to mess it up a
 - [ ] ArrowFunction
 - [ ] FunctionExpression
 - [ ] TemplateExpression
+- [ ] TaggedTemplateExpression
+- [ ] AwaitExpression
+- [ ] SpreadElement
+- [ ] ClassExpression
+- [ ] OmittedExpression
+- [ ] ThisExpression
+- [ ] SuperExpression
+- [ ] JsxSelfClosingElement
 - [ ] JsxExpression
 
 ### Statements
@@ -55,12 +64,19 @@ Ideally, these should be done in a way that makes it hard for us to mess it up a
 - [ ] ForStatement
 - [ ] TryStatement
 - [ ] BreakStatement
+- [ ] ContinueStatement
 - [ ] ForStatement
 - [ ] ForOfStatement
 - [ ] ThrowStatement
 - [ ] ImportDeclaration
 - [ ] ImportEqualsDeclaration
 - [ ] ExportDeclaration
+- [ ] ExportAssignment
+- [ ] ClassDeclaration
+- [ ] NamespaceDeclaration
+- [ ] EnumDeclaration
+- [ ] SwitchStatement
+- [ ] TryStatement?
 
 ### Constructor Macros
 - [X] new Array()
