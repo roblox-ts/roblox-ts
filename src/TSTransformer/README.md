@@ -19,6 +19,7 @@ Ideally, these should be done in a way that makes it hard for us to mess it up a
 - [ ] Variable/Function Hoisting
 - [ ] Destructuring
 - [ ] Module Resolution (+ Rojo project)
+- [ ] LuaTuple<T> Support
 
 ### Expressions
 - [X] Identifier
