@@ -1,4 +1,6 @@
+import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { diagnostics } from "TSTransformer/diagnostics";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
@@ -16,9 +18,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
-		throw "operator '==' is not supported! Use '===' instead.";
+		state.addDiagnostic(diagnostics.noEqualsEquals(node));
+		return lua.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
-		throw "operator '!=' is not supported! Use '!==' instead.";
+		state.addDiagnostic(diagnostics.noExclamationEquals(node));
+		return lua.emptyId();
 	}
 
 	// logical

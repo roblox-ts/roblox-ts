@@ -164,10 +164,9 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 		return transformCallExpressionInner(state, item.node, indexableExpression, item.args);
 	} else if (item.kind === OptionalChainItemKind.PropertyCall) {
 		return transformPropertyCallExpressionInner(state, item.node, indexableExpression, item.name, item.args);
-	} else if (item.kind === OptionalChainItemKind.ElementCall) {
+	} else {
 		return transformElementCallExpressionInner(state, item.node, indexableExpression, item.expression, item.args);
 	}
-	throw new Error("???");
 }
 
 function createOrSetTempId(

@@ -41,7 +41,7 @@ export class TransformState {
 	public popPrereqStatementsStack() {
 		const poppedValue = this.prereqStatementsStack.pop();
 		if (poppedValue === undefined) {
-			throw new Error("???");
+			throw new Error("TransformState.popPrereqStatementsStack failed!");
 		}
 		return poppedValue;
 	}

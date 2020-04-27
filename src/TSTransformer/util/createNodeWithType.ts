@@ -14,7 +14,7 @@ function simpleTypeFromNode(node: lua.Node): tsst.SimpleType {
 			value: node.value,
 		};
 	}
-	throw new Error("???");
+	throw new Error("Not implemented");
 }
 
 export function createNodeWithType<T extends lua.Node>(node: T): NodeWithType<T> {

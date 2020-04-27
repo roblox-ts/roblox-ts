@@ -35,7 +35,7 @@ export class RenderState {
 	private peekScopeStackOrThrow() {
 		const result = this.peekScopeStack();
 		if (result === undefined) {
-			throw new Error("???");
+			throw new Error("RenderState.peekScopeStackOrThrow failed!");
 		}
 		return result;
 	}

@@ -31,7 +31,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 
 	for (const tsParam of tsParams) {
 		if (!ts.isIdentifier(tsParam.name)) {
-			throw new Error("???");
+			throw new Error("Not implemented");
 		}
 		const paramStatements = lua.list.make<lua.Statement>();
 		const paramId = transformIdentifierDefined(state, tsParam.name);
