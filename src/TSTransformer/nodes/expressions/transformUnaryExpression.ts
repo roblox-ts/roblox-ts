@@ -2,9 +2,9 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
+import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 import { transformWritableExpression, transformWritableExpressionWithType } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
-import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = transformWritableExpression(state, node.operand);

@@ -8,10 +8,8 @@ import {
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { transformLogical } from "TSTransformer/util/transformLogical";
-import { transformWritableAssignment, transformWritableAssignmentWithType } from "TSTransformer/util/transformWritable";
+import { transformWritableAssignmentWithType } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
-
-import * as tsst from "ts-simple-type";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;

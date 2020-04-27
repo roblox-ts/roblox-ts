@@ -1,9 +1,9 @@
 import * as lua from "LuaAST";
+import { diagnostics } from "TSTransformer/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
+import { isMethodCall } from "TSTransformer/util/isMethodCall";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import ts from "typescript";
-import { isMethodCall } from "TSTransformer/util/isMethodCall";
-import { diagnostics } from "TSTransformer/diagnostics";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,

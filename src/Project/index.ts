@@ -1,11 +1,11 @@
 import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectError } from "Shared/errors/ProjectError";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
-import { transformSourceFile, TransformState, MacroManager } from "TSTransformer";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { ProjectError } from "Shared/errors/ProjectError";
+import { MacroManager, TransformState, transformSourceFile } from "TSTransformer";
 import ts from "typescript";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {

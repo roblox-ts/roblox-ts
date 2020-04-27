@@ -58,7 +58,7 @@ interface PropertyCallItem
 
 interface ElementCallItem
 	extends OptionalChainItem<
-		OptionalChainItemKind.ElementAccess,
+		OptionalChainItemKind.ElementCall,
 		ts.CallExpression & { expression: ts.ElementAccessExpression }
 	> {
 	expression: ts.Expression;

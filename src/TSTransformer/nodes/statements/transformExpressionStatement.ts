@@ -10,9 +10,8 @@ import {
 } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 import {
-	transformWritableAssignment,
-	transformWritableExpressionWithType,
 	transformWritableAssignmentWithType,
+	transformWritableExpressionWithType,
 } from "TSTransformer/util/transformWritable";
 import ts from "typescript";
 
