@@ -53,10 +53,11 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>
 			}),
 
 	handler: argv => {
-		const tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
-		if (tsConfigPath === undefined || !path.isAbsolute(tsConfigPath)) {
+		let tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
+		if (tsConfigPath === undefined) {
 			throw new CLIError("Unable to find tsconfig.json!");
 		}
+		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
 
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
 		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);
