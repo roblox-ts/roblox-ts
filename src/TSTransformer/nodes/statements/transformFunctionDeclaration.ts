@@ -4,11 +4,10 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/util/transformParameters";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "typescript";
+import { assert } from "Shared/util/assert";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
-	if (!node.name) {
-		throw new Error("Unnamed function declaration?");
-	}
+	assert(node.name);
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
 

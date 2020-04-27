@@ -6,6 +6,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
+import { assert } from "Shared/util/assert";
 
 export function transformWritableExpression(
 	state: TransformState,
@@ -29,7 +30,7 @@ export function transformWritableExpression(
 		if (lua.isAnyIdentifier(transformed)) {
 			return transformed;
 		} else {
-			throw new Error("Not implemented");
+			assert(false, "Not implemented");
 		}
 	}
 }

@@ -1,5 +1,6 @@
 import * as lua from "LuaAST";
 import { NoInfer } from "Shared/util/types";
+import { assert } from "Shared/util/assert";
 
 const LIST_MARKER = Symbol("List");
 
@@ -18,7 +19,7 @@ export type List<T extends lua.Node> = {
 
 function checkReadonly<T extends lua.Node>(list: lua.List<T>) {
 	if (list.readonly) {
-		throw new Error("Cannot mutate readonly lua.List<T>!");
+		assert(false, "Cannot mutate readonly lua.List<T>!");
 	}
 }
 

@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
@@ -43,11 +44,9 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 
 export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
-
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);
 	}
-
-	throw new Error(`Unknown statement: ${getKindName(node)}`);
+	assert(false, `Unknown statement: ${getKindName(node)}`);
 }

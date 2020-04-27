@@ -1,4 +1,4 @@
-import * as ts from "typescript";
+import ts from "typescript";
 
 declare module "typescript" {
 	interface ConstructSignatureDeclaration {
@@ -6,6 +6,6 @@ declare module "typescript" {
 	}
 
 	interface VariableDeclaration {
-		symbol: ts.Symbol;
+		symbol: ts.Symbol | undefined;
 	}
 }

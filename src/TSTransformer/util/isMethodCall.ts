@@ -2,6 +2,7 @@ import { TransformState } from "TSTransformer";
 import ts from "typescript";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { getOrDefault } from "Shared/util/getOrDefault";
+import { assert } from "Shared/util/assert";
 
 function hasTypeFlag(flags: ts.TypeFlags, flagToCheck: ts.TypeFlags) {
 	return (flags & flagToCheck) === flagToCheck;
@@ -82,10 +83,24 @@ function isMethodCallInner(
 
 const isMethodCallCache = new Map<ts.Symbol, boolean>();
 
+function getDefinedSymbol(state: TransformState, type: ts.Type) {
+	if (type.isUnion()) {
+		for (const subType of type.types) {
+			if (subType.symbol && !state.typeChecker.isUndefinedSymbol(subType.symbol)) {
+				return subType.symbol;
+			}
+		}
+	} else {
+		return type.symbol;
+	}
+}
+
 export function isMethodCall(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 ): boolean {
 	const type = state.typeChecker.getTypeAtLocation(node);
-	return getOrDefault(isMethodCallCache, type.symbol, () => isMethodCallInner(state, node, type));
+	const symbol = getDefinedSymbol(state, type);
+	assert(symbol);
+	return getOrDefault(isMethodCallCache, symbol, () => isMethodCallInner(state, node, type));
 }

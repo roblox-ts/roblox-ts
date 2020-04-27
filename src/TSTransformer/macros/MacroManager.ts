@@ -8,6 +8,7 @@ import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import ts from "typescript";
+import { assert } from "Shared/util/assert";
 
 const INCLUDE_FILES = ["roblox.d.ts", "es.d.ts", "macro_math.d.ts"];
 
@@ -50,12 +51,15 @@ export class MacroManager {
 								identifierName,
 								() => new Array<ts.Symbol>(),
 							);
+							assert(declaration.symbol);
 							identifierSymbols.push(declaration.symbol);
 						}
 					}
 				} else if (ts.isFunctionDeclaration(statement)) {
 					const functionSymbols = getOrDefault(functions, statement.name!.text, () => new Array<ts.Symbol>());
-					functionSymbols.push(typeChecker.getTypeAtLocation(statement).symbol);
+					const symbol = typeChecker.getTypeAtLocation(statement).symbol;
+					assert(symbol);
+					functionSymbols.push(symbol);
 				} else if (ts.isInterfaceDeclaration(statement)) {
 					const interfaceInfo = getOrDefault(interfaces, statement.name.text, () => ({
 						symbols: new Array<ts.Symbol>(),
@@ -63,7 +67,9 @@ export class MacroManager {
 						methods: new Map<string, Array<ts.Symbol>>(),
 					}));
 
-					interfaceInfo.symbols.push(typeChecker.getTypeAtLocation(statement).symbol);
+					const symbol = typeChecker.getTypeAtLocation(statement).symbol;
+					assert(symbol);
+					interfaceInfo.symbols.push(symbol);
 
 					for (const member of statement.members) {
 						if (ts.isMethodSignature(member)) {
@@ -77,6 +83,7 @@ export class MacroManager {
 								methodSymbols.push(typeChecker.getTypeAtLocation(member).symbol);
 							}
 						} else if (ts.isConstructSignatureDeclaration(member)) {
+							assert(member.symbol);
 							interfaceInfo.constructors.push(member.symbol);
 						}
 					}

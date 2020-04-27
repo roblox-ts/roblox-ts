@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
@@ -52,7 +53,6 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 			expression: transformExpression(state, node.operand),
 			operator: "not",
 		});
-	} else {
-		throw new Error(`Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);
 	}
+	assert(false, `Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);
 }

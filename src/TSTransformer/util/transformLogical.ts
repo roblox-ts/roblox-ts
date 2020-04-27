@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import ts from "typescript";
+import { assert } from "Shared/util/assert";
 
 interface LogicalChainItem {
 	type: ts.Type;
@@ -168,5 +169,5 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		);
 		return conditionId;
 	}
-	throw new Error("Not implemented");
+	assert(false, "Not implemented");
 }

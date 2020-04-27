@@ -1,6 +1,7 @@
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
+import { assert } from "Shared/util/assert";
 
 function simpleTypeFromNode(node: lua.Node): tsst.SimpleType {
 	if (lua.isNumberLiteral(node)) {
@@ -14,7 +15,7 @@ function simpleTypeFromNode(node: lua.Node): tsst.SimpleType {
 			value: node.value,
 		};
 	}
-	throw new Error("Not implemented");
+	assert(false, "Not implemented");
 }
 
 export function createNodeWithType<T extends lua.Node>(node: T): NodeWithType<T> {

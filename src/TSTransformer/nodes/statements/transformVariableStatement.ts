@@ -3,11 +3,12 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
+import { assert } from "Shared/util/assert";
 
 function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
 	return state.statement(statements => {
 		if (!ts.isIdentifier(node.name)) {
-			throw new Error("Not implemented");
+			assert(false, "Not implemented");
 		}
 		lua.list.push(
 			statements,

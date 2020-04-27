@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 
 export class RenderState {
 	public indent = "";
@@ -34,9 +35,7 @@ export class RenderState {
 
 	private peekScopeStackOrThrow() {
 		const result = this.peekScopeStack();
-		if (result === undefined) {
-			throw new Error("RenderState.peekScopeStackOrThrow failed!");
-		}
+		assert(result);
 		return result;
 	}
 

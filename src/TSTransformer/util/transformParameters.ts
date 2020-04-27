@@ -3,6 +3,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
+import { assert } from "Shared/util/assert";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
@@ -31,7 +32,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 
 	for (const tsParam of tsParams) {
 		if (!ts.isIdentifier(tsParam.name)) {
-			throw new Error("Not implemented");
+			assert(false, "Not implemented");
 		}
 		const paramStatements = lua.list.make<lua.Statement>();
 		const paramId = transformIdentifierDefined(state, tsParam.name);

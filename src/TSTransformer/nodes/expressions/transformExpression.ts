@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
@@ -65,6 +66,5 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	if (transformer) {
 		return transformer(state, node);
 	}
-
-	throw new Error(`Unknown expression: ${getKindName(node)}`);
+	assert(false, `Unknown expression: ${getKindName(node)}`);
 }

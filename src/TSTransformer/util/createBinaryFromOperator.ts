@@ -1,7 +1,8 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
-import ts from "typescript";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
+import ts from "typescript";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison
@@ -110,5 +111,5 @@ export function createBinaryFromOperator(
 		});
 	}
 
-	throw new Error(`Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
+	assert(false, `Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 }

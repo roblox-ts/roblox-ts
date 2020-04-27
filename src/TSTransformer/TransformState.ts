@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import ts from "typescript";
 import { MacroManager } from "TSTransformer";
+import { assert } from "Shared/util/assert";
 
 export class TransformState {
 	private readonly sourceFileText: string;
@@ -40,9 +41,7 @@ export class TransformState {
 
 	public popPrereqStatementsStack() {
 		const poppedValue = this.prereqStatementsStack.pop();
-		if (poppedValue === undefined) {
-			throw new Error("TransformState.popPrereqStatementsStack failed!");
-		}
+		assert(poppedValue);
 		return poppedValue;
 	}
 
