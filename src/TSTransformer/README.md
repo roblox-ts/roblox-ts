@@ -188,7 +188,7 @@ In other words, TS AST -> Lua AST
 - [ ] Map.delete()
 - [ ] Map.clear()
 
-# String Macros
+### String Macros
 - [ ] String.size()
 - [ ] String.trim()
 - [ ] String.trimStart()
@@ -201,5 +201,5 @@ In other words, TS AST -> Lua AST
 - [ ] String.endsWith()
 - [ ] String.startsWith()
 
-# Promise Macros
+### Promise Macros
 - [ ] Promise.then()
