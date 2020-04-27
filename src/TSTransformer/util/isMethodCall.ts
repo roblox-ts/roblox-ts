@@ -49,23 +49,25 @@ function isMethodCallInner(
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
+	function checkMethod(node: ts.Node) {
+		if (isMethodDeclaration(state, node)) {
+			hasMethodDefinition = true;
+		} else {
+			hasCallbackDefinition = true;
+		}
+	}
+
 	walkTypes(type, t => {
-		for (const declaration of t.symbol.declarations) {
-			if (ts.isTypeLiteralNode(declaration)) {
-				for (const callSignature of t.getCallSignatures()) {
-					if (callSignature.declaration) {
-						if (isMethodDeclaration(state, callSignature.declaration)) {
-							hasMethodDefinition = true;
-						} else {
-							hasCallbackDefinition = true;
+		if (t.symbol) {
+			for (const declaration of t.symbol.declarations) {
+				if (ts.isTypeLiteralNode(declaration)) {
+					for (const callSignature of t.getCallSignatures()) {
+						if (callSignature.declaration) {
+							checkMethod(callSignature.declaration);
 						}
 					}
-				}
-			} else {
-				if (isMethodDeclaration(state, declaration)) {
-					hasMethodDefinition = true;
 				} else {
-					hasCallbackDefinition = true;
+					checkMethod(declaration);
 				}
 			}
 		}

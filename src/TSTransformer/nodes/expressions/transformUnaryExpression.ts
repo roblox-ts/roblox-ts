@@ -17,7 +17,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 		}),
 	);
 
-	const readable = lua.isIdentifier(writable) ? writable : origValue;
+	const readable = lua.isAnyIdentifier(writable) ? writable : origValue;
 	const operator: lua.BinaryOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+" : "-";
 
 	state.prereq(

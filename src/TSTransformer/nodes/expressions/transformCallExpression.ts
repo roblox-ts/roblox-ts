@@ -14,7 +14,7 @@ export function transformCallExpressionInner(
 ) {
 	const macro = state.macroManager.getCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
 	if (macro) {
-		return macro(state, node);
+		return macro(state, node, expression);
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
@@ -30,7 +30,7 @@ export function transformPropertyCallExpressionInner(
 ) {
 	const macro = state.macroManager.getPropertyCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
 	if (macro) {
-		return macro(state, node);
+		return macro(state, node, expression);
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
@@ -53,7 +53,7 @@ export function transformElementCallExpressionInner(
 ) {
 	const macro = state.macroManager.getPropertyCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
 	if (macro) {
-		return macro(state, node);
+		return macro(state, node, expression);
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));

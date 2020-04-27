@@ -272,7 +272,9 @@ function transformOptionalChainInner(
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
-			if (tempId !== newValue && !lua.isEmptyIdentifier(newValue)) {
+			const isUsed = !lua.isEmptyIdentifier(newValue);
+
+			if (tempId !== newValue && isUsed) {
 				lua.list.push(
 					ifStatements,
 					lua.create(lua.SyntaxKind.Assignment, {
@@ -284,7 +286,7 @@ function transformOptionalChainInner(
 
 			state.prereq(createNilCheck(tempId, ifStatements));
 
-			return tempId;
+			return isUsed ? tempId : newValue;
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {

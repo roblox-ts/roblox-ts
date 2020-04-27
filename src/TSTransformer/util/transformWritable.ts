@@ -26,7 +26,7 @@ export function transformWritableExpression(
 		});
 	} else {
 		const transformed = transformExpression(state, node);
-		if (lua.isIdentifier(transformed)) {
+		if (lua.isAnyIdentifier(transformed)) {
 			return transformed;
 		} else {
 			throw new Error("???");

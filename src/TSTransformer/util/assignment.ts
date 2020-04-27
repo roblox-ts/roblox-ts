@@ -31,7 +31,7 @@ export function createAssignmentExpression(
 	writable: lua.WritableExpression,
 	value: lua.Expression,
 ) {
-	if (lua.isIdentifier(writable)) {
+	if (lua.isAnyIdentifier(writable)) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: writable,
