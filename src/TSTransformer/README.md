@@ -14,3 +14,182 @@ The system needs to be designed to support the following:
 - Check variable modification
 
 Ideally, these should be done in a way that makes it hard for us to mess it up and mostly automatic from an individual `transformX()`'s perspective.
+
+### Features
+- [ ] Variable/Function Hoisting
+- [ ] Destructuring
+- [ ] Module Resolution (+ Rojo project)
+
+### Expressions
+- [X] Identifier
+- [X] TrueKeyword + FalseKeyword
+- [X] NumericLiteral
+- [X] StringLiteral
+- [X] ArrayLiteralExpression
+- [X] AsExpression
+- [X] UnaryExpression
+- [X] BinaryExpression
+- [X] CallExpression
+- [X] ConditionalExpression
+- [X] PropertyAccessExpression
+- [X] ElementAccessExpression
+- [X] NewExpression
+- [X] NonNullExpression
+- [X] ObjectLiteralExpression
+- [X] ParenthesizedExpression
+- [ ] ArrowFunction
+- [ ] FunctionExpression
+- [ ] TemplateExpression
+- [ ] JsxExpression
+
+### Statements
+- [X] Block
+- [X] ExpressionStatement
+- [ ] FunctionDeclaration (partially complete)
+- [X] IfStatement
+- [X] ReturnStatement
+- [X] VariableStatement
+- [ ] DoStatement
+- [ ] WhileStatement
+- [ ] ForStatement
+- [ ] TryStatement
+- [ ] BreakStatement
+- [ ] ForStatement
+- [ ] ForOfStatement
+- [ ] ThrowStatement
+- [ ] ImportDeclaration
+- [ ] ImportEqualsDeclaration
+- [ ] ExportDeclaration
+
+### Constructor Macros
+- [X] new Array()
+- [X] new Set()
+- [X] new Map()
+- [X] new WeakSet()
+- [X] new WeakMap()
+
+### Identifier Macros
+- [X] PKG_VERSION
+
+### Call Macros
+- [X] typeOf
+- [X] typeIs
+- [X] classIs
+
+### Data Type Math Macros
+- [X] CFrame.add()
+- [X] CFrame.sub()
+- [X] CFrame.mul()
+- [X] UDim.add()
+- [X] UDim.sub()
+- [X] UDim2.add()
+- [X] UDim2.sub()
+- [X] Vector2.add()
+- [X] Vector2.sub()
+- [X] Vector2.mul()
+- [X] Vector2.div()
+- [X] Vector2int16.add()
+- [X] Vector2int16.sub()
+- [X] Vector2int16.mul()
+- [X] Vector2int16.div()
+- [X] Vector3.add()
+- [X] Vector3.sub()
+- [X] Vector3.mul()
+- [X] Vector3.div()
+- [X] Vector3int16.add()
+- [X] Vector3int16.sub()
+- [X] Vector3int16.mul()
+- [X] Vector3int16.div()
+
+### Object Macros
+- [ ] Object.keys()
+- [ ] Object.values()
+- [ ] Object.entries()
+- [ ] Object.assign()
+- [ ] Object.copy()
+- [ ] Object.deepCopy()
+- [ ] Object.deepEquals()
+- [ ] Object.toString()
+
+### Array Macros
+- [ ] ArrayLike.size()
+- [ ] ArrayLike.get()
+- [ ] ReadonlyArray.isEmpty()
+- [ ] ReadonlyArray.toString()
+- [ ] ReadonlyArray.concat()
+- [ ] ReadonlyArray.join()
+- [ ] ReadonlyArray.slice()
+- [ ] ReadonlyArray.includes()
+- [ ] ReadonlyArray.indexOf()
+- [ ] ReadonlyArray.lastIndexOf()
+- [ ] ReadonlyArray.every()
+- [ ] ReadonlyArray.some()
+- [ ] ReadonlyArray.forEach()
+- [X] ReadonlyArray.map()
+- [ ] ReadonlyArray.mapFiltered()
+- [ ] ReadonlyArray.filterUndefined()
+- [ ] ReadonlyArray.filter()
+- [ ] ReadonlyArray.reduce()
+- [ ] ReadonlyArray.reduceRight()
+- [ ] ReadonlyArray.reverse()
+- [ ] ReadonlyArray.entries()
+- [ ] ReadonlyArray.find()
+- [ ] ReadonlyArray.findIndex()
+- [ ] ReadonlyArray.copy()
+- [ ] ReadonlyArray.deepCopy()
+- [ ] ReadonlyArray.deepEquals()
+- [ ] ReadonlyArray.sort()
+- [X] Array.push()
+- [X] Array.pop()
+- [ ] Array.shift()
+- [ ] Array.unshift()
+- [ ] Array.copyWithin()
+- [ ] Array.insert()
+- [ ] Array.remove()
+- [ ] Array.unorderedRemove()
+
+### Set Macros
+- [ ] ReadonlySet.isEmpty()
+- [ ] ReadonlySet.toString()
+- [ ] ReadonlySet.forEach()
+- [ ] ReadonlySet.size()
+- [ ] ReadonlySet.values()
+- [ ] ReadonlySet.has()
+- [ ] ReadonlySet.union()
+- [ ] ReadonlySet.intersect()
+- [ ] ReadonlySet.difference()
+- [ ] ReadonlySet.isDisjointWith()
+- [ ] ReadonlySet.isSubsetOf()
+- [ ] Set.add()
+- [ ] Set.delete()
+- [ ] Set.clear()
+
+### Map Macros
+- [ ] ReadonlyMap.isEmpty()
+- [ ] ReadonlyMap.toString()
+- [ ] ReadonlyMap.forEach()
+- [ ] ReadonlyMap.size()
+- [ ] ReadonlyMap.values()
+- [ ] ReadonlyMap.has()
+- [ ] ReadonlyMap.get()
+- [ ] ReadonlyMap.entires()
+- [ ] ReadonlyMap.keys()
+- [ ] Map.set()
+- [ ] Map.delete()
+- [ ] Map.clear()
+
+# String Macros
+- [ ] String.size()
+- [ ] String.trim()
+- [ ] String.trimStart()
+- [ ] String.trimEnd()
+- [ ] String.padStart()
+- [ ] String.padEnd()
+- [ ] String.slice()
+- [ ] String.indexOf()
+- [ ] String.includes()
+- [ ] String.endsWith()
+- [ ] String.startsWith()
+
+# Promise Macros
+- [ ] Promise.then()
