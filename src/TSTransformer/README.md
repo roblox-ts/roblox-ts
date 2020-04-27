@@ -87,6 +87,7 @@ Ideally, these should be done in a way that makes it hard for us to mess it up a
 
 ### Identifier Macros
 - [X] PKG_VERSION
+	- Doesn't actually look up package.json version yet..
 
 ### Call Macros
 - [X] typeOf
