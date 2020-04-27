@@ -82,7 +82,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 			// TODO: make this nicer?
 			const elements = lua.list.toArray(transformed.members).map(element => {
 				const e = element as lua.Array;
-				return [e.members.head, e.members.head?.next] as [lua.Expression, lua.Expression];
+				return [e.members.head?.value, e.members.head?.next?.value] as [lua.Expression, lua.Expression];
 			});
 			return lua.map(elements);
 		} else {

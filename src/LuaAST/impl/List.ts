@@ -3,10 +3,16 @@ import { NoInfer } from "Shared/util/types";
 
 const LIST_MARKER = Symbol("List");
 
+export type ListNode<T extends lua.Node> = {
+	prev?: lua.ListNode<T>;
+	next?: lua.ListNode<T>;
+	value: T;
+};
+
 export type List<T extends lua.Node> = {
 	[LIST_MARKER]: true;
-	head?: T;
-	tail?: T;
+	head?: lua.ListNode<T>;
+	tail?: lua.ListNode<T>;
 	readonly: boolean;
 };
 
@@ -18,16 +24,16 @@ function checkReadonly<T extends lua.Node>(list: lua.List<T>) {
 
 // list creation functions
 export namespace list {
-	export function makeNode<T extends lua.Node>(value: T): T {
-		return value;
+	export function makeNode<T extends lua.Node>(value: T): lua.ListNode<T> {
+		return { value };
 	}
 
 	export function make<T extends lua.Node>(...values: Array<T>): lua.List<T> {
 		if (values.length > 0) {
-			const head = values[0];
+			const head = lua.list.makeNode(values[0]);
 			let tail = head;
 			for (let i = 1; i < values.length; i++) {
-				const node = values[i];
+				const node = lua.list.makeNode(values[i]);
 				if (tail) {
 					tail.next = node;
 					node.prev = tail;
@@ -74,7 +80,7 @@ export namespace list {
 export namespace list {
 	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
 		checkReadonly(list);
-		const node = value;
+		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
 			node.prev = list.tail;
@@ -111,7 +117,7 @@ export namespace list {
 				list.head = undefined;
 			}
 			list.tail = undefined;
-			return tail;
+			return tail.value;
 		}
 	}
 
@@ -125,13 +131,13 @@ export namespace list {
 				list.tail = undefined;
 			}
 			list.head = undefined;
-			return head;
+			return head.value;
 		}
 	}
 
 	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
 		checkReadonly(list);
-		const node = value;
+		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;
 			node.next = list.head;
@@ -146,17 +152,17 @@ export namespace list {
 	}
 
 	export function forEach<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
-		let node: lua.Node | undefined = list.head;
+		let node = list.head;
 		while (node) {
-			callback(node as T);
+			callback(node.value);
 			node = node.next;
 		}
 	}
 
 	export function forEachRev<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
-		let node: lua.Node | undefined = list.tail;
+		let node = list.tail;
 		while (node) {
-			callback(node as T);
+			callback(node.value);
 			node = node.prev;
 		}
 	}
@@ -183,9 +189,9 @@ export namespace list {
 	}
 
 	export function every<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
-		let node: lua.Node | undefined = list.head;
+		let node = list.head;
 		while (node) {
-			if (!callback(node as T)) {
+			if (!callback(node.value)) {
 				return false;
 			}
 			node = node.next;
@@ -194,9 +200,9 @@ export namespace list {
 	}
 
 	export function any<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
-		let node: lua.Node | undefined = list.head;
+		let node = list.head;
 		while (node) {
-			if (callback(node as T)) {
+			if (callback(node.value)) {
 				return true;
 			}
 			node = node.next;
@@ -207,7 +213,7 @@ export namespace list {
 
 // node utility functions
 export namespace list {
-	export function remove<T extends lua.Node>(node: T) {
+	export function remove<T extends lua.Node>(node: lua.ListNode<T>) {
 		const prevNode = node.prev;
 		const nextNode = node.next;
 		node.prev = undefined;
@@ -220,8 +226,8 @@ export namespace list {
 		}
 	}
 
-	export function insertAfter<T extends lua.Node>(node: T, value: NoInfer<T>) {
-		const newNode = value;
+	export function insertAfter<T extends lua.Node>(node: lua.ListNode<T>, value: NoInfer<T>) {
+		const newNode = lua.list.makeNode(value);
 		const origNext = node.next;
 		node.next = newNode;
 		newNode.prev = node;

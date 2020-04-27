@@ -52,12 +52,12 @@ function startsWithParenthesis(node: lua.Statement) {
 	}
 }
 
-function getNextNonComment(node: lua.Statement) {
-	let statement = node.next;
-	while (statement && lua.isComment(statement)) {
-		statement = statement.next;
+function getNextNonComment(state: RenderState, node: lua.Statement) {
+	let listNode = state.peekListNode()?.next;
+	while (listNode && lua.isComment(listNode.value)) {
+		listNode = listNode.next;
 	}
-	return statement;
+	return listNode?.value;
 }
 
 /**
@@ -70,8 +70,8 @@ function getNextNonComment(node: lua.Statement) {
  * - VariableDeclaration
  * - Assignment
  */
-export function getEnding(node: lua.Statement) {
-	const nextStatement = getNextNonComment(node);
+export function getEnding(state: RenderState, node: lua.Statement) {
+	const nextStatement = getNextNonComment(state, node);
 	if (nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement)) {
 		return ";";
 	} else {

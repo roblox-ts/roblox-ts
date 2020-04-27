@@ -4,8 +4,6 @@ import * as lua from "LuaAST";
 export interface Node<T extends lua.SyntaxKind = lua.SyntaxKind> {
 	kind: T;
 	parent?: lua.Node;
-	prev?: lua.Node<T>;
-	next?: lua.Node<T>;
 }
 
 export interface IndexableExpression<
@@ -26,6 +24,15 @@ export interface HasParameters {
 export type AnyIdentifier = lua.Identifier | lua.EmptyIdentifier | lua.TemporaryIdentifier;
 
 export type WritableExpression = lua.AnyIdentifier | lua.PropertyAccessExpression | lua.ComputedIndexExpression;
+
+export type SimpleTypes =
+	| lua.Identifier
+	| lua.TemporaryIdentifier
+	| lua.NilLiteral
+	| lua.TrueLiteral
+	| lua.FalseLiteral
+	| lua.NumberLiteral
+	| lua.StringLiteral;
 
 // expressions
 export interface NilLiteral extends lua.Expression<lua.SyntaxKind.NilLiteral> {}

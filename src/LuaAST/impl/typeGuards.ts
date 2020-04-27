@@ -5,11 +5,12 @@ function makeGuard<T extends keyof lua.NodeByKind>(...kinds: [...Array<T>]) {
 }
 
 // indexable expressions
-export const isIdentifier = makeGuard(
+export const isAnyIdentifier = makeGuard(
 	lua.SyntaxKind.Identifier,
 	lua.SyntaxKind.EmptyIdentifier,
 	lua.SyntaxKind.TemporaryIdentifier,
 );
+export const isIdentifier = makeGuard(lua.SyntaxKind.Identifier);
 export const isEmptyIdentifier = makeGuard(lua.SyntaxKind.EmptyIdentifier);
 export const isTemporaryIdentifier = makeGuard(lua.SyntaxKind.TemporaryIdentifier);
 export const isComputedIndexExpression = makeGuard(lua.SyntaxKind.ComputedIndexExpression);
