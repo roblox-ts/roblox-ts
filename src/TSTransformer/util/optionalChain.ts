@@ -14,6 +14,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethodCall } from "TSTransformer/util/isMethodCall";
 import { pushToVar } from "TSTransformer/util/pushToVar";
+import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import ts from "typescript";
 
 enum OptionalChainItemKind {
@@ -275,13 +276,25 @@ function transformOptionalChainInner(
 			const isUsed = !lua.isEmptyIdentifier(newValue);
 
 			if (tempId !== newValue && isUsed) {
-				lua.list.push(
-					ifStatements,
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: tempId,
-						right: newValue,
-					}),
-				);
+				if (
+					ts.isExpressionStatement(skipUpwards(item.node)) &&
+					(lua.isCallExpression(newValue) || lua.isMethodCallExpression(newValue))
+				) {
+					lua.list.push(
+						ifStatements,
+						lua.create(lua.SyntaxKind.CallStatement, {
+							expression: newValue,
+						}),
+					);
+				} else {
+					lua.list.push(
+						ifStatements,
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: tempId,
+							right: newValue,
+						}),
+					);
+				}
 			}
 
 			state.prereq(createNilCheck(tempId, ifStatements));
