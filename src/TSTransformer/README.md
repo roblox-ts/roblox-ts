@@ -75,8 +75,7 @@ In other words, TS AST -> Lua AST
 - [X] new WeakMap()
 
 ### Identifier Macros
-- [X] PKG_VERSION
-	- Doesn't actually look up package.json version yet..
+- [X] PKG_VERSION (Doesn't actually look up package.json version yet..)
 
 ### Call Macros
 - [X] typeOf
