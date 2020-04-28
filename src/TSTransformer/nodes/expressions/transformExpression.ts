@@ -8,6 +8,7 @@ import { transformBinaryExpression } from "TSTransformer/nodes/expressions/trans
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
 import { transformElementAccessExpression } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
+import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import {
 	transformFalseKeyword,
@@ -59,6 +60,9 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
+
+	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
+	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
