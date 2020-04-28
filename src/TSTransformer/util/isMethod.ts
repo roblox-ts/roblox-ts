@@ -11,7 +11,7 @@ function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];
 	if (firstParam) {
 		const name = firstParam.name;
-		if (ts.isIdentifier(name) && name.text === "this") {
+		if (ts.isIdentifier(name) && ts.isThisIdentifier(name)) {
 			return name;
 		}
 	}
