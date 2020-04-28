@@ -160,6 +160,7 @@ export interface ForStatement extends lua.Statement<lua.SyntaxKind.ForStatement>
 }
 
 export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.FunctionDeclaration>, HasParameters {
+	localize: boolean;
 	name: lua.AnyIdentifier | lua.PropertyAccessExpression;
 	statements: lua.List<lua.Statement>;
 }
@@ -171,7 +172,7 @@ export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDe
 }
 
 export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.VariableDeclaration> {
-	left: lua.AnyIdentifier;
+	left: lua.AnyIdentifier | lua.List<lua.AnyIdentifier>;
 	right: lua.Expression | undefined;
 }
 

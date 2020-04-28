@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import ts from "typescript";
 import { assert } from "Shared/util/assert";
+import { getOrDefault } from "Shared/util/getOrDefault";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -33,40 +34,44 @@ function getDeclarationStatement(node: ts.Node): ts.Statement | undefined {
 	return node;
 }
 
-function shouldHoist(node: ts.Identifier, symbol: ts.Symbol) {
-	const declaration = getDeclarationStatement(symbol.valueDeclaration);
-	if (!declaration) {
-		return false;
+function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
+	if (state.isHoisted.get(symbol) !== undefined) {
+		return;
 	}
 
-	const parent = declaration.parent;
+	const declarationStatement = getDeclarationStatement(symbol.valueDeclaration);
+	if (!declarationStatement) {
+		return;
+	}
+
+	const parent = declarationStatement.parent;
 	if (!parent || !isBlockLike(parent)) {
-		return false;
+		return;
 	}
 
 	const sibling = getAncestorWhichIsChildOf(parent, node);
 	if (!sibling || !ts.isStatement(sibling)) {
-		return false;
+		return;
 	}
 
-	const declarationIdx = parent.statements.indexOf(declaration);
+	const declarationIdx = parent.statements.indexOf(declarationStatement);
 	const siblingIdx = parent.statements.indexOf(sibling);
 
 	if (siblingIdx > declarationIdx) {
-		return false;
+		return;
 	}
 
 	if (siblingIdx === declarationIdx) {
 		// function declarations can self refer
-		if (ts.isFunctionDeclaration(declaration)) {
-			return false;
+		if (ts.isFunctionDeclaration(declarationStatement)) {
+			return;
 		}
 	}
 
-	console.log("hoist", declaration.getText());
-	debugger;
+	getOrDefault(state.hoistsByStatement, sibling, () => new Array<ts.Identifier>()).push(node);
+	state.isHoisted.set(symbol, true);
 
-	return true;
+	return;
 }
 
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
@@ -81,7 +86,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return macro(state, node);
 	}
 
-	const needsHoist = shouldHoist(node, symbol);
+	checkHoist(state, node, symbol);
 
 	return transformIdentifierDefined(state, node);
 }

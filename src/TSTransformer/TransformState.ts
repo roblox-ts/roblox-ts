@@ -77,9 +77,12 @@ export class TransformState {
 	 * - pop prereqStatementsStack
 	 * - return prereq statements
 	 */
-	public statement(callback: (statements: lua.List<lua.Statement>) => void) {
-		const statements = this.pushPrereqStatementsStack();
-		callback(statements);
+	public statement(callback: () => void) {
+		this.pushPrereqStatementsStack();
+		callback();
 		return this.popPrereqStatementsStack();
 	}
+
+	public readonly hoistsByStatement = new Map<ts.Statement, Array<ts.Identifier>>();
+	public readonly isHoisted = new Map<ts.Symbol, boolean>();
 }

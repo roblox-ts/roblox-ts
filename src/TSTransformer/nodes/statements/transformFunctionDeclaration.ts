@@ -8,11 +8,14 @@ import { assert } from "Shared/util/assert";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	assert(node.name);
+	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
+	assert(symbol);
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
 
 	return lua.list.make(
 		lua.create(lua.SyntaxKind.FunctionDeclaration, {
+			localize: state.isHoisted.get(symbol) !== true,
 			name: transformIdentifierDefined(state, node.name),
 			hasDotDotDot,
 			parameters,

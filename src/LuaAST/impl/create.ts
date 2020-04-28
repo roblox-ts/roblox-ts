@@ -80,6 +80,7 @@ export function funcDec(
 	statements: Array<lua.Statement> = [],
 ) {
 	return lua.create(lua.SyntaxKind.FunctionDeclaration, {
+		localize: true,
 		name: lua.create(lua.SyntaxKind.Identifier, { name }),
 		parameters: lua.list.make(...parameters),
 		hasDotDotDot,

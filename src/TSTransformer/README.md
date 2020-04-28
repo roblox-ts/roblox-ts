@@ -8,7 +8,7 @@ In other words, TS AST -> Lua AST
 - [X] JS Truthiness
 - [X] Optional Chaining
 - [X] Method Call Detection
-- [ ] Variable/Function Hoisting
+- [X] Variable/Function Hoisting
 - [ ] Destructuring
 - [ ] Module Resolution (+ Rojo project)
 - [ ] LuaTuple<T> Support

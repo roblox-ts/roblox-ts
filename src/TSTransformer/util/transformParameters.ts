@@ -13,9 +13,8 @@ function transformParamInitializer(state: TransformState, paramId: lua.Identifie
 			right: lua.nil(),
 		}),
 		elseBody: lua.list.make(),
-		statements: state.statement(initializerStatements => {
-			lua.list.push(
-				initializerStatements,
+		statements: state.statement(() => {
+			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: paramId,
 					right: transformExpression(state, initializer),
