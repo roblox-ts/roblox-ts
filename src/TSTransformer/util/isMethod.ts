@@ -98,6 +98,8 @@ export function isMethod(
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 ): boolean {
 	const type = getDefinedType(state, state.typeChecker.getTypeAtLocation(node));
-	assert(type && type.symbol);
+	if (!type || !type.symbol) {
+		return false;
+	}
 	return getOrDefault(state.compileState.isMethodCache, type.symbol, () => isMethodInner(state, node, type));
 }
