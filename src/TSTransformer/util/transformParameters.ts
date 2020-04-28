@@ -1,9 +1,9 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import ts from "typescript";
-import { assert } from "Shared/util/assert";
 
 function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
