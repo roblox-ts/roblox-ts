@@ -31,8 +31,7 @@ In other words, TS AST -> Lua AST
 - [X] NonNullExpression
 - [X] ObjectLiteralExpression
 - [X] ParenthesizedExpression
-- [ ] ArrowFunction
-- [ ] FunctionExpression
+- [X] ArrowFunction + FunctionExpression (partially complete)
 - [ ] TemplateExpression
 - [ ] TaggedTemplateExpression
 - [ ] AwaitExpression
@@ -47,7 +46,7 @@ In other words, TS AST -> Lua AST
 ### Statements
 - [X] Block
 - [X] ExpressionStatement
-- [ ] FunctionDeclaration (partially complete)
+- [X] FunctionDeclaration (partially complete)
 - [X] IfStatement
 - [X] ReturnStatement
 - [X] VariableStatement
