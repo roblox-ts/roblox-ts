@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformParameters } from "TSTransformer/util/transformParameters";
@@ -6,6 +7,8 @@ import { transformStatementList } from "TSTransformer/util/transformStatementLis
 import ts from "typescript";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
+	assert(!node.name);
+
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
 
 	if (ts.isFunctionBody(node.body)) {
