@@ -31,12 +31,11 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 
 	for (const tsParam of tsParams) {
 		assert(ts.isIdentifier(tsParam.name), "Not implemented");
-		const paramStatements = lua.list.make<lua.Statement>();
 		const paramId = transformIdentifierDefined(state, tsParam.name);
 		if (tsParam.dotDotDotToken) {
 			hasDotDotDot = true;
 			lua.list.push(
-				paramStatements,
+				statements,
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
 					left: paramId,
 					right: lua.create(lua.SyntaxKind.Array, {
@@ -48,9 +47,8 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 			lua.list.push(parameters, paramId);
 		}
 		if (tsParam.initializer) {
-			lua.list.push(paramStatements, transformParamInitializer(state, paramId, tsParam.initializer));
+			lua.list.push(statements, transformParamInitializer(state, paramId, tsParam.initializer));
 		}
-		lua.list.pushList(statements, paramStatements);
 	}
 
 	return {
