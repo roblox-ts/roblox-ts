@@ -22,9 +22,5 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		);
 	}
 
-	return lua.create(lua.SyntaxKind.FunctionExpression, {
-		hasDotDotDot,
-		parameters,
-		statements,
-	});
+	return lua.create(lua.SyntaxKind.FunctionExpression, { statements, parameters, hasDotDotDot });
 }
