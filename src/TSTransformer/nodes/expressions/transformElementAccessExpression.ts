@@ -3,7 +3,7 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isMethodCall } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethodCall";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
@@ -24,7 +24,7 @@ export function transformElementAccessExpressionInner(
 	expression: lua.IndexableExpression,
 	argumentExpression: ts.Expression,
 ) {
-	if (isMethodCall(state, node)) {
+	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
 	}
 

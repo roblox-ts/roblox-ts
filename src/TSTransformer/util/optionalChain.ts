@@ -12,7 +12,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isMethodCall } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethodCall";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import ts from "typescript";
@@ -219,7 +219,7 @@ function transformOptionalChainInner(
 		let selfParam: lua.TemporaryIdentifier | undefined;
 
 		if (isCompoundCall(item)) {
-			isMethod = isMethodCall(state, item.node.expression);
+			isMethod = isMethod(state, item.node.expression);
 			if (item.callOptional && isMethod) {
 				selfParam = pushToVar(state, expression);
 				expression = selfParam;

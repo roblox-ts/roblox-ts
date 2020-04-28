@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isMethodCall } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethodCall";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "typescript";
@@ -34,7 +34,7 @@ export function transformPropertyCallExpressionInner(
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
-	if (isMethodCall(state, node.expression)) {
+	if (isMethod(state, node.expression)) {
 		return lua.create(lua.SyntaxKind.MethodCallExpression, {
 			name,
 			expression,
@@ -66,7 +66,7 @@ export function transformElementCallExpressionInner(
 	const args = lua.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
 	const argumentExp = lua.list.shift(args)!;
 
-	if (isMethodCall(state, node.expression)) {
+	if (isMethod(state, node.expression)) {
 		const selfId = pushToVarIfComplex(state, expression);
 		lua.list.unshift(args, selfId);
 	}

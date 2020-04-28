@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
-import { isMethodCall } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethodCall";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import ts from "typescript";
 
@@ -11,7 +11,7 @@ export function transformPropertyAccessExpressionInner(
 	expression: lua.IndexableExpression,
 	name: string,
 ) {
-	if (isMethodCall(state, node)) {
+	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
 	}
 	return lua.create(lua.SyntaxKind.PropertyAccessExpression, { expression, name });
