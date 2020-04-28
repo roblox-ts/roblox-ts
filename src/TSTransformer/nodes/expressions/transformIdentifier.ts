@@ -33,6 +33,42 @@ function getDeclarationStatement(node: ts.Node): ts.Statement | undefined {
 	return node;
 }
 
+function shouldHoist(node: ts.Identifier, symbol: ts.Symbol) {
+	const declaration = getDeclarationStatement(symbol.valueDeclaration);
+	if (!declaration) {
+		return false;
+	}
+
+	const parent = declaration.parent;
+	if (!parent || !isBlockLike(parent)) {
+		return false;
+	}
+
+	const sibling = getAncestorWhichIsChildOf(parent, node);
+	if (!sibling || !ts.isStatement(sibling)) {
+		return false;
+	}
+
+	const declarationIdx = parent.statements.indexOf(declaration);
+	const siblingIdx = parent.statements.indexOf(sibling);
+
+	if (siblingIdx > declarationIdx) {
+		return false;
+	}
+
+	if (siblingIdx === declarationIdx) {
+		// function declarations can self refer
+		if (ts.isFunctionDeclaration(declaration)) {
+			return false;
+		}
+	}
+
+	console.log("hoist", declaration.getText());
+	debugger;
+
+	return true;
+}
+
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	assert(symbol);
@@ -45,19 +81,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return macro(state, node);
 	}
 
-	const declaration = getDeclarationStatement(symbol.valueDeclaration);
-	if (declaration) {
-		const parent = declaration.parent;
-		if (isBlockLike(parent)) {
-			const sibling = getAncestorWhichIsChildOf(parent, node);
-			if (sibling && ts.isStatement(sibling)) {
-				const declarationIdx = parent.statements.indexOf(declaration);
-				const siblingIdx = parent.statements.indexOf(sibling);
-				const needsHoist = siblingIdx <= declarationIdx;
-				debugger;
-			}
-		}
-	}
+	const needsHoist = shouldHoist(node, symbol);
 
 	return transformIdentifierDefined(state, node);
 }
