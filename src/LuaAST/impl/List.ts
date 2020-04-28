@@ -17,12 +17,6 @@ export type List<T extends lua.Node> = {
 	readonly: boolean;
 };
 
-function checkReadonly<T extends lua.Node>(list: lua.List<T>) {
-	if (list.readonly) {
-		assert(false, "Cannot mutate readonly lua.List<T>!");
-	}
-}
-
 // list creation functions
 export namespace list {
 	export function makeNode<T extends lua.Node>(value: T): lua.ListNode<T> {
@@ -59,8 +53,8 @@ export namespace list {
 		for (let i = 1; i < nonEmptyLists.length; i++) {
 			const list = nonEmptyLists[i];
 			const prevList = nonEmptyLists[i - 1];
-			checkReadonly(list);
-			checkReadonly(prevList);
+			assert(!list.readonly);
+			assert(!prevList.readonly);
 			list.readonly = true;
 			list.head!.prev = prevList.tail!;
 			prevList.tail!.next = list.head!;
@@ -80,7 +74,7 @@ export namespace list {
 // list utility functions
 export namespace list {
 	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		checkReadonly(list);
+		assert(!list.readonly);
 		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
@@ -92,8 +86,8 @@ export namespace list {
 	}
 
 	export function pushList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
-		checkReadonly(list);
-		checkReadonly(other);
+		assert(!list.readonly);
+		assert(!other.readonly);
 		other.readonly = true;
 
 		if (other.head && other.tail) {
@@ -109,7 +103,7 @@ export namespace list {
 	}
 
 	export function pop<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		checkReadonly(list);
+		assert(!list.readonly);
 		if (list.tail) {
 			const tail = list.tail;
 			if (tail.prev) {
@@ -123,7 +117,7 @@ export namespace list {
 	}
 
 	export function shift<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		checkReadonly(list);
+		assert(!list.readonly);
 		if (list.head) {
 			const head = list.head;
 			if (head.next) {
@@ -137,7 +131,7 @@ export namespace list {
 	}
 
 	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		checkReadonly(list);
+		assert(!list.readonly);
 		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;
