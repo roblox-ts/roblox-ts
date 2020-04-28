@@ -7,6 +7,10 @@ import ts from "typescript";
 import { assert } from "Shared/util/assert";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
+	if (!node.body) {
+		return lua.list.make<lua.Statement>();
+	}
+
 	assert(node.name);
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	assert(symbol);
@@ -19,7 +23,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 			name: transformIdentifierDefined(state, node.name),
 			hasDotDotDot,
 			parameters,
-			statements: lua.list.join(statements, transformStatementList(state, node.body?.statements ?? [])),
+			statements: lua.list.join(statements, transformStatementList(state, node.body.statements)),
 		}),
 	);
 }
