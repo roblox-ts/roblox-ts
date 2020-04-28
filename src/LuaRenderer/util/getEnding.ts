@@ -32,7 +32,7 @@ function startsWithParenthesisInner(node: lua.Expression): boolean {
 		return true;
 	} else if (
 		lua.isCallExpression(node) ||
-		lua.isMethodCallExpression(node) ||
+		lua.isMethodExpression(node) ||
 		lua.isPropertyAccessExpression(node) ||
 		lua.isComputedIndexExpression(node)
 	) {

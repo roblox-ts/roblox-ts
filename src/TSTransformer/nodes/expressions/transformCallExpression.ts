@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isMethod } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethod";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "typescript";

@@ -42,7 +42,7 @@ function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
 	}
 }
 
-function isMethodCallInner(
+function isMethodInner(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 	type: ts.Type,
@@ -99,5 +99,5 @@ export function isMethod(
 ): boolean {
 	const type = getDefinedType(state, state.typeChecker.getTypeAtLocation(node));
 	assert(type && type.symbol);
-	return getOrDefault(state.compileState.isMethodCache, type.symbol, () => isMethodCallInner(state, node, type));
+	return getOrDefault(state.compileState.isMethodCache, type.symbol, () => isMethodInner(state, node, type));
 }

@@ -3,7 +3,7 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isMethod } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethod";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "typescript";

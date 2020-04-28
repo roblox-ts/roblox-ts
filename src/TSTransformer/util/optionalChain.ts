@@ -12,7 +12,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isMethod } from "TSTransformer/util/isMethodCall";
+import { isMethod } from "TSTransformer/util/isMethod";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import ts from "typescript";
@@ -278,7 +278,7 @@ function transformOptionalChainInner(
 			if (tempId !== newValue && isUsed) {
 				if (
 					ts.isExpressionStatement(skipUpwards(item.node)) &&
-					(lua.isCallExpression(newValue) || lua.isMethodCallExpression(newValue))
+					(lua.isCallExpression(newValue) || lua.isMethodExpression(newValue))
 				) {
 					lua.list.push(
 						ifStatements,

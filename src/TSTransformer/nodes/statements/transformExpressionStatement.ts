@@ -46,7 +46,7 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 	}
 
 	const transformed = transformExpression(state, expression);
-	if (lua.isCallExpression(transformed) || lua.isMethodCallExpression(transformed)) {
+	if (lua.isCallExpression(transformed) || lua.isMethodExpression(transformed)) {
 		return lua.list.make(lua.create(lua.SyntaxKind.CallStatement, { expression: transformed }));
 	} else if (lua.isAnyIdentifier(transformed)) {
 		return lua.list.make<lua.Statement>();
