@@ -1,8 +1,7 @@
-import { TransformState } from "TSTransformer";
 import ts from "byots";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
-import { getOrDefault } from "Shared/util/getOrDefault";
-import { assert } from "Shared/util/assert";
 
 function hasTypeFlag(flags: ts.TypeFlags, flagToCheck: ts.TypeFlags) {
 	return (flags & flagToCheck) === flagToCheck;
@@ -101,5 +100,5 @@ export function isMethod(
 	if (!type || !type.symbol) {
 		return false;
 	}
-	return getOrDefault(state.compileState.isMethodCache, type.symbol, () => isMethodInner(state, node, type));
+	return getOrSetDefault(state.compileState.isMethodCache, type.symbol, () => isMethodInner(state, node, type));
 }

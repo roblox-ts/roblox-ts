@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import ts from "byots";
 import { assert } from "Shared/util/assert";
-import { getOrDefault } from "Shared/util/getOrDefault";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -75,7 +75,7 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 		}
 	}
 
-	getOrDefault(state.hoistsByStatement, sibling, () => new Array<ts.Identifier>()).push(node);
+	getOrSetDefault(state.hoistsByStatement, sibling, () => new Array<ts.Identifier>()).push(node);
 	state.isHoisted.set(symbol, true);
 
 	return;

@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { getOrDefault } from "Shared/util/getOrDefault";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
@@ -46,7 +46,7 @@ export class MacroManager {
 					for (const declaration of statement.declarationList.declarations) {
 						if (ts.isIdentifier(declaration.name)) {
 							const identifierName = declaration.name.text;
-							const identifierSymbols = getOrDefault(
+							const identifierSymbols = getOrSetDefault(
 								identifiers,
 								identifierName,
 								() => new Array<ts.Symbol>(),
@@ -56,12 +56,16 @@ export class MacroManager {
 						}
 					}
 				} else if (ts.isFunctionDeclaration(statement)) {
-					const functionSymbols = getOrDefault(functions, statement.name!.text, () => new Array<ts.Symbol>());
+					const functionSymbols = getOrSetDefault(
+						functions,
+						statement.name!.text,
+						() => new Array<ts.Symbol>(),
+					);
 					const symbol = typeChecker.getTypeAtLocation(statement).symbol;
 					assert(symbol);
 					functionSymbols.push(symbol);
 				} else if (ts.isInterfaceDeclaration(statement)) {
-					const interfaceInfo = getOrDefault(interfaces, statement.name.text, () => ({
+					const interfaceInfo = getOrSetDefault(interfaces, statement.name.text, () => ({
 						symbols: new Array<ts.Symbol>(),
 						constructors: new Array<ts.Symbol>(),
 						methods: new Map<string, Array<ts.Symbol>>(),
