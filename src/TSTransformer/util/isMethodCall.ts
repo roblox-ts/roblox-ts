@@ -81,8 +81,6 @@ function isMethodCallInner(
 	return hasMethodDefinition;
 }
 
-const isMethodCallCache = new Map<ts.Symbol, boolean>();
-
 function getDefinedSymbol(state: TransformState, type: ts.Type) {
 	if (type.isUnion()) {
 		for (const subType of type.types) {
@@ -102,5 +100,5 @@ export function isMethodCall(
 	const type = state.typeChecker.getTypeAtLocation(node);
 	const symbol = getDefinedSymbol(state, type);
 	assert(symbol);
-	return getOrDefault(isMethodCallCache, symbol, () => isMethodCallInner(state, node, type));
+	return getOrDefault(state.compileState.isMethodCallCache, symbol, () => isMethodCallInner(state, node, type));
 }

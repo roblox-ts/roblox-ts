@@ -3,6 +3,7 @@ import * as tsst from "ts-simple-type";
 import ts from "typescript";
 import { MacroManager } from "TSTransformer";
 import { assert } from "Shared/util/assert";
+import { CompileState } from "./CompileState";
 
 export class TransformState {
 	private readonly sourceFileText: string;
@@ -16,6 +17,7 @@ export class TransformState {
 	}
 
 	constructor(
+		public readonly compileState: CompileState,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
 		sourceFile: ts.SourceFile,

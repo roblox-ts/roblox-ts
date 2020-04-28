@@ -5,7 +5,7 @@ import { createParseConfigFileHost } from "Project/util/createParseConfigFileHos
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { MacroManager, TransformState, transformSourceFile } from "TSTransformer";
+import { MacroManager, TransformState, transformSourceFile, CompileState } from "TSTransformer";
 import ts from "typescript";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -73,6 +73,8 @@ export class Project {
 	}
 
 	public compile() {
+		const compileState = new CompileState();
+
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
@@ -80,7 +82,12 @@ export class Project {
 				totalDiagnostics.push(...preEmitDiagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
-				const transformState = new TransformState(this.typeChecker, this.macroManager, sourceFile);
+				const transformState = new TransformState(
+					compileState,
+					this.typeChecker,
+					this.macroManager,
+					sourceFile,
+				);
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) continue;
