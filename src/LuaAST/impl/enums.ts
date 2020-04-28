@@ -25,6 +25,7 @@ export enum SyntaxKind {
 
 	// statements
 	Assignment,
+	BreakStatement,
 	CallStatement,
 	DoStatement,
 	WhileStatement,

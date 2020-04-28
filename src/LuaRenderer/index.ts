@@ -16,6 +16,7 @@ import { renderSet } from "LuaRenderer/nodes/expressions/renderSet";
 import { renderUnaryExpression } from "LuaRenderer/nodes/expressions/renderUnaryExpression";
 import { renderMapField } from "LuaRenderer/nodes/fields/renderMapField";
 import { renderAssignment } from "LuaRenderer/nodes/statements/renderAssignment";
+import { renderBreakStatement } from "LuaRenderer/nodes/statements/renderBreakStatement";
 import { renderCallStatement } from "LuaRenderer/nodes/statements/renderCallStatement";
 import { renderComment } from "LuaRenderer/nodes/statements/renderComment";
 import { renderDoStatement } from "LuaRenderer/nodes/statements/renderDoStatement";
@@ -61,6 +62,7 @@ const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 
 	// statements
 	[lua.SyntaxKind.Assignment]: renderAssignment,
+	[lua.SyntaxKind.BreakStatement]: renderBreakStatement,
 	[lua.SyntaxKind.CallStatement]: renderCallStatement,
 	[lua.SyntaxKind.DoStatement]: renderDoStatement,
 	[lua.SyntaxKind.WhileStatement]: renderWhileStatement,

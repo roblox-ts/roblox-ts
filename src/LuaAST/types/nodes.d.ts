@@ -119,6 +119,8 @@ export interface Assignment extends lua.Statement<lua.SyntaxKind.Assignment> {
 	right: lua.Expression;
 }
 
+export interface BreakStatement extends lua.Statement<lua.SyntaxKind.BreakStatement> {}
+
 export interface CallStatement extends lua.Statement<lua.SyntaxKind.CallStatement> {
 	expression: lua.CallExpression | lua.MethodCallExpression;
 }
