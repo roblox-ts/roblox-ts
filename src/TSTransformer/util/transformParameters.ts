@@ -30,9 +30,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 	let hasDotDotDot = false;
 
 	for (const tsParam of tsParams) {
-		if (!ts.isIdentifier(tsParam.name)) {
-			assert(false, "Not implemented");
-		}
+		assert(ts.isIdentifier(tsParam.name), "Not implemented");
 		const paramStatements = lua.list.make<lua.Statement>();
 		const paramId = transformIdentifierDefined(state, tsParam.name);
 		if (tsParam.dotDotDotToken) {
