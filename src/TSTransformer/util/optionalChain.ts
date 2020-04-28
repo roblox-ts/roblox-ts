@@ -215,12 +215,12 @@ function transformOptionalChainInner(
 	if (index >= chain.length) return expression;
 	const item = chain[index];
 	if (item.optional || (isCompoundCall(item) && item.callOptional)) {
-		let isMethod = false;
+		let isMethodCall = false;
 		let selfParam: lua.TemporaryIdentifier | undefined;
 
 		if (isCompoundCall(item)) {
-			isMethod = isMethod(state, item.node.expression);
-			if (item.callOptional && isMethod) {
+			isMethodCall = isMethod(state, item.node.expression);
+			if (item.callOptional && isMethodCall) {
 				selfParam = pushToVar(state, expression);
 				expression = selfParam;
 			}
@@ -260,7 +260,7 @@ function transformOptionalChainInner(
 					}
 
 					const args = lua.list.make(...ensureTransformOrder(state, item.args));
-					if (isMethod) {
+					if (isMethodCall) {
 						lua.list.unshift(args, selfParam!);
 					}
 					newExpression = lua.create(lua.SyntaxKind.CallExpression, {
