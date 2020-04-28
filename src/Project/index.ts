@@ -6,7 +6,7 @@ import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { MacroManager, TransformState, transformSourceFile, CompileState } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",

@@ -11,7 +11,7 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { transformLogical } from "TSTransformer/util/transformLogical";
 import { transformWritableAssignmentWithType } from "TSTransformer/util/transformWritable";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
@@ -48,12 +48,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	return createBinaryFromOperator(
 		{
 			node: left,
-			type: state.getSimpleType(node.left),
+			type: state.getSimpleTypeFromNode(node.left),
 		},
 		operatorKind,
 		{
 			node: right,
-			type: state.getSimpleType(node.right),
+			type: state.getSimpleTypeFromNode(node.right),
 		},
 	);
 }

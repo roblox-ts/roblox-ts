@@ -3,7 +3,7 @@ import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { pushToVar } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 
 /**
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.

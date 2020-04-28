@@ -7,7 +7,7 @@ import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
-import ts from "typescript";
+import ts from "byots";
 import { assert } from "Shared/util/assert";
 
 const INCLUDE_FILES = ["roblox.d.ts", "es.d.ts", "macro_math.d.ts"];

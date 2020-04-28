@@ -4,7 +4,7 @@ import { transformStatement } from "TSTransformer/nodes/statements/transformStat
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "typescript";
+import ts from "byots";
 
 function transformElseStatement(
 	state: TransformState,

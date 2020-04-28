@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "byots";
 
 export function skipUpwards(node: ts.Node) {
 	let parent = node.parent;

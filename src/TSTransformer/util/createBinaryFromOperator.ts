@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
-import ts from "typescript";
+import ts from "byots";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison

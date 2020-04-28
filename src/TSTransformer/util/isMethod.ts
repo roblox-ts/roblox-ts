@@ -1,5 +1,5 @@
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { getOrDefault } from "Shared/util/getOrDefault";
 import { assert } from "Shared/util/assert";

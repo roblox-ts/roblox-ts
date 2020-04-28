@@ -3,10 +3,10 @@ import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 
 export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
-	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
+	const simpleType = state.getSimpleType(nodeType);
 	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
 	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
 	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
@@ -16,7 +16,7 @@ export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.T
 export function createTruthinessChecks(state: TransformState, exp: lua.Expression, nodeType: ts.Type) {
 	const checks = new Array<lua.Expression>();
 
-	const simpleType = tsst.toSimpleType(nodeType, state.typeChecker);
+	const simpleType = state.getSimpleType(nodeType);
 	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
 	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
 	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");

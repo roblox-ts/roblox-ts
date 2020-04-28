@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "byots";
 import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 import chalk from "chalk";
 

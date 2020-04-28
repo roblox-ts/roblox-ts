@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/util/transformParameters";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.body) {

@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
 import { assert } from "Shared/util/assert";
 import { getOrDefault } from "Shared/util/getOrDefault";
 

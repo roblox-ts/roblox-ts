@@ -3,7 +3,7 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,

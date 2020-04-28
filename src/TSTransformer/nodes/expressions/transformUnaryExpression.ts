@@ -5,7 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 import { transformWritableExpression, transformWritableExpressionWithType } from "TSTransformer/util/transformWritable";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = transformWritableExpression(state, node.operand);

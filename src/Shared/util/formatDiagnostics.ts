@@ -1,5 +1,5 @@
 import { EOL } from "os";
-import ts from "typescript";
+import ts from "byots";
 
 export function formatDiagnostics(diagnostics: ReadonlyArray<ts.Diagnostic>) {
 	return ts.formatDiagnosticsWithColorAndContext(diagnostics, {

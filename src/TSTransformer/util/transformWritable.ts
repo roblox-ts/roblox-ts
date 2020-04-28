@@ -4,7 +4,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfNonId } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { assert } from "Shared/util/assert";
 
@@ -42,7 +42,7 @@ export function transformWritableExpressionWithType(
 ): NodeWithType<lua.WritableExpression> {
 	return {
 		node: transformWritableExpression(state, node, forcePush),
-		type: state.getSimpleType(node),
+		type: state.getSimpleTypeFromNode(node),
 	};
 }
 
@@ -64,11 +64,11 @@ export function transformWritableAssignmentWithType(
 	return {
 		writable: {
 			node: writable,
-			type: state.getSimpleType(writeNode),
+			type: state.getSimpleTypeFromNode(writeNode),
 		},
 		value: {
 			node: value,
-			type: state.getSimpleType(valueNode),
+			type: state.getSimpleTypeFromNode(valueNode),
 		},
 	};
 }

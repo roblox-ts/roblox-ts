@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformParameters } from "TSTransformer/util/transformParameters";
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	assert(!node.name);

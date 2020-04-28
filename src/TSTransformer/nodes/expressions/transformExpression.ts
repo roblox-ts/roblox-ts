@@ -26,7 +26,7 @@ import {
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
-import ts from "typescript";
+import ts from "byots";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));

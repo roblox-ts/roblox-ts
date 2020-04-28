@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
-import ts from "typescript";
+import ts from "byots";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 
 export function transformStatementList(state: TransformState, statements: ReadonlyArray<ts.Statement>) {

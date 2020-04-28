@@ -4,7 +4,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import ts from "typescript";
+import ts from "byots";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { TransformState } from "TSTransformer/TransformState";
 

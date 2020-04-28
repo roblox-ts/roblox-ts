@@ -5,7 +5,7 @@ import { Project, ProjectOptions } from "Project";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { identity } from "Shared/util/identity";
-import ts from "typescript";
+import ts from "byots";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {

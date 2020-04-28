@@ -2,7 +2,8 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
+import originalTS from "typescript";
 
 export class TransformState {
 	private readonly sourceFileText: string;
@@ -60,8 +61,12 @@ export class TransformState {
 			.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
 	}
 
-	public getSimpleType(node: ts.Node) {
-		return tsst.toSimpleType(this.typeChecker.getTypeAtLocation(node), this.typeChecker);
+	public getSimpleType(type: ts.Type) {
+		return tsst.toSimpleType(type as originalTS.Type, this.typeChecker as originalTS.TypeChecker);
+	}
+
+	public getSimpleTypeFromNode(node: ts.Node) {
+		return this.getSimpleType(this.typeChecker.getTypeAtLocation(node));
 	}
 
 	/**

@@ -9,7 +9,7 @@ import { transformIfStatement } from "TSTransformer/nodes/statements/transformIf
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
-import ts from "typescript";
+import ts from "byots";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 

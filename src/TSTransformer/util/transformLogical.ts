@@ -3,7 +3,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import ts from "typescript";
+import ts from "byots";
 import { assert } from "Shared/util/assert";
 
 interface LogicalChainItem {

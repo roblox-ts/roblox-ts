@@ -1,7 +1,7 @@
 import chalk from "chalk";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
-import ts from "typescript";
+import ts from "byots";
 
 // force colors
 chalk.level = chalk.Level.Basic;

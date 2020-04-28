@@ -3,7 +3,7 @@ import { TransformState } from "TSTransformer";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { pushToVar } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 
 export function isAssignmentOperator(operator: ts.SyntaxKind): operator is ts.AssignmentOperator {
 	return operator >= ts.SyntaxKind.FirstAssignment && operator <= ts.SyntaxKind.LastAssignment;

@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
 	return lua.create(lua.SyntaxKind.TrueLiteral, {});

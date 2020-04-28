@@ -1,6 +1,6 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import ts from "typescript";
+import ts from "byots";
 
 export type MacroList<T> = { [index: string]: T };
 

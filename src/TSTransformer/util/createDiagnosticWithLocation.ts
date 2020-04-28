@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "byots";
 
 export function createDiagnosticWithLocation(message: string, node: ts.Node): ts.DiagnosticWithLocation {
 	return {

@@ -2,7 +2,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import ts from "typescript";
+import ts from "byots";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const tempId = lua.tempId();

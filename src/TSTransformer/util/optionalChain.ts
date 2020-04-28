@@ -15,7 +15,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import ts from "typescript";
+import ts from "byots";
 
 enum OptionalChainItemKind {
 	PropertyAccess,

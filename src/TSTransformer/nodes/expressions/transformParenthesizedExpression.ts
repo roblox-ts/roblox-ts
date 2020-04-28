@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts from "typescript";
+import ts from "byots";
 import { skipDownwards } from "TSTransformer/util/skipDownwards";
 
 export function transformParenthesizedExpression(state: TransformState, node: ts.ParenthesizedExpression) {

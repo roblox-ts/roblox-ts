@@ -13,7 +13,7 @@ import {
 	transformWritableAssignmentWithType,
 	transformWritableExpressionWithType,
 } from "TSTransformer/util/transformWritable";
-import ts from "typescript";
+import ts from "byots";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,

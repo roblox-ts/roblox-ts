@@ -33,6 +33,7 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"byots": "^4.0.0-dev.20200428.13.42",
 		"chalk": "^3.0.0",
 		"chokidar": "^3.4.0",
 		"fs-extra": "^8.1.0",

@@ -4,7 +4,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
 	return lua.create(lua.SyntaxKind.CallExpression, {

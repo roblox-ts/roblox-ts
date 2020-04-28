@@ -3,7 +3,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import ts from "typescript";
+import ts from "byots";
 
 function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) {
 	const type = state.typeChecker.getTypeAtLocation(node.expression);

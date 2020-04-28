@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "byots";
 
 /**
  * CompileState is state that lives only for a single compilation step.

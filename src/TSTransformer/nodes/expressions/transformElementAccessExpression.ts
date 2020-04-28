@@ -6,7 +6,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isMethod } from "TSTransformer/util/isMethod";
 import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVar } from "TSTransformer/util/pushToVar";
-import ts from "typescript";
+import ts from "byots";
 
 // hack for now until we can detect arrays
 export function addOneIfNumber(expression: lua.Expression) {
