@@ -11,14 +11,17 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 			assert(false, "Not implemented");
 		}
 
+		// must transform right _before_ checking isHoisted
+		const right = node.initializer ? transformExpression(state, node.initializer) : undefined;
+
 		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(symbol);
 		if (state.isHoisted.get(symbol) === true) {
-			if (node.initializer) {
+			if (right) {
 				state.prereq(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: transformIdentifierDefined(state, node.name),
-						right: transformExpression(state, node.initializer),
+						right,
 					}),
 				);
 			}
@@ -26,7 +29,7 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 			state.prereq(
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
 					left: transformIdentifierDefined(state, node.name),
-					right: node.initializer ? transformExpression(state, node.initializer) : undefined,
+					right,
 				}),
 			);
 		}
