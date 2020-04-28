@@ -52,8 +52,6 @@ In other words, TS AST -> Lua AST
 - [X] VariableStatement
 - [ ] DoStatement
 - [ ] WhileStatement
-- [ ] ForStatement
-- [ ] TryStatement
 - [ ] BreakStatement
 - [ ] ContinueStatement
 - [ ] ForStatement
