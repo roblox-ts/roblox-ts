@@ -39,7 +39,14 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 		return;
 	}
 
-	const declarationStatement = getDeclarationStatement(symbol.valueDeclaration);
+	const declaration = symbol.valueDeclaration;
+
+	// parameters cannot be hoisted
+	if (!declaration || ts.isParameter(declaration)) {
+		return;
+	}
+
+	const declarationStatement = getDeclarationStatement(declaration);
 	if (!declarationStatement) {
 		return;
 	}
