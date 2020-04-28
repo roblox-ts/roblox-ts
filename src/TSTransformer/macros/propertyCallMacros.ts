@@ -6,6 +6,7 @@ import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import ts from "typescript";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { TransformState } from "TSTransformer/TransformState";
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
@@ -18,7 +19,106 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	};
 }
 
+const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
+	size: (state, node, expression) => lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }),
+};
+
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
+	isEmpty: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }),
+			operator: "==",
+			right: lua.number(0),
+		}),
+
+	join: (state, node, expression) => {
+		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.string(",");
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				expression: lua.id("table"),
+				name: "concat",
+			}),
+			args: lua.list.make(expression, separator),
+		});
+	},
+
+	every: (state, node, expression) => {
+		expression = pushToVarIfComplex(state, expression);
+
+		const resultId = pushToVar(state, lua.bool(true));
+		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.id("ipairs"),
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.UnaryExpression, {
+							operator: "not",
+							expression: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: callbackId,
+								args: lua.list.make(valueId, keyId, expression),
+							}),
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: resultId,
+								right: lua.bool(false),
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+		return resultId;
+	},
+
+	some: (state, node, expression) => {
+		expression = pushToVarIfComplex(state, expression);
+
+		const resultId = pushToVar(state, lua.bool(false));
+		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.id("ipairs"),
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, keyId, expression),
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: resultId,
+								right: lua.bool(true),
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+		return resultId;
+	},
+
 	map: (state, node, expression) => {
 		expression = pushToVarIfComplex(state, expression);
 		const newValueId = pushToVar(state, lua.array());
@@ -181,8 +281,9 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 		div: makeMathMethod("/"),
 	},
 
-	Array: ARRAY_METHODS,
+	ArrayLike: ARRAY_LIKE_METHODS,
 	ReadonlyArray: READONLY_ARRAY_METHODS,
+	Array: ARRAY_METHODS,
 	Set: SET_METHODS,
 	WeakSet: SET_METHODS,
 	Map: MAP_METHODS,
