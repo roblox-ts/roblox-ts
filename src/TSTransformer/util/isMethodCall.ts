@@ -81,15 +81,15 @@ function isMethodCallInner(
 	return hasMethodDefinition;
 }
 
-function getDefinedSymbol(state: TransformState, type: ts.Type) {
+function getDefinedType(state: TransformState, type: ts.Type) {
 	if (type.isUnion()) {
 		for (const subType of type.types) {
 			if (subType.symbol && !state.typeChecker.isUndefinedSymbol(subType.symbol)) {
-				return subType.symbol;
+				return subType;
 			}
 		}
 	} else {
-		return type.symbol;
+		return type;
 	}
 }
 
@@ -97,8 +97,7 @@ export function isMethodCall(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 ): boolean {
-	const type = state.typeChecker.getTypeAtLocation(node);
-	const symbol = getDefinedSymbol(state, type);
-	assert(symbol);
-	return getOrDefault(state.compileState.isMethodCallCache, symbol, () => isMethodCallInner(state, node, type));
+	const type = getDefinedType(state, state.typeChecker.getTypeAtLocation(node));
+	assert(type && type.symbol);
+	return getOrDefault(state.compileState.isMethodCallCache, type.symbol, () => isMethodCallInner(state, node, type));
 }
