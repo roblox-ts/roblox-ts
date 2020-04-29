@@ -5,6 +5,6 @@ export function assert(value: unknown, message?: string): asserts value {
 	if (!value) {
 		debugger;
 		// TODO: instruct user to post issue
-		throw new Error(`Assertion Failed!${message ? ` ${message} ` : ""}`);
+		throw new Error(`Assertion Failed!${message ? ` ${message}` : ""}`);
 	}
 }
