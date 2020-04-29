@@ -5,22 +5,19 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import ts from "byots";
 import { assert } from "Shared/util/assert";
 
-function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
+export function transformVariable(state: TransformState, identifier: ts.Identifier, value?: ts.Expression) {
 	return state.statement(() => {
-		if (!ts.isIdentifier(node.name)) {
-			assert(false, "Not implemented");
-		}
+		// must transform right _before_ checking isHoisted, that way references inside of value can be hoisted
+		const right = value ? transformExpression(state, value) : undefined;
 
-		// must transform right _before_ checking isHoisted
-		const right = node.initializer ? transformExpression(state, node.initializer) : undefined;
-
-		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
+		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 		assert(symbol);
 		if (state.isHoisted.get(symbol) === true) {
+			// no need to do `x = nil` if the variable is already created
 			if (right) {
 				state.prereq(
 					lua.create(lua.SyntaxKind.Assignment, {
-						left: transformIdentifierDefined(state, node.name),
+						left: transformIdentifierDefined(state, identifier),
 						right,
 					}),
 				);
@@ -28,12 +25,19 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		} else {
 			state.prereq(
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: transformIdentifierDefined(state, node.name),
+					left: transformIdentifierDefined(state, identifier),
 					right,
 				}),
 			);
 		}
 	});
+}
+
+function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
+	if (!ts.isIdentifier(node.name)) {
+		assert(false, "Not implemented");
+	}
+	return transformVariable(state, node.name, node.initializer);
 }
 
 export function transformVariableStatement(state: TransformState, node: ts.VariableStatement): lua.List<lua.Statement> {
