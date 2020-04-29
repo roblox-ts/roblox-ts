@@ -1,10 +1,10 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformParameters } from "TSTransformer/util/transformParameters";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "byots";
+import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.body) {

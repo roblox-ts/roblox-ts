@@ -1,7 +1,7 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "byots";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 
 export function transformBlock(state: TransformState, node: ts.Block) {
 	return lua.list.make(

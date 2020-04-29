@@ -1,10 +1,10 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformParameters } from "TSTransformer/util/transformParameters";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "byots";
+import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	assert(!node.name);

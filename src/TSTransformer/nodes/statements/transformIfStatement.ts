@@ -1,10 +1,10 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
-import ts from "byots";
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): lua.IfStatement {
 	const condition = createTruthinessChecks(

@@ -1,6 +1,11 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import {
+	transformWritableAssignmentWithType,
+	transformWritableExpressionWithType,
+} from "TSTransformer/nodes/transformWritable";
 import {
 	createAssignmentStatement,
 	createCompoundAssignmentStatement,
@@ -9,11 +14,6 @@ import {
 	isUnaryAssignmentOperator,
 } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
-import {
-	transformWritableAssignmentWithType,
-	transformWritableExpressionWithType,
-} from "TSTransformer/util/transformWritable";
-import ts from "byots";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,

@@ -1,11 +1,14 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import {
+	transformWritableExpression,
+	transformWritableExpressionWithType,
+} from "TSTransformer/nodes/transformWritable";
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
-import { transformWritableExpression, transformWritableExpressionWithType } from "TSTransformer/util/transformWritable";
-import ts from "byots";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = transformWritableExpression(state, node.operand);

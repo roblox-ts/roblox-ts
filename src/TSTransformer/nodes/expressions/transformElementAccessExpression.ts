@@ -1,12 +1,12 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformOptionalChain } from "TSTransformer/nodes/optionalChain";
 import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { transformOptionalChain } from "TSTransformer/util/optionalChain";
 import { pushToVar } from "TSTransformer/util/pushToVar";
-import ts from "byots";
 
 // hack for now until we can detect arrays
 export function addOneIfNumber(expression: lua.Expression) {

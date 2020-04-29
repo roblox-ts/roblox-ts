@@ -1,9 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { transformStatementList } from "TSTransformer/util/transformStatementList";
 
 export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
 	const statements = transformStatementList(

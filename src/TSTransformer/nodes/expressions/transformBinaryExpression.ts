@@ -1,6 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
+import { transformLogical } from "TSTransformer/nodes/transformLogical";
+import { transformWritableAssignmentWithType } from "TSTransformer/nodes/transformWritable";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
@@ -9,9 +12,6 @@ import {
 } from "TSTransformer/util/assignment";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { transformLogical } from "TSTransformer/util/transformLogical";
-import { transformWritableAssignmentWithType } from "TSTransformer/util/transformWritable";
-import ts from "byots";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
