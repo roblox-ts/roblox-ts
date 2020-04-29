@@ -21,7 +21,7 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	if (ts.isFunctionLike(node)) {
 		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
-			const thisType = state.typeChecker.getTypeAtLocation(thisParam);
+			const thisType = state.getType(thisParam);
 			return !hasTypeFlag(thisType.flags, ts.TypeFlags.Void);
 		} else {
 			return ts.isMethodDeclaration(node) || ts.isMethodSignature(node);
@@ -96,7 +96,7 @@ export function isMethod(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
 ): boolean {
-	const type = getDefinedType(state, state.typeChecker.getTypeAtLocation(node));
+	const type = getDefinedType(state, state.getType(node));
 	if (!type || !type.symbol) {
 		return false;
 	}

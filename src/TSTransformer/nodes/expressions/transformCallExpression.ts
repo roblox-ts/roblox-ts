@@ -12,7 +12,7 @@ export function transformCallExpressionInner(
 	expression: lua.IndexableExpression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
+	const macro = state.macroManager.getCallMacro(state.getType(node.expression).symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}
@@ -28,7 +28,7 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getPropertyCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
+	const macro = state.macroManager.getPropertyCallMacro(state.getType(node.expression).symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}
@@ -58,7 +58,7 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getPropertyCallMacro(state.typeChecker.getTypeAtLocation(node.expression).symbol);
+	const macro = state.macroManager.getPropertyCallMacro(state.getType(node.expression).symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}

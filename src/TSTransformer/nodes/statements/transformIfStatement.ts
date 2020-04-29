@@ -10,7 +10,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.expression),
-		state.typeChecker.getTypeAtLocation(node.expression),
+		state.getType(node.expression),
 	);
 
 	const statements = transformStatementList(

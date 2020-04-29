@@ -2,8 +2,12 @@ import ts from "byots";
 
 export function skipUpwards(node: ts.Node) {
 	let parent = node.parent;
-	do {
+	while (
+		parent &&
+		(ts.isNonNullExpression(parent) || ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent))
+	) {
+		node = parent;
 		parent = node.parent;
-	} while (ts.isParenthesizedExpression(parent));
-	return parent;
+	}
+	return node;
 }

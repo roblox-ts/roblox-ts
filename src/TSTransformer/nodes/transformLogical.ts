@@ -39,7 +39,7 @@ function getLogicalChain(
 	enableInlining: boolean,
 ): Array<LogicalChainItem> {
 	return flattenByOperator(node, binaryOperatorKind).map((original, index, array) => {
-		const type = state.typeChecker.getTypeAtLocation(original);
+		const type = state.getType(original);
 		const { expression, statements } = state.capturePrereqs(() => transformExpression(state, original));
 		let inline = false;
 		if (enableInlining) {

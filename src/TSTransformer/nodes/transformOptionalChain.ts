@@ -72,7 +72,7 @@ function createPropertyAccessItem(state: TransformState, node: ts.PropertyAccess
 		node,
 		kind: OptionalChainItemKind.PropertyAccess,
 		optional: node.questionDotToken !== undefined,
-		type: state.typeChecker.getTypeAtLocation(node.expression),
+		type: state.getType(node.expression),
 		name: node.name.text,
 	};
 }
@@ -82,7 +82,7 @@ function createElementAccessItem(state: TransformState, node: ts.ElementAccessEx
 		node,
 		kind: OptionalChainItemKind.ElementAccess,
 		optional: node.questionDotToken !== undefined,
-		type: state.typeChecker.getTypeAtLocation(node.expression),
+		type: state.getType(node.expression),
 		expression: node.argumentExpression,
 	};
 }
@@ -92,7 +92,7 @@ function createCallItem(state: TransformState, node: ts.CallExpression): CallIte
 		node,
 		kind: OptionalChainItemKind.Call,
 		optional: node.questionDotToken !== undefined,
-		type: state.typeChecker.getTypeAtLocation(node.expression),
+		type: state.getType(node.expression),
 		args: node.arguments,
 	};
 }
@@ -102,9 +102,9 @@ function createPropertyCallItem(state: TransformState, node: PropertyCallItem["n
 		node,
 		kind: OptionalChainItemKind.PropertyCall,
 		optional: node.expression.questionDotToken !== undefined,
-		type: state.typeChecker.getTypeAtLocation(node.expression),
+		type: state.getType(node.expression),
 		name: node.expression.name.text,
-		callType: state.typeChecker.getTypeAtLocation(node),
+		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
@@ -115,9 +115,9 @@ function createElementCallItem(state: TransformState, node: ElementCallItem["nod
 		node,
 		kind: OptionalChainItemKind.ElementCall,
 		optional: node.expression.questionDotToken !== undefined,
-		type: state.typeChecker.getTypeAtLocation(node.expression),
+		type: state.getType(node.expression),
 		expression: node.expression.argumentExpression,
-		callType: state.typeChecker.getTypeAtLocation(node),
+		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
@@ -252,7 +252,7 @@ function transformOptionalChainInner(
 			const { expression: newValue, statements: ifStatements } = state.capturePrereqs(() => {
 				let newExpression: lua.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
-					const symbol = state.typeChecker.getTypeAtLocation(item.node.expression).symbol;
+					const symbol = state.getType(item.node.expression).symbol;
 					const macro = state.macroManager.getPropertyCallMacro(symbol);
 					if (macro) {
 						state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));

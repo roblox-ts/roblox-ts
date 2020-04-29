@@ -12,11 +12,7 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 	);
 
 	const { expression: condition, statements: conditionPrereqs } = state.capturePrereqs(() =>
-		createTruthinessChecks(
-			state,
-			transformExpression(state, node.expression),
-			state.typeChecker.getTypeAtLocation(node.expression),
-		),
+		createTruthinessChecks(state, transformExpression(state, node.expression), state.getType(node.expression)),
 	);
 
 	return lua.list.make(

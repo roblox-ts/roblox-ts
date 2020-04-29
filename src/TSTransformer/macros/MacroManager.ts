@@ -1,14 +1,15 @@
+import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
-import ts from "byots";
-import { assert } from "Shared/util/assert";
+import { skipUpwards } from "TSTransformer/util/skipUpwards";
 
 const INCLUDE_FILES = ["roblox.d.ts", "es.d.ts", "macro_math.d.ts"];
 
@@ -16,6 +17,10 @@ interface InterfaceInfo {
 	symbols: Array<ts.Symbol>;
 	constructors: Array<ts.Symbol>;
 	methods: Map<string, Array<ts.Symbol>>;
+}
+
+function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
+	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
 export class MacroManager {
@@ -61,7 +66,7 @@ export class MacroManager {
 						statement.name!.text,
 						() => new Array<ts.Symbol>(),
 					);
-					const symbol = typeChecker.getTypeAtLocation(statement).symbol;
+					const symbol = getType(typeChecker, statement).symbol;
 					assert(symbol);
 					functionSymbols.push(symbol);
 				} else if (ts.isInterfaceDeclaration(statement)) {
@@ -71,7 +76,7 @@ export class MacroManager {
 						methods: new Map<string, Array<ts.Symbol>>(),
 					}));
 
-					const symbol = typeChecker.getTypeAtLocation(statement).symbol;
+					const symbol = getType(typeChecker, statement).symbol;
 					assert(symbol);
 					interfaceInfo.symbols.push(symbol);
 
@@ -84,7 +89,7 @@ export class MacroManager {
 									methodSymbols = new Array<ts.Symbol>();
 									interfaceInfo.methods.set(methodName, methodSymbols);
 								}
-								methodSymbols.push(typeChecker.getTypeAtLocation(member).symbol);
+								methodSymbols.push(getType(typeChecker, member).symbol);
 							}
 						} else if (ts.isConstructSignatureDeclaration(member)) {
 							assert(member.symbol);

@@ -12,11 +12,7 @@ export function transformWhileStatement(state: TransformState, node: ts.DoStatem
 	);
 
 	const { expression: condition, statements: conditionPrereqs } = state.capturePrereqs(() =>
-		createTruthinessChecks(
-			state,
-			transformExpression(state, node.expression),
-			state.typeChecker.getTypeAtLocation(node.expression),
-		),
+		createTruthinessChecks(state, transformExpression(state, node.expression), state.getType(node.expression)),
 	);
 
 	if (lua.list.isEmpty(conditionPrereqs)) {

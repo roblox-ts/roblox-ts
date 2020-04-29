@@ -1,8 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
-import ts from "byots";
+import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import originalTS from "typescript";
 
 export class TransformState {
@@ -66,7 +67,7 @@ export class TransformState {
 	}
 
 	public getSimpleTypeFromNode(node: ts.Node) {
-		return this.getSimpleType(this.typeChecker.getTypeAtLocation(node));
+		return this.getSimpleType(this.getType(node));
 	}
 
 	/**
@@ -90,4 +91,8 @@ export class TransformState {
 
 	public readonly hoistsByStatement = new Map<ts.Statement, Array<ts.Identifier>>();
 	public readonly isHoisted = new Map<ts.Symbol, boolean>();
+
+	public getType(node: ts.Node) {
+		return this.typeChecker.getTypeAtLocation(skipUpwards(node));
+	}
 }

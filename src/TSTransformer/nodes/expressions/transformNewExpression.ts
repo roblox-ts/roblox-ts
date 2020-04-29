@@ -6,7 +6,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import ts from "byots";
 
 function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) {
-	const type = state.typeChecker.getTypeAtLocation(node.expression);
+	const type = state.getType(node.expression);
 	for (const declaration of type.symbol.declarations) {
 		if (ts.isInterfaceDeclaration(declaration)) {
 			for (const member of declaration.members) {

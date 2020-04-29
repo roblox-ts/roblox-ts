@@ -1,8 +1,8 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import ts from "byots";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const tempId = lua.tempId();
@@ -17,7 +17,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.condition),
-		state.typeChecker.getTypeAtLocation(node.condition),
+		state.getType(node.condition),
 	);
 
 	const statements = state.statement(() => {
