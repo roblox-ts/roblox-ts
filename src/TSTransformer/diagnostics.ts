@@ -37,9 +37,10 @@ export const diagnostics = {
 
 	// banned features
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
-	noEqualsEquals: diagnostic("operator '==' is not supported!", suggestion("Use `===` instead.")),
-	noExclamationEquals: diagnostic("operator '!=' is not supported!", suggestion("Use `!==` instead.")),
+	noEqualsEquals: diagnostic("operator `==` is not supported!", suggestion("Use `===` instead.")),
+	noExclamationEquals: diagnostic("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noEnumMerging: diagnostic("Enum merging is not supported!"),
+	noDotDotDotDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
