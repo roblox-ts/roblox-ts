@@ -41,6 +41,14 @@ export function nil() {
 	return lua.create(lua.SyntaxKind.NilLiteral, {});
 }
 
+export function bool(value: boolean) {
+	if (value) {
+		return lua.create(lua.SyntaxKind.TrueLiteral, {});
+	} else {
+		return lua.create(lua.SyntaxKind.FalseLiteral, {});
+	}
+}
+
 export function number(value: number) {
 	return lua.create(lua.SyntaxKind.NumberLiteral, { value });
 }
@@ -53,112 +61,8 @@ export function id(name: string) {
 	return lua.create(lua.SyntaxKind.Identifier, { name });
 }
 
-export function parentheses(expression: lua.Expression) {
-	return lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression });
-}
-
-export function binary(left: lua.Expression, operator: lua.BinaryOperator, right: lua.Expression) {
-	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
-}
-
-export function func(
-	parameters: Array<lua.Identifier> = [],
-	hasDotDotDot = false,
-	statements: Array<lua.Statement> = [],
-) {
-	return lua.create(lua.SyntaxKind.FunctionExpression, {
-		parameters: lua.list.make(...parameters),
-		hasDotDotDot,
-		statements: lua.list.make(...statements),
-	});
-}
-
-export function funcDec(
-	name: string,
-	parameters: Array<lua.Identifier> = [],
-	hasDotDotDot = false,
-	statements: Array<lua.Statement> = [],
-) {
-	return lua.create(lua.SyntaxKind.FunctionDeclaration, {
-		localize: true,
-		name: lua.create(lua.SyntaxKind.Identifier, { name }),
-		parameters: lua.list.make(...parameters),
-		hasDotDotDot,
-		statements: lua.list.make(...statements),
-	});
-}
-
-export function methodDec(
-	expression: lua.IndexableExpression,
-	name: string,
-	parameters: Array<lua.Identifier> = [],
-	hasDotDotDot = false,
-	statements: Array<lua.Statement> = [],
-) {
-	return lua.create(lua.SyntaxKind.MethodDeclaration, {
-		expression,
-		name: lua.create(lua.SyntaxKind.Identifier, { name }),
-		parameters: lua.list.make(...parameters),
-		hasDotDotDot,
-		statements: lua.list.make(...statements),
-	});
-}
-
-export function varDec(name: string, value: lua.Expression) {
-	return lua.create(lua.SyntaxKind.VariableDeclaration, {
-		left: lua.id(name),
-		right: value,
-	});
-}
-
-export function call(expression: lua.Expression, params: Array<lua.Expression> = []) {
-	return lua.create(lua.SyntaxKind.CallStatement, {
-		expression: lua.callExp(expression, params),
-	});
-}
-
-export function methodCall(expression: lua.Expression, methodName: string, params: Array<lua.Expression> = []) {
-	return lua.create(lua.SyntaxKind.CallStatement, {
-		expression: lua.methodCallExp(expression, methodName, params),
-	});
-}
-
-export function callExp(expression: lua.Expression, args: Array<lua.Expression> = []) {
-	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.isIndexableExpression(expression) ? expression : lua.parentheses(expression),
-		args: lua.list.make(...args),
-	});
-}
-
-export function methodCallExp(expression: lua.Expression, methodName: string, args: Array<lua.Expression> = []) {
-	return lua.create(lua.SyntaxKind.MethodCallExpression, {
-		expression: lua.isIndexableExpression(expression) ? expression : lua.parentheses(expression),
-		name: methodName,
-		args: lua.list.make(...args),
-	});
-}
-
-export function bool(value: boolean) {
-	if (value) {
-		return lua.create(lua.SyntaxKind.TrueLiteral, {});
-	} else {
-		return lua.create(lua.SyntaxKind.FalseLiteral, {});
-	}
-}
-
-export function whileDo(condition: lua.Expression, statements: Array<lua.Statement> = []) {
-	return lua.create(lua.SyntaxKind.WhileStatement, {
-		condition,
-		statements: lua.list.make(...statements),
-	});
-}
-
 export function comment(text: string) {
 	return lua.create(lua.SyntaxKind.Comment, { text });
-}
-
-export function table() {
-	return lua.create(lua.SyntaxKind.Array, { members: lua.list.make<lua.Expression>() });
 }
 
 export function array(members: Array<lua.Expression> = []) {
@@ -173,12 +77,8 @@ export function set(members: Array<lua.Expression> = []) {
 	});
 }
 
-export function mapField(index: lua.Expression, value: lua.Expression) {
-	return lua.create(lua.SyntaxKind.MapField, { index, value });
-}
-
 export function map(fields: Array<[lua.Expression, lua.Expression]> = []) {
 	return lua.create(lua.SyntaxKind.Map, {
-		fields: lua.list.make(...fields.map(([index, value]) => lua.mapField(index, value))),
+		fields: lua.list.make(...fields.map(([index, value]) => lua.create(lua.SyntaxKind.MapField, { index, value }))),
 	});
 }

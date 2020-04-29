@@ -29,7 +29,7 @@ In other words, TS AST -> Lua AST
 - [X] ElementAccessExpression
 - [X] NewExpression
 - [X] NonNullExpression
-- [X] ObjectLiteralExpression
+- [ ] ObjectLiteralExpression
 - [X] ParenthesizedExpression
 - [X] ArrowFunction + FunctionExpression (partially complete)
 - [ ] TemplateExpression
