@@ -15,7 +15,13 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 		);
 		const left = lua.list.isEmpty(statements) ? expression : pushToVar(state, expression);
 		state.prereqList(statements);
-		return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left,
+			operator,
+			right: lua.isBinaryExpression(right)
+				? lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression: right })
+				: right,
+		});
 	};
 }
 
