@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformOptionalChain } from "TSTransformer/nodes/optionalChain";
+import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";

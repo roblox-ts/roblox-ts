@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "TSTransformer/diagnostics";
-import { transformOptionalChain } from "TSTransformer/nodes/optionalChain";
+import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { TransformState } from "TSTransformer/TransformState";
 import { isMethod } from "TSTransformer/util/isMethod";
 
