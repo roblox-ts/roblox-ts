@@ -1,12 +1,11 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import ts from "byots";
-import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { TransformState } from "TSTransformer/TransformState";
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
