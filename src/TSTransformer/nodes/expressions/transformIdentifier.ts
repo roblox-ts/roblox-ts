@@ -1,8 +1,9 @@
-import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer";
 import ts from "byots";
+import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { TransformState } from "TSTransformer";
+import { isBlockLike } from "TSTransformer/typeguards";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -15,16 +16,6 @@ function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {
 		node = node.parent;
 	}
 	return node.parent ? node : undefined;
-}
-
-function isBlockLike(node: ts.Node): node is ts.BlockLike {
-	return (
-		node.kind === ts.SyntaxKind.SourceFile ||
-		node.kind === ts.SyntaxKind.Block ||
-		node.kind === ts.SyntaxKind.ModuleBlock ||
-		node.kind === ts.SyntaxKind.CaseClause ||
-		node.kind === ts.SyntaxKind.DefaultClause
-	);
 }
 
 function getDeclarationStatement(node: ts.Node): ts.Statement | undefined {
