@@ -8,7 +8,7 @@ import ts from "byots";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
 	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.id("setmetatable"),
+		expression: lua.globals.setmetatable,
 		args: lua.list.make<lua.Expression>(macro(state, node), lua.map([[lua.string("__mode"), lua.string("k")]])),
 	});
 }
@@ -30,10 +30,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 		if (node.arguments && node.arguments.length > 0) {
 			const args = ensureTransformOrder(state, node.arguments);
 			return lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression: lua.id("table"),
-					name: "create",
-				}),
+				expression: lua.globals.table.create,
 				args: lua.list.make(...args),
 			});
 		}
@@ -54,7 +51,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 				lua.create(lua.SyntaxKind.ForStatement, {
 					ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
 					expression: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.id("ipairs"),
+						expression: lua.globals.ipairs,
 						args: lua.list.make(transformExpression(state, arg)),
 					}),
 					statements: lua.list.make(
@@ -93,7 +90,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 				lua.create(lua.SyntaxKind.ForStatement, {
 					ids: lua.list.make<lua.AnyIdentifier>(keyId, valueId),
 					expression: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.id("pairs"),
+						expression: lua.globals.ipairs,
 						args: lua.list.make(transformed),
 					}),
 					statements: lua.list.make(

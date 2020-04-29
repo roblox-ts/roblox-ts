@@ -56,7 +56,7 @@ function isStringType(type: tsst.SimpleType) {
 
 function createToString(expression: lua.Expression) {
 	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.id("tostring"),
+		expression: lua.globals.tostring,
 		args: lua.list.make(expression),
 	});
 }
@@ -104,7 +104,7 @@ export function createBinaryFromOperator(
 	if (bit32Name !== undefined) {
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: lua.id("bit32"),
+				expression: lua.globals.bit32,
 				name: bit32Name,
 			}),
 			args: lua.list.make(left.node, right.node),

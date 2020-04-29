@@ -34,10 +34,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	join: (state, node, expression) => {
 		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.string(",");
 		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: lua.id("table"),
-				name: "concat",
-			}),
+			expression: lua.globals.table.concat,
 			args: lua.list.make(expression, separator),
 		});
 	},
@@ -55,7 +52,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
 				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.id("ipairs"),
+					expression: lua.globals.ipairs,
 					args: lua.list.make(expression),
 				}),
 				statements: lua.list.make(
@@ -95,7 +92,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
 				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.id("ipairs"),
+					expression: lua.globals.ipairs,
 					args: lua.list.make(expression),
 				}),
 				statements: lua.list.make(
@@ -129,7 +126,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
 				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.id("ipairs"),
+					expression: lua.globals.ipairs,
 					args: lua.list.make(expression),
 				}),
 				statements: lua.list.make(

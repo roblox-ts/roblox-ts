@@ -8,7 +8,7 @@ const PRIMITIVE_LUA_TYPES = new Set(["nil", "boolean", "string", "number", "tabl
 export const CALL_MACROS: MacroList<CallMacro> = {
 	typeOf: (state, node) => {
 		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.id("typeof"),
+			expression: lua.globals.typeof,
 			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
 		});
 	},
