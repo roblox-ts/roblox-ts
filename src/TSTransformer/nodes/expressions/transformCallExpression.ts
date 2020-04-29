@@ -5,11 +5,12 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
-	expression: lua.IndexableExpression,
+	expression: lua.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
 	const macro = state.macroManager.getCallMacro(state.getType(node.expression).symbol);
@@ -18,13 +19,13 @@ export function transformCallExpressionInner(
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
-	return lua.create(lua.SyntaxKind.CallExpression, { expression, args });
+	return lua.create(lua.SyntaxKind.CallExpression, { expression: convertToIndexableExpression(expression), args });
 }
 
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-	expression: lua.IndexableExpression,
+	expression: lua.Expression,
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -37,13 +38,13 @@ export function transformPropertyCallExpressionInner(
 	if (isMethod(state, node.expression)) {
 		return lua.create(lua.SyntaxKind.MethodCallExpression, {
 			name,
-			expression,
+			expression: convertToIndexableExpression(expression),
 			args,
 		});
 	} else {
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression,
+				expression: convertToIndexableExpression(expression),
 				name,
 			}),
 			args,
@@ -54,7 +55,7 @@ export function transformPropertyCallExpressionInner(
 export function transformElementCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression & { expression: ts.ElementAccessExpression },
-	expression: lua.IndexableExpression,
+	expression: lua.Expression,
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -73,7 +74,7 @@ export function transformElementCallExpressionInner(
 
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression,
+			expression: convertToIndexableExpression(expression),
 			index: argumentExp,
 		}),
 		args,

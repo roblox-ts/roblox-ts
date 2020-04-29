@@ -21,7 +21,7 @@ export function addOneIfNumber(expression: lua.Expression) {
 export function transformElementAccessExpressionInner(
 	state: TransformState,
 	node: ts.ElementAccessExpression,
-	expression: lua.IndexableExpression,
+	expression: lua.Expression,
 	argumentExpression: ts.Expression,
 ) {
 	if (isMethod(state, node)) {

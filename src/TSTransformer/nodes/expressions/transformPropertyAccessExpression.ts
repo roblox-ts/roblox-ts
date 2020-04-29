@@ -4,17 +4,21 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { TransformState } from "TSTransformer/TransformState";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,
 	node: ts.PropertyAccessExpression,
-	expression: lua.IndexableExpression,
+	expression: lua.Expression,
 	name: string,
 ) {
 	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
 	}
-	return lua.create(lua.SyntaxKind.PropertyAccessExpression, { expression, name });
+	return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		expression: convertToIndexableExpression(expression),
+		name,
+	});
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {

@@ -137,7 +137,7 @@ In other words, TS AST -> Lua AST
 - [ ] ReadonlyArray.filter()
 - [ ] ReadonlyArray.reduce()
 - [ ] ReadonlyArray.reduceRight()
-- [ ] ReadonlyArray.reverse()
+- [X] ReadonlyArray.reverse()
 - [ ] ReadonlyArray.entries()
 - [ ] ReadonlyArray.find()
 - [ ] ReadonlyArray.findIndex()

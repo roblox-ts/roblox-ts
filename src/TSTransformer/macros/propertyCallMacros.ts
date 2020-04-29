@@ -6,6 +6,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
+import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
@@ -150,15 +151,52 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 		return newValueId;
 	},
+
+	reverse: (state, node, expression) => {
+		expression = pushToVarIfComplex(state, expression);
+
+		const resultId = pushToVar(state, lua.map());
+		const lengthId = pushToVar(state, lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+
+		const idxId = lua.tempId();
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: idxId,
+				min: lua.number(1),
+				max: lengthId,
+				step: undefined,
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: resultId,
+							index: idxId,
+						}),
+						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: lengthId,
+								operator: "+",
+								right: lua.create(lua.SyntaxKind.BinaryExpression, {
+									left: lua.number(1),
+									operator: "-",
+									right: idxId,
+								}),
+							}),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return resultId;
+	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression) => {
 		if (node.arguments.length === 0) {
-			return lua.create(lua.SyntaxKind.UnaryExpression, {
-				operator: "#",
-				expression,
-			});
+			return lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
 		}
 
 		expression = pushToVarIfComplex(state, expression);
@@ -177,7 +215,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression,
+						expression: convertToIndexableExpression(expression),
 						index:
 							i == 0
 								? sizeId
