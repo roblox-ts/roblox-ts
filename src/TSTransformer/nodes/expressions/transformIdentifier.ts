@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
-import { isBlockLike } from "TSTransformer/typeguards";
+import { isBlockLike } from "TSTransformer/typeGuards";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {

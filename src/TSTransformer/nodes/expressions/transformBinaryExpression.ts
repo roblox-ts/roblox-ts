@@ -4,12 +4,7 @@ import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import { transformWritableAssignmentWithType } from "TSTransformer/nodes/transformWritable";
-import {
-	createAssignmentExpression,
-	createCompoundAssignmentExpression,
-	isAssignmentOperator,
-	isCompoundAssignmentOperator,
-} from "TSTransformer/util/assignment";
+import { createAssignmentExpression, createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
@@ -34,9 +29,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return transformLogical(state, node);
 	}
 
-	if (isAssignmentOperator(operatorKind)) {
+	if (ts.isAssignmentOperator(operatorKind)) {
 		const { writable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
-		if (isCompoundAssignmentOperator(operatorKind)) {
+		if (ts.isCompoundAssignment(operatorKind)) {
 			return createCompoundAssignmentExpression(state, writable, operatorKind, value);
 		} else {
 			return createAssignmentExpression(state, writable.node, value.node);

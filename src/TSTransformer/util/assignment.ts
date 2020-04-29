@@ -5,20 +5,6 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 
-export function isAssignmentOperator(operator: ts.SyntaxKind): operator is ts.AssignmentOperator {
-	return operator >= ts.SyntaxKind.FirstAssignment && operator <= ts.SyntaxKind.LastAssignment;
-}
-
-export function isCompoundAssignmentOperator(operator: ts.SyntaxKind): operator is ts.CompoundAssignmentOperator {
-	return operator >= ts.SyntaxKind.FirstCompoundAssignment && operator <= ts.SyntaxKind.LastCompoundAssignment;
-}
-
-export function isUnaryAssignmentOperator(
-	operator: ts.SyntaxKind,
-): operator is ts.SyntaxKind.PlusPlusToken | ts.SyntaxKind.MinusMinusToken {
-	return operator === ts.SyntaxKind.PlusPlusToken || operator === ts.SyntaxKind.MinusMinusToken;
-}
-
 export function createAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: writable,
