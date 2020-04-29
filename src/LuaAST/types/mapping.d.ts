@@ -30,6 +30,7 @@ export interface StatementByKind {
 	[lua.SyntaxKind.Assignment]: lua.Assignment;
 	[lua.SyntaxKind.BreakStatement]: lua.BreakStatement;
 	[lua.SyntaxKind.CallStatement]: lua.CallStatement;
+	[lua.SyntaxKind.ContinueStatement]: lua.ContinueStatement;
 	[lua.SyntaxKind.DoStatement]: lua.DoStatement;
 	[lua.SyntaxKind.WhileStatement]: lua.WhileStatement;
 	[lua.SyntaxKind.RepeatStatement]: lua.RepeatStatement;

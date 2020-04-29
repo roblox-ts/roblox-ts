@@ -27,6 +27,7 @@ export enum SyntaxKind {
 	Assignment,
 	BreakStatement,
 	CallStatement,
+	ContinueStatement,
 	DoStatement,
 	WhileStatement,
 	RepeatStatement,

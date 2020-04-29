@@ -50,10 +50,10 @@ In other words, TS AST -> Lua AST
 - [X] IfStatement
 - [X] ReturnStatement
 - [X] VariableStatement
-- [ ] DoStatement
-- [ ] WhileStatement
-- [ ] BreakStatement
-- [ ] ContinueStatement
+- [X] DoStatement
+- [X] WhileStatement
+- [X] BreakStatement
+- [X] ContinueStatement (Luau-y for now)
 - [ ] ForStatement
 - [ ] ForOfStatement
 - [ ] ThrowStatement
@@ -63,7 +63,7 @@ In other words, TS AST -> Lua AST
 - [ ] ExportAssignment
 - [ ] ClassDeclaration
 - [ ] NamespaceDeclaration
-- [ ] EnumDeclaration
+- [X] EnumDeclaration
 - [ ] SwitchStatement
 - [ ] TryStatement?
 

@@ -39,6 +39,7 @@ export const diagnostics = {
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
 	noEqualsEquals: diagnostic("operator '==' is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: diagnostic("operator '!=' is not supported!", suggestion("Use `!==` instead.")),
+	noEnumMerging: diagnostic("Enum merging is not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),

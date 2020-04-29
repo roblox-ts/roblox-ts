@@ -19,6 +19,7 @@ import { renderAssignment } from "LuaRenderer/nodes/statements/renderAssignment"
 import { renderBreakStatement } from "LuaRenderer/nodes/statements/renderBreakStatement";
 import { renderCallStatement } from "LuaRenderer/nodes/statements/renderCallStatement";
 import { renderComment } from "LuaRenderer/nodes/statements/renderComment";
+import { renderContinueStatement } from "LuaRenderer/nodes/statements/renderContinueStatement";
 import { renderDoStatement } from "LuaRenderer/nodes/statements/renderDoStatement";
 import { renderForStatement } from "LuaRenderer/nodes/statements/renderForStatement";
 import { renderFunctionDeclaration } from "LuaRenderer/nodes/statements/renderFunctionDeclaration";
@@ -64,6 +65,7 @@ const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	[lua.SyntaxKind.Assignment]: renderAssignment,
 	[lua.SyntaxKind.BreakStatement]: renderBreakStatement,
 	[lua.SyntaxKind.CallStatement]: renderCallStatement,
+	[lua.SyntaxKind.ContinueStatement]: renderContinueStatement,
 	[lua.SyntaxKind.DoStatement]: renderDoStatement,
 	[lua.SyntaxKind.WhileStatement]: renderWhileStatement,
 	[lua.SyntaxKind.RepeatStatement]: renderRepeatStatement,

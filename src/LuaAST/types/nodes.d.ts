@@ -125,6 +125,8 @@ export interface CallStatement extends lua.Statement<lua.SyntaxKind.CallStatemen
 	expression: lua.CallExpression | lua.MethodCallExpression;
 }
 
+export interface ContinueStatement extends lua.Statement<lua.SyntaxKind.ContinueStatement> {}
+
 export interface DoStatement extends lua.Statement<lua.SyntaxKind.DoStatement> {
 	statements: lua.List<lua.Statement>;
 }

@@ -6,22 +6,7 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { transformStatementList } from "TSTransformer/util/transformStatementList";
 import ts from "byots";
 
-function transformElseStatement(
-	state: TransformState,
-	elseStatement: ts.Statement | undefined,
-): lua.IfStatement | lua.List<lua.Statement> {
-	if (elseStatement === undefined) {
-		return lua.list.make<lua.Statement>();
-	} else if (ts.isIfStatement(elseStatement)) {
-		return transformIfStatementInner(state, elseStatement);
-	} else if (ts.isBlock(elseStatement)) {
-		return transformStatementList(state, elseStatement.statements);
-	} else {
-		return transformStatement(state, elseStatement);
-	}
-}
-
-export function transformIfStatementInner(state: TransformState, node: ts.IfStatement) {
+export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): lua.IfStatement {
 	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.expression),
@@ -33,7 +18,16 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 		ts.isBlock(node.thenStatement) ? node.thenStatement.statements : [node.thenStatement],
 	);
 
-	const elseBody = transformElseStatement(state, node.elseStatement);
+	let elseBody: lua.IfStatement | lua.List<lua.Statement>;
+	if (node.elseStatement === undefined) {
+		elseBody = lua.list.make<lua.Statement>();
+	} else if (ts.isIfStatement(node.elseStatement)) {
+		elseBody = transformIfStatementInner(state, node.elseStatement);
+	} else if (ts.isBlock(node.elseStatement)) {
+		elseBody = transformStatementList(state, node.elseStatement.statements);
+	} else {
+		elseBody = transformStatement(state, node.elseStatement);
+	}
 
 	return lua.create(lua.SyntaxKind.IfStatement, {
 		condition,

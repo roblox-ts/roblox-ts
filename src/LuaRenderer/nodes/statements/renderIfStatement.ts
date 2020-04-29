@@ -7,6 +7,7 @@ function renderShorthandIfStatement(state: RenderState, node: lua.IfStatement) {
 	return state.indent + `if ${render(state, node.condition)} then ${statementStr} end\n`;
 }
 
+/** must be if X == nil then X = Y end */
 function shouldRenderShorthand(node: lua.IfStatement): boolean {
 	return (
 		lua.isBinaryExpression(node.condition) &&
