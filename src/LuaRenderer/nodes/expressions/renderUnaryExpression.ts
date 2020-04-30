@@ -1,21 +1,37 @@
 import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
 
-const OPERATOR_TO_STRING: { [K in lua.UnaryOperator]: string } = {
-	["not"]: "not ",
-	["#"]: "#",
-	["-"]: "-",
-};
+function needsParentheses(expression: lua.Expression, operator: lua.UnaryOperator) {
+	if ((operator === "#" || operator === "-") && lua.isTable(expression)) {
+		return true;
+	}
+	if (lua.isBinaryExpression(expression)) {
+		return true;
+	}
+	return false;
+}
+
+function needsSpace(expression: lua.Expression, operator: lua.UnaryOperator) {
+	if (operator === "not") {
+		return true;
+	}
+	if (lua.isUnaryExpression(expression) && expression.operator === "-") {
+		return true;
+	}
+	return false;
+}
 
 export function renderUnaryExpression(state: RenderState, node: lua.UnaryExpression) {
-	const opStr = OPERATOR_TO_STRING[node.operator];
-	const expStr = render(state, node.expression);
-	if (lua.isBinaryExpression(node.expression)) {
-		return `${opStr}(${expStr})`;
+	let expStr = render(state, node.expression);
+	let opStr = node.operator;
+
+	if (needsSpace(node.expression, node.operator)) {
+		opStr += " ";
 	}
-	if (lua.isUnaryExpression(node.expression) && node.expression.operator === "-") {
-		// -- will create a comment!
-		return `${opStr} ${expStr}`;
+
+	if (needsParentheses(node.expression, node.operator)) {
+		expStr = `(${expStr})`;
 	}
+
 	return `${opStr}${expStr}`;
 }

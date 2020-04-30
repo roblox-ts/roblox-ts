@@ -90,3 +90,5 @@ export const isSimple = makeGuard(
 	lua.SyntaxKind.NumberLiteral,
 	lua.SyntaxKind.StringLiteral,
 );
+
+export const isTable = makeGuard(lua.SyntaxKind.Array, lua.SyntaxKind.Set, lua.SyntaxKind.Map);
