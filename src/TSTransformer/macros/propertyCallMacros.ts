@@ -230,7 +230,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		if (!ts.isExpressionStatement(skipUpwards(node))) {
+		if (!ts.isExpressionStatement(skipUpwards(node.parent))) {
 			return lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: sizeId,
 				operator: "+",
@@ -247,7 +247,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			expression,
 		});
 
-		const valueIsUsed = !ts.isExpressionStatement(skipUpwards(node));
+		const valueIsUsed = !ts.isExpressionStatement(skipUpwards(node.parent));
 		const retValue = valueIsUsed ? lua.tempId() : lua.emptyId();
 
 		if (valueIsUsed) {
