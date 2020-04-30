@@ -38,7 +38,6 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.BarToken, "bor"],
 	[ts.SyntaxKind.CaretToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
-	// TODO: ts.SyntaxKind.GreaterThanGreaterThanToken -> TS.bit_lrsh
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
 
 	// bitwise compound assignment
@@ -46,7 +45,6 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.BarEqualsToken, "bor"],
 	[ts.SyntaxKind.CaretEqualsToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanEqualsToken, "lshift"],
-	// TODO: ts.SyntaxKind.GreaterThanGreaterThanEqualsToken -> TS.bit_lrsh
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
@@ -110,6 +108,9 @@ export function createBinaryFromOperator(
 			args: lua.list.make(left.node, right.node),
 		});
 	}
+
+	// TODO ts.SyntaxKind.GreaterThanGreaterThanToken -> TS.bit_lrsh
+	// TODO ts.SyntaxKind.GreaterThanGreaterThanEqualsToken -> TS.bit_lrsh
 
 	assert(false, `Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 }

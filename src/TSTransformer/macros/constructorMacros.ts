@@ -76,7 +76,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 		const arg = node.arguments[0];
 		const transformed = transformExpression(state, arg);
 		if (isFlatMap(transformed)) {
-			// TODO: make this nicer?
+			// TODO make this nicer?
 			const elements = lua.list.toArray(transformed.members).map(element => {
 				const e = element as lua.Array;
 				return [e.members.head?.value, e.members.head?.next?.value] as [lua.Expression, lua.Expression];

@@ -9,7 +9,7 @@ import originalTS from "typescript";
 export class TransformState {
 	private readonly sourceFileText: string;
 
-	// TODO: actually look up from package.json
+	// TODO actually look up from package.json
 	public readonly projectVersion = "0.0.0";
 
 	public readonly diagnostics = new Array<ts.Diagnostic>();
