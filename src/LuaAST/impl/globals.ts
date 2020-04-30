@@ -14,6 +14,7 @@ export const globals = {
 	setmetatable: lua.id("setmetatable"),
 	tostring: lua.id("tostring"),
 	typeof: lua.id("typeof"),
+	next: lua.id("next"),
 	string: {
 		gmatch: property(STRING_ID, "gmatch"),
 	},

@@ -2,10 +2,7 @@ import ts from "byots";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
-
-function hasTypeFlag(flags: ts.TypeFlags, flagToCheck: ts.TypeFlags) {
-	return (flags & flagToCheck) === flagToCheck;
-}
+import { hasTypeFlag } from "TSTransformer/util/types";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];

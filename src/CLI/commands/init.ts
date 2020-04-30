@@ -1,4 +1,4 @@
-import { identity } from "Shared/util/identity";
+import ts from "byots";
 import yargs from "yargs";
 
 const command = "init";
@@ -17,4 +17,4 @@ const builder: yargs.CommandBuilder = () =>
 		.command("package", "Generate a roblox-ts npm package", {}, argv => handler(argv, "package"))
 		.demandCommand();
 
-export = identity<yargs.CommandModule>({ command, describe, builder, handler: () => {} });
+export = ts.identity<yargs.CommandModule>({ command, describe, builder, handler: () => {} });

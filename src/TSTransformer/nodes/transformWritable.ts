@@ -1,5 +1,5 @@
 import * as lua from "LuaAST";
-import { addOneIfNumber } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
+import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -23,15 +23,12 @@ export function transformWritableExpression(
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: push(state, expression),
-			index: addOneIfNumber(index),
+			index: addOneIfArrayType(state, state.getType(node.expression), index),
 		});
 	} else {
 		const transformed = transformExpression(state, node);
-		if (lua.isAnyIdentifier(transformed)) {
-			return transformed;
-		} else {
-			assert(false, "Not implemented");
-		}
+		assert(lua.isAnyIdentifier(transformed));
+		return transformed;
 	}
 }
 

@@ -7,15 +7,25 @@ import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { pushToVar } from "TSTransformer/util/pushToVar";
+import { isArrayType } from "TSTransformer/util/types";
 
 // hack for now until we can detect arrays
-export function addOneIfNumber(expression: lua.Expression) {
-	if (lua.isNumberLiteral(expression)) {
-		return lua.create(lua.SyntaxKind.NumberLiteral, {
-			value: expression.value + 1,
-		});
+export function addOneIfArrayType(state: TransformState, type: ts.Type, expression: lua.Expression) {
+	if (isArrayType(state, type)) {
+		if (lua.isNumberLiteral(expression)) {
+			return lua.create(lua.SyntaxKind.NumberLiteral, {
+				value: expression.value + 1,
+			});
+		} else {
+			return lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: expression,
+				operator: "+",
+				right: lua.number(1),
+			});
+		}
+	} else {
+		return expression;
 	}
-	return expression;
 }
 
 export function transformElementAccessExpressionInner(
@@ -39,7 +49,7 @@ export function transformElementAccessExpressionInner(
 
 	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
-		index: addOneIfNumber(index),
+		index: addOneIfArrayType(state, state.getType(node.expression), index),
 	});
 }
 

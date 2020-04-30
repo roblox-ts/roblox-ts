@@ -1,28 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import ts from "byots";
-
-function transformParamInitializer(state: TransformState, paramId: lua.Identifier, initializer: ts.Expression) {
-	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: paramId,
-			operator: "==",
-			right: lua.nil(),
-		}),
-		elseBody: lua.list.make(),
-		statements: state.statement(() => {
-			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: paramId,
-					right: transformExpression(state, initializer),
-				}),
-			);
-		}),
-	});
-}
+import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
 export function transformParameters(state: TransformState, tsParams: ReadonlyArray<ts.ParameterDeclaration>) {
 	const parameters = lua.list.make<lua.Identifier>();
@@ -47,7 +28,7 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 			lua.list.push(parameters, paramId);
 		}
 		if (tsParam.initializer) {
-			lua.list.push(statements, transformParamInitializer(state, paramId, tsParam.initializer));
+			lua.list.push(statements, transformInitializer(state, paramId, tsParam.initializer));
 		}
 	}
 

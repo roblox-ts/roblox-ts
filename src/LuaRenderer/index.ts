@@ -1,3 +1,4 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { renderCallExpression } from "LuaRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuaRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
@@ -32,11 +33,10 @@ import { renderVariableDeclaration } from "LuaRenderer/nodes/statements/renderVa
 import { renderWhileStatement } from "LuaRenderer/nodes/statements/renderWhileStatement";
 import { RenderState } from "LuaRenderer/RenderState";
 import { renderStatements } from "LuaRenderer/util/renderStatements";
-import { identity } from "Shared/util/identity";
 
 type Renderer<T extends lua.SyntaxKind> = (state: RenderState, node: lua.NodeByKind[T]) => string;
 
-const KIND_TO_RENDERER = identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
+const KIND_TO_RENDERER = ts.identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	// indexable expressions
 	[lua.SyntaxKind.Identifier]: renderIdentifier,
 	[lua.SyntaxKind.EmptyIdentifier]: renderEmptyIdentifier,

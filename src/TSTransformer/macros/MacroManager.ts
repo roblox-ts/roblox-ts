@@ -11,28 +11,47 @@ import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 
-const INCLUDE_FILES = ["roblox.d.ts", "es.d.ts", "macro_math.d.ts"];
-
-interface InterfaceInfo {
-	symbols: Array<ts.Symbol>;
-	constructors: Array<ts.Symbol>;
-	methods: Map<string, Array<ts.Symbol>>;
-}
-
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
+const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
+
+export const SYMBOL_NAMES = {
+	String: "String",
+	ReadonlyArray: "ReadonlyArray",
+	Array: "Array",
+	ReadVoxelsArray: "ReadVoxelsArray",
+	ReadonlySet: "ReadonlySet",
+	Set: "Set",
+	ReadonlyMap: "ReadonlyMap",
+	Map: "Map",
+	LuaTuple: "LuaTuple",
+	IterableIterator: "IterableIterator",
+	IterableFunction: "IterableFunction",
+	DoubleDecrementedIterableFunction: "DoubleDecrementedIterableFunction",
+	FirstDecrementedIterableFunction: "FirstDecrementedIterableFunction",
+} as const;
+
 export class MacroManager {
+	private symbols = new Map<string, ts.Symbol>();
 	private identifierMacros = new Map<ts.Symbol, IdentifierMacro>();
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
-		const identifiers = new Map<string, Array<ts.Symbol>>();
-		const functions = new Map<string, Array<ts.Symbol>>();
-		const interfaces = new Map<string, InterfaceInfo>();
+		const typeAliases = new Map<string, Set<ts.Symbol>>();
+		const identifiers = new Map<string, Set<ts.Symbol>>();
+		const functions = new Map<string, Set<ts.Symbol>>();
+		const interfaces = new Map<
+			string,
+			{
+				symbols: Set<ts.Symbol>;
+				constructors: Set<ts.Symbol>;
+				methods: Map<string, Set<ts.Symbol>>;
+			}
+		>();
 
 		const typesPath = path.join(nodeModulesPath, "@rbxts", "types", "include");
 		for (const fileName of INCLUDE_FILES) {
@@ -47,57 +66,84 @@ export class MacroManager {
 			}
 
 			for (const statement of sourceFile.statements) {
-				if (ts.isVariableStatement(statement)) {
+				if (ts.isTypeAliasDeclaration(statement)) {
+					const typeAliasSymbols = getOrSetDefault(
+						typeAliases,
+						statement.name.text,
+						() => new Set<ts.Symbol>(),
+					);
+					const symbol = statement.symbol;
+					assert(symbol);
+					typeAliasSymbols.add(symbol);
+				} else if (ts.isVariableStatement(statement)) {
 					for (const declaration of statement.declarationList.declarations) {
 						if (ts.isIdentifier(declaration.name)) {
 							const identifierName = declaration.name.text;
 							const identifierSymbols = getOrSetDefault(
 								identifiers,
 								identifierName,
-								() => new Array<ts.Symbol>(),
+								() => new Set<ts.Symbol>(),
 							);
 							assert(declaration.symbol);
-							identifierSymbols.push(declaration.symbol);
+							identifierSymbols.add(declaration.symbol);
 						}
 					}
 				} else if (ts.isFunctionDeclaration(statement)) {
-					const functionSymbols = getOrSetDefault(
-						functions,
-						statement.name!.text,
-						() => new Array<ts.Symbol>(),
-					);
+					assert(statement.name);
+					const functionSymbols = getOrSetDefault(functions, statement.name.text, () => new Set<ts.Symbol>());
 					const symbol = getType(typeChecker, statement).symbol;
 					assert(symbol);
-					functionSymbols.push(symbol);
+					functionSymbols.add(symbol);
 				} else if (ts.isInterfaceDeclaration(statement)) {
 					const interfaceInfo = getOrSetDefault(interfaces, statement.name.text, () => ({
-						symbols: new Array<ts.Symbol>(),
-						constructors: new Array<ts.Symbol>(),
-						methods: new Map<string, Array<ts.Symbol>>(),
+						symbols: new Set<ts.Symbol>(),
+						constructors: new Set<ts.Symbol>(),
+						methods: new Map<string, Set<ts.Symbol>>(),
 					}));
 
 					const symbol = getType(typeChecker, statement).symbol;
 					assert(symbol);
-					interfaceInfo.symbols.push(symbol);
+					interfaceInfo.symbols.add(symbol);
+					assert(interfaceInfo.symbols.size === 1);
 
 					for (const member of statement.members) {
 						if (ts.isMethodSignature(member)) {
 							if (ts.isIdentifier(member.name)) {
 								const methodName = member.name.text;
-								let methodSymbols = interfaceInfo.methods.get(methodName);
-								if (!methodSymbols) {
-									methodSymbols = new Array<ts.Symbol>();
-									interfaceInfo.methods.set(methodName, methodSymbols);
-								}
-								methodSymbols.push(getType(typeChecker, member).symbol);
+								const methodSymbols = getOrSetDefault(
+									interfaceInfo.methods,
+									methodName,
+									() => new Set<ts.Symbol>(),
+								);
+								const symbol = getType(typeChecker, member).symbol;
+								assert(symbol);
+								methodSymbols.add(symbol);
 							}
 						} else if (ts.isConstructSignatureDeclaration(member)) {
 							assert(member.symbol);
-							interfaceInfo.constructors.push(member.symbol);
+							interfaceInfo.constructors.add(member.symbol);
 						}
 					}
 				}
 			}
+		}
+
+		for (const symbolName of Object.values(SYMBOL_NAMES)) {
+			const interfaceInfo = interfaces.get(symbolName);
+			if (interfaceInfo) {
+				const [symbol] = interfaceInfo.symbols;
+				this.symbols.set(symbolName, symbol);
+				continue;
+			}
+
+			const typeAliasSymbols = typeAliases.get(symbolName);
+			if (typeAliasSymbols) {
+				const [symbol] = typeAliasSymbols;
+				this.symbols.set(symbolName, symbol);
+				continue;
+			}
+
+			throw new ProjectError(`(MacroManager) No symbol found for ${symbolName}`);
 		}
 
 		for (const [identifierName, macro] of Object.entries(IDENTIFIER_MACROS)) {
@@ -145,6 +191,12 @@ export class MacroManager {
 				}
 			}
 		}
+	}
+
+	public getSymbolOrThrow(name: string) {
+		const symbol = this.symbols.get(name);
+		assert(symbol);
+		return symbol;
 	}
 
 	public getIdentifierMacro(symbol: ts.Symbol) {

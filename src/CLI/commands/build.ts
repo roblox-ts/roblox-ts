@@ -1,11 +1,10 @@
+import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
 import path from "path";
 import { Project, ProjectOptions } from "Project";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { identity } from "Shared/util/identity";
-import ts from "byots";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -22,7 +21,7 @@ interface CLIOptions {
 	watch: boolean;
 }
 
-export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
+export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
