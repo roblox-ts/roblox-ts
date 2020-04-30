@@ -272,25 +272,27 @@ function transformOptionalChainInner(
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
-			const isUsed = !lua.isEmptyIdentifier(newValue);
+			// TODO maybe handle this case better? `[1, 2, 3]?.map((v) => v + 1).size();`
 
-			if (tempId !== newValue && isUsed) {
-				if (
-					ts.isExpressionStatement(skipUpwards(item.node)) &&
-					(lua.isCallExpression(newValue) || lua.isMethodExpression(newValue))
-				) {
+			const isUsed =
+				tempId !== newValue &&
+				!lua.isEmptyIdentifier(newValue) &&
+				!ts.isExpressionStatement(skipUpwards(item.node.parent));
+
+			if (isUsed) {
+				lua.list.push(
+					ifStatements,
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: tempId,
+						right: newValue,
+					}),
+				);
+			} else {
+				if (lua.isCallExpression(newValue) || lua.isMethodExpression(newValue)) {
 					lua.list.push(
 						ifStatements,
 						lua.create(lua.SyntaxKind.CallStatement, {
 							expression: newValue,
-						}),
-					);
-				} else {
-					lua.list.push(
-						ifStatements,
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: tempId,
-							right: newValue,
 						}),
 					);
 				}
@@ -298,7 +300,7 @@ function transformOptionalChainInner(
 
 			state.prereq(createNilCheck(tempId, ifStatements));
 
-			return isUsed ? tempId : newValue;
+			return isUsed ? tempId : lua.emptyId();
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {
