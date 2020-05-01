@@ -32,7 +32,8 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		return transformVariable(state, node.name, value).statements;
 	} else if (ts.isArrayBindingPattern(node.name)) {
 		const name = node.name;
-		const id = pushToVar(state, value!);
+		assert(value);
+		const id = pushToVar(state, value);
 		return state.statement(() => transformArrayBindingPattern(state, name, id));
 	} else {
 		return lua.list.make();
