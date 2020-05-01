@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
+import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { pushToVar } from "TSTransformer/util/pushToVar";
@@ -35,6 +36,11 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		assert(value);
 		const id = pushToVar(state, value);
 		return state.statement(() => transformArrayBindingPattern(state, name, id));
+	} else if (ts.isObjectBindingPattern(node.name)) {
+		const name = node.name;
+		assert(value);
+		const id = pushToVar(state, value);
+		return state.statement(() => transformObjectBindingPattern(state, name, id));
 	} else {
 		return lua.list.make();
 	}

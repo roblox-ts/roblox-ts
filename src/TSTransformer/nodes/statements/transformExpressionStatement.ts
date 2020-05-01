@@ -9,9 +9,6 @@ import {
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createAssignmentStatement, createCompoundAssignmentStatement } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
-import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
-import { pushToVar } from "TSTransformer/util/pushToVar";
-import { assert } from "Shared/util/assert";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
@@ -27,15 +24,12 @@ function transformUnaryExpressionStatement(
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
 	const expression = node.expression;
 	if (ts.isBinaryExpression(expression)) {
-		if (ts.isArrayLiteralExpression(expression.left)) {
-			const parentId = pushToVar(state, transformExpression(state, expression.right));
-			const accessType = state.getType(expression.right);
-			transformArrayBindingLiteral(state, expression.left, parentId, accessType);
-			return lua.list.make<lua.Statement>();
-		}
-
 		const operator = expression.operatorToken.kind;
-		if (ts.isAssignmentOperator(operator)) {
+		if (
+			ts.isAssignmentOperator(operator) &&
+			!ts.isArrayLiteralExpression(expression.left) &&
+			!ts.isArrayLiteralExpression(expression.right)
+		) {
 			const { writable, value } = transformWritableAssignmentWithType(state, expression.left, expression.right);
 			if (ts.isCompoundAssignment(operator)) {
 				return lua.list.make(createCompoundAssignmentStatement(writable, operator, value));

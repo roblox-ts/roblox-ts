@@ -2,11 +2,15 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
+import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
+import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import { transformWritableAssignmentWithType } from "TSTransformer/nodes/transformWritable";
 import { createAssignmentExpression, createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { pushToVar } from "TSTransformer/util/pushToVar";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
@@ -30,6 +34,18 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (ts.isAssignmentOperator(operatorKind)) {
+		if (ts.isArrayLiteralExpression(node.left)) {
+			const parentId = pushToVar(state, transformExpression(state, node.right));
+			const accessType = state.getType(node.right);
+			transformArrayBindingLiteral(state, node.left, parentId, accessType);
+			return parentId;
+		} else if (ts.isObjectLiteralExpression(node.left)) {
+			const parentId = pushToVar(state, transformExpression(state, node.right));
+			const accessType = state.getType(node.right);
+			transformObjectBindingLiteral(state, node.left, parentId, accessType);
+			return parentId;
+		}
+
 		const { writable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
 		if (ts.isCompoundAssignment(operatorKind)) {
 			return createCompoundAssignmentExpression(state, writable, operatorKind, value);
