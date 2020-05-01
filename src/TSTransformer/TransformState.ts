@@ -6,6 +6,8 @@ import { CompileState, MacroManager } from "TSTransformer";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import originalTS from "typescript";
 
+const RUNTIME_LIB_ID = lua.id("TS");
+
 export class TransformState {
 	private readonly sourceFileText: string;
 
@@ -94,5 +96,14 @@ export class TransformState {
 
 	public getType(node: ts.Node) {
 		return this.typeChecker.getTypeAtLocation(skipUpwards(node));
+	}
+
+	private usesRuntimeLib = false;
+	public TS(name: string) {
+		this.usesRuntimeLib = true;
+		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			expression: RUNTIME_LIB_ID,
+			name,
+		});
 	}
 }
