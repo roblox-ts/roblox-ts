@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
-export function transformInitializer(state: TransformState, id: lua.AnyIdentifier, initializer: ts.Expression) {
+export function transformInitializer(state: TransformState, id: lua.WritableExpression, initializer: ts.Expression) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
 		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: id,
