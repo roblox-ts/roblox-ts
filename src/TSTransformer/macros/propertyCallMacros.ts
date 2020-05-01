@@ -6,7 +6,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
@@ -25,8 +24,70 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	};
 }
 
+function offsetArguments(args: Array<lua.Expression>, argOffsets: Array<number>) {
+	for (let i = 0; i < Math.min(args.length, argOffsets.length); i++) {
+		const offset = argOffsets[i];
+		if (offset !== 0) {
+			const arg = args[i];
+			if (lua.isNumberLiteral(arg)) {
+				args[i] = lua.number(arg.value + offset);
+			} else {
+				args[i] = lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: arg,
+					operator: offset > 0 ? "+" : "-",
+					right: lua.number(Math.abs(offset)),
+				});
+			}
+		}
+	}
+	return args;
+}
+
+function makeStringCallback(
+	strCallback: lua.PropertyAccessExpression,
+	argOffsets: Array<number> = [],
+): PropertyCallMacro {
+	return (state, node, expression) => {
+		const args = offsetArguments(ensureTransformOrder(state, node.arguments), argOffsets);
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: strCallback,
+			args: lua.list.make(expression, ...args),
+		});
+	};
+}
+
+const size: PropertyCallMacro = (state, node, expression) =>
+	lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
+
+function stringMatchCallback(pattern: string): PropertyCallMacro {
+	return (state, node, expression) =>
+		lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.string.match,
+			args: lua.list.make(expression, lua.string(pattern)),
+		});
+}
+
+const findMacro = makeStringCallback(lua.globals.string.find, [0, 1]);
+
+const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
+	size,
+	trim: stringMatchCallback("^%s*(.-)%s*$"),
+	trimStart: stringMatchCallback("^%s*(.-)$"),
+	trimEnd: stringMatchCallback("^(.-)%s*$"),
+	split: makeStringCallback(lua.globals.string.split),
+	slice: makeStringCallback(lua.globals.string.sub, [1, 0]),
+	sub: makeStringCallback(lua.globals.string.sub, [1, 1]),
+	byte: makeStringCallback(lua.globals.string.byte, [1, 1]),
+	format: makeStringCallback(lua.globals.string.format),
+	find: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("string_find_wrap"),
+			args: lua.list.make(findMacro(state, node, expression)),
+		}),
+};
+
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
-	size: (state, node, expression) => lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }),
+	size,
 };
 
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
@@ -87,13 +148,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	some: (state, node, expression) => {
 		expression = pushToVarIfComplex(state, expression);
-
 		const resultId = pushToVar(state, lua.bool(false));
 		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
-
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
-
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
@@ -321,6 +379,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 		div: makeMathMethod("/"),
 	},
 
+	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
 	ReadonlyArray: READONLY_ARRAY_METHODS,
 	Array: ARRAY_METHODS,
