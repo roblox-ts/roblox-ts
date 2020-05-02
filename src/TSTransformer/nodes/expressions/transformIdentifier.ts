@@ -30,10 +30,12 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 		return;
 	}
 
+	const getKindName = (node: ts.Node) => ts.SyntaxKind[node.kind];
+
 	const declaration = symbol.valueDeclaration;
 
 	// parameters cannot be hoisted
-	if (!declaration || ts.isParameter(declaration)) {
+	if (!declaration || ts.isParameter(declaration) || ts.isShorthandPropertyAssignment(declaration)) {
 		return;
 	}
 

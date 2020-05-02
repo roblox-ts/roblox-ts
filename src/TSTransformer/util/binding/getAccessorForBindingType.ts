@@ -28,14 +28,14 @@ function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
-const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
 		index: lua.number(index + 1),
 	});
 };
 
-const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	let id: lua.AnyIdentifier;
 	if (idStack.length === 0) {
 		id = pushToVar(
@@ -55,7 +55,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isHole
 		args: lua.list.make(),
 	});
 
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -67,7 +67,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isHole
 	}
 };
 
-const setAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const args = lua.list.make<lua.Expression>(parentId);
 	const lastId = peek(idStack);
 	if (lastId) {
@@ -77,7 +77,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) =
 		expression: lua.globals.next,
 		args,
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -91,7 +91,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) =
 	}
 };
 
-const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const args = lua.list.make<lua.Expression>(parentId);
 	const lastId = peek(idStack);
 	if (lastId) {
@@ -113,12 +113,12 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) =
 	return lua.create(lua.SyntaxKind.Array, { members: ids });
 };
 
-const iterableFunctionTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const iterableFunctionTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: parentId,
 		args: lua.list.make(),
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -130,12 +130,12 @@ const iterableFunctionTupleAccessor: BindingAccessor = (state, parentId, index, 
 	}
 };
 
-const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: parentId,
 		args: lua.list.make(),
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -147,12 +147,12 @@ const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idSta
 	}
 };
 
-const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: parentId,
 		args: lua.list.make(),
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -183,12 +183,12 @@ const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, inde
 	}
 };
 
-const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: parentId,
 		args: lua.list.make(),
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,
@@ -227,7 +227,7 @@ const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, ind
 	}
 };
 
-const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) => {
+const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 			expression: parentId,
@@ -235,7 +235,7 @@ const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isHole) 
 		}),
 		args: lua.list.make(),
 	});
-	if (isHole) {
+	if (isOmitted) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.CallStatement, {
 				expression: callExp,

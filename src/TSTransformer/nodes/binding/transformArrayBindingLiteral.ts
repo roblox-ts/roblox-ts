@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
@@ -9,7 +10,6 @@ import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipDownwards } from "TSTransformer/util/skipDownwards";
 import { transformInitializer } from "TSTransformer/util/transformInitializer";
-import { assert } from "Shared/util/assert";
 
 export function transformArrayBindingLiteral(
 	state: TransformState,
@@ -33,25 +33,25 @@ export function transformArrayBindingLiteral(
 				element = skipDownwards(element.left);
 			}
 
-			const right = accessor(state, parentId, index, idStack, false);
+			const value = accessor(state, parentId, index, idStack, false);
 			if (
 				ts.isIdentifier(element) ||
 				ts.isElementAccessExpression(element) ||
 				ts.isPropertyAccessExpression(element)
 			) {
-				const left = transformWritableExpression(state, element);
-				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left, right }));
+				const id = transformWritableExpression(state, element);
+				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: id, right: value }));
 				if (initializer) {
-					state.prereq(transformInitializer(state, left, initializer));
+					state.prereq(transformInitializer(state, id, initializer));
 				}
 			} else if (ts.isArrayLiteralExpression(element)) {
-				const id = pushToVar(state, right);
+				const id = pushToVar(state, value);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 				transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 			} else if (ts.isObjectLiteralExpression(element)) {
-				const id = pushToVar(state, right);
+				const id = pushToVar(state, value);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}

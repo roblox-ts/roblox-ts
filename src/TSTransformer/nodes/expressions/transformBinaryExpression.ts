@@ -34,6 +34,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (ts.isAssignmentOperator(operatorKind)) {
+		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const parentId = pushToVar(state, transformExpression(state, node.right));
 			const accessType = state.getType(node.right);

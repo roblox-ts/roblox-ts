@@ -9,7 +9,7 @@ In other words, TS AST -> Lua AST
 - [X] Optional Chaining
 - [X] Method Call Detection
 - [X] Variable/Function Hoisting
-- [ ] Destructuring
+- [x] Destructuring
 - [ ] Module Resolution (+ Rojo project)
 - [ ] LuaTuple<T> Support
 

@@ -31,18 +31,19 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 
 	if (ts.isIdentifier(node.name)) {
 		return transformVariable(state, node.name, value).statements;
-	} else if (ts.isArrayBindingPattern(node.name)) {
-		const name = node.name;
-		assert(value);
-		const id = pushToVar(state, value);
-		return state.statement(() => transformArrayBindingPattern(state, name, id));
-	} else if (ts.isObjectBindingPattern(node.name)) {
-		const name = node.name;
-		assert(value);
-		const id = pushToVar(state, value);
-		return state.statement(() => transformObjectBindingPattern(state, name, id));
 	} else {
-		return lua.list.make();
+		// in destructuring, rhs must be executed first
+		if (ts.isArrayBindingPattern(node.name)) {
+			const name = node.name;
+			assert(value);
+			const id = pushToVar(state, value);
+			return state.statement(() => transformArrayBindingPattern(state, name, id));
+		} else {
+			const name = node.name;
+			assert(value);
+			const id = pushToVar(state, value);
+			return state.statement(() => transformObjectBindingPattern(state, name, id));
+		}
 	}
 }
 
