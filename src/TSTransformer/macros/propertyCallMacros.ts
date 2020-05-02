@@ -99,7 +99,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 
 	join: (state, node, expression) => {
-		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.string(",");
+		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.string(", ");
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.concat,
 			args: lua.list.make(expression, separator),
@@ -178,6 +178,34 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 		return resultId;
+	},
+
+	forEach: (state, node, expression) => {
+		expression = pushToVarIfComplex(state, expression);
+
+		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.CallStatement, {
+						expression: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, keyId, expression),
+						}),
+					}),
+				),
+			}),
+		);
+		return lua.emptyId();
 	},
 
 	map: (state, node, expression) => {
