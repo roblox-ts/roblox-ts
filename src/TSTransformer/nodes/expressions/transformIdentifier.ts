@@ -60,8 +60,8 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 	}
 
 	if (siblingIdx === declarationIdx) {
-		// function declarations can self refer
-		if (ts.isFunctionDeclaration(declarationStatement)) {
+		// function declarations and variable statements can self refer
+		if (ts.isFunctionDeclaration(declarationStatement) || ts.isVariableStatement(declarationStatement)) {
 			return;
 		}
 	}
