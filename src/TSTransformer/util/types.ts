@@ -96,3 +96,7 @@ export function isDoubleDecrementedIterableFunctionType(state: TransformState, t
 export function isObjectType(state: TransformState, type: ts.Type) {
 	return isSomeType(type, t => hasTypeFlag(t.flags, ts.TypeFlags.Object));
 }
+
+export function getTypeArguments(state: TransformState, type: ts.Type) {
+	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
+}

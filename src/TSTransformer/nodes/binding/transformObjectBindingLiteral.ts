@@ -15,7 +15,7 @@ export function transformObjectBindingLiteral(
 	state: TransformState,
 	bindingLiteral: ts.ObjectLiteralExpression,
 	parentId: lua.AnyIdentifier,
-	accessType: ts.Type | Array<ts.Type>,
+	accessType: ts.Type | ReadonlyArray<ts.Type>,
 ) {
 	for (const property of bindingLiteral.properties) {
 		if (ts.isShorthandPropertyAssignment(property)) {

@@ -15,7 +15,7 @@ export function transformArrayBindingLiteral(
 	state: TransformState,
 	bindingLiteral: ts.ArrayLiteralExpression,
 	parentId: lua.AnyIdentifier,
-	accessType: ts.Type | Array<ts.Type>,
+	accessType: ts.Type | ReadonlyArray<ts.Type>,
 ) {
 	let index = 0;
 	const idStack = new Array<lua.Identifier>();

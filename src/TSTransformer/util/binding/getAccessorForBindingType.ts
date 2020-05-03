@@ -13,6 +13,7 @@ import {
 	isGeneratorType,
 	isObjectType,
 	isStringType,
+	getTypeArguments,
 } from "TSTransformer/util/types";
 import { pushToVar } from "TSTransformer/util/pushToVar";
 
@@ -253,9 +254,9 @@ const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitte
 export function getAccessorForBindingType(
 	state: TransformState,
 	node: ts.Node,
-	type: ts.Type | Array<ts.Type>,
+	type: ts.Type | ReadonlyArray<ts.Type>,
 ): BindingAccessor {
-	if (Array.isArray(type) || isArrayType(state, type)) {
+	if (ts.isArray(type) || isArrayType(state, type)) {
 		return arrayAccessor;
 	} else if (isStringType(state, type)) {
 		return stringAccessor;
@@ -264,8 +265,9 @@ export function getAccessorForBindingType(
 	} else if (isMapType(state, type)) {
 		return mapAccessor;
 	} else if (isIterableFunctionType(state, type)) {
-		assert(type.typeArguments);
-		return isTupleType(state, type.typeArguments[0]) ? iterableFunctionTupleAccessor : iterableFunctionAccessor;
+		return isTupleType(state, getTypeArguments(state, type)[0])
+			? iterableFunctionTupleAccessor
+			: iterableFunctionAccessor;
 	} else if (isFirstDecrementedIterableFunctionType(state, type)) {
 		return firstDecrementedIterableAccessor;
 	} else if (isDoubleDecrementedIterableFunctionType(state, type)) {
