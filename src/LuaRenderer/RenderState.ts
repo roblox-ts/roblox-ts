@@ -1,5 +1,6 @@
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 
 export class RenderState {
 	public indent = "";
@@ -19,10 +20,10 @@ export class RenderState {
 		return result;
 	}
 
-	private scopeStack: Array<Set<string>> = [new Set()];
+	private scopeStack: Array<number> = [0];
 
 	public pushScope() {
-		this.scopeStack.push(new Set(this.peekScopeStack()));
+		this.scopeStack.push(this.peekScopeStackOrThrow());
 	}
 
 	public popScope() {
@@ -46,37 +47,15 @@ export class RenderState {
 		return result;
 	}
 
-	public registerName(name: string) {
-		this.peekScopeStackOrThrow().add(name);
-	}
-
-	public nameExists(name: string) {
-		return this.peekScopeStackOrThrow().has(name);
-	}
-
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 
-	private getNewTempName(prefix: string) {
-		if (prefix.length > 0) {
-			prefix = `_${prefix}`;
-		}
-		let n = 0;
-		let name: string;
-		do {
-			name = `${prefix}_${n++}`;
-		} while (this.nameExists(name));
-		this.registerName(name);
-		return name;
+	private getNewTempName() {
+		const id = this.scopeStack[this.scopeStack.length - 1]++;
+		return `_${id}`;
 	}
 
 	public getTempName(node: lua.TemporaryIdentifier) {
-		const cached = this.seenTempNodes.get(node);
-		if (cached !== undefined) {
-			return cached;
-		}
-		const name = this.getNewTempName(node.name);
-		this.seenTempNodes.set(node, name);
-		return name;
+		return getOrSetDefault(this.seenTempNodes, node, () => this.getNewTempName());
 	}
 
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
