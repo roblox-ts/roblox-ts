@@ -25,7 +25,8 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 }
 
 function offsetArguments(args: Array<lua.Expression>, argOffsets: Array<number>) {
-	for (let i = 0; i < Math.min(args.length, argOffsets.length); i++) {
+	const minLength = Math.min(args.length, argOffsets.length);
+	for (let i = 0; i < minLength; i++) {
 		const offset = argOffsets[i];
 		if (offset !== 0) {
 			const arg = args[i];

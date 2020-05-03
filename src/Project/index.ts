@@ -1,12 +1,13 @@
+import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
+import { RojoConfig, NetworkType } from "Project/RojoConfig";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { MacroManager, TransformState, transformSourceFile, CompileState } from "TSTransformer";
-import ts from "byots";
+import { CompileState, MacroManager, transformSourceFile, TransformState } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -29,6 +30,7 @@ export class Project {
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly options: ProjectOptions;
 	private readonly macroManager: MacroManager;
+	private readonly rojoConfig: RojoConfig;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
@@ -48,6 +50,24 @@ export class Project {
 
 		const compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
+
+		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
+		if (!rojoConfigPath) {
+			throw new ProjectError("Unable to find Rojo configuration file!");
+		}
+		this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
+
+		const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
+		const runtimeLibPath = this.rojoConfig.getRbxFromFilePath(runtimeFsPath).path;
+		if (!runtimeLibPath) {
+			throw new ProjectError(
+				`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
+			);
+		} else if (this.rojoConfig.getNetworkType(runtimeFsPath) !== NetworkType.Unknown) {
+			throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
+		} else if (this.rojoConfig.isIsolated(runtimeFsPath)) {
+			throw new ProjectError(`Runtime library cannot be in an isolated container!`);
+		}
 
 		this.rootDir = compilerOptions.rootDir;
 		this.outDir = compilerOptions.outDir;
