@@ -35,14 +35,13 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 
 		// destructuring
 		if (!ts.isIdentifier(tsParam.name)) {
-			if (ts.isArrayBindingPattern(tsParam.name)) {
-				const bindingPattern = tsParam.name;
+			const bindingPattern = tsParam.name;
+			if (ts.isArrayBindingPattern(bindingPattern)) {
 				lua.list.pushList(
 					statements,
 					state.statement(() => transformArrayBindingPattern(state, bindingPattern, paramId)),
 				);
 			} else {
-				const bindingPattern = tsParam.name;
 				lua.list.pushList(
 					statements,
 					state.statement(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
