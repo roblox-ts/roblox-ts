@@ -1,18 +1,19 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
+import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
 export function transformParameters(state: TransformState, tsParams: ReadonlyArray<ts.ParameterDeclaration>) {
-	const parameters = lua.list.make<lua.Identifier>();
+	const parameters = lua.list.make<lua.AnyIdentifier>();
 	const statements = lua.list.make<lua.Statement>();
 	let hasDotDotDot = false;
 
 	for (const tsParam of tsParams) {
-		assert(ts.isIdentifier(tsParam.name), "Not implemented");
-		const paramId = transformIdentifierDefined(state, tsParam.name);
+		const paramId = ts.isIdentifier(tsParam.name) ? transformIdentifierDefined(state, tsParam.name) : lua.tempId();
+
 		if (tsParam.dotDotDotToken) {
 			hasDotDotDot = true;
 			lua.list.push(
@@ -27,8 +28,26 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 		} else {
 			lua.list.push(parameters, paramId);
 		}
+
 		if (tsParam.initializer) {
 			lua.list.push(statements, transformInitializer(state, paramId, tsParam.initializer));
+		}
+
+		// destructuring
+		if (!ts.isIdentifier(tsParam.name)) {
+			if (ts.isArrayBindingPattern(tsParam.name)) {
+				const bindingPattern = tsParam.name;
+				lua.list.pushList(
+					statements,
+					state.statement(() => transformArrayBindingPattern(state, bindingPattern, paramId)),
+				);
+			} else {
+				const bindingPattern = tsParam.name;
+				lua.list.pushList(
+					statements,
+					state.statement(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
+				);
+			}
 		}
 	}
 
