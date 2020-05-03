@@ -18,7 +18,7 @@ export class RenderState {
 
 	public pushScope() {
 		const top = this.scopeStack[this.scopeStack.length - 1];
-		assert(top);
+		assert(top !== undefined);
 		this.scopeStack.push(top);
 	}
 
