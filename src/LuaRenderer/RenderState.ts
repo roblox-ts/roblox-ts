@@ -49,13 +49,8 @@ export class RenderState {
 
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 
-	private getNewTempName() {
-		const id = this.scopeStack[this.scopeStack.length - 1]++;
-		return `_${id}`;
-	}
-
 	public getTempName(node: lua.TemporaryIdentifier) {
-		return getOrSetDefault(this.seenTempNodes, node, () => this.getNewTempName());
+		return getOrSetDefault(this.seenTempNodes, node, () => `_${this.scopeStack[this.scopeStack.length - 1]++}`);
 	}
 
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
