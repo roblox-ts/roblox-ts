@@ -57,41 +57,21 @@ function assign(
 function transformPropertyAssignment(
 	state: TransformState,
 	ctx: ObjectLiteralContext,
-	property: ts.PropertyAssignment,
+	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
+	initializer: ts.Expression,
 ) {
-	if (ts.isPrivateIdentifier(property.name)) {
-		state.addDiagnostic(diagnostics.noPrivateIdentifier(property.name));
-		return;
-	}
 	let leftExp: lua.Expression;
 	let leftStatements: lua.List<lua.Statement>;
-	if (ts.isIdentifier(property.name)) {
-		leftExp = lua.string(property.name.text);
+	if (ts.isIdentifier(name)) {
+		leftExp = lua.string(name.text);
 		leftStatements = lua.list.make();
 	} else {
-		const name = ts.isComputedPropertyName(property.name) ? property.name.expression : property.name;
 		({ expression: leftExp, statements: leftStatements } = state.capturePrereqs(() =>
-			transformExpression(state, name),
+			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
 		));
 	}
-	const rightCapture = state.capturePrereqs(() => transformExpression(state, property.initializer));
+	const rightCapture = state.capturePrereqs(() => transformExpression(state, initializer));
 	assign(state, ctx, leftExp, leftStatements, rightCapture.expression, rightCapture.statements);
-}
-
-function transformShorthandPropertyAssignment(
-	state: TransformState,
-	ctx: ObjectLiteralContext,
-	property: ts.ShorthandPropertyAssignment,
-) {
-	const rightCapture = state.capturePrereqs(() => transformIdentifier(state, property.name));
-	assign(
-		state,
-		ctx,
-		lua.string(property.name.text),
-		lua.list.make(),
-		rightCapture.expression,
-		rightCapture.statements,
-	);
 }
 
 function transformSpreadAssignment(state: TransformState, ctx: ObjectLiteralContext, property: ts.SpreadAssignment) {
@@ -123,9 +103,13 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 	const ctx: ObjectLiteralContext = { exp: lua.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
-			transformPropertyAssignment(state, ctx, property);
+			if (ts.isPrivateIdentifier(property.name)) {
+				state.addDiagnostic(diagnostics.noPrivateIdentifier(property.name));
+				continue;
+			}
+			transformPropertyAssignment(state, ctx, property.name, property.initializer);
 		} else if (ts.isShorthandPropertyAssignment(property)) {
-			transformShorthandPropertyAssignment(state, ctx, property);
+			transformPropertyAssignment(state, ctx, property.name, property.name);
 		} else if (ts.isSpreadAssignment(property)) {
 			transformSpreadAssignment(state, ctx, property);
 		} else if (ts.isMethodDeclaration(property)) {
