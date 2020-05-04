@@ -9,10 +9,10 @@ import { pushToVar } from "TSTransformer/util/pushToVar";
 
 function disableInline(
 	state: TransformState,
-	ctx: Pointer<lua.Map | lua.TemporaryIdentifier>,
-): asserts ctx is Pointer<lua.TemporaryIdentifier> {
-	if (lua.isMap(ctx.value)) {
-		ctx.value = pushToVar(state, ctx.value);
+	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
+): asserts ptr is Pointer<lua.TemporaryIdentifier> {
+	if (lua.isMap(ptr.value)) {
+		ptr.value = pushToVar(state, ptr.value);
 	}
 }
 
