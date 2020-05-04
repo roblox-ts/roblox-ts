@@ -36,6 +36,7 @@ export function transformElementAccessExpressionInner(
 ) {
 	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
+		return lua.emptyId();
 	}
 
 	const { expression: index, statements } = state.capturePrereqs(() =>

@@ -51,4 +51,8 @@ export const diagnostics = {
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
+	noMacroWithoutCall: diagnostic(
+		"Cannot index a macro without calling it!",
+		suggestion("Use the form `() => a.b()` instead of `a.b`."),
+	),
 };

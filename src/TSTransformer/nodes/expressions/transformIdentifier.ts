@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { diagnostics } from "TSTransformer/diagnostics";
 import { isBlockLike } from "TSTransformer/typeGuards";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
@@ -82,6 +83,11 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const macro = state.macroManager.getIdentifierMacro(symbol);
 	if (macro) {
 		return macro(state, node);
+	}
+
+	if (state.macroManager.getCallMacro(symbol)) {
+		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+		return lua.emptyId();
 	}
 
 	checkHoist(state, node, symbol);

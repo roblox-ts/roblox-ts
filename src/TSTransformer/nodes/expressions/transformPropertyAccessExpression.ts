@@ -12,9 +12,16 @@ export function transformPropertyAccessExpressionInner(
 	expression: lua.Expression,
 	name: string,
 ) {
+	if (state.macroManager.getPropertyCallMacro(state.getType(node).symbol)) {
+		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+		return lua.emptyId();
+	}
+
 	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
+		return lua.emptyId();
 	}
+
 	return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 		expression: convertToIndexableExpression(expression),
 		name,
