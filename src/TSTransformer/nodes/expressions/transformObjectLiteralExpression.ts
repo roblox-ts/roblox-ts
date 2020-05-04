@@ -62,6 +62,7 @@ function transformPropertyAssignment(
 		leftExp = lua.string(name.text);
 		leftStatements = lua.list.make();
 	} else {
+		// order here is fragile, ComputedPropertyName -> Expression should NOT be string key
 		({ expression: leftExp, statements: leftStatements } = state.capturePrereqs(() =>
 			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
 		));
