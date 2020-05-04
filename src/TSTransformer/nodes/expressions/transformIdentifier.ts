@@ -74,8 +74,11 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 }
 
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
-	const symbol = state.typeChecker.getSymbolAtLocation(node);
+	const symbol = ts.isShorthandPropertyAssignment(node.parent)
+		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
+		: state.typeChecker.getSymbolAtLocation(node);
 	assert(symbol);
+
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
 		return lua.nil();
 	}
