@@ -6,32 +6,20 @@ import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain"
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	if (node.templateSpans.length === 0) {
-		return lua.create(lua.SyntaxKind.StringLiteral, {
-			value: node.head.text,
-		});
+		return lua.string(node.head.text);
 	}
 
 	const expressions = lua.list.make<lua.Expression>();
 
 	if (node.head.text.length > 0) {
-		lua.list.push(
-			expressions,
-			lua.create(lua.SyntaxKind.StringLiteral, {
-				value: node.head.text,
-			}),
-		);
+		lua.list.push(expressions, lua.string(node.head.text));
 	}
 
 	for (const templateSpan of node.templateSpans) {
 		lua.list.push(expressions, transformExpression(state, templateSpan.expression));
 
 		if (templateSpan.literal.text.length > 0) {
-			lua.list.push(
-				expressions,
-				lua.create(lua.SyntaxKind.StringLiteral, {
-					value: templateSpan.literal.text,
-				}),
-			);
+			lua.list.push(expressions, lua.string(templateSpan.literal.text));
 		}
 	}
 
