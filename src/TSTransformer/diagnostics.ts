@@ -42,6 +42,7 @@ export const diagnostics = {
 	noEnumMerging: diagnostic("Enum merging is not supported!"),
 	noDotDotDotDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
+	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),

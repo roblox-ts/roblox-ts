@@ -1,13 +1,15 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
-	assert(!node.name);
+	if (node.name) {
+		state.addDiagnostic(diagnostics.noFunctionExpressionName(node.name));
+	}
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
 
