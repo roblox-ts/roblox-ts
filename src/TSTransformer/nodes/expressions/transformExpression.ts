@@ -45,15 +45,18 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
+	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 	[ts.SyntaxKind.AsExpression, transformAsExpression],
 	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
 	[ts.SyntaxKind.CallExpression, transformCallExpression],
 	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
 	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
 	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
+	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
@@ -63,9 +66,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
-
-	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
-	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {

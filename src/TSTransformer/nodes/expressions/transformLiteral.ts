@@ -16,7 +16,10 @@ export function transformNumericLiteral(state: TransformState, node: ts.NumericL
 	});
 }
 
-export function transformStringLiteral(state: TransformState, node: ts.StringLiteral) {
+export function transformStringLiteral(
+	state: TransformState,
+	node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
+) {
 	return lua.create(lua.SyntaxKind.StringLiteral, {
 		value: node.text,
 	});
