@@ -25,6 +25,7 @@ import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
+import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "byots";
 
@@ -60,6 +61,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],

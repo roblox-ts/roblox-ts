@@ -32,7 +32,7 @@ In other words, TS AST -> Lua AST
 - [X] ObjectLiteralExpression
 - [X] ParenthesizedExpression
 - [X] ArrowFunction + FunctionExpression (partially complete)
-- [ ] TemplateExpression
+- [X] TemplateExpression
 - [ ] TaggedTemplateExpression
 - [ ] AwaitExpression
 - [ ] SpreadElement
