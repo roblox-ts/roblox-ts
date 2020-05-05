@@ -178,7 +178,7 @@ In other words, TS AST -> Lua AST
 - [ ] ReadonlyMap.values()
 - [ ] ReadonlyMap.has()
 - [ ] ReadonlyMap.get()
-- [ ] ReadonlyMap.entires()
+- [ ] ReadonlyMap.entries()
 - [ ] ReadonlyMap.keys()
 - [ ] Map.set()
 - [ ] Map.delete()
