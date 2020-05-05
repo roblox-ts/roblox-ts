@@ -23,23 +23,23 @@ function transformPropertyAssignment(
 	initializer: ts.Expression,
 ) {
 	let left: lua.Expression;
-	let leftStatements: lua.List<lua.Statement>;
+	let leftPrereqs: lua.List<lua.Statement>;
 	if (ts.isIdentifier(name)) {
 		left = lua.string(name.text);
-		leftStatements = lua.list.make();
+		leftPrereqs = lua.list.make();
 	} else {
 		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
 		// we must do this check here instead of before
-		({ expression: left, statements: leftStatements } = state.capturePrereqs(() =>
+		({ expression: left, statements: leftPrereqs } = state.capturePrereqs(() =>
 			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
 		));
 	}
 
-	const { expression: right, statements: rightStatements } = state.capturePrereqs(() =>
+	const { expression: right, statements: rightPrereqs } = state.capturePrereqs(() =>
 		transformExpression(state, initializer),
 	);
 
-	if (!lua.list.isEmpty(leftStatements) || !lua.list.isEmpty(rightStatements)) {
+	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPrereqs)) {
 		disableInline(state, ptr);
 	}
 
@@ -52,8 +52,8 @@ function transformPropertyAssignment(
 			}),
 		);
 	} else {
-		state.prereqList(leftStatements);
-		state.prereqList(rightStatements);
+		state.prereqList(leftPrereqs);
+		state.prereqList(rightPrereqs);
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
