@@ -9,19 +9,19 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		return lua.string(node.head.text);
 	}
 
-	const expressions = lua.list.make<lua.Expression>();
+	const expressions = new Array<lua.Expression>();
 
 	if (node.head.text.length > 0) {
-		lua.list.push(expressions, lua.string(node.head.text));
+		expressions.push(lua.string(node.head.text));
 	}
 
 	for (const templateSpan of node.templateSpans) {
-		lua.list.push(expressions, transformExpression(state, templateSpan.expression));
+		expressions.push(transformExpression(state, templateSpan.expression));
 
 		if (templateSpan.literal.text.length > 0) {
-			lua.list.push(expressions, lua.string(templateSpan.literal.text));
+			expressions.push(lua.string(templateSpan.literal.text));
 		}
 	}
 
-	return binaryExpressionChain(lua.list.toArray(expressions), "..");
+	return binaryExpressionChain(expressions, "..");
 }
