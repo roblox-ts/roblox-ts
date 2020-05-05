@@ -16,17 +16,33 @@ function disableInline(
 	}
 }
 
-function assign(
+function transformPropertyAssignment(
 	state: TransformState,
 	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
-	left: lua.Expression,
-	leftStatements: lua.List<lua.Statement>,
-	right: lua.Expression,
-	rightStatements: lua.List<lua.Statement>,
+	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
+	initializer: ts.Expression,
 ) {
+	let left: lua.Expression;
+	let leftStatements: lua.List<lua.Statement>;
+	if (ts.isIdentifier(name)) {
+		left = lua.string(name.text);
+		leftStatements = lua.list.make();
+	} else {
+		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
+		// we must do this check here instead of before
+		({ expression: left, statements: leftStatements } = state.capturePrereqs(() =>
+			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
+		));
+	}
+
+	const { expression: right, statements: rightStatements } = state.capturePrereqs(() =>
+		transformExpression(state, initializer),
+	);
+
 	if (!lua.list.isEmpty(leftStatements) || !lua.list.isEmpty(rightStatements)) {
 		disableInline(state, ptr);
 	}
+
 	if (lua.isMap(ptr.value)) {
 		lua.list.push(
 			ptr.value.fields,
@@ -48,28 +64,6 @@ function assign(
 			}),
 		);
 	}
-}
-
-function transformPropertyAssignment(
-	state: TransformState,
-	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
-	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
-	initializer: ts.Expression,
-) {
-	let leftExp: lua.Expression;
-	let leftStatements: lua.List<lua.Statement>;
-	if (ts.isIdentifier(name)) {
-		leftExp = lua.string(name.text);
-		leftStatements = lua.list.make();
-	} else {
-		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
-		// we must do this check here instead of before
-		({ expression: leftExp, statements: leftStatements } = state.capturePrereqs(() =>
-			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
-		));
-	}
-	const rightCapture = state.capturePrereqs(() => transformExpression(state, initializer));
-	assign(state, ptr, leftExp, leftStatements, rightCapture.expression, rightCapture.statements);
 }
 
 function transformSpreadAssignment(
