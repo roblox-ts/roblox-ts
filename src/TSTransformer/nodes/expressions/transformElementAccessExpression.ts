@@ -6,7 +6,6 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import { isArrayType } from "TSTransformer/util/types";
 
 // hack for now until we can detect arrays
@@ -44,7 +43,7 @@ export function transformElementAccessExpressionInner(
 	);
 
 	if (!lua.list.isEmpty(statements)) {
-		expression = pushToVar(state, expression);
+		expression = state.pushToVar(expression);
 		state.prereqList(statements);
 	}
 

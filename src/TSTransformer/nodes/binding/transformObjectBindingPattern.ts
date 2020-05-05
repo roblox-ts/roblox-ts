@@ -6,7 +6,6 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
 export function transformObjectBindingPattern(
@@ -31,7 +30,7 @@ export function transformObjectBindingPattern(
 			}
 		} else {
 			const value = objectAccessor(state, parentId, name, prop, name);
-			const id = pushToVar(state, value);
+			const id = state.pushToVar(value);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}

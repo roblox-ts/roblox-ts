@@ -4,7 +4,6 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 export function transformCallExpressionInner(
@@ -68,7 +67,7 @@ export function transformElementCallExpressionInner(
 	const argumentExp = lua.list.shift(args)!;
 
 	if (isMethod(state, node.expression)) {
-		const selfId = pushToVarIfComplex(state, expression);
+		const selfId = state.pushToVarIfComplex(expression);
 		lua.list.unshift(args, selfId);
 	}
 

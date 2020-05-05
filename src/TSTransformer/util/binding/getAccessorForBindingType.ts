@@ -15,7 +15,6 @@ import {
 	isStringType,
 	getTypeArguments,
 } from "TSTransformer/util/types";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 
 type BindingAccessor = (
 	state: TransformState,
@@ -39,8 +38,7 @@ const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitt
 const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	let id: lua.AnyIdentifier;
 	if (idStack.length === 0) {
-		id = pushToVar(
-			state,
+		id = state.pushToVar(
 			lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.string.gmatch,
 				args: lua.list.make<lua.Expression>(parentId, lua.string("[%z\\1-\\127\\194-\\244][\\128-\\191]*")),
@@ -86,7 +84,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 		);
 		return lua.emptyId();
 	} else {
-		const id = pushToVar(state, callExp);
+		const id = state.pushToVar(callExp);
 		idStack.push(id);
 		return id;
 	}

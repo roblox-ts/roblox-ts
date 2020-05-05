@@ -3,7 +3,6 @@ import * as lua from "LuaAST";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {
@@ -33,7 +32,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 		const element = node.elements[i];
 		if (ts.isSpreadElement(element)) {
 			if (lua.isArray(exp)) {
-				exp = pushToVar(state, exp);
+				exp = state.pushToVar(exp);
 				updateLengthId(true);
 			}
 			const spreadExp = transformExpression(state, element.expression);
@@ -67,7 +66,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 		} else {
 			const { expression, statements } = state.capturePrereqs(() => transformExpression(state, element));
 			if (lua.isArray(exp) && !lua.list.isEmpty(statements)) {
-				exp = pushToVar(state, exp);
+				exp = state.pushToVar(exp);
 				updateLengthId(true);
 			}
 			if (lua.isArray(exp)) {

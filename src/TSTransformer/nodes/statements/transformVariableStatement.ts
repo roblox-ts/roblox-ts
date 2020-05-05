@@ -6,7 +6,6 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: lua.Expression) {
 	return state.capturePrereqs(() => {
@@ -36,12 +35,12 @@ function transformVariableDeclaration(state: TransformState, node: ts.VariableDe
 		if (ts.isArrayBindingPattern(node.name)) {
 			const name = node.name;
 			assert(value);
-			const id = pushToVar(state, value);
+			const id = state.pushToVar(value);
 			return state.statement(() => transformArrayBindingPattern(state, name, id));
 		} else {
 			const name = node.name;
 			assert(value);
-			const id = pushToVar(state, value);
+			const id = state.pushToVar(value);
 			return state.statement(() => transformObjectBindingPattern(state, name, id));
 		}
 	}

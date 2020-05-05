@@ -5,7 +5,6 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { TransformState } from "TSTransformer/TransformState";
-import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (node.modifiers?.find(modifier => modifier.kind === ts.SyntaxKind.ConstKeyword)) {
@@ -21,7 +20,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	const id = transformIdentifierDefined(state, node.name);
 
 	const statements = state.statement(() => {
-		const inverseId = pushToVar(state, lua.map());
+		const inverseId = state.pushToVar(lua.map());
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: id,
@@ -46,7 +45,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				valueExp = lua.number(value);
 			} else {
 				assert(member.initializer);
-				valueExp = pushToVarIfComplex(state, transformExpression(state, member.initializer));
+				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer));
 			}
 
 			state.prereq(

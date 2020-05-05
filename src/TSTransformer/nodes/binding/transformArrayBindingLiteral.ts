@@ -7,7 +7,6 @@ import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/trans
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
 import { getSubType } from "TSTransformer/util/binding/getSubType";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipDownwards } from "TSTransformer/util/skipDownwards";
 import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
@@ -45,13 +44,13 @@ export function transformArrayBindingLiteral(
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 			} else if (ts.isArrayLiteralExpression(element)) {
-				const id = pushToVar(state, value);
+				const id = state.pushToVar(value);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 				transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 			} else if (ts.isObjectLiteralExpression(element)) {
-				const id = pushToVar(state, value);
+				const id = state.pushToVar(value);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}

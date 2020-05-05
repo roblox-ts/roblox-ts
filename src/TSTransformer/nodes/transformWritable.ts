@@ -3,7 +3,6 @@ import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElem
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVar, pushToVarIfNonId } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { assert } from "Shared/util/assert";
@@ -13,16 +12,16 @@ export function transformWritableExpression(
 	node: ts.Expression,
 	forcePush = false,
 ): lua.WritableExpression {
-	const push = forcePush ? pushToVar : pushToVarIfNonId;
 	if (ts.isPropertyAccessExpression(node)) {
+		const expression = transformExpression(state, node.expression);
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-			expression: push(state, transformExpression(state, node.expression)),
+			expression: forcePush ? state.pushToVar(expression) : state.pushToVarIfNonId(expression),
 			name: node.name.text,
 		});
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: push(state, expression),
+			expression: forcePush ? state.pushToVar(expression) : state.pushToVarIfNonId(expression),
 			index: addOneIfArrayType(state, state.getType(node.expression), index),
 		});
 	} else {

@@ -3,7 +3,6 @@ import { ConstructorMacro, MacroList } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
@@ -45,7 +44,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 		if (ts.isArrayLiteralExpression(arg)) {
 			return lua.set(ensureTransformOrder(state, arg.elements));
 		} else {
-			const id = pushToVar(state, lua.set());
+			const id = state.pushToVar(lua.set());
 			const valueId = lua.tempId();
 			state.prereq(
 				lua.create(lua.SyntaxKind.ForStatement, {
@@ -83,7 +82,7 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 			});
 			return lua.map(elements);
 		} else {
-			const id = pushToVar(state, lua.set());
+			const id = state.pushToVar(lua.set());
 			const keyId = lua.tempId();
 			const valueId = lua.tempId();
 			state.prereq(

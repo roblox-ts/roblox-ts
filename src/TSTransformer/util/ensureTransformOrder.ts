@@ -2,7 +2,6 @@ import * as lua from "LuaAST";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 
 /**
@@ -22,7 +21,7 @@ export function ensureTransformOrder(state: TransformState, expressions: Readonl
 			!lua.isSimplePrimitive(expression) &&
 			!lua.isTemporaryIdentifier(expression)
 		) {
-			expression = pushToVar(state, expression);
+			expression = state.pushToVar(expression);
 		}
 		result.push(expression);
 	}

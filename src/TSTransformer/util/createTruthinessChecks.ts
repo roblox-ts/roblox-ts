@@ -2,7 +2,6 @@ import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
-import { pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 
 export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
@@ -22,7 +21,7 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
-		exp = pushToVarIfComplex(state, exp);
+		exp = state.pushToVarIfComplex(exp);
 	}
 
 	if (isAssignableToZero) {

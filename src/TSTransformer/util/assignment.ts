@@ -2,7 +2,6 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import ts from "byots";
 
 export function createAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
@@ -26,7 +25,7 @@ export function createAssignmentExpression(
 		);
 		return writable;
 	} else {
-		const id = pushToVar(state, value);
+		const id = state.pushToVar(value);
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: writable,

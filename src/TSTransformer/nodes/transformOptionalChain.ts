@@ -13,7 +13,6 @@ import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expr
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 import ts from "byots";
 
@@ -174,7 +173,7 @@ function createOrSetTempId(
 	expression: lua.Expression,
 ) {
 	if (tempId === undefined) {
-		tempId = pushToVar(state, expression);
+		tempId = state.pushToVar(expression);
 	} else {
 		if (tempId !== expression) {
 			state.prereq(
@@ -220,7 +219,7 @@ function transformOptionalChainInner(
 		if (isCompoundCall(item)) {
 			isMethodCall = isMethod(state, item.node.expression);
 			if (item.callOptional && isMethodCall) {
-				selfParam = pushToVar(state, expression);
+				selfParam = state.pushToVar(expression);
 				expression = selfParam;
 			}
 

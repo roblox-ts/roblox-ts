@@ -5,14 +5,13 @@ import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 
 function disableInline(
 	state: TransformState,
 	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
 ): asserts ptr is Pointer<lua.TemporaryIdentifier> {
 	if (lua.isMap(ptr.value)) {
-		ptr.value = pushToVar(state, ptr.value);
+		ptr.value = state.pushToVar(ptr.value);
 	}
 }
 

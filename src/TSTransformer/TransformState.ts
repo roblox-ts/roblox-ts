@@ -106,4 +106,31 @@ export class TransformState {
 			name,
 		});
 	}
+
+	public pushToVar(expression: lua.Expression) {
+		const temp = lua.tempId();
+		this.prereq(
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: temp,
+				right: expression,
+			}),
+		);
+		return temp;
+	}
+
+	public pushToVarIfComplex<T extends lua.Expression>(
+		expression: T,
+	): Extract<T, lua.SimpleTypes> | lua.TemporaryIdentifier {
+		if (lua.isSimple(expression)) {
+			return expression as Extract<T, lua.SimpleTypes>;
+		}
+		return this.pushToVar(expression);
+	}
+
+	public pushToVarIfNonId(expression: lua.Expression) {
+		if (lua.isAnyIdentifier(expression)) {
+			return expression;
+		}
+		return this.pushToVar(expression);
+	}
 }

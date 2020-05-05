@@ -4,7 +4,6 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVar, pushToVarIfComplex } from "TSTransformer/util/pushToVar";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
@@ -12,7 +11,7 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 		const { expression: right, statements } = state.capturePrereqs(() =>
 			transformExpression(state, node.arguments[0]),
 		);
-		const left = lua.list.isEmpty(statements) ? expression : pushToVar(state, expression);
+		const left = lua.list.isEmpty(statements) ? expression : state.pushToVar(expression);
 		state.prereqList(statements);
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left,
@@ -108,10 +107,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	every: (state, node, expression) => {
-		expression = pushToVarIfComplex(state, expression);
+		expression = state.pushToVarIfComplex(expression);
 
-		const resultId = pushToVar(state, lua.bool(true));
-		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+		const resultId = state.pushToVar(lua.bool(true));
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
@@ -148,9 +147,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	some: (state, node, expression) => {
-		expression = pushToVarIfComplex(state, expression);
-		const resultId = pushToVar(state, lua.bool(false));
-		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+		expression = state.pushToVarIfComplex(expression);
+		const resultId = state.pushToVar(lua.bool(false));
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
 		state.prereq(
@@ -182,9 +181,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	forEach: (state, node, expression) => {
-		expression = pushToVarIfComplex(state, expression);
+		expression = state.pushToVarIfComplex(expression);
 
-		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
@@ -210,9 +209,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	map: (state, node, expression) => {
-		expression = pushToVarIfComplex(state, expression);
-		const newValueId = pushToVar(state, lua.array());
-		const callbackId = pushToVarIfComplex(state, transformExpression(state, node.arguments[0]));
+		expression = state.pushToVarIfComplex(expression);
+		const newValueId = state.pushToVar(lua.array());
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
 		state.prereq(
@@ -240,10 +239,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	reverse: (state, node, expression) => {
-		expression = pushToVarIfComplex(state, expression);
+		expression = state.pushToVarIfComplex(expression);
 
-		const resultId = pushToVar(state, lua.map());
-		const lengthId = pushToVar(state, lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+		const resultId = state.pushToVar(lua.map());
+		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
 
 		const idxId = lua.tempId();
 
@@ -286,12 +285,11 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			return lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
 		}
 
-		expression = pushToVarIfComplex(state, expression);
+		expression = state.pushToVarIfComplex(expression);
 
 		const args = ensureTransformOrder(state, node.arguments);
 
-		const sizeId = pushToVar(
-			state,
+		const sizeId = state.pushToVar(
 			lua.create(lua.SyntaxKind.UnaryExpression, {
 				operator: "#",
 				expression,
@@ -338,7 +336,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const retValue = valueIsUsed ? lua.tempId() : lua.emptyId();
 
 		if (valueIsUsed) {
-			sizeExp = pushToVar(state, sizeExp);
+			sizeExp = state.pushToVar(sizeExp);
 			state.prereq(
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
 					left: retValue,

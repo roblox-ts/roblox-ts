@@ -10,7 +10,6 @@ import { transformWritableAssignmentWithType } from "TSTransformer/nodes/transfo
 import { createAssignmentExpression, createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { pushToVar } from "TSTransformer/util/pushToVar";
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
@@ -36,12 +35,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	if (ts.isAssignmentOperator(operatorKind)) {
 		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
-			const parentId = pushToVar(state, transformExpression(state, node.right));
+			const parentId = state.pushToVar(transformExpression(state, node.right));
 			const accessType = state.getType(node.right);
 			transformArrayBindingLiteral(state, node.left, parentId, accessType);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
-			const parentId = pushToVar(state, transformExpression(state, node.right));
+			const parentId = state.pushToVar(transformExpression(state, node.right));
 			const accessType = state.getType(node.right);
 			transformObjectBindingLiteral(state, node.left, parentId, accessType);
 			return parentId;
