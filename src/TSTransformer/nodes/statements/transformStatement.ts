@@ -12,6 +12,7 @@ import { transformExpressionStatement } from "TSTransformer/nodes/statements/tra
 import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/transformFunctionDeclaration";
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
+import { transformThrowStatement } from "TSTransformer/nodes/statements/transformThrowStatement";
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -48,6 +49,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
 	[ts.SyntaxKind.IfStatement, transformIfStatement],
 	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
+	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],
 	[ts.SyntaxKind.VariableStatement, transformVariableStatement],
 	[ts.SyntaxKind.WhileStatement, transformWhileStatement],
 ]);
