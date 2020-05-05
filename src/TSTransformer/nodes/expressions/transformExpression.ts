@@ -1,3 +1,4 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -21,13 +22,13 @@ import { transformNonNullExpression } from "TSTransformer/nodes/expressions/tran
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
+import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
-import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
-import ts from "byots";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));
@@ -66,6 +67,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
+
+	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {

@@ -35,7 +35,8 @@ export function isArrayType(state: TransformState, type: ts.Type) {
 			state.typeChecker.isArrayLikeType(t) ||
 			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
 			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray),
+			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
+			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray),
 	);
 }
 

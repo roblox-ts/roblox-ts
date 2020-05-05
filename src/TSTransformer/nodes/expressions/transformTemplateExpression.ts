@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { isStringType } from "TSTransformer/util/types";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	if (node.templateSpans.length === 0) {
@@ -16,8 +17,14 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		expressions.push(lua.string(node.head.text));
 	}
 
-	for (const templateSpan of node.templateSpans) {
-		let exp = transformExpression(state, templateSpan.expression);
+	const orderedExpressions = ensureTransformOrder(
+		state,
+		node.templateSpans.map(templateSpan => templateSpan.expression),
+	);
+
+	for (let i = 0; i < node.templateSpans.length; i++) {
+		const templateSpan = node.templateSpans[i];
+		let exp = orderedExpressions[i];
 		if (!isStringType(state, state.getType(templateSpan.expression))) {
 			exp = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.tostring,

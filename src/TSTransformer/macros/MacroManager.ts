@@ -18,19 +18,20 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
 
 export const SYMBOL_NAMES = {
-	String: "String",
-	ReadonlyArray: "ReadonlyArray",
 	Array: "Array",
-	ReadVoxelsArray: "ReadVoxelsArray",
-	ReadonlySet: "ReadonlySet",
-	Set: "Set",
-	ReadonlyMap: "ReadonlyMap",
-	Map: "Map",
-	LuaTuple: "LuaTuple",
-	IterableIterator: "IterableIterator",
-	IterableFunction: "IterableFunction",
 	DoubleDecrementedIterableFunction: "DoubleDecrementedIterableFunction",
 	FirstDecrementedIterableFunction: "FirstDecrementedIterableFunction",
+	IterableFunction: "IterableFunction",
+	IterableIterator: "IterableIterator",
+	LuaTuple: "LuaTuple",
+	Map: "Map",
+	ReadonlyArray: "ReadonlyArray",
+	ReadonlyMap: "ReadonlyMap",
+	ReadonlySet: "ReadonlySet",
+	ReadVoxelsArray: "ReadVoxelsArray",
+	Set: "Set",
+	String: "String",
+	TemplateStringsArray: "TemplateStringsArray",
 } as const;
 
 export class MacroManager {
