@@ -17,7 +17,11 @@ export function ensureTransformOrder(state: TransformState, expressions: Readonl
 		const info = expressionInfoList[i];
 		state.prereqList(info.statements);
 		let expression = info.expression;
-		if (i < lastArgWithPrereqsIndex && !lua.isTemporaryIdentifier(expression)) {
+		if (
+			i < lastArgWithPrereqsIndex &&
+			!lua.isSimplePrimitive(expression) &&
+			!lua.isTemporaryIdentifier(expression)
+		) {
 			expression = pushToVar(state, expression);
 		}
 		result.push(expression);
