@@ -56,7 +56,7 @@ In other words, TS AST -> Lua AST
 - [X] ContinueStatement (Luau-y for now)
 - [ ] ForStatement
 - [ ] ForOfStatement
-- [ ] ThrowStatement
+- [X] ThrowStatement
 - [ ] ImportDeclaration
 - [ ] ImportEqualsDeclaration
 - [ ] ExportDeclaration
