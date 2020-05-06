@@ -8,7 +8,7 @@ import {
 	isMapType,
 	isSetType,
 	isStringType,
-	isTupleType,
+	isLuaTupleType,
 } from "TSTransformer/util/types";
 
 export function getSubType(
@@ -21,7 +21,7 @@ export function getSubType(
 			const prop = type.getProperty(index);
 			assert(prop && prop.valueDeclaration);
 			return state.getType(prop.valueDeclaration);
-		} else if (isTupleType(state, type)) {
+		} else if (isLuaTupleType(state, type)) {
 			assert(type.aliasTypeArguments);
 			return getSubType(state, type.aliasTypeArguments[0], index);
 		} else if (isArrayType(state, type)) {
