@@ -61,9 +61,7 @@ export interface Identifier extends lua.Expression<lua.SyntaxKind.Identifier> {
 
 export interface EmptyIdentifier extends lua.Expression<lua.SyntaxKind.EmptyIdentifier> {}
 
-export interface TemporaryIdentifier extends lua.Expression<lua.SyntaxKind.TemporaryIdentifier> {
-	name: string;
-}
+export interface TemporaryIdentifier extends lua.Expression<lua.SyntaxKind.TemporaryIdentifier> {}
 
 export interface ComputedIndexExpression extends lua.Expression<lua.SyntaxKind.ComputedIndexExpression> {
 	expression: lua.IndexableExpression;
