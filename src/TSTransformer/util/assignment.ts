@@ -13,22 +13,22 @@ export function createAssignmentStatement(writable: lua.WritableExpression, valu
 
 export function createAssignmentExpression(
 	state: TransformState,
-	writable: lua.WritableExpression,
+	readable: lua.WritableExpression,
 	value: lua.Expression,
 ) {
-	if (lua.isAnyIdentifier(writable)) {
+	if (lua.isAnyIdentifier(readable)) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
-				left: writable,
+				left: readable,
 				right: value,
 			}),
 		);
-		return writable;
+		return readable;
 	} else {
 		const id = state.pushToVar(value);
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
-				left: writable,
+				left: readable,
 				right: id,
 			}),
 		);
@@ -38,17 +38,19 @@ export function createAssignmentExpression(
 
 export function createCompoundAssignmentStatement(
 	writable: NodeWithType<lua.WritableExpression>,
+	readable: NodeWithType<lua.WritableExpression>,
 	operator: ts.SyntaxKind,
 	value: NodeWithType<lua.Expression>,
 ) {
-	return createAssignmentStatement(writable.node, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentStatement(writable.node, createBinaryFromOperator(readable, operator, value));
 }
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
 	writable: NodeWithType<lua.WritableExpression>,
+	readable: NodeWithType<lua.WritableExpression>,
 	operator: ts.SyntaxKind,
 	value: NodeWithType<lua.Expression>,
 ) {
-	return createAssignmentExpression(state, writable.node, createBinaryFromOperator(writable, operator, value));
+	return createAssignmentExpression(state, writable.node, createBinaryFromOperator(readable, operator, value));
 }

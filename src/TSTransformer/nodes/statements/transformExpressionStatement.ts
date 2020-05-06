@@ -14,11 +14,8 @@ function transformUnaryExpressionStatement(
 	state: TransformState,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
-	return createCompoundAssignmentStatement(
-		transformWritableExpressionWithType(state, node.operand),
-		node.operator,
-		createNodeWithType(lua.number(1)),
-	);
+	const writable = transformWritableExpressionWithType(state, node.operand);
+	return createCompoundAssignmentStatement(writable, writable, node.operator, createNodeWithType(lua.number(1)));
 }
 
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
@@ -30,9 +27,13 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 			!ts.isArrayLiteralExpression(expression.left) &&
 			!ts.isArrayLiteralExpression(expression.right)
 		) {
-			const { writable, value } = transformWritableAssignmentWithType(state, expression.left, expression.right);
+			const { writable, readable, value } = transformWritableAssignmentWithType(
+				state,
+				expression.left,
+				expression.right,
+			);
 			if (ts.isCompoundAssignment(operator)) {
-				return lua.list.make(createCompoundAssignmentStatement(writable, operator, value));
+				return lua.list.make(createCompoundAssignmentStatement(writable, readable, operator, value));
 			} else {
 				return lua.list.make(createAssignmentStatement(writable.node, value.node));
 			}

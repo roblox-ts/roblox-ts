@@ -6,22 +6,19 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import ts from "byots";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { assert } from "Shared/util/assert";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
-export function transformWritableExpression(
-	state: TransformState,
-	node: ts.Expression,
-	forcePush = false,
-): lua.WritableExpression {
+export function transformWritableExpression(state: TransformState, node: ts.Expression): lua.WritableExpression {
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-			expression: forcePush ? state.pushToVar(expression) : state.pushToVarIfNonId(expression),
+			expression: convertToIndexableExpression(expression),
 			name: node.name.text,
 		});
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: forcePush ? state.pushToVar(expression) : state.pushToVarIfNonId(expression),
+			expression: convertToIndexableExpression(expression),
 			index: addOneIfArrayType(state, state.getType(node.expression), index),
 		});
 	} else {
@@ -34,21 +31,21 @@ export function transformWritableExpression(
 export function transformWritableExpressionWithType(
 	state: TransformState,
 	node: ts.Expression,
-	forcePush = false,
 ): NodeWithType<lua.WritableExpression> {
 	return {
-		node: transformWritableExpression(state, node, forcePush),
+		node: transformWritableExpression(state, node),
 		type: state.getSimpleTypeFromNode(node),
 	};
 }
 
 export function transformWritableAssignment(state: TransformState, writeNode: ts.Expression, valueNode: ts.Expression) {
+	const writable = transformWritableExpression(state, writeNode);
 	const { statements: valueStatements, expression: value } = state.capturePrereqs(() =>
 		transformExpression(state, valueNode),
 	);
-	const writable = transformWritableExpression(state, writeNode, !lua.list.isEmpty(valueStatements));
+	const readable = lua.list.isEmpty(valueStatements) ? writable : state.pushToVar(writable);
 	state.prereqList(valueStatements);
-	return { writable, value };
+	return { writable, readable, value };
 }
 
 export function transformWritableAssignmentWithType(
@@ -56,10 +53,14 @@ export function transformWritableAssignmentWithType(
 	writeNode: ts.Expression,
 	valueNode: ts.Expression,
 ) {
-	const { writable, value } = transformWritableAssignment(state, writeNode, valueNode);
+	const { writable, readable, value } = transformWritableAssignment(state, writeNode, valueNode);
 	return {
 		writable: {
 			node: writable,
+			type: state.getSimpleTypeFromNode(writeNode),
+		},
+		readable: {
+			node: readable,
 			type: state.getSimpleTypeFromNode(writeNode),
 		},
 		value: {

@@ -40,9 +40,11 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 
 export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
+		const writable = transformWritableExpressionWithType(state, node.operand);
 		return createCompoundAssignmentExpression(
 			state,
-			transformWritableExpressionWithType(state, node.operand),
+			writable,
+			writable,
 			node.operator,
 			createNodeWithType(lua.number(1)),
 		);

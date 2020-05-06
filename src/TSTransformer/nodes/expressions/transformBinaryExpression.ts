@@ -46,9 +46,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			return parentId;
 		}
 
-		const { writable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
+		const { writable, readable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
 		if (ts.isCompoundAssignment(operatorKind)) {
-			return createCompoundAssignmentExpression(state, writable, operatorKind, value);
+			return createCompoundAssignmentExpression(state, writable, readable, operatorKind, value);
 		} else {
 			return createAssignmentExpression(state, writable.node, value.node);
 		}
