@@ -18,13 +18,11 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	if (ts.isFunctionLike(node)) {
 		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
-			const thisType = state.getType(thisParam);
-			return !hasTypeFlag(thisType.flags, ts.TypeFlags.Void);
+			return !hasTypeFlag(state.getType(thisParam).flags, ts.TypeFlags.Void);
 		} else {
 			return ts.isMethodDeclaration(node) || ts.isMethodSignature(node);
 		}
 	}
-
 	return false;
 }
 
