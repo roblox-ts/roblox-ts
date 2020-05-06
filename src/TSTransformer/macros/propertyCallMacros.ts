@@ -6,11 +6,11 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { skipUpwards } from "TSTransformer/util/skipUpwards";
 
-function decrement(expression: lua.Expression) {
+function offset(expression: lua.Expression, value: number) {
 	return lua.create(lua.SyntaxKind.BinaryExpression, {
 		left: expression,
-		operator: "-",
-		right: lua.number(1),
+		operator: value > 0 ? "+" : "-",
+		right: lua.number(Math.abs(value)),
 	});
 }
 
@@ -34,17 +34,13 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 function offsetArguments(args: Array<lua.Expression>, argOffsets: Array<number>) {
 	const minLength = Math.min(args.length, argOffsets.length);
 	for (let i = 0; i < minLength; i++) {
-		const offset = argOffsets[i];
-		if (offset !== 0) {
+		const offsetValue = argOffsets[i];
+		if (offsetValue !== 0) {
 			const arg = args[i];
 			if (lua.isNumberLiteral(arg)) {
-				args[i] = lua.number(arg.value + offset);
+				args[i] = lua.number(arg.value + offsetValue);
 			} else {
-				args[i] = lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: arg,
-					operator: offset > 0 ? "+" : "-",
-					right: lua.number(Math.abs(offset)),
-				});
+				args[i] = offset(arg, offsetValue);
 			}
 		}
 	}
@@ -136,7 +132,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							operator: "not",
 							expression: lua.create(lua.SyntaxKind.CallExpression, {
 								expression: callbackId,
-								args: lua.list.make(valueId, decrement(keyId), expression),
+								args: lua.list.make(valueId, offset(keyId, -1), expression),
 							}),
 						}),
 						statements: lua.list.make<lua.Statement>(
@@ -171,7 +167,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: callbackId,
-							args: lua.list.make(valueId, decrement(keyId), expression),
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
 						}),
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
@@ -207,7 +203,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					lua.create(lua.SyntaxKind.CallStatement, {
 						expression: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: callbackId,
-							args: lua.list.make(valueId, decrement(keyId), expression),
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
 						}),
 					}),
 				),
@@ -237,7 +233,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						}),
 						right: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: callbackId,
-							args: lua.list.make(valueId, decrement(keyId), expression),
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
 						}),
 					}),
 				),
@@ -265,7 +261,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 							left: lua.create(lua.SyntaxKind.CallExpression, {
 								expression: callbackId,
-								args: lua.list.make(valueId, decrement(keyId), expression),
+								args: lua.list.make(valueId, offset(keyId, -1), expression),
 							}),
 							operator: "==",
 							right: lua.bool(true),
