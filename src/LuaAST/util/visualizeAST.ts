@@ -14,8 +14,10 @@ function kindToStr(syntaxKind: lua.SyntaxKind) {
 }
 
 function visualizeNode(node: lua.Node) {
-	if (lua.isIdentifier(node) || lua.isTemporaryIdentifier(node)) {
+	if (lua.isIdentifier(node)) {
 		return `id(${node.name})`;
+	} else if (lua.isTemporaryIdentifier(node)) {
+		return `id(TEMP)`;
 	} else if (lua.isEmptyIdentifier(node)) {
 		return `id(_)`;
 	} else if (lua.isNumberLiteral(node) || lua.isStringLiteral(node)) {
