@@ -61,7 +61,7 @@ export class MacroManager {
 				throw new ProjectError(`(MacroManager) Path does not exist ${filePath}`);
 			}
 
-			const sourceFile = program.getSourceFileByPath(filePath as ts.Path);
+			const sourceFile = program.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new ProjectError(`(MacroManager) Could not find source file for ${filePath}`);
 			}
