@@ -21,8 +21,8 @@ function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 		return true;
 	} else {
 		const constraint = type.getConstraint();
-		if (constraint) {
-			return typeConstraint(constraint, cb);
+		if (constraint && typeConstraint(constraint, cb)) {
+			return true;
 		}
 	}
 	return false;
