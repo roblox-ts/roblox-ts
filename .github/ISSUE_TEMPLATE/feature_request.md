@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-<!-- Please make sure your idea meets our design goals, seen here: https://roblox-ts.github.io/docs/index#goals -->
+<!-- Please make sure your idea meets our design goals, seen here: https://roblox-ts.com/docs/#goals -->
 
 ## Suggestion
 

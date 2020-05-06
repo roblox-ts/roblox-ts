@@ -1,5 +1,5 @@
 <div align="center"><img width=25% src="https://i.imgur.com/yCjHmng.png"></div>
-<h1 align="center"><a href="https://roblox-ts.github.io/">roblox-ts</a></h1>
+<h1 align="center"><a href="https://roblox-ts.com">roblox-ts</a></h1>
 <div align="center">A TypeScript-to-Lua Compiler for Roblox</div>
 <br>
 <div align="center">
@@ -20,7 +20,7 @@ As Roblox games become increasingly complex and larger in scope, efficiently wri
 **roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree (via [ts-morph](https://github.com/dsherret/ts-morph)) and emit functionally similar structures in Lua so that the code behaves the same (minus the type information).
 
 ## Quick start & Documentation
-Ready to dive in? [Check out the documentation.](https://roblox-ts.github.io/docs/)
+Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
 
 ## Join the Community!
 https://discord.gg/f6Rn6RY

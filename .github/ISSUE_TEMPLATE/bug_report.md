@@ -31,4 +31,4 @@ assignees: ''
 
 ## Playground link
 [Link here]().
-<!--- https://roblox-ts.github.io/playground/ -->
+<!--- https://roblox-ts.com/playground -->
