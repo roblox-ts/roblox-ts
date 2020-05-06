@@ -13,11 +13,12 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 
 	let exp: lua.Array | lua.TemporaryIdentifier = lua.array();
 	const lengthId = lua.tempId();
+	let lengthInitialized = false;
 	let amtElementsSinceUpdate = 0;
 
-	function updateLengthId(create = false) {
+	function updateLengthId() {
 		state.prereq(
-			lua.create(create ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
+			lua.create(lengthInitialized ? lua.SyntaxKind.Assignment : lua.SyntaxKind.VariableDeclaration, {
 				left: lengthId,
 				right: lua.create(lua.SyntaxKind.UnaryExpression, {
 					operator: "#",
@@ -25,6 +26,9 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				}),
 			}),
 		);
+		if (!lengthInitialized) {
+			lengthInitialized = true;
+		}
 		amtElementsSinceUpdate = 0;
 	}
 
@@ -33,7 +37,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 		if (ts.isSpreadElement(element)) {
 			if (lua.isArray(exp)) {
 				exp = state.pushToVar(exp);
-				updateLengthId(true);
+				updateLengthId();
 			}
 			const spreadExp = transformExpression(state, element.expression);
 			const keyId = lua.tempId();
@@ -67,7 +71,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			const { expression, statements } = state.capturePrereqs(() => transformExpression(state, element));
 			if (lua.isArray(exp) && !lua.list.isEmpty(statements)) {
 				exp = state.pushToVar(exp);
-				updateLengthId(true);
+				updateLengthId();
 			}
 			if (lua.isArray(exp)) {
 				lua.list.push(exp.members, expression);
