@@ -90,6 +90,55 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
+function makeEveryMethod(
+	iterator: lua.Identifier,
+	callbackArgsListMaker: (
+		keyId: lua.TemporaryIdentifier,
+		valueId: lua.TemporaryIdentifier,
+		expression: lua.Expression,
+	) => lua.List<lua.Expression>,
+): PropertyCallMacro {
+	return (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const resultId = state.pushToVar(lua.bool(true));
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+
+		const firstId = lua.tempId();
+		const secondId = lua.tempId();
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(firstId, secondId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: iterator,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.UnaryExpression, {
+							operator: "not",
+							expression: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: callbackId,
+								args: callbackArgsListMaker(firstId, secondId, expression),
+							}),
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: resultId,
+								right: lua.bool(false),
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+		return resultId;
+	};
+}
+
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 	size,
 };
@@ -110,45 +159,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		});
 	},
 
-	every: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const resultId = state.pushToVar(lua.bool(true));
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.UnaryExpression, {
-							operator: "not",
-							expression: lua.create(lua.SyntaxKind.CallExpression, {
-								expression: callbackId,
-								args: lua.list.make(valueId, offset(keyId, -1), expression),
-							}),
-						}),
-						statements: lua.list.make<lua.Statement>(
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: resultId,
-								right: lua.bool(false),
-							}),
-							lua.create(lua.SyntaxKind.BreakStatement, {}),
-						),
-						elseBody: lua.list.make(),
-					}),
-				),
-			}),
-		);
-		return resultId;
-	},
+	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) => {
+		return lua.list.make(valueId, offset(keyId, -1), expression);
+	}),
 
 	some: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -415,7 +428,19 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 };
 
+const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
+	every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => {
+		return lua.list.make(firstId, expression);
+	}),
+};
+
 const SET_METHODS: MacroList<PropertyCallMacro> = {};
+
+const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
+	every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => {
+		return lua.list.make(valueId, keyId, expression);
+	}),
+};
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {};
 
@@ -463,8 +488,10 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	ArrayLike: ARRAY_LIKE_METHODS,
 	ReadonlyArray: READONLY_ARRAY_METHODS,
 	Array: ARRAY_METHODS,
+	ReadonlySet: READONLY_SET_METHODS,
 	Set: SET_METHODS,
 	WeakSet: SET_METHODS,
+	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
 	WeakMap: MAP_METHODS,
 };
