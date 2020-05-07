@@ -7,7 +7,7 @@ import {
 	isSetType,
 	isMapType,
 	isIterableFunctionType,
-	isTupleType,
+	isLuaTupleType,
 	isFirstDecrementedIterableFunctionType,
 	isDoubleDecrementedIterableFunctionType,
 	isGeneratorType,
@@ -263,7 +263,7 @@ export function getAccessorForBindingType(
 	} else if (isMapType(state, type)) {
 		return mapAccessor;
 	} else if (isIterableFunctionType(state, type)) {
-		return isTupleType(state, getTypeArguments(state, type)[0])
+		return isLuaTupleType(state, getTypeArguments(state, type)[0])
 			? iterableFunctionTupleAccessor
 			: iterableFunctionAccessor;
 	} else if (isFirstDecrementedIterableFunctionType(state, type)) {

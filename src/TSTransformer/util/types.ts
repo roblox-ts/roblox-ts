@@ -58,7 +58,7 @@ export function isMapType(state: TransformState, type: ts.Type) {
 	);
 }
 
-export function isTupleType(state: TransformState, type: ts.Type) {
+export function isLuaTupleType(state: TransformState, type: ts.Type) {
 	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple));
 }
 
