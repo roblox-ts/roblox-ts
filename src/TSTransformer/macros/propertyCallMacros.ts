@@ -90,23 +90,30 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
-function makeEveryMethod(
+function makeEveryOrSomeMethod(
 	iterator: lua.Identifier,
 	callbackArgsListMaker: (
 		keyId: lua.TemporaryIdentifier,
 		valueId: lua.TemporaryIdentifier,
 		expression: lua.Expression,
 	) => lua.List<lua.Expression>,
+	hasInvertedCallback: boolean,
+	startBool: boolean,
+	endBool: boolean,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		const resultId = state.pushToVar(lua.bool(true));
+		const resultId = state.pushToVar(lua.bool(startBool));
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 
 		const firstId = lua.tempId();
 		const secondId = lua.tempId();
 
+		const callCallback = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: callbackId,
+			args: callbackArgsListMaker(firstId, secondId, expression),
+		});
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(firstId, secondId),
@@ -116,17 +123,16 @@ function makeEveryMethod(
 				}),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.UnaryExpression, {
-							operator: "not",
-							expression: lua.create(lua.SyntaxKind.CallExpression, {
-								expression: callbackId,
-								args: callbackArgsListMaker(firstId, secondId, expression),
-							}),
-						}),
+						condition: hasInvertedCallback
+							? lua.create(lua.SyntaxKind.UnaryExpression, {
+									operator: "not",
+									expression: callCallback,
+							  })
+							: callCallback,
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: resultId,
-								right: lua.bool(false),
+								right: lua.bool(endBool),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
 						),
@@ -137,6 +143,28 @@ function makeEveryMethod(
 		);
 		return resultId;
 	};
+}
+
+function makeEveryMethod(
+	iterator: lua.Identifier,
+	callbackArgsListMaker: (
+		keyId: lua.TemporaryIdentifier,
+		valueId: lua.TemporaryIdentifier,
+		expression: lua.Expression,
+	) => lua.List<lua.Expression>,
+): PropertyCallMacro {
+	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, true, true, false);
+}
+
+function makeSomeMethod(
+	iterator: lua.Identifier,
+	callbackArgsListMaker: (
+		keyId: lua.TemporaryIdentifier,
+		valueId: lua.TemporaryIdentifier,
+		expression: lua.Expression,
+	) => lua.List<lua.Expression>,
+): PropertyCallMacro {
+	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false, false, true);
 }
 
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
@@ -163,39 +191,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return lua.list.make(valueId, offset(keyId, -1), expression);
 	}),
 
-	some: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-		const resultId = state.pushToVar(lua.bool(false));
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: callbackId,
-							args: lua.list.make(valueId, offset(keyId, -1), expression),
-						}),
-						statements: lua.list.make<lua.Statement>(
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: resultId,
-								right: lua.bool(true),
-							}),
-							lua.create(lua.SyntaxKind.BreakStatement, {}),
-						),
-						elseBody: lua.list.make(),
-					}),
-				),
-			}),
-		);
-		return resultId;
-	},
+	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) => {
+		return lua.list.make(valueId, offset(keyId, -1), expression);
+	}),
 
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -432,12 +430,20 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 	every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => {
 		return lua.list.make(firstId, expression);
 	}),
+
+	some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => {
+		return lua.list.make(firstId, expression);
+	}),
 };
 
 const SET_METHODS: MacroList<PropertyCallMacro> = {};
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => {
+		return lua.list.make(valueId, keyId, expression);
+	}),
+
+	some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => {
 		return lua.list.make(valueId, keyId, expression);
 	}),
 };
