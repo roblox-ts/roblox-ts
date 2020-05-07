@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"declaration": true,
 		"module": "commonjs",
-		"target": "es2017",
-		"lib": ["es2017"],
+		"target": "ES2019",
+		"lib": ["ES2019"],
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
@@ -11,8 +11,12 @@
 		"esModuleInterop": true,
 		"removeComments": true,
 		"composite": true,
+		"sourceMap": true,
 
 		"baseUrl": "src",
-		"plugins": [{ "transform": "typescript-transform-paths" }],
+		"plugins": [
+			{ "transform": "typescript-transform-paths" },
+			{ "transform": "typescript-transform-paths", "afterDeclarations": true }
+		],
 	}
 }

@@ -1,10 +1,10 @@
+import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
-import { identity } from "Shared/util/identity";
-import { Project, ProjectOptions } from "TSProject";
-import { DiagnosticError } from "TSProject/errors/DiagnosticError";
-import { ProjectError } from "TSProject/errors/ProjectError";
-import ts from "typescript";
+import path from "path";
+import { Project, ProjectOptions } from "Project";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { ProjectError } from "Shared/errors/ProjectError";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -21,7 +21,7 @@ interface CLIOptions {
 	watch: boolean;
 }
 
-export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
+export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
@@ -52,10 +52,11 @@ export = identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>
 			}),
 
 	handler: argv => {
-		const tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
+		let tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
 		if (tsConfigPath === undefined) {
 			throw new CLIError("Unable to find tsconfig.json!");
 		}
+		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
 
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
 		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);

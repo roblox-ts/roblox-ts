@@ -1,15 +1,16 @@
 import * as lua from "LuaAST";
 import { RenderState } from "LuaRenderer";
+import { assert } from "Shared/util/assert";
 
 function endsWithIndexableExpressionInner(node: lua.Expression): boolean {
 	if (lua.isIndexableExpression(node)) {
-		// a or (a) or a.b or a[b] or a()
+		// `a` or `(a)` or `a.b` or `a[b]` or `a()`
 		return true;
 	} else if (lua.isBinaryExpression(node)) {
-		// a + b
+		// `a + b`
 		return endsWithIndexableExpressionInner(node.right);
 	} else if (lua.isUnaryExpression(node)) {
-		// -a
+		// `-a`
 		return endsWithIndexableExpressionInner(node.expression);
 	}
 	return false;
@@ -17,26 +18,35 @@ function endsWithIndexableExpressionInner(node: lua.Expression): boolean {
 
 function endsWithIndexableExpression(node: lua.Statement) {
 	if (lua.isCallStatement(node)) {
-		// a()
+		// `a()`
 		return true;
 	} else if (lua.isVariableDeclaration(node) || lua.isAssignment(node)) {
-		// local a = b or a = b
-		return endsWithIndexableExpressionInner(node.right);
+		// `local a = b` or `a = b` or `local a` or `local a, b`
+		let furthestRight: lua.Expression;
+		if (node.right) {
+			furthestRight = node.right;
+		} else if (lua.list.isList(node.left)) {
+			assert(node.left.tail);
+			furthestRight = node.left.tail.value;
+		} else {
+			furthestRight = node.left;
+		}
+		return endsWithIndexableExpressionInner(furthestRight);
 	}
 	return false;
 }
 
 function startsWithParenthesisInner(node: lua.Expression): boolean {
 	if (lua.isParenthesizedExpression(node)) {
-		// (a)
+		// `(a)`
 		return true;
 	} else if (
 		lua.isCallExpression(node) ||
-		lua.isMethodCallExpression(node) ||
+		lua.isMethodExpression(node) ||
 		lua.isPropertyAccessExpression(node) ||
 		lua.isComputedIndexExpression(node)
 	) {
-		// (a)() or (a):b() or (a).b or (a)[b]
+		// `(a)()` or `(a):b()` or `(a).b` or `(a)[b]`
 		return startsWithParenthesisInner(node.expression);
 	}
 	return false;
@@ -44,15 +54,15 @@ function startsWithParenthesisInner(node: lua.Expression): boolean {
 
 function startsWithParenthesis(node: lua.Statement) {
 	if (lua.isCallStatement(node)) {
-		// (a)()
+		// `(a)()`
 		return startsWithParenthesisInner(node.expression.expression);
 	} else if (lua.isAssignment(node)) {
-		// (a).b = c
+		// `(a).b = c`
 		return startsWithParenthesisInner(node.right);
 	}
 }
 
-function getNextNonComment(state: RenderState) {
+function getNextNonComment(state: RenderState, node: lua.Statement) {
 	let listNode = state.peekListNode()?.next;
 	while (listNode && lua.isComment(listNode.value)) {
 		listNode = listNode.next;
@@ -71,7 +81,7 @@ function getNextNonComment(state: RenderState) {
  * - Assignment
  */
 export function getEnding(state: RenderState, node: lua.Statement) {
-	const nextStatement = getNextNonComment(state);
+	const nextStatement = getNextNonComment(state, node);
 	if (nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement)) {
 		return ";";
 	} else {

@@ -1,15 +1,22 @@
 import * as lua from "LuaAST";
 
-function makeGuard<T extends keyof lua.NodeByKind>(kind: T) {
-	return (node: lua.Node): node is lua.NodeByKind[T] => node.kind === kind;
+function makeGuard<T extends keyof lua.NodeByKind>(...kinds: [...Array<T>]) {
+	return (node: lua.Node): node is lua.NodeByKind[T] => kinds.some(v => v === node.kind);
 }
 
 // indexable expressions
+export const isAnyIdentifier = makeGuard(
+	lua.SyntaxKind.Identifier,
+	lua.SyntaxKind.EmptyIdentifier,
+	lua.SyntaxKind.TemporaryIdentifier,
+);
 export const isIdentifier = makeGuard(lua.SyntaxKind.Identifier);
+export const isEmptyIdentifier = makeGuard(lua.SyntaxKind.EmptyIdentifier);
+export const isTemporaryIdentifier = makeGuard(lua.SyntaxKind.TemporaryIdentifier);
 export const isComputedIndexExpression = makeGuard(lua.SyntaxKind.ComputedIndexExpression);
 export const isPropertyAccessExpression = makeGuard(lua.SyntaxKind.PropertyAccessExpression);
 export const isCallExpression = makeGuard(lua.SyntaxKind.CallExpression);
-export const isMethodCallExpression = makeGuard(lua.SyntaxKind.MethodCallExpression);
+export const isMethodExpression = makeGuard(lua.SyntaxKind.MethodCallExpression);
 export const isParenthesizedExpression = makeGuard(lua.SyntaxKind.ParenthesizedExpression);
 
 export function isIndexableExpression(node: lua.Node): node is lua.IndexableExpression {
@@ -37,6 +44,7 @@ export function isExpression(node: lua.Node): node is lua.Expression {
 // statements
 export const isAssignment = makeGuard(lua.SyntaxKind.Assignment);
 export const isCallStatement = makeGuard(lua.SyntaxKind.CallStatement);
+export const isContinueStatement = makeGuard(lua.SyntaxKind.ContinueStatement);
 export const isDoStatement = makeGuard(lua.SyntaxKind.DoStatement);
 export const isWhileStatement = makeGuard(lua.SyntaxKind.WhileStatement);
 export const isRepeatStatement = makeGuard(lua.SyntaxKind.RepeatStatement);
@@ -72,3 +80,23 @@ export function isNode(value: unknown): value is lua.Node {
 	}
 	return false;
 }
+
+export const isSimple = makeGuard(
+	lua.SyntaxKind.Identifier,
+	lua.SyntaxKind.TemporaryIdentifier,
+	lua.SyntaxKind.NilLiteral,
+	lua.SyntaxKind.TrueLiteral,
+	lua.SyntaxKind.FalseLiteral,
+	lua.SyntaxKind.NumberLiteral,
+	lua.SyntaxKind.StringLiteral,
+);
+
+export const isSimplePrimitive = makeGuard(
+	lua.SyntaxKind.NilLiteral,
+	lua.SyntaxKind.TrueLiteral,
+	lua.SyntaxKind.FalseLiteral,
+	lua.SyntaxKind.NumberLiteral,
+	lua.SyntaxKind.StringLiteral,
+);
+
+export const isTable = makeGuard(lua.SyntaxKind.Array, lua.SyntaxKind.Set, lua.SyntaxKind.Map);

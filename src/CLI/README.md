@@ -2,9 +2,9 @@
 
 This handles the command line interface (CLI) entry point for roblox-ts.
 
-The CLI should create TSProject instances as needed based on input from the user.
+The CLI should create Project instances as needed based on input from the user.
 
-Only behavior unique to CLI environments should go here. Any behavior that is common to both the CLI and the playground environments belongs in TSProject.
+Only behavior unique to CLI environments should go here. Any behavior that is common to both the CLI and the playground environments belongs in Project.
 
 
 ## Structure
@@ -28,7 +28,7 @@ Has the following sub commands:
 
 **modules/** - stores various classes related to running CLI processes
 
-**modules/Watcher.ts** - used for executing "watch" mode, will recreate TSProject instances as needed when Rojo/TS config files change.
+**modules/Watcher.ts** - used for executing "watch" mode, will recreate Project instances as needed when Rojo/TS config files change.
 
 **modules/Initializer.ts** - used to create projects from templates using the `init` command.
 

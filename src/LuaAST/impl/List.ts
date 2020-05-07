@@ -1,5 +1,8 @@
 import * as lua from "LuaAST";
-import { NoInfer } from "Shared/util/types";
+import { NoInfer } from "Shared/types";
+import { assert } from "Shared/util/assert";
+
+const LIST_MARKER = Symbol("List");
 
 export type ListNode<T extends lua.Node> = {
 	prev?: lua.ListNode<T>;
@@ -8,16 +11,11 @@ export type ListNode<T extends lua.Node> = {
 };
 
 export type List<T extends lua.Node> = {
+	[LIST_MARKER]: true;
 	head?: lua.ListNode<T>;
 	tail?: lua.ListNode<T>;
 	readonly: boolean;
 };
-
-function checkReadonly<T extends lua.Node>(list: lua.List<T>) {
-	if (list.readonly) {
-		throw new Error("Cannot mutate readonly lua.List<T>!");
-	}
-}
 
 // list creation functions
 export namespace list {
@@ -37,16 +35,16 @@ export namespace list {
 				}
 				tail = node;
 			}
-			return { head, tail, readonly: false };
+			return { [LIST_MARKER]: true, head, tail, readonly: false };
 		} else {
-			return { readonly: false };
+			return { [LIST_MARKER]: true, readonly: false };
 		}
 	}
 
 	export function join<T extends lua.Node>(...lists: Array<lua.List<T>>): lua.List<T> {
 		const nonEmptyLists = lists.filter(list => list.head !== undefined && list.tail !== undefined);
 		if (nonEmptyLists.length === 0) {
-			return { readonly: false };
+			return lua.list.make();
 		}
 
 		const newList = lua.list.make<T>();
@@ -55,8 +53,8 @@ export namespace list {
 		for (let i = 1; i < nonEmptyLists.length; i++) {
 			const list = nonEmptyLists[i];
 			const prevList = nonEmptyLists[i - 1];
-			checkReadonly(list);
-			checkReadonly(prevList);
+			assert(!list.readonly);
+			assert(!prevList.readonly);
 			list.readonly = true;
 			list.head!.prev = prevList.tail!;
 			prevList.tail!.next = list.head!;
@@ -68,18 +66,15 @@ export namespace list {
 // type guard
 export namespace list {
 	export function isList(value: unknown): value is lua.List<lua.Node> {
-		return (
-			typeof value === "object" &&
-			value !== null &&
-			(("head" in value && "tail" in value) || Object.keys(value).length === 0)
-		);
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		return typeof value === "object" && (value as any)[LIST_MARKER] === true;
 	}
 }
 
 // list utility functions
 export namespace list {
 	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		checkReadonly(list);
+		assert(!list.readonly);
 		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
@@ -90,8 +85,25 @@ export namespace list {
 		list.tail = node;
 	}
 
+	export function pushList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
+		assert(!list.readonly);
+		assert(!other.readonly);
+		other.readonly = true;
+
+		if (other.head && other.tail) {
+			if (list.head && list.tail) {
+				list.tail.next = other.head;
+				other.head.prev = list.tail;
+				list.tail = other.tail;
+			} else {
+				list.head = other.head;
+				list.tail = other.tail;
+			}
+		}
+	}
+
 	export function pop<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		checkReadonly(list);
+		assert(!list.readonly);
 		if (list.tail) {
 			const tail = list.tail;
 			if (tail.prev) {
@@ -105,7 +117,7 @@ export namespace list {
 	}
 
 	export function shift<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		checkReadonly(list);
+		assert(!list.readonly);
 		if (list.head) {
 			const head = list.head;
 			if (head.next) {
@@ -119,7 +131,7 @@ export namespace list {
 	}
 
 	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		checkReadonly(list);
+		assert(!list.readonly);
 		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;
@@ -128,6 +140,10 @@ export namespace list {
 			list.tail = node;
 		}
 		list.head = node;
+	}
+
+	export function isEmpty<T extends lua.Node>(list: lua.List<T>) {
+		return list.head === undefined;
 	}
 
 	export function forEach<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => void) {
@@ -149,6 +165,12 @@ export namespace list {
 	export function mapToArray<T extends lua.Node, U>(list: lua.List<T>, callback: (value: NoInfer<T>) => U): Array<U> {
 		const result = new Array<U>();
 		lua.list.forEach(list, value => result.push(callback(value)));
+		return result;
+	}
+
+	export function toArray<T extends lua.Node>(list: lua.List<T>): Array<T> {
+		const result = new Array<T>();
+		lua.list.forEach(list, value => result.push(value));
 		return result;
 	}
 

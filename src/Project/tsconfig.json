@@ -1,0 +1,12 @@
+{
+	"extends": "../../tsconfig-base.json",
+	"compilerOptions": {
+		"outDir": "../../out/Project",
+		"rootDir": ".",
+	},
+	"references": [
+		{ "path": "../Shared" },
+		{ "path": "../LuaRenderer" },
+		{ "path": "../TSTransformer" },
+	],
+}

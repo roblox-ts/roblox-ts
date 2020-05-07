@@ -2,6 +2,8 @@ import * as lua from "LuaAST";
 
 export interface IndexableExpressionByKind {
 	[lua.SyntaxKind.Identifier]: lua.Identifier;
+	[lua.SyntaxKind.EmptyIdentifier]: lua.EmptyIdentifier;
+	[lua.SyntaxKind.TemporaryIdentifier]: lua.TemporaryIdentifier;
 	[lua.SyntaxKind.ComputedIndexExpression]: lua.ComputedIndexExpression;
 	[lua.SyntaxKind.PropertyAccessExpression]: lua.PropertyAccessExpression;
 	[lua.SyntaxKind.CallExpression]: lua.CallExpression;
@@ -26,7 +28,9 @@ export interface ExpressionByKind extends IndexableExpressionByKind {
 
 export interface StatementByKind {
 	[lua.SyntaxKind.Assignment]: lua.Assignment;
+	[lua.SyntaxKind.BreakStatement]: lua.BreakStatement;
 	[lua.SyntaxKind.CallStatement]: lua.CallStatement;
+	[lua.SyntaxKind.ContinueStatement]: lua.ContinueStatement;
 	[lua.SyntaxKind.DoStatement]: lua.DoStatement;
 	[lua.SyntaxKind.WhileStatement]: lua.WhileStatement;
 	[lua.SyntaxKind.RepeatStatement]: lua.RepeatStatement;

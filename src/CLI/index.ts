@@ -1,1 +1,1 @@
-export * from "TSProject";
+export * from "Project";
