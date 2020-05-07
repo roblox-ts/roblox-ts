@@ -64,7 +64,7 @@ In other words, TS AST -> Lua AST
 - [ ] ClassDeclaration
 - [ ] NamespaceDeclaration
 - [X] EnumDeclaration
-- [ ] SwitchStatement
+- [X] SwitchStatement
 - [ ] TryStatement?
 
 ### Constructor Macros
