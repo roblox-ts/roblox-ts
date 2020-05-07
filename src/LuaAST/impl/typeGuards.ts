@@ -43,6 +43,7 @@ export function isExpression(node: lua.Node): node is lua.Expression {
 
 // statements
 export const isAssignment = makeGuard(lua.SyntaxKind.Assignment);
+export const isBreakStatement = makeGuard(lua.SyntaxKind.BreakStatement);
 export const isCallStatement = makeGuard(lua.SyntaxKind.CallStatement);
 export const isContinueStatement = makeGuard(lua.SyntaxKind.ContinueStatement);
 export const isDoStatement = makeGuard(lua.SyntaxKind.DoStatement);
