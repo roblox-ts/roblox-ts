@@ -37,7 +37,7 @@ In other words, TS AST -> Lua AST
 - [ ] AwaitExpression
 - [X] SpreadElement
 - [ ] ClassExpression
-- [ ] OmittedExpression
+- [X] OmittedExpression
 - [ ] ThisExpression
 - [ ] SuperExpression
 - [ ] JsxSelfClosingElement
