@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
-import { skipUpwards } from "TSTransformer/util/skipUpwards";
+import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 import originalTS from "typescript";
 
 const RUNTIME_LIB_ID = lua.id("TS");
