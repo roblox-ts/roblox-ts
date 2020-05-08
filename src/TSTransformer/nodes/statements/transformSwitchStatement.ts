@@ -4,10 +4,6 @@ import { TransformState } from "TSTransformer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
-function doesStatementListEndWithFinalStatement(statements: lua.List<lua.Statement>) {
-	return statements.tail && lua.isFinalStatement(statements.tail.value);
-}
-
 function transformCaseClauseExpression(
 	state: TransformState,
 	caseClauseExpression: ts.Expression,
@@ -81,7 +77,7 @@ function transformCaseClause(
 	);
 	const statements = transformStatementList(state, node.statements);
 
-	const canFallThroughFrom = !doesStatementListEndWithFinalStatement(statements);
+	const canFallThroughFrom = statements.tail && lua.isFinalStatement(statements.tail.value);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
 		lua.list.push(
 			statements,
