@@ -4,11 +4,11 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
+import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { skipDownwards } from "TSTransformer/util/skipDownwards";
-import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
 export function transformObjectBindingLiteral(
 	state: TransformState,

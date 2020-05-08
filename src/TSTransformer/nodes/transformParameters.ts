@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformInitializer } from "TSTransformer/util/transformInitializer";
+import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 
 export function transformParameters(state: TransformState, tsParams: ReadonlyArray<ts.ParameterDeclaration>) {
 	const parameters = lua.list.make<lua.AnyIdentifier>();
