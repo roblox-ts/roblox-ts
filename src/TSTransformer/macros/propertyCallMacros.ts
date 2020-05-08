@@ -418,8 +418,8 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
-	// every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
-	// some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
+	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression)),
+	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression)),
 };
 
 const SET_METHODS: MacroList<PropertyCallMacro> = {};
