@@ -36,9 +36,5 @@ export function transformReturnStatement(state: TransformState, node: ts.ReturnS
 		}
 	}
 
-	return lua.list.make(
-		lua.create(lua.SyntaxKind.ReturnStatement, {
-			expression,
-		}),
-	);
+	return lua.list.make(lua.create(lua.SyntaxKind.ReturnStatement, { expression }));
 }
