@@ -5,8 +5,8 @@ import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
+import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
-import { transformInitializer } from "TSTransformer/util/transformInitializer";
 
 export function transformObjectBindingPattern(
 	state: TransformState,
