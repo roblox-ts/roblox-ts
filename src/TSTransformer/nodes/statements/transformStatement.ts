@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformBreakStatement } from "TSTransformer/nodes/statements/transformBreakStatement";
+import { transformClassDeclaration } from "TSTransformer/nodes/statements/transformClassDeclaration";
 import { transformContinueStatement } from "TSTransformer/nodes/statements/transformContinueStatement";
 import { transformDoStatement } from "TSTransformer/nodes/statements/transformDoStatement";
 import { transformEnumDeclaration } from "TSTransformer/nodes/statements/transformEnumDeclaration";
@@ -42,6 +43,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// regular transforms
 	[ts.SyntaxKind.Block, transformBlock],
 	[ts.SyntaxKind.BreakStatement, transformBreakStatement],
+	// [ts.SyntaxKind.ClassDeclaration, transformClassDeclaration],
+	// [ts.SyntaxKind.ClassExpression, transformClassDeclaration],
 	[ts.SyntaxKind.ContinueStatement, transformContinueStatement],
 	[ts.SyntaxKind.DoStatement, transformDoStatement],
 	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],
