@@ -1,8 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 
 function transformCaseClauseExpression(
 	state: TransformState,
@@ -75,7 +76,12 @@ function transformCaseClause(
 		fallThroughFlagId,
 		canFallThroughTo,
 	);
-	const statements = transformStatementList(state, node.statements);
+
+	const firstStatement = node.statements[0];
+	const statements = transformStatementList(
+		state,
+		node.statements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
+	);
 
 	const canFallThroughFrom = statements.tail !== undefined && !lua.isFinalStatement(statements.tail.value);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
@@ -88,16 +94,26 @@ function transformCaseClause(
 		);
 	}
 
-	const clauseStatement = lua.create(lua.SyntaxKind.IfStatement, {
-		condition,
-		statements,
-		elseBody: lua.list.make(),
-	});
+	const clauseStatements = lua.list.make<lua.Statement>();
+
+	const hoistDeclaration = createHoistDeclaration(state, node);
+	if (hoistDeclaration) {
+		lua.list.push(clauseStatements, hoistDeclaration);
+	}
+
+	lua.list.push(
+		clauseStatements,
+		lua.create(lua.SyntaxKind.IfStatement, {
+			condition,
+			statements,
+			elseBody: lua.list.make(),
+		}),
+	);
 
 	return {
 		canFallThroughFrom,
 		prereqs: prereqStatements,
-		statement: clauseStatement,
+		clauseStatements,
 	};
 }
 
@@ -115,7 +131,7 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 		if (ts.isCaseClause(caseClauseNode)) {
 			const shouldUpdateFallThroughFlag =
 				i < node.caseBlock.clauses.length - 1 && ts.isCaseClause(node.caseBlock.clauses[i + 1]);
-			const { canFallThroughFrom, prereqs, statement } = transformCaseClause(
+			const { canFallThroughFrom, prereqs, clauseStatements } = transformCaseClause(
 				state,
 				caseClauseNode,
 				expression,
@@ -125,7 +141,7 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 			);
 
 			lua.list.pushList(statements, prereqs);
-			lua.list.push(statements, statement);
+			lua.list.pushList(statements, clauseStatements);
 
 			canFallThroughTo = canFallThroughFrom;
 

@@ -1,17 +1,55 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { getAncestorStatement, isAncestorOf } from "TSTransformer/util/nodeTraversal";
+
+function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
+	if (state.isHoisted.get(symbol) !== undefined) {
+		return;
+	}
+
+	const statement = getAncestorStatement(node);
+	if (!statement) {
+		return;
+	}
+
+	const caseClause = statement.parent;
+	if (!ts.isCaseClause(caseClause)) {
+		return;
+	}
+	const caseBlock = caseClause.parent;
+
+	const isUsedOutsideOfCaseClause =
+		ts.FindAllReferences.Core.eachSymbolReferenceInFile(
+			node,
+			state.typeChecker,
+			state.sourceFile,
+			token => {
+				if (!isAncestorOf(caseClause, token)) {
+					return true;
+				}
+			},
+			caseBlock,
+		) === true;
+
+	if (isUsedOutsideOfCaseClause) {
+		getOrSetDefault(state.hoistsByStatement, statement.parent, () => new Array<ts.Identifier>()).push(node);
+		state.isHoisted.set(symbol, true);
+	}
+}
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: lua.Expression) {
 	return state.capturePrereqs(() => {
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 		assert(symbol);
 		const left = transformIdentifierDefined(state, identifier);
+		checkVariableHoist(state, identifier, symbol);
 		if (state.isHoisted.get(symbol) === true) {
 			// no need to do `x = nil` if the variable is already created
 			if (right) {
