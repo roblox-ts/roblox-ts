@@ -97,33 +97,31 @@ function makeEveryOrSomeMethod(
 		valueId: lua.TemporaryIdentifier,
 		expression: lua.Expression,
 	) => lua.List<lua.Expression>,
-	hasInvertedCallback: boolean,
-	startBool: boolean,
-	endBool: boolean,
+	initialState: boolean,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		const resultId = state.pushToVar(lua.bool(startBool));
+		const resultId = state.pushToVar(lua.bool(initialState));
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 
-		const firstId = lua.tempId();
-		const secondId = lua.tempId();
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
 
 		const callCallback = lua.create(lua.SyntaxKind.CallExpression, {
 			expression: callbackId,
-			args: callbackArgsListMaker(firstId, secondId, expression),
+			args: callbackArgsListMaker(keyId, valueId, expression),
 		});
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(firstId, secondId),
+				ids: lua.list.make(keyId, valueId),
 				expression: lua.create(lua.SyntaxKind.CallExpression, {
 					expression: iterator,
 					args: lua.list.make(expression),
 				}),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: hasInvertedCallback
+						condition: initialState
 							? lua.create(lua.SyntaxKind.UnaryExpression, {
 									operator: "not",
 									expression: callCallback,
@@ -132,7 +130,7 @@ function makeEveryOrSomeMethod(
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: resultId,
-								right: lua.bool(endBool),
+								right: lua.bool(!initialState),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
 						),
@@ -153,7 +151,7 @@ function makeEveryMethod(
 		expression: lua.Expression,
 	) => lua.List<lua.Expression>,
 ): PropertyCallMacro {
-	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, true, true, false);
+	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, true);
 }
 
 function makeSomeMethod(
@@ -164,7 +162,7 @@ function makeSomeMethod(
 		expression: lua.Expression,
 	) => lua.List<lua.Expression>,
 ): PropertyCallMacro {
-	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false, false, true);
+	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false);
 }
 
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
