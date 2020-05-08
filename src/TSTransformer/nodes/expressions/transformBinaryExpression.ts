@@ -45,7 +45,7 @@ function transformLuaTupleDestructure(
 					ts.isElementAccessExpression(element) ||
 					ts.isPropertyAccessExpression(element)
 				) {
-					const id = transformWritableExpression(state, element);
+					const id = transformWritableExpression(state, element, true);
 					lua.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
@@ -125,7 +125,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			return parentId;
 		}
 
-		const { writable, readable, value } = transformWritableAssignmentWithType(state, node.left, node.right);
+		const { writable, readable, value } = transformWritableAssignmentWithType(
+			state,
+			node.left,
+			node.right,
+			ts.isCompoundAssignment(operatorKind),
+		);
 		if (ts.isCompoundAssignment(operatorKind)) {
 			return createCompoundAssignmentExpression(state, writable, readable, operatorKind, value);
 		} else {
