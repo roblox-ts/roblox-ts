@@ -43,6 +43,7 @@ export const diagnostics = {
 	noDotDotDotDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
+	noPrecedingSpreadElement: diagnostic("Spread element must come last in a list of arguments!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),

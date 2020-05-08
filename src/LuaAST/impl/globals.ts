@@ -31,4 +31,5 @@ export const globals = {
 	},
 	tostring: lua.id("tostring"),
 	typeof: lua.id("typeof"),
+	unpack: lua.id("unpack"),
 };

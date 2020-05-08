@@ -22,6 +22,7 @@ import { transformNonNullExpression } from "TSTransformer/nodes/expressions/tran
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import {
@@ -64,11 +65,11 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
+	[ts.SyntaxKind.SpreadElement, transformSpreadElement],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
-
-	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
