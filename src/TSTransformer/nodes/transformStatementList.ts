@@ -30,6 +30,11 @@ export function transformStatementList(state: TransformState, statements: Readon
 
 		lua.list.pushList(result, prereqStatements);
 		lua.list.pushList(result, transformedStatements);
+
+		const lastStatement = transformedStatements.tail?.value;
+		if (lastStatement && lua.isFinalStatement(lastStatement)) {
+			break;
+		}
 	}
 
 	if (statements.length > 0) {

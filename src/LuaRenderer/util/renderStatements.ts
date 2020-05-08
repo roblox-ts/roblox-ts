@@ -18,7 +18,7 @@ export function renderStatements(state: RenderState, statements: lua.List<lua.St
 		state.pushListNode(listNode);
 		const statement = listNode.value;
 		result += render(state, statement);
-		canAddNewStatement = !lua.isReturnStatement(statement) && !lua.isBreakStatement(statement);
+		canAddNewStatement = !lua.isFinalStatement(statement);
 		listNode = listNode.next;
 		state.popListNode();
 	}

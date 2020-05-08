@@ -101,3 +101,5 @@ export const isSimplePrimitive = makeGuard(
 );
 
 export const isTable = makeGuard(lua.SyntaxKind.Array, lua.SyntaxKind.Set, lua.SyntaxKind.Map);
+
+export const isFinalStatement = makeGuard(lua.SyntaxKind.BreakStatement, lua.SyntaxKind.ReturnStatement);
