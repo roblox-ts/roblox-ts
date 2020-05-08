@@ -34,7 +34,7 @@ In other words, TS AST -> Lua AST
 - [X] ArrowFunction + FunctionExpression (partially complete)
 - [X] TemplateExpression
 - [X] TaggedTemplateExpression
-- [ ] AwaitExpression
+- [X] AwaitExpression
 - [X] SpreadElement
 - [ ] ClassExpression
 - [X] OmittedExpression

@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
+import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
@@ -49,6 +50,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
 	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 	[ts.SyntaxKind.AsExpression, transformAsExpression],
+	[ts.SyntaxKind.AwaitExpression, transformAwaitExpression],
 	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
 	[ts.SyntaxKind.CallExpression, transformCallExpression],
 	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
