@@ -177,7 +177,7 @@ export interface VariableDeclaration extends lua.Statement<lua.SyntaxKind.Variab
 }
 
 export interface ReturnStatement extends lua.Statement<lua.SyntaxKind.ReturnStatement> {
-	expression: lua.Expression;
+	expression: lua.Expression | lua.List<lua.Expression>;
 }
 
 export interface Comment extends lua.Statement<lua.SyntaxKind.Comment> {
