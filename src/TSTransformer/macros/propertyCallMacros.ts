@@ -4,7 +4,7 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { skipUpwards } from "TSTransformer/util/skipUpwards";
+import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 
 function offset(expression: lua.Expression, value: number) {
 	return lua.create(lua.SyntaxKind.BinaryExpression, {

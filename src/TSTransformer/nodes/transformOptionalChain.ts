@@ -1,3 +1,4 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TemporaryIdentifier } from "LuaAST";
 import { TransformState } from "TSTransformer";
@@ -13,8 +14,7 @@ import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expr
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import ts from "byots";
+import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 
 enum OptionalChainItemKind {
 	PropertyAccess,

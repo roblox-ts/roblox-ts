@@ -1,8 +1,8 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts from "byots";
-import { skipDownwards } from "TSTransformer/util/skipDownwards";
+import { skipDownwards } from "TSTransformer/util/nodeTraversal";
 
 export function transformParenthesizedExpression(state: TransformState, node: ts.ParenthesizedExpression) {
 	const expression = transformExpression(state, skipDownwards(node.expression));
