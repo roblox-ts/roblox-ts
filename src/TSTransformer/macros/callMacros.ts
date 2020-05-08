@@ -1,7 +1,7 @@
 import * as lua from "LuaAST";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
-import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 const PRIMITIVE_LUA_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
 

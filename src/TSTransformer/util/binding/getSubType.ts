@@ -5,10 +5,10 @@ import {
 	getTypeArguments,
 	isArrayType,
 	isGeneratorType,
+	isLuaTupleType,
 	isMapType,
 	isSetType,
 	isStringType,
-	isLuaTupleType,
 } from "TSTransformer/util/types";
 
 export function getSubType(

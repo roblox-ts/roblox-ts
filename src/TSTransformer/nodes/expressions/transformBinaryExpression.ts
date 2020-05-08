@@ -1,27 +1,23 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
 import {
 	transformWritableAssignmentWithType,
 	transformWritableExpression,
 } from "TSTransformer/nodes/transformWritable";
 import { createAssignmentExpression, createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
+import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isLuaTupleType } from "TSTransformer/util/types";
-import { name } from "chalk";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
-import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { skipDownwards, skipUpwards } from "TSTransformer/util/nodeTraversal";
-import { assert } from "Shared/util/assert";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
+import { isLuaTupleType } from "TSTransformer/util/types";
 
 function transformLuaTupleDestructure(
 	state: TransformState,

@@ -1,9 +1,9 @@
-import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
 import ts from "byots";
+import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { TransformState } from "TSTransformer/TransformState";
 
 export const objectAccessor = (
 	state: TransformState,

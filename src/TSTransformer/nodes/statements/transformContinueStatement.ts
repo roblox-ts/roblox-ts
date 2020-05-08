@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
 import { diagnostics } from "TSTransformer/diagnostics";
+import { TransformState } from "TSTransformer/TransformState";
 
 export function transformContinueStatement(state: TransformState, node: ts.ContinueStatement) {
 	if (node.label) {

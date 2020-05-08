@@ -1,9 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import ts from "byots";
-import { isLuaTupleType } from "TSTransformer/util/types";
 import { skipDownwards } from "TSTransformer/util/nodeTraversal";
+import { isLuaTupleType } from "TSTransformer/util/types";
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: lua.Expression) {
 	// intentionally NOT using state.getType() here, because that uses skipUpwards

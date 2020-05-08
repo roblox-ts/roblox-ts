@@ -1,7 +1,7 @@
+import ts from "byots";
 import chalk from "chalk";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
-import ts from "byots";
 
 // force colors
 chalk.level = chalk.Level.Basic;

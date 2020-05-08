@@ -1,12 +1,12 @@
+import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import ts from "byots";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
-import { assert } from "Shared/util/assert";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 export function transformWritableExpression(state: TransformState, node: ts.Expression): lua.WritableExpression {
 	if (ts.isPropertyAccessExpression(node)) {

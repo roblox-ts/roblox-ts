@@ -3,17 +3,17 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
+	getTypeArguments,
 	isArrayType,
-	isSetType,
-	isMapType,
+	isDoubleDecrementedIterableFunctionType,
+	isFirstDecrementedIterableFunctionType,
+	isGeneratorType,
 	isIterableFunctionType,
 	isLuaTupleType,
-	isFirstDecrementedIterableFunctionType,
-	isDoubleDecrementedIterableFunctionType,
-	isGeneratorType,
+	isMapType,
 	isObjectType,
+	isSetType,
 	isStringType,
-	getTypeArguments,
 } from "TSTransformer/util/types";
 
 type BindingAccessor = (

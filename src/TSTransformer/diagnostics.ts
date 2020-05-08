@@ -1,6 +1,6 @@
 import ts from "byots";
-import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 import chalk from "chalk";
+import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 
 export type DiagnosticFactory = (node: ts.Node) => ts.Diagnostic;
 

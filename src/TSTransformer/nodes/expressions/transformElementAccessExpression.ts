@@ -1,13 +1,13 @@
-import * as lua from "LuaAST";
 import ts from "byots";
+import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { isArrayType, isLuaTupleType } from "TSTransformer/util/types";
 import { offset } from "TSTransformer/util/offset";
+import { isArrayType, isLuaTupleType } from "TSTransformer/util/types";
 
 export function addOneIfArrayType(state: TransformState, type: ts.Type, expression: lua.Expression) {
 	if (isArrayType(state, type)) {

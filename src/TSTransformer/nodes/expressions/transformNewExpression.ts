@@ -1,9 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import ts from "byots";
 
 function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) {
 	const type = state.getType(node.expression);

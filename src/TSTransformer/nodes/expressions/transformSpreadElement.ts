@@ -1,9 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { TransformState } from "TSTransformer/TransformState";
 import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { TransformState } from "TSTransformer/TransformState";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	assert(ts.isCallExpression(node.parent));

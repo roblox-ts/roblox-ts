@@ -3,8 +3,8 @@ import * as lua from "LuaAST";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { TransformState } from "TSTransformer/TransformState";
-import { isMethod } from "TSTransformer/util/isMethod";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { isMethod } from "TSTransformer/util/isMethod";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,

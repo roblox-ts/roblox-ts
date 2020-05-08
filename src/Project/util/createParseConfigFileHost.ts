@@ -1,5 +1,5 @@
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import ts from "byots";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
 
 export function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {
