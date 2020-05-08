@@ -13,7 +13,12 @@ export function transformStatementList(state: TransformState, statements: Readon
 
 		// comments
 		for (const comment of state.getLeadingComments(statement)) {
-			lua.list.push(result, lua.comment(comment));
+			lua.list.push(
+				result,
+				lua.create(lua.SyntaxKind.Comment, {
+					text: comment,
+				}),
+			);
 		}
 
 		const hoistDeclaration = createHoistDeclaration(state, statement);
@@ -34,7 +39,12 @@ export function transformStatementList(state: TransformState, statements: Readon
 		const lastParentToken = statements[statements.length - 1].parent.getLastToken();
 		if (lastParentToken) {
 			for (const comment of state.getLeadingComments(lastParentToken)) {
-				lua.list.push(result, lua.comment(comment));
+				lua.list.push(
+					result,
+					lua.create(lua.SyntaxKind.Comment, {
+						text: comment,
+					}),
+				);
 			}
 		}
 	}
