@@ -187,9 +187,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		});
 	},
 
-	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) => lua.list.make(valueId, offset(keyId, -1), expression)),
+	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
+		lua.list.make(valueId, offset(keyId, -1), expression),
+	),
 
-	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) => lua.list.make(valueId, offset(keyId, -1), expression)),
+	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
+		lua.list.make(valueId, offset(keyId, -1), expression),
+	),
 
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
