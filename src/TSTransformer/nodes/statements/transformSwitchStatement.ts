@@ -77,7 +77,7 @@ function transformCaseClause(
 	);
 	const statements = transformStatementList(state, node.statements);
 
-	const canFallThroughFrom = statements.tail && lua.isFinalStatement(statements.tail.value);
+	const canFallThroughFrom = statements.tail !== undefined && lua.isFinalStatement(statements.tail.value);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
 		lua.list.push(
 			statements,
