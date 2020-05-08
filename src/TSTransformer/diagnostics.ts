@@ -24,7 +24,10 @@ function diagnostic(...messages: Array<string>): DiagnosticFactory {
 export const diagnostics = {
 	// banned statements
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
-	noForInStatement: diagnostic("for-in loop statements are not supported!"),
+	noForInStatement: diagnostic(
+		"for-in loop statements are not supported!",
+		suggestion("Use `Object.keys()` instead."),
+	),
 	noLabeledStatement: diagnostic("labels are not supported!"),
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
@@ -32,7 +35,7 @@ export const diagnostics = {
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
 	noTypeOfExpression: diagnostic(
 		"`typeof` operator is not supported!",
-		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
+		suggestion("Use `typeIs(value, type)` or `typeOf(value) === type` instead."),
 	),
 
 	// banned features
