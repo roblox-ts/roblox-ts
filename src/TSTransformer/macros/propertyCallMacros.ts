@@ -187,13 +187,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		});
 	},
 
-	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) => {
-		return lua.list.make(valueId, offset(keyId, -1), expression);
-	}),
+	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) => lua.list.make(valueId, offset(keyId, -1), expression)),
 
-	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) => {
-		return lua.list.make(valueId, offset(keyId, -1), expression);
-	}),
+	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) => lua.list.make(valueId, offset(keyId, -1), expression)),
 
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -428,13 +424,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 	/*
-	every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => {
-		return lua.list.make(firstId, expression);
-	}),
+	every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
 
-	some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => {
-		return lua.list.make(firstId, expression);
-	}),
+	some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
 	*/
 };
 
@@ -442,13 +434,9 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {};
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	/*
-	every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => {
-		return lua.list.make(valueId, keyId, expression);
-	}),
+	every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
 
-	some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => {
-		return lua.list.make(valueId, keyId, expression);
-	}),
+	some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
 	*/
 };
 
