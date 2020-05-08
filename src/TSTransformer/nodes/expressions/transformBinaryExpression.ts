@@ -16,7 +16,8 @@ import { createAssignmentExpression, createCompoundAssignmentExpression } from "
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { skipDownwards, skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
+import { skipDownwards } from "TSTransformer/util/nodeTraversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 
 function transformLuaTupleDestructure(
@@ -109,7 +110,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 			if (lua.isCall(rightExp) && isLuaTupleType(state, accessType)) {
 				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
-				if (!ts.isExpressionStatement(skipUpwards(node).parent)) {
+				if (!isUsedAsStatement(node)) {
 					state.addDiagnostic(diagnostics.noDestructureAssignmentExpression(node));
 				}
 				return lua.emptyId();

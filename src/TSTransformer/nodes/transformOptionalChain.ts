@@ -14,7 +14,7 @@ import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expr
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -273,10 +273,7 @@ function transformOptionalChainInner(
 
 			// TODO maybe handle this case better? `[1, 2, 3]?.map((v) => v + 1).size();`
 
-			const isUsed =
-				tempId !== newValue &&
-				!lua.isEmptyIdentifier(newValue) &&
-				!ts.isExpressionStatement(skipUpwards(item.node).parent);
+			const isUsed = tempId !== newValue && !lua.isEmptyIdentifier(newValue) && !isUsedAsStatement(item.node);
 
 			if (isUsed) {
 				lua.list.push(
