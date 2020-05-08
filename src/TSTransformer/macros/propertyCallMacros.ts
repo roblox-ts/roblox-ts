@@ -195,12 +195,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
-
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
@@ -302,12 +299,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	reverse: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
 		const resultId = state.pushToVar(lua.map());
 		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
-
 		const idxId = lua.tempId();
-
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: idxId,
@@ -336,7 +330,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				),
 			}),
 		);
-
 		return resultId;
 	},
 };
@@ -425,21 +418,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
-	/*
-	every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
-
-	some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
-	*/
+	// every: makeEveryMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
+	// some: makeSomeMethod(lua.globals.pairs, (firstId, secondId, expression) => lua.list.make(firstId, expression)),
 };
 
 const SET_METHODS: MacroList<PropertyCallMacro> = {};
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
-	/*
-	every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
-
-	some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
-	*/
+	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
+	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression)),
 };
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {};
