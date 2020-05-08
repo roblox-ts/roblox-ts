@@ -5,6 +5,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { isBlockLike } from "TSTransformer/typeGuards";
+import { getAncestorStatement } from "TSTransformer/util/nodeTraversal";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -19,14 +20,7 @@ function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {
 	return node.parent ? node : undefined;
 }
 
-function getDeclarationStatement(node: ts.Node): ts.Statement | undefined {
-	while (node && !ts.isStatement(node)) {
-		node = node.parent;
-	}
-	return node;
-}
-
-function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
+function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
 	if (state.isHoisted.get(symbol) !== undefined) {
 		return;
 	}
@@ -38,7 +32,7 @@ function checkHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbo
 		return;
 	}
 
-	const declarationStatement = getDeclarationStatement(declaration);
+	const declarationStatement = getAncestorStatement(declaration);
 	if (!declarationStatement) {
 		return;
 	}
@@ -93,7 +87,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return lua.emptyId();
 	}
 
-	checkHoist(state, node, symbol);
+	checkIdentifierHoist(state, node, symbol);
 
 	return transformIdentifierDefined(state, node);
 }

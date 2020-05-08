@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
-import { skipUpwards } from "TSTransformer/util/skipUpwards";
+import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 import originalTS from "typescript";
 
 const RUNTIME_LIB_ID = lua.id("TS");
@@ -24,7 +24,7 @@ export class TransformState {
 		public readonly compileState: CompileState,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
-		sourceFile: ts.SourceFile,
+		public readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 	}
@@ -91,7 +91,7 @@ export class TransformState {
 		return this.popPrereqStatementsStack();
 	}
 
-	public readonly hoistsByStatement = new Map<ts.Statement, Array<ts.Identifier>>();
+	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
 	public readonly isHoisted = new Map<ts.Symbol, boolean>();
 
 	public getType(node: ts.Node) {

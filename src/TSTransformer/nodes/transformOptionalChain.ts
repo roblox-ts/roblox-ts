@@ -1,3 +1,4 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TemporaryIdentifier } from "LuaAST";
 import { TransformState } from "TSTransformer";
@@ -13,8 +14,7 @@ import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expr
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { skipUpwards } from "TSTransformer/util/skipUpwards";
-import ts from "byots";
+import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -276,7 +276,7 @@ function transformOptionalChainInner(
 			const isUsed =
 				tempId !== newValue &&
 				!lua.isEmptyIdentifier(newValue) &&
-				!ts.isExpressionStatement(skipUpwards(item.node.parent));
+				!ts.isExpressionStatement(skipUpwards(item.node).parent);
 
 			if (isUsed) {
 				lua.list.push(
@@ -287,7 +287,7 @@ function transformOptionalChainInner(
 					}),
 				);
 			} else {
-				if (lua.isCallExpression(newValue) || lua.isMethodExpression(newValue)) {
+				if (lua.isCall(newValue)) {
 					lua.list.push(
 						ifStatements,
 						lua.create(lua.SyntaxKind.CallStatement, {

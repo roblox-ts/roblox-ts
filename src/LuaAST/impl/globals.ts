@@ -13,6 +13,7 @@ export const globals = {
 	ipairs: lua.id("ipairs"),
 	pairs: lua.id("pairs"),
 	next: lua.id("next"),
+	select: lua.id("select"),
 	setmetatable: lua.id("setmetatable"),
 	string: {
 		byte: property(STRING_ID, "byte"),
@@ -31,4 +32,5 @@ export const globals = {
 	},
 	tostring: lua.id("tostring"),
 	typeof: lua.id("typeof"),
+	unpack: lua.id("unpack"),
 };

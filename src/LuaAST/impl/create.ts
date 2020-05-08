@@ -62,7 +62,7 @@ export function id(name: string) {
 }
 
 export function comment(text: string) {
-	return lua.create(lua.SyntaxKind.Comment, { text });
+	return lua.create(lua.SyntaxKind.Comment, { text: " " + text });
 }
 
 export function array(members: Array<lua.Expression> = []) {

@@ -11,7 +11,7 @@ In other words, TS AST -> Lua AST
 - [X] Variable/Function Hoisting
 - [x] Destructuring
 - [ ] Module Resolution (+ Rojo project)
-- [ ] LuaTuple<T> Support
+- [X] LuaTuple<T> Support
 
 ### Expressions
 - [X] Identifier
@@ -35,9 +35,9 @@ In other words, TS AST -> Lua AST
 - [X] TemplateExpression
 - [X] TaggedTemplateExpression
 - [ ] AwaitExpression
-- [ ] SpreadElement
+- [X] SpreadElement
 - [ ] ClassExpression
-- [ ] OmittedExpression
+- [X] OmittedExpression
 - [ ] ThisExpression
 - [ ] SuperExpression
 - [ ] JsxSelfClosingElement
@@ -64,7 +64,7 @@ In other words, TS AST -> Lua AST
 - [ ] ClassDeclaration
 - [ ] NamespaceDeclaration
 - [X] EnumDeclaration
-- [ ] SwitchStatement
+- [X] SwitchStatement
 - [ ] TryStatement?
 
 ### Constructor Macros

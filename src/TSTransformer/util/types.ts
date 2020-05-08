@@ -59,7 +59,7 @@ export function isMapType(state: TransformState, type: ts.Type) {
 }
 
 export function isLuaTupleType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple));
+	return type.aliasSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
 }
 
 export function isStringType(state: TransformState, type: ts.Type) {

@@ -113,7 +113,7 @@ export interface Set extends lua.Expression<lua.SyntaxKind.Set> {
 
 // statements
 export interface Assignment extends lua.Statement<lua.SyntaxKind.Assignment> {
-	left: lua.WritableExpression;
+	left: lua.WritableExpression | lua.List<lua.WritableExpression>;
 	right: lua.Expression;
 }
 
