@@ -16,7 +16,7 @@ export const isTemporaryIdentifier = makeGuard(lua.SyntaxKind.TemporaryIdentifie
 export const isComputedIndexExpression = makeGuard(lua.SyntaxKind.ComputedIndexExpression);
 export const isPropertyAccessExpression = makeGuard(lua.SyntaxKind.PropertyAccessExpression);
 export const isCallExpression = makeGuard(lua.SyntaxKind.CallExpression);
-export const isMethodExpression = makeGuard(lua.SyntaxKind.MethodCallExpression);
+export const isMethodCallExpression = makeGuard(lua.SyntaxKind.MethodCallExpression);
 export const isParenthesizedExpression = makeGuard(lua.SyntaxKind.ParenthesizedExpression);
 
 export function isIndexableExpression(node: lua.Node): node is lua.IndexableExpression {
@@ -103,3 +103,5 @@ export const isSimplePrimitive = makeGuard(
 export const isTable = makeGuard(lua.SyntaxKind.Array, lua.SyntaxKind.Set, lua.SyntaxKind.Map);
 
 export const isFinalStatement = makeGuard(lua.SyntaxKind.BreakStatement, lua.SyntaxKind.ReturnStatement);
+
+export const isCall = makeGuard(lua.SyntaxKind.CallExpression, lua.SyntaxKind.MethodCallExpression);

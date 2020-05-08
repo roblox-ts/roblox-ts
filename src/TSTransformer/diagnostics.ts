@@ -44,6 +44,9 @@ export const diagnostics = {
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
 	noPrecedingSpreadElement: diagnostic("Spread element must come last in a list of arguments!"),
+	noDestructureAssignmentExpression: diagnostic(
+		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
+	),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),

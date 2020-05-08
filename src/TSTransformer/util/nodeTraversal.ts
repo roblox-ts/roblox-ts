@@ -12,7 +12,7 @@ export function isAncestorOf(ancestor: ts.Node, node: ts.Node) {
 
 export function skipDownwards(node: ts.Expression): ts.Expression;
 export function skipDownwards(node: ts.Node): ts.Node {
-	while (ts.isParenthesizedExpression(node)) {
+	while (ts.isNonNullExpression(node) || ts.isParenthesizedExpression(node) || ts.isAsExpression(node)) {
 		node = node.expression;
 	}
 	return node;

@@ -5,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { offset } from "TSTransformer/util/offset";
 
 function header(text: string) {
 	return lua.comment(`▼ ${text} ▼`);
@@ -12,14 +13,6 @@ function header(text: string) {
 
 function footer(text: string) {
 	return lua.comment(`▲ ${text} ▲`);
-}
-
-function offset(expression: lua.Expression, value: number) {
-	return lua.create(lua.SyntaxKind.BinaryExpression, {
-		left: expression,
-		operator: value > 0 ? "+" : "-",
-		right: lua.number(Math.abs(value)),
-	});
 }
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
@@ -418,7 +411,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(footer("ReadonlyArray.push"));
 
-		if (!ts.isExpressionStatement(skipUpwards(node.parent))) {
+		if (!ts.isExpressionStatement(skipUpwards(node).parent)) {
 			return lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: sizeId,
 				operator: "+",
@@ -439,7 +432,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			expression,
 		});
 
-		const valueIsUsed = !ts.isExpressionStatement(skipUpwards(node.parent));
+		const valueIsUsed = !ts.isExpressionStatement(skipUpwards(node).parent);
 		const retValue = valueIsUsed ? lua.tempId() : lua.emptyId();
 
 		if (valueIsUsed) {

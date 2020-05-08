@@ -1,10 +1,52 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { isLuaTupleType } from "TSTransformer/util/types";
+
+function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
+	if (!lua.isCall(exp)) {
+		return true;
+	}
+
+	const parent = node.parent;
+
+	// `const [a] = foo()`
+	if (ts.isVariableDeclaration(parent) && ts.isArrayBindingPattern(parent.name)) {
+		return false;
+	}
+
+	// `[a] = foo()`
+	if (ts.isAssignmentExpression(parent) && ts.isArrayLiteralExpression(parent.left)) {
+		return false;
+	}
+
+	// `foo()[n]`
+	if (ts.isElementAccessExpression(parent)) {
+		return false;
+	}
+
+	// `return foo()`
+	if (ts.isReturnStatement(parent)) {
+		return false;
+	}
+
+	return true;
+}
+
+function wrapReturnIfLuaTuple(state: TransformState, type: ts.Type, node: ts.CallExpression, exp: lua.Expression) {
+	const signatures = state.typeChecker.getSignaturesOfType(type, ts.SignatureKind.Call);
+	assert(signatures.length === 1);
+	const returnType = state.typeChecker.getReturnTypeOfSignature(signatures[0]);
+	if (isLuaTupleType(state, returnType) && shouldWrapLuaTuple(node, exp)) {
+		return lua.array([exp]);
+	}
+	return exp;
+}
 
 export function transformCallExpressionInner(
 	state: TransformState,
@@ -12,13 +54,19 @@ export function transformCallExpressionInner(
 	expression: lua.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getCallMacro(state.getType(node.expression).symbol);
+	const type = state.getType(node.expression);
+	const macro = state.macroManager.getCallMacro(type.symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
-	return lua.create(lua.SyntaxKind.CallExpression, { expression: convertToIndexableExpression(expression), args });
+	const exp = lua.create(lua.SyntaxKind.CallExpression, {
+		expression: convertToIndexableExpression(expression),
+		args,
+	});
+
+	return wrapReturnIfLuaTuple(state, type, node, exp);
 }
 
 export function transformPropertyCallExpressionInner(
@@ -28,20 +76,22 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getPropertyCallMacro(state.getType(node.expression).symbol);
+	const type = state.getType(node.expression);
+	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
+	let exp: lua.Expression;
 	if (isMethod(state, node.expression)) {
-		return lua.create(lua.SyntaxKind.MethodCallExpression, {
+		exp = lua.create(lua.SyntaxKind.MethodCallExpression, {
 			name,
 			expression: convertToIndexableExpression(expression),
 			args,
 		});
 	} else {
-		return lua.create(lua.SyntaxKind.CallExpression, {
+		exp = lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 				expression: convertToIndexableExpression(expression),
 				name,
@@ -49,6 +99,8 @@ export function transformPropertyCallExpressionInner(
 			args,
 		});
 	}
+
+	return wrapReturnIfLuaTuple(state, type, node, exp);
 }
 
 export function transformElementCallExpressionInner(
@@ -58,7 +110,8 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	const macro = state.macroManager.getPropertyCallMacro(state.getType(node.expression).symbol);
+	const type = state.getType(node.expression);
+	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
 	if (macro) {
 		return macro(state, node, expression);
 	}
@@ -71,13 +124,15 @@ export function transformElementCallExpressionInner(
 		lua.list.unshift(args, selfId);
 	}
 
-	return lua.create(lua.SyntaxKind.CallExpression, {
+	const exp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: argumentExp,
 		}),
 		args,
 	});
+
+	return wrapReturnIfLuaTuple(state, type, node, exp);
 }
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {

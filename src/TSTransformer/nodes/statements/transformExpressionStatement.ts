@@ -9,6 +9,7 @@ import {
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createAssignmentStatement, createCompoundAssignmentStatement } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
+import { skipDownwards } from "TSTransformer/util/nodeTraversal";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
@@ -19,7 +20,7 @@ function transformUnaryExpressionStatement(
 }
 
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
-	const expression = node.expression;
+	const expression = skipDownwards(node.expression);
 	if (ts.isBinaryExpression(expression)) {
 		const operator = expression.operatorToken.kind;
 		if (
@@ -46,7 +47,7 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 	}
 
 	const transformed = transformExpression(state, expression);
-	if (lua.isCallExpression(transformed) || lua.isMethodExpression(transformed)) {
+	if (lua.isCall(transformed)) {
 		return lua.list.make(lua.create(lua.SyntaxKind.CallStatement, { expression: transformed }));
 	} else if (lua.isAnyIdentifier(transformed)) {
 		return lua.list.make<lua.Statement>();

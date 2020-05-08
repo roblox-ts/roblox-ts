@@ -276,7 +276,7 @@ function transformOptionalChainInner(
 			const isUsed =
 				tempId !== newValue &&
 				!lua.isEmptyIdentifier(newValue) &&
-				!ts.isExpressionStatement(skipUpwards(item.node.parent));
+				!ts.isExpressionStatement(skipUpwards(item.node).parent);
 
 			if (isUsed) {
 				lua.list.push(
@@ -287,7 +287,7 @@ function transformOptionalChainInner(
 					}),
 				);
 			} else {
-				if (lua.isCallExpression(newValue) || lua.isMethodExpression(newValue)) {
+				if (lua.isCall(newValue)) {
 					lua.list.push(
 						ifStatements,
 						lua.create(lua.SyntaxKind.CallStatement, {
