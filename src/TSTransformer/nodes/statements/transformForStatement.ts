@@ -64,8 +64,8 @@ function getOptimizedForStatement(
 	if (!stepValue) return undefined;
 
 	if (
-		condition.operatorToken.kind !== ts.SyntaxKind.LessThanEqualsToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanEqualsToken
+		!(condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken && stepValue > 0) &&
+		!(condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken && stepValue < 0)
 	) {
 		return undefined;
 	}
