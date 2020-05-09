@@ -109,10 +109,8 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	if (node.condition) {
 		whileStatement = transformWhileStatementInner(state, node.condition, node.statement);
 	} else {
-		const statements = transformStatementList(
-			state,
-			ts.isBlock(node.statement) ? node.statement.statements : [node.statement],
-		);
+		const statement = node.statement;
+		const statements = transformStatementList(state, ts.isBlock(statement) ? statement.statements : [statement]);
 		whileStatement = lua.create(lua.SyntaxKind.WhileStatement, {
 			condition: lua.bool(true),
 			statements,
