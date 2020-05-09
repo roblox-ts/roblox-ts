@@ -9,6 +9,8 @@ import { transformContinueStatement } from "TSTransformer/nodes/statements/trans
 import { transformDoStatement } from "TSTransformer/nodes/statements/transformDoStatement";
 import { transformEnumDeclaration } from "TSTransformer/nodes/statements/transformEnumDeclaration";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
+import { transformForOfStatement } from "TSTransformer/nodes/statements/transformForOfStatement";
+import { transformForStatement } from "TSTransformer/nodes/statements/transformForStatement";
 import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/transformFunctionDeclaration";
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
@@ -47,6 +49,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.DoStatement, transformDoStatement],
 	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],
 	[ts.SyntaxKind.ExpressionStatement, transformExpressionStatement],
+	[ts.SyntaxKind.ForOfStatement, transformForOfStatement],
+	[ts.SyntaxKind.ForStatement, transformForStatement],
 	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
 	[ts.SyntaxKind.IfStatement, transformIfStatement],
 	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
