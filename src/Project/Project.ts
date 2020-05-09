@@ -82,12 +82,26 @@ export class Project {
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
 	}
 
-	private getOutPath(filePath: string) {
+	private getFileExtensions(filePath: string): Array<string> {
 		const ext = path.extname(filePath);
-		if (ext === ".ts") filePath = filePath.slice(0, -ext.length);
-		const subExt = path.extname(filePath);
-		if (subExt === ".d") filePath = filePath.slice(0, -subExt.length);
+		if (ext === "") {
+			return [filePath];
+		}
+		return [...this.getFileExtensions(filePath.slice(0, -ext.length)), ext];
+	}
 
+	private getOutPath(filePath: string) {
+		const filename = path.basename(filePath);
+		const directory = filePath.slice(0, -filename.length);
+		const extensions = this.getFileExtensions(path.basename(filePath));
+		if (extensions[extensions.length - 1] === ".ts") extensions.pop();
+		// .d.ts does not get compiled or outputted, why check for it?
+		if (extensions[extensions.length - 1] === ".d") extensions.pop();
+		if (extensions[0] === "index") {
+			extensions[0] = "init";
+		}
+
+		filePath = path.join(directory, extensions.join());
 		const relativeToRoot = path.relative(this.rootDir, filePath);
 		return path.join(this.outDir, relativeToRoot + ".lua");
 	}
