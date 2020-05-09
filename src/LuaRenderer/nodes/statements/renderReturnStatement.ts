@@ -2,5 +2,8 @@ import * as lua from "LuaAST";
 import { render, RenderState } from "LuaRenderer";
 
 export function renderReturnStatement(state: RenderState, node: lua.ReturnStatement) {
-	return state.indent + `return ${render(state, node.expression)}\n`;
+	const expStr = lua.list.isList(node.expression)
+		? lua.list.mapToArray(node.expression, exp => render(state, exp)).join(", ")
+		: render(state, node.expression);
+	return state.indent + `return ${expStr}\n`;
 }

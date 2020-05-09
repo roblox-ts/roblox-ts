@@ -11,7 +11,7 @@ import { createCompoundAssignmentExpression } from "TSTransformer/util/assignmen
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
-	const writable = transformWritableExpression(state, node.operand);
+	const writable = transformWritableExpression(state, node.operand, true);
 	const origValue = lua.tempId();
 
 	state.prereq(
@@ -40,7 +40,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 
 export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
-		const writable = transformWritableExpressionWithType(state, node.operand);
+		const writable = transformWritableExpressionWithType(state, node.operand, true);
 		return createCompoundAssignmentExpression(
 			state,
 			writable,

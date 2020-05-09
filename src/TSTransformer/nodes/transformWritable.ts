@@ -1,24 +1,28 @@
+import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import ts from "byots";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
-import { assert } from "Shared/util/assert";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
-export function transformWritableExpression(state: TransformState, node: ts.Expression): lua.WritableExpression {
+export function transformWritableExpression(
+	state: TransformState,
+	node: ts.Expression,
+	multipleUse: boolean,
+): lua.WritableExpression {
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-			expression: convertToIndexableExpression(expression),
+			expression: multipleUse ? state.pushToVarIfComplex(expression) : convertToIndexableExpression(expression),
 			name: node.name.text,
 		});
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: convertToIndexableExpression(expression),
+			expression: multipleUse ? state.pushToVarIfComplex(expression) : convertToIndexableExpression(expression),
 			index: addOneIfArrayType(state, state.getType(node.expression), index),
 		});
 	} else {
@@ -31,15 +35,21 @@ export function transformWritableExpression(state: TransformState, node: ts.Expr
 export function transformWritableExpressionWithType(
 	state: TransformState,
 	node: ts.Expression,
+	multipleUse: boolean,
 ): NodeWithType<lua.WritableExpression> {
 	return {
-		node: transformWritableExpression(state, node),
+		node: transformWritableExpression(state, node, multipleUse),
 		type: state.getSimpleTypeFromNode(node),
 	};
 }
 
-export function transformWritableAssignment(state: TransformState, writeNode: ts.Expression, valueNode: ts.Expression) {
-	const writable = transformWritableExpression(state, writeNode);
+export function transformWritableAssignment(
+	state: TransformState,
+	writeNode: ts.Expression,
+	valueNode: ts.Expression,
+	multipleUse: boolean,
+) {
+	const writable = transformWritableExpression(state, writeNode, multipleUse);
 	const { statements: valueStatements, expression: value } = state.capturePrereqs(() =>
 		transformExpression(state, valueNode),
 	);
@@ -52,8 +62,9 @@ export function transformWritableAssignmentWithType(
 	state: TransformState,
 	writeNode: ts.Expression,
 	valueNode: ts.Expression,
+	multipleUse: boolean,
 ) {
-	const { writable, readable, value } = transformWritableAssignment(state, writeNode, valueNode);
+	const { writable, readable, value } = transformWritableAssignment(state, writeNode, valueNode, multipleUse);
 	return {
 		writable: {
 			node: writable,

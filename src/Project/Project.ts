@@ -2,7 +2,7 @@ import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
-import { RojoConfig, NetworkType } from "Project/RojoConfig";
+import { NetworkType, RojoConfig } from "Project/RojoConfig";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";

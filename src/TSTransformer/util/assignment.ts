@@ -1,8 +1,8 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import ts from "byots";
 
 export function createAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
 	return lua.create(lua.SyntaxKind.Assignment, {

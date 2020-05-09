@@ -8,10 +8,10 @@ export function renderNumericForStatement(state: RenderState, node: lua.NumericF
 	state.pushScope();
 
 	const idStr = render(state, node.id);
-	const minStr = render(state, node.min);
-	const maxStr = render(state, node.max);
+	const startStr = render(state, node.start);
+	const endStr = render(state, node.end);
 
-	let predicateStr = `${minStr}, ${maxStr}`;
+	let predicateStr = `${startStr}, ${endStr}`;
 	if (node.step) {
 		predicateStr += `, ${render(state, node.step)}`;
 	}

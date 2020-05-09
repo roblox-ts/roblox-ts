@@ -1,9 +1,9 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { ConstructorMacro, MacroList } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import ts from "byots";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
 	return lua.create(lua.SyntaxKind.CallExpression, {

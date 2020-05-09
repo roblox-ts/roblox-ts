@@ -1,8 +1,8 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer/TransformState";
 import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
-import ts from "byots";
 
 export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
 	const simpleType = state.getSimpleType(nodeType);

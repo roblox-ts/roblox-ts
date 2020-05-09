@@ -1,10 +1,9 @@
-import ts from "byots";
 import * as lua from "LuaAST";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 
 function header(text: string) {
@@ -339,8 +338,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: idxId,
-				min: lua.number(1),
-				max: lengthId,
+				start: lua.number(1),
+				end: lengthId,
 				step: undefined,
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
@@ -411,7 +410,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(footer("ReadonlyArray.push"));
 
-		if (!ts.isExpressionStatement(skipUpwards(node).parent)) {
+		if (!isUsedAsStatement(node)) {
 			return lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: sizeId,
 				operator: "+",
@@ -432,7 +431,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			expression,
 		});
 
-		const valueIsUsed = !ts.isExpressionStatement(skipUpwards(node).parent);
+		const valueIsUsed = !isUsedAsStatement(node);
 		const retValue = valueIsUsed ? lua.tempId() : lua.emptyId();
 
 		if (valueIsUsed) {
