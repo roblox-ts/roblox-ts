@@ -112,7 +112,10 @@ function transformLuaTupleDestructure(
 	});
 }
 
-function transformVariableDeclaration(state: TransformState, node: ts.VariableDeclaration): lua.List<lua.Statement> {
+export function transformVariableDeclaration(
+	state: TransformState,
+	node: ts.VariableDeclaration,
+): lua.List<lua.Statement> {
 	// must transform right _before_ checking isHoisted, that way references inside of value can be hoisted
 	const value = node.initializer ? transformExpression(state, node.initializer) : undefined;
 

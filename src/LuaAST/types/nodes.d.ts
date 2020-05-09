@@ -147,8 +147,8 @@ export interface IfStatement extends lua.Statement<lua.SyntaxKind.IfStatement> {
 
 export interface NumericForStatement extends lua.Statement<lua.SyntaxKind.NumericForStatement> {
 	id: lua.AnyIdentifier;
-	min: lua.Expression;
-	max: lua.Expression;
+	start: lua.Expression;
+	end: lua.Expression;
 	step?: lua.Expression;
 	statements: lua.List<lua.Statement>;
 }

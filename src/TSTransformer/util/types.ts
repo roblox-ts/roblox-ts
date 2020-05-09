@@ -62,12 +62,22 @@ export function isLuaTupleType(state: TransformState, type: ts.Type) {
 	return type.aliasSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
 }
 
+export function isNumberType(state: TransformState, type: ts.Type) {
+	return isSomeType(
+		type,
+		t =>
+			hasTypeFlag(t.flags, ts.TypeFlags.Number) ||
+			hasTypeFlag(t.flags, ts.TypeFlags.NumberLike) ||
+			hasTypeFlag(t.flags, ts.TypeFlags.NumberLiteral),
+	);
+}
+
 export function isStringType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
-			hasTypeFlag(t.flags, ts.TypeFlags.StringLike) ||
 			hasTypeFlag(t.flags, ts.TypeFlags.String) ||
+			hasTypeFlag(t.flags, ts.TypeFlags.StringLike) ||
 			hasTypeFlag(t.flags, ts.TypeFlags.StringLiteral),
 	);
 }

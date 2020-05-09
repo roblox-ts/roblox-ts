@@ -5,23 +5,18 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
-export function transformWhileStatement(state: TransformState, node: ts.DoStatement) {
-	const statements = transformStatementList(
-		state,
-		ts.isBlock(node.statement) ? node.statement.statements : [node.statement],
-	);
+export function transformWhileStatementInner(state: TransformState, condition: ts.Expression, statement: ts.Statement) {
+	const statements = transformStatementList(state, ts.isBlock(statement) ? statement.statements : [statement]);
 
-	const { expression: condition, statements: conditionPrereqs } = state.capturePrereqs(() =>
-		createTruthinessChecks(state, transformExpression(state, node.expression), state.getType(node.expression)),
+	const { expression: conditionExp, statements: conditionPrereqs } = state.capturePrereqs(() =>
+		createTruthinessChecks(state, transformExpression(state, condition), state.getType(condition)),
 	);
 
 	if (lua.list.isEmpty(conditionPrereqs)) {
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.WhileStatement, {
-				condition,
-				statements,
-			}),
-		);
+		return lua.create(lua.SyntaxKind.WhileStatement, {
+			condition: conditionExp,
+			statements,
+		});
 	} else {
 		const whileStatements = lua.list.make<lua.Statement>();
 		lua.list.pushList(whileStatements, conditionPrereqs);
@@ -30,7 +25,7 @@ export function transformWhileStatement(state: TransformState, node: ts.DoStatem
 			lua.create(lua.SyntaxKind.IfStatement, {
 				condition: lua.create(lua.SyntaxKind.UnaryExpression, {
 					operator: "not",
-					expression: condition,
+					expression: conditionExp,
 				}),
 				statements: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
 				elseBody: lua.list.make(),
@@ -38,11 +33,13 @@ export function transformWhileStatement(state: TransformState, node: ts.DoStatem
 		);
 		lua.list.pushList(whileStatements, statements);
 
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.WhileStatement, {
-				condition: lua.bool(true),
-				statements: whileStatements,
-			}),
-		);
+		return lua.create(lua.SyntaxKind.WhileStatement, {
+			condition: lua.bool(true),
+			statements: whileStatements,
+		});
 	}
+}
+
+export function transformWhileStatement(state: TransformState, node: ts.WhileStatement) {
+	return lua.list.make(transformWhileStatementInner(state, node.expression, node.statement));
 }

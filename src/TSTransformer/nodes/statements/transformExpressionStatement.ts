@@ -19,8 +19,7 @@ function transformUnaryExpressionStatement(
 	return createCompoundAssignmentStatement(writable, writable, node.operator, createNodeWithType(lua.number(1)));
 }
 
-export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
-	const expression = skipDownwards(node.expression);
+export function transformExpressionStatementInner(state: TransformState, expression: ts.Expression) {
 	if (ts.isBinaryExpression(expression)) {
 		const operator = expression.operatorToken.kind;
 		if (
@@ -60,4 +59,9 @@ export function transformExpressionStatement(state: TransformState, node: ts.Exp
 			}),
 		);
 	}
+}
+
+export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
+	const expression = skipDownwards(node.expression);
+	return transformExpressionStatementInner(state, expression);
 }

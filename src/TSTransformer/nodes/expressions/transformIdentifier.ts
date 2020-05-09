@@ -33,7 +33,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 	}
 
 	const declarationStatement = getAncestorStatement(declaration);
-	if (!declarationStatement) {
+	if (!declarationStatement || ts.isForStatement(declarationStatement)) {
 		return;
 	}
 

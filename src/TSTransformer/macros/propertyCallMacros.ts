@@ -338,8 +338,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: idxId,
-				min: lua.number(1),
-				max: lengthId,
+				start: lua.number(1),
+				end: lengthId,
 				step: undefined,
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
