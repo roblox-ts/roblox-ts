@@ -7,6 +7,7 @@ import { transformExpressionStatementInner } from "TSTransformer/nodes/statement
 import { transformVariableDeclaration } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatementInner } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getStatements } from "TSTransformer/util/getStatements";
 import { isNumberType } from "TSTransformer/util/types";
 
 function getIncrementorValue(state: TransformState, symbol: ts.Symbol, incrementor: ts.Expression) {
@@ -74,7 +75,7 @@ function getOptimizedForStatement(
 	const start = state.noPrereqs(() => transformExpression(state, varDecInit));
 	const end = state.noPrereqs(() => transformExpression(state, condition.right));
 	const step = stepValue === 1 ? undefined : lua.number(stepValue);
-	const statements = transformStatementList(state, ts.isBlock(statement) ? statement.statements : [statement]);
+	const statements = transformStatementList(state, getStatements(statement));
 	return lua.create(lua.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
 }
 
@@ -110,7 +111,7 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 		whileStatement = transformWhileStatementInner(state, node.condition, node.statement);
 	} else {
 		const statement = node.statement;
-		const statements = transformStatementList(state, ts.isBlock(statement) ? statement.statements : [statement]);
+		const statements = transformStatementList(state, getStatements(statement));
 		whileStatement = lua.create(lua.SyntaxKind.WhileStatement, {
 			condition: lua.bool(true),
 			statements,

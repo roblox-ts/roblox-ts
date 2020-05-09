@@ -5,6 +5,7 @@ import { transformStatement } from "TSTransformer/nodes/statements/transformStat
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { getStatements } from "TSTransformer/util/getStatements";
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): lua.IfStatement {
 	const condition = createTruthinessChecks(
@@ -13,10 +14,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 		state.getType(node.expression),
 	);
 
-	const statements = transformStatementList(
-		state,
-		ts.isBlock(node.thenStatement) ? node.thenStatement.statements : [node.thenStatement],
-	);
+	const statements = transformStatementList(state, getStatements(node.thenStatement));
 
 	let elseBody: lua.IfStatement | lua.List<lua.Statement>;
 	if (node.elseStatement === undefined) {
