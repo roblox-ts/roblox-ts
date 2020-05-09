@@ -57,6 +57,13 @@ export class TransformState {
 		return { expression, statements };
 	}
 
+	public noPrereqs(callback: () => lua.Expression) {
+		let expression!: lua.Expression;
+		const statements = this.statement(() => (expression = callback()));
+		assert(lua.list.isEmpty(statements));
+		return expression;
+	}
+
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return commentRanges
