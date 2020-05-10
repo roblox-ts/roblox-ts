@@ -142,6 +142,23 @@ export namespace list {
 		list.head = node;
 	}
 
+	export function unshiftList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
+		assert(!list.readonly);
+		assert(!other.readonly);
+		other.readonly = true;
+
+		if (other.head && other.tail) {
+			if (list.head && list.tail) {
+				list.head.prev = other.tail;
+				other.tail.next = list.head;
+				list.head = other.head;
+			} else {
+				list.head = other.head;
+				list.tail = other.tail;
+			}
+		}
+	}
+
 	export function isEmpty<T extends lua.Node>(list: lua.List<T>) {
 		return list.head === undefined;
 	}
