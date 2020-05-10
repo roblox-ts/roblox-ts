@@ -83,11 +83,10 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 			return lua.map(elements);
 		} else {
 			const id = state.pushToVar(lua.set());
-			const keyId = lua.tempId();
-			const valueId = lua.tempId();
+			const valueId = lua.id("value");
 			state.prereq(
 				lua.create(lua.SyntaxKind.ForStatement, {
-					ids: lua.list.make<lua.AnyIdentifier>(keyId, valueId),
+					ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
 					expression: lua.create(lua.SyntaxKind.CallExpression, {
 						expression: lua.globals.ipairs,
 						args: lua.list.make(transformed),
@@ -96,9 +95,15 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 								expression: id,
-								index: keyId,
+								index: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+									expression: valueId,
+									index: lua.number(1),
+								}),
 							}),
-							right: valueId,
+							right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: valueId,
+								index: lua.number(2),
+							}),
 						}),
 					),
 				}),
