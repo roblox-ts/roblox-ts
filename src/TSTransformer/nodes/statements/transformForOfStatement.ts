@@ -5,7 +5,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { getStatements } from "TSTransformer/util/getStatements";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { assert } from "Shared/util/assert";
-import { isArrayType, isSetType, isMapType } from "TSTransformer/util/types";
+import { isArrayType, isSetType, isMapType, isStringType } from "TSTransformer/util/types";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -115,6 +115,20 @@ function getMapLoopStructure(
 	return wrapPairs(innerExp);
 }
 
+function getStringLoopStructure(
+	state: TransformState,
+	ids: lua.List<lua.AnyIdentifier>,
+	initializers: lua.List<lua.Statement>,
+	name: ts.BindingName,
+	innerExp: lua.Expression,
+) {
+	lua.list.push(ids, processBindingName(state, name, initializers));
+	return lua.create(lua.SyntaxKind.CallExpression, {
+		expression: lua.globals.string.gmatch,
+		args: lua.list.make(innerExp, lua.globals.utf8.charpattern),
+	});
+}
+
 function getLoopStructure(state: TransformState, name: ts.BindingName, innerExp: lua.Expression, expType: ts.Type) {
 	const ids = lua.list.make<lua.AnyIdentifier>();
 	const initializers = lua.list.make<lua.Statement>();
@@ -125,6 +139,8 @@ function getLoopStructure(state: TransformState, name: ts.BindingName, innerExp:
 		expression = getSetLoopStructure(state, ids, initializers, name, innerExp);
 	} else if (isMapType(state, expType)) {
 		expression = getMapLoopStructure(state, ids, initializers, name, innerExp);
+	} else if (isStringType(state, expType)) {
+		expression = getStringLoopStructure(state, ids, initializers, name, innerExp);
 	} else {
 		assert(false);
 	}
