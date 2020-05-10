@@ -54,8 +54,8 @@ In other words, TS AST -> Lua AST
 - [X] WhileStatement
 - [X] BreakStatement
 - [X] ContinueStatement (Luau-y for now)
-- [ ] ForStatement
-- [ ] ForOfStatement
+- [X] ForStatement
+- [X] ForOfStatement
 - [X] ThrowStatement
 - [ ] ImportDeclaration
 - [ ] ImportEqualsDeclaration
