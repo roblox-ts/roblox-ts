@@ -31,10 +31,17 @@ export class Project {
 	private readonly options: ProjectOptions;
 	private readonly macroManager: MacroManager;
 	private readonly rojoConfig: RojoConfig;
+	private readonly pkgVersion?: string;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules");
+
+		const pkgJsonPath = path.join(this.projectPath, "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			this.pkgVersion = pkgJson.version;
+		}
 
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
@@ -93,7 +100,7 @@ export class Project {
 	}
 
 	public compile() {
-		const compileState = new CompileState();
+		const compileState = new CompileState(this.pkgVersion);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 		for (const sourceFile of this.program.getSourceFiles()) {

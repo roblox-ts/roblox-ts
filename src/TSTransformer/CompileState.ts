@@ -5,4 +5,6 @@ import ts from "byots";
  */
 export class CompileState {
 	public readonly isMethodCache = new Map<ts.Symbol, boolean>();
+
+	constructor(public readonly pkgVersion: string | undefined) {}
 }
