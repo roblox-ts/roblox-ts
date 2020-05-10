@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
+import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 
 function disableInline(
 	state: TransformState,
@@ -21,24 +22,10 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	let left: lua.Expression;
-	let leftPrereqs: lua.List<lua.Statement>;
-	if (ts.isIdentifier(name)) {
-		left = lua.string(name.text);
-		leftPrereqs = lua.list.make();
-	} else {
-		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
-		// we must do this check here instead of before
-		({ expression: left, statements: leftPrereqs } = state.capturePrereqs(() =>
-			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
-		));
-	}
+	const left = state.capturePrereqs(() => transformObjectKey(state, name));
+	const right = state.capturePrereqs(() => transformExpression(state, initializer));
 
-	const { expression: right, statements: rightPrereqs } = state.capturePrereqs(() =>
-		transformExpression(state, initializer),
-	);
-
-	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPrereqs)) {
+	if (!lua.list.isEmpty(left.statements) || !lua.list.isEmpty(right.statements)) {
 		disableInline(state, ptr);
 	}
 
@@ -46,20 +33,20 @@ function transformPropertyAssignment(
 		lua.list.push(
 			ptr.value.fields,
 			lua.create(lua.SyntaxKind.MapField, {
-				index: left,
-				value: right,
+				index: left.expression,
+				value: right.expression,
 			}),
 		);
 	} else {
-		state.prereqList(leftPrereqs);
-		state.prereqList(rightPrereqs);
+		state.prereqList(left.statements);
+		state.prereqList(right.statements);
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 					expression: ptr.value,
-					index: left,
+					index: left.expression,
 				}),
-				right: right,
+				right: right.expression,
 			}),
 		);
 	}
