@@ -1,6 +1,6 @@
 import ts from "byots";
-import { assert } from "console";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
