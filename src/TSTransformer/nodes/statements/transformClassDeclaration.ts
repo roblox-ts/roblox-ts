@@ -1,8 +1,11 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformClassElements } from "TSTransformer/nodes/statements/transformClassElements";
+import { transformClassElement } from "TSTransformer/nodes/statements/transformClassElement";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+
+const hasConstructor = (node: ts.ClassLikeDeclaration) =>
+	node.members.some(element => ts.isConstructorDeclaration(element));
 
 const createNameFunction = (name: string) =>
 	lua.create(lua.SyntaxKind.FunctionExpression, {
@@ -15,7 +18,6 @@ const createNameFunction = (name: string) =>
 		hasDotDotDot: false,
 	});
 
-declare function hasConstructor(): boolean;
 function createBoilerplate(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
@@ -70,56 +72,58 @@ function createBoilerplate(
 		}),
 	);
 
-	const self = lua.create(lua.SyntaxKind.Identifier, { name: "self" });
 	const statementsInner = lua.list.make<lua.Statement>();
-	//	local self = setmetatable({}, className);
 
-	lua.list.push(
-		statementsInner,
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: self,
-			right: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.setmetatable,
-				args: lua.list.make<lua.Expression>(lua.map(), className),
-			}),
-		}),
-	);
-
-	//	self:constructor(...);
-	// if there is no constructor, don't call it
-	// no method for this... discussion on discord about it
-	hasConstructor() &&
+	{
+		//	local self = setmetatable({}, className);
 		lua.list.push(
 			statementsInner,
-			lua.create(lua.SyntaxKind.CallStatement, {
-				expression: lua.create(lua.SyntaxKind.MethodCallExpression, {
-					expression: self,
-					name: "constructor",
-					args: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: lua.globals.self,
+				right: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.setmetatable,
+					args: lua.list.make<lua.Expression>(lua.map(), className),
 				}),
 			}),
 		);
 
-	//	return self;
-	lua.list.push(
-		statementsInner,
-		lua.create(lua.SyntaxKind.ReturnStatement, {
-			expression: self,
-		}),
-	);
+		//	self:constructor(...);
+		// if there is no constructor, don't call it
+		// no method for this... discussion on discord about it
 
+		hasConstructor(node) &&
+			lua.list.push(
+				statementsInner,
+				lua.create(lua.SyntaxKind.CallStatement, {
+					expression: lua.create(lua.SyntaxKind.MethodCallExpression, {
+						expression: lua.globals.self,
+						name: "constructor",
+						args: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
+					}),
+				}),
+			);
+
+		//	return self;
+		lua.list.push(
+			statementsInner,
+			lua.create(lua.SyntaxKind.ReturnStatement, {
+				expression: lua.globals.self,
+			}),
+		);
+	}
 	//	function className.new(...)
 	//	end;
 	lua.list.push(
 		statements,
-		lua.create(lua.SyntaxKind.MethodDeclaration, {
-			expression: className,
-			name: lua.create(lua.SyntaxKind.Identifier, {
+		lua.create(lua.SyntaxKind.FunctionDeclaration, {
+			name: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				expression: className,
 				name: "new",
 			}),
 			parameters: lua.list.make(),
 			hasDotDotDot: true,
 			statements: statementsInner,
+			localize: false,
 		}),
 	);
 
@@ -147,8 +151,9 @@ export function transformClassDeclaration(state: TransformState, node: ts.ClassL
 	// OOP boilerplate + class functions
 	const statementsInner = lua.list.make<lua.Statement>();
 	lua.list.pushList(statementsInner, createBoilerplate(state, node, name));
-	lua.list.pushList(statementsInner, transformClassElements(state, node.members));
-
+	for (const member of node.members) {
+		lua.list.pushList(statementsInner, transformClassElement(state, member, { value: name }));
+	}
 	lua.list.push(
 		statements,
 		lua.create(lua.SyntaxKind.DoStatement, {

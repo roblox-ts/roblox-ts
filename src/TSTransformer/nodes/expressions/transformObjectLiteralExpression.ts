@@ -5,6 +5,8 @@ import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
+import { transformMethodDeclaration } from "TSTransformer/nodes/statements/transformMethodDeclaration";
+import { assignToPointer } from "TSTransformer/util/assignToPointer";
 
 function disableInline(
 	state: TransformState,
@@ -42,27 +44,9 @@ function transformPropertyAssignment(
 		disableInline(state, ptr);
 	}
 
-	if (lua.isMap(ptr.value)) {
-		lua.list.push(
-			ptr.value.fields,
-			lua.create(lua.SyntaxKind.MapField, {
-				index: left,
-				value: right,
-			}),
-		);
-	} else {
-		state.prereqList(leftPrereqs);
-		state.prereqList(rightPrereqs);
-		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-					expression: ptr.value,
-					index: left,
-				}),
-				right: right,
-			}),
-		);
-	}
+	state.prereqList(leftPrereqs);
+	state.prereqList(rightPrereqs);
+	assignToPointer(state, ptr, left, right);
 }
 
 function transformSpreadAssignment(
@@ -95,6 +79,7 @@ function transformSpreadAssignment(
 }
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
+	// starts as lua.Map, becomes lua.TemporaryIdentifier when `disableInline` is called
 	const ptr: Pointer<lua.Map | lua.TemporaryIdentifier> = { value: lua.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
@@ -108,8 +93,9 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 		} else if (ts.isSpreadAssignment(property)) {
 			transformSpreadAssignment(state, ptr, property);
 		} else if (ts.isMethodDeclaration(property)) {
-			assert(false, "Not implemented");
+			transformMethodDeclaration(state, property, ptr);
 		} else {
+			// must be ts.AccessorDeclaration, which is banned
 			state.addDiagnostic(diagnostics.noGetterSetter(property));
 		}
 	}

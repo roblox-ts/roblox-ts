@@ -14,6 +14,7 @@ export const globals = {
 	pairs: lua.id("pairs"),
 	next: lua.id("next"),
 	select: lua.id("select"),
+	self: lua.id("self"),
 	setmetatable: lua.id("setmetatable"),
 	string: {
 		byte: property(STRING_ID, "byte"),
