@@ -54,8 +54,8 @@ In other words, TS AST -> Lua AST
 - [X] WhileStatement
 - [X] BreakStatement
 - [X] ContinueStatement (Luau-y for now)
-- [ ] ForStatement
-- [ ] ForOfStatement
+- [X] ForStatement
+- [X] ForOfStatement
 - [X] ThrowStatement
 - [ ] ImportDeclaration
 - [ ] ImportEqualsDeclaration
@@ -75,7 +75,7 @@ In other words, TS AST -> Lua AST
 - [X] new WeakMap()
 
 ### Identifier Macros
-- [X] PKG_VERSION (Doesn't actually look up package.json version yet..)
+- [X] PKG_VERSION
 
 ### Call Macros
 - [X] typeOf

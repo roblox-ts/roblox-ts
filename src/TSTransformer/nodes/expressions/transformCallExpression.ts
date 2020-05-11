@@ -38,11 +38,8 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	return true;
 }
 
-function wrapReturnIfLuaTuple(state: TransformState, type: ts.Type, node: ts.CallExpression, exp: lua.Expression) {
-	const signatures = state.typeChecker.getSignaturesOfType(type, ts.SignatureKind.Call);
-	assert(signatures.length === 1);
-	const returnType = state.typeChecker.getReturnTypeOfSignature(signatures[0]);
-	if (isLuaTupleType(state, returnType) && shouldWrapLuaTuple(node, exp)) {
+function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: lua.Expression) {
+	if (isLuaTupleType(state, state.getType(node)) && shouldWrapLuaTuple(node, exp)) {
 		return lua.array([exp]);
 	}
 	return exp;
@@ -66,7 +63,7 @@ export function transformCallExpressionInner(
 		args,
 	});
 
-	return wrapReturnIfLuaTuple(state, type, node, exp);
+	return wrapReturnIfLuaTuple(state, node, exp);
 }
 
 export function transformPropertyCallExpressionInner(
@@ -100,7 +97,7 @@ export function transformPropertyCallExpressionInner(
 		});
 	}
 
-	return wrapReturnIfLuaTuple(state, type, node, exp);
+	return wrapReturnIfLuaTuple(state, node, exp);
 }
 
 export function transformElementCallExpressionInner(
@@ -132,7 +129,7 @@ export function transformElementCallExpressionInner(
 		args,
 	});
 
-	return wrapReturnIfLuaTuple(state, type, node, exp);
+	return wrapReturnIfLuaTuple(state, node, exp);
 }
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {

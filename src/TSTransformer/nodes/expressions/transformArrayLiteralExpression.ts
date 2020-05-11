@@ -1,8 +1,10 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { isArrayType } from "TSTransformer/util/types";
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {
@@ -35,6 +37,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	for (let i = 0; i < node.elements.length; i++) {
 		const element = node.elements[i];
 		if (ts.isSpreadElement(element)) {
+			assert(isArrayType(state, state.getType(element.expression)));
 			if (lua.isArray(exp)) {
 				exp = state.pushToVar(exp);
 				updateLengthId();

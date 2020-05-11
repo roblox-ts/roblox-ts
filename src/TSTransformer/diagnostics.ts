@@ -64,4 +64,10 @@ export const diagnostics = {
 		"Cannot index a macro without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
+
+	// import/export
+	noModuleSpecifierFile: diagnostic("Could not find file for import. Did you forget to `npm install`?"),
+	noRojoData: diagnostic("Could not find Rojo data"),
+	noNonModuleImport: diagnostic("Cannot import a non-ModuleScript!"),
+	noIsolatedImport: diagnostic("Attempted to import a file inside of an isolated container from outside!"),
 };

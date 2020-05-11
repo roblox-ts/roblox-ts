@@ -9,6 +9,7 @@ import {
 } from "TSTransformer/nodes/transformWritable";
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	const writable = transformWritableExpression(state, node.operand, true);
@@ -55,7 +56,11 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		});
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
 		return lua.create(lua.SyntaxKind.UnaryExpression, {
-			expression: transformExpression(state, node.operand),
+			expression: createTruthinessChecks(
+				state,
+				transformExpression(state, node.operand),
+				state.getType(node.operand),
+			),
 			operator: "not",
 		});
 	}

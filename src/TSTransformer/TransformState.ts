@@ -1,18 +1,18 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { PathTranslator } from "Shared/PathTranslator";
+import { RojoConfig, RbxPath } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
 import { skipUpwards } from "TSTransformer/util/nodeTraversal";
 import originalTS from "typescript";
+import { createGetService } from "TSTransformer/util/createGetService";
 
 const RUNTIME_LIB_ID = lua.id("TS");
 
 export class TransformState {
 	private readonly sourceFileText: string;
-
-	// TODO actually look up from package.json
-	public readonly projectVersion = "0.0.0";
 
 	public readonly diagnostics = new Array<ts.Diagnostic>();
 
@@ -22,6 +22,9 @@ export class TransformState {
 
 	constructor(
 		public readonly compileState: CompileState,
+		public readonly rojoConfig: RojoConfig,
+		public readonly pathTranslator: PathTranslator,
+		public readonly runtimeLibRbxPath: RbxPath,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
 		public readonly sourceFile: ts.SourceFile,
@@ -55,6 +58,13 @@ export class TransformState {
 		let expression!: lua.Expression;
 		const statements = this.statement(() => (expression = callback()));
 		return { expression, statements };
+	}
+
+	public noPrereqs(callback: () => lua.Expression) {
+		let expression!: lua.Expression;
+		const statements = this.statement(() => (expression = callback()));
+		assert(lua.list.isEmpty(statements));
+		return expression;
 	}
 
 	public getLeadingComments(node: ts.Node) {
@@ -98,12 +108,37 @@ export class TransformState {
 		return this.typeChecker.getTypeAtLocation(skipUpwards(node));
 	}
 
-	private usesRuntimeLib = false;
+	public usesRuntimeLib = false;
 	public TS(name: string) {
 		this.usesRuntimeLib = true;
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 			expression: RUNTIME_LIB_ID,
 			name,
+		});
+	}
+
+	public createRuntimeLibImport() {
+		const rbxPath = [...this.runtimeLibRbxPath];
+		const serviceName = rbxPath.shift();
+		assert(serviceName);
+
+		let expression: lua.IndexableExpression = createGetService(serviceName);
+		for (const pathPart of rbxPath) {
+			expression = lua.create(lua.SyntaxKind.MethodCallExpression, {
+				expression,
+				name: "WaitForChild",
+				args: lua.list.make(lua.string(pathPart)),
+			});
+		}
+
+		expression = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.require,
+			args: lua.list.make(expression),
+		});
+
+		return lua.create(lua.SyntaxKind.VariableDeclaration, {
+			left: RUNTIME_LIB_ID,
+			right: expression,
 		});
 	}
 

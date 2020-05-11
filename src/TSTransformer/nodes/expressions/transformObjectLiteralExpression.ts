@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { TransformState } from "TSTransformer/TransformState";
 import { transformMethodDeclaration } from "TSTransformer/nodes/statements/transformMethodDeclaration";
 import { assignToPointer } from "TSTransformer/util/assignToPointer";
+import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 
 function disableInline(
 	state: TransformState,
@@ -23,24 +24,10 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	let left: lua.Expression;
-	let leftPrereqs: lua.List<lua.Statement>;
-	if (ts.isIdentifier(name)) {
-		left = lua.string(name.text);
-		leftPrereqs = lua.list.make();
-	} else {
-		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
-		// we must do this check here instead of before
-		({ expression: left, statements: leftPrereqs } = state.capturePrereqs(() =>
-			transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name),
-		));
-	}
+	const left = state.capturePrereqs(() => transformObjectKey(state, name));
+	const right = state.capturePrereqs(() => transformExpression(state, initializer));
 
-	const { expression: right, statements: rightPrereqs } = state.capturePrereqs(() =>
-		transformExpression(state, initializer),
-	);
-
-	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPrereqs)) {
+	if (!lua.list.isEmpty(left.statements) || !lua.list.isEmpty(right.statements)) {
 		disableInline(state, ptr);
 	}
 

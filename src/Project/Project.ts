@@ -7,6 +7,8 @@ import { createParseConfigFileHost } from "Project/util/createParseConfigFileHos
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { PathTranslator } from "Shared/PathTranslator";
+import { NetworkType, RojoConfig, RbxPath } from "Shared/RojoConfig";
 import { CompileState, MacroManager, transformSourceFile, TransformState } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -31,10 +33,19 @@ export class Project {
 	private readonly options: ProjectOptions;
 	private readonly macroManager: MacroManager;
 	private readonly rojoConfig: RojoConfig;
+	private readonly pathTranslator: PathTranslator;
+	private readonly pkgVersion?: string;
+	private readonly runtimeLibRbxPath: RbxPath;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules");
+
+		const pkgJsonPath = path.join(this.projectPath, "package.json");
+		if (fs.pathExistsSync(pkgJsonPath)) {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			this.pkgVersion = pkgJson.version;
+		}
 
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
@@ -58,8 +69,8 @@ export class Project {
 		this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
 
 		const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
-		const runtimeLibPath = this.rojoConfig.getRbxFromFilePath(runtimeFsPath).path;
-		if (!runtimeLibPath) {
+		const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
+		if (!runtimeLibRbxPath) {
 			throw new ProjectError(
 				`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
 			);
@@ -68,6 +79,7 @@ export class Project {
 		} else if (this.rojoConfig.isIsolated(runtimeFsPath)) {
 			throw new ProjectError(`Runtime library cannot be in an isolated container!`);
 		}
+		this.runtimeLibRbxPath = runtimeLibRbxPath;
 
 		this.rootDir = compilerOptions.rootDir;
 		this.outDir = compilerOptions.outDir;
@@ -80,20 +92,12 @@ export class Project {
 		this.typeChecker = this.program.getTypeChecker();
 
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
-	}
 
-	private getOutPath(filePath: string) {
-		const ext = path.extname(filePath);
-		if (ext === ".ts") filePath = filePath.slice(0, -ext.length);
-		const subExt = path.extname(filePath);
-		if (subExt === ".d") filePath = filePath.slice(0, -subExt.length);
-
-		const relativeToRoot = path.relative(this.rootDir, filePath);
-		return path.join(this.outDir, relativeToRoot + ".lua");
+		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
 	}
 
 	public compile() {
-		const compileState = new CompileState();
+		const compileState = new CompileState(this.pkgVersion);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 		for (const sourceFile of this.program.getSourceFiles()) {
@@ -104,16 +108,20 @@ export class Project {
 
 				const transformState = new TransformState(
 					compileState,
+					this.rojoConfig,
+					this.pathTranslator,
+					this.runtimeLibRbxPath,
 					this.typeChecker,
 					this.macroManager,
 					sourceFile,
 				);
+
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
 				const luaSource = renderAST(luaAST);
-				fs.outputFileSync(this.getOutPath(sourceFile.fileName), luaSource);
+				fs.outputFileSync(this.pathTranslator.getOutPath(sourceFile.fileName), luaSource);
 			}
 		}
 		if (totalDiagnostics.length > 0) {

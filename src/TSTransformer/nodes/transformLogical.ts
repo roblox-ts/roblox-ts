@@ -3,8 +3,8 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 
 interface LogicalChainItem {
 	type: ts.Type;

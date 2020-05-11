@@ -4,9 +4,10 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { TransformState } from "TSTransformer/TransformState";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { getStatements } from "TSTransformer/util/getStatements";
 
 export function transformWhileStatementInner(state: TransformState, condition: ts.Expression, statement: ts.Statement) {
-	const statements = transformStatementList(state, ts.isBlock(statement) ? statement.statements : [statement]);
+	const statements = transformStatementList(state, getStatements(statement));
 
 	const { expression: conditionExp, statements: conditionPrereqs } = state.capturePrereqs(() =>
 		createTruthinessChecks(state, transformExpression(state, condition), state.getType(condition)),

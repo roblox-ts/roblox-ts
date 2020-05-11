@@ -13,13 +13,18 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
 
-	if (ts.isFunctionBody(node.body)) {
-		lua.list.pushList(statements, transformStatementList(state, node.body.statements));
+	const body = node.body;
+	if (ts.isFunctionBody(body)) {
+		lua.list.pushList(statements, transformStatementList(state, body.statements));
 	} else {
+		const { expression, statements: expressionPrereqs } = state.capturePrereqs(() =>
+			transformExpression(state, body),
+		);
+		lua.list.pushList(statements, expressionPrereqs);
 		lua.list.push(
 			statements,
 			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression: transformExpression(state, node.body),
+				expression,
 			}),
 		);
 	}

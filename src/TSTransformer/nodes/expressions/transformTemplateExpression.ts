@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer/TransformState";
-import { binaryExpressionChain } from "TSTransformer/util/binaryExpressionChain";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isStringType } from "TSTransformer/util/types";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {

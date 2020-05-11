@@ -1,15 +1,20 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformExpressionStatementInner } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { transformVariableDeclaration } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatementInner } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getStatements } from "TSTransformer/util/getStatements";
 import { isNumberType } from "TSTransformer/util/types";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 
-function getIncrementorValue(id: ts.Identifier, incrementor: ts.Expression) {
-	if (ts.isUnaryExpressionWithWrite(incrementor) && incrementor.operand === id) {
+function getIncrementorValue(state: TransformState, symbol: ts.Symbol, incrementor: ts.Expression) {
+	if (
+		(ts.isPrefixUnaryExpression(incrementor) || ts.isPostfixUnaryExpression(incrementor)) &&
+		state.typeChecker.getSymbolAtLocation(incrementor.operand) === symbol
+	) {
 		if (incrementor.operator === ts.SyntaxKind.PlusPlusToken) {
 			return 1;
 		} else if (incrementor.operator === ts.SyntaxKind.MinusMinusToken) {
@@ -17,7 +22,7 @@ function getIncrementorValue(id: ts.Identifier, incrementor: ts.Expression) {
 		}
 	} else if (
 		ts.isBinaryExpression(incrementor) &&
-		incrementor.left === id &&
+		state.typeChecker.getSymbolAtLocation(incrementor.left) === symbol &&
 		ts.isNumericLiteral(incrementor.right)
 	) {
 		if (incrementor.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken) {
@@ -38,24 +43,40 @@ function getOptimizedForStatement(
 	if (!ts.isVariableDeclarationList(initializer) || initializer.declarations.length !== 1) return undefined;
 
 	const varDec = initializer.declarations[0];
-	if (!varDec.initializer || !ts.isIdentifier(varDec.name) || !isNumberType(state, state.getType(varDec.initializer)))
+	if (!ts.isIdentifier(varDec.name)) return undefined;
+
+	const varDecInit = varDec.initializer;
+	if (
+		!varDecInit ||
+		!(
+			ts.isNumericLiteral(varDecInit) ||
+			(isNumberType(state, state.getType(varDecInit)) && ts.isIdentifier(varDecInit))
+		)
+	) {
 		return undefined;
+	}
 
-	if (!ts.isBinaryExpression(condition)) return undefined;
+	if (!ts.isBinaryExpression(condition) || condition.left === varDec.name) return undefined;
 
-	const stepValue = getIncrementorValue(varDec.name, incrementor);
+	const idSymbol = state.typeChecker.getSymbolAtLocation(varDec.name);
+	if (!idSymbol) return undefined;
+
+	const stepValue = getIncrementorValue(state, idSymbol, incrementor);
 	if (!stepValue) return undefined;
 
-	// const start = lua.number(startValue);
-	// const end = lua.number(endValue);
-	// if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken && ) {
-	// }
+	if (
+		!(condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken && stepValue > 0) &&
+		!(condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken && stepValue < 0)
+	) {
+		return undefined;
+	}
 
-	// const id = transformIdentifierDefined(state, varDec.name);
-	// const step = stepValue === 1 ? undefined : lua.number(stepValue);
-	// const statements = lua.list.make<lua.Statement>();
-
-	// return lua.create(lua.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
+	const id = transformIdentifierDefined(state, varDec.name);
+	const start = state.noPrereqs(() => transformExpression(state, varDecInit));
+	const end = state.noPrereqs(() => transformExpression(state, condition.right));
+	const step = stepValue === 1 ? undefined : lua.number(stepValue);
+	const statements = transformStatementList(state, getStatements(statement));
+	return lua.create(lua.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement) {
@@ -89,10 +110,8 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	if (node.condition) {
 		whileStatement = transformWhileStatementInner(state, node.condition, node.statement);
 	} else {
-		const statements = transformStatementList(
-			state,
-			ts.isBlock(node.statement) ? node.statement.statements : [node.statement],
-		);
+		const statement = node.statement;
+		const statements = transformStatementList(state, getStatements(statement));
 		whileStatement = lua.create(lua.SyntaxKind.WhileStatement, {
 			condition: lua.bool(true),
 			statements,
