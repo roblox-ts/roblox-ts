@@ -14,14 +14,8 @@
 	"scripts": {
 		"eslint": "npx eslint \"src/**/*.ts\" --max-warnings 0",
 		"build": "npx ttsc -b",
-		"test-compile": "mocha --timeout 0 --recursive out/test.js",
-		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
-		"test-run": "lua tests/spec.lua",
-		"test": "npm run build && npm run test-compile && npm run test-run",
-		"ci": "npm run build && npm run test-compile-ci && npm run test-run",
-		"coverage": "nyc report --reporter=lcov",
-		"prepublishOnly": "npm run build",
-		"types": "cd tests && npm install @rbxts/types",
+		"watch": "npx ttsc -b -w",
+		"prepare": "npm run build",
 		"devlink": "cd devlink && npm link"
 	},
 	"nyc": {
@@ -52,6 +46,7 @@
 		"eslint-plugin-prettier": "^3.1.3",
 		"mocha": "^7.1.2",
 		"prettier": "^1.19.1",
+		"ttypescript": "^1.5.10",
 		"typescript-transform-paths": "^1.1.14"
 	},
 	"files": [
