@@ -1,4 +1,5 @@
 import * as lua from "LuaAST";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 /**
  * Combines multiple lua.Expression objects into a chain of lua.BinaryExpressions
@@ -17,6 +18,21 @@ export function binaryExpressionChain(
 			left: expressions[index],
 			operator,
 			right: binaryExpressionChain(expressions, operator, index + 1),
+		});
+	}
+}
+
+export function propertyAccessExpressionChain(
+	expression: lua.Expression,
+	names: Array<string>,
+	index = 0,
+): lua.IndexableExpression {
+	if (index === names.length - 1) {
+		return convertToIndexableExpression(expression);
+	} else {
+		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			expression: propertyAccessExpressionChain(expression, names, index + 1),
+			name: names[index],
 		});
 	}
 }

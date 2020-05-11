@@ -1,7 +1,7 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
-import { isPathDescendantOf } from "Project/util/fsUtil";
+import { isPathDescendantOf } from "Shared/fsUtil";
 import { CLIENT_SUBEXT, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
@@ -40,13 +40,15 @@ const ROJO_OLD_NAME = "roblox-project.json";
 
 const FOLDER_EXT = "";
 
-const SUB_EXT_TYPE_MAP = new Map<string, string>([
+type RbxType = "ModuleScript" | "Script" | "LocalScript" | "Unknown";
+
+const SUB_EXT_TYPE_MAP = new Map<string, RbxType>([
 	[MODULE_SUBEXT, "ModuleScript"],
 	[SERVER_SUBEXT, "Script"],
 	[CLIENT_SUBEXT, "LocalScript"],
 ]);
 
-const DEFAULT_ISOLATED_CONTAINERS = [
+const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
 	["StarterPack"],
 	["StarterGui"],
 	["StarterPlayer"],
@@ -58,9 +60,13 @@ const DEFAULT_ISOLATED_CONTAINERS = [
 const CLIENT_CONTAINERS = [["StarterPack"], ["StarterGui"], ["StarterPlayer"]];
 const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
 
-interface RbxPath {
+export type RbxPath = Array<string>;
+export type ReadonlyRbxPath = ReadonlyArray<string>;
+export type RelativeRbxPath = Array<string | RbxPathParent>;
+
+interface PartitionInfo {
 	isFile: boolean;
-	base: ReadonlyArray<string>;
+	base: RbxPath;
 	fsPath: string;
 }
 
@@ -94,15 +100,18 @@ function isValidRojoConfig(value: unknown): value is RojoFile {
 	return validateRojo(value) == true;
 }
 
+export const RbxPathParent = Symbol("Parent");
+export type RbxPathParent = typeof RbxPathParent;
+
 export class RojoConfig {
 	private readonly basePath: string;
 
-	private partitions = new Array<RbxPath>();
+	private partitions = new Array<PartitionInfo>();
 	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 
 	private tree: RojoTree;
 
-	private parseTree(tree: RojoTree, rbxPath: Array<string>) {
+	private parseTree(tree: RojoTree, rbxPath: RbxPath) {
 		if (tree.$path) {
 			const ext = path.extname(tree.$path);
 			if (ext === LUA_EXT || ext === FOLDER_EXT) {
@@ -172,7 +181,7 @@ export class RojoConfig {
 		}
 	}
 
-	private getRbxPathFromFilePath(filePath: string) {
+	public getRbxPathFromFilePath(filePath: string) {
 		if (!path.isAbsolute(filePath)) {
 			filePath = path.resolve(this.basePath, filePath);
 		}
@@ -193,19 +202,16 @@ export class RojoConfig {
 		}
 	}
 
-	public getRbxFromFilePath(filePath: string) {
+	public getRbxTypeFromFilePath(filePath: string): RbxType {
 		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
-		return {
-			path: this.getRbxPathFromFilePath(filePath),
-			type: SUB_EXT_TYPE_MAP.get(subext) || "Unknown",
-		};
+		return SUB_EXT_TYPE_MAP.get(subext) ?? "Unknown";
 	}
 
 	public isGame() {
 		return this.tree.$className === "DataModel";
 	}
 
-	private getContainer(from: Array<Array<string>>, rbxPath?: Array<string>) {
+	private getContainer(from: Array<RbxPath>, rbxPath?: RbxPath) {
 		if (this.isGame()) {
 			if (rbxPath) {
 				for (const container of from) {
@@ -217,9 +223,9 @@ export class RojoConfig {
 		}
 	}
 
-	public getFileRelation(filePath: string, modulePath: string): FileRelation {
-		const fileContainer = this.getContainer(this.isolatedContainers, this.getRbxPathFromFilePath(filePath));
-		const moduleContainer = this.getContainer(this.isolatedContainers, this.getRbxPathFromFilePath(modulePath));
+	public getFileRelation(fileRbxPath: RbxPath, moduleRbxPath: RbxPath): FileRelation {
+		const fileContainer = this.getContainer(this.isolatedContainers, fileRbxPath);
+		const moduleContainer = this.getContainer(this.isolatedContainers, moduleRbxPath);
 		if (fileContainer && moduleContainer) {
 			if (fileContainer === moduleContainer) {
 				return FileRelation.InToIn;
@@ -251,7 +257,7 @@ export class RojoConfig {
 		return NetworkType.Unknown;
 	}
 
-	public static relative(rbxFrom: ReadonlyArray<string>, rbxTo: ReadonlyArray<string>) {
+	public static relative(rbxFrom: ReadonlyRbxPath, rbxTo: ReadonlyRbxPath) {
 		const maxLength = Math.max(rbxFrom.length, rbxTo.length);
 		let diffIndex = maxLength;
 		for (let i = 0; i < maxLength; i++) {
@@ -261,10 +267,10 @@ export class RojoConfig {
 			}
 		}
 
-		const result = new Array<string>();
+		const result: RelativeRbxPath = new Array<string | RbxPathParent>();
 		if (diffIndex < rbxFrom.length) {
 			for (let i = 0; i < rbxFrom.length - diffIndex; i++) {
-				result.push("..");
+				result.push(RbxPathParent);
 			}
 		}
 

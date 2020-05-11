@@ -14,6 +14,8 @@ export const globals = {
 	ipairs: lua.id("ipairs"),
 	pairs: lua.id("pairs"),
 	next: lua.id("next"),
+	require: lua.id("require"),
+	script: lua.id("script"),
 	select: lua.id("select"),
 	setmetatable: lua.id("setmetatable"),
 	string: {
@@ -38,4 +40,7 @@ export const globals = {
 	tostring: lua.id("tostring"),
 	typeof: lua.id("typeof"),
 	unpack: lua.id("unpack"),
+
+	// roblox
+	game: lua.id("game"),
 };
