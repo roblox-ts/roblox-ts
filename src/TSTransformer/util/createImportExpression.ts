@@ -5,10 +5,16 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/TransformState";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { diagnostics } from "TSTransformer/diagnostics";
-import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { createGetService } from "TSTransformer/util/createGetService";
 
 const PARENT_FIELD = "Parent";
+
+function getSourceFileFromModuleSpecifier(state: TransformState, moduleSpecifier: ts.StringLiteral) {
+	const symbol = state.typeChecker.getSymbolAtLocation(moduleSpecifier);
+	if (symbol) {
+		return symbol.valueDeclaration as ts.SourceFile;
+	}
+}
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = lua.list.make<lua.Expression>();

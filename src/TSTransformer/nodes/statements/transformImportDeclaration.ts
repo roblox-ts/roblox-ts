@@ -4,7 +4,6 @@ import { assert } from "Shared/util/assert";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { TransformState } from "TSTransformer/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	assert(ts.isStringLiteral(node.moduleSpecifier));
