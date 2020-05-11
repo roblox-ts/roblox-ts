@@ -7,12 +7,11 @@ import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChai
 import { diagnostics } from "TSTransformer/diagnostics";
 import { createGetService } from "TSTransformer/util/createGetService";
 
-const PARENT_FIELD = "Parent";
-
 function getSourceFileFromModuleSpecifier(state: TransformState, moduleSpecifier: ts.StringLiteral) {
 	const symbol = state.typeChecker.getSymbolAtLocation(moduleSpecifier);
 	if (symbol) {
-		return symbol.valueDeclaration as ts.SourceFile;
+		assert(ts.isSourceFile(symbol.valueDeclaration));
+		return symbol.valueDeclaration;
 	}
 }
 
@@ -27,21 +26,28 @@ function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	return pathExpressions;
 }
 
+const PARENT_FIELD = "Parent";
+
 function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	const pathExpressions = lua.list.make<lua.Expression>();
-	const path = [PARENT_FIELD];
 	const relativePath = RojoConfig.relative(sourceRbxPath, moduleRbxPath);
+
+	// create descending path pieces
+	const path = [PARENT_FIELD];
 	let i = 0;
 	while (relativePath[i] === RbxPathParent) {
 		path.push(PARENT_FIELD);
 		i++;
 	}
 	lua.list.push(pathExpressions, propertyAccessExpressionChain(lua.globals.script, path));
+
+	// create descending path pieces
 	for (; i < relativePath.length; i++) {
 		const pathPart = relativePath[i];
 		assert(typeof pathPart === "string");
 		lua.list.push(pathExpressions, lua.string(pathPart));
 	}
+
 	return pathExpressions;
 }
 
@@ -50,8 +56,7 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.StringLiteral,
 ) {
-	const sourceOutPath = state.pathTranslator.getOutPath(sourceFile.fileName);
-	const sourceRbxPath = state.rojoConfig.getRbxPathFromFilePath(sourceOutPath);
+	const sourceRbxPath = state.rojoConfig.getRbxPathFromFilePath(state.pathTranslator.getOutPath(sourceFile.fileName));
 	if (!sourceRbxPath) {
 		state.addDiagnostic(diagnostics.noRojoData(sourceFile));
 		return lua.emptyId();
@@ -75,11 +80,10 @@ export function createImportExpression(
 		return lua.emptyId();
 	}
 
-	const fileRelation = state.rojoConfig.getFileRelation(sourceRbxPath, moduleRbxPath);
-
 	const importPathExpressions = lua.list.make<lua.Expression>();
 	lua.list.push(importPathExpressions, lua.globals.script);
 
+	const fileRelation = state.rojoConfig.getFileRelation(sourceRbxPath, moduleRbxPath);
 	if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
 		lua.list.pushList(importPathExpressions, getAbsoluteImport(moduleRbxPath));
 	} else if (fileRelation === FileRelation.InToIn) {
