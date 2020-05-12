@@ -1,11 +1,10 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { Pointer } from "Shared/types";
-import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformMethodDeclaration } from "TSTransformer/nodes/statements/transformMethodDeclaration";
+import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { assignToPointer } from "TSTransformer/util/assignToPointer";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 
@@ -31,9 +30,9 @@ function transformPropertyAssignment(
 		disableInline(state, ptr);
 	}
 
-	state.prereqList(leftPrereqs);
-	state.prereqList(rightPrereqs);
-	assignToPointer(state, ptr, left, right);
+	state.prereqList(left.statements);
+	state.prereqList(right.statements);
+	assignToPointer(state, ptr, left.expression, right.expression);
 }
 
 function transformSpreadAssignment(

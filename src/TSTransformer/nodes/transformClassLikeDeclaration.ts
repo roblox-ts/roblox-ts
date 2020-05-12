@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer/TransformState";
-import { transformClassElement } from "TSTransformer/nodes/statements/transformClassElement";
+import { transformClassElement } from "TSTransformer/nodes/transformClassElement";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 
 const hasConstructor = (node: ts.ClassLikeDeclaration) =>

@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { transformMethodDeclaration } from "TSTransformer/nodes/statements/transformMethodDeclaration";
+import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { Pointer } from "Shared/types";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
