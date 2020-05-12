@@ -13,7 +13,6 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 	let hasDotDotDot = false;
 
 	if (isMethod(state, node)) {
-		console.log("ADD SELF");
 		lua.list.push(parameters, lua.globals.self);
 	}
 
