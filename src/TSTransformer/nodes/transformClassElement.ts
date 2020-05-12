@@ -22,7 +22,6 @@ function transformProperty(state: TransformState, node: ts.PropertyDeclaration, 
 		return noPrivateIdentifier(state, node);
 	}
 	if (!node.initializer) {
-		console.log(node);
 		return NO_EMIT();
 	}
 	return lua.list.make(
