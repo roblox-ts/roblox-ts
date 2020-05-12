@@ -1,13 +1,14 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { diagnostics } from "TSTransformer/diagnostics";
+import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { diagnostics } from "TSTransformer/diagnostics";
-import { Pointer } from "Shared/types";
 import { assignToPointer } from "TSTransformer/util/assignToPointer";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { isMethod } from "TSTransformer/util/isMethod";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -24,17 +25,19 @@ export function transformMethodDeclaration(
 		return lua.list.make<lua.Statement>();
 	}
 
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	const name = transformObjectKey(state, node.name);
 
 	// Can we use `class:name()`?
-	if (lua.isAnyIdentifier(name) && !lua.isMap(ptr.value)) {
+	const x = lua.SyntaxKind[name.kind];
+	if (lua.isStringLiteral(name) && !lua.isMap(ptr.value) && isMethod(state, node)) {
+		lua.list.shift(parameters); // remove `self`
 		return lua.list.make(
 			lua.create(lua.SyntaxKind.MethodDeclaration, {
 				expression: ptr.value,
-				name,
+				name: name.value,
 				statements,
 				parameters,
 				hasDotDotDot,
@@ -42,8 +45,7 @@ export function transformMethodDeclaration(
 		);
 	}
 
-	// We have to use `class[name] = function()`, so we need to insert `self` into parameters
-	lua.list.unshift(parameters, lua.globals.self);
+	// We have to use `class[name] = function()`
 	return state.statement(() =>
 		assignToPointer(
 			state,

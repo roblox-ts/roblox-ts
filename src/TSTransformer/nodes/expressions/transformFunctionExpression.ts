@@ -11,7 +11,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		state.addDiagnostic(diagnostics.noFunctionExpressionName(node.name));
 	}
 
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 
 	const body = node.body;
 	if (ts.isFunctionBody(body)) {

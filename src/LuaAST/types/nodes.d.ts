@@ -167,7 +167,7 @@ export interface FunctionDeclaration extends lua.Statement<lua.SyntaxKind.Functi
 
 export interface MethodDeclaration extends lua.Statement<lua.SyntaxKind.MethodDeclaration>, HasParameters {
 	expression: lua.IndexableExpression;
-	name: lua.AnyIdentifier;
+	name: string;
 	statements: lua.List<lua.Statement>;
 }
 

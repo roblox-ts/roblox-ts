@@ -5,7 +5,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { isBlockLike } from "TSTransformer/typeGuards";
-import { getAncestorStatement } from "TSTransformer/util/nodeTraversal";
+import { getAncestorStatement, skipUpwards } from "TSTransformer/util/nodeTraversal";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -82,7 +82,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return macro(state, node);
 	}
 
-	if (state.macroManager.getCallMacro(symbol)) {
+	if (!ts.isCallExpression(skipUpwards(node).parent) && state.macroManager.getCallMacro(symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return lua.emptyId();
 	}

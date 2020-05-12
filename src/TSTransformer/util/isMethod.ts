@@ -38,7 +38,7 @@ function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
 
 function isMethodInner(
 	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
 	type: ts.Type,
 ): boolean {
 	let hasMethodDefinition = false;
@@ -89,7 +89,7 @@ function getDefinedType(state: TransformState, type: ts.Type) {
 
 export function isMethod(
 	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
 ): boolean {
 	const type = getDefinedType(state, state.getType(node));
 	if (!type || !type.symbol) {

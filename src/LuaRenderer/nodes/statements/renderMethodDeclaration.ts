@@ -6,8 +6,7 @@ import { renderStatements } from "LuaRenderer/util/renderStatements";
 export function renderMethodDeclaration(state: RenderState, node: lua.MethodDeclaration) {
 	let result = "";
 	result +=
-		state.indent +
-		`function ${render(state, node.expression)}:${render(state, node.name)}(${renderParameters(state, node)})\n`;
+		state.indent + `function ${render(state, node.expression)}:${node.name}(${renderParameters(state, node)})\n`;
 	result += state.scope(() => renderStatements(state, node.statements));
 	result += state.indent + `end\n`;
 	return result;

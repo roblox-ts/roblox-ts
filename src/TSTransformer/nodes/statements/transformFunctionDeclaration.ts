@@ -18,7 +18,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	const localize = state.isHoisted.get(symbol) !== true;
 	const name = transformIdentifierDefined(state, node.name);
 
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 
 	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
 

@@ -1,13 +1,13 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { TransformState } from "TSTransformer/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { Pointer } from "Shared/types";
-import { transformParameters } from "TSTransformer/nodes/transformParameters";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
@@ -73,7 +73,7 @@ export function makeConstructor(
 			statements: paramStatements,
 			parameters: constructorParams,
 			hasDotDotDot: constructorHasDotDotDot,
-		} = transformParameters(state, originNode.parameters);
+		} = transformParameters(state, originNode);
 		lua.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
@@ -82,7 +82,7 @@ export function makeConstructor(
 	return lua.list.make<lua.Statement>(
 		lua.create(lua.SyntaxKind.MethodDeclaration, {
 			expression: ptr.value,
-			name: lua.id("constructor"),
+			name: "constructor",
 			statements,
 			parameters,
 			hasDotDotDot,

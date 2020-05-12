@@ -5,16 +5,28 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { isMethod } from "TSTransformer/util/isMethod";
 
-export function transformParameters(state: TransformState, tsParams: ReadonlyArray<ts.ParameterDeclaration>) {
+export function transformParameters(state: TransformState, node: ts.SignatureDeclarationBase) {
 	const parameters = lua.list.make<lua.AnyIdentifier>();
 	const statements = lua.list.make<lua.Statement>();
 	let hasDotDotDot = false;
 
-	for (const tsParam of tsParams) {
-		const paramId = ts.isIdentifier(tsParam.name) ? transformIdentifierDefined(state, tsParam.name) : lua.tempId();
+	if (isMethod(state, node)) {
+		console.log("ADD SELF");
+		lua.list.push(parameters, lua.globals.self);
+	}
 
-		if (tsParam.dotDotDotToken) {
+	for (const parameter of node.parameters) {
+		if (ts.isThisIdentifier(parameter.name)) {
+			continue;
+		}
+
+		const paramId = ts.isIdentifier(parameter.name)
+			? transformIdentifierDefined(state, parameter.name)
+			: lua.tempId();
+
+		if (parameter.dotDotDotToken) {
 			hasDotDotDot = true;
 			lua.list.push(
 				statements,
@@ -29,13 +41,13 @@ export function transformParameters(state: TransformState, tsParams: ReadonlyArr
 			lua.list.push(parameters, paramId);
 		}
 
-		if (tsParam.initializer) {
-			lua.list.push(statements, transformInitializer(state, paramId, tsParam.initializer));
+		if (parameter.initializer) {
+			lua.list.push(statements, transformInitializer(state, paramId, parameter.initializer));
 		}
 
 		// destructuring
-		if (!ts.isIdentifier(tsParam.name)) {
-			const bindingPattern = tsParam.name;
+		if (!ts.isIdentifier(parameter.name)) {
+			const bindingPattern = parameter.name;
 			if (ts.isArrayBindingPattern(bindingPattern)) {
 				lua.list.pushList(
 					statements,
