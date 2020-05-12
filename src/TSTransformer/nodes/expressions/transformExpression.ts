@@ -8,7 +8,7 @@ import { transformAsExpression } from "TSTransformer/nodes/expressions/transform
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
-import { transformClassExpression } from "TSTransformer/nodes/statements/transformClassDeclaration";
+import { transformClassExpression } from "TSTransformer/nodes/expressions/transformClassExpression";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
 import { transformElementAccessExpression } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
