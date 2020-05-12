@@ -49,22 +49,36 @@ function transformPropertyDeclaration(
 	return NO_EMIT();
 }
 
-function transformConstructorDeclaration(
+export function makeConstructor(
 	state: TransformState,
-	node: ts.ConstructorDeclaration,
+	nodes: ts.NodeArray<ts.ClassElement>,
 	ptr: Pointer<lua.AnyIdentifier>,
+	originNode?: ts.ConstructorDeclaration,
 ) {
 	const statements = lua.list.make<lua.Statement>();
-	node.parent.members
+	nodes
 		.filter(el => ts.isPropertyDeclaration(el) && !ts.hasStaticModifier(el))
 		.forEach(element => {
 			lua.list.pushList(
 				statements,
+				// type assertion because filter above is not recognized
 				transformProperty(state, element as ts.PropertyDeclaration, { value: lua.globals.self }),
 			);
 		});
-	const { statements: paramStatements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
-	lua.list.pushList(statements, paramStatements);
+
+	let parameters = lua.list.make<lua.AnyIdentifier>();
+	let hasDotDotDot = false;
+	if (originNode) {
+		const {
+			statements: paramStatements,
+			parameters: constructorParams,
+			hasDotDotDot: constructorHasDotDotDot,
+		} = transformParameters(state, originNode.parameters);
+		lua.list.pushList(statements, paramStatements);
+		parameters = constructorParams;
+		hasDotDotDot = constructorHasDotDotDot;
+	}
+
 	return lua.list.make<lua.Statement>(
 		lua.create(lua.SyntaxKind.MethodDeclaration, {
 			expression: ptr.value,
@@ -74,6 +88,14 @@ function transformConstructorDeclaration(
 			hasDotDotDot,
 		}),
 	);
+}
+
+function transformConstructorDeclaration(
+	state: TransformState,
+	node: ts.ConstructorDeclaration,
+	ptr: Pointer<lua.AnyIdentifier>,
+) {
+	return makeConstructor(state, node.parent.members, ptr, node);
 }
 
 const TRANSFORMER_BY_KIND = new Map<
