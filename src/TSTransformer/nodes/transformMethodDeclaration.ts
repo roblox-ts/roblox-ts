@@ -14,22 +14,21 @@ export function transformMethodDeclaration(
 	node: ts.MethodDeclaration,
 	ptr: Pointer<lua.Map | lua.AnyIdentifier>,
 ) {
+	if (!node.body) {
+		return lua.list.make<lua.Statement>();
+	}
+
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
 		state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
 		return lua.list.make<lua.Statement>();
 	}
 
-	let statements: lua.List<lua.Statement>, parameters: lua.List<lua.AnyIdentifier>, hasDotDotDot: boolean;
-	if (node.body) {
-		({ statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters));
-		lua.list.pushList(statements, transformStatementList(state, node.body.statements));
-	} else {
-		statements = lua.list.make<lua.Statement>();
-		parameters = lua.list.make<lua.AnyIdentifier>();
-		hasDotDotDot = false;
-	}
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters);
+	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
+
 	const name = transformObjectKey(state, node.name);
+
 	// Can we use `class:name()`?
 	if (lua.isAnyIdentifier(name) && !lua.isMap(ptr.value)) {
 		return lua.list.make(
