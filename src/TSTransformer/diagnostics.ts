@@ -26,7 +26,7 @@ export const diagnostics = {
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
 	noForInStatement: diagnostic(
 		"for-in loop statements are not supported!",
-		suggestion("Use `Object.keys()` instead."),
+		suggestion("Use for-of with `Object.keys()` instead."),
 	),
 	noLabeledStatement: diagnostic("labels are not supported!"),
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
@@ -35,7 +35,7 @@ export const diagnostics = {
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
 	noTypeOfExpression: diagnostic(
 		"`typeof` operator is not supported!",
-		suggestion("Use `typeIs(value, type)` or `typeOf(value) === type` instead."),
+		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	),
 
 	// banned features
