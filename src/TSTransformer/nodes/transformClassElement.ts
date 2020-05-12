@@ -5,10 +5,10 @@ import { assert } from "Shared/util/assert";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { TransformState } from "TSTransformer/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { transformObjectKey } from "./transformObjectKey";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
@@ -56,14 +56,8 @@ export function makeConstructor(
 ) {
 	const statements = lua.list.make<lua.Statement>();
 	nodes
-		.filter(el => ts.isPropertyDeclaration(el) && !ts.hasStaticModifier(el))
-		.forEach(element => {
-			lua.list.pushList(
-				statements,
-				// type assertion because filter above is not recognized
-				transformProperty(state, element as ts.PropertyDeclaration, { value: lua.globals.self }),
-			);
-		});
+		.filter((el): el is ts.PropertyDeclaration => ts.isPropertyDeclaration(el) && !ts.hasStaticModifier(el))
+		.forEach(el => lua.list.pushList(statements, transformProperty(state, el, { value: lua.globals.self })));
 
 	let parameters = lua.list.make<lua.AnyIdentifier>();
 	let hasDotDotDot = false;
