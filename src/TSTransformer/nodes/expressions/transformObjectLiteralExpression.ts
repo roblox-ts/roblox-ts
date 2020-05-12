@@ -1,10 +1,11 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { Pointer } from "Shared/types";
-import { assert } from "Shared/util/assert";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
+import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
+import { assignToPointer } from "TSTransformer/util/assignToPointer";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 
 function disableInline(
@@ -29,27 +30,9 @@ function transformPropertyAssignment(
 		disableInline(state, ptr);
 	}
 
-	if (lua.isMap(ptr.value)) {
-		lua.list.push(
-			ptr.value.fields,
-			lua.create(lua.SyntaxKind.MapField, {
-				index: left.expression,
-				value: right.expression,
-			}),
-		);
-	} else {
-		state.prereqList(left.statements);
-		state.prereqList(right.statements);
-		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-					expression: ptr.value,
-					index: left.expression,
-				}),
-				right: right.expression,
-			}),
-		);
-	}
+	state.prereqList(left.statements);
+	state.prereqList(right.statements);
+	assignToPointer(state, ptr, left.expression, right.expression);
 }
 
 function transformSpreadAssignment(
@@ -82,6 +65,7 @@ function transformSpreadAssignment(
 }
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
+	// starts as lua.Map, becomes lua.TemporaryIdentifier when `disableInline` is called
 	const ptr: Pointer<lua.Map | lua.TemporaryIdentifier> = { value: lua.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
@@ -95,8 +79,9 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 		} else if (ts.isSpreadAssignment(property)) {
 			transformSpreadAssignment(state, ptr, property);
 		} else if (ts.isMethodDeclaration(property)) {
-			assert(false, "Not implemented");
+			transformMethodDeclaration(state, property, ptr);
 		} else {
+			// must be ts.AccessorDeclaration, which is banned
 			state.addDiagnostic(diagnostics.noGetterSetter(property));
 		}
 	}

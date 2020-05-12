@@ -17,6 +17,7 @@ export const globals = {
 	require: lua.id("require"),
 	script: lua.id("script"),
 	select: lua.id("select"),
+	self: lua.id("self"),
 	setmetatable: lua.id("setmetatable"),
 	string: {
 		byte: property(STRING_ID, "byte"),

@@ -1,6 +1,6 @@
+import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
-import ts, { first } from "byots";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";

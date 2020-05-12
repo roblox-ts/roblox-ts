@@ -24,7 +24,10 @@ function diagnostic(...messages: Array<string>): DiagnosticFactory {
 export const diagnostics = {
 	// banned statements
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
-	noForInStatement: diagnostic("for-in loop statements are not supported!"),
+	noForInStatement: diagnostic(
+		"for-in loop statements are not supported!",
+		suggestion("Use for-of with `Object.keys()` instead."),
+	),
 	noLabeledStatement: diagnostic("labels are not supported!"),
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
