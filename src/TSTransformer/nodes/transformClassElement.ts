@@ -8,6 +8,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { TransformState } from "TSTransformer/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { transformObjectKey } from "./transformObjectKey";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
@@ -24,14 +25,12 @@ function transformProperty(state: TransformState, node: ts.PropertyDeclaration, 
 	if (!node.initializer) {
 		return NO_EMIT();
 	}
+
 	return lua.list.make(
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 				expression: ptr.value,
-				index: transformExpression(
-					state,
-					ts.isComputedPropertyName(node.name) ? node.name.expression : node.name,
-				),
+				index: transformObjectKey(state, node.name),
 			}),
 			right: transformExpression(state, node.initializer),
 		}),
