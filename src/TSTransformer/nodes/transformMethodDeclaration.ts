@@ -7,7 +7,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { diagnostics } from "TSTransformer/diagnostics";
 import { Pointer } from "Shared/types";
 import { assignToPointer } from "TSTransformer/util/assignToPointer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -20,7 +20,7 @@ export function transformMethodDeclaration(
 		return lua.list.make<lua.Statement>();
 	}
 
-	let statements, parameters, hasDotDotDot;
+	let statements: lua.List<lua.Statement>, parameters: lua.List<lua.AnyIdentifier>, hasDotDotDot: boolean;
 	if (node.body) {
 		({ statements, parameters, hasDotDotDot } = transformParameters(state, node.parameters));
 		lua.list.pushList(statements, transformStatementList(state, node.body.statements));
@@ -29,7 +29,7 @@ export function transformMethodDeclaration(
 		parameters = lua.list.make<lua.AnyIdentifier>();
 		hasDotDotDot = false;
 	}
-	const name = transformExpression(state, ts.isComputedPropertyName(node.name) ? node.name.expression : node.name);
+	const name = transformObjectKey(state, node.name);
 	// Can we use `class:name()`?
 	if (lua.isAnyIdentifier(name) && !lua.isMap(ptr.value)) {
 		return lua.list.make(
@@ -45,15 +45,16 @@ export function transformMethodDeclaration(
 
 	// We have to use `class[name] = function()`, so we need to insert `self` into parameters
 	lua.list.unshift(parameters, lua.globals.self);
-	assignToPointer(
-		state,
-		ptr,
-		name,
-		lua.create(lua.SyntaxKind.FunctionExpression, {
-			statements,
-			parameters,
-			hasDotDotDot,
-		}),
+	return state.statement(() =>
+		assignToPointer(
+			state,
+			ptr,
+			name,
+			lua.create(lua.SyntaxKind.FunctionExpression, {
+				statements,
+				parameters,
+				hasDotDotDot,
+			}),
+		),
 	);
-	return lua.list.make<lua.Statement>();
 }
