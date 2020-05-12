@@ -3,27 +3,20 @@ import * as lua from "LuaAST";
 import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
+import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { TransformState } from "TSTransformer/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
 
-const NO_EMIT = () => lua.list.make<lua.Statement>();
-
-const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.ClassElement) => {
-	state.addDiagnostic(factory(node));
-	return NO_EMIT();
-};
-
-const noPrivateIdentifier = DIAGNOSTIC(diagnostics.noPrivateIdentifier);
 function transformProperty(state: TransformState, node: ts.PropertyDeclaration, ptr: Pointer<lua.AnyIdentifier>) {
 	if (ts.isPrivateIdentifier(node.name)) {
-		return noPrivateIdentifier(state, node);
+		state.addDiagnostic(diagnostics.noPrivateIdentifier(node));
+		return lua.list.make<lua.Statement>();
 	}
 	if (!node.initializer) {
-		return NO_EMIT();
+		return lua.list.make<lua.Statement>();
 	}
 
 	return lua.list.make(
@@ -45,42 +38,7 @@ function transformPropertyDeclaration(
 	if (ts.hasStaticModifier(node)) {
 		return transformProperty(state, node, ptr);
 	}
-	return NO_EMIT();
-}
-
-export function makeConstructor(
-	state: TransformState,
-	nodes: ts.NodeArray<ts.ClassElement>,
-	ptr: Pointer<lua.AnyIdentifier>,
-	originNode?: ts.ConstructorDeclaration,
-) {
-	const statements = lua.list.make<lua.Statement>();
-	nodes
-		.filter((el): el is ts.PropertyDeclaration => ts.isPropertyDeclaration(el) && !ts.hasStaticModifier(el))
-		.forEach(el => lua.list.pushList(statements, transformProperty(state, el, { value: lua.globals.self })));
-
-	let parameters = lua.list.make<lua.AnyIdentifier>();
-	let hasDotDotDot = false;
-	if (originNode) {
-		const {
-			statements: paramStatements,
-			parameters: constructorParams,
-			hasDotDotDot: constructorHasDotDotDot,
-		} = transformParameters(state, originNode);
-		lua.list.pushList(statements, paramStatements);
-		parameters = constructorParams;
-		hasDotDotDot = constructorHasDotDotDot;
-	}
-
-	return lua.list.make<lua.Statement>(
-		lua.create(lua.SyntaxKind.MethodDeclaration, {
-			expression: ptr.value,
-			name: "constructor",
-			statements,
-			parameters,
-			hasDotDotDot,
-		}),
-	);
+	return lua.list.make<lua.Statement>();
 }
 
 function transformConstructorDeclaration(
@@ -88,8 +46,15 @@ function transformConstructorDeclaration(
 	node: ts.ConstructorDeclaration,
 	ptr: Pointer<lua.AnyIdentifier>,
 ) {
-	return makeConstructor(state, node.parent.members, ptr, node);
+	return transformClassConstructor(state, node.parent.members, ptr, node);
 }
+
+const NO_EMIT = () => lua.list.make<lua.Statement>();
+
+const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.ClassElement) => {
+	state.addDiagnostic(factory(node));
+	return NO_EMIT();
+};
 
 const TRANSFORMER_BY_KIND = new Map<
 	ts.SyntaxKind,

@@ -1,18 +1,20 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
-import { transformClassElement } from "TSTransformer/nodes/transformClassElement";
+import { TransformState } from "TSTransformer";
+import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
+import { transformClassElement } from "TSTransformer/nodes/class/transformClassElement";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { makeConstructor } from "TSTransformer/nodes/transformClassElement";
 
-const hasConstructor = (node: ts.ClassLikeDeclaration) =>
-	node.members.some(element => ts.isConstructorDeclaration(element));
+function hasConstructor(node: ts.ClassLikeDeclaration) {
+	return node.members.some(element => ts.isConstructorDeclaration(element));
+}
 
-const needsConstructor = (node: ts.ClassLikeDeclaration) =>
-	node.members.some(element => ts.isPropertyDeclaration(element) && element.initializer);
+function needsConstructor(node: ts.ClassLikeDeclaration) {
+	return node.members.some(element => ts.isPropertyDeclaration(element) && element.initializer);
+}
 
-const createNameFunction = (name: string) =>
-	lua.create(lua.SyntaxKind.FunctionExpression, {
+function createNameFunction(name: string) {
+	return lua.create(lua.SyntaxKind.FunctionExpression, {
 		statements: lua.list.make(
 			lua.create(lua.SyntaxKind.ReturnStatement, {
 				expression: lua.string(name),
@@ -21,6 +23,7 @@ const createNameFunction = (name: string) =>
 		parameters: lua.list.make(),
 		hasDotDotDot: false,
 	});
+}
 
 function createBoilerplate(
 	state: TransformState,
@@ -167,7 +170,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statementsInner = lua.list.make<lua.Statement>();
 	lua.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 	if (!hasConstructor(node) && needsConstructor(node)) {
-		lua.list.pushList(statementsInner, makeConstructor(state, node.members, { value: internalName }));
+		lua.list.pushList(statementsInner, transformClassConstructor(state, node.members, { value: internalName }));
 	}
 	for (const member of node.members) {
 		lua.list.pushList(statementsInner, transformClassElement(state, member, { value: internalName }));
