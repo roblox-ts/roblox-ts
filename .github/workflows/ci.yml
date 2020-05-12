@@ -22,5 +22,17 @@ jobs:
       - name: Run ESLint
         run: npm run eslint
 
+  build:
+    if: contains(github.event.commits[0].message, '[skip ci]') == false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - uses: bahmutov/npm-install@v1
+
       - name: Build
-        run: npm run build
+        run: npm run prepare
