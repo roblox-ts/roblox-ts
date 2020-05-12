@@ -48,7 +48,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.Block, transformBlock],
 	[ts.SyntaxKind.BreakStatement, transformBreakStatement],
 	[ts.SyntaxKind.ClassDeclaration, transformClassDeclaration],
-	[ts.SyntaxKind.ClassExpression, transformClassDeclaration],
 	[ts.SyntaxKind.ContinueStatement, transformContinueStatement],
 	[ts.SyntaxKind.DoStatement, transformDoStatement],
 	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],

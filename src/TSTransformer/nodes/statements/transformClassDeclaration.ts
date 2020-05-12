@@ -130,7 +130,7 @@ function createBoilerplate(
 	return statements;
 }
 
-export function transformClassDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
+function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const statements = lua.list.make<lua.Statement>();
 	/*
 		local className;
@@ -160,5 +160,19 @@ export function transformClassDeclaration(state: TransformState, node: ts.ClassL
 			statements: statementsInner,
 		}),
 	);
+
+	if (ts.isClassExpression(node)) {
+		state.prereqList(statements);
+		return name;
+	}
+	// Must be ClassDeclaration
 	return statements;
+}
+
+export function transformClassExpression(state: TransformState, node: ts.ClassExpression) {
+	return transformClassLikeDeclaration(state, node) as lua.Expression;
+}
+
+export function transformClassDeclaration(state: TransformState, node: ts.ClassDeclaration) {
+	return transformClassLikeDeclaration(state, node) as lua.List<lua.Statement>;
 }

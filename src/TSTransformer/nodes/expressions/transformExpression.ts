@@ -8,6 +8,7 @@ import { transformAsExpression } from "TSTransformer/nodes/expressions/transform
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
+import { transformClassExpression } from "TSTransformer/nodes/statements/transformClassDeclaration";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
 import { transformElementAccessExpression } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
@@ -54,6 +55,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.AwaitExpression, transformAwaitExpression],
 	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
 	[ts.SyntaxKind.CallExpression, transformCallExpression],
+	[ts.SyntaxKind.ClassExpression, transformClassExpression],
 	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
 	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
 	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
