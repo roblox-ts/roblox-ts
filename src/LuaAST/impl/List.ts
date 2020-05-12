@@ -107,11 +107,12 @@ export namespace list {
 		if (list.tail) {
 			const tail = list.tail;
 			if (tail.prev) {
+				list.tail = tail.prev;
 				tail.prev.next = undefined;
 			} else {
 				list.head = undefined;
+				list.tail = undefined;
 			}
-			list.tail = undefined;
 			return tail.value;
 		}
 	}
@@ -121,11 +122,12 @@ export namespace list {
 		if (list.head) {
 			const head = list.head;
 			if (head.next) {
+				list.head = head.next;
 				head.next.prev = undefined;
 			} else {
 				list.tail = undefined;
+				list.head = undefined;
 			}
-			list.head = undefined;
 			return head.value;
 		}
 	}
