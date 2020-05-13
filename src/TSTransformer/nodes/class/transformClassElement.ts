@@ -46,7 +46,11 @@ function transformConstructorDeclaration(
 	node: ts.ConstructorDeclaration,
 	ptr: Pointer<lua.AnyIdentifier>,
 ) {
-	return transformClassConstructor(state, node.parent.members, ptr, node);
+	if (node.body) {
+		return transformClassConstructor(state, node.parent.members, ptr, node);
+	} else {
+		return lua.list.make<lua.Statement>();
+	}
 }
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
