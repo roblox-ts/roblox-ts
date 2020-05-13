@@ -91,6 +91,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		state.addDiagnostic(diagnostics.noExclamationEquals(node));
 		return lua.emptyId();
+	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
+		state.addDiagnostic(diagnostics.noComma(node));
+		return lua.emptyId();
 	}
 
 	// logical

@@ -42,6 +42,7 @@ export const diagnostics = {
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
 	noEqualsEquals: diagnostic("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: diagnostic("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
+	noComma: diagnostic("operator `,` is not supported!"),
 	noEnumMerging: diagnostic("Enum merging is not supported!"),
 	noDotDotDotDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
