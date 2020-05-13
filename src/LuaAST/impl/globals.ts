@@ -11,9 +11,10 @@ function property(id: lua.Identifier, name: string) {
 export const globals = {
 	bit32: lua.id("bit32"),
 	error: lua.id("error"),
+	exports: lua.id("exports"),
 	ipairs: lua.id("ipairs"),
-	pairs: lua.id("pairs"),
 	next: lua.id("next"),
+	pairs: lua.id("pairs"),
 	require: lua.id("require"),
 	script: lua.id("script"),
 	select: lua.id("select"),
