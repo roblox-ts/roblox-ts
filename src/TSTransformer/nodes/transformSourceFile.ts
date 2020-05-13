@@ -67,7 +67,7 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 				expression: lua.globals.exports,
 			}),
 		);
-	} else {
+	} else if (exportPairs.length > 0) {
 		// only regular exports, we can do this as just returning an object at the bottom of the file
 		const fields = lua.list.make<lua.MapField>();
 		for (const [exportKey, exportId] of exportPairs) {
