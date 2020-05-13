@@ -57,10 +57,10 @@ In other words, TS AST -> Lua AST
 - [X] ForStatement
 - [X] ForOfStatement
 - [X] ThrowStatement
-- [ ] ImportDeclaration
-- [ ] ImportEqualsDeclaration
-- [ ] ExportDeclaration
-- [ ] ExportAssignment
+- [X] ImportDeclaration
+- [X] ImportEqualsDeclaration
+- [X] ExportDeclaration
+- [X] ExportAssignment
 - [X] ClassDeclaration
 - [ ] NamespaceDeclaration
 - [X] EnumDeclaration
