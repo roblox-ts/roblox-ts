@@ -17,14 +17,14 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
 }
 
 function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua.List<lua.Statement>) {
-	let hasExportLet = false;
+	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, lua.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
 			if (!!(originalSymbol.flags & ts.SymbolFlags.Value)) {
 				if (isDefinedAsLet(state, originalSymbol)) {
-					hasExportLet = true;
+					mustPushExports = true;
 					continue;
 				}
 				exportPairs.push(getExportPair(state, exportSymbol));
@@ -40,8 +40,8 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 				expression: lua.globals.exports,
 			}),
 		);
-	} else if (hasExportLet) {
-		// if there's an export let, we need to put `local exports = {}` at the top of the file and return it at the end
+	} else if (mustPushExports) {
+		// if there's an export let/from, we need to put `local exports = {}` at the top of the file
 		lua.list.unshift(
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {

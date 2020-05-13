@@ -15,8 +15,8 @@ const RUNTIME_LIB_ID = lua.id("TS");
 export class TransformState {
 	private readonly sourceFileText: string;
 	public readonly diagnostics = new Array<ts.Diagnostic>();
-	public hasExports = false;
 	public hasExportEquals = false;
+	public hasExportFrom = false;
 
 	public addDiagnostic(diagnostic: ts.Diagnostic) {
 		this.diagnostics.push(diagnostic);
