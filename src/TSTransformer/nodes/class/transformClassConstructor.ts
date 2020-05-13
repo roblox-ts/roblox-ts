@@ -1,9 +1,12 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { Pointer } from "Shared/types";
+import { assert } from "Shared/util/assert";
 import { transformClassProperty } from "TSTransformer/nodes/class/transformClassProperty";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { TransformState } from "TSTransformer/TransformState";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getStatements } from "TSTransformer/util/getStatements";
 
 export function transformClassConstructor(
 	state: TransformState,
@@ -27,6 +30,8 @@ export function transformClassConstructor(
 		lua.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
+		assert(originNode.body);
+		lua.list.pushList(statements, transformStatementList(state, getStatements(originNode.body)));
 	}
 
 	return lua.list.make<lua.Statement>(
