@@ -380,12 +380,14 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		const args = ensureTransformOrder(state, node.arguments);
 
-		const sizeId = state.pushToVar(
-			lua.create(lua.SyntaxKind.UnaryExpression, {
-				operator: "#",
-				expression,
-			}),
-		);
+		let sizeExp: lua.Expression = lua.create(lua.SyntaxKind.UnaryExpression, {
+			operator: "#",
+			expression,
+		});
+
+		if (args.length > 1) {
+			sizeExp = state.pushToVar(sizeExp);
+		}
 
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
@@ -394,9 +396,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						expression: convertToIndexableExpression(expression),
 						index:
 							i == 0
-								? sizeId
+								? sizeExp
 								: lua.create(lua.SyntaxKind.BinaryExpression, {
-										left: sizeId,
+										left: sizeExp,
 										operator: "+",
 										right: lua.number(i),
 								  }),
@@ -410,7 +412,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		if (!isUsedAsStatement(node)) {
 			return lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: sizeId,
+				left: sizeExp,
 				operator: "+",
 				right: lua.number(args.length),
 			});
