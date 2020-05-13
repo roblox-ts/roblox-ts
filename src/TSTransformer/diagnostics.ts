@@ -51,7 +51,7 @@ export const diagnostics = {
 	noDestructureAssignmentExpression: diagnostic(
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),
-	noExportAssignmentLet: diagnostic("Cannot use `export =` on a `let` variable!"),
+	noExportAssignmentLet: diagnostic("Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
 	noExportLetAlias: diagnostic("Exports defined with `let` cannot use aliases!"),
 
 	// macro methods

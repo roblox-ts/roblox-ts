@@ -1,11 +1,11 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { TransformState } from "TSTransformer/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { getModuleAncestor } from "TSTransformer/util/traversal";
 
 function countImportExpUses(exportClause?: ts.NamespaceExport | ts.NamedExports) {
 	let uses = 0;
@@ -96,6 +96,10 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		);
 	}
 
+	if (getModuleAncestor(node) === state.sourceFile) {
+		state.hasExports = true;
+	}
+
 	return statements;
 }
 
@@ -131,6 +135,10 @@ export function transformExportDeclaration(state: TransformState, node: ts.Expor
 				}),
 			);
 		}
+	}
+
+	if (getModuleAncestor(node) === state.sourceFile) {
+		state.hasExports = true;
 	}
 
 	return statements;

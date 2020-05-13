@@ -4,11 +4,21 @@ import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { getModuleAncestor } from "TSTransformer/util/traversal";
 
 function transformExportEquals(state: TransformState, node: ts.ExportAssignment) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
 	if (symbol && isDefinedAsLet(state, symbol)) {
 		state.addDiagnostic(diagnostics.noExportAssignmentLet(node));
+	}
+
+	if (symbol && !!(symbol.flags & ts.SymbolFlags.Type)) {
+		return lua.list.make<lua.Statement>();
+	}
+
+	if (getModuleAncestor(node) === state.sourceFile) {
+		state.hasExports = true;
+		state.hasExportEquals = true;
 	}
 
 	return lua.list.make<lua.Statement>(
@@ -20,6 +30,15 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 }
 
 function transformExportDefault(state: TransformState, node: ts.ExportAssignment) {
+	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
+	if (symbol && !!(symbol.flags & ts.SymbolFlags.Type)) {
+		return lua.list.make<lua.Statement>();
+	}
+
+	if (getModuleAncestor(node) === state.sourceFile) {
+		state.hasExports = true;
+	}
+
 	return lua.list.make<lua.Statement>(
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {

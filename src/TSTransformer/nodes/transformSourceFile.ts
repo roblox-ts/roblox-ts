@@ -11,25 +11,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 
 	const statements = transformStatementList(state, node.statements);
 
-	let hasExports = false;
-	let hasExportEquals = false;
-	for (const statement of node.statements) {
-		if (ts.isExportAssignment(statement)) {
-			hasExports = true;
-			if (statement.isExportEquals) {
-				hasExportEquals = true;
-			}
-		} else if (ts.isExportDeclaration(statement) && !statement.isTypeOnly) {
-			hasExports = true;
-		}
-		// this is safe because export equals cannot co-exist with other non-isTypeOnly exports
-		if (hasExports) {
-			break;
-		}
-	}
-
-	if (hasExports) {
-		if (!hasExportEquals) {
+	if (state.hasExports) {
+		if (!state.hasExportEquals) {
 			lua.list.unshift(
 				statements,
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
