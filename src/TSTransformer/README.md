@@ -36,9 +36,9 @@ In other words, TS AST -> Lua AST
 - [X] TaggedTemplateExpression
 - [X] AwaitExpression
 - [X] SpreadElement
-- [ ] ClassExpression
+- [X] ClassExpression
 - [X] OmittedExpression
-- [ ] ThisExpression
+- [X] ThisExpression
 - [ ] SuperExpression
 - [ ] JsxSelfClosingElement
 - [ ] JsxExpression
@@ -61,7 +61,7 @@ In other words, TS AST -> Lua AST
 - [ ] ImportEqualsDeclaration
 - [ ] ExportDeclaration
 - [ ] ExportAssignment
-- [ ] ClassDeclaration
+- [X] ClassDeclaration
 - [ ] NamespaceDeclaration
 - [X] EnumDeclaration
 - [X] SwitchStatement
