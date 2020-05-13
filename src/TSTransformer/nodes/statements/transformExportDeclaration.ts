@@ -110,12 +110,11 @@ export function transformExportDeclaration(state: TransformState, node: ts.Expor
 		return transformExportFrom(state, node);
 	}
 
-	const statements = lua.list.make<lua.Statement>();
-
 	const exportClause = node.exportClause;
 	assert(exportClause && ts.isNamedExports(exportClause));
 
 	const exportId = state.getModuleIdFromNode(node);
+	const statements = lua.list.make<lua.Statement>();
 
 	// export { a, b, c };
 	for (const element of exportClause.elements) {
@@ -137,7 +136,7 @@ export function transformExportDeclaration(state: TransformState, node: ts.Expor
 		}
 	}
 
-	if (getModuleAncestor(node) === state.sourceFile) {
+	if (exportClause.elements.length > 0 && getModuleAncestor(node) === state.sourceFile) {
 		state.hasExports = true;
 	}
 
