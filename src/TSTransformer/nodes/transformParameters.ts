@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
@@ -58,6 +59,21 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 					state.statement(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
 				);
 			}
+		}
+
+		// parameter property
+		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
+			assert(lua.isIdentifier(paramId));
+			lua.list.push(
+				statements,
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression: lua.globals.self,
+						name: paramId.name,
+					}),
+					right: paramId,
+				}),
+			);
 		}
 	}
 
