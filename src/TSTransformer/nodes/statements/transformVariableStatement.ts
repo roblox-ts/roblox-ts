@@ -9,7 +9,8 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { getAncestorStatement, isAncestorOf } from "TSTransformer/util/nodeTraversal";
+import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 
 function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
@@ -17,7 +18,7 @@ function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: 
 		return;
 	}
 
-	const statement = getAncestorStatement(node);
+	const statement = getAncestor(node, ts.isStatement);
 	if (!statement) {
 		return;
 	}
@@ -48,9 +49,24 @@ function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: 
 }
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: lua.Expression) {
-	return state.capturePrereqs(() => {
+	return state.capture(() => {
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 		assert(symbol);
+
+		const sourceFileSymbol = state.typeChecker.getSymbolAtLocation(state.sourceFile);
+		assert(sourceFileSymbol);
+
+		// export let
+		if (isDefinedAsLet(state, symbol)) {
+			const exportAccess = state.getModuleIdPropertyAccess(symbol, identifier);
+			if (exportAccess) {
+				if (right) {
+					state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: exportAccess, right }));
+				}
+				return exportAccess;
+			}
+		}
+
 		const left = transformIdentifierDefined(state, identifier);
 		checkVariableHoist(state, identifier, symbol);
 		if (state.isHoisted.get(symbol) === true) {
@@ -61,6 +77,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		} else {
 			state.prereq(lua.create(lua.SyntaxKind.VariableDeclaration, { left, right }));
 		}
+
 		return left;
 	});
 }
@@ -70,9 +87,9 @@ function transformLuaTupleDestructure(
 	bindingPattern: ts.ArrayBindingPattern,
 	value: lua.Expression,
 ) {
-	return state.statement(() => {
+	return state.capturePrereqs(() => {
 		const ids = lua.list.make<lua.AnyIdentifier>();
-		const statements = state.statement(() => {
+		const statements = state.capturePrereqs(() => {
 			for (const element of bindingPattern.elements) {
 				if (ts.isOmittedExpression(element)) {
 					lua.list.push(ids, lua.emptyId());
@@ -102,12 +119,7 @@ function transformLuaTupleDestructure(
 				}
 			}
 		});
-		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: ids,
-				right: value,
-			}),
-		);
+		state.prereq(lua.create(lua.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		state.prereqList(statements);
 	});
 }
@@ -130,10 +142,10 @@ export function transformVariableDeclaration(
 				return transformLuaTupleDestructure(state, name, value);
 			}
 			const id = state.pushToVar(value);
-			return state.statement(() => transformArrayBindingPattern(state, name, id));
+			return state.capturePrereqs(() => transformArrayBindingPattern(state, name, id));
 		} else {
 			const id = state.pushToVar(value);
-			return state.statement(() => transformObjectBindingPattern(state, name, id));
+			return state.capturePrereqs(() => transformObjectBindingPattern(state, name, id));
 		}
 	}
 }

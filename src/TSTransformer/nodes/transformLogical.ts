@@ -40,7 +40,7 @@ function getLogicalChain(
 ): Array<LogicalChainItem> {
 	return flattenByOperator(node, binaryOperatorKind).map((original, index, array) => {
 		const type = state.getType(original);
-		const { expression, statements } = state.capturePrereqs(() => transformExpression(state, original));
+		const { expression, statements } = state.capture(() => transformExpression(state, original));
 		let inline = false;
 		if (enableInlining) {
 			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(state, type);
@@ -72,7 +72,7 @@ function buildLogicalChainPrereqs(
 		state.prereq(
 			lua.create(lua.SyntaxKind.IfStatement, {
 				condition: buildCondition(conditionId, expInfo.type),
-				statements: state.statement(() =>
+				statements: state.capturePrereqs(() =>
 					buildLogicalChainPrereqs(state, chain, conditionId, buildCondition, index + 1),
 				),
 				elseBody: lua.list.make(),

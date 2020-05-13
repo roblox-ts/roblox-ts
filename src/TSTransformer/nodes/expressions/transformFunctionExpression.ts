@@ -17,9 +17,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	if (ts.isFunctionBody(body)) {
 		lua.list.pushList(statements, transformStatementList(state, body.statements));
 	} else {
-		const { expression, statements: expressionPrereqs } = state.capturePrereqs(() =>
-			transformExpression(state, body),
-		);
+		const { expression, statements: expressionPrereqs } = state.capture(() => transformExpression(state, body));
 		lua.list.pushList(statements, expressionPrereqs);
 		lua.list.push(
 			statements,

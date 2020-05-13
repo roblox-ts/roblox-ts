@@ -2,7 +2,6 @@ import ts from "byots";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
-import { hasTypeFlag } from "TSTransformer/util/types";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];
@@ -18,7 +17,7 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	if (ts.isFunctionLike(node)) {
 		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
-			return !hasTypeFlag(state.getType(thisParam).flags, ts.TypeFlags.Void);
+			return !(state.getType(thisParam).flags & ts.TypeFlags.Void);
 		} else {
 			return ts.isMethodDeclaration(node) || ts.isMethodSignature(node);
 		}

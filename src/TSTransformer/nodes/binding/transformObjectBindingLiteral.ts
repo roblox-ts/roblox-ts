@@ -8,7 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
-import { skipDownwards } from "TSTransformer/util/nodeTraversal";
+import { skipDownwards } from "TSTransformer/util/traversal";
 
 export function transformObjectBindingLiteral(
 	state: TransformState,

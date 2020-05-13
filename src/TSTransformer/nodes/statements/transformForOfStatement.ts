@@ -1,15 +1,15 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer";
-import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { getStatements } from "TSTransformer/util/getStatements";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { assert } from "Shared/util/assert";
-import { isArrayType, isSetType, isMapType, isStringType } from "TSTransformer/util/types";
+import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getStatements } from "TSTransformer/util/getStatements";
+import { isArrayType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
 
 function processBindingName(state: TransformState, name: ts.BindingName, initializers: lua.List<lua.Statement>) {
 	let id: lua.AnyIdentifier;
@@ -19,7 +19,7 @@ function processBindingName(state: TransformState, name: ts.BindingName, initial
 		id = lua.tempId();
 		lua.list.pushList(
 			initializers,
-			state.statement(() => {
+			state.capturePrereqs(() => {
 				if (ts.isArrayBindingPattern(name)) {
 					transformArrayBindingPattern(state, name, id);
 				} else {
@@ -155,7 +155,7 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 
 	const result = lua.list.make<lua.Statement>();
 
-	const { expression: innerExp, statements: innerExpPrereqs } = state.capturePrereqs(() =>
+	const { expression: innerExp, statements: innerExpPrereqs } = state.capture(() =>
 		transformExpression(state, node.expression),
 	);
 	lua.list.pushList(result, innerExpPrereqs);

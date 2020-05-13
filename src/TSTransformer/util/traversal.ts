@@ -30,9 +30,18 @@ export function skipUpwards(node: ts.Node) {
 	return node;
 }
 
-export function getAncestorStatement(node: ts.Node): ts.Statement | undefined {
-	while (node && !ts.isStatement(node)) {
-		node = node.parent;
+export function getAncestor<T extends ts.Node>(node: ts.Node, check: (value: ts.Node) => value is T): T | undefined {
+	let current: ts.Node | undefined = node;
+	while (current && !check(current)) {
+		current = current.parent;
 	}
-	return node;
+	return current;
+}
+
+function isSourceFileOrModuleDeclaration(node: ts.Node): node is ts.SourceFile | ts.ModuleDeclaration {
+	return ts.isSourceFile(node) || ts.isModuleDeclaration(node);
+}
+
+export function getModuleAncestor(node: ts.Node) {
+	return getAncestor(node, isSourceFileOrModuleDeclaration)!;
 }

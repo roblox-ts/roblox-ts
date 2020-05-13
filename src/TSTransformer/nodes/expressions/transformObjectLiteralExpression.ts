@@ -23,8 +23,8 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	const left = state.capturePrereqs(() => transformObjectKey(state, name));
-	const right = state.capturePrereqs(() => transformExpression(state, initializer));
+	const left = state.capture(() => transformObjectKey(state, name));
+	const right = state.capture(() => transformExpression(state, initializer));
 
 	if (!lua.list.isEmpty(left.statements) || !lua.list.isEmpty(right.statements)) {
 		disableInline(state, ptr);

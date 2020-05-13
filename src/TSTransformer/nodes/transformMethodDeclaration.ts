@@ -46,7 +46,7 @@ export function transformMethodDeclaration(
 	}
 
 	// We have to use `class[name] = function()`
-	return state.statement(() =>
+	return state.capturePrereqs(() =>
 		assignToPointer(
 			state,
 			ptr,

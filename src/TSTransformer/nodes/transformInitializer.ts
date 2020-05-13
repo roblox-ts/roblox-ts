@@ -11,7 +11,7 @@ export function transformInitializer(state: TransformState, id: lua.WritableExpr
 			right: lua.nil(),
 		}),
 		elseBody: lua.list.make(),
-		statements: state.statement(() => {
+		statements: state.capturePrereqs(() => {
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: id,

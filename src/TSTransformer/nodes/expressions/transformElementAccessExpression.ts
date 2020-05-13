@@ -28,9 +28,7 @@ export function transformElementAccessExpressionInner(
 		return lua.emptyId();
 	}
 
-	const { expression: index, statements } = state.capturePrereqs(() =>
-		transformExpression(state, argumentExpression),
-	);
+	const { expression: index, statements } = state.capture(() => transformExpression(state, argumentExpression));
 
 	const expType = state.getType(node.expression);
 	if (!lua.list.isEmpty(statements)) {

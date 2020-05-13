@@ -9,7 +9,9 @@ export function transformStatementList(state: TransformState, statements: Readon
 
 	for (const statement of statements) {
 		let transformedStatements!: lua.List<lua.Statement>;
-		const prereqStatements = state.statement(() => (transformedStatements = transformStatement(state, statement)));
+		const prereqStatements = state.capturePrereqs(
+			() => (transformedStatements = transformStatement(state, statement)),
+		);
 
 		// comments
 		for (const comment of state.getLeadingComments(statement)) {

@@ -5,7 +5,8 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "TSTransformer/diagnostics";
 import { isBlockLike } from "TSTransformer/typeGuards";
-import { getAncestorStatement, skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {
@@ -32,7 +33,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 		return;
 	}
 
-	const declarationStatement = getAncestorStatement(declaration);
+	const declarationStatement = getAncestor(declaration, ts.isStatement);
 	if (!declarationStatement || ts.isForStatement(declarationStatement) || ts.isForOfStatement(declarationStatement)) {
 		return;
 	}
@@ -85,6 +86,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	if (!ts.isCallExpression(skipUpwards(node).parent) && state.macroManager.getCallMacro(symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return lua.emptyId();
+	}
+
+	// exit here for export let so we don't check hoist later
+	if (symbol.valueDeclaration && symbol.valueDeclaration.getSourceFile() === state.sourceFile) {
+		const exportAccess = state.getModuleIdPropertyAccess(symbol, node);
+		if (exportAccess && isDefinedAsLet(state, symbol)) {
+			return exportAccess;
+		}
 	}
 
 	checkIdentifierHoist(state, node, symbol);

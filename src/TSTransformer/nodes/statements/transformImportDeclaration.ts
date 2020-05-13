@@ -5,6 +5,21 @@ import { transformVariable } from "TSTransformer/nodes/statements/transformVaria
 import { TransformState } from "TSTransformer/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 
+function countImportExpUses(importClause: ts.ImportClause) {
+	let uses = 0;
+	if (importClause.name) {
+		uses++;
+	}
+	if (importClause.namedBindings) {
+		if (ts.isNamespaceImport(importClause.namedBindings)) {
+			uses++;
+		} else {
+			uses += importClause.namedBindings.elements.length;
+		}
+	}
+	return uses;
+}
+
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	assert(ts.isStringLiteral(node.moduleSpecifier));
 
@@ -31,17 +46,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	const namedBindings = importClause.namedBindings;
 
 	// detect if we need to push to a new var or not
-	let uses = 0;
-	if (defaultImport) {
-		uses++;
-	}
-	if (namedBindings) {
-		if (ts.isNamespaceImport(namedBindings)) {
-			uses++;
-		} else {
-			uses += namedBindings.elements.length;
-		}
-	}
+	const uses = countImportExpUses(importClause);
 	if (uses > 1) {
 		const importId = lua.tempId();
 		lua.list.push(

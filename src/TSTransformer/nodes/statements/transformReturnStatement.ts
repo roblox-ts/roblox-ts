@@ -2,7 +2,7 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { skipDownwards } from "TSTransformer/util/nodeTraversal";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: lua.Expression) {

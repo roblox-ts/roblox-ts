@@ -51,12 +51,12 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 			if (ts.isArrayBindingPattern(bindingPattern)) {
 				lua.list.pushList(
 					statements,
-					state.statement(() => transformArrayBindingPattern(state, bindingPattern, paramId)),
+					state.capturePrereqs(() => transformArrayBindingPattern(state, bindingPattern, paramId)),
 				);
 			} else {
 				lua.list.pushList(
 					statements,
-					state.statement(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
+					state.capturePrereqs(() => transformObjectBindingPattern(state, bindingPattern, paramId)),
 				);
 			}
 		}

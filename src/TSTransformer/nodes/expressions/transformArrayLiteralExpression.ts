@@ -71,7 +71,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				updateLengthId();
 			}
 		} else {
-			const { expression, statements } = state.capturePrereqs(() => transformExpression(state, element));
+			const { expression, statements } = state.capture(() => transformExpression(state, element));
 			if (lua.isArray(exp) && !lua.list.isEmpty(statements)) {
 				exp = state.pushToVar(exp);
 				updateLengthId();

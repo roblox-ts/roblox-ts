@@ -9,7 +9,7 @@ import {
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createAssignmentStatement, createCompoundAssignmentStatement } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
-import { skipDownwards } from "TSTransformer/util/nodeTraversal";
+import { skipDownwards } from "TSTransformer/util/traversal";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,

@@ -19,7 +19,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 	const id = transformIdentifierDefined(state, node.name);
 
-	const statements = state.statement(() => {
+	const statements = state.capturePrereqs(() => {
 		const inverseId = state.pushToVar(lua.map());
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {

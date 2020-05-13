@@ -17,7 +17,7 @@ import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
-import { skipDownwards } from "TSTransformer/util/nodeTraversal";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 
 function transformLuaTupleDestructure(
@@ -28,7 +28,7 @@ function transformLuaTupleDestructure(
 ) {
 	let index = 0;
 	const writes = lua.list.make<lua.WritableExpression>();
-	const statements = state.statement(() => {
+	const statements = state.capturePrereqs(() => {
 		for (let element of bindingLiteral.elements) {
 			if (ts.isOmittedExpression(element)) {
 				lua.list.push(writes, lua.emptyId());

@@ -16,9 +16,7 @@ function footer(text: string) {
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
-		const { expression: right, statements } = state.capturePrereqs(() =>
-			transformExpression(state, node.arguments[0]),
-		);
+		const { expression: right, statements } = state.capture(() => transformExpression(state, node.arguments[0]));
 		const left = lua.list.isEmpty(statements) ? expression : state.pushToVar(expression);
 		state.prereqList(statements);
 		return lua.create(lua.SyntaxKind.BinaryExpression, {

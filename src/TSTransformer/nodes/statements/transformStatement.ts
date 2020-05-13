@@ -9,6 +9,8 @@ import { transformClassDeclaration } from "TSTransformer/nodes/statements/transf
 import { transformContinueStatement } from "TSTransformer/nodes/statements/transformContinueStatement";
 import { transformDoStatement } from "TSTransformer/nodes/statements/transformDoStatement";
 import { transformEnumDeclaration } from "TSTransformer/nodes/statements/transformEnumDeclaration";
+import { transformExportAssignment } from "TSTransformer/nodes/statements/transformExportAssignment";
+import { transformExportDeclaration } from "TSTransformer/nodes/statements/transformExportDeclaration";
 import { transformExpressionStatement } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { transformForOfStatement } from "TSTransformer/nodes/statements/transformForOfStatement";
 import { transformForStatement } from "TSTransformer/nodes/statements/transformForStatement";
@@ -36,7 +38,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// no emit
 	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
 	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
-	[ts.SyntaxKind.ExportDeclaration, NO_EMIT], // TODO remove this when we support ExportDeclaration
 
 	// banned statements
 	[ts.SyntaxKind.TryStatement, DIAGNOSTIC(diagnostics.noTryStatement)],
@@ -51,6 +52,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.ContinueStatement, transformContinueStatement],
 	[ts.SyntaxKind.DoStatement, transformDoStatement],
 	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],
+	[ts.SyntaxKind.ExportAssignment, transformExportAssignment],
+	[ts.SyntaxKind.ExportDeclaration, transformExportDeclaration],
 	[ts.SyntaxKind.ExpressionStatement, transformExpressionStatement],
 	[ts.SyntaxKind.ForOfStatement, transformForOfStatement],
 	[ts.SyntaxKind.ForStatement, transformForStatement],

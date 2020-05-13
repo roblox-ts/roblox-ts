@@ -9,7 +9,7 @@ import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
-import { skipUpwards } from "TSTransformer/util/nodeTraversal";
+import { skipUpwards } from "TSTransformer/util/traversal";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));

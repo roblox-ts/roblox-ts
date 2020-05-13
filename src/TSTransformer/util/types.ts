@@ -2,10 +2,6 @@ import ts from "byots";
 import { SYMBOL_NAMES } from "TSTransformer";
 import { TransformState } from "TSTransformer/TransformState";
 
-export function hasTypeFlag(flags: ts.TypeFlags, flagToCheck: ts.TypeFlags) {
-	return (flags & flagToCheck) === flagToCheck;
-}
-
 function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
 		return type.types.every(t => typeConstraint(t, callback));
@@ -66,9 +62,9 @@ export function isNumberType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
-			hasTypeFlag(t.flags, ts.TypeFlags.Number) ||
-			hasTypeFlag(t.flags, ts.TypeFlags.NumberLike) ||
-			hasTypeFlag(t.flags, ts.TypeFlags.NumberLiteral),
+			!!(t.flags & ts.TypeFlags.Number) ||
+			!!(t.flags & ts.TypeFlags.NumberLike) ||
+			!!(t.flags & ts.TypeFlags.NumberLiteral),
 	);
 }
 
@@ -76,9 +72,9 @@ export function isStringType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
-			hasTypeFlag(t.flags, ts.TypeFlags.String) ||
-			hasTypeFlag(t.flags, ts.TypeFlags.StringLike) ||
-			hasTypeFlag(t.flags, ts.TypeFlags.StringLiteral),
+			!!(t.flags & ts.TypeFlags.String) ||
+			!!(t.flags & ts.TypeFlags.StringLike) ||
+			!!(t.flags & ts.TypeFlags.StringLiteral),
 	);
 }
 
@@ -105,7 +101,7 @@ export function isDoubleDecrementedIterableFunctionType(state: TransformState, t
 }
 
 export function isObjectType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => hasTypeFlag(t.flags, ts.TypeFlags.Object));
+	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.Object));
 }
 
 export function getTypeArguments(state: TransformState, type: ts.Type) {

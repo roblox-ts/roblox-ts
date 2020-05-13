@@ -50,7 +50,7 @@ export function transformWritableAssignment(
 	multipleUse: boolean,
 ) {
 	const writable = transformWritableExpression(state, writeNode, multipleUse);
-	const { statements: valueStatements, expression: value } = state.capturePrereqs(() =>
+	const { statements: valueStatements, expression: value } = state.capture(() =>
 		transformExpression(state, valueNode),
 	);
 	const readable = lua.list.isEmpty(valueStatements) ? writable : state.pushToVar(writable);

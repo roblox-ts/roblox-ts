@@ -1,19 +1,19 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { PathTranslator } from "Shared/PathTranslator";
-import { RojoConfig, RbxPath } from "Shared/RojoConfig";
+import { RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";
 import { CompileState, MacroManager } from "TSTransformer";
-import { skipUpwards } from "TSTransformer/util/nodeTraversal";
-import originalTS from "typescript";
 import { createGetService } from "TSTransformer/util/createGetService";
+import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import originalTS from "typescript";
 
 const RUNTIME_LIB_ID = lua.id("TS");
 
 export class TransformState {
 	private readonly sourceFileText: string;
-
 	public readonly diagnostics = new Array<ts.Diagnostic>();
 
 	public addDiagnostic(diagnostic: ts.Diagnostic) {
@@ -54,19 +54,6 @@ export class TransformState {
 		return poppedValue;
 	}
 
-	public capturePrereqs(callback: () => lua.Expression) {
-		let expression!: lua.Expression;
-		const statements = this.statement(() => (expression = callback()));
-		return { expression, statements };
-	}
-
-	public noPrereqs(callback: () => lua.Expression) {
-		let expression!: lua.Expression;
-		const statements = this.statement(() => (expression = callback()));
-		assert(lua.list.isEmpty(statements));
-		return expression;
-	}
-
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return commentRanges
@@ -83,22 +70,28 @@ export class TransformState {
 	}
 
 	/**
-	 * Used to create a "synthetic" `lua.Statement`
-	 *
-	 * This could be:
-	 * - a `lua.Statement` that does not come from a `ts.Statement` AND contains transformations from `ts.Expression`s
-	 * - a `ts.Statement` that transforms into multiple `lua.Statement`s
-	 *
-	 * This function will:
-	 * - push prereqStatementsStack
-	 * - call `callback`
-	 * - pop prereqStatementsStack
-	 * - return prereq statements
+	 * Returns the prerequisite statements created by `callback`
 	 */
-	public statement(callback: () => void) {
+	public capturePrereqs(callback: () => void) {
 		this.pushPrereqStatementsStack();
 		callback();
 		return this.popPrereqStatementsStack();
+	}
+
+	/**
+	 * Returns the expression and prerequisite statements created by `callback`
+	 */
+	public capture(callback: () => lua.Expression) {
+		let expression!: lua.Expression;
+		const statements = this.capturePrereqs(() => (expression = callback()));
+		return { expression, statements };
+	}
+
+	public noPrereqs(callback: () => lua.Expression) {
+		let expression!: lua.Expression;
+		const statements = this.capturePrereqs(() => (expression = callback()));
+		assert(lua.list.isEmpty(statements));
+		return expression;
 	}
 
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
@@ -162,10 +155,50 @@ export class TransformState {
 		return this.pushToVar(expression);
 	}
 
-	public pushToVarIfNonId(expression: lua.Expression) {
-		if (lua.isAnyIdentifier(expression)) {
-			return expression;
+	private getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
+		return getOrSetDefault(this.compileState.getModuleExportsAliasMapCache, moduleSymbol, () => {
+			const aliasMap = new Map<ts.Symbol, string>();
+			for (const symbol of this.typeChecker.getExportsOfModule(moduleSymbol)) {
+				const declaration = symbol.getDeclarations()?.[0];
+				assert(declaration && ts.isExportSpecifier(declaration));
+				aliasMap.set(ts.skipAlias(symbol, this.typeChecker), declaration.name.text);
+			}
+			return aliasMap;
+		});
+	}
+
+	private getModuleSymbolFromNode(node: ts.Node) {
+		const exportSymbol = this.typeChecker.getSymbolAtLocation(getModuleAncestor(node));
+		assert(exportSymbol);
+		return exportSymbol;
+	}
+
+	private readonly moduleIdBySymbol = new Map<ts.Symbol, lua.Identifier>();
+
+	private getModuleIdFromSymbol(moduleSymbol: ts.Symbol) {
+		const moduleId = this.moduleIdBySymbol.get(moduleSymbol);
+		assert(moduleId);
+		return moduleId;
+	}
+
+	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.Identifier) {
+		this.moduleIdBySymbol.set(moduleSymbol, moduleId);
+	}
+
+	public getModuleIdFromNode(node: ts.Node) {
+		const moduleSymbol = this.getModuleSymbolFromNode(node);
+		return this.getModuleIdFromSymbol(moduleSymbol);
+	}
+
+	public getModuleIdPropertyAccess(idSymbol: ts.Symbol, identifier: ts.Identifier) {
+		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
+		const moduleId = this.getModuleIdFromSymbol(moduleSymbol);
+		const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
+		if (alias) {
+			return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				expression: moduleId,
+				name: alias,
+			});
 		}
-		return this.pushToVar(expression);
 	}
 }

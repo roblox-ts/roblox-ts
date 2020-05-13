@@ -9,7 +9,7 @@ import { getStatements } from "TSTransformer/util/getStatements";
 export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
 	const statements = transformStatementList(state, getStatements(node.statement));
 
-	const { expression: condition, statements: conditionPrereqs } = state.capturePrereqs(() =>
+	const { expression: condition, statements: conditionPrereqs } = state.capture(() =>
 		createTruthinessChecks(state, transformExpression(state, node.expression), state.getType(node.expression)),
 	);
 

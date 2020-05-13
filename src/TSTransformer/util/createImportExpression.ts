@@ -55,7 +55,7 @@ export function createImportExpression(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.StringLiteral,
-) {
+): lua.IndexableExpression {
 	const sourceRbxPath = state.rojoConfig.getRbxPathFromFilePath(state.pathTranslator.getOutPath(sourceFile.fileName));
 	if (!sourceRbxPath) {
 		state.addDiagnostic(diagnostics.noRojoData(sourceFile));

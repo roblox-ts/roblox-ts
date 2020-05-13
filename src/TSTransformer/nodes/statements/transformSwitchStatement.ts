@@ -12,7 +12,7 @@ function transformCaseClauseExpression(
 	fallThroughFlagId: lua.TemporaryIdentifier,
 	canFallThroughTo: boolean,
 ) {
-	const capturePrereqsResult = state.capturePrereqs(() => transformExpression(state, caseClauseExpression));
+	const capturePrereqsResult = state.capture(() => transformExpression(state, caseClauseExpression));
 	let { statements: prereqStatements } = capturePrereqsResult;
 	const { expression } = capturePrereqsResult;
 

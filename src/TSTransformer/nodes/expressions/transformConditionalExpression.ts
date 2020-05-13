@@ -20,7 +20,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		state.getType(node.condition),
 	);
 
-	const statements = state.statement(() => {
+	const statements = state.capturePrereqs(() => {
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: tempId,
@@ -29,7 +29,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		);
 	});
 
-	const elseBody = state.statement(() => {
+	const elseBody = state.capturePrereqs(() => {
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: tempId,
