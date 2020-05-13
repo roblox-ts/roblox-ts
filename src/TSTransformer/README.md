@@ -10,7 +10,7 @@ In other words, TS AST -> Lua AST
 - [X] Method Call Detection
 - [X] Variable/Function Hoisting
 - [x] Destructuring
-- [ ] Module Resolution (+ Rojo project)
+- [X] Module Resolution (+ Rojo project)
 - [X] LuaTuple<T> Support
 
 ### Expressions
