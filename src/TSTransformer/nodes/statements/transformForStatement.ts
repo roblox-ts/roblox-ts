@@ -80,18 +80,18 @@ function getOptimizedForStatement(
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement) {
-	if (node.initializer && node.condition && node.incrementor) {
-		const optimized = getOptimizedForStatement(
-			state,
-			node.initializer,
-			node.condition,
-			node.incrementor,
-			node.statement,
-		);
-		if (optimized) {
-			return lua.list.make(optimized);
-		}
-	}
+	// if (node.initializer && node.condition && node.incrementor) {
+	// 	const optimized = getOptimizedForStatement(
+	// 		state,
+	// 		node.initializer,
+	// 		node.condition,
+	// 		node.incrementor,
+	// 		node.statement,
+	// 	);
+	// 	if (optimized) {
+	// 		return lua.list.make(optimized);
+	// 	}
+	// }
 
 	const statements = lua.list.make<lua.Statement>();
 
