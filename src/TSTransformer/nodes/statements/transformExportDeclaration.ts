@@ -5,7 +5,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { TransformState } from "TSTransformer/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
-import { getModuleAncestor } from "TSTransformer/util/traversal";
 
 function countImportExpUses(exportClause?: ts.NamespaceExport | ts.NamedExports) {
 	let uses = 0;
@@ -96,10 +95,6 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		);
 	}
 
-	if (getModuleAncestor(node) === state.sourceFile) {
-		state.hasExports = true;
-	}
-
 	return statements;
 }
 
@@ -110,35 +105,33 @@ export function transformExportDeclaration(state: TransformState, node: ts.Expor
 		return transformExportFrom(state, node);
 	}
 
-	const exportClause = node.exportClause;
-	assert(exportClause && ts.isNamedExports(exportClause));
+	return lua.list.make<lua.Statement>();
 
-	const exportId = state.getModuleIdFromNode(node);
-	const statements = lua.list.make<lua.Statement>();
+	// const exportClause = node.exportClause;
+	// assert(exportClause && ts.isNamedExports(exportClause));
 
-	// export { a, b, c };
-	for (const element of exportClause.elements) {
-		element.propertyName;
-		const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
-		assert(aliasSymbol);
-		const symbol = ts.skipAlias(aliasSymbol, state.typeChecker);
-		if (!isDefinedAsLet(state, symbol)) {
-			lua.list.push(
-				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression: exportId,
-						name: element.name.text,
-					}),
-					right: transformIdentifierDefined(state, element.propertyName ?? element.name),
-				}),
-			);
-		}
-	}
+	// const exportId = state.getModuleIdFromNode(node);
+	// const statements = lua.list.make<lua.Statement>();
 
-	if (exportClause.elements.length > 0 && getModuleAncestor(node) === state.sourceFile) {
-		state.hasExports = true;
-	}
+	// // export { a, b, c };
+	// for (const element of exportClause.elements) {
+	// 	element.propertyName;
+	// 	const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
+	// 	assert(aliasSymbol);
+	// 	const symbol = ts.skipAlias(aliasSymbol, state.typeChecker);
+	// 	if (!isDefinedAsLet(state, symbol)) {
+	// 		lua.list.push(
+	// 			statements,
+	// 			lua.create(lua.SyntaxKind.Assignment, {
+	// 				left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+	// 					expression: exportId,
+	// 					name: element.name.text,
+	// 				}),
+	// 				right: transformIdentifierDefined(state, element.propertyName ?? element.name),
+	// 			}),
+	// 		);
+	// 	}
+	// }
 
-	return statements;
+	// return statements;
 }

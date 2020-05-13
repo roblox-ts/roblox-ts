@@ -157,13 +157,23 @@ export class TransformState {
 		return this.pushToVar(expression);
 	}
 
-	private getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
+	public getModuleExports(moduleSymbol: ts.Symbol) {
+		return getOrSetDefault(this.compileState.getModuleExportsCache, moduleSymbol, () =>
+			this.typeChecker.getExportsOfModule(moduleSymbol),
+		);
+	}
+
+	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.compileState.getModuleExportsAliasMapCache, moduleSymbol, () => {
 			const aliasMap = new Map<ts.Symbol, string>();
-			for (const symbol of this.typeChecker.getExportsOfModule(moduleSymbol)) {
-				const declaration = symbol.getDeclarations()?.[0];
-				assert(declaration && ts.isExportSpecifier(declaration));
-				aliasMap.set(ts.skipAlias(symbol, this.typeChecker), declaration.name.text);
+			for (const exportSymbol of this.getModuleExports(moduleSymbol)) {
+				const originalSymbol = ts.skipAlias(exportSymbol, this.typeChecker);
+				const declaration = exportSymbol.getDeclarations()?.[0];
+				if (declaration && ts.isExportSpecifier(declaration)) {
+					aliasMap.set(originalSymbol, declaration.name.text);
+				} else {
+					aliasMap.set(originalSymbol, exportSymbol.name);
+				}
 			}
 			return aliasMap;
 		});
