@@ -463,19 +463,211 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 };
 
+const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
+	isEmpty: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.next,
+				args: lua.list.make(expression),
+			}),
+			operator: "==",
+			right: lua.nil(),
+		}),
+
+	size: (state, node, expression) => {
+		if (isUsedAsStatement(node)) {
+			return lua.emptyId();
+		}
+
+		const sizeId = state.pushToVar(lua.number(0));
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(lua.emptyId()),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: sizeId,
+						right: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: sizeId,
+							operator: "+",
+							right: lua.number(1),
+						}),
+					}),
+				),
+			}),
+		);
+		return sizeId;
+	},
+
+	has: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(expression),
+				index: transformExpression(state, node.arguments[0]),
+			}),
+			operator: "~=",
+			right: lua.nil(),
+		}),
+};
+
+const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
+	delete: (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+		const valueExistedId = lua.tempId();
+		if (valueIsUsed) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: valueExistedId,
+					right: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: transformExpression(state, node.arguments[0]),
+						}),
+						operator: "~=",
+						right: lua.nil(),
+					}),
+				}),
+			);
+		}
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: transformExpression(state, node.arguments[0]),
+				}),
+				right: lua.nil(),
+			}),
+		);
+
+		return valueIsUsed ? valueExistedId : lua.emptyId();
+	},
+
+	clear: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+		const keyId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: keyId,
+						}),
+						right: lua.nil(),
+					}),
+				),
+			}),
+		);
+		return lua.emptyId();
+	},
+};
+
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
+	...READONLY_SET_MAP_SHARED_METHODS,
+
 	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression), "ReadonlySet"),
 	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression), "ReadonlySet"),
+
+	forEach: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.CallStatement, {
+						expression: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, valueId, expression),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return lua.emptyId();
+	},
 };
 
-const SET_METHODS: MacroList<PropertyCallMacro> = {};
+const SET_METHODS: MacroList<PropertyCallMacro> = {
+	...SET_MAP_SHARED_METHODS,
+
+	add: (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+		if (valueIsUsed) {
+			expression = state.pushToVarIfComplex(expression);
+		}
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: transformExpression(state, node.arguments[0]),
+				}),
+				right: lua.bool(true),
+			}),
+		);
+		return valueIsUsed ? expression : lua.emptyId();
+	},
+};
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
+	...READONLY_SET_MAP_SHARED_METHODS,
+
 	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression), "ReadonlyMap"),
 	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression), "ReadonlyMap"),
+
+	get: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(expression),
+			index: transformExpression(state, node.arguments[0]),
+		}),
 };
 
-const MAP_METHODS: MacroList<PropertyCallMacro> = {};
+const MAP_METHODS: MacroList<PropertyCallMacro> = {
+	...SET_MAP_SHARED_METHODS,
+
+	set: (state, node, expression) => {
+		const [keyExp, valueExp] = ensureTransformOrder(state, node.arguments);
+		const valueIsUsed = !isUsedAsStatement(node);
+		if (valueIsUsed) {
+			expression = state.pushToVarIfComplex(expression);
+		}
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: keyExp,
+				}),
+				right: valueExp,
+			}),
+		);
+		return valueIsUsed ? expression : lua.emptyId();
+	},
+};
+
+const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
+	then: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.MethodCallExpression, {
+			expression: convertToIndexableExpression(expression),
+			name: "andThen",
+			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+		}),
+};
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
@@ -523,8 +715,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Array: ARRAY_METHODS,
 	ReadonlySet: READONLY_SET_METHODS,
 	Set: SET_METHODS,
-	WeakSet: SET_METHODS,
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
-	WeakMap: MAP_METHODS,
+	Promsie: PROMISE_METHODS,
 };
