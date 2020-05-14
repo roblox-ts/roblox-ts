@@ -28,6 +28,11 @@ export function transformElementAccessExpressionInner(
 		return lua.emptyId();
 	}
 
+	const constantValue = state.typeChecker.getConstantValue(node);
+	if (constantValue !== undefined) {
+		return typeof constantValue === "string" ? lua.string(constantValue) : lua.number(constantValue);
+	}
+
 	const { expression: index, statements } = state.capture(() => transformExpression(state, argumentExpression));
 
 	const expType = state.getType(node.expression);

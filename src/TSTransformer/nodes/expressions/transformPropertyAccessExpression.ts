@@ -22,6 +22,11 @@ export function transformPropertyAccessExpressionInner(
 		return lua.emptyId();
 	}
 
+	const constantValue = state.typeChecker.getConstantValue(node);
+	if (constantValue !== undefined) {
+		return typeof constantValue === "string" ? lua.string(constantValue) : lua.number(constantValue);
+	}
+
 	return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 		expression: convertToIndexableExpression(expression),
 		name,
