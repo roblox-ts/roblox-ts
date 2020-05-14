@@ -717,5 +717,5 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Set: SET_METHODS,
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
-	Promsie: PROMISE_METHODS,
+	Promise: PROMISE_METHODS,
 };
