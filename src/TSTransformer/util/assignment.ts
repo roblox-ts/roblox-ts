@@ -42,6 +42,7 @@ function wrapRightIfDoubleBinary(expression: lua.Expression) {
 			expression: expression.right,
 		});
 	}
+	return expression;
 }
 
 export function createCompoundAssignmentStatement(
@@ -50,9 +51,10 @@ export function createCompoundAssignmentStatement(
 	operator: ts.SyntaxKind,
 	value: NodeWithType<lua.Expression>,
 ) {
-	const binaryExp = createBinaryFromOperator(readable, operator, value);
-	wrapRightIfDoubleBinary(binaryExp);
-	return createAssignmentStatement(writable.node, binaryExp);
+	return createAssignmentStatement(
+		writable.node,
+		wrapRightIfDoubleBinary(createBinaryFromOperator(readable, operator, value)),
+	);
 }
 
 export function createCompoundAssignmentExpression(
@@ -62,7 +64,9 @@ export function createCompoundAssignmentExpression(
 	operator: ts.SyntaxKind,
 	value: NodeWithType<lua.Expression>,
 ) {
-	const binaryExp = createBinaryFromOperator(readable, operator, value);
-	wrapRightIfDoubleBinary(binaryExp);
-	return createAssignmentExpression(state, writable.node, binaryExp);
+	return createAssignmentExpression(
+		state,
+		writable.node,
+		wrapRightIfDoubleBinary(createBinaryFromOperator(readable, operator, value)),
+	);
 }
