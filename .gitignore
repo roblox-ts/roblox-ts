@@ -6,5 +6,4 @@ node_modules
 out
 .DS_Store
 .history
-
-.vscode
+.vscode/launch.json
