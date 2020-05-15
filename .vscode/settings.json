@@ -1,5 +1,7 @@
 {
-	"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+	"[typescript]": {
+		"editor.defaultFormatter": "dbaeumer.vscode-eslint"
+	},
 	"editor.formatOnSave": true,
 	"eslint.format.enable": true,
 	"files.eol": "\n",
