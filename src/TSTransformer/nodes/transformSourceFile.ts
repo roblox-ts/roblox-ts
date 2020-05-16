@@ -6,6 +6,11 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { version: VERSION } = require("./../../../package.json") as {
+	version: string;
+};
+
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, lua.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
@@ -102,6 +107,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	if (state.usesRuntimeLib) {
 		lua.list.unshift(statements, state.createRuntimeLibImport());
 	}
+
+	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${VERSION}`));
 
 	return statements;
 }
