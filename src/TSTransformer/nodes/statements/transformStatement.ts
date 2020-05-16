@@ -17,13 +17,13 @@ import { transformForStatement } from "TSTransformer/nodes/statements/transformF
 import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/transformFunctionDeclaration";
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformImportDeclaration } from "TSTransformer/nodes/statements/transformImportDeclaration";
+import { transformImportEqualsDeclaration } from "TSTransformer/nodes/statements/transformImportEqualsDeclaration";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformSwitchStatement } from "TSTransformer/nodes/statements/transformSwitchStatement";
 import { transformThrowStatement } from "TSTransformer/nodes/statements/transformThrowStatement";
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { transformImportEqualsDeclaration } from "TSTransformer/nodes/statements/transformImportEqualsDeclaration";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
