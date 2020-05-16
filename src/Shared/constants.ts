@@ -1,5 +1,5 @@
 export const TS_EXT = ".ts";
-export const D_EXT = ".ts";
+export const D_EXT = ".d";
 export const TSX_EXT = ".tsx";
 export const DTS_EXT = D_EXT + TS_EXT;
 export const LUA_EXT = ".lua";
