@@ -62,7 +62,7 @@ In other words, TS AST -> Lua AST
 - [X] ExportDeclaration
 - [X] ExportAssignment
 - [X] ClassDeclaration
-- [ ] NamespaceDeclaration
+- [X] ModuleDeclaration
 - [X] EnumDeclaration
 - [X] SwitchStatement
 - [ ] TryStatement?

@@ -18,6 +18,7 @@ import { transformFunctionDeclaration } from "TSTransformer/nodes/statements/tra
 import { transformIfStatement } from "TSTransformer/nodes/statements/transformIfStatement";
 import { transformImportDeclaration } from "TSTransformer/nodes/statements/transformImportDeclaration";
 import { transformImportEqualsDeclaration } from "TSTransformer/nodes/statements/transformImportEqualsDeclaration";
+import { transformModuleDeclaration } from "TSTransformer/nodes/statements/transformModuleDeclaration";
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformSwitchStatement } from "TSTransformer/nodes/statements/transformSwitchStatement";
 import { transformThrowStatement } from "TSTransformer/nodes/statements/transformThrowStatement";
@@ -62,6 +63,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.IfStatement, transformIfStatement],
 	[ts.SyntaxKind.ImportDeclaration, transformImportDeclaration],
 	[ts.SyntaxKind.ImportEqualsDeclaration, transformImportEqualsDeclaration],
+	[ts.SyntaxKind.ModuleDeclaration, transformModuleDeclaration],
 	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
 	[ts.SyntaxKind.SwitchStatement, transformSwitchStatement],
 	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],

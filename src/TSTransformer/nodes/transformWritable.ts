@@ -27,7 +27,8 @@ export function transformWritableExpression(
 		});
 	} else {
 		const transformed = transformExpression(state, node);
-		assert(lua.isAnyIdentifier(transformed));
+		// could be lua.PropertyAccessExpression from export let
+		assert(lua.isWritableExpression(transformed));
 		return transformed;
 	}
 }

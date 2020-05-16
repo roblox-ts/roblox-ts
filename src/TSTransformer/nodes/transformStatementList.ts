@@ -4,7 +4,14 @@ import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 
-export function transformStatementList(state: TransformState, statements: ReadonlyArray<ts.Statement>) {
+export function transformStatementList(
+	state: TransformState,
+	statements: ReadonlyArray<ts.Statement>,
+	exportInfo?: {
+		id: lua.AnyIdentifier;
+		mapping: Map<ts.Statement, Array<string>>;
+	},
+) {
 	const result = lua.list.make<lua.Statement>();
 
 	for (const statement of statements) {
@@ -34,6 +41,26 @@ export function transformStatementList(state: TransformState, statements: Readon
 		const lastStatement = transformedStatements.tail?.value;
 		if (lastStatement && lua.isFinalStatement(lastStatement)) {
 			break;
+		}
+
+		// namespace export handling
+		if (exportInfo) {
+			const containerId = exportInfo.id;
+			const exportMapping = exportInfo.mapping.get(statement);
+			if (exportMapping !== undefined) {
+				for (const exportName of exportMapping) {
+					lua.list.push(
+						result,
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+								expression: containerId,
+								name: exportName,
+							}),
+							right: lua.id(exportName),
+						}),
+					);
+				}
+			}
 		}
 	}
 

@@ -180,12 +180,15 @@ export class TransformState {
 	}
 
 	private getModuleSymbolFromNode(node: ts.Node) {
-		const exportSymbol = this.typeChecker.getSymbolAtLocation(getModuleAncestor(node));
+		const moduleAncestor = getModuleAncestor(node);
+		const exportSymbol = this.typeChecker.getSymbolAtLocation(
+			ts.isSourceFile(moduleAncestor) ? moduleAncestor : moduleAncestor.name,
+		);
 		assert(exportSymbol);
 		return exportSymbol;
 	}
 
-	private readonly moduleIdBySymbol = new Map<ts.Symbol, lua.Identifier>();
+	private readonly moduleIdBySymbol = new Map<ts.Symbol, lua.AnyIdentifier>();
 
 	private getModuleIdFromSymbol(moduleSymbol: ts.Symbol) {
 		const moduleId = this.moduleIdBySymbol.get(moduleSymbol);
@@ -193,7 +196,7 @@ export class TransformState {
 		return moduleId;
 	}
 
-	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.Identifier) {
+	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.AnyIdentifier) {
 		this.moduleIdBySymbol.set(moduleSymbol, moduleId);
 	}
 
