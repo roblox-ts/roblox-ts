@@ -2,7 +2,7 @@
 	"files": [],
 	"compilerOptions": {
 		"composite": true,
-		"baseUrl": "src",
+		"baseUrl": "src"
 	},
 	"references": [
 		{ "path": "./src/Shared" },
@@ -10,6 +10,6 @@
 		{ "path": "./src/Project" },
 		{ "path": "./src/LuaAST" },
 		{ "path": "./src/LuaRenderer" },
-		{ "path": "./src/TSTransformer" },
+		{ "path": "./src/TSTransformer" }
 	]
 }
