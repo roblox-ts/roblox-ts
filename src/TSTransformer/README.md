@@ -12,6 +12,10 @@ In other words, TS AST -> Lua AST
 - [x] Destructuring
 - [X] Module Resolution (+ Rojo project)
 - [X] LuaTuple<T> Support
+- [ ] npm package importing
+- [ ] return nil for ModuleScripts without exports
+- [ ] Roact JSX
+- [ ] Roact classes
 
 ### Expressions
 - [X] Identifier
