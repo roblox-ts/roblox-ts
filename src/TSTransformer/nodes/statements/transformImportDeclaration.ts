@@ -107,10 +107,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 					statements,
 					transformVariable(
 						state,
-						element.propertyName ?? element.name,
+						element.name,
 						lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 							expression: importExp,
-							name: element.name.text,
+							name: (element.propertyName ?? element.name).text,
 						}),
 					).statements,
 				);
