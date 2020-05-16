@@ -85,6 +85,7 @@ export function isNode(value: unknown): value is lua.Node {
 export const isSimple = makeGuard(
 	lua.SyntaxKind.Identifier,
 	lua.SyntaxKind.TemporaryIdentifier,
+	lua.SyntaxKind.EmptyIdentifier,
 	lua.SyntaxKind.NilLiteral,
 	lua.SyntaxKind.TrueLiteral,
 	lua.SyntaxKind.FalseLiteral,
