@@ -106,3 +106,11 @@ export const isTable = makeGuard(lua.SyntaxKind.Array, lua.SyntaxKind.Set, lua.S
 export const isFinalStatement = makeGuard(lua.SyntaxKind.BreakStatement, lua.SyntaxKind.ReturnStatement);
 
 export const isCall = makeGuard(lua.SyntaxKind.CallExpression, lua.SyntaxKind.MethodCallExpression);
+
+export const isWritableExpression: (node: lua.Node) => node is lua.WritableExpression = makeGuard(
+	lua.SyntaxKind.Identifier,
+	lua.SyntaxKind.TemporaryIdentifier,
+	lua.SyntaxKind.EmptyIdentifier,
+	lua.SyntaxKind.PropertyAccessExpression,
+	lua.SyntaxKind.ComputedIndexExpression,
+);
