@@ -23,6 +23,7 @@ import { transformThrowStatement } from "TSTransformer/nodes/statements/transfor
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { transformImportEqualsDeclaration } from "TSTransformer/nodes/statements/transformImportEqualsDeclaration";
 
 const NO_EMIT = () => lua.list.make<lua.Statement>();
 
@@ -60,6 +61,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
 	[ts.SyntaxKind.IfStatement, transformIfStatement],
 	[ts.SyntaxKind.ImportDeclaration, transformImportDeclaration],
+	[ts.SyntaxKind.ImportEqualsDeclaration, transformImportEqualsDeclaration],
 	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
 	[ts.SyntaxKind.SwitchStatement, transformSwitchStatement],
 	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],
