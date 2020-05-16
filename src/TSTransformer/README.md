@@ -1,6 +1,6 @@
 # roblox-ts TSTransformer
 
-The goal of this project is to take a ts.SourceFile and turn it into a lua.List<lua.Statement>
+The goal of this project is to take a `ts.SourceFile` and turn it into a `lua.List<lua.Statement>`
 
 In other words, TS AST -> Lua AST
 
