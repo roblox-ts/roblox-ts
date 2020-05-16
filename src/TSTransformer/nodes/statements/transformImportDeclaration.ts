@@ -20,6 +20,18 @@ function countImportExpUses(importClause: ts.ImportClause) {
 	return uses;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getFlags<T extends number>(flags: T, from: any) {
+	const results = new Array<string>();
+	for (const [flagName, flagValue] of Object.entries(from)) {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		if (!!(flags & (flagValue as any))) {
+			results.push(flagName);
+		}
+	}
+	return results;
+}
+
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	assert(ts.isStringLiteral(node.moduleSpecifier));
 
@@ -61,17 +73,26 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	// default import logic
 	if (defaultImport) {
-		lua.list.pushList(
-			statements,
-			transformVariable(
-				state,
-				defaultImport,
-				lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression: importExp,
-					name: "default",
-				}),
-			).statements,
-		);
+		const aliasSymbol = state.typeChecker.getSymbolAtLocation(defaultImport);
+		assert(aliasSymbol);
+		const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
+		assert(exportSymbol);
+		const exportDec = exportSymbol.valueDeclaration;
+		if (exportDec && ts.isExportAssignment(exportDec) && exportDec.isExportEquals) {
+			lua.list.pushList(statements, transformVariable(state, defaultImport, importExp).statements);
+		} else {
+			lua.list.pushList(
+				statements,
+				transformVariable(
+					state,
+					defaultImport,
+					lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression: importExp,
+						name: "default",
+					}),
+				).statements,
+			);
+		}
 	}
 
 	if (namedBindings) {
