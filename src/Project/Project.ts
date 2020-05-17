@@ -36,12 +36,13 @@ export class Project {
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion?: string;
 	private readonly runtimeLibRbxPath?: RbxPath;
+	private readonly nodeModulesRbxPath?: RbxPath;
 
 	public readonly projectType: ProjectType;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
-		this.nodeModulesPath = path.join(this.projectPath, "node_modules");
+		this.nodeModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
 
 		const pkgJsonPath = path.join(this.projectPath, "package.json");
 		if (fs.pathExistsSync(pkgJsonPath)) {
@@ -95,6 +96,10 @@ export class Project {
 			this.runtimeLibRbxPath = runtimeLibRbxPath;
 		}
 
+		if (fs.pathExistsSync(this.nodeModulesPath)) {
+			this.nodeModulesRbxPath = this.rojoConfig.getRbxPathFromFilePath(this.nodeModulesPath);
+		}
+
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: compilerOptions,
@@ -122,6 +127,7 @@ export class Project {
 					this.rojoConfig,
 					this.pathTranslator,
 					this.runtimeLibRbxPath,
+					this.nodeModulesRbxPath,
 					this.typeChecker,
 					this.macroManager,
 					this.projectType,

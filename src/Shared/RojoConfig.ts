@@ -91,7 +91,9 @@ export enum NetworkType {
 // does not use path.basename() intentionally!
 function stripExts(filePath: string) {
 	const ext = path.extname(filePath);
-	filePath = filePath.slice(0, -ext.length);
+	if (ext.length > 0) {
+		filePath = filePath.slice(0, -ext.length);
+	}
 	const subext = path.extname(filePath);
 	if (subext.length > 0) {
 		filePath = filePath.slice(0, -subext.length);
@@ -205,11 +207,13 @@ export class RojoConfig {
 				}
 			} else {
 				if (isPathDescendantOf(filePath, partition.fsPath)) {
-					const relative = path.relative(partition.fsPath, stripExts(filePath)).split(path.sep);
-					if (relative[relative.length - 1] === INIT_NAME) {
-						relative.pop();
+					const stripped = stripExts(filePath);
+					const relativePath = path.relative(partition.fsPath, stripped);
+					const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
+					if (relativeParts[relativeParts.length - 1] === INIT_NAME) {
+						relativeParts.pop();
 					}
-					return partition.base.concat(relative);
+					return partition.base.concat(relativeParts);
 				}
 			}
 		}

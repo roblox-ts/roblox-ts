@@ -57,13 +57,6 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.StringLiteral,
 ): lua.IndexableExpression {
-	const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
-	const sourceRbxPath = state.rojoConfig.getRbxPathFromFilePath(sourceOutPath);
-	if (!sourceRbxPath) {
-		state.addDiagnostic(diagnostics.noRojoData(sourceFile));
-		return lua.emptyId();
-	}
-
 	const moduleFile = getSourceFileFromModuleSpecifier(state, moduleSpecifier);
 	if (!moduleFile) {
 		state.addDiagnostic(diagnostics.noModuleSpecifierFile(moduleSpecifier));
@@ -77,8 +70,28 @@ export function createImportExpression(
 		return lua.emptyId();
 	}
 
+	const importPathExpressions = lua.list.make<lua.Expression>();
+	lua.list.push(importPathExpressions, lua.globals.script);
+
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		assert(false, "Not implemeneted!");
+		assert(state.nodeModulesRbxPath);
+		const relativeToNodeModulesRbxPath = RojoConfig.relative(state.nodeModulesRbxPath, moduleRbxPath);
+		const moduleName = relativeToNodeModulesRbxPath.shift();
+		assert(moduleName && typeof moduleName === "string");
+		lua.list.push(
+			importPathExpressions,
+			propertyAccessExpressionChain(
+				lua.create(lua.SyntaxKind.CallExpression, {
+					expression: state.TS("getModule"),
+					args: lua.list.make<lua.Expression>(lua.globals.script, lua.string(moduleName)),
+				}),
+				relativeToNodeModulesRbxPath as Array<string>,
+			),
+		);
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("import"),
+			args: importPathExpressions,
+		});
 	}
 
 	const moduleRbxType = state.rojoConfig.getRbxTypeFromFilePath(moduleOutPath);
@@ -87,11 +100,15 @@ export function createImportExpression(
 		return lua.emptyId();
 	}
 
-	const importPathExpressions = lua.list.make<lua.Expression>();
-	lua.list.push(importPathExpressions, lua.globals.script);
+	const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
+	const sourceRbxPath = state.rojoConfig.getRbxPathFromFilePath(sourceOutPath);
+	if (!sourceRbxPath) {
+		state.addDiagnostic(diagnostics.noRojoData(sourceFile));
+		return lua.emptyId();
+	}
 
-	const fileRelation = state.rojoConfig.getFileRelation(sourceRbxPath, moduleRbxPath);
 	if (state.rojoConfig.isGame()) {
+		const fileRelation = state.rojoConfig.getFileRelation(sourceRbxPath, moduleRbxPath);
 		if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
 			lua.list.pushList(importPathExpressions, getAbsoluteImport(moduleRbxPath));
 		} else if (fileRelation === FileRelation.InToIn) {

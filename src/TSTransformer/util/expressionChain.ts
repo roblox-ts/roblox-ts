@@ -25,13 +25,13 @@ export function binaryExpressionChain(
 export function propertyAccessExpressionChain(
 	expression: lua.Expression,
 	names: Array<string>,
-	index = 0,
+	index = names.length - 1,
 ): lua.IndexableExpression {
-	if (index === names.length - 1) {
+	if (index < 0) {
 		return convertToIndexableExpression(expression);
 	} else {
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-			expression: propertyAccessExpressionChain(expression, names, index + 1),
+			expression: propertyAccessExpressionChain(expression, names, index - 1),
 			name: names[index],
 		});
 	}

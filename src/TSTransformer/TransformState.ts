@@ -28,6 +28,7 @@ export class TransformState {
 		public readonly rojoConfig: RojoConfig,
 		public readonly pathTranslator: PathTranslator,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
+		public readonly nodeModulesRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
 		public readonly projectType: ProjectType,

@@ -54,7 +54,7 @@ export class MacroManager {
 			}
 		>();
 
-		const typesPath = path.join(nodeModulesPath, "@rbxts", "types", "include");
+		const typesPath = path.join(nodeModulesPath, "types", "include");
 		for (const fileName of INCLUDE_FILES) {
 			const filePath = path.join(typesPath, fileName);
 			if (!fs.pathExistsSync(filePath)) {
