@@ -37,6 +37,7 @@
 	},
 	"devDependencies": {
 		"@types/fs-extra": "^8.1.0",
+		"@types/mocha": "^7.0.2",
 		"@types/node": "^13.13.4",
 		"@types/yargs": "^15.0.4",
 		"@typescript-eslint/eslint-plugin": "^2.29.0",
