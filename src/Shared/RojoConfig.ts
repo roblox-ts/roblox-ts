@@ -40,12 +40,17 @@ const ROJO_OLD_NAME = "roblox-project.json";
 
 const FOLDER_EXT = "";
 
-type RbxType = "ModuleScript" | "Script" | "LocalScript" | "Unknown";
+export enum RbxType {
+	ModuleScript,
+	Script,
+	LocalScript,
+	Unknown,
+}
 
 const SUB_EXT_TYPE_MAP = new Map<string, RbxType>([
-	[MODULE_SUBEXT, "ModuleScript"],
-	[SERVER_SUBEXT, "Script"],
-	[CLIENT_SUBEXT, "LocalScript"],
+	[MODULE_SUBEXT, RbxType.ModuleScript],
+	[SERVER_SUBEXT, RbxType.Script],
+	[CLIENT_SUBEXT, RbxType.LocalScript],
 ]);
 
 const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
@@ -203,8 +208,8 @@ export class RojoConfig {
 	}
 
 	public getRbxTypeFromFilePath(filePath: string): RbxType {
-		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
-		return SUB_EXT_TYPE_MAP.get(subext) ?? "Unknown";
+		const subext = path.extname(path.basename(filePath, path.extname(filePath))).slice(1);
+		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
 	}
 
 	public isGame() {

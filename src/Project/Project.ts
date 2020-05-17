@@ -4,10 +4,11 @@ import { renderAST } from "LuaRenderer";
 import path from "path";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
+import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { PathTranslator } from "Shared/PathTranslator";
-import { NetworkType, RojoConfig, RbxPath } from "Shared/RojoConfig";
+import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { CompileState, MacroManager, transformSourceFile, TransformState } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
@@ -35,6 +36,8 @@ export class Project {
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion?: string;
 	private readonly runtimeLibRbxPath: RbxPath;
+
+	public readonly projectType: ProjectType = ProjectType.Game;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
@@ -112,6 +115,7 @@ export class Project {
 					this.runtimeLibRbxPath,
 					this.typeChecker,
 					this.macroManager,
+					this.projectType,
 					sourceFile,
 				);
 
@@ -120,7 +124,7 @@ export class Project {
 				if (totalDiagnostics.length > 0) continue;
 
 				const luaSource = renderAST(luaAST);
-				fs.outputFileSync(this.pathTranslator.getOutPath(sourceFile.fileName), luaSource);
+				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 			}
 		}
 		if (totalDiagnostics.length > 0) {

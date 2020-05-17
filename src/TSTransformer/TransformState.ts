@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { ProjectType } from "Shared/constants";
 import { PathTranslator } from "Shared/PathTranslator";
 import { RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
@@ -29,6 +30,7 @@ export class TransformState {
 		public readonly runtimeLibRbxPath: RbxPath,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
+		public readonly projectType: ProjectType,
 		public readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
