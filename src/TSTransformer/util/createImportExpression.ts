@@ -73,6 +73,7 @@ export function createImportExpression(
 	const importPathExpressions = lua.list.make<lua.Expression>();
 	lua.list.push(importPathExpressions, lua.globals.script);
 
+	// TODO if moduleFile.fileName == package.json "main", swap for "main"?
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
 		assert(state.nodeModulesRbxPath);
 		const relativeToNodeModulesRbxPath = RojoConfig.relative(state.nodeModulesRbxPath, moduleRbxPath);
