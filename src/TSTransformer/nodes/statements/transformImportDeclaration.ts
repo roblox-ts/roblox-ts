@@ -98,8 +98,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	if (namedBindings) {
 		// namespace import logic
 		if (ts.isNamespaceImport(namedBindings)) {
-			namedBindings.name;
-			assert(false);
+			lua.list.pushList(statements, transformVariable(state, namedBindings.name, importExp).statements);
 		} else {
 			// named elements import logic
 			for (const element of namedBindings.elements) {
@@ -116,6 +115,12 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				);
 			}
 		}
+	}
+
+	// ensure we emit something
+	if (lua.list.isEmpty(statements)) {
+		assert(lua.isCallExpression(importExp));
+		lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression: importExp }));
 	}
 
 	return statements;
