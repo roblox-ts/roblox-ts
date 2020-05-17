@@ -17,6 +17,7 @@ In other words, TS AST -> Lua AST
 -   [x] return nil for ModuleScripts without exports
 -   [ ] Roact JSX
 -   [ ] Roact classes
+-   [ ] opcall
 
 ### Expressions
 
