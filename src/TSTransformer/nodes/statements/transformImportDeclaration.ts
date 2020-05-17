@@ -78,9 +78,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
 		assert(exportSymbol);
 		const exportDec = exportSymbol.valueDeclaration;
-		if (exportDec && ts.isExportAssignment(exportDec) && exportDec.isExportEquals) {
-			lua.list.pushList(statements, transformVariable(state, defaultImport, importExp).statements);
-		} else {
+		if (exportDec && ts.isExportAssignment(exportDec) && !exportDec.isExportEquals) {
 			lua.list.pushList(
 				statements,
 				transformVariable(
@@ -92,6 +90,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 					}),
 				).statements,
 			);
+		} else {
+			lua.list.pushList(statements, transformVariable(state, defaultImport, importExp).statements);
 		}
 	}
 
