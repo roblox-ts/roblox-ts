@@ -78,6 +78,7 @@ export function createImportExpression(
 		const relativeToNodeModulesRbxPath = RojoConfig.relative(state.nodeModulesRbxPath, moduleRbxPath);
 		const moduleName = relativeToNodeModulesRbxPath.shift();
 		assert(moduleName && typeof moduleName === "string");
+		assert(relativeToNodeModulesRbxPath[0] !== RbxPathParent);
 		lua.list.push(
 			importPathExpressions,
 			propertyAccessExpressionChain(
