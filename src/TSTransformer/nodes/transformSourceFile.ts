@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { RbxType } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -103,6 +104,14 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	const statements = transformStatementList(state, node.statements);
 
 	handleExports(state, symbol, statements);
+
+	// ModuleScripts must `return nil` if they do not export any values
+	if (!statements.tail || !lua.isReturnStatement(statements.tail.value)) {
+		const outputPath = state.pathTranslator.getOutputPath(state.sourceFile.fileName);
+		if (state.rojoConfig.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
+			lua.list.push(statements, lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
+		}
+	}
 
 	if (state.usesRuntimeLib) {
 		lua.list.unshift(statements, state.createRuntimeLibImport());
