@@ -195,8 +195,6 @@ export class RojoConfig {
 	}
 
 	public getRbxPathFromFilePath(filePath: string) {
-		console.log("getRbxPathFromFilePath", filePath);
-		debugger;
 		if (!path.isAbsolute(filePath)) {
 			filePath = path.resolve(this.basePath, filePath);
 		}
