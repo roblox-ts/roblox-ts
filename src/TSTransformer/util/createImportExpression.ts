@@ -78,7 +78,7 @@ export function createImportExpression(
 	}
 
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		// assert(false, "Not implemeneted!");
+		assert(false, "Not implemeneted!");
 	}
 
 	const moduleRbxType = state.rojoConfig.getRbxTypeFromFilePath(moduleOutPath);
