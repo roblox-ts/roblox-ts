@@ -195,6 +195,8 @@ export class RojoConfig {
 	}
 
 	public getRbxPathFromFilePath(filePath: string) {
+		console.log("getRbxPathFromFilePath", filePath);
+		debugger;
 		if (!path.isAbsolute(filePath)) {
 			filePath = path.resolve(this.basePath, filePath);
 		}
@@ -255,12 +257,11 @@ export class RojoConfig {
 		}
 	}
 
-	public isIsolated(filePath: string) {
-		return this.getContainer(this.isolatedContainers, this.getRbxPathFromFilePath(filePath)) !== undefined;
+	public isIsolated(rbxPath: RbxPath) {
+		return this.getContainer(this.isolatedContainers, rbxPath) !== undefined;
 	}
 
-	public getNetworkType(filePath: string): NetworkType {
-		const rbxPath = this.getRbxPathFromFilePath(filePath);
+	public getNetworkType(rbxPath: RbxPath): NetworkType {
 		if (this.getContainer(SERVER_CONTAINERS, rbxPath)) {
 			return NetworkType.Server;
 		}

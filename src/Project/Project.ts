@@ -87,9 +87,9 @@ export class Project {
 				throw new ProjectError(
 					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
 				);
-			} else if (this.rojoConfig.getNetworkType(runtimeFsPath) !== NetworkType.Unknown) {
+			} else if (this.rojoConfig.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
 				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
-			} else if (this.rojoConfig.isIsolated(runtimeFsPath)) {
+			} else if (this.rojoConfig.isIsolated(runtimeLibRbxPath)) {
 				throw new ProjectError(`Runtime library cannot be in an isolated container!`);
 			}
 			this.runtimeLibRbxPath = runtimeLibRbxPath;
