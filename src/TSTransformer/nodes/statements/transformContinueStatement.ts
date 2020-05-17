@@ -1,6 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { diagnostics } from "TSTransformer/diagnostics";
+import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
 
 export function transformContinueStatement(state: TransformState, node: ts.ContinueStatement) {

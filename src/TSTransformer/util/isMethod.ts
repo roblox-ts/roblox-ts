@@ -1,7 +1,7 @@
 import ts from "byots";
+import { diagnostics } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];

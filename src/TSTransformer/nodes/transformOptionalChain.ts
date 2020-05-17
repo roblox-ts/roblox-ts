@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TemporaryIdentifier } from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import {
 	transformCallExpressionInner,
 	transformElementCallExpressionInner,

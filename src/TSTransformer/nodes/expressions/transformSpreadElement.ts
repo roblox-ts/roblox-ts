@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { isArrayType } from "TSTransformer/util/types";

@@ -1,9 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";

@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -21,7 +21,7 @@ export function transformArrayBindingPattern(
 			accessor(state, parentId, index, idStack, true);
 		} else {
 			if (element.dotDotDotToken) {
-				state.addDiagnostic(diagnostics.noDotDotDotDestructuring(element));
+				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
 				return;
 			}
 			const name = element.name;

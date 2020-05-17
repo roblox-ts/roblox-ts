@@ -1,12 +1,12 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { isBlockLike } from "TSTransformer/typeGuards";
-import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {

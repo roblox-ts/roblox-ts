@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { DiagnosticFactory, diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticFactory, diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";

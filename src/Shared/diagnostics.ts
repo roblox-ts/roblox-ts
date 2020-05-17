@@ -1,8 +1,10 @@
 import ts from "byots";
 import chalk from "chalk";
-import { createDiagnosticWithLocation } from "TSTransformer/util/createDiagnosticWithLocation";
 
-export type DiagnosticFactory = (node: ts.Node) => ts.Diagnostic;
+export type DiagnosticFactory = {
+	(node: ts.Node): ts.DiagnosticWithLocation;
+	id: number;
+};
 
 // force colors
 chalk.level = chalk.Level.Basic;
@@ -17,8 +19,29 @@ function issue(id: number) {
 	return "More information: " + chalk.grey(`${REPO_URL}/issues/${id}`);
 }
 
+export function createDiagnosticWithLocation(id: number, message: string, node: ts.Node): ts.DiagnosticWithLocation {
+	return {
+		category: ts.DiagnosticCategory.Error,
+		code: (" roblox-ts" as unknown) as number,
+		file: node.getSourceFile(),
+		messageText: message,
+		start: node.getStart(),
+		length: node.getWidth(),
+		diagnosticType: 0,
+		id: id,
+	} as ts.DiagnosticWithLocation;
+}
+
+let id = 0;
 function diagnostic(...messages: Array<string>): DiagnosticFactory {
-	return (node: ts.Node) => createDiagnosticWithLocation(messages.join("\n"), node);
+	const result = (node: ts.Node) => createDiagnosticWithLocation(result.id, messages.join("\n"), node);
+	result.id = id++;
+	return result;
+}
+
+export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	return (diagnostic as any).id;
 }
 
 export const diagnostics = {
@@ -39,13 +62,14 @@ export const diagnostics = {
 	),
 
 	// banned features
+	noVar: diagnostic("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
 	noEqualsEquals: diagnostic("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: diagnostic("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noComma: diagnostic("operator `,` is not supported!"),
 	noEnumMerging: diagnostic("Enum merging is not supported!"),
 	noNamespaceMerging: diagnostic("Namespace merging is not supported!"),
-	noDotDotDotDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
+	noSpreadDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
 	noPrecedingSpreadElement: diagnostic("Spread element must come last in a list of arguments!"),

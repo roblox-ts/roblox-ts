@@ -1,6 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { diagnostics } from "TSTransformer/diagnostics";
+import { diagnostics } from "Shared/diagnostics";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { TransformState } from "TSTransformer/TransformState";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";

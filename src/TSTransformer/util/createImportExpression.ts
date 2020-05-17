@@ -1,9 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { ProjectType } from "Shared/constants";
+import { diagnostics } from "Shared/diagnostics";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { TransformState } from "TSTransformer/TransformState";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";

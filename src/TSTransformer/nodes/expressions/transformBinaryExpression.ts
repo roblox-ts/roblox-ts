@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -33,7 +33,7 @@ function transformLuaTupleDestructure(
 			if (ts.isOmittedExpression(element)) {
 				lua.list.push(writes, lua.emptyId());
 			} else if (ts.isSpreadElement(element)) {
-				state.addDiagnostic(diagnostics.noDotDotDotDestructuring(element));
+				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {

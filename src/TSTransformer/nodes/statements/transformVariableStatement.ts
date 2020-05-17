@@ -1,9 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
-import { diagnostics } from "TSTransformer/diagnostics";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -95,7 +95,7 @@ function transformLuaTupleDestructure(
 					lua.list.push(ids, lua.emptyId());
 				} else {
 					if (element.dotDotDotToken) {
-						state.addDiagnostic(diagnostics.noDotDotDotDestructuring(element));
+						state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
 						return;
 					}
 					if (ts.isIdentifier(element.name)) {
@@ -150,7 +150,15 @@ export function transformVariableDeclaration(
 	}
 }
 
+function isVarDeclaration(node: ts.VariableDeclarationList) {
+	return !(node.flags & ts.NodeFlags.Const) && !(node.flags & ts.NodeFlags.Let);
+}
+
 export function transformVariableStatement(state: TransformState, node: ts.VariableStatement): lua.List<lua.Statement> {
+	if (isVarDeclaration(node.declarationList)) {
+		state.addDiagnostic(diagnostics.noVar(node.declarationList));
+	}
+
 	const statements = lua.list.make<lua.Statement>();
 	for (const declaration of node.declarationList.declarations) {
 		lua.list.pushList(statements, transformVariableDeclaration(state, declaration));
