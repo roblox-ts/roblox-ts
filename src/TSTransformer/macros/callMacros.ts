@@ -37,4 +37,33 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 			right: typeStr,
 		});
 	},
+
+	opcall: (state, node) => {
+		const successId = lua.tempId();
+		const valueOrErrorId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: lua.list.make(successId, valueOrErrorId),
+				right: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pcall,
+					args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+				}),
+			}),
+		);
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: successId,
+			operator: "and",
+			right: lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: lua.map([
+					[lua.string("success"), lua.bool(true)],
+					[lua.string("value"), valueOrErrorId],
+				]),
+				operator: "or",
+				right: lua.map([
+					[lua.string("success"), lua.bool(false)],
+					[lua.string("error"), valueOrErrorId],
+				]),
+			}),
+		});
+	},
 };

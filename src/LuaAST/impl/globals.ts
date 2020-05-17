@@ -16,6 +16,7 @@ export const globals = {
 	ipairs: lua.id("ipairs"),
 	next: lua.id("next"),
 	pairs: lua.id("pairs"),
+	pcall: lua.id("pcall"),
 	require: lua.id("require"),
 	script: lua.id("script"),
 	select: lua.id("select"),

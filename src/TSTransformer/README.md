@@ -15,9 +15,9 @@ In other words, TS AST -> Lua AST
 -   [x] LuaTuple<T> Support
 -   [x] npm package importing
 -   [x] return nil for ModuleScripts without exports
+-   [x] opcall
 -   [ ] Roact JSX
 -   [ ] Roact classes
--   [ ] opcall
 
 ### Expressions
 
