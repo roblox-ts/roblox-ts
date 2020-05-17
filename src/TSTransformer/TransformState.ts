@@ -27,7 +27,7 @@ export class TransformState {
 		public readonly compileState: CompileState,
 		public readonly rojoConfig: RojoConfig,
 		public readonly pathTranslator: PathTranslator,
-		public readonly runtimeLibRbxPath: RbxPath,
+		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
 		public readonly projectType: ProjectType,
@@ -115,28 +115,38 @@ export class TransformState {
 	}
 
 	public createRuntimeLibImport() {
-		const rbxPath = [...this.runtimeLibRbxPath];
-		const serviceName = rbxPath.shift();
-		assert(serviceName);
+		if (this.runtimeLibRbxPath) {
+			const rbxPath = [...this.runtimeLibRbxPath];
+			const serviceName = rbxPath.shift();
+			assert(serviceName);
 
-		let expression: lua.IndexableExpression = createGetService(serviceName);
-		for (const pathPart of rbxPath) {
-			expression = lua.create(lua.SyntaxKind.MethodCallExpression, {
-				expression,
-				name: "WaitForChild",
-				args: lua.list.make(lua.string(pathPart)),
+			let expression: lua.IndexableExpression = createGetService(serviceName);
+			for (const pathPart of rbxPath) {
+				expression = lua.create(lua.SyntaxKind.MethodCallExpression, {
+					expression,
+					name: "WaitForChild",
+					args: lua.list.make(lua.string(pathPart)),
+				});
+			}
+
+			expression = lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.require,
+				args: lua.list.make(expression),
+			});
+
+			return lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: RUNTIME_LIB_ID,
+				right: expression,
+			});
+		} else {
+			return lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: RUNTIME_LIB_ID,
+				right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: lua.globals._G,
+					index: lua.globals.script,
+				}),
 			});
 		}
-
-		expression = lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.require,
-			args: lua.list.make(expression),
-		});
-
-		return lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: RUNTIME_LIB_ID,
-			right: expression,
-		});
 	}
 
 	public pushToVar(expression: lua.Expression) {

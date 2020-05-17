@@ -186,6 +186,14 @@ export class RojoConfig {
 		}
 	}
 
+	/**
+	 * Create a synthetic RojoConfig for ProjectType.Package
+	 * Forces all imports to be relative
+	 */
+	public static synthetic(projectDir: string) {
+		return new RojoConfig(projectDir, { name: "", tree: { $path: projectDir } as RojoTree });
+	}
+
 	public getRbxPathFromFilePath(filePath: string) {
 		if (!path.isAbsolute(filePath)) {
 			filePath = path.resolve(this.basePath, filePath);

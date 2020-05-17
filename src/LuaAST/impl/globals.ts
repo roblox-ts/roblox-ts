@@ -9,6 +9,7 @@ function property(id: lua.Identifier, name: string) {
 }
 
 export const globals = {
+	_G: lua.id("_G"),
 	bit32: lua.id("bit32"),
 	error: lua.id("error"),
 	exports: lua.id("exports"),

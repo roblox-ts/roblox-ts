@@ -78,7 +78,7 @@ export function createImportExpression(
 	}
 
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		assert(false, "Not implemeneted!");
+		// assert(false, "Not implemeneted!");
 	}
 
 	const moduleRbxType = state.rojoConfig.getRbxTypeFromFilePath(moduleOutPath);
@@ -91,7 +91,7 @@ export function createImportExpression(
 	lua.list.push(importPathExpressions, lua.globals.script);
 
 	const fileRelation = state.rojoConfig.getFileRelation(sourceRbxPath, moduleRbxPath);
-	if (state.projectType === ProjectType.Game) {
+	if (state.rojoConfig.isGame()) {
 		if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
 			lua.list.pushList(importPathExpressions, getAbsoluteImport(moduleRbxPath));
 		} else if (fileRelation === FileRelation.InToIn) {
@@ -100,14 +100,9 @@ export function createImportExpression(
 			state.addDiagnostic(diagnostics.noIsolatedImport(moduleSpecifier));
 			return lua.emptyId();
 		}
-	} else if (state.projectType === ProjectType.Model) {
-		lua.list.pushList(importPathExpressions, getRelativeImport(sourceRbxPath, moduleRbxPath));
 	} else {
-		// ProjectType.Package
-		assert(false);
+		lua.list.pushList(importPathExpressions, getRelativeImport(sourceRbxPath, moduleRbxPath));
 	}
-
-	// TODO: handle non-Game logic
 
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: state.TS("import"),

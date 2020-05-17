@@ -35,9 +35,9 @@ export class Project {
 	private readonly rojoConfig: RojoConfig;
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion?: string;
-	private readonly runtimeLibRbxPath: RbxPath;
+	private readonly runtimeLibRbxPath?: RbxPath;
 
-	public readonly projectType: ProjectType = ProjectType.Game;
+	public readonly projectType: ProjectType;
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectPath = path.dirname(tsConfigPath);
@@ -64,27 +64,36 @@ export class Project {
 		const compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
 
-		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
-		if (!rojoConfigPath) {
-			throw new ProjectError("Unable to find Rojo configuration file!");
-		}
-		this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
-
-		const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
-		const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
-		if (!runtimeLibRbxPath) {
-			throw new ProjectError(
-				`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
-			);
-		} else if (this.rojoConfig.getNetworkType(runtimeFsPath) !== NetworkType.Unknown) {
-			throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
-		} else if (this.rojoConfig.isIsolated(runtimeFsPath)) {
-			throw new ProjectError(`Runtime library cannot be in an isolated container!`);
-		}
-		this.runtimeLibRbxPath = runtimeLibRbxPath;
-
 		this.rootDir = compilerOptions.rootDir;
 		this.outDir = compilerOptions.outDir;
+
+		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
+		if (rojoConfigPath) {
+			this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
+			if (this.rojoConfig.isGame()) {
+				this.projectType = ProjectType.Game;
+			} else {
+				this.projectType = ProjectType.Model;
+			}
+		} else {
+			this.rojoConfig = RojoConfig.synthetic(this.projectPath);
+			this.projectType = ProjectType.Package;
+		}
+
+		if (this.projectType !== ProjectType.Package) {
+			const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
+			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
+			if (!runtimeLibRbxPath) {
+				throw new ProjectError(
+					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
+				);
+			} else if (this.rojoConfig.getNetworkType(runtimeFsPath) !== NetworkType.Unknown) {
+				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
+			} else if (this.rojoConfig.isIsolated(runtimeFsPath)) {
+				throw new ProjectError(`Runtime library cannot be in an isolated container!`);
+			}
+			this.runtimeLibRbxPath = runtimeLibRbxPath;
+		}
 
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
