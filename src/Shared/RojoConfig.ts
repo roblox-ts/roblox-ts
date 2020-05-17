@@ -1,9 +1,9 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
-import { isPathDescendantOf } from "Shared/fsUtil";
-import { CLIENT_SUBEXT, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "Shared/constants";
+import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
 import { warn } from "Shared/warn";
 
@@ -198,7 +198,7 @@ export class RojoConfig {
 			} else {
 				if (isPathDescendantOf(filePath, partition.fsPath)) {
 					const relative = path.relative(partition.fsPath, stripExts(filePath)).split(path.sep);
-					if (relative[relative.length - 1] === "init") {
+					if (relative[relative.length - 1] === INIT_NAME) {
 						relative.pop();
 					}
 					return partition.base.concat(relative);
