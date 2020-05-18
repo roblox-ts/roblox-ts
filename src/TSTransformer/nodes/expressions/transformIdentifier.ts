@@ -7,6 +7,7 @@ import { TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { isAnyType } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {

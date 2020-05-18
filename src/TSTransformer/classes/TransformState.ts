@@ -104,8 +104,9 @@ export class TransformState {
 	public readonly hoistsByStatement = new Map<ts.Statement | ts.CaseClause, Array<ts.Identifier>>();
 	public readonly isHoisted = new Map<ts.Symbol, boolean>();
 
+	private getTypeCache = new Map<ts.Node, ts.Type>();
 	public getType(node: ts.Node) {
-		return this.typeChecker.getTypeAtLocation(skipUpwards(node));
+		return getOrSetDefault(this.getTypeCache, node, () => this.typeChecker.getTypeAtLocation(skipUpwards(node)));
 	}
 
 	public usesRuntimeLib = false;

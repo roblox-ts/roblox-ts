@@ -23,6 +23,10 @@ function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 	return false;
 }
 
+export function isAnyType(type: ts.Type) {
+	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.Any));
+}
+
 export function isArrayType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
@@ -99,7 +103,7 @@ export function isDoubleDecrementedIterableFunctionType(state: TransformState, t
 	);
 }
 
-export function isObjectType(state: TransformState, type: ts.Type) {
+export function isObjectType(type: ts.Type) {
 	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.Object));
 }
 

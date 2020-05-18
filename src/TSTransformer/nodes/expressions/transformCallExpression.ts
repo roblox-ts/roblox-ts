@@ -8,6 +8,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateSuper } from "TSTransformer/util/validateSuper";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	if (!lua.isCall(exp)) {
@@ -52,6 +53,11 @@ export function transformCallExpressionInner(
 	expression: lua.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	validateNotAnyType(state, node.expression);
+	for (const arg of node.arguments) {
+		validateNotAnyType(state, arg);
+	}
+
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getCallMacro(type.symbol);
 	if (macro) {
@@ -74,6 +80,11 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	validateNotAnyType(state, node.expression);
+	for (const arg of node.arguments) {
+		validateNotAnyType(state, arg);
+	}
+
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
 	if (macro) {
@@ -108,6 +119,11 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	validateNotAnyType(state, node.expression);
+	for (const arg of node.arguments) {
+		validateNotAnyType(state, arg);
+	}
+
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
 	if (macro) {
@@ -134,33 +150,37 @@ export function transformElementCallExpressionInner(
 }
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
-	if (ts.isSuperCall(node)) {
+	if (ts.isSuperCall(node) || ts.isSuperProperty(node.expression)) {
+		for (const arg of node.arguments) {
+			validateNotAnyType(state, arg);
+		}
 		validateSuper(state, node);
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: lua.globals.super,
-				name: "constructor",
-			}),
-			args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
-		});
-	} else if (ts.isSuperProperty(node.expression)) {
-		validateSuper(state, node);
-		if (ts.isPropertyAccessExpression(node.expression)) {
+		if (ts.isSuperCall(node)) {
 			return lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 					expression: lua.globals.super,
-					name: node.expression.name.text,
+					name: "constructor",
 				}),
 				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
 			});
-		} else {
-			return lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-					expression: lua.globals.super,
-					index: transformExpression(state, node.expression.argumentExpression),
-				}),
-				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
-			});
+		} else if (ts.isSuperProperty(node.expression)) {
+			if (ts.isPropertyAccessExpression(node.expression)) {
+				return lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression: lua.globals.super,
+						name: node.expression.name.text,
+					}),
+					args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+				});
+			} else {
+				return lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: lua.globals.super,
+						index: transformExpression(state, node.expression.argumentExpression),
+					}),
+					args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+				});
+			}
 		}
 	}
 

@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { validateSuper } from "TSTransformer/util/validateSuper";
 
 export function transformPropertyAccessExpressionInner(
@@ -13,6 +14,8 @@ export function transformPropertyAccessExpressionInner(
 	expression: lua.Expression,
 	name: string,
 ) {
+	validateNotAnyType(state, node.expression);
+
 	if (state.macroManager.getPropertyCallMacro(state.getType(node).symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return lua.emptyId();

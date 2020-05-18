@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) {
 	const type = state.getType(node.expression);
@@ -19,6 +20,11 @@ function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) 
 }
 
 export function transformNewExpression(state: TransformState, node: ts.NewExpression) {
+	validateNotAnyType(state, node.expression);
+	for (const arg of node.arguments ?? []) {
+		validateNotAnyType(state, arg);
+	}
+
 	const symbol = getFirstConstructSymbol(state, node);
 	if (symbol) {
 		const macro = state.macroManager.getConstructorMacro(symbol);

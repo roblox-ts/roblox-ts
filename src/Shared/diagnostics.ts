@@ -65,6 +65,7 @@ export const diagnostics = {
 	noVoidExpression: diagnostic("`void` operator is not supported!"),
 
 	// banned features
+	noAny: diagnostic("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
 	noVar: diagnostic("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: diagnostic("Getters and Setters are not supported!", issue(457)),
 	noEqualsEquals: diagnostic("operator `==` is not supported!", suggestion("Use `===` instead.")),

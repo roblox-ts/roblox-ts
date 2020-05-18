@@ -8,6 +8,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isMethod } from "TSTransformer/util/isMethod";
 import { offset } from "TSTransformer/util/offset";
 import { isArrayType, isLuaTupleType } from "TSTransformer/util/types";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function addOneIfArrayType(state: TransformState, type: ts.Type, expression: lua.Expression) {
 	if (isArrayType(state, type)) {
@@ -23,6 +24,9 @@ export function transformElementAccessExpressionInner(
 	expression: lua.Expression,
 	argumentExpression: ts.Expression,
 ) {
+	validateNotAnyType(state, node.expression);
+	validateNotAnyType(state, node.argumentExpression);
+
 	if (state.macroManager.getPropertyCallMacro(state.getType(node).symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return lua.emptyId();

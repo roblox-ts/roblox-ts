@@ -19,6 +19,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
@@ -83,6 +84,9 @@ function transformLuaTupleDestructure(
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
+
+	validateNotAnyType(state, node.left);
+	validateNotAnyType(state, node.right);
 
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {

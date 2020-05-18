@@ -10,8 +10,11 @@ import {
 import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
 import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
+	validateNotAnyType(state, node.operand);
+
 	const writable = transformWritableExpression(state, node.operand, true);
 	const origValue = lua.tempId();
 
@@ -40,6 +43,8 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 }
 
 export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
+	validateNotAnyType(state, node.operand);
+
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
 		const writable = transformWritableExpressionWithType(state, node.operand, true);
 		return createCompoundAssignmentExpression(

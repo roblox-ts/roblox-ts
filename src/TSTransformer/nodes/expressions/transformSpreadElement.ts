@@ -5,8 +5,11 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isArrayType } from "TSTransformer/util/types";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
+	validateNotAnyType(state, node.expression);
+
 	assert(ts.isCallExpression(node.parent));
 	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
