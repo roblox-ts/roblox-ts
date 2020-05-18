@@ -5,13 +5,15 @@ export interface Pointer<T> {
 	value: T;
 }
 
-export function createMapPointer(): Pointer<lua.Map | lua.TemporaryIdentifier> {
+export type ObjectPointer = Pointer<lua.Map | lua.TemporaryIdentifier>;
+
+export function createMapPointer(): ObjectPointer {
 	return { value: lua.map() };
 }
 
 export function assignToPointer(
 	state: TransformState,
-	ptr: Pointer<lua.Map | lua.AnyIdentifier>,
+	ptr: ObjectPointer,
 	left: lua.Expression,
 	right: lua.Expression,
 ) {
@@ -38,7 +40,7 @@ export function assignToPointer(
 
 export function disableInline(
 	state: TransformState,
-	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
+	ptr: ObjectPointer,
 ): asserts ptr is Pointer<lua.TemporaryIdentifier> {
 	if (lua.isMap(ptr.value)) {
 		ptr.value = state.pushToVar(ptr.value);

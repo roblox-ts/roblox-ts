@@ -1,7 +1,27 @@
 import ts from "byots";
-import { TransformState } from "TSTransformer";
-import { assert } from "Shared/util/assert";
+import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { createMapPointer } from "TSTransformer/util/pointer";
+
+function transformJsxTagName(state: TransformState, node: ts.JsxTagNameExpression) {
+	if (ts.isPropertyAccessExpression(node)) {
+		if (ts.isPrivateIdentifier(node.name)) {
+			state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
+		}
+		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			expression: convertToIndexableExpression(transformExpression(state, node.expression)),
+			name: node.name.text,
+		});
+	} else {
+		return transformExpression(state, node);
+	}
+}
+
+function transformAttributes(state: TransformState, attributes: ts.JsxAttributes) {}
 
 export function transformJsx(
 	state: TransformState,
@@ -9,7 +29,15 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	tagName; // Identifier | ThisExpression | JsxTagNamePropertyAccess
+	const tagNameCaptures = state.capture(() => transformJsxTagName(state, tagName));
+	let tagNameExp = tagNameCaptures.expression;
+	if (!lua.list.isEmpty(tagNameCaptures.statements)) {
+		tagNameExp = state.pushToVarIfComplex(tagNameExp);
+	}
+	assert(lua.isSimple(tagNameExp));
+
+	const attributesPtr = createMapPointer();
+	const childrenPtr = createMapPointer();
 
 	for (const attribute of attributes.properties) {
 		if (ts.isJsxAttribute(attribute)) {

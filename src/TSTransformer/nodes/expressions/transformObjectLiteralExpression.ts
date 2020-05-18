@@ -5,11 +5,11 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { assignToPointer, disableInline, Pointer } from "TSTransformer/util/pointer";
+import { assignToPointer, disableInline, ObjectPointer } from "TSTransformer/util/pointer";
 
 function transformPropertyAssignment(
 	state: TransformState,
-	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
+	ptr: ObjectPointer,
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
@@ -25,11 +25,7 @@ function transformPropertyAssignment(
 	assignToPointer(state, ptr, left.expression, right.expression);
 }
 
-function transformSpreadAssignment(
-	state: TransformState,
-	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
-	property: ts.SpreadAssignment,
-) {
+function transformSpreadAssignment(state: TransformState, ptr: ObjectPointer, property: ts.SpreadAssignment) {
 	disableInline(state, ptr);
 	const spreadExp = transformExpression(state, property.expression);
 	const keyId = lua.tempId();
@@ -56,7 +52,7 @@ function transformSpreadAssignment(
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
 	// starts as lua.Map, becomes lua.TemporaryIdentifier when `disableInline` is called
-	const ptr: Pointer<lua.Map | lua.TemporaryIdentifier> = { value: lua.map() };
+	const ptr: ObjectPointer = { value: lua.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {
