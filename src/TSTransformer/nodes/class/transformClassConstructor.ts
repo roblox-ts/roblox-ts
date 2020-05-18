@@ -1,13 +1,13 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformClassProperty } from "TSTransformer/nodes/class/transformClassProperty";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { getStatements } from "TSTransformer/util/getStatements";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { getStatements } from "TSTransformer/util/getStatements";
+import { Pointer } from "TSTransformer/util/pointer";
 
 export function transformClassConstructor(
 	state: TransformState,

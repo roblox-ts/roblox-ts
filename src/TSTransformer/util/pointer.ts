@@ -1,6 +1,13 @@
 import * as lua from "LuaAST";
-import { Pointer } from "Shared/types";
 import { TransformState } from "TSTransformer";
+
+export interface Pointer<T> {
+	value: T;
+}
+
+export function createMapPointer(): Pointer<lua.Map | lua.TemporaryIdentifier> {
+	return { value: lua.map() };
+}
 
 export function assignToPointer(
 	state: TransformState,

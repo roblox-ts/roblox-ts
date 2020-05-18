@@ -1,14 +1,13 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
-import { Pointer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { assignToPointer } from "TSTransformer/util/assignToPointer";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { assignToPointer, Pointer } from "TSTransformer/util/pointer";
 
 export function transformMethodDeclaration(
 	state: TransformState,
