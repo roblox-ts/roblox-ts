@@ -41,7 +41,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 		id = state.pushToVar(
 			lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.string.gmatch,
-				args: lua.list.make<lua.Expression>(parentId, lua.string("[%z\\1-\\127\\194-\\244][\\128-\\191]*")),
+				args: lua.list.make<lua.Expression>(parentId, lua.globals.utf8.charpattern),
 			}),
 		);
 		idStack.push(id);
