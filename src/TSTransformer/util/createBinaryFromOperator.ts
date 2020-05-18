@@ -48,7 +48,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
-function isStringType(type: tsst.SimpleType) {
+function isStringSimpleType(type: tsst.SimpleType) {
 	return type.kind === tsst.SimpleTypeKind.STRING || type.kind === tsst.SimpleTypeKind.STRING_LITERAL;
 }
 
@@ -60,8 +60,8 @@ function createToString(expression: lua.Expression) {
 }
 
 function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType<lua.Expression>) {
-	const leftIsString = isStringType(left.type);
-	const rightIsString = isStringType(right.type);
+	const leftIsString = isStringSimpleType(left.type);
+	const rightIsString = isStringSimpleType(right.type);
 	if (leftIsString || rightIsString) {
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
 			left: leftIsString ? left.node : createToString(left.node),

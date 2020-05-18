@@ -256,7 +256,7 @@ export function getAccessorForBindingType(
 ): BindingAccessor {
 	if (ts.isArray(type) || isArrayType(state, type)) {
 		return arrayAccessor;
-	} else if (isStringType(state, type)) {
+	} else if (isStringType(type)) {
 		return stringAccessor;
 	} else if (isSetType(state, type)) {
 		return setAccessor;
@@ -270,7 +270,7 @@ export function getAccessorForBindingType(
 		return firstDecrementedIterableAccessor;
 	} else if (isDoubleDecrementedIterableFunctionType(state, type)) {
 		return doubleDecrementedIteratorAccessor;
-	} else if (isGeneratorType(state, type) || isObjectType(state, type) || ts.isThis(node)) {
+	} else if (isGeneratorType(state, type) || isObjectType(type) || ts.isThis(node)) {
 		// TODO super?
 		return iterAccessor;
 	}

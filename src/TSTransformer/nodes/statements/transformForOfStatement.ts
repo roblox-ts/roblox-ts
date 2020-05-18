@@ -139,7 +139,7 @@ function getLoopStructure(state: TransformState, name: ts.BindingName, innerExp:
 		expression = getSetLoopStructure(state, ids, initializers, name, innerExp);
 	} else if (isMapType(state, expType)) {
 		expression = getMapLoopStructure(state, ids, initializers, name, innerExp);
-	} else if (isStringType(state, expType)) {
+	} else if (isStringType(expType)) {
 		expression = getStringLoopStructure(state, ids, initializers, name, innerExp);
 	} else {
 		assert(false);

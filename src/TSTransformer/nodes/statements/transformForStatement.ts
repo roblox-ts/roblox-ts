@@ -48,10 +48,7 @@ function getOptimizedForStatement(
 	const varDecInit = varDec.initializer;
 	if (
 		!varDecInit ||
-		!(
-			ts.isNumericLiteral(varDecInit) ||
-			(isNumberType(state, state.getType(varDecInit)) && ts.isIdentifier(varDecInit))
-		)
+		!(ts.isNumericLiteral(varDecInit) || (isNumberType(state.getType(varDecInit)) && ts.isIdentifier(varDecInit)))
 	) {
 		return undefined;
 	}

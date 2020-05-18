@@ -57,7 +57,7 @@ export function isLuaTupleType(state: TransformState, type: ts.Type) {
 	return type.aliasSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
 }
 
-export function isNumberType(state: TransformState, type: ts.Type) {
+export function isNumberType(type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
@@ -67,7 +67,7 @@ export function isNumberType(state: TransformState, type: ts.Type) {
 	);
 }
 
-export function isStringType(state: TransformState, type: ts.Type) {
+export function isStringType(type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>

@@ -24,7 +24,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 	for (let i = 0; i < node.templateSpans.length; i++) {
 		const templateSpan = node.templateSpans[i];
 		let exp = orderedExpressions[i];
-		if (!isStringType(state, state.getType(templateSpan.expression))) {
+		if (!isStringType(state.getType(templateSpan.expression))) {
 			exp = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.tostring,
 				args: lua.list.make(exp),

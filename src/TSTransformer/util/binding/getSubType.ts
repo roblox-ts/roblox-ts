@@ -32,7 +32,7 @@ export function getSubType(
 				assert(numIndexType);
 				return numIndexType;
 			}
-		} else if (isStringType(state, type)) {
+		} else if (isStringType(type)) {
 			// T -> T
 			return type;
 		} else if (isSetType(state, type)) {
