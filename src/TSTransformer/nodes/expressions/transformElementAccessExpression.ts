@@ -23,6 +23,11 @@ export function transformElementAccessExpressionInner(
 	expression: lua.Expression,
 	argumentExpression: ts.Expression,
 ) {
+	if (state.macroManager.getPropertyCallMacro(state.getType(node).symbol)) {
+		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+		return lua.emptyId();
+	}
+
 	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
 		return lua.emptyId();
