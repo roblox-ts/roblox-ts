@@ -78,9 +78,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return lua.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
 		state.addDiagnostic(diagnostics.noArguments(node));
-	}
-
-	if (symbol === state.globalSymbols.globalThis) {
+	} else if (symbol === state.globalSymbols.globalThis) {
 		state.addDiagnostic(diagnostics.noGlobalThis(node));
 	}
 
