@@ -105,10 +105,11 @@ export const diagnostics = {
 	noNonModuleImport: diagnostic("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: diagnostic("Attempted to import a file inside of an isolated container from outside!"),
 
-	// roact
+	// roact jsx
 	noRoactInheritance: diagnostic(
 		"Composition is preferred over inheritance with Roact components.",
 		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
 	),
 	noSuperInRoactComponent: diagnostic("`super` is not supported inside Roact components!"),
+	noJsxText: diagnostic("JSX text is not supported!"),
 };
