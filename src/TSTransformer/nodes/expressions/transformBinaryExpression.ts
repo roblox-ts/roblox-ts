@@ -20,6 +20,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
@@ -147,6 +148,18 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
+
+	// in
+	if (operatorKind === ts.SyntaxKind.InKeyword) {
+		return lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(right),
+				index: left,
+			}),
+			operator: "~=",
+			right: lua.nil(),
+		});
+	}
 
 	return createBinaryFromOperator(
 		{
