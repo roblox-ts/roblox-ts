@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
+import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
-import { TransformState } from "TSTransformer/TransformState";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
 

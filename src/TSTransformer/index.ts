@@ -1,6 +1,6 @@
-export * from "TSTransformer/CompileState";
-export * from "TSTransformer/macros/MacroManager";
+export * from "TSTransformer/classes/CompileState";
+export * from "TSTransformer/classes/MacroManager";
+export * from "TSTransformer/classes/TransformState";
 export { transformSourceFile } from "TSTransformer/nodes/transformSourceFile";
-export * from "TSTransformer/TransformState";
 
 export interface TransformFlags {}

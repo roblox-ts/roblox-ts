@@ -1,6 +1,5 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";

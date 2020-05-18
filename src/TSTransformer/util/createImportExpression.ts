@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 

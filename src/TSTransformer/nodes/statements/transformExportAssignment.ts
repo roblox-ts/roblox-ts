@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { TransformState } from "TSTransformer/TransformState";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
 function transformExportEquals(state: TransformState, node: ts.ExportAssignment) {

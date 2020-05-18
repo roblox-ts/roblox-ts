@@ -1,6 +1,5 @@
 import ts from "byots";
-import { SYMBOL_NAMES } from "TSTransformer";
-import { TransformState } from "TSTransformer/TransformState";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 
 function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {

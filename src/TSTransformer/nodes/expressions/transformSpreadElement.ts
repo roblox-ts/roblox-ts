@@ -2,8 +2,8 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { TransformState } from "TSTransformer/TransformState";
 import { isArrayType } from "TSTransformer/util/types";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {

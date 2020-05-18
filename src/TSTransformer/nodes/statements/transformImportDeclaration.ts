@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
-import { TransformState } from "TSTransformer/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 
 function countImportExpUses(importClause: ts.ImportClause) {

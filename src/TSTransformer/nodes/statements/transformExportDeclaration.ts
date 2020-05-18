@@ -1,10 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
 function countImportExpUses(exportClause?: ts.NamespaceExport | ts.NamedExports) {
 	let uses = 0;

@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { TransformState } from "TSTransformer/TransformState";
 
 export function transformThrowStatement(state: TransformState, node: ts.ThrowStatement) {
 	const args = lua.list.make<lua.Expression>();

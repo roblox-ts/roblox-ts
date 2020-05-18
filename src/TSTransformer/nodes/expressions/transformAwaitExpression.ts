@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { TransformState } from "TSTransformer/TransformState";
 import { skipDownwards } from "TSTransformer/util/traversal";
 
 export function transformAwaitExpression(state: TransformState, node: ts.AwaitExpression) {

@@ -2,9 +2,9 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { Pointer } from "Shared/types";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { TransformState } from "TSTransformer/TransformState";
 
 export function transformClassProperty(
 	state: TransformState,

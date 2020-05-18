@@ -1,6 +1,6 @@
 import ts from "byots";
-import { TransformState } from "TSTransformer/TransformState";
 import * as lua from "LuaAST";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 export function transformObjectKey(

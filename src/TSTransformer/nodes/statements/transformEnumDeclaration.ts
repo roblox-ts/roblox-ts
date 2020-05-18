@@ -2,9 +2,9 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { TransformState } from "TSTransformer/TransformState";
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (node.modifiers?.find(modifier => modifier.kind === ts.SyntaxKind.ConstKeyword)) {

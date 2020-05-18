@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 
 export function transformBreakStatement(state: TransformState, node: ts.BreakStatement) {
 	if (node.label) {

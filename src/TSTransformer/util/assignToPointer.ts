@@ -1,7 +1,6 @@
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
 import { Pointer } from "Shared/types";
-import ts from "byots";
+import { TransformState } from "TSTransformer";
 
 export function assignToPointer(
 	state: TransformState,

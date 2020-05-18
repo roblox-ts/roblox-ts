@@ -1,7 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import * as tsst from "ts-simple-type";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 
 export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {

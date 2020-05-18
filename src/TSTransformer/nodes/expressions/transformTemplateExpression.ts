@@ -1,6 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isStringType } from "TSTransformer/util/types";

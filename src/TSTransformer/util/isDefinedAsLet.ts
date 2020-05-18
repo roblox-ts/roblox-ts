@@ -1,7 +1,7 @@
 import ts from "byots";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { getAncestor } from "TSTransformer/util/traversal";
-import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 
 export function isDefinedAsLet(state: TransformState, idSymbol: ts.Symbol) {
 	return getOrSetDefault(

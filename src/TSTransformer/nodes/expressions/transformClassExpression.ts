@@ -1,5 +1,5 @@
 import ts from "byots";
-import { TransformState } from "TSTransformer/TransformState";
+import { TransformState } from "TSTransformer";
 import { transformClassLikeDeclaration } from "TSTransformer/nodes/class/transformClassLikeDeclaration";
 
 export function transformClassExpression(state: TransformState, node: ts.ClassExpression) {
