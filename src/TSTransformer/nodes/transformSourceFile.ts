@@ -8,9 +8,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { version: VERSION } = require("./../../../package.json") as {
-	version: string;
-};
+const { version: VERSION } = require("./../../../package.json") as { version: string };
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, lua.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
