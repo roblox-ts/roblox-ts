@@ -31,7 +31,6 @@ export function transformMethodDeclaration(
 	const name = transformObjectKey(state, node.name);
 
 	// Can we use `class:name()`?
-	const x = lua.SyntaxKind[name.kind];
 	if (lua.isStringLiteral(name) && !lua.isMap(ptr.value) && isMethod(state, node)) {
 		lua.list.shift(parameters); // remove `self`
 		return lua.list.make(
