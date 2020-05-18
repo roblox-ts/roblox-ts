@@ -34,5 +34,13 @@ export function transformPropertyAccessExpressionInner(
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
+	// hack?
+	if (ts.isSuperProperty(node)) {
+		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			expression: lua.globals.self,
+			name: node.name.text,
+		});
+	}
+
 	return transformOptionalChain(state, node);
 }
