@@ -55,11 +55,14 @@ export const diagnostics = {
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
 	// banned expressions
+	noDeleteExpression: diagnostic("`delete` operator is not supported!"),
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
+	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noTypeOfExpression: diagnostic(
 		"`typeof` operator is not supported!",
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	),
+	noVoidExpression: diagnostic("`void` operator is not supported!"),
 
 	// banned features
 	noVar: diagnostic("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
@@ -70,7 +73,6 @@ export const diagnostics = {
 	noEnumMerging: diagnostic("Enum merging is not supported!"),
 	noNamespaceMerging: diagnostic("Namespace merging is not supported!"),
 	noSpreadDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
-	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
 	noPrecedingSpreadElement: diagnostic("Spread element must come last in a list of arguments!"),
 	noDestructureAssignmentExpression: diagnostic(
