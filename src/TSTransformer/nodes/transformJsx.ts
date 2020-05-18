@@ -5,15 +5,18 @@ import { diagnostics } from "Shared/diagnostics";
 
 export function transformJsx(
 	state: TransformState,
+	tagName: ts.JsxTagNameExpression,
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
+	tagName; // Identifier | ThisExpression | JsxTagNamePropertyAccess
+
 	for (const attribute of attributes.properties) {
 		if (ts.isJsxAttribute(attribute)) {
-			attribute.name;
-			attribute.initializer;
+			attribute.name; // ts.Identifier
+			attribute.initializer; // ts.JsxExpression | ts.StringLiteral | undefined
 		} else {
-			attribute.expression;
+			attribute.expression; // ts.Expression
 		}
 	}
 
@@ -29,10 +32,10 @@ export function transformJsx(
 		assert(!ts.isJsxFragment(child));
 
 		if (ts.isJsxExpression(child)) {
-			child.dotDotDotToken;
-			child.expression;
+			child.dotDotDotToken; // ts.Token<ts.SyntaxKind.DotDotDotToken> | undefined
+			child.expression; // ts.Expression | undefined
 		} else {
-			child;
+			child; // ts.JsxElement | ts.JsxSelfClosingElement
 		}
 	}
 }

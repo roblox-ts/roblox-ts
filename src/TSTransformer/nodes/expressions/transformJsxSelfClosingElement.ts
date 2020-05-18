@@ -3,5 +3,5 @@ import { TransformState } from "TSTransformer";
 import { transformJsx } from "TSTransformer/nodes/transformJsx";
 
 export function transformJsxSelfClosingElement(state: TransformState, node: ts.JsxSelfClosingElement) {
-	return transformJsx(state, node.attributes, []);
+	return transformJsx(state, node.tagName, node.attributes, []);
 }
