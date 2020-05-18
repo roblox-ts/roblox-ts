@@ -27,7 +27,7 @@ import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressio
 import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
-import { transformThisKeyword } from "TSTransformer/nodes/expressions/transformThisKeyword";
+import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -74,7 +74,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
 	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
-	[ts.SyntaxKind.ThisKeyword, transformThisKeyword],
+	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 ]);
 

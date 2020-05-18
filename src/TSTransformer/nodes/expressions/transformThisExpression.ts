@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "Shared/diagnostics";
 
-export function transformThisKeyword(state: TransformState, node: ts.ThisExpression) {
+export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	if (symbol === state.globalSymbols.globalThis) {
 		state.addDiagnostic(diagnostics.noGlobalThis(node));
