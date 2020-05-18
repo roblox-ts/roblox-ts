@@ -58,7 +58,10 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 
 	if (siblingIdx === declarationIdx) {
 		// function declarations and variable statements can self refer
-		if (ts.isFunctionDeclaration(declarationStatement) || ts.isVariableStatement(declarationStatement)) {
+		if (
+			ts.isFunctionDeclaration(declarationStatement) ||
+			(ts.isVariableStatement(declarationStatement) && getAncestor(node, ts.isStatement) === declarationStatement)
+		) {
 			return;
 		}
 	}
