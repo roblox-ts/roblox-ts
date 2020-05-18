@@ -184,7 +184,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 
 	join: (state, node, expression) => {
-		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.string(", ");
+		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.strings[", "];
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.concat,
 			args: lua.list.make(expression, separator),

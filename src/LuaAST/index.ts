@@ -10,3 +10,4 @@ export * from "LuaAST/util/visualizeAST";
 
 // depends on above files
 export * from "LuaAST/impl/globals";
+export * from "LuaAST/impl/strings";

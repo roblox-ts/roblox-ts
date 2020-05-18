@@ -55,13 +55,13 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 			operator: "and",
 			right: lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: lua.map([
-					[lua.string("success"), lua.bool(true)],
-					[lua.string("value"), valueOrErrorId],
+					[lua.strings.success, lua.bool(true)],
+					[lua.strings.value, valueOrErrorId],
 				]),
 				operator: "or",
 				right: lua.map([
-					[lua.string("success"), lua.bool(false)],
-					[lua.string("error"), valueOrErrorId],
+					[lua.strings.success, lua.bool(false)],
+					[lua.strings.error, valueOrErrorId],
 				]),
 			}),
 		});

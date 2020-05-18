@@ -8,7 +8,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.globals.setmetatable,
-		args: lua.list.make<lua.Expression>(macro(state, node), lua.map([[lua.string("__mode"), lua.string("k")]])),
+		args: lua.list.make<lua.Expression>(macro(state, node), lua.map([[lua.strings.__mode, lua.strings.k]])),
 	});
 }
 
