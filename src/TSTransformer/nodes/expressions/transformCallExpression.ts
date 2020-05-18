@@ -1,12 +1,13 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isLuaTupleType } from "TSTransformer/util/types";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { validateSuper } from "TSTransformer/util/validateSuper";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	if (!lua.isCall(exp)) {
@@ -134,6 +135,7 @@ export function transformElementCallExpressionInner(
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
 	if (ts.isSuperCall(node)) {
+		validateSuper(state, node);
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 				expression: lua.globals.super,
@@ -142,6 +144,7 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 			args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
 		});
 	} else if (ts.isSuperProperty(node.expression)) {
+		validateSuper(state, node);
 		if (ts.isPropertyAccessExpression(node.expression)) {
 			return lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {

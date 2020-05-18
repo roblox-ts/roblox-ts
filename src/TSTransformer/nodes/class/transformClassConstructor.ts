@@ -7,9 +7,11 @@ import { transformClassProperty } from "TSTransformer/nodes/class/transformClass
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
+import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 
 export function transformClassConstructor(
 	state: TransformState,
+	node: ts.ClassLikeDeclaration,
 	nodes: ts.NodeArray<ts.ClassElement>,
 	ptr: Pointer<lua.AnyIdentifier>,
 	originNode?: ts.ConstructorDeclaration,
@@ -37,7 +39,7 @@ export function transformClassConstructor(
 	return lua.list.make<lua.Statement>(
 		lua.create(lua.SyntaxKind.MethodDeclaration, {
 			expression: ptr.value,
-			name: "constructor",
+			name: extendsRoactComponent(state, node) ? "init" : "constructor",
 			statements,
 			parameters,
 			hasDotDotDot,

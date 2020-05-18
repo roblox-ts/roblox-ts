@@ -1,13 +1,18 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformClassElement } from "TSTransformer/nodes/class/transformClassElement";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 
 function hasConstructor(node: ts.ClassLikeDeclaration) {
-	return node.members.some(element => ts.isConstructorDeclaration(element));
+	return node.members.some(element => ts.isConstructorDeclaration(element) && element.body !== undefined);
 }
 
 function createNameFunction(name: string) {
@@ -22,11 +27,46 @@ function createNameFunction(name: string) {
 	});
 }
 
-function getExtendsNode(node: ts.ClassLikeDeclaration) {
-	for (const clause of node.heritageClauses ?? []) {
-		if (clause.token === ts.SyntaxKind.ExtendsKeyword) {
-			return clause.types[0];
-		}
+function createRoactBoilerplate(
+	state: TransformState,
+	node: ts.ClassLikeDeclaration,
+	className: lua.Identifier | lua.TemporaryIdentifier,
+	isClassExpression: boolean,
+) {
+	const extendsNode = getExtendsNode(node);
+	assert(extendsNode);
+
+	const statements = lua.list.make<lua.Statement>();
+
+	const { expression: extendsExp, statements: extendsExpPrereqs } = state.capture(() =>
+		transformExpression(state, extendsNode.expression),
+	);
+	lua.list.pushList(statements, extendsExpPrereqs);
+
+	const classNameStr = lua.isIdentifier(className) ? className.name : "Anonymous";
+
+	lua.list.push(
+		statements,
+		lua.create(isClassExpression && node.name ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
+			left: isClassExpression && node.name ? transformIdentifierDefined(state, node.name) : className,
+			right: lua.create(lua.SyntaxKind.MethodCallExpression, {
+				expression: convertToIndexableExpression(extendsExp),
+				name: "extend",
+				args: lua.list.make(lua.string(classNameStr)),
+			}),
+		}),
+	);
+
+	return statements;
+}
+
+function getExtendsDeclaration(state: TransformState, extendsExp: ts.Expression) {
+	if (ts.isClassLike(extendsExp)) {
+		return extendsExp;
+	}
+	const symbol = state.typeChecker.getSymbolAtLocation(extendsExp);
+	if (symbol && symbol.valueDeclaration && ts.isClassLike(symbol.valueDeclaration)) {
+		return symbol.valueDeclaration;
 	}
 }
 
@@ -67,6 +107,11 @@ function createBoilerplate(
 
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
+		const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
+		if (extendsDec && extendsRoactComponent(state, extendsDec)) {
+			state.addDiagnostic(diagnostics.noRoactInheritance(node));
+		}
+
 		const { expression: extendsExp, statements: extendsExpPrereqs } = state.capture(() =>
 			transformExpression(state, extendsNode.expression),
 		);
@@ -201,9 +246,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	// OOP boilerplate + class functions
 	const statementsInner = lua.list.make<lua.Statement>();
-	lua.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
+	if (extendsRoactComponent(state, node)) {
+		lua.list.pushList(statementsInner, createRoactBoilerplate(state, node, internalName, isClassExpression));
+	} else {
+		lua.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
+	}
 	if (!hasConstructor(node)) {
-		lua.list.pushList(statementsInner, transformClassConstructor(state, node.members, { value: internalName }));
+		lua.list.pushList(
+			statementsInner,
+			transformClassConstructor(state, node, node.members, { value: internalName }),
+		);
 	}
 	for (const member of node.members) {
 		lua.list.pushList(statementsInner, transformClassElement(state, member, { value: internalName }));

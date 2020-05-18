@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { validateSuper } from "TSTransformer/util/validateSuper";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,
@@ -36,6 +37,7 @@ export function transformPropertyAccessExpressionInner(
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
 	// hack?
 	if (ts.isSuperProperty(node)) {
+		validateSuper(state, node);
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 			expression: lua.globals.self,
 			name: node.name.text,

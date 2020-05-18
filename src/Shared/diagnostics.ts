@@ -101,4 +101,11 @@ export const diagnostics = {
 	noRojoData: diagnostic("Could not find Rojo data"),
 	noNonModuleImport: diagnostic("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: diagnostic("Attempted to import a file inside of an isolated container from outside!"),
+
+	// roact
+	noRoactInheritance: diagnostic(
+		"Composition is preferred over inheritance with Roact components.",
+		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
+	),
+	noSuperInRoactComponent: diagnostic("`super` is not supported inside Roact components!"),
 };

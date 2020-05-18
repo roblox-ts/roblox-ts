@@ -47,7 +47,7 @@ function transformConstructorDeclaration(
 	ptr: Pointer<lua.AnyIdentifier>,
 ) {
 	if (node.body) {
-		return transformClassConstructor(state, node.parent.members, ptr, node);
+		return transformClassConstructor(state, node.parent, node.parent.members, ptr, node);
 	} else {
 		return lua.list.make<lua.Statement>();
 	}
