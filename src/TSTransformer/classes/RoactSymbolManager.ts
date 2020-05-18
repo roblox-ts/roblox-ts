@@ -6,10 +6,12 @@ import { findFirstChild } from "TSTransformer/util/traversal";
 
 const COMPONENT_CLASS_NAME = "Component";
 const PURE_COMPONENT_CLASS_NAME = "PureComponent";
+const FRAGMENT_NAME = "Fragment";
 
 export class RoactSymbolManager {
 	public readonly componentSymbol: ts.Symbol;
 	public readonly pureComponentSymbol: ts.Symbol;
+	public readonly fragmentSymbol: ts.Symbol;
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
 		// only continue if @rbxts/roact exists
@@ -18,6 +20,7 @@ export class RoactSymbolManager {
 			const noneSymbol = typeChecker.createSymbol(ts.SymbolFlags.None, "None" as ts.__String);
 			this.componentSymbol = noneSymbol;
 			this.pureComponentSymbol = noneSymbol;
+			this.fragmentSymbol = noneSymbol;
 			return;
 		}
 
@@ -33,6 +36,7 @@ export class RoactSymbolManager {
 
 		let componentSymbol: ts.Symbol | undefined;
 		let pureComponentSymbol: ts.Symbol | undefined;
+		let fragmentSymbol: ts.Symbol | undefined;
 
 		for (const statement of roactNamespace.body.statements) {
 			if (ts.isClassDeclaration(statement) && statement.name) {
@@ -41,8 +45,13 @@ export class RoactSymbolManager {
 				} else if (statement.name.text === PURE_COMPONENT_CLASS_NAME) {
 					pureComponentSymbol = typeChecker.getSymbolAtLocation(statement.name);
 				}
+			} else if (ts.isVariableStatement(statement)) {
+				const dec = statement.declarationList.declarations[0];
+				if (ts.isIdentifier(dec.name) && dec.name.text === FRAGMENT_NAME) {
+					fragmentSymbol = typeChecker.getSymbolAtLocation(dec.name);
+				}
 			}
-			if (componentSymbol && pureComponentSymbol) {
+			if (componentSymbol && pureComponentSymbol && fragmentSymbol) {
 				break;
 			}
 		}
@@ -55,7 +64,12 @@ export class RoactSymbolManager {
 			throw new ProjectError(`RoactSymbolManager could not symbol for Roact.PureComponent`);
 		}
 
+		if (!fragmentSymbol) {
+			throw new ProjectError(`RoactSymbolManager could not symbol for Roact.Fragment`);
+		}
+
 		this.componentSymbol = componentSymbol;
 		this.pureComponentSymbol = pureComponentSymbol;
+		this.fragmentSymbol = fragmentSymbol;
 	}
 }
