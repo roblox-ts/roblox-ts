@@ -6,7 +6,7 @@ import { RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";
-import { CompileState, MacroManager } from "TSTransformer";
+import { CompileState, GlobalSymbols, MacroManager } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import originalTS from "typescript";
@@ -31,6 +31,7 @@ export class TransformState {
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly macroManager: MacroManager,
+		public readonly globalSymbols: GlobalSymbols,
 		public readonly projectType: ProjectType,
 		public readonly sourceFile: ts.SourceFile,
 	) {

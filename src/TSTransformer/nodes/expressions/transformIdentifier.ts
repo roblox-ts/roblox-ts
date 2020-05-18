@@ -78,6 +78,10 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return lua.nil();
 	}
 
+	if (symbol === state.globalSymbols.globalThis) {
+		state.addDiagnostic(diagnostics.noGlobalThis(node));
+	}
+
 	const macro = state.macroManager.getIdentifierMacro(symbol);
 	if (macro) {
 		return macro(state, node);

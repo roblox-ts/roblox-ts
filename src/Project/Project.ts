@@ -9,7 +9,7 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
-import { CompileState, MacroManager, transformSourceFile, TransformState } from "TSTransformer";
+import { CompileState, MacroManager, transformSourceFile, TransformState, GlobalSymbols } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -32,6 +32,7 @@ export class Project {
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly options: ProjectOptions;
 	private readonly macroManager: MacroManager;
+	private readonly globalSymbols: GlobalSymbols;
 	private readonly rojoConfig: RojoConfig;
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion?: string;
@@ -108,6 +109,7 @@ export class Project {
 		this.typeChecker = this.program.getTypeChecker();
 
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
+		this.globalSymbols = new GlobalSymbols(this.typeChecker);
 
 		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
 	}
@@ -130,6 +132,7 @@ export class Project {
 					this.nodeModulesRbxPath,
 					this.typeChecker,
 					this.macroManager,
+					this.globalSymbols,
 					this.projectType,
 					sourceFile,
 				);
