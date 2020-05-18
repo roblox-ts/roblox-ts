@@ -33,6 +33,10 @@ export function transformElementAccessExpressionInner(
 		return lua.emptyId();
 	}
 
+	if (ts.isPrototypeAccess(node)) {
+		state.addDiagnostic(diagnostics.noPrototype(node));
+	}
+
 	const constantValue = state.typeChecker.getConstantValue(node);
 	if (constantValue !== undefined) {
 		return typeof constantValue === "string" ? lua.string(constantValue) : lua.number(constantValue);

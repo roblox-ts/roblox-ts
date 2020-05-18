@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { addOneIfArrayType } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
@@ -13,6 +14,9 @@ export function transformWritableExpression(
 	node: ts.Expression,
 	multipleUse: boolean,
 ): lua.WritableExpression {
+	if (ts.isPrototypeAccess(node)) {
+		state.addDiagnostic(diagnostics.noPrototype(node));
+	}
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {

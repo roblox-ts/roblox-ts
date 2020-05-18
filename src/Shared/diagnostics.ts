@@ -82,6 +82,7 @@ export const diagnostics = {
 	noExportLetAlias: diagnostic("Exports defined with `let` cannot use aliases!"),
 	noGlobalThis: diagnostic("`globalThis` is not supported!"),
 	noArguments: diagnostic("`arguments` is not supported!"),
+	noPrototype: diagnostic("`prototype` is not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
