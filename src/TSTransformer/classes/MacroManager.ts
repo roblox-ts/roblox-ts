@@ -58,12 +58,12 @@ export class MacroManager {
 		for (const fileName of INCLUDE_FILES) {
 			const filePath = path.join(typesPath, fileName);
 			if (!fs.pathExistsSync(filePath)) {
-				throw new ProjectError(`(MacroManager) Path does not exist ${filePath}`);
+				throw new ProjectError(`MacroManager could not find path ${filePath}`);
 			}
 
 			const sourceFile = program.getSourceFile(filePath);
 			if (!sourceFile) {
-				throw new ProjectError(`(MacroManager) Could not find source file for ${filePath}`);
+				throw new ProjectError(`MacroManager Could not find source file for ${filePath}`);
 			}
 
 			for (const statement of sourceFile.statements) {
@@ -144,13 +144,13 @@ export class MacroManager {
 				continue;
 			}
 
-			throw new ProjectError(`(MacroManager) No symbol found for ${symbolName}`);
+			throw new ProjectError(`MacroManager could not find symbol for ${symbolName}`);
 		}
 
 		for (const [identifierName, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const identifierSymbols = identifiers.get(identifierName);
 			if (!identifierSymbols) {
-				throw new ProjectError(`(MacroManager) No identifier found for ${identifierName}`);
+				throw new ProjectError(`MacroManager could not find identifier for ${identifierName}`);
 			}
 			for (const symbol of identifierSymbols) {
 				this.identifierMacros.set(symbol, macro);
@@ -160,7 +160,7 @@ export class MacroManager {
 		for (const [funcName, macro] of Object.entries(CALL_MACROS)) {
 			const functionSymbols = functions.get(funcName);
 			if (!functionSymbols) {
-				throw new ProjectError(`(MacroManager) No function found for ${funcName}`);
+				throw new ProjectError(`MacroManager could not find function for ${funcName}`);
 			}
 			for (const symbol of functionSymbols) {
 				this.callMacros.set(symbol, macro);
@@ -170,7 +170,7 @@ export class MacroManager {
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
-				throw new ProjectError(`(MacroManager) No interface found for ${className}`);
+				throw new ProjectError(`MacroManager could not find interface for ${className}`);
 			}
 			for (const symbol of interfaceInfo.constructors) {
 				this.constructorMacros.set(symbol, macro);
@@ -180,12 +180,12 @@ export class MacroManager {
 		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
-				throw new ProjectError(`(MacroManager) No interface found for ${className}`);
+				throw new ProjectError(`MacroManager could not find interface for ${className}`);
 			}
 			for (const [methodName, macro] of Object.entries(methods)) {
 				const methodSymbols = interfaceInfo.methods.get(methodName);
 				if (!methodSymbols) {
-					throw new ProjectError(`(MacroManager) No method found for ${className}.${methodName}`);
+					throw new ProjectError(`MacroManager could not find method for ${className}.${methodName}`);
 				}
 				for (const methodSymbol of methodSymbols) {
 					this.propertyCallMacros.set(methodSymbol, macro);
