@@ -35,3 +35,12 @@ export function assignToPointer(
 		);
 	}
 }
+
+export function disableInline(
+	state: TransformState,
+	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
+): asserts ptr is Pointer<lua.TemporaryIdentifier> {
+	if (lua.isMap(ptr.value)) {
+		ptr.value = state.pushToVar(ptr.value);
+	}
+}

@@ -5,16 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { assignToPointer, Pointer } from "TSTransformer/util/pointer";
-
-function disableInline(
-	state: TransformState,
-	ptr: Pointer<lua.Map | lua.TemporaryIdentifier>,
-): asserts ptr is Pointer<lua.TemporaryIdentifier> {
-	if (lua.isMap(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value);
-	}
-}
+import { assignToPointer, disableInline, Pointer } from "TSTransformer/util/pointer";
 
 function transformPropertyAssignment(
 	state: TransformState,
