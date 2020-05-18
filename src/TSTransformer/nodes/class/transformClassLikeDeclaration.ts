@@ -4,13 +4,10 @@ import { TransformState } from "TSTransformer";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformClassElement } from "TSTransformer/nodes/class/transformClassElement";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 function hasConstructor(node: ts.ClassLikeDeclaration) {
 	return node.members.some(element => ts.isConstructorDeclaration(element));
-}
-
-function needsConstructor(node: ts.ClassLikeDeclaration) {
-	return node.members.some(element => ts.isPropertyDeclaration(element) && element.initializer);
 }
 
 function createNameFunction(name: string) {
@@ -23,6 +20,14 @@ function createNameFunction(name: string) {
 		parameters: lua.list.make(),
 		hasDotDotDot: false,
 	});
+}
+
+function getExtendsNode(node: ts.ClassLikeDeclaration) {
+	for (const clause of node.heritageClauses ?? []) {
+		if (clause.token === ts.SyntaxKind.ExtendsKeyword) {
+			return clause.types[0];
+		}
+	}
 }
 
 function createBoilerplate(
@@ -48,22 +53,48 @@ function createBoilerplate(
 
 	// 	className = setmetatable({}, {
 	// 		__tostring = function() return "className" end;
+	// 		__index = super,
 	//	});
+
+	const metatableFields = lua.list.make<lua.MapField>();
+	lua.list.push(
+		metatableFields,
+		lua.create(lua.SyntaxKind.MapField, {
+			index: lua.strings.__tostring,
+			value: createNameFunction(lua.isTemporaryIdentifier(className) ? "Anonymous" : className.name),
+		}),
+	);
+
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const { expression: extendsExp, statements: extendsExpPrereqs } = state.capture(() =>
+			transformExpression(state, extendsNode.expression),
+		);
+		const superId = lua.id("super");
+		lua.list.pushList(statements, extendsExpPrereqs);
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: superId,
+				right: extendsExp,
+			}),
+		);
+		lua.list.push(
+			metatableFields,
+			lua.create(lua.SyntaxKind.MapField, {
+				index: lua.strings.__index,
+				value: superId,
+			}),
+		);
+	}
+
 	lua.list.push(
 		statements,
 		lua.create(isClassExpression && node.name ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
 			left: isClassExpression && node.name ? transformIdentifierDefined(state, node.name) : className,
 			right: lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.setmetatable,
-				args: lua.list.make(
-					lua.map(),
-					lua.map([
-						[
-							lua.string("__tostring"),
-							createNameFunction(lua.isTemporaryIdentifier(className) ? "Anonymous" : className.name),
-						],
-					]),
-				),
+				args: lua.list.make(lua.map(), lua.create(lua.SyntaxKind.Map, { fields: metatableFields })),
 			}),
 		}),
 	);
@@ -83,41 +114,38 @@ function createBoilerplate(
 	const statementsInner = lua.list.make<lua.Statement>();
 
 	// statements for className.new
-	{
-		//	local self = setmetatable({}, className);
-		lua.list.push(
-			statementsInner,
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.globals.self,
-				right: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.setmetatable,
-					args: lua.list.make<lua.Expression>(lua.map(), className),
-				}),
+	//	local self = setmetatable({}, className);
+	lua.list.push(
+		statementsInner,
+		lua.create(lua.SyntaxKind.VariableDeclaration, {
+			left: lua.globals.self,
+			right: lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.setmetatable,
+				args: lua.list.make<lua.Expression>(lua.map(), className),
 			}),
-		);
+		}),
+	);
 
-		//	self:constructor(...);
-		// if there is no constructor, don't call it
-		(needsConstructor(node) || hasConstructor(node)) &&
-			lua.list.push(
-				statementsInner,
-				lua.create(lua.SyntaxKind.CallStatement, {
-					expression: lua.create(lua.SyntaxKind.MethodCallExpression, {
-						expression: lua.globals.self,
-						name: "constructor",
-						args: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
-					}),
-				}),
-			);
-
-		//	return self;
-		lua.list.push(
-			statementsInner,
-			lua.create(lua.SyntaxKind.ReturnStatement, {
+	//	self:constructor(...);
+	lua.list.push(
+		statementsInner,
+		lua.create(lua.SyntaxKind.CallStatement, {
+			expression: lua.create(lua.SyntaxKind.MethodCallExpression, {
 				expression: lua.globals.self,
+				name: "constructor",
+				args: lua.list.make(lua.create(lua.SyntaxKind.VarArgsLiteral, {})),
 			}),
-		);
-	}
+		}),
+	);
+
+	//	return self;
+	lua.list.push(
+		statementsInner,
+		lua.create(lua.SyntaxKind.ReturnStatement, {
+			expression: lua.globals.self,
+		}),
+	);
+
 	//	function className.new(...)
 	//	end;
 	lua.list.push(
@@ -140,6 +168,7 @@ function createBoilerplate(
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = lua.list.make<lua.Statement>();
+
 	/*
 		local className;
 		do
@@ -147,17 +176,21 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			class functions
 		end
 	*/
+
 	const shouldUseInternalName = isClassExpression && node.name !== undefined;
+
 	const returnVar = shouldUseInternalName
 		? lua.tempId()
 		: node.name
 		? transformIdentifierDefined(state, node.name)
 		: lua.tempId();
+
 	const internalName = shouldUseInternalName
 		? node.name
 			? transformIdentifierDefined(state, node.name)
 			: lua.tempId()
 		: returnVar;
+
 	lua.list.push(
 		statements,
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
@@ -169,14 +202,15 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	// OOP boilerplate + class functions
 	const statementsInner = lua.list.make<lua.Statement>();
 	lua.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
-	if (!hasConstructor(node) && needsConstructor(node)) {
+	if (!hasConstructor(node)) {
 		lua.list.pushList(statementsInner, transformClassConstructor(state, node.members, { value: internalName }));
 	}
 	for (const member of node.members) {
 		lua.list.pushList(statementsInner, transformClassElement(state, member, { value: internalName }));
 	}
+
 	// if using internal name, assign to return var
-	shouldUseInternalName &&
+	if (shouldUseInternalName) {
 		lua.list.push(
 			statementsInner,
 			lua.create(lua.SyntaxKind.Assignment, {
@@ -184,6 +218,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 				right: internalName,
 			}),
 		);
+	}
+
 	lua.list.push(
 		statements,
 		lua.create(lua.SyntaxKind.DoStatement, {

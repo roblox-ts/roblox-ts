@@ -32,6 +32,7 @@ export const globals = {
 		split: property(STRING_ID, "split"),
 		sub: property(STRING_ID, "sub"),
 	},
+	super: lua.id("super"),
 	table: {
 		concat: property(TABLE_ID, "concat"),
 		create: property(TABLE_ID, "create"),

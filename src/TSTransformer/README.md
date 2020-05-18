@@ -46,7 +46,7 @@ In other words, TS AST -> Lua AST
 -   [x] ClassExpression
 -   [x] OmittedExpression
 -   [x] ThisExpression
--   [ ] SuperExpression
+-   [x] SuperExpression
 -   [ ] JsxSelfClosingElement
 -   [ ] JsxExpression
 
@@ -73,7 +73,6 @@ In other words, TS AST -> Lua AST
 -   [x] ModuleDeclaration
 -   [x] EnumDeclaration
 -   [x] SwitchStatement
--   [ ] TryStatement?
 
 ### Constructor Macros
 

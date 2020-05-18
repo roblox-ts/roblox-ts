@@ -6,6 +6,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isLuaTupleType } from "TSTransformer/util/types";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	if (!lua.isCall(exp)) {
@@ -132,5 +133,33 @@ export function transformElementCallExpressionInner(
 }
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
+	if (ts.isSuperCall(node)) {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				expression: lua.globals.super,
+				name: "constructor",
+			}),
+			args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+		});
+	} else if (ts.isSuperProperty(node.expression)) {
+		if (ts.isPropertyAccessExpression(node.expression)) {
+			return lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+					expression: lua.globals.super,
+					name: node.expression.name.text,
+				}),
+				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+			});
+		} else {
+			return lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: lua.globals.super,
+					index: transformExpression(state, node.expression.argumentExpression),
+				}),
+				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+			});
+		}
+	}
+
 	return transformOptionalChain(state, node);
 }
