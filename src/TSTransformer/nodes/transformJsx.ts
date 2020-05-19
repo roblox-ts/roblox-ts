@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import {
 	assignToMapPointer,
 	assignToMixedTablePointer,
@@ -15,12 +16,17 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
-import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
 	// temporary hack until we can do symbol lookup
 	if (ts.isIdentifier(node)) {
-		if (node.text === "frame") return lua.string("Frame");
+		const symbol = state.typeChecker.getSymbolAtLocation(node);
+		if (symbol) {
+			const className = state.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
+			if (className !== undefined) {
+				return lua.string(className);
+			}
+		}
 	}
 
 	if (ts.isPropertyAccessExpression(node)) {

@@ -1,13 +1,15 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { getAncestor } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
-import { validateSuper } from "TSTransformer/util/validateSuper";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
@@ -154,8 +156,13 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 		for (const arg of node.arguments) {
 			validateNotAnyType(state, arg);
 		}
-		validateSuper(state, node);
+
+		const classLikeAncestor = getAncestor(node, ts.isClassLike);
+		const insideRoactComponent = classLikeAncestor && extendsRoactComponent(state, classLikeAncestor);
 		if (ts.isSuperCall(node)) {
+			if (insideRoactComponent) {
+				state.addDiagnostic(diagnostics.noSuperPropertyCallRoactComponent(node));
+			}
 			return lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 					expression: lua.globals.super,
@@ -164,6 +171,9 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
 			});
 		} else if (ts.isSuperProperty(node.expression)) {
+			if (insideRoactComponent) {
+				state.addDiagnostic(diagnostics.noSuperConstructorRoactComponent(node));
+			}
 			if (ts.isPropertyAccessExpression(node.expression)) {
 				return lua.create(lua.SyntaxKind.CallExpression, {
 					expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {

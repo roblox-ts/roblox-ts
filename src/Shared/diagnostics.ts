@@ -91,6 +91,7 @@ export const diagnostics = {
 	noGlobalThis: diagnostic("`globalThis` is not supported!"),
 	noArguments: diagnostic("`arguments` is not supported!"),
 	noPrototype: diagnostic("`prototype` is not supported!"),
+	noSuperProperty: diagnostic("super properties are not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
@@ -117,6 +118,9 @@ export const diagnostics = {
 		"Composition is preferred over inheritance with Roact components.",
 		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
 	),
-	noSuperInRoactComponent: diagnostic("`super` is not supported inside Roact components!"),
+	noSuperPropertyCallRoactComponent: diagnostic("`super` is not supported inside Roact components!"),
+	noSuperConstructorRoactComponent: diagnostic(
+		"`super(props)` must be the first statement of the constructor in a Roact component!",
+	),
 	noJsxText: diagnostic("JSX text is not supported!"),
 };

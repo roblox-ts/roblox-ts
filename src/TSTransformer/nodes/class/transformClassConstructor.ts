@@ -21,6 +21,8 @@ export function transformClassConstructor(
 		.filter((el): el is ts.PropertyDeclaration => ts.isPropertyDeclaration(el) && !ts.hasStaticModifier(el))
 		.forEach(el => lua.list.pushList(statements, transformClassProperty(state, el, { value: lua.globals.self })));
 
+	const isRoact = extendsRoactComponent(state, node);
+
 	let parameters = lua.list.make<lua.AnyIdentifier>();
 	let hasDotDotDot = false;
 	if (originNode) {
@@ -33,13 +35,22 @@ export function transformClassConstructor(
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
 		assert(originNode.body);
-		lua.list.pushList(statements, transformStatementList(state, getStatements(originNode.body)));
+
+		let bodyStatements = getStatements(originNode.body);
+		const firstStatement = bodyStatements[0];
+
+		// if isRoact and first statement is `super()`, remove it.
+		if (isRoact && ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
+			bodyStatements = bodyStatements.slice(1);
+		}
+
+		lua.list.pushList(statements, transformStatementList(state, bodyStatements));
 	}
 
 	return lua.list.make<lua.Statement>(
 		lua.create(lua.SyntaxKind.MethodDeclaration, {
 			expression: ptr.value,
-			name: extendsRoactComponent(state, node) ? "init" : "constructor",
+			name: isRoact ? "init" : "constructor",
 			statements,
 			parameters,
 			hasDotDotDot,

@@ -1,75 +1,134 @@
 import ts from "byots";
-import fs from "fs-extra";
 import path from "path";
-import { ProjectError } from "Shared/errors/ProjectError";
-import { findFirstChild } from "TSTransformer/util/traversal";
+import { assert } from "Shared/util/assert";
 
-const COMPONENT_CLASS_NAME = "Component";
-const PURE_COMPONENT_CLASS_NAME = "PureComponent";
-const FRAGMENT_NAME = "Fragment";
+export const ROACT_SYMBOL_NAMES = {
+	Component: "Component",
+	PureComponent: "PureComponent",
+	Fragment: "Fragment",
+	Ref: "Ref",
+	Event: "Event",
+	Change: "Change",
+};
+
+function getChildByNameOrThrow(children: ReadonlyArray<ts.Node>, childName: string) {
+	for (const child of children) {
+		let name: string | undefined;
+		if (ts.isModuleDeclaration(child)) {
+			name = child.name.text;
+		} else if (ts.isInterfaceDeclaration(child)) {
+			name = child.name.text;
+		} else if (ts.isVariableStatement(child)) {
+			const nameNode = child.declarationList.declarations[0].name;
+			assert(ts.isIdentifier(nameNode));
+			name = nameNode.text;
+		} else if (ts.isPropertySignature(child)) {
+			assert(ts.isIdentifier(child.name));
+			name = child.name.text;
+		}
+		if (name !== undefined && name === childName) {
+			return child;
+		}
+	}
+	assert(false, `Could not find child named "${childName}"`);
+}
 
 export class RoactSymbolManager {
-	public readonly componentSymbol: ts.Symbol;
-	public readonly pureComponentSymbol: ts.Symbol;
-	public readonly fragmentSymbol: ts.Symbol;
+	private readonly typeChecker: ts.TypeChecker;
+	private readonly symbols = new Map<string, ts.Symbol>();
+	private readonly intrinsicElementMap = new Map<ts.Symbol, string>();
+	private readonly keySymbol: ts.Symbol | undefined;
+
+	private addSymbolFromNode(name: string, node: ts.Node) {
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+		assert(symbol);
+		assert(!this.symbols.has(name));
+		this.symbols.set(name, symbol);
+	}
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
+		this.typeChecker = typeChecker;
+
 		// only continue if @rbxts/roact exists
-		const roactPackagePath = path.join(nodeModulesPath, "roact", "index.d.ts");
-		if (!fs.pathExistsSync(roactPackagePath)) {
-			const noneSymbol = typeChecker.createSymbol(ts.SymbolFlags.None, "None" as ts.__String);
-			this.componentSymbol = noneSymbol;
-			this.pureComponentSymbol = noneSymbol;
-			this.fragmentSymbol = noneSymbol;
-			return;
-		}
+		const roactIndexPath = path.join(nodeModulesPath, "roact", "index.d.ts");
+		const roactInternalPath = path.join(nodeModulesPath, "roact", "internal.d.ts");
 
-		const sourceFile = program.getSourceFile(roactPackagePath);
-		if (!sourceFile) {
-			throw new ProjectError(`RoactSymbolManager could not find source file for ${roactPackagePath}`);
-		}
+		const roactIndexSourceFile = program.getSourceFile(roactIndexPath);
+		const roactInternalSourceFile = program.getSourceFile(roactInternalPath);
+		if (!roactIndexSourceFile && !roactInternalSourceFile) return;
+		assert(roactIndexSourceFile && roactInternalSourceFile);
 
-		const roactNamespace = findFirstChild(sourceFile.statements, ts.isModuleDeclaration);
-		if (!roactNamespace || !roactNamespace.body || !ts.isModuleBlock(roactNamespace.body)) {
-			throw new ProjectError(`RoactSymbolManager could not find Roact namespace`);
-		}
+		const roactNamespace = getChildByNameOrThrow(roactIndexSourceFile.statements, "Roact");
+		assert(ts.isModuleDeclaration(roactNamespace) && roactNamespace.body && ts.isModuleBlock(roactNamespace.body));
 
-		let componentSymbol: ts.Symbol | undefined;
-		let pureComponentSymbol: ts.Symbol | undefined;
-		let fragmentSymbol: ts.Symbol | undefined;
-
+		const roactSymbolNameSet = new Set(Object.values(ROACT_SYMBOL_NAMES));
 		for (const statement of roactNamespace.body.statements) {
 			if (ts.isClassDeclaration(statement) && statement.name) {
-				if (statement.name.text === COMPONENT_CLASS_NAME) {
-					componentSymbol = typeChecker.getSymbolAtLocation(statement.name);
-				} else if (statement.name.text === PURE_COMPONENT_CLASS_NAME) {
-					pureComponentSymbol = typeChecker.getSymbolAtLocation(statement.name);
+				if (roactSymbolNameSet.has(statement.name.text)) {
+					this.addSymbolFromNode(statement.name.text, statement.name);
 				}
 			} else if (ts.isVariableStatement(statement)) {
-				const dec = statement.declarationList.declarations[0];
-				if (ts.isIdentifier(dec.name) && dec.name.text === FRAGMENT_NAME) {
-					fragmentSymbol = typeChecker.getSymbolAtLocation(dec.name);
+				const nameNode = statement.declarationList.declarations[0].name;
+				assert(ts.isIdentifier(nameNode));
+				if (roactSymbolNameSet.has(nameNode.text)) {
+					this.addSymbolFromNode(nameNode.text, nameNode);
 				}
 			}
-			if (componentSymbol && pureComponentSymbol && fragmentSymbol) {
-				break;
-			}
 		}
 
-		if (!componentSymbol) {
-			throw new ProjectError(`RoactSymbolManager could not symbol for Roact.Component`);
+		// verify all expected symbols exist
+		for (const symbolName of Object.keys(ROACT_SYMBOL_NAMES)) {
+			this.getSymbolOrThrow(symbolName);
 		}
 
-		if (!pureComponentSymbol) {
-			throw new ProjectError(`RoactSymbolManager could not symbol for Roact.PureComponent`);
+		const global = getChildByNameOrThrow(roactIndexSourceFile.statements, "global");
+		assert(ts.isModuleDeclaration(global) && global.body && ts.isModuleBlock(global.body));
+
+		const jsxNamespace = getChildByNameOrThrow(global.body.statements, "JSX");
+		assert(ts.isModuleDeclaration(jsxNamespace) && jsxNamespace.body && ts.isModuleBlock(jsxNamespace.body));
+
+		const intrinsicElements = getChildByNameOrThrow(jsxNamespace.body.statements, "IntrinsicElements");
+		assert(ts.isInterfaceDeclaration(intrinsicElements));
+
+		for (const intrinsicElement of intrinsicElements.members) {
+			assert(
+				ts.isPropertySignature(intrinsicElement) &&
+					intrinsicElement.name &&
+					ts.isIdentifier(intrinsicElement.name) &&
+					intrinsicElement.type &&
+					ts.isTypeReferenceNode(intrinsicElement.type),
+			);
+			const symbol = this.typeChecker.getSymbolAtLocation(intrinsicElement.name);
+			assert(symbol);
+			const className = intrinsicElement.type.typeArguments?.[0].getText();
+			assert(className);
+			this.intrinsicElementMap.set(symbol, className);
 		}
 
-		if (!fragmentSymbol) {
-			throw new ProjectError(`RoactSymbolManager could not symbol for Roact.Fragment`);
-		}
+		const rbxJsxProps = getChildByNameOrThrow(roactInternalSourceFile.statements, "RbxJsxProps");
+		assert(ts.isInterfaceDeclaration(rbxJsxProps));
 
-		this.componentSymbol = componentSymbol;
-		this.pureComponentSymbol = pureComponentSymbol;
-		this.fragmentSymbol = fragmentSymbol;
+		const key = getChildByNameOrThrow(rbxJsxProps.members, "Key");
+		assert(ts.isPropertySignature(key) && ts.isIdentifier(key.name));
+
+		const keySymbol = this.typeChecker.getSymbolAtLocation(key.name);
+		assert(keySymbol);
+
+		this.keySymbol = keySymbol;
+	}
+
+	public getSymbolOrThrow(symbolName: string): ts.Symbol {
+		const symbol = this.symbols.get(symbolName);
+		assert(symbol, `Could not find symbol for ${symbolName}`);
+		return symbol;
+	}
+
+	public getIntrinsicElementClassNameFromSymbol(symbol: ts.Symbol) {
+		return this.intrinsicElementMap.get(symbol);
+	}
+
+	public getKeySymbolOrThrow() {
+		assert(this.keySymbol);
+		return this.keySymbol;
 	}
 }
