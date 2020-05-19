@@ -23,11 +23,24 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: "",
 };
 
+/**
+ * The options of the project.
+ */
 export interface ProjectOptions {
+	/**
+	 * The path to the include directory.
+	 */
 	includePath: string;
+
+	/**
+	 * The path to the rojo configuration.
+	 */
 	rojo: string;
 }
 
+/**
+ * Represents a roblox-ts project.
+ */
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
@@ -49,10 +62,16 @@ export class Project {
 
 	public readonly projectType: ProjectType;
 
+	/**
+	 * @param tsConfigPath The path to the TypeScript configuration.
+	 * @param opts The options of the project.
+	 */
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
+		// Set up project paths
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
 
+		// Retrieve package.json
 		const pkgJsonPath = path.join(this.projectPath, "package.json");
 		if (fs.pathExistsSync(pkgJsonPath)) {
 			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
@@ -61,6 +80,7 @@ export class Project {
 
 		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
+		// Obtain TypeScript command line options and validate
 		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
 
 		if (parsedCommandLine === undefined) {
@@ -77,6 +97,7 @@ export class Project {
 		this.rootDir = compilerOptions.rootDir;
 		this.outDir = compilerOptions.outDir;
 
+		// Obtain TypeScript command line options and validate
 		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
 		if (rojoConfigPath) {
 			this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
@@ -90,6 +111,7 @@ export class Project {
 			this.projectType = ProjectType.Package;
 		}
 
+		// Validates and establishes runtime library
 		if (this.projectType !== ProjectType.Package) {
 			const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
 			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
@@ -109,6 +131,8 @@ export class Project {
 			this.nodeModulesRbxPath = this.rojoConfig.getRbxPathFromFilePath(this.nodeModulesPath);
 		}
 
+		// Set up TypeScript program for project
+		// This will generate the `ts.SourceFile` objects for each file in our project
 		this.program = ts.createProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: compilerOptions,
@@ -120,19 +144,27 @@ export class Project {
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
 		this.roactSymbolManager = new RoactSymbolManager(this.program, this.typeChecker, this.nodeModulesPath);
 
+		// Create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
 		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
 	}
 
+	/**
+	 * 'Transpiles' TypeScript project into a logically identical Lua project.
+	 * Writes rendered lua source to the out directory.
+	 */
 	public compile() {
 		const compileState = new CompileState(this.pkgVersion);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
+		// Iterate through each source file in the project as a `ts.SourceFile`
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
+				// Catch pre emit diagnostics
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
+				// Create a new transform state for the file
 				const transformState = new TransformState(
 					compileState,
 					this.rojoConfig,
@@ -147,10 +179,12 @@ export class Project {
 					sourceFile,
 				);
 
+				// Create a new Lua abstract syntax tree for the file
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
+				// Render lua abstract syntax tree and output only if there were no diagnostics
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 			}

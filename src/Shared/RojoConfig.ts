@@ -65,6 +65,9 @@ const DEFAULT_ISOLATED_CONTAINERS: Array<RbxPath> = [
 const CLIENT_CONTAINERS = [["StarterPack"], ["StarterGui"], ["StarterPlayer"]];
 const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
 
+/**
+ * Represents a roblox tree path.
+ */
 export type RbxPath = Array<string>;
 export type ReadonlyRbxPath = ReadonlyArray<string>;
 export type RelativeRbxPath = Array<string | RbxPathParent>;
@@ -110,6 +113,9 @@ function isValidRojoConfig(value: unknown): value is RojoFile {
 export const RbxPathParent = Symbol("Parent");
 export type RbxPathParent = typeof RbxPathParent;
 
+/**
+ * Represents the Rojo configuration.
+ */
 export class RojoConfig {
 	private readonly basePath: string;
 
@@ -189,8 +195,8 @@ export class RojoConfig {
 	}
 
 	/**
-	 * Create a synthetic RojoConfig for ProjectType.Package
-	 * Forces all imports to be relative
+	 * Create a synthetic RojoConfig for ProjectType.Package.
+	 * Forces all imports to be relative.
 	 */
 	public static synthetic(projectDir: string) {
 		return new RojoConfig(projectDir, { name: "", tree: { $path: projectDir } as RojoTree });

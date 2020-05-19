@@ -4,6 +4,12 @@ import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 
+/**
+ * Convert a ts.Statement array into a lua.list<...> tree
+ * @param state The current state of the transformation.
+ * @param statements The statements to transform into a `lua.list<...>`.
+ * @param exportInfo Information about exporting.
+ */
 export function transformStatementList(
 	state: TransformState,
 	statements: ReadonlyArray<ts.Statement>,
@@ -12,15 +18,19 @@ export function transformStatementList(
 		mapping: Map<ts.Statement, Array<string>>;
 	},
 ) {
+	// Make a new lua tree
 	const result = lua.list.make<lua.Statement>();
 
+	// Iterate through each statement in the `statements` array
 	for (const statement of statements) {
 		let transformedStatements!: lua.List<lua.Statement>;
+		// Capture prerequisite statements for the `ts.Statement`
+		// Transform the statement into a lua.List<...>
 		const prereqStatements = state.capturePrereqs(
 			() => (transformedStatements = transformStatement(state, statement)),
 		);
 
-		// comments
+		// Iterate through each of the leading comments of the statement
 		for (const comment of state.getLeadingComments(statement)) {
 			lua.list.push(
 				result,
@@ -30,6 +40,8 @@ export function transformStatementList(
 			);
 		}
 
+		// Check statement for hoisting
+		// Hoisting is the use of a variable before it was declared
 		const hoistDeclaration = createHoistDeclaration(state, statement);
 		if (hoistDeclaration) {
 			lua.list.push(result, hoistDeclaration);

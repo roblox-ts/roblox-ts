@@ -21,6 +21,9 @@ interface CLIOptions {
 	watch: boolean;
 }
 
+/**
+ * Defines the behavior for the `rbxtsc build` command.
+ */
 export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
 	command: ["$0", "build"],
 
@@ -52,22 +55,27 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			}),
 
 	handler: argv => {
+		// Attempt to retrieve TypeScript configuration JSON path
 		let tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
 		if (tsConfigPath === undefined) {
 			throw new CLIError("Unable to find tsconfig.json!");
 		}
 		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
 
+		// Parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
 		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);
 
+		// If watch mode is enabled
 		if (argv.watch) {
 			new Watcher(tsConfigPath, projectOptions);
 		} else {
 			try {
+				// Attempt to build the project
 				const project = new Project(tsConfigPath, projectOptions);
 				project.compile();
 			} catch (e) {
+				// Catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {
 					e.log();
 				} else {

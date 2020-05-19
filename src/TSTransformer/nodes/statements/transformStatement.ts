@@ -36,6 +36,9 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type StatementTransformer = (state: TransformState, node: any) => lua.List<lua.Statement>;
 
+/**
+ * Definitions for different types of transformations.
+ */
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// no emit
 	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
@@ -71,7 +74,14 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.WhileStatement, transformWhileStatement],
 ]);
 
+/**
+ * Transforms a singular `ts.Statement` in a `lua.list<...>`.
+ * @param state The current transform state.
+ * @param node The `ts.Statement` to transform.
+ */
 export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
+	// If any modifiers of the node include the `declare` keyword we do not transform
+	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {

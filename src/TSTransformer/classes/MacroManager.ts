@@ -34,6 +34,9 @@ export const SYMBOL_NAMES = {
 	TemplateStringsArray: "TemplateStringsArray",
 } as const;
 
+/**
+ * Manages the macros of the ts.
+ */
 export class MacroManager {
 	private symbols = new Map<string, ts.Symbol>();
 	private identifierMacros = new Map<ts.Symbol, IdentifierMacro>();
@@ -42,6 +45,7 @@ export class MacroManager {
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
+		// Initialize maps
 		const typeAliases = new Map<string, Set<ts.Symbol>>();
 		const identifiers = new Map<string, Set<ts.Symbol>>();
 		const functions = new Map<string, Set<ts.Symbol>>();
@@ -54,19 +58,24 @@ export class MacroManager {
 			}
 		>();
 
+
 		const typesPath = path.join(nodeModulesPath, "types", "include");
+		// Iterate through each file in the types include directory
 		for (const fileName of INCLUDE_FILES) {
 			const filePath = path.join(typesPath, fileName);
 			if (!fs.pathExistsSync(filePath)) {
 				throw new ProjectError(`MacroManager could not find path ${filePath}`);
 			}
 
+			// Get the source file for the include directory
 			const sourceFile = program.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new ProjectError(`MacroManager Could not find source file for ${filePath}`);
 			}
 
+			// Iterate through each statement of the type definition source file
 			for (const statement of sourceFile.statements) {
+				// Set up mappings for declarations
 				if (ts.isTypeAliasDeclaration(statement)) {
 					const typeAliasSymbols = getOrSetDefault(
 						typeAliases,
@@ -129,7 +138,10 @@ export class MacroManager {
 			}
 		}
 
+		// Iterate through each of the macro groups
 		for (const symbolName of Object.values(SYMBOL_NAMES)) {
+			// Verify that interface has a mapping somewhere
+			// Set up a mapping to the symbol
 			const interfaceInfo = interfaces.get(symbolName);
 			if (interfaceInfo) {
 				const [symbol] = interfaceInfo.symbols;
@@ -147,46 +159,60 @@ export class MacroManager {
 			throw new ProjectError(`MacroManager could not find symbol for ${symbolName}`);
 		}
 
+		// Iterate through each of the simple identifier macros like `PKG_VERSION`
 		for (const [identifierName, macro] of Object.entries(IDENTIFIER_MACROS)) {
+			// Get the symbols of all the identifier macros
 			const identifierSymbols = identifiers.get(identifierName);
 			if (!identifierSymbols) {
 				throw new ProjectError(`MacroManager could not find identifier for ${identifierName}`);
 			}
+			// Map each of the symbols to the macro
 			for (const symbol of identifierSymbols) {
 				this.identifierMacros.set(symbol, macro);
 			}
 		}
 
+		// Iterate through each of the call macros like `opcall()`
 		for (const [funcName, macro] of Object.entries(CALL_MACROS)) {
+			// Get the symbols of all the function macros
 			const functionSymbols = functions.get(funcName);
 			if (!functionSymbols) {
 				throw new ProjectError(`MacroManager could not find function for ${funcName}`);
 			}
+			// Map each of the symbols to the macro
 			for (const symbol of functionSymbols) {
 				this.callMacros.set(symbol, macro);
 			}
 		}
 
+		// Iterate through each of the constructor macros like `SetConstructor`
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
+			// Get information about the interface that is being constructed
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
 				throw new ProjectError(`MacroManager could not find interface for ${className}`);
 			}
+			// Map each of the symbols to the macro
 			for (const symbol of interfaceInfo.constructors) {
 				this.constructorMacros.set(symbol, macro);
 			}
 		}
 
+		// Iterate through each of the property call maros like `Object: { clone: () => {}}`
 		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
+			// Get the information about the interface being called
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
 				throw new ProjectError(`MacroManager could not find interface for ${className}`);
 			}
+			// Iterate through each of the property call macros (methods) in the interface
 			for (const [methodName, macro] of Object.entries(methods)) {
+				// Get the symbols of all the property calls
 				const methodSymbols = interfaceInfo.methods.get(methodName);
 				if (!methodSymbols) {
 					throw new ProjectError(`MacroManager could not find method for ${className}.${methodName}`);
 				}
+				// Map each of the symbols to the macro
 				for (const methodSymbol of methodSymbols) {
 					this.propertyCallMacros.set(methodSymbol, macro);
 				}

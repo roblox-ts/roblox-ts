@@ -11,8 +11,14 @@ import { createGetService } from "TSTransformer/util/createGetService";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import originalTS from "typescript";
 
+/**
+ * The ID of the Runtime library.
+ */
 const RUNTIME_LIB_ID = lua.id("TS");
 
+/**
+ * Represents the state of the transformation between TS -> lua AST.
+ */
 export class TransformState {
 	private readonly sourceFileText: string;
 	public readonly diagnostics = new Array<ts.Diagnostic>();
@@ -41,43 +47,71 @@ export class TransformState {
 
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();
 
+	/**
+	 * Pushes a new prerequisite statement onto the list stack.
+	 * @param statement 
+	 */
 	public prereq(statement: lua.Statement) {
 		lua.list.push(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statement);
 	}
 
+	/**
+	 * Pushes a new prerequisite list of statement onto the list stack.
+	 * @param statements 
+	 */
 	public prereqList(statements: lua.List<lua.Statement>) {
 		lua.list.pushList(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statements);
 	}
 
+	/**
+	 * Creates and pushes a new list of `lua.Statement`s onto the prerequisite stack.
+	 */
 	public pushPrereqStatementsStack() {
 		const prereqStatements = lua.list.make<lua.Statement>();
 		this.prereqStatementsStack.push(prereqStatements);
 		return prereqStatements;
 	}
 
+	/**
+	 * Pops and returns the top item of the prerequisite stack.
+	 */
 	public popPrereqStatementsStack() {
 		const poppedValue = this.prereqStatementsStack.pop();
 		assert(poppedValue);
 		return poppedValue;
 	}
 
-	public getLeadingComments(node: ts.Node) {
-		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
-		return commentRanges
-			.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
-			.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
-	}
+	/**
+	 * Returns the leading comments of a `ts.Node` as an array of strings.
+	 * @param node 
+	 */
+public getLeadingComments(node: ts.Node) {
+	const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
+	return commentRanges
+		// Filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`oh
+		.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
+		// Map each `ts.CommentRange` to its value without the beginning '//'
+		.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
+}
 
+	/**
+	 * Converts a TypeScript type into a "SimpleType"
+	 * @param type The type to convert.
+	 */
 	public getSimpleType(type: ts.Type) {
 		return tsst.toSimpleType(type as originalTS.Type, this.typeChecker as originalTS.TypeChecker);
 	}
 
+	/**
+	 * Converts the TypeScript type of `node` into a "SimpleType"
+	 * @param node The node with the type to convert.
+	 */
 	public getSimpleTypeFromNode(node: ts.Node) {
 		return this.getSimpleType(this.getType(node));
 	}
 
 	/**
-	 * Returns the prerequisite statements created by `callback`
+	 * Returns the prerequisite statements created by `callback`.
 	 */
 	public capturePrereqs(callback: () => void) {
 		this.pushPrereqStatementsStack();
@@ -86,7 +120,7 @@ export class TransformState {
 	}
 
 	/**
-	 * Returns the expression and prerequisite statements created by `callback`
+	 * Returns the expression and prerequisite statements created by `callback`.
 	 */
 	public capture(callback: () => lua.Expression) {
 		let expression!: lua.Expression;
@@ -94,6 +128,10 @@ export class TransformState {
 		return { expression, statements };
 	}
 
+	/**
+	 * 
+	 * @param callback 
+	 */
 	public noPrereqs(callback: () => lua.Expression) {
 		let expression!: lua.Expression;
 		const statements = this.capturePrereqs(() => (expression = callback()));
@@ -118,13 +156,20 @@ export class TransformState {
 		});
 	}
 
+	/**
+	 * Returns a `lua.VariableDeclaration` for RuntimeLib.lua
+	 */
 	public createRuntimeLibImport() {
+		// If the transform state has the game path to the RuntimeLib.lua
 		if (this.runtimeLibRbxPath) {
 			const rbxPath = [...this.runtimeLibRbxPath];
+			// Create an expression to obtain the service where RuntimeLib is stored
 			const serviceName = rbxPath.shift();
 			assert(serviceName);
 
 			let expression: lua.IndexableExpression = createGetService(serviceName);
+			// Iterate through the rest of the path
+			// For each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
 			for (const pathPart of rbxPath) {
 				expression = lua.create(lua.SyntaxKind.MethodCallExpression, {
 					expression,
@@ -133,16 +178,22 @@ export class TransformState {
 				});
 			}
 
+			// Nest the chain of `WaitForChild`s inside a require call
 			expression = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.require,
 				args: lua.list.make(expression),
 			});
 
+			// Create a variable declaration for this call
 			return lua.create(lua.SyntaxKind.VariableDeclaration, {
 				left: RUNTIME_LIB_ID,
 				right: expression,
 			});
 		} else {
+			// Create `_G[script]` index
+			// Packages do not contain their own RuntimeLib and have no way of knowing where the host RuntimeLib is
+			// Third part Lua code that wants to access the TunTimeLib so we pass it to _G[script] = TS
+			// - Osyris
 			return lua.create(lua.SyntaxKind.VariableDeclaration, {
 				left: RUNTIME_LIB_ID,
 				right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -153,6 +204,10 @@ export class TransformState {
 		}
 	}
 
+	/**
+	 * Declares and defines a new lua variable. Pushes that new variable to 
+	 * @param expression 
+	 */
 	public pushToVar(expression: lua.Expression) {
 		const temp = lua.tempId();
 		this.prereq(
@@ -164,6 +219,10 @@ export class TransformState {
 		return temp;
 	}
 
+	/**
+	 * 
+	 * @param expression 
+	 */
 	public pushToVarIfComplex<T extends lua.Expression>(
 		expression: T,
 	): Extract<T, lua.SimpleTypes> | lua.TemporaryIdentifier {
@@ -173,12 +232,20 @@ export class TransformState {
 		return this.pushToVar(expression);
 	}
 
+	/**
+	 * 
+	 * @param moduleSymbol 
+	 */
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.compileState.getModuleExportsCache, moduleSymbol, () =>
 			this.typeChecker.getExportsOfModule(moduleSymbol),
 		);
 	}
 
+	/**
+	 * 
+	 * @param moduleSymbol 
+	 */
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.compileState.getModuleExportsAliasMapCache, moduleSymbol, () => {
 			const aliasMap = new Map<ts.Symbol, string>();
@@ -212,15 +279,29 @@ export class TransformState {
 		return moduleId;
 	}
 
+	/**
+	 * 
+	 * @param moduleSymbol 
+	 * @param moduleId 
+	 */
 	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.AnyIdentifier) {
 		this.moduleIdBySymbol.set(moduleSymbol, moduleId);
 	}
 
+	/**
+	 * 
+	 * @param node 
+	 */
 	public getModuleIdFromNode(node: ts.Node) {
 		const moduleSymbol = this.getModuleSymbolFromNode(node);
 		return this.getModuleIdFromSymbol(moduleSymbol);
 	}
 
+	/**
+	 * 
+	 * @param idSymbol 
+	 * @param identifier 
+	 */
 	public getModuleIdPropertyAccess(idSymbol: ts.Symbol, identifier: ts.Identifier) {
 		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
 		const moduleId = this.getModuleIdFromSymbol(moduleSymbol);
