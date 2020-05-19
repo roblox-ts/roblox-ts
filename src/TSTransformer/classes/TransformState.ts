@@ -49,7 +49,7 @@ export class TransformState {
 
 	/**
 	 * Pushes a new prerequisite statement onto the list stack.
-	 * @param statement 
+	 * @param statement
 	 */
 	public prereq(statement: lua.Statement) {
 		lua.list.push(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statement);
@@ -57,7 +57,7 @@ export class TransformState {
 
 	/**
 	 * Pushes a new prerequisite list of statement onto the list stack.
-	 * @param statements 
+	 * @param statements
 	 */
 	public prereqList(statements: lua.List<lua.Statement>) {
 		lua.list.pushList(this.prereqStatementsStack[this.prereqStatementsStack.length - 1], statements);
@@ -83,16 +83,18 @@ export class TransformState {
 
 	/**
 	 * Returns the leading comments of a `ts.Node` as an array of strings.
-	 * @param node 
+	 * @param node
 	 */
-public getLeadingComments(node: ts.Node) {
-	const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
-	return commentRanges
-		// Filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`oh
-		.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
-		// Map each `ts.CommentRange` to its value without the beginning '//'
-		.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end));
-}
+	public getLeadingComments(node: ts.Node) {
+		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
+		return (
+			commentRanges
+				// Filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`oh
+				.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
+				// Map each `ts.CommentRange` to its value without the beginning '//'
+				.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end))
+		);
+	}
 
 	/**
 	 * Converts a TypeScript type into a "SimpleType"
@@ -129,8 +131,8 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param callback 
+	 *
+	 * @param callback
 	 */
 	public noPrereqs(callback: () => lua.Expression) {
 		let expression!: lua.Expression;
@@ -205,8 +207,8 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * Declares and defines a new lua variable. Pushes that new variable to 
-	 * @param expression 
+	 * Declares and defines a new lua variable. Pushes that new variable to
+	 * @param expression
 	 */
 	public pushToVar(expression: lua.Expression) {
 		const temp = lua.tempId();
@@ -220,8 +222,8 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param expression 
+	 *
+	 * @param expression
 	 */
 	public pushToVarIfComplex<T extends lua.Expression>(
 		expression: T,
@@ -233,8 +235,8 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param moduleSymbol 
+	 *
+	 * @param moduleSymbol
 	 */
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.compileState.getModuleExportsCache, moduleSymbol, () =>
@@ -243,8 +245,8 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param moduleSymbol 
+	 *
+	 * @param moduleSymbol
 	 */
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.compileState.getModuleExportsAliasMapCache, moduleSymbol, () => {
@@ -280,17 +282,17 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param moduleSymbol 
-	 * @param moduleId 
+	 *
+	 * @param moduleSymbol
+	 * @param moduleId
 	 */
 	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.AnyIdentifier) {
 		this.moduleIdBySymbol.set(moduleSymbol, moduleId);
 	}
 
 	/**
-	 * 
-	 * @param node 
+	 *
+	 * @param node
 	 */
 	public getModuleIdFromNode(node: ts.Node) {
 		const moduleSymbol = this.getModuleSymbolFromNode(node);
@@ -298,9 +300,9 @@ public getLeadingComments(node: ts.Node) {
 	}
 
 	/**
-	 * 
-	 * @param idSymbol 
-	 * @param identifier 
+	 *
+	 * @param idSymbol
+	 * @param identifier
 	 */
 	public getModuleIdPropertyAccess(idSymbol: ts.Symbol, identifier: ts.Identifier) {
 		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);

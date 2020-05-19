@@ -19,7 +19,7 @@ const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 
 /**
  * Represents an object that watches files in the project directory for edits.
- * Creates a new `Project` instance on each edit. 
+ * Creates a new `Project` instance on each edit
  */
 export class Watcher {
 	private project!: Project;

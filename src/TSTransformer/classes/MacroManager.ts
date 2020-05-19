@@ -58,7 +58,6 @@ export class MacroManager {
 			}
 		>();
 
-
 		const typesPath = path.join(nodeModulesPath, "types", "include");
 		// Iterate through each file in the types include directory
 		for (const fileName of INCLUDE_FILES) {
