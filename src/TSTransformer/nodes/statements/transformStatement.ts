@@ -43,6 +43,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	// no emit
 	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
 	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
+	[ts.SyntaxKind.EmptyStatement, NO_EMIT],
 
 	// banned statements
 	[ts.SyntaxKind.TryStatement, DIAGNOSTIC(diagnostics.noTryStatement)],
