@@ -15,6 +15,7 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
+import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
 	// temporary hack until we can do symbol lookup
@@ -154,7 +155,7 @@ function createJsxAddAmbiguousChildren(
 						args: lua.list.make(keyId),
 					}),
 					operator: "==",
-					right: lua.string("number"),
+					right: lua.strings.number,
 				}),
 				statements: lua.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
 				elseBody: lua.list.make(createJsxAddKeyChild(childrenPtrValue, keyId, valueId)),
@@ -170,25 +171,35 @@ function createJsxAddAmbiguousChild(
 	expression: lua.IndexableExpression,
 ) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression,
-					name: "props",
+		condition: binaryExpressionChain(
+			[
+				lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.type,
+						args: lua.list.make(expression),
+					}),
+					operator: "==",
+					right: lua.strings.table,
 				}),
-				operator: "~=",
-				right: lua.nil(),
-			}),
-			operator: "and",
-			right: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression,
-					name: "component",
+				lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression,
+						name: "props",
+					}),
+					operator: "~=",
+					right: lua.nil(),
 				}),
-				operator: "~=",
-				right: lua.nil(),
-			}),
-		}),
+				lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression,
+						name: "component",
+					}),
+					operator: "~=",
+					right: lua.nil(),
+				}),
+			],
+			"and",
+		),
 		statements: lua.list.make(
 			createJsxAddNumericChildPrereq(childrenPtrValue, amtChildrenSinceUpdate, lengthId, expression),
 		),
@@ -305,7 +316,7 @@ function transformJsxChildren(
 							childrenPtr.value,
 							amtChildrenSinceUpdate,
 							lengthId,
-							state.pushToVarIfComplex(expression),
+							state.pushToVarIfNonId(expression),
 						),
 					);
 				}

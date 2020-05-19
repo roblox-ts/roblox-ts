@@ -207,7 +207,7 @@ export class TransformState {
 	}
 
 	/**
-	 * Declares and defines a new lua variable. Pushes that new variable to
+	 * Declares and defines a new lua variable. Pushes that new variable to a new lua.TemporaryIdentifier.
 	 * @param expression
 	 */
 	public pushToVar(expression: lua.Expression) {
@@ -222,13 +222,26 @@ export class TransformState {
 	}
 
 	/**
-	 *
-	 * @param expression
+	 * Uses `state.pushToVar(expression)` unless `lua.isSimple(expression)`
+	 * @param expression the expression to push
 	 */
 	public pushToVarIfComplex<T extends lua.Expression>(
 		expression: T,
 	): Extract<T, lua.SimpleTypes> | lua.TemporaryIdentifier {
 		if (lua.isSimple(expression)) {
+			return expression as Extract<T, lua.SimpleTypes>;
+		}
+		return this.pushToVar(expression);
+	}
+
+	/**
+	 * Uses `state.pushToVar(expression)` unless `lua.isAnyIdentifier(expression)`
+	 * @param expression the expression to push
+	 */
+	public pushToVarIfNonId<T extends lua.Expression>(
+		expression: T,
+	): Extract<T, lua.SimpleTypes> | lua.TemporaryIdentifier {
+		if (lua.isAnyIdentifier(expression)) {
 			return expression as Extract<T, lua.SimpleTypes>;
 		}
 		return this.pushToVar(expression);

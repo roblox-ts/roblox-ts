@@ -7,6 +7,10 @@ export const strings = {
 	__mode: lua.string("__mode"),
 	k: lua.string("k"), // used for __mode
 
+	// types
+	number: lua.string("number"),
+	table: lua.string("table"),
+
 	// opcall
 	success: lua.string("success"),
 	value: lua.string("value"),
