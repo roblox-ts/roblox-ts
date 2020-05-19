@@ -24,6 +24,7 @@ export interface ExpressionByKind extends IndexableExpressionByKind {
 	[lua.SyntaxKind.Array]: lua.Array;
 	[lua.SyntaxKind.Map]: lua.Map;
 	[lua.SyntaxKind.Set]: lua.Set;
+	[lua.SyntaxKind.MixedTable]: lua.MixedTable;
 }
 
 export interface StatementByKind {

@@ -43,6 +43,7 @@ export const globals = {
 		codes: property(UTF8_ID, "codes"),
 	},
 	tostring: lua.id("tostring"),
+	type: lua.id("type"),
 	typeof: lua.id("typeof"),
 	unpack: lua.id("unpack"),
 

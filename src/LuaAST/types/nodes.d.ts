@@ -111,6 +111,10 @@ export interface Set extends lua.Expression<lua.SyntaxKind.Set> {
 	members: lua.List<lua.Expression>;
 }
 
+export interface MixedTable extends lua.Expression<lua.SyntaxKind.MixedTable> {
+	fields: lua.List<lua.MapField | lua.Expression>;
+}
+
 // statements
 export interface Assignment extends lua.Statement<lua.SyntaxKind.Assignment> {
 	left: lua.WritableExpression | lua.List<lua.WritableExpression>;

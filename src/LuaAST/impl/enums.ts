@@ -22,6 +22,7 @@ export enum SyntaxKind {
 	Array,
 	Map,
 	Set,
+	MixedTable,
 
 	// statements
 	Assignment,

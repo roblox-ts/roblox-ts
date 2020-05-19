@@ -5,11 +5,11 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { assignToPointer, disableInline, ObjectPointer } from "TSTransformer/util/pointer";
+import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 
 function transformPropertyAssignment(
 	state: TransformState,
-	ptr: ObjectPointer,
+	ptr: MapPointer,
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
@@ -17,16 +17,16 @@ function transformPropertyAssignment(
 	const right = state.capture(() => transformExpression(state, initializer));
 
 	if (!lua.list.isEmpty(left.statements) || !lua.list.isEmpty(right.statements)) {
-		disableInline(state, ptr);
+		disableMapInline(state, ptr);
 	}
 
 	state.prereqList(left.statements);
 	state.prereqList(right.statements);
-	assignToPointer(state, ptr, left.expression, right.expression);
+	assignToMapPointer(state, ptr, left.expression, right.expression);
 }
 
-function transformSpreadAssignment(state: TransformState, ptr: ObjectPointer, property: ts.SpreadAssignment) {
-	disableInline(state, ptr);
+function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
+	disableMapInline(state, ptr);
 	const spreadExp = transformExpression(state, property.expression);
 	const keyId = lua.tempId();
 	const valueId = lua.tempId();
@@ -52,7 +52,7 @@ function transformSpreadAssignment(state: TransformState, ptr: ObjectPointer, pr
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
 	// starts as lua.Map, becomes lua.TemporaryIdentifier when `disableInline` is called
-	const ptr: ObjectPointer = { value: lua.map() };
+	const ptr: MapPointer = { value: lua.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {

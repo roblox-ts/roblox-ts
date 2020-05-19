@@ -16,8 +16,8 @@ In other words, TS AST -> Lua AST
 -   [x] npm package importing
 -   [x] return nil for ModuleScripts without exports
 -   [x] opcall
--   [ ] Roact JSX
--   [ ] Roact classes
+-   [x] Roact JSX
+-   [x] Roact classes
 
 ### Expressions
 
@@ -47,8 +47,8 @@ In other words, TS AST -> Lua AST
 -   [x] OmittedExpression
 -   [x] ThisExpression
 -   [x] SuperExpression
--   [ ] JsxSelfClosingElement
--   [ ] JsxExpression
+-   [x] JsxSelfClosingElement
+-   [x] JsxExpression
 
 ### Statements
 

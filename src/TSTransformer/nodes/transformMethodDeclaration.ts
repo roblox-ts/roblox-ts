@@ -7,7 +7,7 @@ import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { assignToPointer, Pointer } from "TSTransformer/util/pointer";
+import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -45,7 +45,7 @@ export function transformMethodDeclaration(
 
 	// We have to use `class[name] = function()`
 	return state.capturePrereqs(() =>
-		assignToPointer(
+		assignToMapPointer(
 			state,
 			ptr,
 			name,

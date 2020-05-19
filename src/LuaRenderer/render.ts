@@ -13,6 +13,7 @@ import { renderBinaryExpression } from "LuaRenderer/nodes/expressions/renderBina
 import { renderFunctionExpression } from "LuaRenderer/nodes/expressions/renderFunctionExpression";
 import { renderNumberLiteral, renderStringLiteral } from "LuaRenderer/nodes/expressions/renderLiteral";
 import { renderMap } from "LuaRenderer/nodes/expressions/renderMap";
+import { renderMixedTable } from "LuaRenderer/nodes/expressions/renderMixedTable";
 import { renderSet } from "LuaRenderer/nodes/expressions/renderSet";
 import { renderUnaryExpression } from "LuaRenderer/nodes/expressions/renderUnaryExpression";
 import { renderMapField } from "LuaRenderer/nodes/fields/renderMapField";
@@ -60,6 +61,7 @@ const KIND_TO_RENDERER = ts.identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	[lua.SyntaxKind.Array]: renderArray,
 	[lua.SyntaxKind.Map]: renderMap,
 	[lua.SyntaxKind.Set]: renderSet,
+	[lua.SyntaxKind.MixedTable]: renderMixedTable,
 
 	// statements
 	[lua.SyntaxKind.Assignment]: renderAssignment,

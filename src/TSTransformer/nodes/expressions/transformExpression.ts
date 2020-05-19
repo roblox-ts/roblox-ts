@@ -33,6 +33,8 @@ import {
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
+import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));
@@ -63,6 +65,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
+	[ts.SyntaxKind.JsxElement, transformJsxElement],
+	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
 	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],

@@ -54,7 +54,7 @@ export function validateCompilerOptions(
 	}
 
 	if (opts.target !== ENFORCED_OPTIONS.target) {
-		errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
+		// errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
 	}
 
 	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {

@@ -82,3 +82,17 @@ export function map(fields: Array<[lua.Expression, lua.Expression]> = []) {
 		fields: lua.list.make(...fields.map(([index, value]) => lua.create(lua.SyntaxKind.MapField, { index, value }))),
 	});
 }
+
+export function mixedTable(fields: Array<lua.Expression | [lua.Expression, lua.Expression]> = []) {
+	return lua.create(lua.SyntaxKind.MixedTable, {
+		fields: lua.list.make(
+			...fields.map(field => {
+				if (Array.isArray(field)) {
+					return lua.create(lua.SyntaxKind.MapField, { index: field[0], value: field[1] });
+				} else {
+					return field;
+				}
+			}),
+		),
+	});
+}

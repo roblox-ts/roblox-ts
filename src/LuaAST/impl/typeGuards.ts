@@ -36,6 +36,7 @@ export const isUnaryExpression = makeGuard(lua.SyntaxKind.UnaryExpression);
 export const isArray = makeGuard(lua.SyntaxKind.Array);
 export const isMap = makeGuard(lua.SyntaxKind.Map);
 export const isSet = makeGuard(lua.SyntaxKind.Set);
+export const isMixedTable = makeGuard(lua.SyntaxKind.MixedTable);
 
 export function isExpression(node: lua.Node): node is lua.Expression {
 	return node.kind >= lua.SyntaxKind.FirstExpression && node.kind <= lua.SyntaxKind.LastExpression;
