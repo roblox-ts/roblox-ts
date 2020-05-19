@@ -17,4 +17,7 @@ const builder: yargs.CommandBuilder = () =>
 		.command("package", "Generate a roblox-ts npm package", {}, argv => handler(argv, "package"))
 		.demandCommand();
 
+/**
+ * Defines behavior of `rbxtsc init` command.
+ */
 export = ts.identity<yargs.CommandModule>({ command, describe, builder, handler: () => {} });

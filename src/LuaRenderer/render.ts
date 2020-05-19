@@ -84,11 +84,20 @@ const KIND_TO_RENDERER = ts.identity<{ [K in lua.SyntaxKind]: Renderer<K> }>({
 	[lua.SyntaxKind.MapField]: renderMapField,
 });
 
+/**
+ * Returns a string that represents the given syntax node, `node`, as lua code.
+ * Recursively called until the node is completely rendered.
+ * @param state The state of the current rendering process.
+ * @param node The node to render as lua code.
+ */
 export function render<T extends lua.SyntaxKind>(state: RenderState, node: lua.Node<T>): string {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return KIND_TO_RENDERER[node.kind](state, node as any);
 }
 
+/**
+ * Returns a string that represents the given syntax tree, `ast`, as lua code.
+ */
 export function renderAST(ast: lua.List<lua.Statement>): string {
 	return renderStatements(new RenderState(), ast);
 }

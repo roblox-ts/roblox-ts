@@ -20,6 +20,12 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
 	}
 }
 
+/**
+ * Adds export information to the end of the tree.
+ * @param state The current transform state.
+ * @param symbol The symbol of the file.
+ * @param statements The transformed list of statements of the state.
+ */
 function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua.List<lua.Statement>) {
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, lua.Identifier]>();
@@ -94,11 +100,23 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 	}
 }
 
+/**
+ * Creates and returns a lua.list<> (lua AST).
+ * @param state The current transform state.
+ * @param node The sourcefile to convert to a lua AST.
+ */
 export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
+	// Get the symbol for the file
+	// Symbols strongly represent parts of a program, such as variable or source files.
+	// const x = 1;
+	// print(x);
+	// These two statements have the `x` identifier. When converted into a tree, each statement will have a different `ts.Identifier` for `x`.
+	// `ts.TypeChecker.getSymbolAtLocation()` will return the same `ts.Symbol` for each `ts.Identifier`.
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	assert(symbol);
 	state.setModuleIdBySymbol(symbol, lua.globals.exports);
 
+	// Transform the `ts.Statements` of the source file into a `list.list<...>`
 	const statements = transformStatementList(state, node.statements);
 
 	handleExports(state, symbol, statements);
@@ -111,10 +129,12 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		}
 	}
 
+	// Add the Runtime library to the tree if it is used
 	if (state.usesRuntimeLib) {
 		lua.list.unshift(statements, state.createRuntimeLibImport());
 	}
 
+	// Add build information to the tree
 	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${VERSION}`));
 
 	return statements;

@@ -12,6 +12,9 @@ export const SERVER_SUBEXT = "server";
 export const CLIENT_SUBEXT = "client";
 export const MODULE_SUBEXT = "";
 
+/**
+ * The type of project. Either Game, Model, or Package.
+ */
 export enum ProjectType {
 	Game,
 	Model,

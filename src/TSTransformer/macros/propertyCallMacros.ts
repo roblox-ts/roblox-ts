@@ -669,6 +669,8 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
+const OBJECT_METHODS: MacroList<PropertyCallMacro> = {};
+
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
 	CFrame: {
@@ -718,4 +720,5 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
 	Promise: PROMISE_METHODS,
+	Object: OBJECT_METHODS,
 };

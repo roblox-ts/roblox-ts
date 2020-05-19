@@ -17,11 +17,19 @@ const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	usePolling: true,
 };
 
+/**
+ * Represents an object that watches files in the project directory for edits.
+ * Creates a new `Project` instance on each edit
+ */
 export class Watcher {
 	private project!: Project;
 	private watchEventQueue = new Array<WatchEvent>();
 	private hasUpdateAllSucceeded = false;
 
+	/**
+	 * @param tsConfigPath The path to the tsconfig.json file
+	 * @param opts The projects options specified in tsconfig.json
+	 */
 	constructor(private readonly tsConfigPath: string, private readonly opts: Partial<ProjectOptions>) {
 		this.refreshProject();
 		this.watch();

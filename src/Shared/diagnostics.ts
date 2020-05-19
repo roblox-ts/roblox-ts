@@ -33,6 +33,10 @@ export function createDiagnosticWithLocation(id: number, message: string, node: 
 }
 
 let id = 0;
+/**
+ * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
+ * @param messages The list of messages to include in the error report.
+ */
 function diagnostic(...messages: Array<string>): DiagnosticFactory {
 	const result = (node: ts.Node) => createDiagnosticWithLocation(result.id, messages.join("\n"), node);
 	result.id = id++;
@@ -44,6 +48,9 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
 	return (diagnostic as any).id;
 }
 
+/**
+ * Defines diagnostic error messages
+ */
 export const diagnostics = {
 	// banned statements
 	noTryStatement: diagnostic("try-catch statements are not supported!", issue(873)),
