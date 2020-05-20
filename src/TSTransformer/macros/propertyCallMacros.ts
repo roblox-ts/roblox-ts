@@ -394,14 +394,11 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(expression),
-						index:
-							i == 0
-								? sizeExp
-								: lua.create(lua.SyntaxKind.BinaryExpression, {
-										left: sizeExp,
-										operator: "+",
-										right: lua.number(i),
-								  }),
+						index: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: sizeExp,
+							operator: "+",
+							right: lua.number(i + 1),
+						}),
 					}),
 					right: args[i],
 				}),
