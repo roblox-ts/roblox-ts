@@ -5,7 +5,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
+import { binaryExpressionChain, propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import {
 	assignToMapPointer,
 	assignToMixedTablePointer,
@@ -16,6 +16,10 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
+
+function Roact(...indices: Array<string>) {
+	return propertyAccessExpressionChain(lua.id("Roact"), indices);
+}
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
 	if (ts.isIdentifier(node)) {
@@ -60,25 +64,6 @@ function getAttributes(node: ts.JsxElement | ts.JsxSelfClosingElement) {
 		return node.openingElement.attributes;
 	} else {
 		return node.attributes;
-	}
-}
-
-// TODO symbol
-const KEY_ATTRIBUTE_NAME = "Key";
-
-function isKeyAttribute(attribute: ts.JsxAttribute): attribute is ts.JsxAttribute & { initializer: ts.StringLiteral } {
-	return (
-		attribute.name.text === KEY_ATTRIBUTE_NAME &&
-		attribute.initializer !== undefined &&
-		ts.isStringLiteral(attribute.initializer)
-	);
-}
-
-function getKeyAttribute(element: ts.JsxElement | ts.JsxSelfClosingElement) {
-	for (const attribute of getAttributes(element).properties) {
-		if (ts.isJsxAttribute(attribute) && isKeyAttribute(attribute)) {
-			return attribute.initializer.text;
-		}
 	}
 }
 
@@ -246,16 +231,99 @@ function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpres
 	return tagNameExp;
 }
 
-function transformJsxAttributes(state: TransformState, attributes: ts.JsxAttributes, attributesPtr: MapPointer) {
-	for (const attribute of attributes.properties) {
-		if (ts.isJsxAttribute(attribute)) {
-			if (isKeyAttribute(attribute)) continue;
-			const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, attribute.initializer);
+const KEY_ATTRIBUTE_NAME = "Key";
+const REF_ATTRIBUTE_NAME = "Ref";
+const CHANGE_ATTRIBUTE_NAME = "Change";
+const EVENT_ATTRIBUTE_NAME = "Event";
+
+function getKeyValue(element: ts.JsxElement | ts.JsxSelfClosingElement) {
+	for (const attribute of getAttributes(element).properties) {
+		if (
+			ts.isJsxAttribute(attribute) &&
+			attribute.name.text === KEY_ATTRIBUTE_NAME &&
+			attribute.initializer &&
+			ts.isStringLiteral(attribute.initializer)
+		) {
+			return attribute.initializer.text;
+		}
+	}
+}
+
+function isFlatObject(expression: ts.ObjectLiteralExpression) {
+	for (const property of expression.properties) {
+		if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
+	assert(attribute.initializer && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression);
+	const expression = attribute.initializer.expression;
+	if (ts.isObjectLiteralExpression(expression) && isFlatObject(expression)) {
+		for (const property of expression.properties) {
+			assert(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name));
+			const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, property.initializer);
 			if (!lua.list.isEmpty(initPrereqs)) {
 				disableMapInline(state, attributesPtr);
 			}
 			state.prereqList(initPrereqs);
-			assignToMapPointer(state, attributesPtr, lua.string(attribute.name.text), init);
+			assignToMapPointer(state, attributesPtr, Roact(attribute.name.text, property.name.text), init);
+		}
+	} else {
+		disableMapInline(state, attributesPtr);
+
+		const init = transformExpression(state, expression);
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(init),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: attributesPtr.value,
+							index: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: Roact(attribute.name.text),
+								index: keyId,
+							}),
+						}),
+						right: valueId,
+					}),
+				),
+			}),
+		);
+	}
+}
+
+function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
+	const attributeName = attribute.name.text;
+	if (attributeName === KEY_ATTRIBUTE_NAME) return;
+
+	if (attributeName === EVENT_ATTRIBUTE_NAME || attributeName === CHANGE_ATTRIBUTE_NAME) {
+		transformSpecialAttribute(state, attribute, attributesPtr);
+		return;
+	}
+
+	const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, attribute.initializer);
+	if (!lua.list.isEmpty(initPrereqs)) {
+		disableMapInline(state, attributesPtr);
+	}
+	state.prereqList(initPrereqs);
+
+	const name = attributeName === REF_ATTRIBUTE_NAME ? Roact("Ref") : lua.string(attributeName);
+	assignToMapPointer(state, attributesPtr, name, init);
+}
+
+function transformJsxAttributes(state: TransformState, attributes: ts.JsxAttributes, attributesPtr: MapPointer) {
+	for (const attribute of attributes.properties) {
+		if (ts.isJsxAttribute(attribute)) {
+			transformJsxAttribute(state, attribute, attributesPtr);
 		} else {
 			// spread attribute
 			disableMapInline(state, attributesPtr);
@@ -338,7 +406,7 @@ function transformJsxChildren(
 				state.prereqList(statements);
 			}
 
-			const key = getKeyAttribute(child);
+			const key = getKeyValue(child);
 			if (key) {
 				assignToMixedTablePointer(state, childrenPtr, lua.string(key), expression);
 			} else {
@@ -369,10 +437,7 @@ export function transformJsx(
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
 	// TODO Fragment
-	const expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-		expression: lua.id("Roact"),
-		name: "createElement",
-	});
+	const expression = Roact("createElement");
 
 	const args = lua.list.make<lua.Expression>(tagNameExp);
 	if (lua.isAnyIdentifier(attributesPtr.value) || !lua.list.isEmpty(attributesPtr.value.fields)) {
@@ -382,10 +447,13 @@ export function transformJsx(
 		lua.list.push(args, childrenPtr.value);
 	}
 
-	let result: lua.Expression = lua.create(lua.SyntaxKind.CallExpression, { expression, args });
+	let result: lua.Expression = lua.create(lua.SyntaxKind.CallExpression, {
+		expression,
+		args,
+	});
 
 	if (!ts.isJsxElement(node.parent)) {
-		const key = getKeyAttribute(node);
+		const key = getKeyValue(node);
 		if (key) {
 			result = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
