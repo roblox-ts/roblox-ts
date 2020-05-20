@@ -16,6 +16,7 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
+import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 
 function Roact(...indices: Array<string>) {
 	return propertyAccessExpressionChain(lua.id("Roact"), indices);
@@ -227,7 +228,6 @@ function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpres
 		state.prereqList(tagNameCaptures.statements);
 		tagNameExp = state.pushToVarIfComplex(tagNameExp);
 	}
-	assert(lua.isSimple(tagNameExp));
 	return tagNameExp;
 }
 
@@ -430,36 +430,41 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	const tagNameExp = transformJsxTagName(state, tagName);
+	const isFragment =
+		state.typeChecker.getSymbolAtLocation(tagName) ===
+		state.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
+
+	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : lua.emptyId();
 	const attributesPtr = createMapPointer();
 	const childrenPtr = createMixedTablePointer();
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
-	// TODO Fragment
-	const expression = Roact("createElement");
-
-	const args = lua.list.make<lua.Expression>(tagNameExp);
-	if (lua.isAnyIdentifier(attributesPtr.value) || !lua.list.isEmpty(attributesPtr.value.fields)) {
+	const args = lua.list.make<lua.Expression>();
+	if (!isFragment) {
+		lua.list.push(args, tagNameExp);
+	}
+	const pushAttributes = lua.isAnyIdentifier(attributesPtr.value) || !lua.list.isEmpty(attributesPtr.value.fields);
+	const pushChildren = lua.isAnyIdentifier(childrenPtr.value) || !lua.list.isEmpty(childrenPtr.value.fields);
+	if (!isFragment && (pushAttributes || pushChildren)) {
 		lua.list.push(args, attributesPtr.value);
 	}
-	if (lua.isAnyIdentifier(childrenPtr.value) || !lua.list.isEmpty(childrenPtr.value.fields)) {
+	if (pushChildren) {
 		lua.list.push(args, childrenPtr.value);
 	}
 
 	let result: lua.Expression = lua.create(lua.SyntaxKind.CallExpression, {
-		expression,
+		expression: isFragment ? Roact("createFragment") : Roact("createElement"),
 		args,
 	});
 
+	// If this is a top-level element, handle Key here.
+	// Otherwise, handle in transformJsxAttributes
 	if (!ts.isJsxElement(node.parent)) {
 		const key = getKeyValue(node);
 		if (key) {
 			result = lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression: lua.id("Roact"),
-					name: "createFragment",
-				}),
+				expression: Roact("createFragment"),
 				args: lua.list.make(lua.map([[lua.string(key), result]])),
 			});
 		}
