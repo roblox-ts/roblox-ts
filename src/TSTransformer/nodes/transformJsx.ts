@@ -18,7 +18,6 @@ import {
 } from "TSTransformer/util/pointer";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
-	// temporary hack until we can do symbol lookup
 	if (ts.isIdentifier(node)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {
