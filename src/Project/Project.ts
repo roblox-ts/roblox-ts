@@ -170,6 +170,7 @@ export class Project {
 					this.rojoConfig,
 					this.pathTranslator,
 					this.runtimeLibRbxPath,
+					this.nodeModulesPath,
 					this.nodeModulesRbxPath,
 					this.typeChecker,
 					this.globalSymbols,
