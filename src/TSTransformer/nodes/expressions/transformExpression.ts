@@ -51,6 +51,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(diagnostics.noPrivateIdentifier)],
 	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
 	[ts.SyntaxKind.VoidExpression, DIAGNOSTIC(diagnostics.noVoidExpression)],
+	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(diagnostics.noRegex)],
 
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],

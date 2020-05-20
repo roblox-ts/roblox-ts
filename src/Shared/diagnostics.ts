@@ -70,6 +70,7 @@ export const diagnostics = {
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	),
 	noVoidExpression: diagnostic("`void` operator is not supported!"),
+	noRegex: diagnostic("Regular expressions are not supported!"),
 
 	// banned features
 	noAny: diagnostic("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
