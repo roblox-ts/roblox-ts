@@ -8,7 +8,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { getAncestor } from "TSTransformer/util/traversal";
+import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
@@ -17,7 +17,12 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 		return true;
 	}
 
-	const parent = node.parent;
+	const parent = skipUpwards(node).parent;
+
+	// `foo()`
+	if (ts.isExpressionStatement(parent)) {
+		return false;
+	}
 
 	// `const [a] = foo()`
 	if (ts.isVariableDeclaration(parent) && ts.isArrayBindingPattern(parent.name)) {
