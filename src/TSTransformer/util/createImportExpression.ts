@@ -34,7 +34,7 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	const relativePath = RojoConfig.relative(sourceRbxPath, moduleRbxPath);
 
 	// create descending path pieces
-	const path = [PARENT_FIELD];
+	const path = new Array<string>();
 	let i = 0;
 	while (relativePath[i] === RbxPathParent) {
 		path.push(PARENT_FIELD);
