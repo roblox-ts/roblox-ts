@@ -275,6 +275,66 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return newValueId;
 	},
 
+	mapFiltered: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		state.prereq(header("ReadonlyArray.mapFiltered"));
+
+		const newValueId = state.pushToVar(lua.array());
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const lengthId = state.pushToVar(lua.number(0));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		const resultId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make<lua.Statement>(
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: resultId,
+						right: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
+						}),
+					}),
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: resultId,
+							operator: "~=",
+							right: lua.nil(),
+						}),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lengthId,
+								right: lua.create(lua.SyntaxKind.BinaryExpression, {
+									left: lengthId,
+									operator: "+",
+									right: lua.number(1),
+								}),
+							}),
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+									expression: newValueId,
+									index: lengthId,
+								}),
+								right: resultId,
+							}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		state.prereq(footer("ReadonlyArray.mapFiltered"));
+
+		return newValueId;
+	},
+
 	filter: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -370,6 +430,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(footer("ReadonlyArray.reverse"));
 
 		return resultId;
+	},
+
+	reduce: (state, node, expression) => {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("array_reduce"),
+			args: lua.list.make(expression, ...ensureTransformOrder(state, node.arguments)),
+		});
 	},
 };
 
