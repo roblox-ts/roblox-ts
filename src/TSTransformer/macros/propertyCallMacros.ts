@@ -14,17 +14,22 @@ function footer(text: string) {
 	return lua.comment(`▲ ${text} ▲`);
 }
 
+function wrapParenthesesIfBinary(expression: lua.Expression) {
+	if (lua.isBinaryExpression(expression)) {
+		return lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression });
+	}
+	return expression;
+}
+
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
 		const { expression: right, statements } = state.capture(() => transformExpression(state, node.arguments[0]));
 		const left = lua.list.isEmpty(statements) ? expression : state.pushToVar(expression);
 		state.prereqList(statements);
 		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left,
+			left: wrapParenthesesIfBinary(left),
 			operator,
-			right: lua.isBinaryExpression(right)
-				? lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression: right })
-				: right,
+			right: wrapParenthesesIfBinary(right),
 		});
 	};
 }
@@ -458,6 +463,12 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return retValue;
 	},
+
+	shift: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.table.remove,
+			args: lua.list.make(expression, lua.number(1)),
+		}),
 };
 
 const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
