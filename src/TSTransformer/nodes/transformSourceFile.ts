@@ -44,12 +44,15 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 
 	if (state.hasExportEquals) {
 		// local exports variable is created in transformExportAssignment
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression: lua.globals.exports,
-			}),
-		);
+		const finalStatement = state.sourceFile.statements[state.sourceFile.statements.length - 1];
+		if (!ts.isExportAssignment(finalStatement) || !finalStatement.isExportEquals) {
+			lua.list.push(
+				statements,
+				lua.create(lua.SyntaxKind.ReturnStatement, {
+					expression: lua.globals.exports,
+				}),
+			);
+		}
 	} else if (mustPushExports) {
 		// if there's an export let/from, we need to put `local exports = {}` at the top of the file
 		lua.list.unshift(

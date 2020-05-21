@@ -17,12 +17,19 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 
 	state.hasExportEquals = true;
 
-	return lua.list.make<lua.Statement>(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: state.getModuleIdFromNode(node),
-			right: transformExpression(state, node.expression),
-		}),
-	);
+	const finalStatement = state.sourceFile.statements[state.sourceFile.statements.length - 1];
+	if (finalStatement === node) {
+		return lua.list.make<lua.Statement>(
+			lua.create(lua.SyntaxKind.ReturnStatement, { expression: transformExpression(state, node.expression) }),
+		);
+	} else {
+		return lua.list.make<lua.Statement>(
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: state.getModuleIdFromNode(node),
+				right: transformExpression(state, node.expression),
+			}),
+		);
+	}
 }
 
 export function transformExportAssignment(state: TransformState, node: ts.ExportAssignment) {
