@@ -1,4 +1,5 @@
 import ts from "byots";
+import fs from "fs-extra";
 import { CLIError } from "CLI/errors/CLIError";
 import { Watcher } from "CLI/modules/Watcher";
 import path from "path";
@@ -56,9 +57,12 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 
 	handler: argv => {
 		// Attempt to retrieve TypeScript configuration JSON path
-		let tsConfigPath = ts.findConfigFile(argv.project, ts.sys.fileExists);
-		if (tsConfigPath === undefined) {
-			throw new CLIError("Unable to find tsconfig.json!");
+		let tsConfigPath: string | undefined = path.resolve(argv.project);
+		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
+			tsConfigPath = ts.findConfigFile(tsConfigPath, ts.sys.fileExists);
+			if (tsConfigPath === undefined) {
+				throw new CLIError("Unable to find tsconfig.json!");
+			}
 		}
 		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
 
