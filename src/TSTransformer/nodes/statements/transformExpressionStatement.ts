@@ -22,11 +22,7 @@ function transformUnaryExpressionStatement(
 export function transformExpressionStatementInner(state: TransformState, expression: ts.Expression) {
 	if (ts.isBinaryExpression(expression)) {
 		const operator = expression.operatorToken.kind;
-		if (
-			ts.isAssignmentOperator(operator) &&
-			!ts.isArrayLiteralExpression(expression.left) &&
-			!ts.isArrayLiteralExpression(expression.right)
-		) {
+		if (ts.isAssignmentOperator(operator) && !ts.isArrayLiteralExpression(expression.left)) {
 			const { writable, readable, value } = transformWritableAssignmentWithType(
 				state,
 				expression.left,
