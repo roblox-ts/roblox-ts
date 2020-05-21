@@ -86,14 +86,11 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: ptr.value,
-							index:
-								amtElementsSinceUpdate > 0
-									? lua.create(lua.SyntaxKind.BinaryExpression, {
-											left: lengthId,
-											operator: "+",
-											right: lua.number(amtElementsSinceUpdate),
-									  })
-									: lengthId,
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: lengthId,
+								operator: "+",
+								right: lua.number(amtElementsSinceUpdate + 1),
+							}),
 						}),
 						right: expression,
 					}),

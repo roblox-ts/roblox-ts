@@ -207,14 +207,11 @@ function createJsxAddNumericChildPrereq(
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: childrenPtrValue,
-			index:
-				amtChildrenSinceUpdate > 0
-					? lua.create(lua.SyntaxKind.BinaryExpression, {
-							left: lengthId,
-							operator: "+",
-							right: lua.number(amtChildrenSinceUpdate),
-					  })
-					: lengthId,
+			index: lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: lengthId,
+				operator: "+",
+				right: lua.number(amtChildrenSinceUpdate + 1),
+			}),
 		}),
 		right: expression,
 	});
