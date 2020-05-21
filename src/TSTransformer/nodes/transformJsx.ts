@@ -313,8 +313,8 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 	const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, attribute.initializer);
 	if (!lua.list.isEmpty(initPrereqs)) {
 		disableMapInline(state, attributesPtr);
+		state.prereqList(initPrereqs);
 	}
-	state.prereqList(initPrereqs);
 
 	const name = attributeName === REF_ATTRIBUTE_NAME ? Roact("Ref") : lua.string(attributeName);
 	assignToMapPointer(state, attributesPtr, name, init);
@@ -403,8 +403,8 @@ function transformJsxChildren(
 				disableMapInline(state, attributesPtr);
 				disableMixedTableInline(state, childrenPtr);
 				updateLengthId();
-				state.prereqList(statements);
 			}
+			state.prereqList(statements);
 
 			const key = getKeyValue(child);
 			if (key) {
