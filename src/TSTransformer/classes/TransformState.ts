@@ -16,6 +16,12 @@ import originalTS from "typescript";
  */
 const RUNTIME_LIB_ID = lua.id("TS");
 
+export type TryUses = {
+	usesReturn: boolean;
+	usesBreak: boolean;
+	usesContinue: boolean;
+};
+
 /**
  * Represents the state of the transformation between TS -> lua AST.
  */
@@ -47,6 +53,37 @@ export class TransformState {
 		public readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
+	}
+
+	public readonly tryUsesStack = new Array<TryUses>();
+
+	/**
+	 * Pushes tryUses information onto the tryUses stack and returns it.
+	 */
+	public pushTryUsesStack() {
+		const tryUses = {
+			usesReturn: false,
+			usesBreak: false,
+			usesContinue: false,
+		};
+		this.tryUsesStack.push(tryUses);
+		return tryUses;
+	}
+
+	/**
+	 * Marks the current try statement as exiting with return, break, or continue statements.
+	 */
+	public markTryUses(property: "usesReturn" | "usesBreak" | "usesContinue") {
+		if (this.tryUsesStack.length !== 0) {
+			this.tryUsesStack[this.tryUsesStack.length - 1][property] = true;
+		}
+	}
+
+	/**
+	 * Pops tryUses information from the tryUses stack
+	 */
+	public popTryUsesStack() {
+		this.tryUsesStack.pop();
 	}
 
 	public readonly prereqStatementsStack = new Array<lua.List<lua.Statement>>();

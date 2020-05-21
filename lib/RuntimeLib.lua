@@ -974,4 +974,32 @@ function TS.opcall(func, ...)
 	end
 end
 
+TS.TRY_RETURN = 1
+TS.TRY_BREAK = 2
+TS.TRY_CONTINUE = 3
+
+function TS.try(func, catch, finally)
+	local err, traceback
+	local success, exit_type, returns = xpcall(
+		func,
+		function(err_inner)
+			err = err_inner
+			traceback = debug.traceback()
+		end
+	)
+	if not success and catch then
+		local new_exit_type, new_returns = catch(err, traceback)
+		if new_exit_type then
+			exit_type, returns = new_exit_type, new_returns
+		end
+	end
+	if finally then
+		local new_exit_type, new_returns = finally()
+		if new_exit_type then
+			exit_type, returns = new_exit_type, new_returns
+		end
+	end
+	return exit_type, returns
+end
+
 return TS
