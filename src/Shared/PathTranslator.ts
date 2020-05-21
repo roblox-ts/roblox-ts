@@ -100,9 +100,11 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 
-		if (TS_REGEX.test(pathInfo.extsPeek() ?? "") && pathInfo.extsPeek(1) === D_EXT) {
+		if (TS_REGEX.test(pathInfo.extsPeek() ?? "")) {
 			pathInfo.exts.pop(); // pop .tsx?
-			pathInfo.exts.pop(); // pop .d
+			if (pathInfo.extsPeek() === D_EXT) {
+				pathInfo.exts.pop(); // pop .d
+			}
 
 			// index -> init
 			if (pathInfo.fileName === INDEX_NAME) {
