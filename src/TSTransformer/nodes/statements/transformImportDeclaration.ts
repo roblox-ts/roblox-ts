@@ -4,7 +4,6 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { getFlags } from "TSTransformer/util/getFlags";
 
 function countImportExpUses(importClause: ts.ImportClause) {
 	let uses = 0;
