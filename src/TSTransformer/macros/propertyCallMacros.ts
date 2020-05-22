@@ -21,6 +21,24 @@ function wrapParenthesesIfBinary(expression: lua.Expression) {
 	return expression;
 }
 
+function runtimeLib(name: string): PropertyCallMacro {
+	return (state, node, expression) => {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS(name),
+			args: lua.list.make(expression, ...ensureTransformOrder(state, node.arguments)),
+		});
+	};
+}
+
+function runtimeLibStatic(name: string): PropertyCallMacro {
+	return (state, node, expression) => {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS(name),
+			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+		});
+	};
+}
+
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
 		const { expression: right, statements } = state.capture(() => transformExpression(state, node.arguments[0]));
@@ -432,12 +450,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return resultId;
 	},
 
-	reduce: (state, node, expression) => {
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: state.TS("array_reduce"),
-			args: lua.list.make(expression, ...ensureTransformOrder(state, node.arguments)),
-		});
-	},
+	reduce: runtimeLib("array_reduce"),
+	findIndex: runtimeLib("array_findIndex"),
+	indexOf: runtimeLib("array_indexOf"),
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
@@ -536,6 +551,54 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			expression: lua.globals.table.remove,
 			args: lua.list.make(expression, lua.number(1)),
 		}),
+
+	unorderedRemove: (state, node, expression) => {
+		const arg = transformExpression(state, node.arguments[0]);
+
+		expression = state.pushToVarIfComplex(expression);
+
+		const valueIsUsed = !isUsedAsStatement(node);
+
+		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+
+		const valueId = lua.tempId();
+		if (valueIsUsed) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: valueId,
+					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: offset(arg, 1),
+					}),
+				}),
+			);
+		}
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: offset(arg, 1),
+				}),
+				right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: lengthId,
+				}),
+			}),
+		);
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: lengthId,
+				}),
+				right: lua.nil(),
+			}),
+		);
+
+		return valueIsUsed ? valueId : lua.emptyId();
+	},
 };
 
 const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
@@ -711,6 +774,8 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 			expression: convertToIndexableExpression(expression),
 			index: transformExpression(state, node.arguments[0]),
 		}),
+
+	values: runtimeLib("Object_values"),
 };
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {
@@ -744,7 +809,17 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
-const OBJECT_METHODS: MacroList<PropertyCallMacro> = {};
+const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
+	assign: runtimeLibStatic("Object_assign"),
+	copy: runtimeLibStatic("Object_copy"),
+	deepCopy: runtimeLibStatic("Object_deepCopy"),
+	deepEquals: runtimeLibStatic("Object_deepEquals"),
+	entries: runtimeLibStatic("Object_entries"),
+	fromEntries: runtimeLibStatic("Object_fromEntries"),
+	isEmpty: runtimeLibStatic("Object_isEmpty"),
+	keys: runtimeLibStatic("Object_keys"),
+	values: runtimeLibStatic("Object_values"),
+};
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
@@ -795,5 +870,5 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	ReadonlyMap: READONLY_MAP_METHODS,
 	Map: MAP_METHODS,
 	Promise: PROMISE_METHODS,
-	Object: OBJECT_METHODS,
+	ObjectConstructor: OBJECT_METHODS,
 };
