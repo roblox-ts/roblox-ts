@@ -159,6 +159,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operator: "~=",
 			right: lua.nil(),
 		});
+	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("instanceof"),
+			args: lua.list.make(left, right),
+		});
 	}
 
 	return createBinaryFromOperator(

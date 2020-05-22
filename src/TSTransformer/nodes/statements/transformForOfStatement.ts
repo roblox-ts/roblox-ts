@@ -10,26 +10,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { isArrayType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
-
-function processBindingName(state: TransformState, name: ts.BindingName, initializers: lua.List<lua.Statement>) {
-	let id: lua.AnyIdentifier;
-	if (ts.isIdentifier(name)) {
-		id = transformIdentifierDefined(state, name);
-	} else {
-		id = lua.tempId();
-		lua.list.pushList(
-			initializers,
-			state.capturePrereqs(() => {
-				if (ts.isArrayBindingPattern(name)) {
-					transformArrayBindingPattern(state, name, id);
-				} else {
-					transformObjectBindingPattern(state, name, id);
-				}
-			}),
-		);
-	}
-	return id;
-}
+import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 
 const wrapFactory = (global: lua.IndexableExpression) => (expression: lua.Expression) =>
 	lua.create(lua.SyntaxKind.CallExpression, {
@@ -48,7 +29,7 @@ function getArrayLoopStructure(
 	innerExp: lua.Expression,
 ) {
 	lua.list.push(ids, lua.emptyId());
-	lua.list.push(ids, processBindingName(state, name, initializers));
+	lua.list.push(ids, transformBindingName(state, name, initializers));
 	return wrapIpairs(innerExp);
 }
 
@@ -59,7 +40,7 @@ function getSetLoopStructure(
 	name: ts.BindingName,
 	innerExp: lua.Expression,
 ) {
-	lua.list.push(ids, processBindingName(state, name, initializers));
+	lua.list.push(ids, transformBindingName(state, name, initializers));
 	return wrapPairs(innerExp);
 }
 
@@ -79,7 +60,7 @@ function getMapLoopStructure(
 		if (firstElement === undefined || ts.isOmittedExpression(firstElement)) {
 			lua.list.push(ids, lua.emptyId());
 		} else {
-			const id = processBindingName(state, firstElement.name, initializers);
+			const id = transformBindingName(state, firstElement.name, initializers);
 			lua.list.push(ids, id);
 			if (firstElement.initializer) {
 				lua.list.push(initializers, transformInitializer(state, id, firstElement.initializer));
@@ -88,7 +69,7 @@ function getMapLoopStructure(
 
 		const secondElement = name.elements[1];
 		if (secondElement !== undefined && !ts.isOmittedExpression(secondElement)) {
-			const id = processBindingName(state, secondElement.name, initializers);
+			const id = transformBindingName(state, secondElement.name, initializers);
 			lua.list.push(ids, id);
 			if (secondElement.initializer) {
 				lua.list.push(initializers, transformInitializer(state, id, secondElement.initializer));
@@ -103,7 +84,7 @@ function getMapLoopStructure(
 	lua.list.push(ids, keyId);
 	lua.list.push(ids, valueId);
 
-	const id = processBindingName(state, name, initializers);
+	const id = transformBindingName(state, name, initializers);
 	lua.list.unshift(
 		initializers,
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
@@ -122,7 +103,7 @@ function getStringLoopStructure(
 	name: ts.BindingName,
 	innerExp: lua.Expression,
 ) {
-	lua.list.push(ids, processBindingName(state, name, initializers));
+	lua.list.push(ids, transformBindingName(state, name, initializers));
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.globals.string.gmatch,
 		args: lua.list.make(innerExp, lua.globals.utf8.charpattern),

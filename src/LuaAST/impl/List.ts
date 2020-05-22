@@ -213,7 +213,7 @@ export namespace list {
 		return true;
 	}
 
-	export function any<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
+	export function some<T extends lua.Node>(list: lua.List<T>, callback: (value: NoInfer<T>) => boolean) {
 		let node = list.head;
 		while (node) {
 			if (callback(node.value)) {
@@ -222,6 +222,16 @@ export namespace list {
 			node = node.next;
 		}
 		return false;
+	}
+
+	export function size<T extends lua.Node>(list: lua.List<T>) {
+		let size = 0;
+		let node = list.head;
+		while (node) {
+			size++;
+			node = node.next;
+		}
+		return size;
 	}
 }
 
