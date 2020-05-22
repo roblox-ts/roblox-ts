@@ -73,7 +73,7 @@ export class TransformState {
 	/**
 	 * Marks the current try statement as exiting with return, break, or continue statements.
 	 */
-	public markTryUses(property: "usesReturn" | "usesBreak" | "usesContinue") {
+	public markTryUses(property: keyof TryUses) {
 		if (this.tryUsesStack.length !== 0) {
 			this.tryUsesStack[this.tryUsesStack.length - 1][property] = true;
 		}
