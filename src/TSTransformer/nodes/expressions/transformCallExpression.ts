@@ -9,8 +9,9 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType, isArrayType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	if (!lua.isCall(exp)) {
@@ -148,7 +149,7 @@ export function transformElementCallExpressionInner(
 	const exp = lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
-			index: argumentExp,
+			index: addOneIfArrayType(state, state.getType(node.expression.expression), argumentExp),
 		}),
 		args,
 	});

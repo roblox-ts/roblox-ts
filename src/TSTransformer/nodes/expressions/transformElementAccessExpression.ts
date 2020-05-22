@@ -4,19 +4,12 @@ import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
+import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { offset } from "TSTransformer/util/offset";
-import { isArrayType, isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-
-export function addOneIfArrayType(state: TransformState, type: ts.Type, expression: lua.Expression) {
-	if (isArrayType(state, type)) {
-		return offset(expression, 1);
-	} else {
-		return expression;
-	}
-}
 
 export function transformElementAccessExpressionInner(
 	state: TransformState,
