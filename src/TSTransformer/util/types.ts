@@ -31,6 +31,7 @@ export function isArrayType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
+			state.typeChecker.isTupleType(t) ||
 			state.typeChecker.isArrayLikeType(t) ||
 			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
 			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
