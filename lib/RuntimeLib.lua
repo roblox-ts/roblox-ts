@@ -974,9 +974,9 @@ function TS.opcall(func, ...)
 	end
 end
 
-TS.TRY_RETURN = {}
-TS.TRY_BREAK = {}
-TS.TRY_CONTINUE = {}
+TS.TRY_RETURN = 1
+TS.TRY_BREAK = 2
+TS.TRY_CONTINUE = 3
 
 function TS.try(func, catch, finally)
 	local err, traceback
