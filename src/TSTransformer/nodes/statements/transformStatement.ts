@@ -22,6 +22,7 @@ import { transformModuleDeclaration } from "TSTransformer/nodes/statements/trans
 import { transformReturnStatement } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformSwitchStatement } from "TSTransformer/nodes/statements/transformSwitchStatement";
 import { transformThrowStatement } from "TSTransformer/nodes/statements/transformThrowStatement";
+import { transformTryStatement } from "TSTransformer/nodes/statements/transformTryStatement";
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
@@ -46,7 +47,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.EmptyStatement, NO_EMIT],
 
 	// banned statements
-	[ts.SyntaxKind.TryStatement, DIAGNOSTIC(diagnostics.noTryStatement)],
 	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(diagnostics.noForInStatement)],
 	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(diagnostics.noLabeledStatement)],
 	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(diagnostics.noDebuggerStatement)],
@@ -71,6 +71,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
 	[ts.SyntaxKind.SwitchStatement, transformSwitchStatement],
 	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],
+	[ts.SyntaxKind.TryStatement, transformTryStatement],
 	[ts.SyntaxKind.VariableStatement, transformVariableStatement],
 	[ts.SyntaxKind.WhileStatement, transformWhileStatement],
 ]);
