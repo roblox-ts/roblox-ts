@@ -31,9 +31,6 @@ export class TransformState {
 	public hasExportEquals = false;
 	public hasExportFrom = false;
 
-	public readonly modulePathMapping = new Map<string, string>();
-	public readonly moduleIsPathMapped = new Map<string, boolean>();
-
 	public addDiagnostic(diagnostic: ts.Diagnostic) {
 		this.diagnostics.push(diagnostic);
 	}
@@ -45,6 +42,7 @@ export class TransformState {
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly nodeModulesPath: string,
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
+		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly globalSymbols: GlobalSymbols,
 		public readonly macroManager: MacroManager,
