@@ -434,6 +434,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
 	indexOf: runtimeLib("array_indexOf"),
+	find: runtimeLib("array_find"),
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
