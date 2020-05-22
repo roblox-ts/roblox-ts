@@ -22,20 +22,15 @@ function wrapParenthesesIfBinary(expression: lua.Expression) {
 	return expression;
 }
 
-function runtimeLib(name: string): PropertyCallMacro {
+function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 	return (state, node, expression) => {
+		const args = lua.list.make(...ensureTransformOrder(state, node.arguments));
+		if (!isStatic) {
+			lua.list.unshift(args, expression);
+		}
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: state.TS(name),
-			args: lua.list.make(expression, ...ensureTransformOrder(state, node.arguments)),
-		});
-	};
-}
-
-function runtimeLibStatic(name: string): PropertyCallMacro {
-	return (state, node, expression) => {
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: state.TS(name),
-			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+			args,
 		});
 	};
 }
@@ -822,15 +817,15 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
-	assign: runtimeLibStatic("Object_assign"),
-	copy: runtimeLibStatic("Object_copy"),
-	deepCopy: runtimeLibStatic("Object_deepCopy"),
-	deepEquals: runtimeLibStatic("Object_deepEquals"),
-	entries: runtimeLibStatic("Object_entries"),
-	fromEntries: runtimeLibStatic("Object_fromEntries"),
-	isEmpty: runtimeLibStatic("Object_isEmpty"),
-	keys: runtimeLibStatic("Object_keys"),
-	values: runtimeLibStatic("Object_values"),
+	assign: runtimeLib("Object_assign", true),
+	copy: runtimeLib("Object_copy", true),
+	deepCopy: runtimeLib("Object_deepCopy", true),
+	deepEquals: runtimeLib("Object_deepEquals", true),
+	entries: runtimeLib("Object_entries", true),
+	fromEntries: runtimeLib("Object_fromEntries", true),
+	isEmpty: runtimeLib("Object_isEmpty", true),
+	keys: runtimeLib("Object_keys", true),
+	values: runtimeLib("Object_values", true),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
