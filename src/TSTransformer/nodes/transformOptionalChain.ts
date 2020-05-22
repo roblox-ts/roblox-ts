@@ -273,7 +273,8 @@ function transformOptionalChainInner(
 
 			// TODO maybe handle this case better? `[1, 2, 3]?.map((v) => v + 1).size();`
 
-			const isUsed = !lua.isEmptyIdentifier(newValue) && !isUsedAsStatement(item.node);
+			const isUsed =
+				!lua.isEmptyIdentifier(newValue) && !lua.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
 
 			if (tempId !== newValue && isUsed) {
 				lua.list.push(

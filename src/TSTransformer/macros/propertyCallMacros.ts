@@ -7,14 +7,6 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
 
-function header(text: string) {
-	return lua.comment(`▼ ${text} ▼`);
-}
-
-function footer(text: string) {
-	return lua.comment(`▲ ${text} ▲`);
-}
-
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
 		return lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression });
@@ -137,8 +129,6 @@ function makeEveryOrSomeMethod(
 	return (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		state.prereq(header(commentText));
-
 		const resultId = state.pushToVar(lua.bool(initialState));
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 
@@ -176,8 +166,6 @@ function makeEveryOrSomeMethod(
 				),
 			}),
 		);
-
-		state.prereq(footer(commentText));
 
 		return resultId;
 	};
@@ -242,8 +230,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		state.prereq(header("ReadonlyArray.forEach"));
-
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
@@ -265,15 +251,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		state.prereq(footer("ReadonlyArray.forEach"));
-
-		return lua.emptyId();
+		return lua.nil();
 	},
 
 	map: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.map"));
 
 		const newValueId = state.pushToVar(lua.array());
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
@@ -301,15 +283,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		state.prereq(footer("ReadonlyArray.map"));
-
 		return newValueId;
 	},
 
 	mapFiltered: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.mapFiltered"));
 
 		const newValueId = state.pushToVar(lua.array());
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
@@ -361,15 +339,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		state.prereq(footer("ReadonlyArray.mapFiltered"));
-
 		return newValueId;
 	},
 
 	filter: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.filter"));
 
 		const newValueId = state.pushToVar(lua.array());
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
@@ -416,15 +390,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		state.prereq(footer("ReadonlyArray.filter"));
-
 		return newValueId;
 	},
 
 	reverse: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.reverse"));
 
 		const resultId = state.pushToVar(lua.map());
 		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
@@ -458,8 +428,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		state.prereq(footer("ReadonlyArray.reverse"));
-
 		return resultId;
 	},
 
@@ -475,8 +443,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}
 
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.push"));
 
 		const args = ensureTransformOrder(state, node.arguments);
 
@@ -505,8 +471,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		state.prereq(footer("ReadonlyArray.push"));
-
 		if (!isUsedAsStatement(node)) {
 			return lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: sizeExp,
@@ -514,14 +478,12 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				right: lua.number(args.length),
 			});
 		} else {
-			return lua.emptyId();
+			return lua.nil();
 		}
 	},
 
 	pop: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		state.prereq(header("ReadonlyArray.pop"));
 
 		let sizeExp: lua.Expression = lua.create(lua.SyntaxKind.UnaryExpression, {
 			operator: "#",
@@ -529,9 +491,10 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		});
 
 		const valueIsUsed = !isUsedAsStatement(node);
-		const retValue = valueIsUsed ? lua.tempId() : lua.emptyId();
+		const retValue = valueIsUsed ? lua.tempId() : lua.nil();
 
 		if (valueIsUsed) {
+			assert(lua.isTemporaryIdentifier(retValue));
 			sizeExp = state.pushToVar(sizeExp);
 			state.prereq(
 				lua.create(lua.SyntaxKind.VariableDeclaration, {
@@ -553,8 +516,6 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				right: lua.nil(),
 			}),
 		);
-
-		state.prereq(footer("ReadonlyArray.pop"));
 
 		return retValue;
 	},
@@ -610,7 +571,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueId : lua.emptyId();
+		return valueIsUsed ? valueId : lua.nil();
 	},
 };
 
@@ -627,7 +588,7 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 
 	size: (state, node, expression) => {
 		if (isUsedAsStatement(node)) {
-			return lua.emptyId();
+			return lua.nil();
 		}
 
 		const sizeId = state.pushToVar(lua.number(0));
@@ -694,7 +655,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueExistedId : lua.emptyId();
+		return valueIsUsed ? valueExistedId : lua.nil();
 	},
 
 	clear: (state, node, expression) => {
@@ -718,7 +679,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 				),
 			}),
 		);
-		return lua.emptyId();
+		return lua.nil();
 	},
 };
 
@@ -748,7 +709,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return lua.emptyId();
+		return lua.nil();
 	},
 };
 
@@ -769,7 +730,7 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 				right: lua.bool(true),
 			}),
 		);
-		return valueIsUsed ? expression : lua.emptyId();
+		return valueIsUsed ? expression : lua.nil();
 	},
 };
 
@@ -803,7 +764,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 				right: valueExp,
 			}),
 		);
-		return valueIsUsed ? expression : lua.emptyId();
+		return valueIsUsed ? expression : lua.nil();
 	},
 };
 
@@ -849,3 +810,65 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Promise: PROMISE_METHODS,
 	ObjectConstructor: OBJECT_METHODS,
 };
+
+// comment logic
+
+function header(text: string) {
+	return lua.comment(`▼ ${text} ▼`);
+}
+
+function footer(text: string) {
+	return lua.comment(`▲ ${text} ▲`);
+}
+
+function wasExpressionPushed(statements: lua.List<lua.Statement>, expression: lua.Expression) {
+	if (statements.head !== undefined) {
+		const firstStatement = statements.head.value;
+		if (lua.isVariableDeclaration(firstStatement)) {
+			if (!lua.list.isList(firstStatement.left) && lua.isTemporaryIdentifier(firstStatement.left)) {
+				if (firstStatement.right === expression) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+function wrapComments(methodName: string, callback: PropertyCallMacro): PropertyCallMacro {
+	return (state, callNode, callExp) => {
+		const { expression, statements } = state.capture(() => callback(state, callNode, callExp));
+
+		let size = lua.list.size(statements);
+		if (size > 0) {
+			// detect the case of `expression = state.pushToVarIfComplex(expression);` and put header after
+			const wasPushed = wasExpressionPushed(statements, callExp);
+			let pushStatement: lua.Statement | undefined;
+			if (wasPushed) {
+				pushStatement = lua.list.shift(statements);
+				size--;
+			}
+			if (size > 0) {
+				lua.list.unshift(statements, header(methodName));
+				if (wasPushed && pushStatement) {
+					lua.list.unshift(statements, pushStatement);
+				}
+				lua.list.push(statements, footer(methodName));
+			} else {
+				if (wasPushed && pushStatement) {
+					lua.list.unshift(statements, pushStatement);
+				}
+			}
+		}
+
+		state.prereqList(statements);
+		return expression;
+	};
+}
+
+// apply comment wrapping
+for (const [className, macroList] of Object.entries(PROPERTY_CALL_MACROS)) {
+	for (const [methodName, macro] of Object.entries(macroList)) {
+		macroList[methodName] = wrapComments(`${className}.${methodName}`, macro);
+	}
+}
