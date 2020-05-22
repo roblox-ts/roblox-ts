@@ -776,6 +776,37 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 
 	values: runtimeLib("Object_values"),
+
+	forEach: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		state.prereq(header("readonlyMap.forEach"));
+
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const valueId = lua.tempId();
+		const keyId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.CallStatement, {
+						expression: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, keyId, expression),
+						}),
+					}),
+				),
+			}),
+		);
+
+		state.prereq(footer("readonlyMap.forEach"));
+
+		return lua.emptyId();
+	},
 };
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {
