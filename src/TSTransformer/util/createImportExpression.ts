@@ -113,7 +113,10 @@ export function createImportExpression(
 	lua.list.push(importPathExpressions, lua.globals.script);
 
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		lua.list.push(importPathExpressions, getNodeModulesImport(state, moduleSpecifier, moduleFile.fileName));
+		lua.list.push(
+			importPathExpressions,
+			getNodeModulesImport(state, moduleSpecifier, path.normalize(moduleFile.fileName)),
+		);
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(moduleFile.fileName);
 		const moduleRbxPath = state.rojoConfig.getRbxPathFromFilePath(moduleOutPath);
