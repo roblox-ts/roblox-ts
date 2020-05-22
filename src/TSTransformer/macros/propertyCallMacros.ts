@@ -748,8 +748,6 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		state.prereq(header("readonlyMap.forEach"));
-
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 		const valueId = lua.tempId();
 		const keyId = lua.tempId();
@@ -770,8 +768,6 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 				),
 			}),
 		);
-
-		state.prereq(footer("readonlyMap.forEach"));
 
 		return lua.emptyId();
 	},
