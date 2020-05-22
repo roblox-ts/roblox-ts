@@ -5,6 +5,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
+import { assert } from "Shared/util/assert";
 
 function header(text: string) {
 	return lua.comment(`▼ ${text} ▼`);
@@ -50,6 +51,23 @@ function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 			right: wrapParenthesesIfBinary(right),
 		});
 	};
+}
+
+const OPERATOR_TO_NAME_MAP = new Map<lua.BinaryOperator, "add" | "sub" | "mul" | "div">([
+	["+", "add"],
+	["-", "sub"],
+	["*", "mul"],
+	["/", "div"],
+]);
+
+function makeMathSet(...operators: Array<lua.BinaryOperator>) {
+	const result: { [index: string]: PropertyCallMacro } = {};
+	for (const operator of operators) {
+		const methodName = OPERATOR_TO_NAME_MAP.get(operator);
+		assert(methodName);
+		result[methodName] = makeMathMethod(operator);
+	}
+	return result;
 }
 
 function offsetArguments(args: Array<lua.Expression>, argOffsets: Array<number>) {
@@ -712,9 +730,6 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
 
-	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression), "ReadonlySet"),
-	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(keyId, expression), "ReadonlySet"),
-
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -765,9 +780,6 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
-
-	// every: makeEveryMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression), "ReadonlyMap"),
-	// some: makeSomeMethod(lua.globals.pairs, (keyId, valueId, expression) => lua.list.make(valueId, keyId, expression), "ReadonlyMap"),
 
 	get: (state, node, expression) =>
 		lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -823,43 +835,13 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
 	// math classes
-	CFrame: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-		mul: makeMathMethod("*"),
-	},
-	UDim: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-	},
-	UDim2: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-	},
-	Vector2: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-		mul: makeMathMethod("*"),
-		div: makeMathMethod("/"),
-	},
-	Vector2int16: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-		mul: makeMathMethod("*"),
-		div: makeMathMethod("/"),
-	},
-	Vector3: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-		mul: makeMathMethod("*"),
-		div: makeMathMethod("/"),
-	},
-	Vector3int16: {
-		add: makeMathMethod("+"),
-		sub: makeMathMethod("-"),
-		mul: makeMathMethod("*"),
-		div: makeMathMethod("/"),
-	},
+	CFrame: makeMathSet("+", "-", "*"),
+	UDim: makeMathSet("+", "-"),
+	UDim2: makeMathSet("+", "-"),
+	Vector2: makeMathSet("+", "-", "*", "/"),
+	Vector2int16: makeMathSet("+", "-", "*", "/"),
+	Vector3: makeMathSet("+", "-", "*", "/"),
+	Vector3int16: makeMathSet("+", "-", "*", "/"),
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
