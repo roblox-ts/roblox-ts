@@ -223,6 +223,16 @@ export namespace list {
 		}
 		return false;
 	}
+
+	export function size<T extends lua.Node>(list: lua.List<T>) {
+		let size = 0;
+		let node = list.head;
+		while (node) {
+			size++;
+			node = node.next;
+		}
+		return size;
+	}
 }
 
 // node utility functions
