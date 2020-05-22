@@ -62,6 +62,8 @@ export class Project {
 
 	public readonly projectType: ProjectType;
 
+	private readonly nodeModulesPathMapping = new Map<string, string>();
+
 	/**
 	 * @param tsConfigPath The path to the TypeScript configuration.
 	 * @param opts The options of the project.
@@ -129,6 +131,24 @@ export class Project {
 
 		if (fs.pathExistsSync(this.nodeModulesPath)) {
 			this.nodeModulesRbxPath = this.rojoConfig.getRbxPathFromFilePath(this.nodeModulesPath);
+
+			// map module paths
+			for (const pkgName of fs.readdirSync(this.nodeModulesPath)) {
+				const pkgPath = path.join(this.nodeModulesPath, pkgName);
+				const pkgJsonPath = path.join(pkgPath, "package.json");
+				if (fs.existsSync(pkgJsonPath)) {
+					const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
+					const mainPath = pkgJson.main;
+					// both types and typings are valid
+					const typesPath = pkgJson.types ?? pkgJson.typings;
+					if (mainPath && typesPath) {
+						this.nodeModulesPathMapping.set(
+							path.resolve(pkgPath, typesPath),
+							path.resolve(pkgPath, mainPath),
+						);
+					}
+				}
+			}
 		}
 
 		// Set up TypeScript program for project
@@ -172,6 +192,7 @@ export class Project {
 					this.runtimeLibRbxPath,
 					this.nodeModulesPath,
 					this.nodeModulesRbxPath,
+					this.nodeModulesPathMapping,
 					this.typeChecker,
 					this.globalSymbols,
 					this.macroManager,

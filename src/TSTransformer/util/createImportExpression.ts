@@ -54,28 +54,8 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 }
 
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.StringLiteral, moduleFilePath: string) {
-	const pkgName = path
-		.relative(state.nodeModulesPath, moduleFilePath)
-		.split(path.sep)
-		.shift()!;
-
-	if (!state.moduleIsPathMapped.get(pkgName)) {
-		state.moduleIsPathMapped.set(pkgName, true);
-		const pkgPath = path.join(state.nodeModulesPath, pkgName);
-		const pkgJsonPath = path.join(pkgPath, "package.json");
-		if (fs.existsSync(pkgJsonPath)) {
-			const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
-			const mainPath = pkgJson.main;
-			// both types and typings are valid
-			const typesPath = pkgJson.types ?? pkgJson.typings;
-			if (mainPath && typesPath) {
-				state.modulePathMapping.set(path.resolve(pkgPath, typesPath), path.resolve(pkgPath, mainPath));
-			}
-		}
-	}
-
 	const moduleOutPath = state.pathTranslator.getImportPath(
-		state.modulePathMapping.get(moduleFilePath) ?? moduleFilePath,
+		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 	);
 	const moduleRbxPath = state.rojoConfig.getRbxPathFromFilePath(moduleOutPath);
 	if (!moduleRbxPath) {
@@ -113,10 +93,7 @@ export function createImportExpression(
 	lua.list.push(importPathExpressions, lua.globals.script);
 
 	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		lua.list.push(
-			importPathExpressions,
-			getNodeModulesImport(state, moduleSpecifier, path.normalize(moduleFile.fileName)),
-		);
+		lua.list.push(importPathExpressions, getNodeModulesImport(state, moduleSpecifier, moduleFile.fileName));
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(moduleFile.fileName);
 		const moduleRbxPath = state.rojoConfig.getRbxPathFromFilePath(moduleOutPath);
