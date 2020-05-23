@@ -432,8 +432,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 	indexOf: (state, node, expression) =>
 		lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+			expression: offset(
+				lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 					expression: lua.create(lua.SyntaxKind.BinaryExpression, {
 						left: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: lua.globals.table.find,
@@ -443,9 +443,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						right: lua.number(0),
 					}),
 				}),
-				operator: "-",
-				right: lua.number(1),
-			}),
+				-1,
+			),
 		}),
 	lastIndexOf: (state, node, expression) => {
 		const nodeArgs = node.arguments;
