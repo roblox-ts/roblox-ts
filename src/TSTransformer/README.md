@@ -122,7 +122,7 @@ In other words, TS AST -> Lua AST
 
 -   [x] Object.keys()
 -   [x] Object.values()
--   [ ] Object.entries()
+-   [x] Object.entries()
 -   [ ] Object.assign()
 -   [x] Object.copy()
 -   [ ] Object.deepCopy()
