@@ -434,7 +434,50 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
 	indexOf: runtimeLib("array_indexOf"),
-	find: runtimeLib("array_find"),
+
+	find: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const loopId = lua.tempId();
+		const valueId = lua.tempId();
+		const returnId = state.pushToVar(lua.nil());
+
+		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
+			operator: "#",
+			expression,
+		});
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: loopId,
+				start: lua.number(1),
+				end: size,
+				step: lua.number(1),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: callbackId,
+								args: lua.list.make(valueId, offset(loopId, -1), expression),
+							}),
+							operator: "==",
+							right: lua.bool(true),
+						}),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: returnId,
+								right: valueId
+							}),
+						),
+						elseBody: lua.list.make()
+					})
+				),
+			}),
+		);
+
+		return returnId;
+	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
