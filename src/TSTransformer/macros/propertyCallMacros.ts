@@ -461,7 +461,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: convertToIndexableExpression(expression),
 							index: loopId,
-						})
+						}),
 					}),
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
