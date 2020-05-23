@@ -447,6 +447,45 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				right: lua.number(1),
 			}),
 		}),
+	lastIndexOf: (state, node, expression) => {
+		const nodeArgs = node.arguments;
+
+		const sizeExp = size(state, node, expression);
+		const startExpression = nodeArgs.length > 1 ? offset(transformExpression(state, nodeArgs[1]), 1) : sizeExp;
+
+		const result = state.pushToVar(lua.number(-1));
+		const iterator = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: iterator,
+				start: startExpression,
+				end: lua.number(1),
+				step: lua.number(-1),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: convertToIndexableExpression(expression),
+								index: iterator,
+							}),
+							operator: "==",
+							right: transformExpression(state, nodeArgs[0]),
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: result,
+								right: offset(iterator, -1),
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return result;
+	},
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
 	find: runtimeLib("array_find"),

@@ -140,7 +140,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlyArray.slice()
 -   [ ] ReadonlyArray.includes()
 -   [x] ReadonlyArray.indexOf()
--   [ ] ReadonlyArray.lastIndexOf()
+-   [x] ReadonlyArray.lastIndexOf()
 -   [x] ReadonlyArray.every()
 -   [x] ReadonlyArray.some()
 -   [x] ReadonlyArray.forEach()
