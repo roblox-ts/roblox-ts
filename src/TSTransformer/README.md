@@ -152,7 +152,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlyArray.reduceRight()
 -   [x] ReadonlyArray.reverse()
 -   [ ] ReadonlyArray.entries()
--   [ ] ReadonlyArray.find()
+-   [x] ReadonlyArray.find()
 -   [ ] ReadonlyArray.findIndex()
 -   [ ] ReadonlyArray.copy()
 -   [ ] ReadonlyArray.deepCopy()
