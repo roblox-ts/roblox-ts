@@ -782,7 +782,6 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	assign: runtimeLib("Object_assign", true),
 	deepCopy: runtimeLib("Object_deepCopy", true),
 	deepEquals: runtimeLib("Object_deepEquals", true),
-	entries: runtimeLib("Object_entries", true),
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
 
@@ -849,6 +848,42 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 							}),
 						}),
 						right: valueId,
+					}),
+				),
+			}),
+		);
+
+		return valuesId;
+	},
+
+	entries: (state, node, expression) => {
+		const valuesId = state.pushToVar(lua.array());
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+
+		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
+			operator: "#",
+			expression: valuesId,
+		});
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(transformExpression(state, node.arguments[0])),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(valuesId),
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: size,
+								operator: "+",
+								right: lua.number(1),
+							}),
+						}),
+						right: lua.array([keyId, valueId]),
 					}),
 				),
 			}),
