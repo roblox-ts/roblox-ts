@@ -6,7 +6,6 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
-import { SyntaxKind } from "typescript";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
