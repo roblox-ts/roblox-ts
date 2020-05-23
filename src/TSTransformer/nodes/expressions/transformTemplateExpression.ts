@@ -1,5 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -7,9 +8,9 @@ import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isStringType } from "TSTransformer/util/types";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
-	if (node.templateSpans.length === 0) {
-		return createStringFromLiteral(node.head);
-	}
+	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral
+	// and will be handled in transformStringLiteral
+	assert(node.templateSpans.length > 0);
 
 	const expressions = new Array<lua.Expression>();
 
