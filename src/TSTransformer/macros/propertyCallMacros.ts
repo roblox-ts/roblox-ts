@@ -431,8 +431,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return resultId;
 	},
 
-
-
 	copy: (state, node, expression) => {
 		const arrayCopyId = state.pushToVar(lua.map());
 		const valueId = lua.tempId();
