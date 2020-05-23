@@ -120,8 +120,8 @@ In other words, TS AST -> Lua AST
 
 ### Object Macros
 
--   [ ] Object.keys()
--   [ ] Object.values()
+-   [x] Object.keys()
+-   [x] Object.values()
 -   [ ] Object.entries()
 -   [ ] Object.assign()
 -   [x] Object.copy()
