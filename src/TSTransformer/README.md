@@ -124,7 +124,7 @@ In other words, TS AST -> Lua AST
 -   [ ] Object.values()
 -   [ ] Object.entries()
 -   [ ] Object.assign()
--   [ ] Object.copy()
+-   [x] Object.copy()
 -   [ ] Object.deepCopy()
 -   [ ] Object.deepEquals()
 -   [ ] Object.toString()
