@@ -785,8 +785,77 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	entries: runtimeLib("Object_entries", true),
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
-	keys: runtimeLib("Object_keys", true),
-	values: runtimeLib("Object_values", true),
+
+	keys: (state, node, expression) => {
+		const keysId = state.pushToVar(lua.array());
+		const keyId = lua.tempId();
+
+		let size = lua.create(lua.SyntaxKind.UnaryExpression, {
+			operator: "#",
+			expression: keysId,
+		});
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(transformExpression(state, node.arguments[0])),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(keysId),
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: size,
+								operator: "+",
+								right: lua.number(1),
+							}),
+						}),
+						right: keyId,
+					}),
+				),
+			}),
+		);
+
+		return keysId;
+	},
+
+	values: (state, node, expression) => {
+		const valuesId = state.pushToVar(lua.array());
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+
+		let size = lua.create(lua.SyntaxKind.UnaryExpression, {
+			operator: "#",
+			expression: valuesId,
+		});
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(transformExpression(state, node.arguments[0])),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(valuesId),
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: size,
+								operator: "+",
+								right: lua.number(1),
+							}),
+						}),
+						right: valueId,
+					}),
+				),
+			}),
+		);
+
+		return valuesId;
+	},
 
 	copy: (state, node, expression) => {
 		const objectCopyId = state.pushToVar(lua.map());
