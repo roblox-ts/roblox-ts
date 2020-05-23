@@ -443,16 +443,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const valueId = lua.tempId();
 		const returnId = state.pushToVar(lua.nil());
 
-		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
-			operator: "#",
-			expression,
-		});
-
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: loopId,
 				start: lua.number(1),
-				end: size,
+				end: size(state, node, expression),
 				step: lua.number(1),
 				statements: lua.list.make<lua.Statement>(
 					lua.create(lua.SyntaxKind.Assignment, {
