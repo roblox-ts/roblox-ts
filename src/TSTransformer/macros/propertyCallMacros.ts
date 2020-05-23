@@ -430,10 +430,25 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
-
+	indexOf: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+					expression: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: lua.globals.table.find,
+							args: lua.list.make(expression, transformExpression(state, node.arguments[0])),
+						}),
+						operator: "or",
+						right: lua.number(0),
+					}),
+				}),
+				operator: "-",
+				right: lua.number(1),
+			}),
+		}),
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
-	indexOf: runtimeLib("array_indexOf"),
 	find: runtimeLib("array_find"),
 };
 

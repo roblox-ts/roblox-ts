@@ -139,7 +139,7 @@ In other words, TS AST -> Lua AST
 -   [x] ReadonlyArray.join()
 -   [ ] ReadonlyArray.slice()
 -   [ ] ReadonlyArray.includes()
--   [ ] ReadonlyArray.indexOf()
+-   [x] ReadonlyArray.indexOf()
 -   [ ] ReadonlyArray.lastIndexOf()
 -   [x] ReadonlyArray.every()
 -   [x] ReadonlyArray.some()

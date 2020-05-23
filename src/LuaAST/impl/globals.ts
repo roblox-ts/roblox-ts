@@ -37,6 +37,7 @@ export const globals = {
 		concat: property(TABLE_ID, "concat"),
 		create: property(TABLE_ID, "create"),
 		remove: property(TABLE_ID, "remove"),
+		find: property(TABLE_ID, "find"),
 	},
 	utf8: {
 		charpattern: property(UTF8_ID, "charpattern"),
