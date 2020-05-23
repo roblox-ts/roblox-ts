@@ -801,12 +801,6 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 					args: lua.list.make(transformExpression(state, node.arguments[0])),
 				}),
 				statements: lua.list.make(
-					/* lua.create(lua.SyntaxKind.CallStatement, {
-						expression: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: ,
-							args: lua.list.make(valueId, keyId, expression),
-						}),
-					}), */
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: objectCopyId,
