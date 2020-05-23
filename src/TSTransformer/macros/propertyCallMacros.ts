@@ -780,7 +780,6 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 
 const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	assign: runtimeLib("Object_assign", true),
-	//copy: runtimeLib("Object_copy", true),
 	deepCopy: runtimeLib("Object_deepCopy", true),
 	deepEquals: runtimeLib("Object_deepEquals", true),
 	entries: runtimeLib("Object_entries", true),
