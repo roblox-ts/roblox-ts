@@ -431,6 +431,34 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return resultId;
 	},
 
+
+
+	copy: (state, node, expression) => {
+		const arrayCopyId = state.pushToVar(lua.map());
+		const valueId = lua.tempId();
+		const keyId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: arrayCopyId,
+							index: keyId,
+						}),
+						right: valueId,
+					}),
+				),
+			}),
+		);
+
+		return arrayCopyId;
+	},
+
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
 	indexOf: runtimeLib("array_indexOf"),
