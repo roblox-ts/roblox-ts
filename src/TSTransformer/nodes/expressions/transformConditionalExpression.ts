@@ -28,7 +28,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 			}),
 		});
 	}
-	
+
 	const tempId = lua.tempId();
 	state.prereq(
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
