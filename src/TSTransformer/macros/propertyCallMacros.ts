@@ -790,8 +790,6 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	values: runtimeLib("Object_values", true),
 
 	copy: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
 		const objectCopyId = state.pushToVar(lua.map());
 		const valueId = lua.tempId();
 		const keyId = lua.tempId();
