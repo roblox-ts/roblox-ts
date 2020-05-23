@@ -467,11 +467,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: returnId,
-								right: valueId
+								right: valueId,
 							}),
 						),
-						elseBody: lua.list.make()
-					})
+						elseBody: lua.list.make(),
+					}),
 				),
 			}),
 		);
