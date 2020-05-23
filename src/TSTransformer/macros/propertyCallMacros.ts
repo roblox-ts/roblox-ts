@@ -435,6 +435,18 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	findIndex: runtimeLib("array_findIndex"),
 	indexOf: runtimeLib("array_indexOf"),
 	find: runtimeLib("array_find"),
+	sort: (state, node, expression) => {
+		const list = lua.list.make(expression);
+
+		if (node.arguments?.length > 0) {
+			lua.list.push(list, transformExpression(state, node.arguments[0]));
+		}
+
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.table.sort,
+			args: list,
+		});
+	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {

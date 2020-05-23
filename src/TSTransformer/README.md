@@ -157,7 +157,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlyArray.copy()
 -   [ ] ReadonlyArray.deepCopy()
 -   [ ] ReadonlyArray.deepEquals()
--   [ ] ReadonlyArray.sort()
+-   [x] ReadonlyArray.sort()
 -   [x] Array.push()
 -   [x] Array.pop()
 -   [ ] Array.shift()
