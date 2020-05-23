@@ -790,7 +790,7 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 		const keysId = state.pushToVar(lua.array());
 		const keyId = lua.tempId();
 
-		let size = lua.create(lua.SyntaxKind.UnaryExpression, {
+		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
 			operator: "#",
 			expression: keysId,
 		});
@@ -826,7 +826,7 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
 
-		let size = lua.create(lua.SyntaxKind.UnaryExpression, {
+		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
 			operator: "#",
 			expression: valuesId,
 		});
