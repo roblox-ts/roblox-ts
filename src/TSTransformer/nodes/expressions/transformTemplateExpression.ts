@@ -1,19 +1,20 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isStringType } from "TSTransformer/util/types";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	if (node.templateSpans.length === 0) {
-		return lua.string(node.head.text);
+		return createStringFromLiteral(node.head);
 	}
 
 	const expressions = new Array<lua.Expression>();
 
 	if (node.head.text.length > 0) {
-		expressions.push(lua.string(node.head.text));
+		expressions.push(createStringFromLiteral(node.head));
 	}
 
 	const orderedExpressions = ensureTransformOrder(
@@ -33,7 +34,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		expressions.push(exp);
 
 		if (templateSpan.literal.text.length > 0) {
-			expressions.push(lua.string(templateSpan.literal.text));
+			expressions.push(createStringFromLiteral(templateSpan.literal));
 		}
 	}
 

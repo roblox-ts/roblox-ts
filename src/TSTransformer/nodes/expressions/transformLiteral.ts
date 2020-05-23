@@ -1,6 +1,7 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
+import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 
 export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
 	return lua.create(lua.SyntaxKind.TrueLiteral, {});
@@ -20,7 +21,5 @@ export function transformStringLiteral(
 	state: TransformState,
 	node: ts.StringLiteral | ts.NoSubstitutionTemplateLiteral,
 ) {
-	return lua.create(lua.SyntaxKind.StringLiteral, {
-		value: node.text,
-	});
+	return createStringFromLiteral(node);
 }
