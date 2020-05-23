@@ -780,7 +780,6 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 
 const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	assign: runtimeLib("Object_assign", true),
-	copy: runtimeLib("Object_copy", true),
 	deepCopy: runtimeLib("Object_deepCopy", true),
 	deepEquals: runtimeLib("Object_deepEquals", true),
 	entries: runtimeLib("Object_entries", true),
@@ -788,6 +787,32 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: runtimeLib("Object_isEmpty", true),
 	keys: runtimeLib("Object_keys", true),
 	values: runtimeLib("Object_values", true),
+
+	copy: (state, node, expression) => {
+		const objectCopyId = state.pushToVar(lua.map());
+		const valueId = lua.tempId();
+		const keyId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(transformExpression(state, node.arguments[0])),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: objectCopyId,
+							index: keyId,
+						}),
+						right: valueId,
+					}),
+				),
+			}),
+		);
+
+		return objectCopyId;
+	},
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
