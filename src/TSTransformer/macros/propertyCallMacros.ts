@@ -6,6 +6,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
+import { SyntaxKind } from "typescript";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
@@ -454,7 +455,14 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				start: lua.number(1),
 				end: size,
 				step: lua.number(1),
-				statements: lua.list.make(
+				statements: lua.list.make<lua.Statement>(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: valueId,
+						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: loopId,
+						})
+					}),
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 							left: lua.create(lua.SyntaxKind.CallExpression, {
@@ -464,11 +472,12 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							operator: "==",
 							right: lua.bool(true),
 						}),
-						statements: lua.list.make(
+						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: returnId,
 								right: valueId,
 							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
 						),
 						elseBody: lua.list.make(),
 					}),
