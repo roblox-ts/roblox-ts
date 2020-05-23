@@ -815,7 +815,7 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 							index: keyId,
 						}),
 						right: valueId,
-					})
+					}),
 				),
 			}),
 		);
