@@ -23,6 +23,7 @@ function needsSpace(expression: lua.Expression, operator: lua.UnaryOperator) {
 
 	// "--" will create a comment!
 	if (lua.isUnaryExpression(expression) && expression.operator === "-") {
+		// previous expression was also "-"
 		return true;
 	}
 

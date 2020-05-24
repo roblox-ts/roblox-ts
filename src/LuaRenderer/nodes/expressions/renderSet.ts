@@ -8,8 +8,8 @@ export function renderSet(state: RenderState, node: lua.Set) {
 
 	let result = "{\n";
 	state.block(() => {
-		lua.list.forEach(node.members, member => (result += state.indent + `[${render(state, member)}] = true,\n`));
+		lua.list.forEach(node.members, member => (result += state.line(`[${render(state, member)}] = true,`)));
 	});
-	result += state.indent + "}";
+	result += state.indented("}");
 	return result;
 }

@@ -74,16 +74,32 @@ export class RenderState {
 	}
 
 	/**
+	 * Adds a newline to the end of the string.
+	 * @param text The text.
+	 */
+	public newline(text: string) {
+		return text + "\n";
+	}
+
+	/**
+	 * Prefixes the text with the current indent.
+	 * @param text The text.
+	 */
+	public indented(text: string) {
+		return this.indent + text;
+	}
+
+	/**
 	 * Renders a line, adding the current indent, a semicolon if necessary, and "\n".
 	 * @param text The content of the line.
 	 * @param endNode Node used to determine if a semicolon should be added. Undefined means no semi will be added.
 	 */
 	public line(text: string, endNode?: lua.Statement) {
-		let result = this.indent + text;
+		let result = this.indented(text);
 		if (endNode) {
 			result += getEnding(this, endNode);
 		}
-		result += "\n";
+		result = this.newline(result);
 		return result;
 	}
 
