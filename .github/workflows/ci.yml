@@ -7,7 +7,7 @@ on:
       - refactor
 
 jobs:
-  lint:
+  build-and-lint:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
 
     runs-on: ubuntu-latest
@@ -21,6 +21,3 @@ jobs:
 
       - name: Run ESLint
         run: npm run eslint
-
-      - name: Build
-        run: npm run build
