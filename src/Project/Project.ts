@@ -17,6 +17,7 @@ import {
 	transformSourceFile,
 	TransformState,
 } from "TSTransformer";
+import { cleanupDirRecursively } from "Shared/fsUtil";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -146,6 +147,18 @@ export class Project {
 
 		// Create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
 		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
+	}
+
+	/**
+	 * Cleans up 'orphaned' files - Files which don't belong to any source file
+	 * in the out directory.
+	 */
+	public async cleanup() {
+		if (fs.pathExists(this.outDir)) {
+			await cleanupDirRecursively(this.pathTranslator, this.rootDir, this.outDir);
+		} else {
+			console.log("Fresh compile, skipping cleanup step");
+		}
 	}
 
 	/**

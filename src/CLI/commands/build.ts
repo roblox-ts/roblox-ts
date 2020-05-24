@@ -77,6 +77,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			try {
 				// Attempt to build the project
 				const project = new Project(tsConfigPath, projectOptions);
+				project.cleanup();
 				project.compile();
 			} catch (e) {
 				// Catch recognized errors
