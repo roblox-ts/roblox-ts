@@ -55,7 +55,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				describe: "Manually select Rojo configuration file",
 			}),
 
-	handler: argv => {
+	handler: async argv => {
 		// Attempt to retrieve TypeScript configuration JSON path
 		let tsConfigPath: string | undefined = path.resolve(argv.project);
 		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
@@ -77,7 +77,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			try {
 				// Attempt to build the project
 				const project = new Project(tsConfigPath, projectOptions);
-				project.cleanup();
+				await project.cleanup();
 				project.compile();
 			} catch (e) {
 				// Catch recognized errors
