@@ -1,12 +1,14 @@
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { getEnding } from "LuaRenderer/util/getEnding";
 
+const INDENT_CHARACTER = "\t";
 /**
  * Represents the state of a rendering process.
  */
 export class RenderState {
-	public indent = "";
+	private indent = "";
 	private scopeStack: Array<number> = [0];
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
@@ -15,14 +17,14 @@ export class RenderState {
 	 * Pushes an indent to the current indent level.
 	 */
 	private pushIndent() {
-		this.indent += "\t";
+		this.indent += INDENT_CHARACTER;
 	}
 
 	/**
 	 * Pops an indent from the current indent level.
 	 */
 	private popIndent() {
-		this.indent = this.indent.substr(1);
+		this.indent = this.indent.substr(INDENT_CHARACTER.length);
 	}
 
 	/**
@@ -69,6 +71,19 @@ export class RenderState {
 	 */
 	public popListNode() {
 		return this.listNodesStack.pop();
+	}
+
+	/**
+	 * Renders a line, adding the current indent and "\n".
+	 * @param text The content of the line
+	 */
+	public line(text: string, endNode?: lua.Statement) {
+		let result = this.indent + text;
+		if (endNode) {
+			result += getEnding(this, endNode);
+		}
+		result += "\n";
+		return result;
 	}
 
 	/**

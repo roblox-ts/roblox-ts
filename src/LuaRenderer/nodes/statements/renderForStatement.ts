@@ -11,9 +11,9 @@ export function renderForStatement(state: RenderState, node: lua.ForStatement) {
 	const expStr = render(state, node.expression);
 
 	let result = "";
-	result += state.indent + `for ${idsStr} in ${expStr} do\n`;
+	result += state.line(`for ${idsStr} in ${expStr} do`);
 	result += state.scope(() => renderStatements(state, node.statements));
-	result += state.indent + `end\n`;
+	result += state.line(`end`);
 
 	state.popScope();
 	return result;

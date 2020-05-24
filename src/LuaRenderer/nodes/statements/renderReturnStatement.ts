@@ -5,5 +5,5 @@ export function renderReturnStatement(state: RenderState, node: lua.ReturnStatem
 	const expStr = lua.list.isList(node.expression)
 		? lua.list.mapToArray(node.expression, exp => render(state, exp)).join(", ")
 		: render(state, node.expression);
-	return state.indent + `return ${expStr}\n`;
+	return state.line(`return ${expStr}`);
 }
