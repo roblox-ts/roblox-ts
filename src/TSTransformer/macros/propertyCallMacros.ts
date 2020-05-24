@@ -448,7 +448,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				id: loopId,
 				start: lua.number(1),
 				end: size(state, node, expression),
-				step: lua.number(1),
+				step: undefined,
 				statements: lua.list.make<lua.Statement>(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: valueId,
