@@ -74,8 +74,9 @@ export class RenderState {
 	}
 
 	/**
-	 * Renders a line, adding the current indent and "\n".
-	 * @param text The content of the line
+	 * Renders a line, adding the current indent, a semicolon if necessary, and "\n".
+	 * @param text The content of the line.
+	 * @param endNode Node used to determine if a semicolon should be added. Undefined means no semi will be added.
 	 */
 	public line(text: string, endNode?: lua.Statement) {
 		let result = this.indent + text;
