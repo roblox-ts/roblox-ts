@@ -451,12 +451,72 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
+	indexOf: (state, node, expression) => {
+		const nodeArgs = ensureTransformOrder(state, node.arguments);
+		const findArgs = lua.list.make(expression, nodeArgs[0]);
 
+		if (nodeArgs.length > 1) {
+			lua.list.push(findArgs, offset(nodeArgs[1], 1));
+		}
+
+		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+			expression: offset(
+				lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+					expression: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: lua.globals.table.find,
+							args: findArgs,
+						}),
+						operator: "or",
+						right: lua.number(0),
+					}),
+				}),
+				-1,
+			),
+		});
+	},
+	lastIndexOf: (state, node, expression) => {
+		const nodeArgs = ensureTransformOrder(state, node.arguments);
+
+		const startExpression = nodeArgs.length > 1 ? offset(nodeArgs[1], 1) : size(state, node, expression);
+
+		const result = state.pushToVar(lua.number(-1));
+		const iterator = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: iterator,
+				start: startExpression,
+				end: lua.number(1),
+				step: lua.number(-1),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: convertToIndexableExpression(expression),
+								index: iterator,
+							}),
+							operator: "==",
+							right: nodeArgs[0],
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: result,
+								right: offset(iterator, -1),
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return result;
+	},
 	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
 
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
-	indexOf: runtimeLib("array_indexOf"),
 
 	find: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
