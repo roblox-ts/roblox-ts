@@ -12,7 +12,7 @@ function wrapWeak(state: TransformState, node: ts.NewExpression, macro: Construc
 	});
 }
 
-function isFlatMap(expression: lua.Expression): expression is lua.Array<lua.Array<lua.Expression>> {
+function isFlatMap(expression: lua.Expression): expression is lua.Array<lua.Array> {
 	if (lua.isArray(expression)) {
 		return lua.list.every(expression.members, member => lua.isArray(member));
 	}
