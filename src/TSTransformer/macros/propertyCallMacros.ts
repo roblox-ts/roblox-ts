@@ -771,14 +771,12 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
-function makeKeysValuesEntriesMethod<T extends [lua.AnyIdentifier, lua.AnyIdentifier]>(
-	loopIds: T,
-	generator: (...loopIds: T) => lua.Expression,
+function makeKeysValuesEntriesMethod(
+	loopIds: Array<lua.AnyIdentifier>,
+	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
 		const valuesId = state.pushToVar(lua.array());
-		const keyId = loopIds[0];
-		const valueId = loopIds[1];
 
 		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
 			operator: "#",
@@ -787,7 +785,7 @@ function makeKeysValuesEntriesMethod<T extends [lua.AnyIdentifier, lua.AnyIdenti
 
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
+				ids: lua.list.make(...loopIds),
 				expression: lua.create(lua.SyntaxKind.CallExpression, {
 					expression: lua.globals.pairs,
 					args: lua.list.make(transformExpression(state, node.arguments[0])),
@@ -802,7 +800,7 @@ function makeKeysValuesEntriesMethod<T extends [lua.AnyIdentifier, lua.AnyIdenti
 								right: lua.number(1),
 							}),
 						}),
-						right: generator(keyId, valueId),
+						right: generator(...loopIds),
 					}),
 				),
 			}),
@@ -819,7 +817,7 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
 
-	keys: makeKeysValuesEntriesMethod([lua.tempId()], (key) => key),
+	keys: makeKeysValuesEntriesMethod([lua.tempId()], key => key),
 	values: makeKeysValuesEntriesMethod([lua.emptyId(), lua.tempId()], (_, value) => value),
 	entries: makeKeysValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) => lua.array([key, value])),
 
