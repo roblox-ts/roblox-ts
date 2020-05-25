@@ -101,7 +101,7 @@ function stringMatchCallback(pattern: string): PropertyCallMacro {
 
 function makeCopyMethod(
 	iterator: lua.Identifier,
-	makeExpression: (state: TransformState, node: ts.CallExpression, expression: lua.Expression) => lua.Expression,
+	makeExpression: PropertyCallMacro,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
 		const arrayCopyId = state.pushToVar(lua.map());
