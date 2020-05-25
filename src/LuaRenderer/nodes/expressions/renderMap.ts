@@ -8,8 +8,8 @@ export function renderMap(state: RenderState, node: lua.Map) {
 
 	let result = "{\n";
 	state.block(() => {
-		lua.list.forEach(node.fields, field => (result += state.indent + `${render(state, field)},\n`));
+		lua.list.forEach(node.fields, field => (result += state.line(`${render(state, field)},`)));
 	});
-	result += state.indent + "}";
+	result += state.indented("}");
 	return result;
 }

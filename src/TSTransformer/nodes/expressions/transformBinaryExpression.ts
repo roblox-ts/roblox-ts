@@ -18,7 +18,7 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
@@ -164,6 +164,18 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			expression: state.TS("instanceof"),
 			args: lua.list.make(left, right),
 		});
+	}
+
+	// TODO issue #715
+	if (
+		operatorKind === ts.SyntaxKind.LessThanToken ||
+		operatorKind === ts.SyntaxKind.LessThanEqualsToken ||
+		operatorKind === ts.SyntaxKind.GreaterThanToken ||
+		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
+	) {
+		if (!isNumberType(state.getType(node.left)) || !isNumberType(state.getType(node.right))) {
+			state.addDiagnostic(diagnostics.noNonNumberRelationOperator(node));
+		}
 	}
 
 	return createBinaryFromOperator(

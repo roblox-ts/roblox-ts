@@ -1,12 +1,16 @@
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { getEnding } from "LuaRenderer/util/getEnding";
+
+const INDENT_CHARACTER = "\t";
+const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;
 
 /**
  * Represents the state of a rendering process.
  */
 export class RenderState {
-	public indent = "";
+	private indent = "";
 	private scopeStack: Array<number> = [0];
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
@@ -15,14 +19,14 @@ export class RenderState {
 	 * Pushes an indent to the current indent level.
 	 */
 	private pushIndent() {
-		this.indent += "\t";
+		this.indent += INDENT_CHARACTER;
 	}
 
 	/**
 	 * Pops an indent from the current indent level.
 	 */
 	private popIndent() {
-		this.indent = this.indent.substr(1);
+		this.indent = this.indent.substr(INDENT_CHARACTER_LENGTH);
 	}
 
 	/**
@@ -69,6 +73,36 @@ export class RenderState {
 	 */
 	public popListNode() {
 		return this.listNodesStack.pop();
+	}
+
+	/**
+	 * Adds a newline to the end of the string.
+	 * @param text The text.
+	 */
+	public newline(text: string) {
+		return text + "\n";
+	}
+
+	/**
+	 * Prefixes the text with the current indent.
+	 * @param text The text.
+	 */
+	public indented(text: string) {
+		return this.indent + text;
+	}
+
+	/**
+	 * Renders a line, adding the current indent, a semicolon if necessary, and "\n".
+	 * @param text The content of the line.
+	 * @param endNode Node used to determine if a semicolon should be added. Undefined means no semi will be added.
+	 */
+	public line(text: string, endNode?: lua.Statement) {
+		let result = this.indented(text);
+		if (endNode) {
+			result += getEnding(this, endNode);
+		}
+		result = this.newline(result);
+		return result;
 	}
 
 	/**
