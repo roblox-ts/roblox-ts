@@ -4,8 +4,8 @@ import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 export function renderWhileStatement(state: RenderState, node: lua.WhileStatement) {
 	let result = "";
-	result += state.indent + `while ${render(state, node.condition)} do\n`;
+	result += state.line(`while ${render(state, node.condition)} do`);
 	result += state.scope(() => renderStatements(state, node.statements));
-	result += state.indent + `end\n`;
+	result += state.line(`end`);
 	return result;
 }

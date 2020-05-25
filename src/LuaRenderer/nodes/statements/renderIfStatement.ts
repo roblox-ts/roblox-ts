@@ -4,7 +4,7 @@ import { renderStatements } from "LuaRenderer/util/renderStatements";
 
 function renderShorthandIfStatement(state: RenderState, node: lua.IfStatement) {
 	const statementStr = renderStatements(state, node.statements).trim();
-	return state.indent + `if ${render(state, node.condition)} then ${statementStr} end\n`;
+	return state.line(`if ${render(state, node.condition)} then ${statementStr} end`);
 }
 
 /** must be if X == nil then X = Y end */
@@ -30,7 +30,7 @@ export function renderIfStatement(state: RenderState, node: lua.IfStatement) {
 
 	let result = "";
 
-	result += state.indent + `if ${render(state, node.condition)} then\n`;
+	result += state.line(`if ${render(state, node.condition)} then`);
 	if (node.statements) {
 		result += state.scope(() => renderStatements(state, node.statements));
 	}
@@ -38,18 +38,18 @@ export function renderIfStatement(state: RenderState, node: lua.IfStatement) {
 	let currentElseBody = node.elseBody;
 	while (lua.isNode(currentElseBody)) {
 		const statements = currentElseBody.statements;
-		result += state.indent + `elseif ${render(state, currentElseBody.condition)} then\n`;
+		result += state.line(`elseif ${render(state, currentElseBody.condition)} then`);
 		result += state.scope(() => renderStatements(state, statements));
 		currentElseBody = currentElseBody.elseBody;
 	}
 
 	if (currentElseBody && currentElseBody.head) {
-		result += state.indent + `else\n`;
+		result += state.line(`else`);
 		const statements = currentElseBody;
 		result += state.scope(() => renderStatements(state, statements));
 	}
 
-	result += state.indent + `end\n`;
+	result += state.line(`end`);
 
 	return result;
 }
