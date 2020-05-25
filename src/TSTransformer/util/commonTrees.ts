@@ -2,6 +2,8 @@ import * as lua from "LuaAST";
 import { PropertyCallMacro } from "TSTransformer/macros/types";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { offset } from "TSTransformer/util/offset";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 function offsetArguments(args: Array<lua.Expression>, argOffsets: Array<number>) {
 	const minLength = Math.min(args.length, argOffsets.length);
