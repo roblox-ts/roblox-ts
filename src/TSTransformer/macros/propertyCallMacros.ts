@@ -498,18 +498,19 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return returnId;
 	},
-  
-  sort: (state, node, expression) => {
-		const list = lua.list.make(expression);
 
-		if (node.arguments?.length > 0) {
-			lua.list.push(list, transformExpression(state, node.arguments[0]));
+	sort: (state, node, expression) => {
+		const args = lua.list.make(expression);
+
+		if (node.arguments.length > 0) {
+			lua.list.push(args, transformExpression(state, node.arguments[0]));
 		}
 
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.sort,
-			args: list,
+			args: args,
 		});
+	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
