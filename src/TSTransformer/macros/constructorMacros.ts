@@ -12,14 +12,9 @@ function wrapWeak(state: TransformState, node: ts.NewExpression, macro: Construc
 	});
 }
 
-function isFlatMap(expression: lua.Expression): expression is lua.Array {
+function isFlatMap(expression: lua.Expression): expression is lua.Array<lua.Array<lua.Expression>> {
 	if (lua.isArray(expression)) {
-		for (const member of lua.list.toArray(expression.members)) {
-			if (!lua.isArray(member)) {
-				return false;
-			}
-		}
-		return true;
+		return lua.list.every(expression.members, member => lua.isArray(member));
 	}
 	return false;
 }
@@ -75,14 +70,15 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	const transformed = transformExpression(state, arg);
 	if (isFlatMap(transformed)) {
 		// TODO make this nicer?
-		const elements = lua.list.toArray(transformed.members).map(element => {
-			const e = element as lua.Array;
-			return [e.members.head?.value, e.members.head?.next?.value] as [lua.Expression, lua.Expression];
+		const elements = lua.list.toArray(transformed.members).map(e => {
+			// Non-null and type assertion because array will always have 2 members,
+			// Due to map constructor typing.
+			return [e.members.head!.value, e.members.head!.next!.value] as [lua.Expression, lua.Expression];
 		});
 		return lua.map(elements);
 	} else {
 		const id = state.pushToVar(lua.set());
-		const valueId = lua.id("value");
+		const valueId = lua.tempId();
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
