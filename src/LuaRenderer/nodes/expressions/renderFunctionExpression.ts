@@ -9,8 +9,8 @@ export function renderFunctionExpression(state: RenderState, node: lua.FunctionE
 	}
 
 	let result = "";
-	result += `function(${renderParameters(state, node)})\n`;
+	result += state.newline(`function(${renderParameters(state, node)})`);
 	result += state.scope(() => renderStatements(state, node.statements));
-	result += state.indent + `end`;
+	result += state.indented(`end`);
 	return result;
 }

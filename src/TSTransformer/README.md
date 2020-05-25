@@ -120,9 +120,9 @@ In other words, TS AST -> Lua AST
 
 ### Object Macros
 
--   [ ] Object.keys()
--   [ ] Object.values()
--   [ ] Object.entries()
+-   [x] Object.keys()
+-   [x] Object.values()
+-   [x] Object.entries()
 -   [ ] Object.assign()
 -   [x] Object.copy()
 -   [ ] Object.deepCopy()
@@ -154,7 +154,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlyArray.entries()
 -   [x] ReadonlyArray.find()
 -   [ ] ReadonlyArray.findIndex()
--   [ ] ReadonlyArray.copy()
+-   [x] ReadonlyArray.copy()
 -   [ ] ReadonlyArray.deepCopy()
 -   [ ] ReadonlyArray.deepEquals()
 -   [ ] ReadonlyArray.sort()
