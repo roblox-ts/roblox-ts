@@ -9,7 +9,7 @@
 		"url": "https://github.com/roblox-ts/roblox-ts.git"
 	},
 	"bin": {
-		"rbxtsc": "out/cli.js"
+		"rbxtsc": "out/CLI/cli.js"
 	},
 	"scripts": {
 		"eslint": "npx eslint \"src/**/*.ts\" --max-warnings 0",
