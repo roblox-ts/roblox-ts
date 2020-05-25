@@ -4,6 +4,8 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { getEnding } from "LuaRenderer/util/getEnding";
 
 const INDENT_CHARACTER = "\t";
+const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;
+
 /**
  * Represents the state of a rendering process.
  */
@@ -24,7 +26,7 @@ export class RenderState {
 	 * Pops an indent from the current indent level.
 	 */
 	private popIndent() {
-		this.indent = this.indent.substr(INDENT_CHARACTER.length);
+		this.indent = this.indent.substr(INDENT_CHARACTER_LENGTH);
 	}
 
 	/**
