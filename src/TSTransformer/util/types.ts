@@ -111,3 +111,7 @@ export function isObjectType(type: ts.Type) {
 export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
 }
+
+export function canTypeBeFalsy(type: ts.Type) {
+	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.PossiblyFalsy));
+}

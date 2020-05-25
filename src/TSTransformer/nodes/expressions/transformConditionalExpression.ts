@@ -4,26 +4,34 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { canTypeBeFalsy } from "TSTransformer/util/types";
 
 function isBooleanType(type: tsst.SimpleType) {
 	return type.kind === tsst.SimpleTypeKind.BOOLEAN || type.kind === tsst.SimpleTypeKind.BOOLEAN_LITERAL;
 }
 
-declare function canBeFalsy(node: ts.Expression): boolean;
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
-	if (isBooleanType(state.getSimpleTypeFromNode(node)) && !canBeFalsy(node.whenTrue)) {
+	const condition = transformExpression(state, node.condition);
+	const { expression: whenTrue, statements: whenTruePrereqs } = state.capture(() =>
+		transformExpression(state, node.whenTrue),
+	);
+	const { expression: whenFalse, statements: whenFalsePrereqs } = state.capture(() =>
+		transformExpression(state, node.whenFalse),
+	);
+	if (
+		isBooleanType(state.getSimpleTypeFromNode(node)) &&
+		!canTypeBeFalsy(state.getType(node.whenTrue)) &&
+		lua.list.isEmpty(whenTruePrereqs) &&
+		lua.list.isEmpty(whenFalsePrereqs)
+	) {
 		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: createTruthinessChecks(
-						state,
-						transformExpression(state, node.condition),
-						state.getType(node.condition),
-					),
-					right: transformExpression(state, node.whenTrue),
+					left: createTruthinessChecks(state, condition, state.getType(node.condition)),
+					right: whenTrue,
 					operator: "and",
 				}),
-				right: transformExpression(state, node.whenFalse),
+				right: whenFalse,
 				operator: "or",
 			}),
 		});
@@ -37,35 +45,26 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		}),
 	);
 
-	const condition = createTruthinessChecks(
-		state,
-		transformExpression(state, node.condition),
-		state.getType(node.condition),
+	lua.list.push(
+		whenTruePrereqs,
+		lua.create(lua.SyntaxKind.Assignment, {
+			left: tempId,
+			right: whenTrue,
+		}),
 	);
-
-	const statements = state.capturePrereqs(() => {
-		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: tempId,
-				right: transformExpression(state, node.whenTrue),
-			}),
-		);
-	});
-
-	const elseBody = state.capturePrereqs(() => {
-		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: tempId,
-				right: transformExpression(state, node.whenFalse),
-			}),
-		);
-	});
+	lua.list.push(
+		whenFalsePrereqs,
+		lua.create(lua.SyntaxKind.Assignment, {
+			left: tempId,
+			right: whenFalse,
+		}),
+	);
 
 	state.prereq(
 		lua.create(lua.SyntaxKind.IfStatement, {
 			condition,
-			statements,
-			elseBody,
+			statements: whenTruePrereqs,
+			elseBody: whenFalsePrereqs,
 		}),
 	);
 
