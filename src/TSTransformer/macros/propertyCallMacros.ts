@@ -430,14 +430,21 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
-	indexOf: (state, node, expression) =>
-		lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+	indexOf: (state, node, expression) => {
+		const nodeArgs = ensureTransformOrder(state, node.arguments);
+		const findArgs = lua.list.make(expression, nodeArgs[0]);
+
+		if (nodeArgs.length > 1) {
+			lua.list.push(findArgs, offset(nodeArgs[1], 1));
+		}
+
+		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 			expression: offset(
 				lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 					expression: lua.create(lua.SyntaxKind.BinaryExpression, {
 						left: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: lua.globals.table.find,
-							args: lua.list.make(expression, transformExpression(state, node.arguments[0])),
+							args: findArgs,
 						}),
 						operator: "or",
 						right: lua.number(0),
@@ -445,12 +452,12 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				}),
 				-1,
 			),
-		}),
+		});
+	},
 	lastIndexOf: (state, node, expression) => {
-		const nodeArgs = node.arguments;
+		const nodeArgs = ensureTransformOrder(state, node.arguments);
 
-		const sizeExp = size(state, node, expression);
-		const startExpression = nodeArgs.length > 1 ? offset(transformExpression(state, nodeArgs[1]), 1) : sizeExp;
+		const startExpression = nodeArgs.length > 1 ? offset(nodeArgs[1], 1) : size(state, node, expression);
 
 		const result = state.pushToVar(lua.number(-1));
 		const iterator = lua.tempId();
@@ -468,7 +475,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 								index: iterator,
 							}),
 							operator: "==",
-							right: transformExpression(state, nodeArgs[0]),
+							right: nodeArgs[0],
 						}),
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
