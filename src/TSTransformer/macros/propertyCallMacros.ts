@@ -771,13 +771,14 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 };
 
-function makeKeysValuesEntriesMethod(
-	generator: (key: lua.AnyIdentifier, value: lua.AnyIdentifier) => lua.Expression,
+function makeKeysValuesEntriesMethod<T extends [lua.AnyIdentifier, lua.AnyIdentifier]>(
+	loopIds: T,
+	generator: (...loopIds: T) => lua.Expression,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
 		const valuesId = state.pushToVar(lua.array());
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
+		const keyId = loopIds[0];
+		const valueId = loopIds[1];
 
 		const size = lua.create(lua.SyntaxKind.UnaryExpression, {
 			operator: "#",
@@ -818,11 +819,9 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
 
-	keys: makeKeysValuesEntriesMethod((key, value) => key),
-
-	values: makeKeysValuesEntriesMethod((key, value) => value),
-
-	entries: makeKeysValuesEntriesMethod((key, value) => lua.array([key, value])),
+	keys: makeKeysValuesEntriesMethod([lua.tempId()], (key) => key),
+	values: makeKeysValuesEntriesMethod([lua.emptyId(), lua.tempId()], (_, value) => value),
+	entries: makeKeysValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) => lua.array([key, value])),
 
 	copy: (state, node, expression) => {
 		const objectCopyId = state.pushToVar(lua.map());
