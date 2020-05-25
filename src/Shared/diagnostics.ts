@@ -93,6 +93,7 @@ export const diagnostics = {
 	noArguments: diagnostic("`arguments` is not supported!"),
 	noPrototype: diagnostic("`prototype` is not supported!"),
 	noSuperProperty: diagnostic("super properties are not supported!"),
+	noNonNumberRelationOperator: diagnostic("Relation operators cannot be used on non-number types!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
