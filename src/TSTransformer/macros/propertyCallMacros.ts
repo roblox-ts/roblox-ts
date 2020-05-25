@@ -97,6 +97,34 @@ function stringMatchCallback(pattern: string): PropertyCallMacro {
 		});
 }
 
+function makeCopyMethod(iterator: lua.Identifier, makeExpression: PropertyCallMacro): PropertyCallMacro {
+	return (state, node, expression) => {
+		const arrayCopyId = state.pushToVar(lua.map());
+		const valueId = lua.tempId();
+		const keyId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: iterator,
+					args: lua.list.make(makeExpression(state, node, expression)),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: arrayCopyId,
+							index: keyId,
+						}),
+						right: valueId,
+					}),
+				),
+			}),
+		);
+
+		return arrayCopyId;
+	};
+}
+
 const findMacro = makeStringCallback(lua.globals.string.find, [0, 1]);
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
@@ -430,6 +458,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
+
+	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
 
 	reduce: runtimeLib("array_reduce"),
 	findIndex: runtimeLib("array_findIndex"),
@@ -828,31 +858,7 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	keys: runtimeLib("Object_keys", true),
 	values: runtimeLib("Object_values", true),
 
-	copy: (state, node, expression) => {
-		const objectCopyId = state.pushToVar(lua.map());
-		const valueId = lua.tempId();
-		const keyId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.pairs,
-					args: lua.list.make(transformExpression(state, node.arguments[0])),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: objectCopyId,
-							index: keyId,
-						}),
-						right: valueId,
-					}),
-				),
-			}),
-		);
-
-		return objectCopyId;
-	},
+	copy: makeCopyMethod(lua.globals.pairs, (state, node, expression) => transformExpression(state, node.arguments[0])),
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
