@@ -99,10 +99,7 @@ function stringMatchCallback(pattern: string): PropertyCallMacro {
 		});
 }
 
-function makeCopyMethod(
-	iterator: lua.Identifier,
-	makeExpression: PropertyCallMacro,
-): PropertyCallMacro {
+function makeCopyMethod(iterator: lua.Identifier, makeExpression: PropertyCallMacro): PropertyCallMacro {
 	return (state, node, expression) => {
 		const arrayCopyId = state.pushToVar(lua.map());
 		const valueId = lua.tempId();
