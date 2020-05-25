@@ -444,19 +444,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const returnId = state.pushToVar(lua.nil());
 
 		state.prereq(
-			lua.create(lua.SyntaxKind.NumericForStatement, {
-				id: loopId,
-				start: lua.number(1),
-				end: size(state, node, expression),
-				step: undefined,
+			lua.create(lua.SyntaxKind.ForStatement, {
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				ids: lua.list.make(loopId, valueId),
 				statements: lua.list.make<lua.Statement>(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: valueId,
-						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(expression),
-							index: loopId,
-						}),
-					}),
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 							left: lua.create(lua.SyntaxKind.CallExpression, {
