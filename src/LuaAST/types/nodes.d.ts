@@ -99,8 +99,8 @@ export interface UnaryExpression extends lua.Expression<lua.SyntaxKind.UnaryExpr
 	expression: lua.Expression;
 }
 
-export interface Array extends lua.Expression<lua.SyntaxKind.Array> {
-	members: lua.List<lua.Expression>;
+export interface Array<T extends lua.Expression = lua.Expression> extends lua.Expression<lua.SyntaxKind.Array> {
+	members: lua.List<T>;
 }
 
 export interface Map extends lua.Expression<lua.SyntaxKind.Map> {
