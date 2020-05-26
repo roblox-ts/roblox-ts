@@ -102,6 +102,7 @@ export class RoactSymbolManager {
 	}
 
 	public isElementType(type: ts.Type) {
-		return isSomeType(type, t => t.symbol === this.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element));
+		const symbol = this.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element);
+		return isSomeType(type, t => t.symbol === symbol);
 	}
 }
