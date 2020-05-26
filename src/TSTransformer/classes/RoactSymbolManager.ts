@@ -1,11 +1,13 @@
 import ts from "byots";
 import path from "path";
+import { isSomeType } from "TSTransformer/util/types";
 import { assert } from "Shared/util/assert";
 
 export const ROACT_SYMBOL_NAMES = {
 	Component: "Component",
 	PureComponent: "PureComponent",
 	Fragment: "Fragment",
+	Element: "Element",
 };
 
 function getChildByNameOrThrow(children: ReadonlyArray<ts.Node>, childName: string) {
@@ -57,7 +59,11 @@ export class RoactSymbolManager {
 		// "Component", "PureComponent", "Fragment"
 		const roactSymbolNameSet = new Set(Object.values(ROACT_SYMBOL_NAMES));
 		for (const statement of roactNamespace.body.statements) {
-			if (ts.isClassDeclaration(statement) && statement.name) {
+			if (ts.isInterfaceDeclaration(statement)) {
+				if (roactSymbolNameSet.has(statement.name.text)) {
+					this.addSymbolFromNode(statement.name.text, statement.name);
+				}
+			} else if (ts.isClassDeclaration(statement) && statement.name) {
 				if (roactSymbolNameSet.has(statement.name.text)) {
 					this.addSymbolFromNode(statement.name.text, statement.name);
 				}
@@ -93,5 +99,9 @@ export class RoactSymbolManager {
 
 	public getIntrinsicElementClassNameFromSymbol(symbol: ts.Symbol) {
 		return this.jsxIntrinsicNameMap.get(symbol);
+	}
+
+	public isElementType(type: ts.Type) {
+		return isSomeType(type, t => t.symbol === this.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element));
 	}
 }
