@@ -138,7 +138,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlyArray.concat()
 -   [x] ReadonlyArray.join()
 -   [ ] ReadonlyArray.slice()
--   [ ] ReadonlyArray.includes()
+-   [x] ReadonlyArray.includes()
 -   [x] ReadonlyArray.indexOf()
 -   [x] ReadonlyArray.lastIndexOf()
 -   [x] ReadonlyArray.every()
