@@ -231,7 +231,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			operator: "==",
 			right: lua.number(0),
 		}),
-
+	// toString: // Likely to be dropped for @rbxts/inspect
+	// concat:
 	join: (state, node, expression) => {
 		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.strings[", "];
 		return lua.create(lua.SyntaxKind.CallExpression, {
@@ -239,218 +240,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			args: lua.list.make(expression, separator),
 		});
 	},
-
-	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
-		lua.list.make(valueId, offset(keyId, -1), expression),
-	),
-
-	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
-		lua.list.make(valueId, offset(keyId, -1), expression),
-	),
-
-	forEach: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.CallStatement, {
-						expression: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: callbackId,
-							args: lua.list.make(valueId, offset(keyId, -1), expression),
-						}),
-					}),
-				),
-			}),
-		);
-
-		return lua.nil();
-	},
-
-	map: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const newValueId = state.pushToVar(lua.array());
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: newValueId,
-							index: keyId,
-						}),
-						right: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: callbackId,
-							args: lua.list.make(valueId, offset(keyId, -1), expression),
-						}),
-					}),
-				),
-			}),
-		);
-
-		return newValueId;
-	},
-
-	mapFiltered: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const newValueId = state.pushToVar(lua.array());
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const lengthId = state.pushToVar(lua.number(0));
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		const resultId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make<lua.Statement>(
-					lua.create(lua.SyntaxKind.VariableDeclaration, {
-						left: resultId,
-						right: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: callbackId,
-							args: lua.list.make(valueId, offset(keyId, -1), expression),
-						}),
-					}),
-					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-							left: resultId,
-							operator: "~=",
-							right: lua.nil(),
-						}),
-						statements: lua.list.make(
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: lengthId,
-								right: lua.create(lua.SyntaxKind.BinaryExpression, {
-									left: lengthId,
-									operator: "+",
-									right: lua.number(1),
-								}),
-							}),
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-									expression: newValueId,
-									index: lengthId,
-								}),
-								right: resultId,
-							}),
-						),
-						elseBody: lua.list.make(),
-					}),
-				),
-			}),
-		);
-
-		return newValueId;
-	},
-
-	filter: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const newValueId = state.pushToVar(lua.array());
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const lengthId = state.pushToVar(lua.number(0));
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-							left: lua.create(lua.SyntaxKind.CallExpression, {
-								expression: callbackId,
-								args: lua.list.make(valueId, offset(keyId, -1), expression),
-							}),
-							operator: "==",
-							right: lua.bool(true),
-						}),
-						statements: lua.list.make(
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: lengthId,
-								right: lua.create(lua.SyntaxKind.BinaryExpression, {
-									left: lengthId,
-									operator: "+",
-									right: lua.number(1),
-								}),
-							}),
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-									expression: newValueId,
-									index: lengthId,
-								}),
-								right: valueId,
-							}),
-						),
-						elseBody: lua.list.make(),
-					}),
-				),
-			}),
-		);
-
-		return newValueId;
-	},
-
-	reverse: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const resultId = state.pushToVar(lua.map());
-		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
-		const idxId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.NumericForStatement, {
-				id: idxId,
-				start: lua.number(1),
-				end: lengthId,
-				step: undefined,
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: resultId,
-							index: idxId,
-						}),
-						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(expression),
-							index: lua.create(lua.SyntaxKind.BinaryExpression, {
-								left: lengthId,
-								operator: "+",
-								right: lua.create(lua.SyntaxKind.BinaryExpression, {
-									left: lua.number(1),
-									operator: "-",
-									right: idxId,
-								}),
-							}),
-						}),
-					}),
-				),
-			}),
-		);
-
-		return resultId;
-	},
+	// slice:
 	includes: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 		const startIndex = offset(nodeArgs.length > 1 ? nodeArgs[1] : lua.number(0), 1);
@@ -551,11 +341,215 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return result;
 	},
-	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
+	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
+		lua.list.make(valueId, offset(keyId, -1), expression),
+	),
+	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
+		lua.list.make(valueId, offset(keyId, -1), expression),
+	),
+	forEach: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
 
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.CallStatement, {
+						expression: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return lua.nil();
+	},
+	map: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const newValueId = state.pushToVar(lua.array());
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: newValueId,
+							index: keyId,
+						}),
+						right: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return newValueId;
+	},
+	mapFiltered: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const newValueId = state.pushToVar(lua.array());
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const lengthId = state.pushToVar(lua.number(0));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		const resultId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make<lua.Statement>(
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: resultId,
+						right: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, offset(keyId, -1), expression),
+						}),
+					}),
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: resultId,
+							operator: "~=",
+							right: lua.nil(),
+						}),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lengthId,
+								right: lua.create(lua.SyntaxKind.BinaryExpression, {
+									left: lengthId,
+									operator: "+",
+									right: lua.number(1),
+								}),
+							}),
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+									expression: newValueId,
+									index: lengthId,
+								}),
+								right: resultId,
+							}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return newValueId;
+	},
+	// filterUndefined:
+	filter: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const newValueId = state.pushToVar(lua.array());
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const lengthId = state.pushToVar(lua.number(0));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: callbackId,
+								args: lua.list.make(valueId, offset(keyId, -1), expression),
+							}),
+							operator: "==",
+							right: lua.bool(true),
+						}),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lengthId,
+								right: lua.create(lua.SyntaxKind.BinaryExpression, {
+									left: lengthId,
+									operator: "+",
+									right: lua.number(1),
+								}),
+							}),
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+									expression: newValueId,
+									index: lengthId,
+								}),
+								right: valueId,
+							}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return newValueId;
+	},
 	reduce: runtimeLib("array_reduce"),
-	findIndex: runtimeLib("array_findIndex"),
+	// reduceRight:
+	reverse: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
 
+		const resultId = state.pushToVar(lua.map());
+		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+		const idxId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: idxId,
+				start: lua.number(1),
+				end: lengthId,
+				step: undefined,
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: resultId,
+							index: idxId,
+						}),
+						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: lengthId,
+								operator: "+",
+								right: lua.create(lua.SyntaxKind.BinaryExpression, {
+									left: lua.number(1),
+									operator: "-",
+									right: idxId,
+								}),
+							}),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return resultId;
+	},
+	// entries:
 	find: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -596,7 +590,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return returnId;
 	},
-
+	findIndex: runtimeLib("array_findIndex"),
+	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
+	// deepCopy:
+	// deepEquals:
 	sort: (state, node, expression) => {
 		const args = lua.list.make(expression);
 
