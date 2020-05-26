@@ -11,7 +11,7 @@ function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): bo
 	}
 }
 
-function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
+export function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 	if (typeConstraint(type, cb)) {
 		return true;
 	} else {

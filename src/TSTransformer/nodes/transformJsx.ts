@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { binaryExpressionChain, propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
@@ -16,7 +17,7 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
-import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
+import { isArrayType, isMapType } from "TSTransformer/util/types";
 
 function Roact(...indices: Array<string>) {
 	return propertyAccessExpressionChain(lua.id("Roact"), indices);
@@ -93,8 +94,8 @@ function createJsxAttributeLoop(attributesPtrValue: lua.AnyIdentifier, expressio
 function createJsxAddNumericChild(
 	childrenPtrValue: lua.AnyIdentifier,
 	lengthId: lua.AnyIdentifier,
-	keyId: lua.TemporaryIdentifier,
-	valueId: lua.TemporaryIdentifier,
+	key: lua.Expression,
+	value: lua.Expression,
 ) {
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -102,10 +103,10 @@ function createJsxAddNumericChild(
 			index: lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: lengthId,
 				operator: "+",
-				right: keyId,
+				right: key,
 			}),
 		}),
-		right: valueId,
+		right: value,
 	});
 }
 
@@ -121,6 +122,23 @@ function createJsxAddKeyChild(
 			index: keyId,
 		}),
 		right: valueId,
+	});
+}
+
+function createJsxAddNumericChildren(
+	childrenPtrValue: lua.AnyIdentifier,
+	lengthId: lua.AnyIdentifier,
+	expression: lua.Expression,
+) {
+	const keyId = lua.tempId();
+	const valueId = lua.tempId();
+	return lua.create(lua.SyntaxKind.ForStatement, {
+		ids: lua.list.make(keyId, valueId),
+		expression: lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.pairs,
+			args: lua.list.make(expression),
+		}),
+		statements: lua.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
 	});
 }
 
@@ -192,28 +210,9 @@ function createJsxAddAmbiguousChild(
 			"and",
 		),
 		statements: lua.list.make(
-			createJsxAddNumericChildPrereq(childrenPtrValue, amtChildrenSinceUpdate, lengthId, expression),
+			createJsxAddNumericChild(childrenPtrValue, lengthId, lua.number(amtChildrenSinceUpdate + 1), expression),
 		),
 		elseBody: lua.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
-	});
-}
-
-function createJsxAddNumericChildPrereq(
-	childrenPtrValue: lua.AnyIdentifier,
-	amtChildrenSinceUpdate: number,
-	lengthId: lua.AnyIdentifier,
-	expression: lua.Expression,
-) {
-	return lua.create(lua.SyntaxKind.Assignment, {
-		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: childrenPtrValue,
-			index: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lengthId,
-				operator: "+",
-				right: lua.number(amtChildrenSinceUpdate + 1),
-			}),
-		}),
-		right: expression,
 	});
 }
 
@@ -356,6 +355,14 @@ function transformJsxChildren(
 		amtChildrenSinceUpdate = 0;
 	}
 
+	function disableInline() {
+		if (lua.isMixedTable(childrenPtr.value)) {
+			disableMapInline(state, attributesPtr);
+			disableMixedTableInline(state, childrenPtr);
+			updateLengthId();
+		}
+	}
+
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
 		if (ts.isJsxText(child)) {
@@ -369,26 +376,56 @@ function transformJsxChildren(
 		assert(!ts.isJsxFragment(child));
 
 		if (ts.isJsxExpression(child)) {
-			if (child.expression) {
-				if (lua.isMixedTable(childrenPtr.value)) {
-					disableMapInline(state, attributesPtr);
-					disableMixedTableInline(state, childrenPtr);
-					updateLengthId();
+			const innerExp = child.expression;
+			if (innerExp) {
+				const { expression, statements } = state.capture(() => transformExpression(state, innerExp));
+				if (!lua.list.isEmpty(statements)) {
+					state.prereqList(statements);
+					disableInline();
 				}
-				assert(lua.isAnyIdentifier(childrenPtr.value));
-				const expression = transformExpression(state, child.expression);
+
 				if (child.dotDotDotToken) {
+					disableInline();
+					assert(lua.isAnyIdentifier(childrenPtr.value));
+					state.prereqList(statements);
 					state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 				} else {
-					// TODO make this better?
-					state.prereq(
-						createJsxAddAmbiguousChild(
-							childrenPtr.value,
-							amtChildrenSinceUpdate,
-							lengthId,
-							state.pushToVarIfNonId(expression),
-						),
-					);
+					const type = state.getType(innerExp);
+
+					if (state.roactSymbolManager.isElementType(type)) {
+						if (lua.isMixedTable(childrenPtr.value)) {
+							lua.list.push(childrenPtr.value.fields, expression);
+						} else {
+							state.prereq(
+								createJsxAddNumericChild(
+									childrenPtr.value,
+									lengthId,
+									lua.number(amtChildrenSinceUpdate + 1),
+									expression,
+								),
+							);
+						}
+						amtChildrenSinceUpdate++;
+					} else if (isArrayType(state, type)) {
+						disableInline();
+						assert(lua.isAnyIdentifier(childrenPtr.value));
+						state.prereq(createJsxAddNumericChildren(childrenPtr.value, lengthId, expression));
+					} else if (isMapType(state, type)) {
+						disableInline();
+						assert(lua.isAnyIdentifier(childrenPtr.value));
+						state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
+					} else {
+						disableInline();
+						assert(lua.isAnyIdentifier(childrenPtr.value));
+						state.prereq(
+							createJsxAddAmbiguousChild(
+								childrenPtr.value,
+								amtChildrenSinceUpdate,
+								lengthId,
+								state.pushToVarIfNonId(expression),
+							),
+						);
+					}
 				}
 				if (i < children.length - 1) {
 					updateLengthId();
@@ -396,10 +433,8 @@ function transformJsxChildren(
 			}
 		} else {
 			const { expression, statements } = state.capture(() => transformExpression(state, child));
-			if (lua.isMixedTable(childrenPtr.value) && !lua.list.isEmpty(statements)) {
-				disableMapInline(state, attributesPtr);
-				disableMixedTableInline(state, childrenPtr);
-				updateLengthId();
+			if (!lua.list.isEmpty(statements)) {
+				disableInline();
 			}
 			state.prereqList(statements);
 
@@ -411,7 +446,12 @@ function transformJsxChildren(
 					lua.list.push(childrenPtr.value.fields, expression);
 				} else {
 					state.prereq(
-						createJsxAddNumericChildPrereq(childrenPtr.value, amtChildrenSinceUpdate, lengthId, expression),
+						createJsxAddNumericChild(
+							childrenPtr.value,
+							lengthId,
+							lua.number(amtChildrenSinceUpdate + 1),
+							expression,
+						),
 					);
 				}
 				amtChildrenSinceUpdate++;
