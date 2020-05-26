@@ -1,14 +1,9 @@
 import ts from "byots";
-import * as tsst from "ts-simple-type";
 import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { canTypeBeFalsy } from "TSTransformer/util/types";
-
-function isBooleanType(type: tsst.SimpleType) {
-	return type.kind === tsst.SimpleTypeKind.BOOLEAN || type.kind === tsst.SimpleTypeKind.BOOLEAN_LITERAL;
-}
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const condition = transformExpression(state, node.condition);
@@ -19,7 +14,6 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		transformExpression(state, node.whenFalse),
 	);
 	if (
-		isBooleanType(state.getSimpleTypeFromNode(node)) &&
 		!canTypeBeFalsy(state.getType(node.whenTrue)) &&
 		lua.list.isEmpty(whenTruePrereqs) &&
 		lua.list.isEmpty(whenFalsePrereqs)
@@ -27,7 +21,9 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: createTruthinessChecks(state, condition, state.getType(node.condition)),
+					left: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+						expression: createTruthinessChecks(state, condition, state.getType(node.condition)),
+					}),
 					right: whenTrue,
 					operator: "and",
 				}),
