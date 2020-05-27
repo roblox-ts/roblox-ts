@@ -607,7 +607,42 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return newValueId;
 	},
 
-	// filterUndefined:
+	filterUndefined: (state, node, expression) => {
+		const resultId = state.pushToVar(lua.array());
+
+		const indexId = lua.tempId();
+		const valueId = lua.tempId();
+
+		const nextFillId = state.pushToVar(lua.number(1));
+
+		state.prereqList(
+			lua.list.make<lua.Statement>(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: lua.list.make(indexId, valueId),
+					right: createCallExpression(lua.globals.next, expression),
+				}),
+				lua.create(lua.SyntaxKind.WhileStatement, {
+					condition: indexId,
+					statements: lua.list.make(
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: createIndexedExpression(resultId, nextFillId),
+							right: valueId,
+						}),
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: nextFillId,
+							right: offset(nextFillId, 1),
+						}),
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: lua.list.make(indexId, valueId),
+							right: createCallExpression(lua.globals.next, expression, indexId),
+						}),
+					),
+				}),
+			),
+		);
+
+		return resultId;
+	},
 
 	filter: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
