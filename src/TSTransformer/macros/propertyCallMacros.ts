@@ -7,7 +7,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import ts, { NodeArray } from "byots";
+import ts, { NodeArray, cartesianProduct } from "byots";
 import { isNumberLiteral, isBinaryExpression } from "LuaAST";
 import { create } from "domain";
 
@@ -272,7 +272,37 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	// toString: // Likely to be dropped for @rbxts/inspect
 
-	// concat:
+	concat: (state, node, expression) => {
+		const resultId = state.pushToVar(lua.mixedTable([]));
+
+		const args = ensureTransformOrder(state, node.arguments);
+		args.unshift(expression);
+
+		const sizeId = state.pushToVar(lua.number(1));
+		for (const arg of args) {
+			const iteratorId = lua.tempId();
+			state.prereq(
+				lua.create(lua.SyntaxKind.NumericForStatement, {
+					id: iteratorId,
+					start: lua.number(1),
+					end: createLengthOfExpression(arg),
+					step: lua.number(1),
+					statements: lua.list.make(
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: createIndexedExpression(resultId, sizeId),
+							right: createIndexedExpression(arg, iteratorId),
+						}),
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: sizeId,
+							right: offset(sizeId, 1),
+						}),
+					),
+				}),
+			);
+		}
+
+		return resultId;
+	},
 
 	join: (state, node, expression) => {
 		const args = argumentsWithDefaults(state, node.arguments, [lua.strings[", "]]);
