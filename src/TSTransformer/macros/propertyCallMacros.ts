@@ -8,6 +8,8 @@ import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import ts, { NodeArray } from "byots";
+import { isNumberLiteral, isBinaryExpression } from "LuaAST";
+import { create } from "domain";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
@@ -88,8 +90,22 @@ function makeStringCallback(
 	};
 }
 
-const size: PropertyCallMacro = (state, node, expression) =>
+const createIndexedExpression = (expression: lua.Expression, index: lua.Expression) =>
+	lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+		expression: convertToIndexableExpression(expression),
+		index: index,
+	});
+
+const createCallExpression = (method: lua.IndexableExpression, ...args: Array<lua.Expression>) =>
+	lua.create(lua.SyntaxKind.CallExpression, {
+		expression: method,
+		args: lua.list.make(...args),
+	});
+
+const createLengthOfExpression = (expression: lua.Expression) =>
 	lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
+
+const size: PropertyCallMacro = (state, node, expression) => createLengthOfExpression(expression);
 
 function stringMatchCallback(pattern: string): PropertyCallMacro {
 	return (state, node, expression) =>
@@ -227,9 +243,10 @@ function argumentsWithDefaults(
 	args: NodeArray<ts.Expression>,
 	defaults: Array<lua.Expression>,
 ): Array<lua.Expression> {
-	// Not sure if this would be the correct way to check for undefined
 	const transformed = ensureTransformOrder(state, args, (state, exp, index) => {
-		return exp.contextualType === undefined ? defaults[index] : transformExpression(state, exp);
+		const type = state.getType(exp);
+
+		return type.flags === ts.TypeFlags.Undefined ? defaults[index] : transformExpression(state, exp);
 	});
 
 	for (const i in defaults) {
@@ -262,7 +279,73 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			args: lua.list.make(expression, args[0]),
 		});
 	},
-	// slice:
+	slice: (state, node, expression) => {
+		const lengthOfExpression = createLengthOfExpression(expression);
+		const args = argumentsWithDefaults(state, node.arguments, [lua.number(0), lengthOfExpression]);
+
+		// Returns the value of a 'NegativeLiteral'.
+		// However, those do not exist.
+		// So this function will check to see if:
+		//		exp is a UnaryExpression
+		//		the expression of exp is a NumberLiteral
+		//		the operator is unary minus
+		// Then return the value of that literal
+		const getValueFromNegativeLiteral = (exp: lua.Expression) =>
+			lua.isUnaryExpression(exp) && lua.isNumberLiteral(exp.expression) && exp.operator === "-"
+				? -exp.expression.value
+				: undefined;
+
+		let start = args[0];
+		const startValue = getValueFromNegativeLiteral(start);
+		if (startValue) {
+			start = offset(lengthOfExpression, startValue + 1);
+		} else {
+			start = offset(start, 1);
+		}
+
+		let end = args[1];
+		const endValue = getValueFromNegativeLiteral(end);
+		if (endValue) {
+			end = offset(lengthOfExpression, endValue);
+		} else if (end != lengthOfExpression) {
+			end = createCallExpression(lua.globals.math.min, lengthOfExpression, end);
+		}
+
+		const resultId = state.pushToVar(lua.mixedTable([]));
+
+		// If there will only be a single iteration in the loop...
+		if (start == end) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: createIndexedExpression(resultId, lua.number(1)),
+					right: createIndexedExpression(expression, start),
+				}),
+			);
+		} else {
+			const sizeId = state.pushToVar(lua.number(1));
+			const iteratorId = lua.tempId();
+			state.prereq(
+				lua.create(lua.SyntaxKind.NumericForStatement, {
+					id: iteratorId,
+					start: start,
+					end: end,
+					step: lua.number(1),
+					statements: lua.list.make(
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: createIndexedExpression(resultId, sizeId),
+							right: createIndexedExpression(expression, iteratorId),
+						}),
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: sizeId,
+							right: offset(sizeId, 1),
+						}),
+					),
+				}),
+			);
+		}
+
+		return resultId;
+	},
 	includes: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 		const startIndex = offset(nodeArgs.length > 1 ? nodeArgs[1] : lua.number(0), 1);
