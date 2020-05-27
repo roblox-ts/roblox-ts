@@ -273,7 +273,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	// toString: // Likely to be dropped for @rbxts/inspect
 
 	concat: (state, node, expression) => {
-		const resultId = state.pushToVar(lua.mixedTable([]));
+		const resultId = state.pushToVar(lua.array());
 
 		const args = ensureTransformOrder(state, node.arguments);
 		args.unshift(expression);
@@ -345,7 +345,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			end = createCallExpression(lua.globals.math.min, lengthOfExpression, end);
 		}
 
-		const resultId = state.pushToVar(lua.mixedTable([]));
+		const resultId = state.pushToVar(lua.array());
 
 		// If there will only be a single iteration in the loop...
 		if (start == end) {
