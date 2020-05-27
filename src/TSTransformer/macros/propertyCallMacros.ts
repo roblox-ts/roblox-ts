@@ -7,9 +7,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import ts, { NodeArray, cartesianProduct } from "byots";
-import { isNumberLiteral, isBinaryExpression } from "LuaAST";
-import { create } from "domain";
+import ts, { NodeArray } from "byots";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
