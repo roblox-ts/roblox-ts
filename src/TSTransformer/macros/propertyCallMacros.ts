@@ -269,8 +269,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			operator: "==",
 			right: lua.number(0),
 		}),
+
 	// toString: // Likely to be dropped for @rbxts/inspect
+
 	// concat:
+
 	join: (state, node, expression) => {
 		const args = argumentsWithDefaults(state, node.arguments, [lua.strings[", "]]);
 
@@ -279,6 +282,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			args: lua.list.make(expression, args[0]),
 		});
 	},
+
 	slice: (state, node, expression) => {
 		const lengthOfExpression = createLengthOfExpression(expression);
 		const args = argumentsWithDefaults(state, node.arguments, [lua.number(0), lengthOfExpression]);
@@ -346,6 +350,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
+
 	includes: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 		const startIndex = offset(nodeArgs.length > 1 ? nodeArgs[1] : lua.number(0), 1);
@@ -384,6 +389,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
+
 	indexOf: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 		const findArgs = lua.list.make(expression, nodeArgs[0]);
@@ -408,6 +414,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			),
 		});
 	},
+
 	lastIndexOf: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 
@@ -446,12 +453,15 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return result;
 	},
+
 	every: makeEveryMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
 		lua.list.make(valueId, offset(keyId, -1), expression),
 	),
+
 	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
 		lua.list.make(valueId, offset(keyId, -1), expression),
 	),
+
 	forEach: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -478,6 +488,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return lua.nil();
 	},
+
 	map: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -509,6 +520,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return newValueId;
 	},
+
 	mapFiltered: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -564,7 +576,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return newValueId;
 	},
+
 	// filterUndefined:
+
 	filter: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -615,8 +629,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return newValueId;
 	},
+
 	reduce: runtimeLib("array_reduce"),
+
 	// reduceRight:
+
 	reverse: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
@@ -654,6 +671,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return resultId;
 	},
+
 	// entries:
 	find: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -695,10 +713,15 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return returnId;
 	},
+
 	findIndex: runtimeLib("array_findIndex"),
+
 	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
+
 	// deepCopy:
+
 	// deepEquals:
+
 	sort: (state, node, expression) => {
 		const args = lua.list.make(expression);
 
