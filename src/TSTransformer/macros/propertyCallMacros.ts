@@ -6,6 +6,8 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer/classes/TransformState";
+import ts, { NodeArray } from "byots";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
@@ -220,6 +222,25 @@ function makeSomeMethod(
 	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false);
 }
 
+function argumentsWithDefaults(
+	state: TransformState,
+	args: NodeArray<ts.Expression>,
+	defaults: Array<lua.Expression>,
+): Array<lua.Expression> {
+	// Not sure if this would be the correct way to check for undefined
+	const transformed = ensureTransformOrder(state, args, (state, exp, index) => {
+		return exp.contextualType === undefined ? defaults[index] : transformExpression(state, exp);
+	});
+
+	for (const i in defaults) {
+		if (transformed[i] === undefined) {
+			transformed[i] = defaults[i];
+		}
+	}
+
+	return transformed;
+}
+
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 	size,
 };
@@ -234,10 +255,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	// toString: // Likely to be dropped for @rbxts/inspect
 	// concat:
 	join: (state, node, expression) => {
-		const separator = node.arguments.length > 0 ? transformExpression(state, node.arguments[0]) : lua.strings[", "];
+		const args = argumentsWithDefaults(state, node.arguments, [lua.strings[", "]]);
+
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.concat,
-			args: lua.list.make(expression, separator),
+			args: lua.list.make(expression, args[0]),
 		});
 	},
 	// slice:
