@@ -40,6 +40,7 @@ export const globals = {
 		remove: property(TABLE_ID, "remove"),
 		find: property(TABLE_ID, "find"),
 		sort: property(TABLE_ID, "sort"),
+		insert: property(TABLE_ID, "insert"),
 	},
 	utf8: {
 		charpattern: property(UTF8_ID, "charpattern"),

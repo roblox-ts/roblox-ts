@@ -7,7 +7,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import ts, { NodeArray } from "byots";
+import ts from "byots";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
@@ -356,7 +356,7 @@ function makeSomeMethod(
 
 function argumentsWithDefaults(
 	state: TransformState,
-	args: NodeArray<ts.Expression>,
+	args: ts.NodeArray<ts.Expression>,
 	defaults: Array<lua.Expression>,
 ): Array<lua.Expression> {
 	const transformed = ensureTransformOrder(state, args, (state, exp, index) => {
@@ -856,7 +856,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	// entries:
-	
+
 	find: makeFindMethod(lua.nil(), true),
 
 	findIndex: makeFindMethod(lua.number(-1), false),
@@ -970,6 +970,24 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			expression: lua.globals.table.remove,
 			args: lua.list.make(expression, lua.number(1)),
 		}),
+
+	unshift: (state, node, expression) => {
+		const args = ensureTransformOrder(state, node.arguments);
+
+		for (let i = args.length - 1; i >= 0; i--) {
+			const arg = args[i];
+			state.prereq(
+				lua.create(lua.SyntaxKind.CallStatement, {
+					expression: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.table.insert,
+						args: lua.list.make(expression, lua.number(1), arg),
+					}),
+				}),
+			);
+		}
+
+		return createLengthOfExpression(expression);
+	},
 
 	unorderedRemove: (state, node, expression) => {
 		const arg = transformExpression(state, node.arguments[0]);
