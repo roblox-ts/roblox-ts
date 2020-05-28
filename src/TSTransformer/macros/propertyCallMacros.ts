@@ -121,7 +121,7 @@ function createReduceMethod(
 								lua.string(
 									`${file.resolvedPath.split("src")[1]} - ${position.line + 1}:${
 										position.character
-									} [TypeError] Attempted to call 'ReadonlyArray.reduce()' on an empty array without an initalValue. `,
+									} [TypeError] Attempted to call 'ReadonlyArray.reduce()' on an empty array without an initialValue. `,
 								),
 							),
 						}),
