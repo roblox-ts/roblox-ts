@@ -149,7 +149,7 @@ In other words, TS AST -> Lua AST
 -   [x] ReadonlyArray.filterUndefined()
 -   [x] ReadonlyArray.filter()
 -   [x] ReadonlyArray.reduce()
--   [ ] ReadonlyArray.reduceRight()
+-   [x] ReadonlyArray.reduceRight()
 -   [x] ReadonlyArray.reverse()
 -   [ ] ReadonlyArray.entries()
 -   [x] ReadonlyArray.find()
