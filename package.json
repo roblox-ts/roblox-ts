@@ -15,7 +15,7 @@
 		"eslint-tests": "npx eslint \"tests/**/*.ts\" --max-warnings 0",
 		"eslint": "npm run eslint-src && npm run eslint-tests",
 		"build": "npx tsc",
-		"test-compile": "mocha --timeout 0 --recursive out/test.js",
+		"test-compile": "npm run types && mocha --timeout 0 --recursive out/test.js",
 		"test-compile-ci": "NODE_ENV=test nyc npm run test-compile",
 		"test-run": "lua tests/spec.lua",
 		"test": "npm run build && npm run test-compile && npm run test-run",
