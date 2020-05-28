@@ -88,6 +88,48 @@ function makeStringCallback(
 	};
 }
 
+function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): PropertyCallMacro {
+	return (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const loopId = lua.tempId();
+		const valueId = lua.tempId();
+		const returnId = state.pushToVar(initialValue);
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				ids: lua.list.make(loopId, valueId),
+				statements: lua.list.make<lua.Statement>(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							left: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: callbackId,
+								args: lua.list.make(valueId, offset(loopId, -1), expression),
+							}),
+							operator: "==",
+							right: lua.bool(true),
+						}),
+						statements: lua.list.make<lua.Statement>(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: returnId,
+								right: returnValue ? valueId : loopId,
+							}),
+							lua.create(lua.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return returnId;
+	}
+}
 function createReduceMethod(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -814,48 +856,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	// entries:
-	find: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
+	
+	find: makeFindMethod(lua.nil(), true),
 
-		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
-		const loopId = lua.tempId();
-		const valueId = lua.tempId();
-		const returnId = state.pushToVar(lua.nil());
-
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
-				ids: lua.list.make(loopId, valueId),
-				statements: lua.list.make<lua.Statement>(
-					lua.create(lua.SyntaxKind.IfStatement, {
-						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-							left: lua.create(lua.SyntaxKind.CallExpression, {
-								expression: callbackId,
-								args: lua.list.make(valueId, offset(loopId, -1), expression),
-							}),
-							operator: "==",
-							right: lua.bool(true),
-						}),
-						statements: lua.list.make<lua.Statement>(
-							lua.create(lua.SyntaxKind.Assignment, {
-								left: returnId,
-								right: valueId,
-							}),
-							lua.create(lua.SyntaxKind.BreakStatement, {}),
-						),
-						elseBody: lua.list.make(),
-					}),
-				),
-			}),
-		);
-
-		return returnId;
-	},
-
-	findIndex: runtimeLib("array_findIndex"),
+	findIndex: makeFindMethod(lua.number(-1), false),
 
 	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
 
