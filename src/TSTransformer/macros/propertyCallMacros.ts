@@ -693,7 +693,75 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return newValueId;
 	},
 
-	reduce: runtimeLib("array_reduce"),
+	reduce: (state, node, expression) => {
+		const args = ensureTransformOrder(state, node.arguments);
+
+		const lengthExp = createLengthOfExpression(expression);
+
+		let resultId;
+		let start: lua.Expression = lua.number(1);
+		// If there was no initialValue supplied
+		if (args.length < 2) {
+			const file = node.getSourceFile();
+			const position = file.getLineAndCharacterOfPosition(node.getStart());
+
+			state.prereq(
+				lua.create(lua.SyntaxKind.IfStatement, {
+					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lengthExp,
+						operator: "==",
+						right: lua.number(0),
+					}),
+					statements: lua.list.make<lua.Statement>(
+						lua.create(lua.SyntaxKind.CallStatement, {
+							expression: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: lua.globals.error,
+								args: lua.list.make(
+									lua.string(
+										`${file.resolvedPath.split("src")[1]} - ${position.line + 1}:${
+											position.character
+										} [TypeError] Attempted to call 'ReadonlyArray.reduce()' on an empty array without an initalValue. `,
+									),
+								),
+							}),
+						}),
+					),
+					elseBody: lua.list.make(),
+				}),
+			);
+			resultId = state.pushToVar(createIndexedExpression(expression, lua.number(1)));
+			start = offset(start, 1);
+		} else {
+			resultId = state.pushToVar(args[1]);
+		}
+		const callbackId = state.pushToVar(args[0]);
+
+		const iteratorId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: iteratorId,
+				start: start,
+				end: lengthExp,
+				step: lua.number(1),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: resultId,
+						right: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(
+								resultId,
+								createIndexedExpression(expression, iteratorId),
+								offset(iteratorId, -1),
+								expression,
+							),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return resultId;
+	},
 
 	// reduceRight:
 
