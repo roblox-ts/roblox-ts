@@ -128,7 +128,7 @@ function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): Pro
 		);
 
 		return returnId;
-	}
+	};
 }
 function createReduceMethod(
 	state: TransformState,
@@ -988,6 +988,12 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return createLengthOfExpression(expression);
 	},
+
+	remove: (state, node, expression) =>
+		lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.table.remove,
+			args: lua.list.make(expression, offset(ensureTransformOrder(state, node.arguments)[0], 1)),
+		}),
 
 	unorderedRemove: (state, node, expression) => {
 		const arg = transformExpression(state, node.arguments[0]);

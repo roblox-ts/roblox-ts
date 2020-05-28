@@ -164,8 +164,8 @@ In other words, TS AST -> Lua AST
 -   [x] Array.unshift()
 -   [ ] Array.copyWithin()
 -   [ ] Array.insert()
--   [ ] Array.remove()
--   [ ] Array.unorderedRemove()
+-   [x] Array.remove()
+-   [x] Array.unorderedRemove()
 
 ### Set Macros
 
