@@ -51,6 +51,7 @@
 		"@typescript-eslint/no-non-null-assertion": "off",
 		"@typescript-eslint/no-use-before-define": "off",
 		"@typescript-eslint/no-require-imports": "error",
+		"@typescript-eslint/no-unused-expressions": "warn",
 		"prefer-const": "warn",
 		"no-undef-init": "error"
 	}
