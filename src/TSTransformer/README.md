@@ -163,7 +163,7 @@ In other words, TS AST -> Lua AST
 -   [x] Array.shift()
 -   [x] Array.unshift()
 -   [ ] Array.copyWithin()
--   [ ] Array.insert()
+-   [x] Array.insert()
 -   [x] Array.remove()
 -   [x] Array.unorderedRemove()
 

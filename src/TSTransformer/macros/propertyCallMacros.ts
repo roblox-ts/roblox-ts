@@ -989,6 +989,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return createLengthOfExpression(expression);
 	},
 
+	insert: (state, node, expression) => {
+		const args = ensureTransformOrder(state, node.arguments);
+
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.table.insert,
+			args: lua.list.make(expression, offset(args[0], 1), args[1]),
+		});
+	},
+
 	remove: (state, node, expression) =>
 		lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.remove,
