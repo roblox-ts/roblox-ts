@@ -1,4 +1,5 @@
 import ts from "byots";
+import * as tsst from "ts-simple-type";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 
 function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
@@ -110,4 +111,14 @@ export function isObjectType(type: ts.Type) {
 
 export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
+}
+
+/**
+ * Uses ts-simple-type to check if a type is assignable to `false` or `undefined`
+ */
+export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
+	const simpleType = state.getSimpleType(type);
+	const isAssignableToFalse = tsst.isAssignableToValue(simpleType, false);
+	const isAssignableToUndefined = tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED);
+	return isAssignableToFalse || isAssignableToUndefined;
 }
