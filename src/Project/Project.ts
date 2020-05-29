@@ -53,7 +53,7 @@ export class Project {
 	private readonly options: ProjectOptions;
 	private readonly globalSymbols: GlobalSymbols;
 	private readonly macroManager: MacroManager;
-	private readonly roactSymbolManager: RoactSymbolManager;
+	private readonly roactSymbolManager: RoactSymbolManager | undefined;
 	private readonly rojoConfig: RojoConfig;
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion?: string;
@@ -162,7 +162,11 @@ export class Project {
 
 		this.globalSymbols = new GlobalSymbols(this.typeChecker);
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
-		this.roactSymbolManager = new RoactSymbolManager(this.program, this.typeChecker, this.nodeModulesPath);
+
+		const roactIndexSourceFile = this.program.getSourceFile(path.join(this.nodeModulesPath, "roact", "index.d.ts"));
+		if (roactIndexSourceFile) {
+			this.roactSymbolManager = new RoactSymbolManager(this.typeChecker, roactIndexSourceFile);
+		}
 
 		// Create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
 		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);

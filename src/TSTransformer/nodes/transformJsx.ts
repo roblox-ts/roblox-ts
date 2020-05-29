@@ -27,6 +27,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 	if (ts.isIdentifier(node)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {
+			assert(state.roactSymbolManager);
 			const className = state.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
 			if (className !== undefined) {
 				return lua.string(className);
@@ -392,7 +393,7 @@ function transformJsxChildren(
 				} else {
 					const type = state.getType(innerExp);
 
-					if (state.roactSymbolManager.isElementType(type)) {
+					if (state.roactSymbolManager && state.roactSymbolManager.isElementType(type)) {
 						if (lua.isMixedTable(childrenPtr.value)) {
 							lua.list.push(childrenPtr.value.fields, expression);
 						} else {
@@ -468,8 +469,9 @@ export function transformJsx(
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
 	const isFragment =
+		state.roactSymbolManager &&
 		state.typeChecker.getSymbolAtLocation(tagName) ===
-		state.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
+			state.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
 	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : lua.emptyId();
 	const attributesPtr = createMapPointer();
