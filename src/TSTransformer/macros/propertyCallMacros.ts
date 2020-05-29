@@ -6,6 +6,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { assert } from "Shared/util/assert";
+import { TransformState } from "TSTransformer/classes/TransformState";
 
 function wrapParenthesesIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression)) {
@@ -227,7 +228,7 @@ const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) =>
 		lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }),
+			left: size(state, node, expression),
 			operator: "==",
 			right: lua.number(0),
 		}),
@@ -315,7 +316,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const lengthId = state.pushToVar(lua.number(0));
 		const keyId = lua.tempId();
 		const valueId = lua.tempId();
-		const resultId = lua.tempId();
+		const resultId = state.macroId();
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
@@ -324,7 +325,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					args: lua.list.make(expression),
 				}),
 				statements: lua.list.make<lua.Statement>(
-					lua.create(lua.SyntaxKind.VariableDeclaration, {
+					lua.create(lua.SyntaxKind.Assignment, {
 						left: resultId,
 						right: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: callbackId,
@@ -418,7 +419,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const resultId = state.pushToVar(lua.map());
-		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+		const lengthId = state.pushToVar(size(state, node, expression));
 		const idxId = lua.tempId();
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
@@ -524,7 +525,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
 		const loopId = lua.tempId();
 		const valueId = lua.tempId();
-		const returnId = state.pushToVar(lua.nil());
+		const returnId = state.macroId();
 
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
@@ -576,7 +577,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression) => {
 		if (node.arguments.length === 0) {
-			return lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
+			return size(state, node, expression);
 		}
 
 		expression = state.pushToVarIfComplex(expression);
@@ -622,13 +623,10 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	pop: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		let sizeExp: lua.Expression = lua.create(lua.SyntaxKind.UnaryExpression, {
-			operator: "#",
-			expression,
-		});
+		let sizeExp = size(state, node, expression);
 
 		const valueIsUsed = !isUsedAsStatement(node);
-		const retValue = valueIsUsed ? lua.tempId() : lua.nil();
+		const retValue = valueIsUsed ? state.macroId() : lua.nil();
 
 		if (valueIsUsed) {
 			assert(lua.isTemporaryIdentifier(retValue));
@@ -670,12 +668,12 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		const valueIsUsed = !isUsedAsStatement(node);
 
-		const lengthId = state.pushToVar(lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression }));
+		const lengthId = state.pushToVar(size(state, node, expression));
 
-		const valueId = lua.tempId();
+		const valueId = state.macroId();
 		if (valueIsUsed) {
 			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+				lua.create(lua.SyntaxKind.Assignment, {
 					left: valueId,
 					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(expression),
@@ -765,10 +763,10 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	delete: (state, node, expression) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-		const valueExistedId = lua.tempId();
+		const valueExistedId = state.macroId();
 		if (valueIsUsed) {
 			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+				lua.create(lua.SyntaxKind.Assignment, {
 					left: valueExistedId,
 					right: lua.create(lua.SyntaxKind.BinaryExpression, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -915,7 +913,7 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 function makeKeysValuesEntriesMethod(
-	loopIds: Array<lua.AnyIdentifier>,
+	loopIdGenerator: (state: TransformState) => Array<lua.AnyIdentifier>,
 	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
 ): PropertyCallMacro {
 	return (state, node, expression) => {
@@ -926,6 +924,7 @@ function makeKeysValuesEntriesMethod(
 			expression: valuesId,
 		});
 
+		const loopIds = loopIdGenerator(state);
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(...loopIds),
@@ -960,9 +959,18 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
 
-	keys: makeKeysValuesEntriesMethod([lua.tempId()], key => key),
-	values: makeKeysValuesEntriesMethod([lua.emptyId(), lua.tempId()], (_, value) => value),
-	entries: makeKeysValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) => lua.array([key, value])),
+	keys: makeKeysValuesEntriesMethod(
+		state => [state.macroId()],
+		key => key,
+	),
+	values: makeKeysValuesEntriesMethod(
+		state => [lua.emptyId(), state.macroId()],
+		(_, value) => value,
+	),
+	entries: makeKeysValuesEntriesMethod(
+		state => [state.macroId(), state.macroId()],
+		(key, value) => lua.array([key, value]),
+	),
 
 	copy: makeCopyMethod(lua.globals.pairs, (state, node, expression) => transformExpression(state, node.arguments[0])),
 };
@@ -1044,9 +1052,35 @@ function wrapComments(methodName: string, callback: PropertyCallMacro): Property
 	};
 }
 
-// apply comment wrapping
+function wrapTempIds(callback: PropertyCallMacro): PropertyCallMacro {
+	return (state, callNode, callExp) => {
+		state.startMacro();
+
+		const { expression, statements } = state.capture(() => callback(state, callNode, callExp));
+
+		const { used, added } = state.endMacro();
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.list.make(...used),
+				right: lua.nil(),
+			}),
+		);
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: lua.list.make(...added),
+				right: undefined,
+			}),
+		);
+		state.prereqList(statements);
+		return expression;
+	};
+}
+
+// apply tempId and comment wrapping
 for (const [className, macroList] of Object.entries(PROPERTY_CALL_MACROS)) {
 	for (const [methodName, macro] of Object.entries(macroList)) {
-		macroList[methodName] = wrapComments(`${className}.${methodName}`, macro);
+		macroList[methodName] = wrapComments(`${className}.${methodName}`, wrapTempIds(macro));
 	}
 }

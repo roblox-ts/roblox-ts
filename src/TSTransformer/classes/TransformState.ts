@@ -245,6 +245,30 @@ export class TransformState {
 		}
 	}
 
+	private macroIds = new Array<lua.TemporaryIdentifier>();
+	private usedMacroIds = new Array<lua.TemporaryIdentifier>();
+	private newMacroIds = new Array<lua.TemporaryIdentifier>();
+	startMacro() {
+		this.usedMacroIds = [];
+		this.newMacroIds = [];
+	}
+
+	endMacro() {
+		return { used: this.usedMacroIds, added: this.newMacroIds };
+	}
+
+	macroId() {
+		const id = this.macroIds[this.usedMacroIds.length + this.newMacroIds.length];
+		if (id) {
+			this.usedMacroIds.push(id);
+			return id;
+		}
+		const newId = lua.tempId();
+		this.macroIds.push(newId);
+		this.newMacroIds.push(newId);
+		return newId;
+	}
+
 	/**
 	 * Declares and defines a new lua variable. Pushes that new variable to a new lua.TemporaryIdentifier.
 	 * @param expression
