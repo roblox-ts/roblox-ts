@@ -3,7 +3,7 @@ import * as lua from "LuaAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { canTypeBeFalsy } from "TSTransformer/util/types";
+import { canTypeBeLuaFalsy } from "TSTransformer/util/types";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const condition = transformExpression(state, node.condition);
@@ -14,21 +14,24 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		transformExpression(state, node.whenFalse),
 	);
 	if (
-		!canTypeBeFalsy(state.getType(node.whenTrue)) &&
+		!canTypeBeLuaFalsy(state, state.getType(node.whenTrue)) &&
 		lua.list.isEmpty(whenTruePrereqs) &&
 		lua.list.isEmpty(whenFalsePrereqs)
 	) {
+		let left = createTruthinessChecks(state, condition, state.getType(node.condition));
+		if (lua.isBinaryExpression(left)) {
+			left = lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression: left });
+		}
+
 		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
 				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-						expression: createTruthinessChecks(state, condition, state.getType(node.condition)),
-					}),
-					right: whenTrue,
+					left,
 					operator: "and",
+					right: whenTrue,
 				}),
-				right: whenFalse,
 				operator: "or",
+				right: whenFalse,
 			}),
 		});
 	}
