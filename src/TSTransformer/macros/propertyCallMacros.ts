@@ -180,8 +180,8 @@ function createReduceMethod(
 	state.prereq(
 		lua.create(lua.SyntaxKind.NumericForStatement, {
 			id: iteratorId,
-			start: start,
-			end: end,
+			start,
+			end,
 			step: step === 1 ? undefined : lua.number(step),
 			statements: lua.list.make(
 				lua.create(lua.SyntaxKind.Assignment, {
@@ -452,8 +452,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: iteratorId,
-				start: start,
-				end: end,
+				start,
+				end,
 				step: undefined,
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
@@ -875,7 +875,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.table.sort,
-			args: args,
+			args,
 		});
 	},
 };

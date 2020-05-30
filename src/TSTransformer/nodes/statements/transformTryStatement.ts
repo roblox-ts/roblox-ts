@@ -19,9 +19,9 @@ function transformCatchClause(state: TransformState, node: ts.CatchClause) {
 	lua.list.pushList(statements, transformStatementList(state, node.block.statements));
 
 	const catchFunction = lua.create(lua.SyntaxKind.FunctionExpression, {
-		parameters: parameters,
+		parameters,
 		hasDotDotDot: false,
-		statements: statements,
+		statements,
 	});
 
 	return catchFunction;

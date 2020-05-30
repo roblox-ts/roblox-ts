@@ -28,7 +28,7 @@ export function createDiagnosticWithLocation(id: number, message: string, node: 
 		start: node.getStart(),
 		length: node.getWidth(),
 		diagnosticType: 0,
-		id: id,
+		id,
 	} as ts.DiagnosticWithLocation;
 }
 

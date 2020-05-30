@@ -131,7 +131,7 @@ function createBinaryInstanceOf(state: TransformState, left: lua.Expression, rig
 							condition: lua.create(lua.SyntaxKind.BinaryExpression, {
 								left: objId,
 								operator: "==",
-								right: right,
+								right,
 							}),
 							statements: lua.list.make<lua.Statement>(
 								// returnId = true

@@ -42,7 +42,7 @@ export function assignToMapPointer(
 					expression: ptr.value,
 					index: left,
 				}),
-				right: right,
+				right,
 			}),
 		);
 	}
@@ -69,7 +69,7 @@ export function assignToMixedTablePointer(
 					expression: ptr.value,
 					index: left,
 				}),
-				right: right,
+				right,
 			}),
 		);
 	}
