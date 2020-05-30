@@ -14,6 +14,7 @@ export const globals = {
 	bit32: lua.id("bit32"),
 	error: lua.id("error"),
 	exports: lua.id("exports"),
+	getmetatable: lua.id("getmetatable"),
 	ipairs: lua.id("ipairs"),
 	next: lua.id("next"),
 	pairs: lua.id("pairs"),

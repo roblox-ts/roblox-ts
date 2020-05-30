@@ -83,6 +83,101 @@ function transformLuaTupleDestructure(
 	state.prereqList(statements);
 }
 
+function createBinaryIn(left: lua.Expression, right: lua.Expression) {
+	const leftExp = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+		expression: convertToIndexableExpression(right),
+		index: left,
+	});
+	return lua.binary(leftExp, "~=", lua.nil());
+}
+
+function createBinaryInstanceOf(state: TransformState, left: lua.Expression, right: lua.Expression) {
+	left = state.pushToVarIfComplex(left);
+	right = state.pushToVarIfComplex(right);
+
+	const returnId = state.pushToVar(lua.bool(false));
+	const objId = lua.tempId();
+	const metatableId = lua.tempId();
+
+	state.prereq(
+		lua.create(lua.SyntaxKind.IfStatement, {
+			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.type,
+					args: lua.list.make(left),
+				}),
+				operator: "==",
+				right: lua.string("table"),
+			}),
+			statements: lua.list.make<lua.Statement>(
+				// objId = getmetatable(obj)
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: objId,
+					right: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.getmetatable,
+						args: lua.list.make(left),
+					}),
+				}),
+				lua.create(lua.SyntaxKind.WhileStatement, {
+					// objId ~= nil
+					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: objId,
+						operator: "~=",
+						right: lua.nil(),
+					}),
+					statements: lua.list.make<lua.Statement>(
+						lua.create(lua.SyntaxKind.IfStatement, {
+							// objId == class
+							condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: objId,
+								operator: "==",
+								right: right,
+							}),
+							statements: lua.list.make<lua.Statement>(
+								// returnId = true
+								// break
+								lua.create(lua.SyntaxKind.Assignment, {
+									left: returnId,
+									right: lua.bool(true),
+								}),
+								lua.create(lua.SyntaxKind.BreakStatement, {}),
+							),
+							elseBody: lua.list.make<lua.Statement>(
+								// local metatableId = getmetatable(objId)
+								lua.create(lua.SyntaxKind.VariableDeclaration, {
+									left: metatableId,
+									right: lua.create(lua.SyntaxKind.CallExpression, {
+										expression: lua.globals.getmetatable,
+										args: lua.list.make(objId),
+									}),
+								}),
+								// if metatableId then
+								lua.create(lua.SyntaxKind.IfStatement, {
+									condition: metatableId,
+									statements: lua.list.make(
+										// objId = metatableId.__index
+										lua.create(lua.SyntaxKind.Assignment, {
+											left: objId,
+											right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+												expression: metatableId,
+												name: "__index",
+											}),
+										}),
+									),
+									elseBody: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
+								}),
+							),
+						}),
+					),
+				}),
+			),
+			elseBody: lua.list.make(),
+		}),
+	);
+
+	return returnId;
+}
+
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
@@ -149,18 +244,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
 
-	// in
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
-		const leftExp = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: convertToIndexableExpression(right),
-			index: left,
-		});
-		return lua.binary(leftExp, "~=", lua.nil());
+		return createBinaryIn(left, right);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: state.TS("instanceof"),
-			args: lua.list.make(left, right),
-		});
+		return createBinaryInstanceOf(state, left, right);
 	}
 
 	// TODO issue #715
