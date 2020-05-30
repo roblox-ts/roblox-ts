@@ -483,6 +483,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	includes: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 		const startIndex = offset(nodeArgs.length > 1 ? nodeArgs[1] : lua.number(0), 1);
 
@@ -493,7 +495,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			lua.create(lua.SyntaxKind.NumericForStatement, {
 				id: iteratorId,
 				start: startIndex,
-				end: size(state, node, expression),
+				end: lua.unary("#", expression),
 				step: undefined,
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.IfStatement, {
@@ -549,7 +551,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	lastIndexOf: (state, node, expression) => {
 		const nodeArgs = ensureTransformOrder(state, node.arguments);
 
-		const startExpression = nodeArgs.length > 1 ? offset(nodeArgs[1], 1) : size(state, node, expression);
+		const startExpression = nodeArgs.length > 1 ? offset(nodeArgs[1], 1) : lua.unary("#", expression);
 
 		const result = state.pushToVar(lua.number(-1));
 		const iterator = lua.tempId();
