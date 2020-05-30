@@ -366,7 +366,7 @@ const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) => lua.binary(lua.unary("#", expression), "==", lua.number(0)),
 
-	// toString: // Likely to be dropped for @rbxts/inspect
+	// toString - likely to be dropped for @rbxts/inspect
 
 	concat: (state, node, expression) => {
 		const resultId = state.pushToVar(lua.array());
@@ -845,7 +845,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return resultId;
 	},
 
-	// entries:
+	// entries
 
 	find: makeFindMethod(lua.nil(), true),
 
@@ -853,9 +853,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
 
-	// deepCopy:
+	// deepCopy
 
-	// deepEquals:
+	// deepEquals
 
 	sort: (state, node, expression) => {
 		const args = lua.list.make(expression);
