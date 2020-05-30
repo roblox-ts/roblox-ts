@@ -142,9 +142,6 @@ function createReduceMethod(
 	let resultId;
 	// If there was no initialValue supplied
 	if (args.length < 2) {
-		const file = node.getSourceFile();
-		const position = file.getLineAndCharacterOfPosition(node.getStart());
-
 		state.prereq(
 			lua.create(lua.SyntaxKind.IfStatement, {
 				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
@@ -158,9 +155,7 @@ function createReduceMethod(
 							expression: lua.globals.error,
 							args: lua.list.make(
 								lua.string(
-									`${file.resolvedPath.split("src")[1]} - ${position.line + 1}:${
-										position.character
-									} [TypeError] Attempted to call 'ReadonlyArray.reduce()' on an empty array without an initialValue. `,
+									"Attempted to call `ReadonlyArray.reduce()` on an empty array without an initialValue.",
 								),
 							),
 						}),
@@ -819,11 +814,15 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return newValueId;
 	},
 
-	reduce: (state, node, expression) =>
-		createReduceMethod(state, node, expression, lua.number(1), lua.unary("#", expression), 1),
+	reduce: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+		return createReduceMethod(state, node, expression, lua.number(1), lua.unary("#", expression), 1);
+	},
 
-	reduceRight: (state, node, expression) =>
-		createReduceMethod(state, node, expression, lua.unary("#", expression), lua.number(1), -1),
+	reduceRight: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+		return createReduceMethod(state, node, expression, lua.unary("#", expression), lua.number(1), -1);
+	},
 
 	reverse: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -958,6 +957,8 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 
 	unshift: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
 		const args = ensureTransformOrder(state, node.arguments);
 
 		for (let i = args.length - 1; i >= 0; i--) {
