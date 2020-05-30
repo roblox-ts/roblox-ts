@@ -46,7 +46,7 @@ export class TransformState {
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly globalSymbols: GlobalSymbols,
 		public readonly macroManager: MacroManager,
-		public readonly roactSymbolManager: RoactSymbolManager,
+		public readonly roactSymbolManager: RoactSymbolManager | undefined,
 		public readonly projectType: ProjectType,
 		public readonly sourceFile: ts.SourceFile,
 	) {

@@ -24,10 +24,7 @@ export function transformWhileStatementInner(state: TransformState, condition: t
 		lua.list.push(
 			whileStatements,
 			lua.create(lua.SyntaxKind.IfStatement, {
-				condition: lua.create(lua.SyntaxKind.UnaryExpression, {
-					operator: "not",
-					expression: conditionExp,
-				}),
+				condition: lua.unary("not", conditionExp),
 				statements: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
 				elseBody: lua.list.make(),
 			}),

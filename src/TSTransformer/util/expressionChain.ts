@@ -14,11 +14,7 @@ export function binaryExpressionChain(
 	if (index === expressions.length - 1) {
 		return expressions[index];
 	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: expressions[index],
-			operator,
-			right: binaryExpressionChain(expressions, operator, index + 1),
-		});
+		return lua.binary(expressions[index], operator, binaryExpressionChain(expressions, operator, index + 1));
 	}
 }
 

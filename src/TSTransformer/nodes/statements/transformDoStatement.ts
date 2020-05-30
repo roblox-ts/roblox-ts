@@ -23,10 +23,7 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 				),
 				conditionPrereqs,
 			),
-			condition: lua.create(lua.SyntaxKind.UnaryExpression, {
-				operator: "not",
-				expression: condition,
-			}),
+			condition: lua.unary("not", condition),
 		}),
 	);
 }

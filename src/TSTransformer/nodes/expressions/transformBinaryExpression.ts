@@ -84,14 +84,11 @@ function transformLuaTupleDestructure(
 }
 
 function createBinaryIn(left: lua.Expression, right: lua.Expression) {
-	return lua.create(lua.SyntaxKind.BinaryExpression, {
-		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-			expression: convertToIndexableExpression(right),
-			index: left,
-		}),
-		operator: "~=",
-		right: lua.nil(),
+	const leftExp = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+		expression: convertToIndexableExpression(right),
+		index: left,
 	});
+	return lua.binary(leftExp, "~=", lua.nil());
 }
 
 function createBinaryInstanceOf(state: TransformState, left: lua.Expression, right: lua.Expression) {

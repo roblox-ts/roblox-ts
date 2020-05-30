@@ -9,10 +9,6 @@ export function offset(expression: lua.Expression, value: number) {
 			value: expression.value + value,
 		});
 	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: expression,
-			operator: value > 0 ? "+" : "-",
-			right: lua.number(Math.abs(value)),
-		});
+		return lua.binary(expression, value > 0 ? "+" : "-", lua.number(Math.abs(value)));
 	}
 }

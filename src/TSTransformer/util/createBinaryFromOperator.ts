@@ -63,17 +63,13 @@ function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType
 	const leftIsString = isStringSimpleType(left.type);
 	const rightIsString = isStringSimpleType(right.type);
 	if (leftIsString || rightIsString) {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: leftIsString ? left.node : createToString(left.node),
-			operator: "..",
-			right: rightIsString ? right.node : createToString(right.node),
-		});
+		return lua.binary(
+			leftIsString ? left.node : createToString(left.node),
+			"..",
+			rightIsString ? right.node : createToString(right.node),
+		);
 	} else {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: left.node,
-			operator: "+",
-			right: right.node,
-		});
+		return lua.binary(left.node, "+", right.node);
 	}
 }
 
@@ -85,11 +81,7 @@ export function createBinaryFromOperator(
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: left.node,
-			operator,
-			right: right.node,
-		});
+		return lua.binary(left.node, operator, right.node);
 	}
 
 	// plus

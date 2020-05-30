@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 const TABLE_ID = lua.id("table");
 const STRING_ID = lua.id("string");
 const UTF8_ID = lua.id("utf8");
+const MATH_ID = lua.id("math");
 
 function property(id: lua.Identifier, name: string) {
 	return lua.create(lua.SyntaxKind.PropertyAccessExpression, { expression: id, name: name });
@@ -40,10 +41,14 @@ export const globals = {
 		remove: property(TABLE_ID, "remove"),
 		find: property(TABLE_ID, "find"),
 		sort: property(TABLE_ID, "sort"),
+		insert: property(TABLE_ID, "insert"),
 	},
 	utf8: {
 		charpattern: property(UTF8_ID, "charpattern"),
 		codes: property(UTF8_ID, "codes"),
+	},
+	math: {
+		min: property(MATH_ID, "min"),
 	},
 	tostring: lua.id("tostring"),
 	type: lua.id("type"),

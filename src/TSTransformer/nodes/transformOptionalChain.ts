@@ -189,11 +189,7 @@ function createOrSetTempId(
 
 function createNilCheck(tempId: TemporaryIdentifier, statements: lua.List<lua.Statement>) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: tempId,
-			operator: "~=",
-			right: lua.nil(),
-		}),
+		condition: lua.binary(tempId, "~=", lua.nil()),
 		statements,
 		elseBody: lua.list.make(),
 	});
