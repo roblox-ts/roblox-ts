@@ -414,6 +414,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	slice: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
 		const lengthOfExpression = lua.unary("#", expression);
 		const args = argumentsWithDefaults(state, node.arguments, [lua.number(0), lengthOfExpression]);
 
@@ -450,48 +452,32 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		const resultId = state.pushToVar(lua.array());
 
-		// If there will only be a single iteration in the loop...
-		if (start == end) {
-			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: resultId,
-						index: lua.number(1),
-					}),
-					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: start,
-					}),
-				}),
-			);
-		} else {
-			const sizeId = state.pushToVar(lua.number(1));
-			const iteratorId = lua.tempId();
-			state.prereq(
-				lua.create(lua.SyntaxKind.NumericForStatement, {
-					id: iteratorId,
-					start: start,
-					end: end,
-					step: undefined,
-					statements: lua.list.make(
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-								expression: resultId,
-								index: sizeId,
-							}),
-							right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-								expression: convertToIndexableExpression(expression),
-								index: iteratorId,
-							}),
+		const sizeId = state.pushToVar(lua.number(1));
+		const iteratorId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: iteratorId,
+				start: start,
+				end: end,
+				step: undefined,
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: resultId,
+							index: sizeId,
 						}),
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: sizeId,
-							right: offset(sizeId, 1),
+						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: iteratorId,
 						}),
-					),
-				}),
-			);
-		}
+					}),
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: sizeId,
+						right: offset(sizeId, 1),
+					}),
+				),
+			}),
+		);
 
 		return resultId;
 	},
