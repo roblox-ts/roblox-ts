@@ -126,6 +126,7 @@ function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): Pro
 		return returnId;
 	};
 }
+
 function createReduceMethod(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -136,7 +137,7 @@ function createReduceMethod(
 ): lua.Expression {
 	const args = ensureTransformOrder(state, node.arguments);
 
-	const lengthExp = createLengthOfExpression(expression);
+	const lengthExp = lua.unary("#", expression);
 
 	let resultId;
 	// If there was no initialValue supplied
@@ -213,9 +214,6 @@ const createCallExpression = (method: lua.IndexableExpression, ...args: Array<lu
 		expression: method,
 		args: lua.list.make(...args),
 	});
-
-const createLengthOfExpression = (expression: lua.Expression) =>
-	lua.create(lua.SyntaxKind.UnaryExpression, { operator: "#", expression });
 
 const size: PropertyCallMacro = (state, node, expression) => lua.unary("#", expression);
 
@@ -387,7 +385,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				lua.create(lua.SyntaxKind.NumericForStatement, {
 					id: iteratorId,
 					start: lua.number(1),
-					end: createLengthOfExpression(arg),
+					end: lua.unary("#", arg),
 					step: lua.number(1),
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
@@ -416,7 +414,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	slice: (state, node, expression) => {
-		const lengthOfExpression = createLengthOfExpression(expression);
+		const lengthOfExpression = lua.unary("#", expression);
 		const args = argumentsWithDefaults(state, node.arguments, [lua.number(0), lengthOfExpression]);
 
 		// Returns the value of a 'NegativeLiteral'.
@@ -786,10 +784,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	reduce: (state, node, expression) =>
-		createReduceMethod(state, node, expression, lua.number(1), createLengthOfExpression(expression), 1),
+		createReduceMethod(state, node, expression, lua.number(1), lua.unary("#", expression), 1),
 
 	reduceRight: (state, node, expression) =>
-		createReduceMethod(state, node, expression, createLengthOfExpression(expression), lua.number(1), -1),
+		createReduceMethod(state, node, expression, lua.unary("#", expression), lua.number(1), -1),
 
 	reverse: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
@@ -938,7 +936,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return createLengthOfExpression(expression);
+		return lua.unary("#", expression);
 	},
 
 	insert: (state, node, expression) => {
