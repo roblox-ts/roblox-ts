@@ -89,6 +89,7 @@ function makeCustomInstanceofAccess(expression: lua.Expression) {
 		name: "instanceof",
 	});
 }
+
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
