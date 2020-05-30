@@ -441,7 +441,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const endValue = getValueFromNegativeLiteral(end);
 		if (endValue) {
 			end = offset(lengthOfExpression, endValue);
-		} else if (end != lengthOfExpression) {
+		} else if (end !== lengthOfExpression) {
 			end = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.math.min,
 				args: lua.list.make(lengthOfExpression, end),
