@@ -376,23 +376,21 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		const sizeId = state.pushToVar(lua.number(1));
 		for (const arg of args) {
-			const iteratorId = lua.tempId();
+			const valueId = lua.tempId();
 			state.prereq(
-				lua.create(lua.SyntaxKind.NumericForStatement, {
-					id: iteratorId,
-					start: lua.number(1),
-					end: lua.unary("#", arg),
-					step: undefined,
+				lua.create(lua.SyntaxKind.ForStatement, {
+					ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
+					expression: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.ipairs,
+						args: lua.list.make(arg),
+					}),
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 								expression: resultId,
 								index: sizeId,
 							}),
-							right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-								expression: convertToIndexableExpression(arg),
-								index: iteratorId,
-							}),
+							right: valueId,
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: sizeId,
