@@ -4,20 +4,8 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { getFirstConstructSymbol } from "TSTransformer/util/getFirstConstructSymbol";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-
-function getFirstConstructSymbol(state: TransformState, node: ts.NewExpression) {
-	const type = state.getType(node.expression);
-	for (const declaration of type.symbol.declarations) {
-		if (ts.isInterfaceDeclaration(declaration)) {
-			for (const member of declaration.members) {
-				if (ts.isConstructSignatureDeclaration(member)) {
-					return member.symbol;
-				}
-			}
-		}
-	}
-}
 
 export function transformNewExpression(state: TransformState, node: ts.NewExpression) {
 	validateNotAnyType(state, node.expression);

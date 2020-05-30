@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
+import { getFirstConstructSymbol } from "TSTransformer/util/getFirstConstructSymbol";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 
@@ -94,6 +95,15 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const macro = state.macroManager.getIdentifierMacro(symbol);
 	if (macro) {
 		return macro(state, node);
+	}
+
+	// TODO is this slow?
+	const constructSymbol = getFirstConstructSymbol(state, node);
+	if (constructSymbol) {
+		const constructorMacro = state.macroManager.getConstructorMacro(constructSymbol);
+		if (constructorMacro) {
+			state.addDiagnostic(diagnostics.noConstructorMacroWithoutNew(node));
+		}
 	}
 
 	if (!ts.isCallExpression(skipUpwards(node).parent) && state.macroManager.getCallMacro(symbol)) {
