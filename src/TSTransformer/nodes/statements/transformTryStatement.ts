@@ -85,11 +85,7 @@ function createFlowControlCondition(
 	exitTypeId: lua.TemporaryIdentifier,
 	flowControlConstant: string,
 ) {
-	return lua.create(lua.SyntaxKind.BinaryExpression, {
-		left: exitTypeId,
-		operator: "==",
-		right: state.TS(flowControlConstant),
-	});
+	return lua.binary(exitTypeId, "==", state.TS(flowControlConstant));
 }
 
 type FlowControlCase = { condition?: lua.Expression; statements: lua.List<lua.Statement> };

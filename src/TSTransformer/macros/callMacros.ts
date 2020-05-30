@@ -16,26 +16,20 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 	typeIs: (state, node) => {
 		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
 		const typeFunc = lua.isStringLiteral(typeStr) && PRIMITIVE_LUA_TYPES.has(typeStr.value) ? "type" : "typeof";
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.id(typeFunc),
-				args: lua.list.make(value),
-			}),
-			operator: "==",
-			right: typeStr,
+		const left = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.id(typeFunc),
+			args: lua.list.make(value),
 		});
+		return lua.binary(left, "==", typeStr);
 	},
 
 	classIs: (state, node) => {
 		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: convertToIndexableExpression(value),
-				name: "ClassName",
-			}),
-			operator: "==",
-			right: typeStr,
+		const left = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			expression: convertToIndexableExpression(value),
+			name: "ClassName",
 		});
+		return lua.binary(left, "==", typeStr);
 	},
 
 	opcall: (state, node) => {
@@ -50,20 +44,17 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 				}),
 			}),
 		);
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: successId,
-			operator: "and",
-			right: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.map([
-					[lua.strings.success, lua.bool(true)],
-					[lua.strings.value, valueOrErrorId],
-				]),
-				operator: "or",
-				right: lua.map([
-					[lua.strings.success, lua.bool(false)],
-					[lua.strings.error, valueOrErrorId],
-				]),
-			}),
-		});
+
+		const successExp = lua.map([
+			[lua.strings.success, lua.bool(true)],
+			[lua.strings.value, valueOrErrorId],
+		]);
+
+		const failureExp = lua.map([
+			[lua.strings.success, lua.bool(false)],
+			[lua.strings.error, valueOrErrorId],
+		]);
+
+		return lua.binary(successId, "and", lua.binary(successExp, "or", failureExp));
 	},
 };

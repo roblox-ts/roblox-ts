@@ -5,11 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 
 export function transformInitializer(state: TransformState, id: lua.WritableExpression, initializer: ts.Expression) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: id,
-			operator: "==",
-			right: lua.nil(),
-		}),
+		condition: lua.binary(id, "==", lua.nil()),
 		elseBody: lua.list.make(),
 		statements: state.capturePrereqs(() => {
 			state.prereq(

@@ -147,10 +147,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 				});
 			}
 
-			return lua.create(lua.SyntaxKind.UnaryExpression, {
-				operator: "not",
-				expression,
-			});
+			return lua.unary("not", expression);
 		});
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
 		/*
@@ -160,13 +157,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		*/
 		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
 		const conditionId = lua.tempId();
-		buildLogicalChainPrereqs(state, chain, conditionId, conditionId =>
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: conditionId,
-				operator: "==",
-				right: lua.nil(),
-			}),
-		);
+		buildLogicalChainPrereqs(state, chain, conditionId, conditionId => lua.binary(conditionId, "==", lua.nil()));
 		return conditionId;
 	}
 	assert(false, "Not implemented");
