@@ -140,7 +140,7 @@ function createReduceMethod(
 	const lengthExp = lua.unary("#", expression);
 
 	let resultId;
-	// If there was no initialValue supplied
+	// if there was no initialValue supplied
 	if (args.length < 2) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.IfStatement, {
