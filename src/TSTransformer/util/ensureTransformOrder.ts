@@ -18,11 +18,7 @@ export function ensureTransformOrder(
 		index: number,
 	) => lua.Expression = transformExpression,
 ) {
-	const expressionInfoList = expressions.map((exp, index) => {
-		return state.capture(() => {
-			return transformer(state, exp, index);
-		});
-	});
+	const expressionInfoList = expressions.map((exp, index) => state.capture(() => transformer(state, exp, index)));
 	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !lua.list.isEmpty(info.statements));
 	const result = new Array<lua.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
