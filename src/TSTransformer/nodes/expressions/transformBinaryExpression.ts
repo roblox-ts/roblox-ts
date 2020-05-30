@@ -83,13 +83,6 @@ function transformLuaTupleDestructure(
 	state.prereqList(statements);
 }
 
-function makeCustomInstanceofAccess(expression: lua.Expression) {
-	return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-		expression: convertToIndexableExpression(expression),
-		name: "instanceof",
-	});
-}
-
 function createBinaryIn(left: lua.Expression, right: lua.Expression) {
 	return lua.create(lua.SyntaxKind.BinaryExpression, {
 		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -102,73 +95,22 @@ function createBinaryIn(left: lua.Expression, right: lua.Expression) {
 }
 
 function createBinaryInstanceOf(state: TransformState, left: lua.Expression, right: lua.Expression) {
-	const returnId = lua.tempId();
-	state.prereq(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: returnId,
-			right: undefined,
-		}),
-	);
+	left = state.pushToVarIfComplex(left);
+	right = state.pushToVarIfComplex(right);
 
-	state.prereq(
-		lua.create(lua.SyntaxKind.IfStatement, {
-			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-				// type(class) == "table"
-				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.type,
-						args: lua.list.make(right),
-					}),
-					operator: "==",
-					right: lua.string("table"),
-				}),
-				operator: "and",
-				// type(class.instanceof) == "function"
-				right: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.type,
-						args: lua.list.make(makeCustomInstanceofAccess(right)),
-					}),
-					operator: "==",
-					right: lua.string("function"),
-				}),
-			}),
-			statements: lua.list.make(
-				// returnId = class.instanceof(obj)
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: returnId,
-					right: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: makeCustomInstanceofAccess(right),
-						args: lua.list.make(left),
-					}),
-				}),
-			),
-			elseBody: lua.list.make(),
-		}),
-	);
-
+	const returnId = state.pushToVar(lua.bool(false));
 	const objId = lua.tempId();
 	const metatableId = lua.tempId();
+
 	state.prereq(
 		lua.create(lua.SyntaxKind.IfStatement, {
 			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-				// check that there was no custom instanceof method
-				// returnId == nil
-				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: returnId,
-					operator: "==",
-					right: lua.nil(),
+				left: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.type,
+					args: lua.list.make(left),
 				}),
-				operator: "and",
-				// type(obj) == "table"
-				right: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.type,
-						args: lua.list.make(left),
-					}),
-					operator: "==",
-					right: lua.string("table"),
-				}),
+				operator: "==",
+				right: lua.string("table"),
 			}),
 			statements: lua.list.make<lua.Statement>(
 				// objId = getmetatable(obj)
@@ -204,7 +146,7 @@ function createBinaryInstanceOf(state: TransformState, left: lua.Expression, rig
 								lua.create(lua.SyntaxKind.BreakStatement, {}),
 							),
 							elseBody: lua.list.make<lua.Statement>(
-								// metatableId = getmetatable(objId)
+								// local metatableId = getmetatable(objId)
 								lua.create(lua.SyntaxKind.VariableDeclaration, {
 									left: metatableId,
 									right: lua.create(lua.SyntaxKind.CallExpression, {
@@ -225,37 +167,11 @@ function createBinaryInstanceOf(state: TransformState, left: lua.Expression, rig
 											}),
 										}),
 									),
-									elseBody: lua.list.make(
-										// objId = nil
-										lua.create(lua.SyntaxKind.Assignment, {
-											left: objId,
-											right: lua.nil(),
-										}),
-									),
+									elseBody: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
 								}),
 							),
 						}),
 					),
-				}),
-			),
-			elseBody: lua.list.make(),
-		}),
-	);
-
-	// if returnId == nil then returnId = false end
-	state.prereq(
-		lua.create(lua.SyntaxKind.IfStatement, {
-			// returnId == nil
-			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: returnId,
-				operator: "==",
-				right: lua.nil(),
-			}),
-			// returnId = false
-			statements: lua.list.make(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: returnId,
-					right: lua.bool(false),
 				}),
 			),
 			elseBody: lua.list.make(),
