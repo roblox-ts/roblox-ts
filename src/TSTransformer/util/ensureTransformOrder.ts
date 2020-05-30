@@ -9,8 +9,16 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.
  * Ensures the `lua.Expression` nodes execute in the same order as the `ts.Expression` nodes.
  */
-export function ensureTransformOrder(state: TransformState, expressions: ReadonlyArray<ts.Expression>) {
-	const expressionInfoList = expressions.map(exp => state.capture(() => transformExpression(state, exp)));
+export function ensureTransformOrder(
+	state: TransformState,
+	expressions: ReadonlyArray<ts.Expression>,
+	transformer: (
+		state: TransformState,
+		expression: ts.Expression,
+		index: number,
+	) => lua.Expression = transformExpression,
+) {
+	const expressionInfoList = expressions.map((exp, index) => state.capture(() => transformer(state, exp, index)));
 	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !lua.list.isEmpty(info.statements));
 	const result = new Array<lua.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
