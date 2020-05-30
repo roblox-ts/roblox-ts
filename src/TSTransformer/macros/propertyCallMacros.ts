@@ -703,46 +703,70 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	filterUndefined: (state, node, expression) => {
-		const resultId = state.pushToVar(lua.array());
+		expression = state.pushToVarIfComplex(expression);
 
-		const indexId = lua.tempId();
-		const valueId = lua.tempId();
-
-		const nextFillId = state.pushToVar(lua.number(1));
-
-		state.prereqList(
-			lua.list.make<lua.Statement>(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.list.make(indexId, valueId),
-					right: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.next,
-						args: lua.list.make(expression),
+		const lengthId = state.pushToVar(lua.number(0));
+		const indexId1 = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(indexId1),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.pairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.binary(indexId1, ">", lengthId),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lengthId,
+								right: indexId1,
+							}),
+						),
+						elseBody: lua.list.make(),
 					}),
-				}),
-				lua.create(lua.SyntaxKind.WhileStatement, {
-					condition: indexId,
-					statements: lua.list.make(
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-								expression: resultId,
-								index: nextFillId,
+				),
+			}),
+		);
+
+		const resultId = state.pushToVar(lua.array());
+		const resultLengthId = state.pushToVar(lua.number(0));
+		const indexId2 = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.NumericForStatement, {
+				id: indexId2,
+				start: lua.number(1),
+				end: lengthId,
+				step: undefined,
+
+				statements: lua.list.make<lua.Statement>(
+					lua.create(lua.SyntaxKind.VariableDeclaration, {
+						left: valueId,
+						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: indexId2,
+						}),
+					}),
+					lua.create(lua.SyntaxKind.IfStatement, {
+						condition: lua.binary(valueId, "~=", lua.nil()),
+						statements: lua.list.make(
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: resultLengthId,
+								right: lua.binary(resultLengthId, "+", lua.number(1)),
 							}),
-							right: valueId,
-						}),
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: nextFillId,
-							right: offset(nextFillId, 1),
-						}),
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: lua.list.make(indexId, valueId),
-							right: lua.create(lua.SyntaxKind.CallExpression, {
-								expression: lua.globals.next,
-								args: lua.list.make(expression, indexId),
+							lua.create(lua.SyntaxKind.Assignment, {
+								left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+									expression: resultId,
+									index: resultLengthId,
+								}),
+								right: valueId,
 							}),
-						}),
-					),
-				}),
-			),
+						),
+						elseBody: lua.list.make(),
+					}),
+				),
+			}),
 		);
 
 		return resultId;
