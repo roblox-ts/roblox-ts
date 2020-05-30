@@ -24,15 +24,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		}
 
 		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-			expression: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left,
-					operator: "and",
-					right: whenTrue,
-				}),
-				operator: "or",
-				right: whenFalse,
-			}),
+			expression: lua.binary(lua.binary(left, "and", whenTrue), "or", whenFalse),
 		});
 	}
 

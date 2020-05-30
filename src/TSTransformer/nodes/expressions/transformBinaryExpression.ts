@@ -151,14 +151,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	// in
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-				expression: convertToIndexableExpression(right),
-				index: left,
-			}),
-			operator: "~=",
-			right: lua.nil(),
+		const leftExp = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(right),
+			index: left,
 		});
+		return lua.binary(leftExp, "~=", lua.nil());
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: state.TS("instanceof"),

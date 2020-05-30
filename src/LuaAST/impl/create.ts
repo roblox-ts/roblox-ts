@@ -124,6 +124,10 @@ export function map(fields: Array<[lua.Expression, lua.Expression]> = []) {
 	});
 }
 
+/**
+ * Creates a new mixed table node.
+ * @param fields The array of either value or key-value mappings.
+ */
 export function mixedTable(fields: Array<lua.Expression | [lua.Expression, lua.Expression]> = []) {
 	return lua.create(lua.SyntaxKind.MixedTable, {
 		fields: lua.list.make(
@@ -136,4 +140,12 @@ export function mixedTable(fields: Array<lua.Expression | [lua.Expression, lua.E
 			}),
 		),
 	});
+}
+
+export function binary(left: lua.Expression, operator: lua.BinaryOperator, right: lua.Expression) {
+	return lua.create(lua.SyntaxKind.BinaryExpression, { left, operator, right });
+}
+
+export function unary(operator: lua.UnaryOperator, expression: lua.Expression) {
+	return lua.create(lua.SyntaxKind.UnaryExpression, { operator, expression });
 }

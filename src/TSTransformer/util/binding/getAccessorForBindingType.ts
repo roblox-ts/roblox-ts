@@ -167,18 +167,7 @@ const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, inde
 				right: callExp,
 			}),
 		);
-		return lua.array([
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id1,
-				operator: "and",
-				right: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: id1,
-					operator: "-",
-					right: lua.number(1),
-				}),
-			}),
-			id2,
-		]);
+		return lua.array([lua.binary(id1, "and", lua.binary(id1, "-", lua.number(1))), id2]);
 	}
 };
 
@@ -204,24 +193,8 @@ const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, ind
 			}),
 		);
 		return lua.array([
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id1,
-				operator: "and",
-				right: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: id1,
-					operator: "-",
-					right: lua.number(1),
-				}),
-			}),
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: id2,
-				operator: "and",
-				right: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: id2,
-					operator: "-",
-					right: lua.number(1),
-				}),
-			}),
+			lua.binary(id1, "and", lua.binary(id1, "-", lua.number(1))),
+			lua.binary(id2, "and", lua.binary(id2, "-", lua.number(1))),
 		]);
 	}
 };

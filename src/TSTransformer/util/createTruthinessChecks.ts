@@ -25,34 +25,16 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 	}
 
 	if (isAssignableToZero) {
-		checks.push(
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: exp,
-				operator: "~=",
-				right: lua.create(lua.SyntaxKind.NumberLiteral, { value: 0 }),
-			}),
-		);
+		checks.push(lua.binary(exp, "~=", lua.create(lua.SyntaxKind.NumberLiteral, { value: 0 })));
 	}
 
 	// workaround for https://github.com/microsoft/TypeScript/issues/32778
 	if (isAssignableToZero || isAssignableToNaN) {
-		checks.push(
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: exp,
-				operator: "==",
-				right: exp,
-			}),
-		);
+		checks.push(lua.binary(exp, "==", exp));
 	}
 
 	if (isAssignableToEmptyString) {
-		checks.push(
-			lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: exp,
-				operator: "~=",
-				right: lua.create(lua.SyntaxKind.StringLiteral, { value: "" }),
-			}),
-		);
+		checks.push(lua.binary(exp, "~=", lua.create(lua.SyntaxKind.StringLiteral, { value: "" })));
 	}
 
 	checks.push(exp);

@@ -101,11 +101,7 @@ function createJsxAddNumericChild(
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: childrenPtrValue,
-			index: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lengthId,
-				operator: "+",
-				right: key,
-			}),
+			index: lua.binary(lengthId, "+", key),
 		}),
 		right: value,
 	});
@@ -344,10 +340,7 @@ function transformJsxChildren(
 		state.prereq(
 			lua.create(lengthInitialized ? lua.SyntaxKind.Assignment : lua.SyntaxKind.VariableDeclaration, {
 				left: lengthId,
-				right: lua.create(lua.SyntaxKind.UnaryExpression, {
-					operator: "#",
-					expression: childrenPtr.value,
-				}),
+				right: lua.unary("#", childrenPtr.value),
 			}),
 		);
 		if (!lengthInitialized) {

@@ -16,18 +16,11 @@ function transformCaseClauseExpression(
 	let { statements: prereqStatements } = capturePrereqsResult;
 	const { expression } = capturePrereqsResult;
 
-	let condition: lua.Expression = lua.create(lua.SyntaxKind.BinaryExpression, {
-		left: switchExpression,
-		right: expression,
-		operator: "==",
-	});
+	let condition: lua.Expression = lua.binary(switchExpression, "==", expression);
 
 	if (canFallThroughTo) {
 		if (prereqStatements.head) {
-			const noFallThroughCondition = lua.create(lua.SyntaxKind.UnaryExpression, {
-				expression: fallThroughFlagId,
-				operator: "not",
-			});
+			const noFallThroughCondition = lua.unary("not", fallThroughFlagId);
 
 			lua.list.push(
 				prereqStatements,
@@ -47,11 +40,7 @@ function transformCaseClauseExpression(
 
 			condition = fallThroughFlagId;
 		} else {
-			condition = lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: fallThroughFlagId,
-				right: condition,
-				operator: "or",
-			});
+			condition = lua.binary(fallThroughFlagId, "or", condition);
 		}
 	}
 
