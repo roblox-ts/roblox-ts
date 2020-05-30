@@ -90,6 +90,181 @@ function makeCustomInstanceofAccess(expression: lua.Expression) {
 	});
 }
 
+function createBinaryIn(left: lua.Expression, right: lua.Expression) {
+	return lua.create(lua.SyntaxKind.BinaryExpression, {
+		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			expression: convertToIndexableExpression(right),
+			index: left,
+		}),
+		operator: "~=",
+		right: lua.nil(),
+	});
+}
+
+function createBinaryInstanceOf(state: TransformState, left: lua.Expression, right: lua.Expression) {
+	const returnId = lua.tempId();
+	state.prereq(
+		lua.create(lua.SyntaxKind.VariableDeclaration, {
+			left: returnId,
+			right: undefined,
+		}),
+	);
+
+	state.prereq(
+		lua.create(lua.SyntaxKind.IfStatement, {
+			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+				// type(class) == "table"
+				left: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.type,
+						args: lua.list.make(right),
+					}),
+					operator: "==",
+					right: lua.string("table"),
+				}),
+				operator: "and",
+				// type(class.instanceof) == "function"
+				right: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.type,
+						args: lua.list.make(makeCustomInstanceofAccess(right)),
+					}),
+					operator: "==",
+					right: lua.string("function"),
+				}),
+			}),
+			statements: lua.list.make(
+				// returnId = class.instanceof(obj)
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: returnId,
+					right: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: makeCustomInstanceofAccess(right),
+						args: lua.list.make(left),
+					}),
+				}),
+			),
+			elseBody: lua.list.make(),
+		}),
+	);
+
+	const objId = lua.tempId();
+	const metatableId = lua.tempId();
+	state.prereq(
+		lua.create(lua.SyntaxKind.IfStatement, {
+			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+				// check that there was no custom instanceof method
+				// returnId == nil
+				left: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: returnId,
+					operator: "==",
+					right: lua.nil(),
+				}),
+				operator: "and",
+				// type(obj) == "table"
+				right: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.type,
+						args: lua.list.make(left),
+					}),
+					operator: "==",
+					right: lua.string("table"),
+				}),
+			}),
+			statements: lua.list.make<lua.Statement>(
+				// objId = getmetatable(obj)
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: objId,
+					right: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.getmetatable,
+						args: lua.list.make(left),
+					}),
+				}),
+				lua.create(lua.SyntaxKind.WhileStatement, {
+					// objId ~= nil
+					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: objId,
+						operator: "~=",
+						right: lua.nil(),
+					}),
+					statements: lua.list.make<lua.Statement>(
+						lua.create(lua.SyntaxKind.IfStatement, {
+							// objId == class
+							condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+								left: objId,
+								operator: "==",
+								right: right,
+							}),
+							statements: lua.list.make<lua.Statement>(
+								// returnId = true
+								// break
+								lua.create(lua.SyntaxKind.Assignment, {
+									left: returnId,
+									right: lua.bool(true),
+								}),
+								lua.create(lua.SyntaxKind.BreakStatement, {}),
+							),
+							elseBody: lua.list.make<lua.Statement>(
+								// metatableId = getmetatable(objId)
+								lua.create(lua.SyntaxKind.VariableDeclaration, {
+									left: metatableId,
+									right: lua.create(lua.SyntaxKind.CallExpression, {
+										expression: lua.globals.getmetatable,
+										args: lua.list.make(objId),
+									}),
+								}),
+								// if metatableId then
+								lua.create(lua.SyntaxKind.IfStatement, {
+									condition: metatableId,
+									statements: lua.list.make(
+										// objId = metatableId.__index
+										lua.create(lua.SyntaxKind.Assignment, {
+											left: objId,
+											right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+												expression: metatableId,
+												name: "__index",
+											}),
+										}),
+									),
+									elseBody: lua.list.make(
+										// objId = nil
+										lua.create(lua.SyntaxKind.Assignment, {
+											left: objId,
+											right: lua.nil(),
+										}),
+									),
+								}),
+							),
+						}),
+					),
+				}),
+			),
+			elseBody: lua.list.make(),
+		}),
+	);
+
+	// if returnId == nil then returnId = false end
+	state.prereq(
+		lua.create(lua.SyntaxKind.IfStatement, {
+			// returnId == nil
+			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+				left: returnId,
+				operator: "==",
+				right: lua.nil(),
+			}),
+			// returnId = false
+			statements: lua.list.make(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: returnId,
+					right: lua.bool(false),
+				}),
+			),
+			elseBody: lua.list.make(),
+		}),
+	);
+
+	return returnId;
+}
+
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
@@ -156,180 +331,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
 
-	// in
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
-		return lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-				expression: convertToIndexableExpression(right),
-				index: left,
-			}),
-			operator: "~=",
-			right: lua.nil(),
-		});
+		return createBinaryIn(left, right);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
-		const statements = lua.list.make<lua.Statement>();
-		const returnId = lua.tempId();
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: returnId,
-				right: undefined,
-			}),
-		);
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.IfStatement, {
-				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-					//	type(class) == "table"
-					left: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: lua.globals.type,
-							args: lua.list.make(right),
-						}),
-						operator: "==",
-						right: lua.string("table"),
-					}),
-					operator: "and",
-					//	type(class.instanceof) == "function"
-					right: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: lua.globals.type,
-							args: lua.list.make(makeCustomInstanceofAccess(right)),
-						}),
-						operator: "==",
-						right: lua.string("function"),
-					}),
-				}),
-				statements: lua.list.make(
-					//	returnId = class.instanceof(obj)
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: returnId,
-						right: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: makeCustomInstanceofAccess(right),
-							args: lua.list.make(left),
-						}),
-					}),
-				),
-				elseBody: lua.list.make(),
-			}),
-		);
-		const objId = lua.tempId();
-		const metatableId = lua.tempId();
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.IfStatement, {
-				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-					//	check that there was no custom instanceof method
-					//	returnId == nil
-					left: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: returnId,
-						operator: "==",
-						right: lua.nil(),
-					}),
-					operator: "and",
-					//	type(obj) == "table"
-					right: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: lua.globals.type,
-							args: lua.list.make(left),
-						}),
-						operator: "==",
-						right: lua.string("table"),
-					}),
-				}),
-				statements: lua.list.make<lua.Statement>(
-					//	objId = getmetatable(obj)
-					lua.create(lua.SyntaxKind.VariableDeclaration, {
-						left: objId,
-						right: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: lua.globals.getmetatable,
-							args: lua.list.make(left),
-						}),
-					}),
-					lua.create(lua.SyntaxKind.WhileStatement, {
-						//	objId ~= nil
-						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-							left: objId,
-							operator: "~=",
-							right: lua.nil(),
-						}),
-						statements: lua.list.make<lua.Statement>(
-							lua.create(lua.SyntaxKind.IfStatement, {
-								//	objId == class
-								condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-									left: objId,
-									operator: "==",
-									right: right,
-								}),
-								statements: lua.list.make<lua.Statement>(
-									//	returnId = true
-									//	break
-									lua.create(lua.SyntaxKind.Assignment, {
-										left: returnId,
-										right: lua.bool(true),
-									}),
-									lua.create(lua.SyntaxKind.BreakStatement, {}),
-								),
-								elseBody: lua.list.make<lua.Statement>(
-									//	metatableId = getmetatable(objId)
-									lua.create(lua.SyntaxKind.VariableDeclaration, {
-										left: metatableId,
-										right: lua.create(lua.SyntaxKind.CallExpression, {
-											expression: lua.globals.getmetatable,
-											args: lua.list.make(objId),
-										}),
-									}),
-									//	if metatableId then
-									lua.create(lua.SyntaxKind.IfStatement, {
-										condition: metatableId,
-										statements: lua.list.make(
-											//	objId = metatableId.__index
-											lua.create(lua.SyntaxKind.Assignment, {
-												left: objId,
-												right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-													expression: metatableId,
-													name: "__index",
-												}),
-											}),
-										),
-										elseBody: lua.list.make(
-											//	objId = nil
-											lua.create(lua.SyntaxKind.Assignment, {
-												left: objId,
-												right: lua.nil(),
-											}),
-										),
-									}),
-								),
-							}),
-						),
-					}),
-				),
-				elseBody: lua.list.make(),
-			}),
-		);
-		// if returnId == nil then returnId = false end
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.IfStatement, {
-				// returnId == nil
-				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: returnId,
-					operator: "==",
-					right: lua.nil(),
-				}),
-				// returnId = false
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: returnId,
-						right: lua.bool(false),
-					}),
-				),
-				elseBody: lua.list.make(),
-			}),
-		);
-		state.prereqList(statements);
-		return returnId;
+		return createBinaryInstanceOf(state, left, right);
 	}
 
 	// TODO issue #715
