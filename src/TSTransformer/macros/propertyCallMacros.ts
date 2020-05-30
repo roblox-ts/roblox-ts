@@ -169,7 +169,12 @@ function createReduceMethod(
 				elseBody: lua.list.make(),
 			}),
 		);
-		resultId = state.pushToVar(createIndexedExpression(expression, start));
+		resultId = state.pushToVar(
+			lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(expression),
+				index: start,
+			}),
+		);
 		start = offset(start, step);
 	} else {
 		resultId = state.pushToVar(args[1]);
@@ -190,7 +195,10 @@ function createReduceMethod(
 						expression: callbackId,
 						args: lua.list.make(
 							resultId,
-							createIndexedExpression(expression, iteratorId),
+							lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: convertToIndexableExpression(expression),
+								index: iteratorId,
+							}),
 							offset(iteratorId, -1),
 							expression,
 						),
@@ -202,18 +210,6 @@ function createReduceMethod(
 
 	return resultId;
 }
-
-const createIndexedExpression = (expression: lua.Expression, index: lua.Expression) =>
-	lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-		expression: convertToIndexableExpression(expression),
-		index: index,
-	});
-
-const createCallExpression = (method: lua.IndexableExpression, ...args: Array<lua.Expression>) =>
-	lua.create(lua.SyntaxKind.CallExpression, {
-		expression: method,
-		args: lua.list.make(...args),
-	});
 
 const size: PropertyCallMacro = (state, node, expression) => lua.unary("#", expression);
 
@@ -389,8 +385,14 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					step: lua.number(1),
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
-							left: createIndexedExpression(resultId, sizeId),
-							right: createIndexedExpression(arg, iteratorId),
+							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: resultId,
+								index: sizeId,
+							}),
+							right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: convertToIndexableExpression(arg),
+								index: iteratorId,
+							}),
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: sizeId,
@@ -442,7 +444,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		if (endValue) {
 			end = offset(lengthOfExpression, endValue);
 		} else if (end != lengthOfExpression) {
-			end = createCallExpression(lua.globals.math.min, lengthOfExpression, end);
+			end = lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.math.min,
+				args: lua.list.make(lengthOfExpression, end),
+			});
 		}
 
 		const resultId = state.pushToVar(lua.array());
@@ -451,8 +456,14 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		if (start == end) {
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
-					left: createIndexedExpression(resultId, lua.number(1)),
-					right: createIndexedExpression(expression, start),
+					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: resultId,
+						index: lua.number(1),
+					}),
+					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: start,
+					}),
 				}),
 			);
 		} else {
@@ -466,8 +477,14 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					step: lua.number(1),
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
-							left: createIndexedExpression(resultId, sizeId),
-							right: createIndexedExpression(expression, iteratorId),
+							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: resultId,
+								index: sizeId,
+							}),
+							right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: convertToIndexableExpression(expression),
+								index: iteratorId,
+							}),
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: sizeId,
@@ -711,13 +728,19 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			lua.list.make<lua.Statement>(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: lua.list.make(indexId, valueId),
-					right: createCallExpression(lua.globals.next, expression),
+					right: lua.create(lua.SyntaxKind.CallExpression, {
+						expression: lua.globals.next,
+						args: lua.list.make(expression),
+					}),
 				}),
 				lua.create(lua.SyntaxKind.WhileStatement, {
 					condition: indexId,
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
-							left: createIndexedExpression(resultId, nextFillId),
+							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+								expression: resultId,
+								index: nextFillId,
+							}),
 							right: valueId,
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
@@ -726,7 +749,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.list.make(indexId, valueId),
-							right: createCallExpression(lua.globals.next, expression, indexId),
+							right: lua.create(lua.SyntaxKind.CallExpression, {
+								expression: lua.globals.next,
+								args: lua.list.make(expression, indexId),
+							}),
 						}),
 					),
 				}),
