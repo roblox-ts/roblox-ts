@@ -180,8 +180,6 @@ export class Project {
 	public async cleanup() {
 		if (fs.pathExists(this.outDir)) {
 			await cleanupDirRecursively(this.pathTranslator, this.rootDir, this.outDir);
-		} else {
-			console.log("Fresh compile, skipping cleanup step");
 		}
 	}
 
