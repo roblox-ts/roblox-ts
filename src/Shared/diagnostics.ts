@@ -108,6 +108,7 @@ export const diagnostics = {
 		"Cannot index a macro without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
+	noMacroExtends: diagnostic("Cannot extend from a macro class!"),
 
 	// import/export
 	noModuleSpecifierFile: diagnostic("Could not find file for import. Did you forget to `npm install`?"),

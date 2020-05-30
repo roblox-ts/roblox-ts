@@ -18,6 +18,14 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
 
 export const SYMBOL_NAMES = {
+	ArrayConstructor: "ArrayConstructor",
+	SetConstructor: "SetConstructor",
+	MapConstructor: "MapConstructor",
+	WeakSetConstructor: "WeakSetConstructor",
+	WeakMapConstructor: "WeakMapConstructor",
+	ReadonlyMapConstructor: "ReadonlyMapConstructor",
+	ReadonlySetConstructor: "ReadonlySetConstructor",
+
 	Array: "Array",
 	DoubleDecrementedIterableFunction: "DoubleDecrementedIterableFunction",
 	FirstDecrementedIterableFunction: "FirstDecrementedIterableFunction",

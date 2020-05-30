@@ -2,7 +2,7 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformClassElement } from "TSTransformer/nodes/class/transformClassElement";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -210,6 +210,26 @@ function createBoilerplate(
 	return statements;
 }
 
+function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration) {
+	const extendsNode = getExtendsNode(node);
+	if (extendsNode) {
+		const aliasSymbol = state.getType(extendsNode.expression).symbol;
+		if (aliasSymbol) {
+			const originalSymbol = ts.skipAlias(aliasSymbol, state.typeChecker);
+			return (
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
+				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
+			);
+		}
+	}
+	return false;
+}
+
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = lua.list.make<lua.Statement>();
@@ -243,6 +263,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			right: undefined,
 		}),
 	);
+
+	if (extendsMacroClass(state, node)) {
+		state.addDiagnostic(diagnostics.noMacroExtends(node));
+	}
 
 	// OOP boilerplate + class functions
 	const statementsInner = lua.list.make<lua.Statement>();
