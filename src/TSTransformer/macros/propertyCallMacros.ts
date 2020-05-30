@@ -187,7 +187,7 @@ function createReduceMethod(
 			id: iteratorId,
 			start: start,
 			end: end,
-			step: lua.number(step),
+			step: step === 1 ? undefined : lua.number(step),
 			statements: lua.list.make(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: resultId,
@@ -382,7 +382,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					id: iteratorId,
 					start: lua.number(1),
 					end: lua.unary("#", arg),
-					step: lua.number(1),
+					step: undefined,
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -474,7 +474,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					id: iteratorId,
 					start: start,
 					end: end,
-					step: lua.number(1),
+					step: undefined,
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -510,7 +510,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				id: iteratorId,
 				start: startIndex,
 				end: size(state, node, expression),
-				step: lua.number(1),
+				step: undefined,
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
