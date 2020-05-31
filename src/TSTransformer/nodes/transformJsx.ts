@@ -177,39 +177,48 @@ function createJsxAddAmbiguousChild(
 	expression: lua.IndexableExpression,
 ) {
 	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: binaryExpressionChain(
-			[
-				lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.type,
-						args: lua.list.make(expression),
-					}),
-					operator: "==",
-					right: lua.strings.table,
-				}),
-				lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression,
-						name: "props",
-					}),
-					operator: "~=",
-					right: lua.nil(),
-				}),
-				lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression,
-						name: "component",
-					}),
-					operator: "~=",
-					right: lua.nil(),
-				}),
-			],
-			"and",
-		),
+		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+			left: lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.type,
+				args: lua.list.make(expression),
+			}),
+			operator: "==",
+			right: lua.strings.table,
+		}),
 		statements: lua.list.make(
-			createJsxAddNumericChild(childrenPtrValue, lengthId, lua.number(amtChildrenSinceUpdate + 1), expression),
+			lua.create(lua.SyntaxKind.IfStatement, {
+				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+							expression,
+							name: "props",
+						}),
+						operator: "~=",
+						right: lua.nil(),
+					}),
+
+					operator: "and",
+					right: lua.create(lua.SyntaxKind.BinaryExpression, {
+						left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+							expression,
+							name: "component",
+						}),
+						operator: "~=",
+						right: lua.nil(),
+					}),
+				}),
+				statements: lua.list.make(
+					createJsxAddNumericChild(
+						childrenPtrValue,
+						lengthId,
+						lua.number(amtChildrenSinceUpdate + 1),
+						expression,
+					),
+				),
+				elseBody: lua.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
+			}),
 		),
-		elseBody: lua.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
+		elseBody: lua.list.make(),
 	});
 }
 
@@ -351,7 +360,9 @@ function transformJsxChildren(
 
 	function disableInline() {
 		if (lua.isMixedTable(childrenPtr.value)) {
-			disableMapInline(state, attributesPtr);
+			if (lua.isMap(attributesPtr.value) && !lua.list.isEmpty(attributesPtr.value.fields)) {
+				disableMapInline(state, attributesPtr);
+			}
 			disableMixedTableInline(state, childrenPtr);
 			updateLengthId();
 		}
