@@ -197,6 +197,8 @@ export class Project {
 				// Catch pre emit diagnostics
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
+				const customPreEmitDiagnostics = compileState.getCustomPreEmitDiagnostics(sourceFile);
+				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
 				// Create a new transform state for the file

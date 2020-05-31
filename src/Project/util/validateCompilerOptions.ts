@@ -12,7 +12,6 @@ const ENFORCED_OPTIONS = {
 	noLib: true,
 	strict: true,
 	allowSyntheticDefaultImports: true,
-	isolatedModules: true,
 } as const;
 
 interface ExtraOptionChecks {
@@ -63,10 +62,6 @@ export function validateCompilerOptions(
 
 	if (opts.allowSyntheticDefaultImports !== ENFORCED_OPTIONS.allowSyntheticDefaultImports) {
 		errors.push(`${y(`"allowSyntheticDefaultImports"`)} must be ${y(`true`)}`);
-	}
-
-	if (opts.isolatedModules !== ENFORCED_OPTIONS.isolatedModules) {
-		errors.push(`${y(`"isolatedModules"`)} must be ${y(`true`)}`);
 	}
 
 	if (opts.typeRoots === undefined || !validateTypeRoots(nodeModulesPath, opts.typeRoots)) {
