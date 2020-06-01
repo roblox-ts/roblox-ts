@@ -13,7 +13,7 @@ export function transformNewExpression(state: TransformState, node: ts.NewExpres
 		validateNotAnyType(state, arg);
 	}
 
-	const symbol = getFirstConstructSymbol(state, node);
+	const symbol = getFirstConstructSymbol(state, node.expression);
 	if (symbol) {
 		const macro = state.macroManager.getConstructorMacro(symbol);
 		if (macro) {
