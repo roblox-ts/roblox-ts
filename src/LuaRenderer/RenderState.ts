@@ -11,9 +11,28 @@ const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;
  */
 export class RenderState {
 	private indent = "";
-	private scopeStack: Array<number> = [0];
+	private tempIdStack: Array<number> = [0];
+	private localsStack: Array<number> = [0];
 	private seenTempNodes = new Map<lua.TemporaryIdentifier, string>();
 	private readonly listNodesStack = new Array<lua.ListNode<lua.Statement>>();
+
+	public addLocals(amtLocals: number) {
+		this.localsStack[this.localsStack.length - 1] += amtLocals;
+	}
+
+	public getLocals() {
+		const top = this.localsStack[this.localsStack.length - 1];
+		assert(top !== undefined);
+		return top;
+	}
+
+	public pushLocalStack() {
+		this.localsStack.push(0);
+	}
+
+	public popLocalStack() {
+		this.localsStack.pop();
+	}
 
 	/**
 	 * Pushes an indent to the current indent level.
@@ -33,16 +52,16 @@ export class RenderState {
 	 * Pushes a new scope to scope stack.
 	 */
 	public pushScope() {
-		const top = this.scopeStack[this.scopeStack.length - 1];
-		assert(top !== undefined);
-		this.scopeStack.push(top);
+		const topTempId = this.tempIdStack[this.tempIdStack.length - 1];
+		assert(topTempId !== undefined);
+		this.tempIdStack.push(topTempId);
 	}
 
 	/**
 	 * Pops the top of the scope stack.
 	 */
 	public popScope() {
-		this.scopeStack.pop();
+		this.tempIdStack.pop();
 	}
 
 	/**
@@ -50,7 +69,7 @@ export class RenderState {
 	 * @param node The identifier of the node
 	 */
 	public getTempName(node: lua.TemporaryIdentifier) {
-		return getOrSetDefault(this.seenTempNodes, node, () => `_${this.scopeStack[this.scopeStack.length - 1]++}`);
+		return getOrSetDefault(this.seenTempNodes, node, () => `_${this.tempIdStack[this.tempIdStack.length - 1]++}`);
 	}
 
 	/**

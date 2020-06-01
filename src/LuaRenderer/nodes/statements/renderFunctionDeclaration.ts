@@ -13,7 +13,9 @@ export function renderFunctionDeclaration(state: RenderState, node: lua.Function
 
 	let result = "";
 	result += state.line(`${node.localize ? "local " : ""}function ${nameStr}(${paramStr})`);
+	state.pushLocalStack();
 	result += state.scope(() => renderStatements(state, node.statements));
+	state.popLocalStack();
 	result += state.line(`end`);
 	return result;
 }

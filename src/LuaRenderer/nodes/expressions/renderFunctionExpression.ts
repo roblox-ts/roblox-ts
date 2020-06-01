@@ -10,7 +10,9 @@ export function renderFunctionExpression(state: RenderState, node: lua.FunctionE
 
 	let result = "";
 	result += state.newline(`function(${renderParameters(state, node)})`);
+	state.pushLocalStack();
 	result += state.scope(() => renderStatements(state, node.statements));
+	state.popLocalStack();
 	result += state.indented(`end`);
 	return result;
 }

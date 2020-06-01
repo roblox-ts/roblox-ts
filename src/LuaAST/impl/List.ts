@@ -260,4 +260,11 @@ export namespace list {
 			newNode.next = origNext;
 		}
 	}
+
+	export function findTail<T extends lua.Node>(node: lua.ListNode<T>) {
+		while (node.next) {
+			node = node.next;
+		}
+		return node;
+	}
 }
