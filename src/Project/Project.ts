@@ -18,6 +18,10 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { cleanupDirRecursively } from "Shared/fsUtil";
+import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
+
+export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
+const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
@@ -195,10 +199,11 @@ export class Project {
 		for (const sourceFile of this.program.getSourceFiles()) {
 			if (!sourceFile.isDeclarationFile) {
 				// Catch pre emit diagnostics
+				const customPreEmitDiagnostics = this.getCustomPreEmitDiagnostics(sourceFile);
+				totalDiagnostics.push(...customPreEmitDiagnostics);
+				if (totalDiagnostics.length > 0) continue;
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
-				const customPreEmitDiagnostics = compileState.getCustomPreEmitDiagnostics(sourceFile);
-				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
 				// Create a new transform state for the file
@@ -231,5 +236,11 @@ export class Project {
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
 		}
+	}
+
+	getCustomPreEmitDiagnostics(sourceFile: ts.SourceFile) {
+		const diagnostics: Array<ts.Diagnostic> = [];
+		preEmitDiagnostics.forEach(check => diagnostics.push(...check(sourceFile)));
+		return diagnostics;
 	}
 }
