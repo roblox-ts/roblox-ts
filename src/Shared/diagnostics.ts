@@ -112,6 +112,11 @@ export const diagnostics = {
 	noMacroExtends: diagnostic("Cannot extend from a macro class!"),
 
 	// import/export
+	missingImportOrExport: diagnostic(
+		"File does not have an import or export statement!",
+		suggestion("Add `export {};` as the first line."),
+		issue(1043),
+	),
 	noModuleSpecifierFile: diagnostic("Could not find file for import. Did you forget to `npm install`?"),
 	noRojoData: diagnostic("Could not find Rojo data"),
 	noNonModuleImport: diagnostic("Cannot import a non-ModuleScript!"),
