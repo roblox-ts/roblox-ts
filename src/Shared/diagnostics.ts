@@ -114,7 +114,7 @@ export const diagnostics = {
 	// import/export
 	missingImportOrExport: diagnostic(
 		"File does not have an import or export statement!",
-		suggestion("Add `export {};` as the last line."),
+		suggestion("Add `export {};` as the first line."),
 		issue(1043),
 	),
 	noModuleSpecifierFile: diagnostic("Could not find file for import. Did you forget to `npm install`?"),
