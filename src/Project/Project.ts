@@ -7,17 +7,17 @@ import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { cleanupDirRecursively } from "Shared/fsUtil";
 import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import {
-	CompileState,
 	GlobalSymbols,
 	MacroManager,
+	MultiTransformState,
 	RoactSymbolManager,
 	transformSourceFile,
 	TransformState,
 } from "TSTransformer";
-import { cleanupDirRecursively } from "Shared/fsUtil";
 import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
@@ -192,7 +192,7 @@ export class Project {
 	 * Writes rendered lua source to the out directory.
 	 */
 	public compile() {
-		const compileState = new CompileState(this.pkgVersion);
+		const multiTransformState = new MultiTransformState(this.pkgVersion);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 		// Iterate through each source file in the project as a `ts.SourceFile`
@@ -208,7 +208,7 @@ export class Project {
 
 				// Create a new transform state for the file
 				const transformState = new TransformState(
-					compileState,
+					multiTransformState,
 					this.rojoConfig,
 					this.pathTranslator,
 					this.runtimeLibRbxPath,

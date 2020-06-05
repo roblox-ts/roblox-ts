@@ -1,9 +1,9 @@
 import ts from "byots";
 
 /**
- * CompileState is state that lives only for a single compilation step.
+ * MultiTransformState is state that lives only for a single compilation step.
  */
-export class CompileState {
+export class MultiTransformState {
 	public readonly isMethodCache = new Map<ts.Symbol, boolean>();
 	public readonly isDefinedAsLetCache = new Map<ts.Symbol, boolean>();
 	public readonly getModuleExportsCache = new Map<ts.Symbol, Array<ts.Symbol>>();

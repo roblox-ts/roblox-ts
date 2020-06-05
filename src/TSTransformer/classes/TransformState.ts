@@ -6,7 +6,7 @@ import { RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";
-import { CompileState, GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
+import { GlobalSymbols, MacroManager, MultiTransformState, RoactSymbolManager } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import originalTS from "typescript";
@@ -36,7 +36,7 @@ export class TransformState {
 	}
 
 	constructor(
-		public readonly compileState: CompileState,
+		public readonly multiTransformState: MultiTransformState,
 		public readonly rojoConfig: RojoConfig,
 		public readonly pathTranslator: PathTranslator,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
@@ -291,7 +291,7 @@ export class TransformState {
 	 * @param moduleSymbol
 	 */
 	public getModuleExports(moduleSymbol: ts.Symbol) {
-		return getOrSetDefault(this.compileState.getModuleExportsCache, moduleSymbol, () =>
+		return getOrSetDefault(this.multiTransformState.getModuleExportsCache, moduleSymbol, () =>
 			this.typeChecker.getExportsOfModule(moduleSymbol),
 		);
 	}
@@ -301,7 +301,7 @@ export class TransformState {
 	 * @param moduleSymbol
 	 */
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
-		return getOrSetDefault(this.compileState.getModuleExportsAliasMapCache, moduleSymbol, () => {
+		return getOrSetDefault(this.multiTransformState.getModuleExportsAliasMapCache, moduleSymbol, () => {
 			const aliasMap = new Map<ts.Symbol, string>();
 			for (const exportSymbol of this.getModuleExports(moduleSymbol)) {
 				const originalSymbol = ts.skipAlias(exportSymbol, this.typeChecker);

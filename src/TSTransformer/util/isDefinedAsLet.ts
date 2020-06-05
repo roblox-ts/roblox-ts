@@ -5,7 +5,7 @@ import { getAncestor } from "TSTransformer/util/traversal";
 
 export function isDefinedAsLet(state: TransformState, idSymbol: ts.Symbol) {
 	return getOrSetDefault(
-		state.compileState.isDefinedAsLetCache,
+		state.multiTransformState.isDefinedAsLetCache,
 		idSymbol,
 		() => !!((getAncestor(idSymbol.valueDeclaration, ts.isVariableDeclarationList)?.flags ?? 0) & ts.NodeFlags.Let),
 	);

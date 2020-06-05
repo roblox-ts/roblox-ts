@@ -94,5 +94,7 @@ export function isMethod(
 	if (!type || !type.symbol) {
 		return false;
 	}
-	return getOrSetDefault(state.compileState.isMethodCache, type.symbol, () => isMethodInner(state, node, type));
+	return getOrSetDefault(state.multiTransformState.isMethodCache, type.symbol, () =>
+		isMethodInner(state, node, type),
+	);
 }
