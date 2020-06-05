@@ -62,9 +62,6 @@ export function transformCallExpressionInner(
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
 	validateNotAnyType(state, node.expression);
-	for (const arg of node.arguments) {
-		validateNotAnyType(state, arg);
-	}
 
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getCallMacro(type.symbol);
@@ -89,9 +86,6 @@ export function transformPropertyCallExpressionInner(
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
 	validateNotAnyType(state, node.expression);
-	for (const arg of node.arguments) {
-		validateNotAnyType(state, arg);
-	}
 
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
@@ -128,9 +122,6 @@ export function transformElementCallExpressionInner(
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
 	validateNotAnyType(state, node.expression);
-	for (const arg of node.arguments) {
-		validateNotAnyType(state, arg);
-	}
 
 	const type = state.getType(node.expression);
 	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
@@ -159,10 +150,6 @@ export function transformElementCallExpressionInner(
 
 export function transformCallExpression(state: TransformState, node: ts.CallExpression) {
 	if (ts.isSuperCall(node) || ts.isSuperProperty(node.expression)) {
-		for (const arg of node.arguments) {
-			validateNotAnyType(state, arg);
-		}
-
 		const classLikeAncestor = getAncestor(node, ts.isClassLike);
 		const insideRoactComponent = classLikeAncestor && extendsRoactComponent(state, classLikeAncestor);
 		if (ts.isSuperCall(node)) {

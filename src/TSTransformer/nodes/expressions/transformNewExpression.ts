@@ -9,9 +9,6 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformNewExpression(state: TransformState, node: ts.NewExpression) {
 	validateNotAnyType(state, node.expression);
-	for (const arg of node.arguments ?? []) {
-		validateNotAnyType(state, arg);
-	}
 
 	const symbol = getFirstConstructSymbol(state, node.expression);
 	if (symbol) {

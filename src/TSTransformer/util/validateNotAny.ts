@@ -5,16 +5,6 @@ import { skipDownwards } from "TSTransformer/util/traversal";
 import { getTypeArguments, isAnyType, isArrayType } from "TSTransformer/util/types";
 
 export function validateNotAnyType(state: TransformState, node: ts.Node) {
-	const symbol = state.typeChecker.getSymbolAtLocation(node);
-	if (
-		symbol &&
-		symbol.valueDeclaration &&
-		symbol.valueDeclaration.parent &&
-		ts.isCatchClause(symbol.valueDeclaration.parent)
-	) {
-		return;
-	}
-
 	if (ts.isSpreadElement(node)) {
 		node = skipDownwards(node.expression);
 	}
