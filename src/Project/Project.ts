@@ -74,6 +74,8 @@ export class Project {
 	 * @param opts The options of the project.
 	 */
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
+		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
+
 		// Set up project paths
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
@@ -85,26 +87,6 @@ export class Project {
 			this.pkgVersion = pkgJson.version;
 		}
 
-		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
-
-		// Obtain TypeScript command line options and validate
-		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
-
-		if (parsedCommandLine === undefined) {
-			throw new ProjectError("Unable to load TS program!");
-		}
-
-		if (parsedCommandLine.errors.length > 0) {
-			throw new DiagnosticError(parsedCommandLine.errors);
-		}
-
-		const compilerOptions = parsedCommandLine.options;
-		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
-
-		this.rootDir = compilerOptions.rootDir;
-		this.outDir = compilerOptions.outDir;
-
-		// Obtain TypeScript command line options and validate
 		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
 		if (rojoConfigPath) {
 			this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
@@ -155,6 +137,23 @@ export class Project {
 				}
 			}
 		}
+
+		// Obtain TypeScript command line options and validate
+		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
+
+		if (parsedCommandLine === undefined) {
+			throw new ProjectError("Unable to load TS program!");
+		}
+
+		if (parsedCommandLine.errors.length > 0) {
+			throw new DiagnosticError(parsedCommandLine.errors);
+		}
+
+		const compilerOptions = parsedCommandLine.options;
+		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
+
+		this.rootDir = compilerOptions.rootDir;
+		this.outDir = compilerOptions.outDir;
 
 		// Set up TypeScript program for project
 		// This will generate the `ts.SourceFile` objects for each file in our project
