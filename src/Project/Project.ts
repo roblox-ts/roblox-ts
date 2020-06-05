@@ -89,7 +89,7 @@ export class Project {
 
 		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
 		if (rojoConfigPath) {
-			this.rojoConfig = RojoConfig.fromPathSync(rojoConfigPath);
+			this.rojoConfig = RojoConfig.fromPath(rojoConfigPath);
 			if (this.rojoConfig.isGame()) {
 				this.projectType = ProjectType.Game;
 			} else {

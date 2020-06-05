@@ -178,7 +178,7 @@ export class RojoConfig {
 		}
 	}
 
-	public static fromPathSync(rojoPath: string) {
+	public static fromPath(rojoPath: string) {
 		if (!path.isAbsolute(rojoPath)) {
 			rojoPath = path.resolve(rojoPath);
 		}
