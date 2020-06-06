@@ -53,7 +53,7 @@ export class Project {
 	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
 
-	private readonly program: ts.Program;
+	private readonly program: ts.BuilderProgram;
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly options: ProjectOptions;
 	private readonly globalSymbols: GlobalSymbols;
@@ -157,12 +157,12 @@ export class Project {
 
 		// Set up TypeScript program for project
 		// This will generate the `ts.SourceFile` objects for each file in our project
-		this.program = ts.createProgram({
+		this.program = ts.createIncrementalProgram({
 			rootNames: parsedCommandLine.fileNames,
 			options: compilerOptions,
 		});
 
-		this.typeChecker = this.program.getTypeChecker();
+		this.typeChecker = this.program.getProgram().getTypeChecker();
 
 		this.globalSymbols = new GlobalSymbols(this.typeChecker);
 		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
