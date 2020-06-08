@@ -9,6 +9,7 @@
 		{ "path": "./src/CLI" },
 		{ "path": "./src/Project" },
 		{ "path": "./src/LuaAST" },
+		{ "path": "./src/LuaOptimiser" },
 		{ "path": "./src/LuaRenderer" },
 		{ "path": "./src/TSTransformer" }
 	]

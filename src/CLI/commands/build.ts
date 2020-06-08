@@ -53,6 +53,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			.option("rojo", {
 				string: true,
 				describe: "Manually select Rojo configuration file",
+			})
+			.option("optimise", {
+				alias: "o",
+				boolean: true,
+				describe: "whether or not the Lua output should be optimised",
 			}),
 
 	handler: async argv => {

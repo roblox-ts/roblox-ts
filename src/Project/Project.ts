@@ -1,6 +1,5 @@
 import ts from "byots";
 import fs from "fs-extra";
-import { renderAST } from "LuaRenderer";
 import path from "path";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
@@ -19,6 +18,8 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
+import { optimiseAST } from "LuaOptimiser";
+import { renderAST } from "LuaRenderer";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
 const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
@@ -26,6 +27,7 @@ const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
 	rojo: "",
+	optimise: false,
 };
 
 /**
@@ -41,6 +43,11 @@ export interface ProjectOptions {
 	 * The path to the rojo configuration.
 	 */
 	rojo: string;
+
+	/**
+	 * Whether the LuaAST should be optimised before rendering
+	 */
+	optimise: boolean;
 }
 
 /**
@@ -223,10 +230,13 @@ export class Project {
 				);
 
 				// Create a new Lua abstract syntax tree for the file
-				const luaAST = transformSourceFile(transformState, sourceFile);
+				let luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) continue;
 
+				if (this.options.optimise) {
+					luaAST = optimiseAST(luaAST);
+				}
 				// Render lua abstract syntax tree and output only if there were no diagnostics
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
