@@ -57,7 +57,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			.option("optimise", {
 				alias: "o",
 				boolean: true,
-				describe: "whether or not the Lua output should be optimised",
+				describe: "Whether the Lua output should be optimised",
 			}),
 
 	handler: async argv => {
