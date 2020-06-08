@@ -157,9 +157,23 @@ export class Project {
 
 		// Set up TypeScript program for project
 		// This will generate the `ts.SourceFile` objects for each file in our project
-		this.program = ts.createIncrementalProgram({
-			rootNames: parsedCommandLine.fileNames,
-			options: compilerOptions,
+
+		const host = ts.createCompilerHost(compilerOptions);
+		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
+			parsedCommandLine.fileNames,
+			compilerOptions,
+			host,
+		);
+
+		this.program.getProgram().emitBuildInfo((fileName, data, writeByteOrderMark, onError, sourceFiles) => {
+			console.log("fileName", fileName);
+			console.log("data", data);
+			console.log("writeByteOrderMark", writeByteOrderMark);
+			console.log("onError", onError);
+			console.log(
+				"sourceFiles",
+				sourceFiles?.map(v => v.fileName),
+			);
 		});
 
 		this.typeChecker = this.program.getProgram().getTypeChecker();
