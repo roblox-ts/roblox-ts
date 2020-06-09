@@ -82,7 +82,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
  * @param node The `ts.Statement` to transform.
  */
 export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
-	// If any modifiers of the node include the `declare` keyword we do not transform
+	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);

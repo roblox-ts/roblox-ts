@@ -56,7 +56,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			}),
 
 	handler: async argv => {
-		// Attempt to retrieve TypeScript configuration JSON path
+		// attempt to retrieve TypeScript configuration JSON path
 		let tsConfigPath: string | undefined = path.resolve(argv.project);
 		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
 			tsConfigPath = ts.findConfigFile(tsConfigPath, ts.sys.fileExists);
@@ -66,21 +66,21 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 		}
 		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
 
-		// Parse the contents of the retrieved JSON path as a partial `ProjectOptions`
+		// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
 		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);
 
-		// If watch mode is enabled
+		// if watch mode is enabled
 		if (argv.watch) {
 			new Watcher(tsConfigPath, projectOptions);
 		} else {
 			try {
-				// Attempt to build the project
+				// attempt to build the project
 				const project = new Project(tsConfigPath, projectOptions);
 				await project.cleanup();
 				project.compile();
 			} catch (e) {
-				// Catch recognized errors
+				// catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {
 					e.log();
 				} else {

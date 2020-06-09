@@ -65,14 +65,14 @@ const TRANSFORMER_BY_KIND = new Map<
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	(state: TransformState, node: any, ptr: Pointer<lua.AnyIdentifier>) => lua.List<lua.Statement>
 >([
-	// Type: no emit
+	// type: no emit
 	[ts.SyntaxKind.IndexSignature, NO_EMIT],
-	// Does not add functionality; auto-added by LuaRenderer
+	// does not add functionality; auto-added by LuaRenderer
 	[ts.SyntaxKind.SemicolonClassElement, NO_EMIT],
-	// Exclusive to ClassElement
+	// exclusive to ClassElement
 	[ts.SyntaxKind.PropertyDeclaration, transformPropertyDeclaration],
 	[ts.SyntaxKind.Constructor, transformConstructorDeclaration],
-	// Shared with ObjectLiteralExpression, so uses separate file
+	// shared with ObjectLiteralExpression, so uses separate file
 	[ts.SyntaxKind.MethodDeclaration, transformMethodDeclaration],
 	[ts.SyntaxKind.GetAccessor, DIAGNOSTIC(diagnostics.noGetterSetter)],
 	[ts.SyntaxKind.SetAccessor, DIAGNOSTIC(diagnostics.noGetterSetter)],

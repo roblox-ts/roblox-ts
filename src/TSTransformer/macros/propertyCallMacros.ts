@@ -414,13 +414,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const lengthOfExpression = lua.unary("#", expression);
 		const args = argumentsWithDefaults(state, node.arguments, [lua.number(0), lengthOfExpression]);
 
-		// Returns the value of a 'NegativeLiteral'.
-		// However, those do not exist.
-		// So this function will check to see if:
+		// returns the value of a 'NegativeLiteral'
+		// however, those do not exist
+		// so this function will check to see if:
 		//		exp is a UnaryExpression
 		//		the expression of exp is a NumberLiteral
 		//		the operator is unary minus
-		// Then return the value of that literal
+		// then return the value of that literal
 		const getValueFromNegativeLiteral = (exp: lua.Expression) =>
 			lua.isUnaryExpression(exp) && lua.isNumberLiteral(exp.expression) && exp.operator === "-"
 				? -exp.expression.value

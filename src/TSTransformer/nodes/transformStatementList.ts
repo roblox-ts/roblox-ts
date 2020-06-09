@@ -18,19 +18,19 @@ export function transformStatementList(
 		mapping: Map<ts.Statement, Array<string>>;
 	},
 ) {
-	// Make a new lua tree
+	// make a new lua tree
 	const result = lua.list.make<lua.Statement>();
 
-	// Iterate through each statement in the `statements` array
+	// iterate through each statement in the `statements` array
 	for (const statement of statements) {
 		let transformedStatements!: lua.List<lua.Statement>;
-		// Capture prerequisite statements for the `ts.Statement`
-		// Transform the statement into a lua.List<...>
+		// capture prerequisite statements for the `ts.Statement`
+		// transform the statement into a lua.List<...>
 		const prereqStatements = state.capturePrereqs(
 			() => (transformedStatements = transformStatement(state, statement)),
 		);
 
-		// Iterate through each of the leading comments of the statement
+		// iterate through each of the leading comments of the statement
 		for (const comment of state.getLeadingComments(statement)) {
 			lua.list.push(
 				result,
@@ -40,8 +40,8 @@ export function transformStatementList(
 			);
 		}
 
-		// Check statement for hoisting
-		// Hoisting is the use of a variable before it was declared
+		// check statement for hoisting
+		// hoisting is the use of a variable before it was declared
 		const hoistDeclaration = createHoistDeclaration(state, statement);
 		if (hoistDeclaration) {
 			lua.list.push(result, hoistDeclaration);

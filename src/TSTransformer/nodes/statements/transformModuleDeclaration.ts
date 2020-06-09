@@ -96,7 +96,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 		return lua.list.make<lua.Statement>();
 	}
 
-	// ts.StringLiteral is only in the case of `declare module "X" {}`? Should be filtered out above.
+	// ts.StringLiteral is only in the case of `declare module "X" {}`? Should be filtered out above
 	assert(!ts.isStringLiteral(node.name));
 	assert(node.body && !ts.isIdentifier(node.body));
 	// unsure how to filter out ts.JSDocNamespaceBody

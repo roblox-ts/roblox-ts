@@ -71,8 +71,8 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	if (isFlatMap(transformed)) {
 		// TODO make this nicer?
 		const elements = lua.list.toArray(transformed.members).map(e => {
-			// Non-null and type assertion because array will always have 2 members,
-			// Due to map constructor typing.
+			// non-null and type assertion because array will always have 2 members,
+			// due to map constructor typing
 			return [e.members.head!.value, e.members.head!.next!.value] as [lua.Expression, lua.Expression];
 		});
 		return lua.map(elements);

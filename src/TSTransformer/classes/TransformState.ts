@@ -129,9 +129,9 @@ export class TransformState {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return (
 			commentRanges
-				// Filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`oh
+				// filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`
 				.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
-				// Map each `ts.CommentRange` to its value without the beginning '//'
+				// map each `ts.CommentRange` to its value without the beginning '//'
 				.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end))
 		);
 	}
@@ -202,16 +202,16 @@ export class TransformState {
 	 * Returns a `lua.VariableDeclaration` for RuntimeLib.lua
 	 */
 	public createRuntimeLibImport() {
-		// If the transform state has the game path to the RuntimeLib.lua
+		// if the transform state has the game path to the RuntimeLib.lua
 		if (this.runtimeLibRbxPath) {
 			const rbxPath = [...this.runtimeLibRbxPath];
-			// Create an expression to obtain the service where RuntimeLib is stored
+			// create an expression to obtain the service where RuntimeLib is stored
 			const serviceName = rbxPath.shift();
 			assert(serviceName);
 
 			let expression: lua.IndexableExpression = createGetService(serviceName);
-			// Iterate through the rest of the path
-			// For each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
+			// iterate through the rest of the path
+			// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
 			for (const pathPart of rbxPath) {
 				expression = lua.create(lua.SyntaxKind.MethodCallExpression, {
 					expression,
@@ -220,22 +220,20 @@ export class TransformState {
 				});
 			}
 
-			// Nest the chain of `WaitForChild`s inside a require call
+			// nest the chain of `WaitForChild`s inside a require call
 			expression = lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.require,
 				args: lua.list.make(expression),
 			});
 
-			// Create a variable declaration for this call
+			// create a variable declaration for this call
 			return lua.create(lua.SyntaxKind.VariableDeclaration, {
 				left: RUNTIME_LIB_ID,
 				right: expression,
 			});
 		} else {
-			// Create `_G[script]` index
-			// Packages do not contain their own RuntimeLib and have no way of knowing where the host RuntimeLib is
-			// Third part Lua code that wants to access the TunTimeLib so we pass it to _G[script] = TS
-			// - Osyris
+			// we pass RuntimeLib access to packages via `_G[script] = TS`
+			// access it here via `local TS = _G[script]`
 			return lua.create(lua.SyntaxKind.VariableDeclaration, {
 				left: RUNTIME_LIB_ID,
 				right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {

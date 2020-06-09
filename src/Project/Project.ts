@@ -80,11 +80,11 @@ export class Project {
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
-		// Set up project paths
+		// set up project paths
 		this.projectPath = path.dirname(tsConfigPath);
 		this.nodeModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
 
-		// Retrieve package.json
+		// retrieve package.json
 		const pkgJsonPath = path.join(this.projectPath, "package.json");
 		if (fs.pathExistsSync(pkgJsonPath)) {
 			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
@@ -104,7 +104,7 @@ export class Project {
 			this.projectType = ProjectType.Package;
 		}
 
-		// Validates and establishes runtime library
+		// validates and establishes runtime library
 		if (this.projectType !== ProjectType.Package) {
 			const runtimeFsPath = path.join(this.projectOptions.includePath, "RuntimeLib.lua");
 			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
@@ -142,7 +142,7 @@ export class Project {
 			}
 		}
 
-		// Obtain TypeScript command line options and validate
+		// obtain TypeScript command line options and validate
 		const parsedCommandLine = ts.getParsedCommandLineOfConfigFile(tsConfigPath, {}, createParseConfigFileHost());
 
 		if (parsedCommandLine === undefined) {
@@ -176,12 +176,12 @@ export class Project {
 			this.roactSymbolManager = new RoactSymbolManager(this.typeChecker, roactIndexSourceFile);
 		}
 
-		// Create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
+		// create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
 		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
 	}
 
 	/**
-	 * Cleans up 'orphaned' files - Files which don't belong to any source file
+	 * cleans up 'orphaned' files - Files which don't belong to any source file
 	 * in the out directory.
 	 */
 	public async cleanup() {
@@ -197,8 +197,8 @@ export class Project {
 	}
 
 	/**
-	 * 'Transpiles' TypeScript project into a logically identical Lua project.
-	 * Writes rendered lua source to the out directory.
+	 * 'transpiles' TypeScript project into a logically identical Lua project.
+	 * writes rendered lua source to the out directory.
 	 */
 	public compile() {
 		const multiTransformState = new MultiTransformState(this.pkgVersion);
@@ -232,15 +232,15 @@ export class Project {
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
 				console.log("compile", sourceFile.fileName);
 
-				// Catch pre emit diagnostics
 				const customPreEmitDiagnostics = this.getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
+
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
 
-				// Create a new transform state for the file
+				// create a new transform state for the file
 				const transformState = new TransformState(
 					this.compilerOptions,
 					multiTransformState,
@@ -258,12 +258,12 @@ export class Project {
 					sourceFile,
 				);
 
-				// Create a new Lua abstract syntax tree for the file
+				// create a new Lua abstract syntax tree for the file
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) return;
 
-				// Render lua abstract syntax tree and output only if there were no diagnostics
+				// render lua abstract syntax tree and output only if there were no diagnostics
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 			}

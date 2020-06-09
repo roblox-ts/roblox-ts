@@ -501,8 +501,8 @@ export function transformJsx(
 		args,
 	});
 
-	// If this is a top-level element, handle Key here.
-	// Otherwise, handle in transformJsxAttributes
+	// if this is a top-level element, handle Key here
+	// otherwise, handle in transformJsxAttributes
 	if (!ts.isJsxElement(node.parent)) {
 		const key = getKeyValue(node);
 		if (key) {

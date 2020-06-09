@@ -29,7 +29,7 @@ export function transformMethodDeclaration(
 
 	const name = transformObjectKey(state, node.name);
 
-	// Can we use `class:name()`?
+	// can we use `class:name()`?
 	if (lua.isStringLiteral(name) && !lua.isMap(ptr.value) && isMethod(state, node)) {
 		lua.list.shift(parameters); // remove `self`
 		return lua.list.make(
@@ -43,7 +43,7 @@ export function transformMethodDeclaration(
 		);
 	}
 
-	// We have to use `class[name] = function()`
+	// we have to use `class[name] = function()`
 	return state.capturePrereqs(() =>
 		assignToMapPointer(
 			state,

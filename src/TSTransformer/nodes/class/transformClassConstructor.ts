@@ -39,7 +39,7 @@ export function transformClassConstructor(
 		let bodyStatements = getStatements(originNode.body);
 		const firstStatement = bodyStatements[0];
 
-		// if isRoact and first statement is `super()`, remove it.
+		// if isRoact and first statement is `super()`, remove it
 		if (
 			isRoact &&
 			bodyStatements.length > 0 &&

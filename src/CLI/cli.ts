@@ -23,13 +23,13 @@ const cli = yargs
 	.strict()
 	.wrap(yargs.terminalWidth());
 
-// Entry point
+// entry point
 try {
-	// Attempt to parse the arguments passed through the CLI
-	// Run associated commands after parse
+	// attempt to parse the arguments passed through the CLI
+	// run associated commands after parse
 	cli.parse();
 } catch (e) {
-	// Catch recognized errors and log
+	// catch recognized errors and log
 	if (e instanceof CLIError) {
 		e.log();
 	} else {
