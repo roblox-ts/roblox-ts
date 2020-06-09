@@ -10,6 +10,6 @@ export function createParseConfigFileHost(): ts.ParseConfigFileHost {
 		},
 		readDirectory: ts.sys.readDirectory,
 		readFile: ts.sys.readFile,
-		useCaseSensitiveFileNames: true,
+		useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
 	};
 }
