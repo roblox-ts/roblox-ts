@@ -151,18 +151,17 @@ export class Project {
 			throw new DiagnosticError(parsedCommandLine.errors);
 		}
 
-		const options = parsedCommandLine.options;
-		validateCompilerOptions(options, this.nodeModulesPath);
+		const compilerOptions = parsedCommandLine.options;
+		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
 
-		this.rootDir = options.rootDir;
-		this.outDir = options.outDir;
+		this.rootDir = compilerOptions.rootDir;
+		this.outDir = compilerOptions.outDir;
 
-		const rootNames = parsedCommandLine.fileNames;
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
-			rootNames,
-			options,
-			ts.createIncrementalCompilerHost(options),
-			ts.readBuilderProgram(options, {
+			parsedCommandLine.fileNames,
+			compilerOptions,
+			ts.createIncrementalCompilerHost(compilerOptions),
+			ts.readBuilderProgram(compilerOptions, {
 				getCurrentDirectory: ts.sys.getCurrentDirectory,
 				readFile: ts.sys.readFile,
 				useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
