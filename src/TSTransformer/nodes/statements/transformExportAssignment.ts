@@ -4,6 +4,7 @@ import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 function transformExportEquals(state: TransformState, node: ts.ExportAssignment) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
@@ -11,7 +12,7 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 		state.addDiagnostic(diagnostics.noExportAssignmentLet(node));
 	}
 
-	if (symbol && !(symbol.flags & ts.SymbolFlags.Value)) {
+	if (symbol && isSymbolOfValue(symbol)) {
 		return lua.list.make<lua.Statement>();
 	}
 

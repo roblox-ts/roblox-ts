@@ -7,6 +7,7 @@ import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 
 function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
@@ -49,11 +50,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 		if (moduleExports.length > 0) {
 			for (const exportSymbol of moduleExports) {
 				const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-				if (
-					!!(originalSymbol.flags & ts.SymbolFlags.Value) &&
-					!(originalSymbol.flags & ts.SymbolFlags.ConstEnum) &&
-					!isDefinedAsLet(state, originalSymbol)
-				) {
+				if (isSymbolOfValue(originalSymbol) && !isDefinedAsLet(state, originalSymbol)) {
 					const statement = getAncestor(exportSymbol.valueDeclaration, ts.isStatement);
 					assert(statement);
 					getOrSetDefault(exportsMap, statement, () => []).push(exportSymbol.name);

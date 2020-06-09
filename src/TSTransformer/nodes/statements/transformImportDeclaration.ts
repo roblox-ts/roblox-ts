@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 function countImportExpUses(importClause: ts.ImportClause) {
 	let uses = 0;
@@ -63,7 +64,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	if (defaultImport) {
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(defaultImport);
 		assert(aliasSymbol);
-		if (!!(ts.skipAlias(aliasSymbol, state.typeChecker).flags & ts.SymbolFlags.Value)) {
+		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
 			const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
 			assert(exportSymbol);
 			const exportDec = exportSymbol.valueDeclaration;
@@ -94,7 +95,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			for (const element of namedBindings.elements) {
 				const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
 				assert(aliasSymbol);
-				if (!!(ts.skipAlias(aliasSymbol, state.typeChecker).flags & ts.SymbolFlags.Value)) {
+				if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
 					lua.list.pushList(
 						statements,
 						transformVariable(

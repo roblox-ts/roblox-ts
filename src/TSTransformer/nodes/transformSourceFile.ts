@@ -6,6 +6,7 @@ import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { version: VERSION } = require("./../../../package.json") as { version: string };
@@ -32,7 +33,7 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (!!(originalSymbol.flags & ts.SymbolFlags.Value) && !(originalSymbol.flags & ts.SymbolFlags.ConstEnum)) {
+			if (isSymbolOfValue(originalSymbol)) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
