@@ -85,6 +85,8 @@ export class PathTranslator {
 			pathInfo.exts.pop();
 
 			pathInfo.fileName = originalFileName;
+
+			pathInfo.exts.push(LUA_EXT);
 		}
 
 		possiblePaths.push(makeRelative(pathInfo));
