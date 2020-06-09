@@ -10,6 +10,8 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { cleanupDirRecursively } from "Shared/fsUtil";
 import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
+import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import {
 	GlobalSymbols,
 	MacroManager,
@@ -53,9 +55,9 @@ export class Project {
 	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
 
-	private readonly program: ts.BuilderProgram;
+	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly typeChecker: ts.TypeChecker;
-	private readonly options: ProjectOptions;
+	private readonly projectOptions: ProjectOptions;
 	private readonly globalSymbols: GlobalSymbols;
 	private readonly macroManager: MacroManager;
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
@@ -74,7 +76,7 @@ export class Project {
 	 * @param opts The options of the project.
 	 */
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
-		this.options = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
+		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		// Set up project paths
 		this.projectPath = path.dirname(tsConfigPath);
@@ -87,7 +89,7 @@ export class Project {
 			this.pkgVersion = pkgJson.version;
 		}
 
-		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.options.rojo);
+		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.projectOptions.rojo);
 		if (rojoConfigPath) {
 			this.rojoConfig = RojoConfig.fromPath(rojoConfigPath);
 			if (this.rojoConfig.isGame()) {
@@ -102,7 +104,7 @@ export class Project {
 
 		// Validates and establishes runtime library
 		if (this.projectType !== ProjectType.Package) {
-			const runtimeFsPath = path.join(this.options.includePath, "RuntimeLib.lua");
+			const runtimeFsPath = path.join(this.projectOptions.includePath, "RuntimeLib.lua");
 			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
 			if (!runtimeLibRbxPath) {
 				throw new ProjectError(
@@ -124,7 +126,11 @@ export class Project {
 				const pkgPath = path.join(this.nodeModulesPath, pkgName);
 				const pkgJsonPath = path.join(pkgPath, "package.json");
 				if (fs.existsSync(pkgJsonPath)) {
-					const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
+					const pkgJson = fs.readJSONSync(pkgJsonPath) as {
+						main?: string;
+						typings?: string;
+						types?: string;
+					};
 					const mainPath = pkgJson.main;
 					// both types and typings are valid
 					const typesPath = pkgJson.types ?? pkgJson.typings;
@@ -149,32 +155,24 @@ export class Project {
 			throw new DiagnosticError(parsedCommandLine.errors);
 		}
 
-		const compilerOptions = parsedCommandLine.options;
-		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
+		const options = parsedCommandLine.options;
+		validateCompilerOptions(options, this.nodeModulesPath);
 
-		this.rootDir = compilerOptions.rootDir;
-		this.outDir = compilerOptions.outDir;
+		this.rootDir = options.rootDir;
+		this.outDir = options.outDir;
 
-		// Set up TypeScript program for project
-		// This will generate the `ts.SourceFile` objects for each file in our project
-
-		const host = ts.createCompilerHost(compilerOptions);
+		const rootNames = parsedCommandLine.fileNames;
+		const host = ts.createIncrementalCompilerHost(options);
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
-			parsedCommandLine.fileNames,
-			compilerOptions,
+			rootNames,
+			options,
 			host,
+			ts.readBuilderProgram(options, {
+				getCurrentDirectory: ts.sys.getCurrentDirectory,
+				readFile: ts.sys.readFile,
+				useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
+			}),
 		);
-
-		this.program.getProgram().emitBuildInfo((fileName, data, writeByteOrderMark, onError, sourceFiles) => {
-			console.log("fileName", fileName);
-			console.log("data", data);
-			console.log("writeByteOrderMark", writeByteOrderMark);
-			console.log("onError", onError);
-			console.log(
-				"sourceFiles",
-				sourceFiles?.map(v => v.fileName),
-			);
-		});
 
 		this.typeChecker = this.program.getProgram().getTypeChecker();
 
@@ -200,6 +198,12 @@ export class Project {
 		}
 	}
 
+	private getCustomPreEmitDiagnostics(sourceFile: ts.SourceFile) {
+		const diagnostics: Array<ts.Diagnostic> = [];
+		preEmitDiagnostics.forEach(check => diagnostics.push(...check(sourceFile)));
+		return diagnostics;
+	}
+
 	/**
 	 * 'Transpiles' TypeScript project into a logically identical Lua project.
 	 * Writes rendered lua source to the out directory.
@@ -208,16 +212,41 @@ export class Project {
 		const multiTransformState = new MultiTransformState(this.pkgVersion);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
-		// Iterate through each source file in the project as a `ts.SourceFile`
-		for (const sourceFile of this.program.getSourceFiles()) {
+
+		const buildState = this.program.getState();
+
+		// build a reversed referencedMap
+		const reversedRefMap = new Map<string, Set<string>>();
+		if (buildState.referencedMap) {
+			buildState.referencedMap.forEach((referencedSet, fileName) => {
+				referencedSet.forEach((_, refFileName) => {
+					getOrSetDefault(reversedRefMap, refFileName, () => new Set()).add(fileName);
+				});
+			});
+		}
+
+		// build set of changed files + files that reference changed files
+		const compileSet = new Set<string>();
+		buildState.changedFilesSet?.forEach((_, fileName) => {
+			compileSet.add(fileName);
+			reversedRefMap.get(fileName)?.forEach(fileName => compileSet.add(fileName));
+		});
+
+		// iterate through each source file in the project as a `ts.SourceFile`
+		compileSet.forEach((_, fileName) => {
+			const sourceFile = this.program.getSourceFile(fileName);
+			assert(sourceFile);
+
 			if (!sourceFile.isDeclarationFile) {
+				console.log("compile", sourceFile.fileName);
+
 				// Catch pre emit diagnostics
 				const customPreEmitDiagnostics = this.getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
-				if (totalDiagnostics.length > 0) continue;
+				if (totalDiagnostics.length > 0) return;
 				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
-				if (totalDiagnostics.length > 0) continue;
+				if (totalDiagnostics.length > 0) return;
 
 				// Create a new transform state for the file
 				const transformState = new TransformState(
@@ -239,21 +268,16 @@ export class Project {
 				// Create a new Lua abstract syntax tree for the file
 				const luaAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
-				if (totalDiagnostics.length > 0) continue;
+				if (totalDiagnostics.length > 0) return;
 
 				// Render lua abstract syntax tree and output only if there were no diagnostics
 				const luaSource = renderAST(luaAST);
 				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 			}
-		}
+		});
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
 		}
-	}
-
-	getCustomPreEmitDiagnostics(sourceFile: ts.SourceFile) {
-		const diagnostics: Array<ts.Diagnostic> = [];
-		preEmitDiagnostics.forEach(check => diagnostics.push(...check(sourceFile)));
-		return diagnostics;
+		this.program.getProgram().emitBuildInfo();
 	}
 }
