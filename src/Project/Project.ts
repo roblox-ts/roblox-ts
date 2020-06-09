@@ -126,11 +126,7 @@ export class Project {
 				const pkgPath = path.join(this.nodeModulesPath, pkgName);
 				const pkgJsonPath = path.join(pkgPath, "package.json");
 				if (fs.existsSync(pkgJsonPath)) {
-					const pkgJson = fs.readJSONSync(pkgJsonPath) as {
-						main?: string;
-						typings?: string;
-						types?: string;
-					};
+					const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
 					const mainPath = pkgJson.main;
 					// both types and typings are valid
 					const typesPath = pkgJson.types ?? pkgJson.typings;
@@ -162,11 +158,10 @@ export class Project {
 		this.outDir = options.outDir;
 
 		const rootNames = parsedCommandLine.fileNames;
-		const host = ts.createIncrementalCompilerHost(options);
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			rootNames,
 			options,
-			host,
+			ts.createIncrementalCompilerHost(options),
 			ts.readBuilderProgram(options, {
 				getCurrentDirectory: ts.sys.getCurrentDirectory,
 				readFile: ts.sys.readFile,
