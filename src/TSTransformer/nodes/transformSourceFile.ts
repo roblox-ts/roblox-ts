@@ -2,14 +2,12 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { RbxType } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
+import { getCompilerVersion } from "Shared/util/getCompilerVersion";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { version: VERSION } = require("./../../../package.json") as { version: string };
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, lua.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -133,7 +131,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	}
 
 	// add build information to the tree
-	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${VERSION}`));
+	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${getCompilerVersion()}`));
 
 	return statements;
 }

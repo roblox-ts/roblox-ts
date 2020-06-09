@@ -12,6 +12,7 @@ import { cleanupDirRecursively } from "Shared/fsUtil";
 import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
+import { getCompilerVersion } from "Shared/util/getCompilerVersion";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import {
 	GlobalSymbols,
@@ -159,10 +160,20 @@ export class Project {
 		this.rootDir = this.compilerOptions.rootDir;
 		this.outDir = this.compilerOptions.outDir;
 
+		const incrementalCompilerHost = ts.createIncrementalCompilerHost(this.compilerOptions);
+		const originalGetSourceFile = incrementalCompilerHost.getSourceFile;
+		incrementalCompilerHost.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
+			const sourceFile = originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
+			if (sourceFile) {
+				sourceFile.version = getCompilerVersion();
+			}
+			return sourceFile;
+		};
+
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
 			this.compilerOptions,
-			ts.createIncrementalCompilerHost(this.compilerOptions),
+			incrementalCompilerHost,
 			ts.readBuilderProgram(this.compilerOptions, createReadBuildProgramHost()),
 		);
 
