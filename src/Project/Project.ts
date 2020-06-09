@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import { renderAST } from "LuaRenderer";
 import path from "path";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
+import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
@@ -162,11 +163,7 @@ export class Project {
 			parsedCommandLine.fileNames,
 			this.compilerOptions,
 			ts.createIncrementalCompilerHost(this.compilerOptions),
-			ts.readBuilderProgram(this.compilerOptions, {
-				getCurrentDirectory: ts.sys.getCurrentDirectory,
-				readFile: ts.sys.readFile,
-				useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
-			}),
+			ts.readBuilderProgram(this.compilerOptions, createReadBuildProgramHost()),
 		);
 
 		this.typeChecker = this.program.getProgram().getTypeChecker();
