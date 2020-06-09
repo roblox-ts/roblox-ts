@@ -40,7 +40,12 @@ export function transformClassConstructor(
 		const firstStatement = bodyStatements[0];
 
 		// if isRoact and first statement is `super()`, remove it.
-		if (isRoact && ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
+		if (
+			isRoact &&
+			bodyStatements.length > 0 &&
+			ts.isExpressionStatement(firstStatement) &&
+			ts.isSuperCall(firstStatement.expression)
+		) {
 			bodyStatements = bodyStatements.slice(1);
 		}
 
