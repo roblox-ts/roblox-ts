@@ -56,6 +56,7 @@ export class Project {
 	public readonly rojoFilePath: string | undefined;
 
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
+	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly projectOptions: ProjectOptions;
 	private readonly globalSymbols: GlobalSymbols;
@@ -151,17 +152,17 @@ export class Project {
 			throw new DiagnosticError(parsedCommandLine.errors);
 		}
 
-		const compilerOptions = parsedCommandLine.options;
-		validateCompilerOptions(compilerOptions, this.nodeModulesPath);
+		this.compilerOptions = parsedCommandLine.options;
+		validateCompilerOptions(this.compilerOptions, this.nodeModulesPath);
 
-		this.rootDir = compilerOptions.rootDir;
-		this.outDir = compilerOptions.outDir;
+		this.rootDir = this.compilerOptions.rootDir;
+		this.outDir = this.compilerOptions.outDir;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
-			compilerOptions,
-			ts.createIncrementalCompilerHost(compilerOptions),
-			ts.readBuilderProgram(compilerOptions, {
+			this.compilerOptions,
+			ts.createIncrementalCompilerHost(this.compilerOptions),
+			ts.readBuilderProgram(this.compilerOptions, {
 				getCurrentDirectory: ts.sys.getCurrentDirectory,
 				readFile: ts.sys.readFile,
 				useCaseSensitiveFileNames: () => ts.sys.useCaseSensitiveFileNames,
@@ -244,6 +245,7 @@ export class Project {
 
 				// Create a new transform state for the file
 				const transformState = new TransformState(
+					this.compilerOptions,
 					multiTransformState,
 					this.rojoConfig,
 					this.pathTranslator,

@@ -113,7 +113,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	}
 
 	// ensure we emit something
-	if (lua.list.isEmpty(statements)) {
+	if (
+		state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
+		lua.list.isEmpty(statements)
+	) {
 		assert(lua.isCallExpression(importExp));
 		lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression: importExp }));
 	}

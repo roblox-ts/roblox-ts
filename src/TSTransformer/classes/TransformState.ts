@@ -36,6 +36,7 @@ export class TransformState {
 	}
 
 	constructor(
+		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly multiTransformState: MultiTransformState,
 		public readonly rojoConfig: RojoConfig,
 		public readonly pathTranslator: PathTranslator,
