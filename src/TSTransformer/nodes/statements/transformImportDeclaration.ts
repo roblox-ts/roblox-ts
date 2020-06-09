@@ -6,18 +6,24 @@ import { transformVariable } from "TSTransformer/nodes/statements/transformVaria
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
-function countImportExpUses(importClause: ts.ImportClause) {
-	let uses = 0;
-	if (importClause.name) {
-		uses++;
-	}
-	if (importClause.namedBindings) {
-		if (ts.isNamespaceImport(importClause.namedBindings)) {
-			uses++;
-		} else {
-			uses += importClause.namedBindings.elements.length;
+function isReferenceOfValue(state: TransformState, aliasSymbol: ts.Symbol) {
+	if (aliasSymbol.isReferenced !== undefined && !!(aliasSymbol.isReferenced & ts.SymbolFlags.ValueModule)) {
+		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+			return true;
 		}
 	}
+	return false;
+}
+
+function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
+	let uses = 0;
+	ts.forEachImportClauseDeclaration(importClause, declaration => {
+		const aliasSymbol = state.typeChecker.getSymbolAtLocation(declaration.name ?? declaration);
+		assert(aliasSymbol);
+		if (isReferenceOfValue(state, aliasSymbol)) {
+			uses++;
+		}
+	});
 	return uses;
 }
 
@@ -47,7 +53,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	const namedBindings = importClause.namedBindings;
 
 	// detect if we need to push to a new var or not
-	const uses = countImportExpUses(importClause);
+	const uses = countImportExpUses(state, importClause);
 	if (uses > 1) {
 		const importId = lua.tempId();
 		lua.list.push(
@@ -64,7 +70,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	if (defaultImport) {
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(defaultImport);
 		assert(aliasSymbol);
-		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+		if (isReferenceOfValue(state, aliasSymbol)) {
 			const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
 			assert(exportSymbol);
 			const exportDec = exportSymbol.valueDeclaration;
@@ -95,7 +101,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			for (const element of namedBindings.elements) {
 				const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
 				assert(aliasSymbol);
-				if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+
+				if (isReferenceOfValue(state, aliasSymbol)) {
 					lua.list.pushList(
 						statements,
 						transformVariable(
