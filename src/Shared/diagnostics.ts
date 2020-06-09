@@ -83,6 +83,7 @@ export const diagnostics = {
 	noSpreadDestructuring: diagnostic("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: diagnostic("Function expression names are not supported!"),
 	noPrecedingSpreadElement: diagnostic("Spread element must come last in a list of arguments!"),
+	noCustomIteratorSpread: diagnostic("Spread elements with a custom [Symbol.iterator]() method are not supported!"),
 	noDestructureAssignmentExpression: diagnostic(
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),

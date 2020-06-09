@@ -63,6 +63,10 @@ export function isLuaTupleType(state: TransformState, type: ts.Type) {
 	return type.aliasSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
 }
 
+export function isSpreadableType(state: TransformState, type: ts.Type) {
+	return isLuaTupleType(state, type) || isArrayType(state, type);
+}
+
 export function isNumberType(type: ts.Type) {
 	return isSomeType(
 		type,
