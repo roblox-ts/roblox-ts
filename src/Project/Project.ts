@@ -229,7 +229,7 @@ export class Project {
 			const sourceFile = this.program.getSourceFile(fileName);
 			assert(sourceFile);
 
-			if (!sourceFile.isDeclarationFile) {
+			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
 				console.log("compile", sourceFile.fileName);
 
 				// Catch pre emit diagnostics
