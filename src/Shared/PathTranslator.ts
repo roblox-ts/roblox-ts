@@ -66,7 +66,6 @@ export class PathTranslator {
 
 		if (pathInfo.extsPeek() === LUA_EXT) {
 			pathInfo.exts.pop();
-
 			const originalFileName = pathInfo.fileName;
 
 			// init -> index
@@ -85,7 +84,6 @@ export class PathTranslator {
 			pathInfo.exts.pop();
 
 			pathInfo.fileName = originalFileName;
-
 			pathInfo.exts.push(LUA_EXT);
 		}
 
