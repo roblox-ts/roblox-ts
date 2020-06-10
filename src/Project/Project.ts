@@ -31,9 +31,6 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: "",
 };
 
-const PRODUCTION = "production";
-const { NODE_ENV = PRODUCTION } = process.env;
-
 /**
  * The options of the project.
  */
@@ -162,15 +159,10 @@ export class Project {
 		this.rootDir = this.compilerOptions.rootDir;
 		this.outDir = this.compilerOptions.outDir;
 
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		let compilerVersion = (require("./../../package.json") as { version: string }).version;
-		if (NODE_ENV !== PRODUCTION) {
-			compilerVersion += `-${Date.now()}`;
-		}
-
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
-		ts.version = compilerVersion;
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		ts.version = (require("./../../package.json") as { version: string }).version;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
