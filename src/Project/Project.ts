@@ -159,6 +159,9 @@ export class Project {
 		this.rootDir = this.compilerOptions.rootDir;
 		this.outDir = this.compilerOptions.outDir;
 
+		// super hack!
+		// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
+
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
