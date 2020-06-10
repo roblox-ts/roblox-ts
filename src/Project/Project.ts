@@ -12,7 +12,6 @@ import { cleanupDirRecursively } from "Shared/fsUtil";
 import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
-import { getCompilerVersion } from "Shared/util/getCompilerVersion";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import {
 	GlobalSymbols,
@@ -31,6 +30,9 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "include",
 	rojo: "",
 };
+
+const PRODUCTION = "production";
+const { NODE_ENV = PRODUCTION } = process.env;
 
 /**
  * The options of the project.
@@ -160,20 +162,20 @@ export class Project {
 		this.rootDir = this.compilerOptions.rootDir;
 		this.outDir = this.compilerOptions.outDir;
 
-		const incrementalCompilerHost = ts.createIncrementalCompilerHost(this.compilerOptions);
-		const originalGetSourceFile = incrementalCompilerHost.getSourceFile;
-		incrementalCompilerHost.getSourceFile = (fileName, languageVersion, onError, shouldCreateNewSourceFile) => {
-			const sourceFile = originalGetSourceFile(fileName, languageVersion, onError, shouldCreateNewSourceFile);
-			if (sourceFile) {
-				sourceFile.version = getCompilerVersion();
-			}
-			return sourceFile;
-		};
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		let compilerVersion = (require("./../../package.json") as { version: string }).version;
+		if (NODE_ENV !== PRODUCTION) {
+			compilerVersion += `-${Date.now()}`;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+		// @ts-ignore
+		ts.version = compilerVersion;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
 			this.compilerOptions,
-			incrementalCompilerHost,
+			ts.createIncrementalCompilerHost(this.compilerOptions),
 			ts.readBuilderProgram(this.compilerOptions, createReadBuildProgramHost()),
 		);
 
