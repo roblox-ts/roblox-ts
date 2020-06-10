@@ -165,7 +165,7 @@ export class Project {
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		ts.version = (require("./../../package.json") as { version: string }).version;
+		ts.version = require("./../../package.json").version;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
