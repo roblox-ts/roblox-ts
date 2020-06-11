@@ -4,16 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
-
-function isReferenceOfValue(state: TransformState, aliasSymbol: ts.Symbol) {
-	if (aliasSymbol.isReferenced !== undefined && !!(aliasSymbol.isReferenced & ts.SymbolFlags.ValueModule)) {
-		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			return true;
-		}
-	}
-	return false;
-}
+import { isReferenceOfValue } from "TSTransformer/util/symbolUtils";
 
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;
@@ -36,9 +27,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	const statements = lua.list.make<lua.Statement>();
 
-	let importExp: lua.IndexableExpression = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
+	let importExp: lua.IndexableExpression | undefined;
 
 	if (!importClause) {
+		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
 		assert(lua.isCallExpression(importExp));
 		lua.list.push(
 			statements,
@@ -54,16 +46,21 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	// detect if we need to push to a new var or not
 	const uses = countImportExpUses(state, importClause);
-	if (uses > 1) {
-		const importId = lua.tempId();
+	if (uses === 1) {
+		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
+	} else if (uses > 1) {
+		const importExp = lua.tempId();
 		lua.list.push(
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: importId,
+				left: importExp,
 				right: importExp,
 			}),
 		);
-		importExp = importId;
+	}
+
+	if (!importExp) {
+		return statements;
 	}
 
 	// default import logic
