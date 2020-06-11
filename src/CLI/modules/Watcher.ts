@@ -59,7 +59,7 @@ export class Watcher {
 
 	private watch() {
 		chokidar
-			.watch([this.project.rootDir], CHOKIDAR_OPTIONS)
+			.watch([], CHOKIDAR_OPTIONS)
 			.on("addDir", itemPath => this.pushToQueue({ type: "add", itemPath }))
 			.on("unlinkDir", itemPath => this.pushToQueue({ type: "unlink", itemPath }))
 			.on("change", itemPath => this.pushToQueue({ type: "change", itemPath }))

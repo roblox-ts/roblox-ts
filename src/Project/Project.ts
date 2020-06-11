@@ -52,8 +52,6 @@ export interface ProjectOptions {
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
-	public readonly rootDir: string;
-	public readonly outDir: string;
 	public readonly rojoFilePath: string | undefined;
 
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
@@ -156,9 +154,6 @@ export class Project {
 		this.compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(this.compilerOptions, this.nodeModulesPath);
 
-		this.rootDir = this.compilerOptions.rootDir!;
-		this.outDir = this.compilerOptions.outDir!;
-
 		// super hack!
 		// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
 
@@ -185,7 +180,10 @@ export class Project {
 		}
 
 		// create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
-		this.pathTranslator = new PathTranslator(this.rootDir, this.outDir);
+		this.pathTranslator = new PathTranslator(
+			this.program.getProgram().getCommonSourceDirectory(),
+			this.compilerOptions.outDir!,
+		);
 	}
 
 	/**
@@ -193,8 +191,8 @@ export class Project {
 	 * in the out directory.
 	 */
 	public async cleanup() {
-		if (fs.pathExists(this.outDir)) {
-			await cleanupDirRecursively(this.pathTranslator, this.rootDir, this.outDir);
+		if (fs.pathExists(this.compilerOptions.outDir!)) {
+			await cleanupDirRecursively(this.pathTranslator);
 		}
 	}
 

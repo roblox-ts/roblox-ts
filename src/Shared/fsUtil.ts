@@ -18,31 +18,20 @@ export async function isOutputFileOrphaned(translator: PathTranslator, filePath:
 			return false;
 		}
 	}
-
 	return true;
 }
 
 /**
  * Cleanup a directory recursively
- * @param src
- * @param dest
- * @param shouldClean
- * @param dir
  */
-export async function cleanupDirRecursively(
-	translator: PathTranslator,
-	src: string,
-	dest: string,
-	shouldClean: (translator: PathTranslator, itemPath: string) => Promise<boolean> = isOutputFileOrphaned,
-	dir = dest,
-) {
+export async function cleanupDirRecursively(translator: PathTranslator, dir = translator.outDir) {
 	if (await fs.pathExists(dir)) {
 		for (const name of await fs.readdir(dir)) {
 			const itemPath = path.join(dir, name);
 			if ((await fs.stat(itemPath)).isDirectory()) {
-				await cleanupDirRecursively(translator, src, dest, shouldClean, itemPath);
+				await cleanupDirRecursively(translator, itemPath);
 			}
-			if (await shouldClean(translator, itemPath)) {
+			if (await isOutputFileOrphaned(translator, itemPath)) {
 				await fs.remove(itemPath);
 				console.log("remove", itemPath);
 			}

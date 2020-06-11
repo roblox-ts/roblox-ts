@@ -58,8 +58,8 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 	}
 
 	// configurable compiler options
-	if (opts.rootDir === undefined) {
-		errors.push(`${y(`"rootDir"`)} must be defined`);
+	if (opts.rootDir === undefined && opts.rootDirs === undefined) {
+		errors.push(`${y(`"rootDir"`)} or ${y(`"rootDirs"`)} must be defined`);
 	}
 
 	if (opts.outDir === undefined) {
