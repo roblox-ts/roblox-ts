@@ -156,8 +156,8 @@ export class Project {
 		this.compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(this.compilerOptions, this.nodeModulesPath);
 
-		this.rootDir = this.compilerOptions.rootDir ?? "src";
-		this.outDir = this.compilerOptions.outDir ?? "out";
+		this.rootDir = this.compilerOptions.rootDir!;
+		this.outDir = this.compilerOptions.outDir!;
 
 		// super hack!
 		// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
