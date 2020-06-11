@@ -14,14 +14,6 @@ const ENFORCED_OPTIONS = {
 	allowSyntheticDefaultImports: true,
 } as const;
 
-interface ExtraOptionChecks {
-	typeRoots: Exclude<ts.CompilerOptions["typeRoots"], undefined>;
-	rootDir: Exclude<ts.CompilerOptions["rootDir"], undefined>;
-	outDir: Exclude<ts.CompilerOptions["outDir"], undefined>;
-	jsx?: ts.JsxEmit.React;
-	jsxFactory?: "Roact.createElement";
-}
-
 /** shorthand for chalk.yellowBright */
 function y(str: string) {
 	return chalk.yellowBright(str);
@@ -37,10 +29,7 @@ function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
 	return false;
 }
 
-export function validateCompilerOptions(
-	opts: ts.CompilerOptions,
-	nodeModulesPath: string,
-): asserts opts is ts.CompilerOptions & typeof ENFORCED_OPTIONS & ExtraOptionChecks {
+export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPath: string) {
 	const errors = new Array<string>();
 
 	// required compiler options
