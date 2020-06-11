@@ -23,7 +23,11 @@ class PathInfo {
 }
 
 export class PathTranslator {
-	constructor(public readonly rootDir: string, public readonly outDir: string) {}
+	constructor(
+		public readonly rootDir: string,
+		public readonly outDir: string,
+		public readonly buildInfoOutputPath: string | undefined,
+	) {}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));

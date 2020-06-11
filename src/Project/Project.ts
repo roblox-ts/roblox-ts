@@ -183,6 +183,7 @@ export class Project {
 		this.pathTranslator = new PathTranslator(
 			this.program.getProgram().getCommonSourceDirectory(),
 			this.compilerOptions.outDir!,
+			ts.getTsBuildInfoEmitOutputFilePath(this.compilerOptions),
 		);
 	}
 

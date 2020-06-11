@@ -18,6 +18,11 @@ export async function isOutputFileOrphaned(translator: PathTranslator, filePath:
 			return false;
 		}
 	}
+
+	if (translator.buildInfoOutputPath === filePath) {
+		return false;
+	}
+
 	return true;
 }
 
