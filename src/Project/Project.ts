@@ -296,9 +296,11 @@ export class Project {
 				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 			}
 		});
+
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
 		}
+
 		this.program.getProgram().emitBuildInfo();
 	}
 }
