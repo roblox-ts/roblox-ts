@@ -13,6 +13,7 @@ import { PathTranslator } from "Shared/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { compilerVersion } from "Shared/version";
 import {
 	GlobalSymbols,
 	MacroManager,
@@ -154,18 +155,26 @@ export class Project {
 		this.compilerOptions = parsedCommandLine.options;
 		validateCompilerOptions(this.compilerOptions, this.nodeModulesPath);
 
+		const host = ts.createIncrementalCompilerHost(this.compilerOptions);
+
+		let rojoHash = "";
+		if (rojoConfigPath) {
+			assert(host.createHash);
+			rojoHash = "-" + host.createHash(fs.readFileSync(rojoConfigPath).toString());
+		}
+
 		// super hack!
 		// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
+		// rojoHash makes it so that changes to the rojo config will trigger full re-compile
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		ts.version = require("./../../package.json").version;
+		ts.version = compilerVersion + rojoHash;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
 			this.compilerOptions,
-			ts.createIncrementalCompilerHost(this.compilerOptions),
+			host,
 			ts.readBuilderProgram(this.compilerOptions, createReadBuildProgramHost()),
 		);
 

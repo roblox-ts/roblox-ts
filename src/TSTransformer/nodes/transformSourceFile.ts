@@ -2,6 +2,7 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { RbxType } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
+import { compilerVersion } from "Shared/version";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -130,7 +131,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	}
 
 	// add build information to the tree
-	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${ts.version}`));
+	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${compilerVersion}`));
 
 	return statements;
 }
