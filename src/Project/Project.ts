@@ -214,10 +214,12 @@ export class Project {
 	private getChangedFilesSet() {
 		const buildState = this.program.getState();
 
-		const reversedRefMap = new Map<string, Set<string>>();
-		buildState.referencedMap?.forEach((referencedSet, fileName) => {
-			referencedSet.forEach((_, refFileName) => {
-				getOrSetDefault(reversedRefMap, refFileName, () => new Set()).add(fileName);
+		// buildState.referencedMap is sourceFile -> files that this file imports
+		// but we need sourceFile -> files that import this file
+		const reversedReferencedMap = new Map<string, Set<string>>();
+		buildState.referencedMap?.forEach((referencedSet, filePath) => {
+			referencedSet.forEach((_, refFilePath) => {
+				getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
 			});
 		});
 
@@ -225,7 +227,7 @@ export class Project {
 
 		const search = (filePath: string) => {
 			changedFilesSet.add(filePath);
-			reversedRefMap.get(filePath)?.forEach(refFilePath => {
+			reversedReferencedMap.get(filePath)?.forEach(refFilePath => {
 				if (!changedFilesSet.has(refFilePath)) {
 					changedFilesSet.add(refFilePath);
 					if (this.compilerOptions.assumeChangesOnlyAffectDirectDependencies !== true) {
