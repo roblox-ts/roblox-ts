@@ -205,7 +205,44 @@ export class Project {
 	}
 
 	/**
+	 * generates a `Set<string>` of paths for changed files + dependencies
+	 *
+	 * if `incremental == false`, this will return all project files
+	 *
+	 * if `assumeChangesOnlyAffectDirectDependencies == false`, this will only check direct dependencies
+	 */
+	private getChangedFilesSet() {
+		const buildState = this.program.getState();
+
+		const reversedRefMap = new Map<string, Set<string>>();
+		buildState.referencedMap?.forEach((referencedSet, fileName) => {
+			referencedSet.forEach((_, refFileName) => {
+				getOrSetDefault(reversedRefMap, refFileName, () => new Set()).add(fileName);
+			});
+		});
+
+		const changedFilesSet = new Set<string>();
+
+		const search = (filePath: string) => {
+			changedFilesSet.add(filePath);
+			reversedRefMap.get(filePath)?.forEach(refFilePath => {
+				if (!changedFilesSet.has(refFilePath)) {
+					changedFilesSet.add(refFilePath);
+					if (this.compilerOptions.assumeChangesOnlyAffectDirectDependencies !== true) {
+						search(refFilePath);
+					}
+				}
+			});
+		};
+
+		buildState.changedFilesSet?.forEach((_, fileName) => search(fileName));
+
+		return changedFilesSet;
+	}
+
+	/**
 	 * 'transpiles' TypeScript project into a logically identical Lua project.
+	 *
 	 * writes rendered lua source to the out directory.
 	 */
 	public compile() {
@@ -213,27 +250,8 @@ export class Project {
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
-		const buildState = this.program.getState();
-
-		// build a reversed referencedMap
-		const reversedRefMap = new Map<string, Set<string>>();
-		if (buildState.referencedMap) {
-			buildState.referencedMap.forEach((referencedSet, fileName) => {
-				referencedSet.forEach((_, refFileName) => {
-					getOrSetDefault(reversedRefMap, refFileName, () => new Set()).add(fileName);
-				});
-			});
-		}
-
-		// build set of changed files + files that reference changed files
-		const compileSet = new Set<string>();
-		buildState.changedFilesSet?.forEach((_, fileName) => {
-			compileSet.add(fileName);
-			reversedRefMap.get(fileName)?.forEach(fileName => compileSet.add(fileName));
-		});
-
 		// iterate through each source file in the project as a `ts.SourceFile`
-		compileSet.forEach((_, fileName) => {
+		this.getChangedFilesSet().forEach((_, fileName) => {
 			const sourceFile = this.program.getSourceFile(fileName);
 			assert(sourceFile);
 
