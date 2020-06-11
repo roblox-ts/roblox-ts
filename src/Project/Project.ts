@@ -249,7 +249,6 @@ export class Project {
 	 */
 	public compile() {
 		const multiTransformState = new MultiTransformState(this.pkgVersion);
-
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
 		// iterate through each source file in the project as a `ts.SourceFile`
