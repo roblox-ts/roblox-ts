@@ -28,7 +28,7 @@ export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>
 const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
-	includePath: "include",
+	includePath: "",
 	rojo: "",
 };
 
@@ -66,6 +66,7 @@ export class Project {
 	private readonly pkgVersion?: string;
 	private readonly runtimeLibRbxPath?: RbxPath;
 	private readonly nodeModulesRbxPath?: RbxPath;
+	private readonly includePath: string;
 
 	public readonly projectType: ProjectType;
 
@@ -104,14 +105,19 @@ export class Project {
 			this.projectType = ProjectType.Package;
 		}
 
+		// intentionally use || here for empty string case
+		this.includePath = path.resolve(this.projectOptions.includePath || path.join(this.projectPath, "include"));
+
 		// validates and establishes runtime library
 		if (this.projectType !== ProjectType.Package) {
-			const includePath = path.resolve(this.projectOptions.includePath);
-			const runtimeFsPath = path.join(includePath, "RuntimeLib.lua");
+			const runtimeFsPath = path.join(this.includePath, "RuntimeLib.lua");
 			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
 			if (!runtimeLibRbxPath) {
 				throw new ProjectError(
-					`A Rojo project file was found ( ${rojoConfigPath} ), but contained no data for include folder!`,
+					`A Rojo project file was found ( ${path.relative(
+						this.projectPath,
+						rojoConfigPath!,
+					)} ), but contained no data for include folder!`,
 				);
 			} else if (this.rojoConfig.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
 				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
@@ -252,12 +258,18 @@ export class Project {
 		return changedFilesSet;
 	}
 
+	public copyInclude() {
+		fs.copySync(path.join(__dirname, "..", "..", "lib"), this.includePath);
+	}
+
 	/**
 	 * 'transpiles' TypeScript project into a logically identical Lua project.
 	 *
 	 * writes rendered lua source to the out directory.
 	 */
 	public compile() {
+		this.copyInclude();
+
 		const multiTransformState = new MultiTransformState(this.pkgVersion);
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
