@@ -67,9 +67,5 @@ export class Watcher {
 			.on("unlink", itemPath => this.pushToQueue({ type: "unlink", itemPath }));
 
 		chokidar.watch(this.tsConfigPath, CHOKIDAR_OPTIONS).on("change", () => this.refreshProject());
-
-		if (this.project.rojoFilePath) {
-			chokidar.watch(this.project.rojoFilePath, CHOKIDAR_OPTIONS).on("change", () => this.refreshProject());
-		}
 	}
 }

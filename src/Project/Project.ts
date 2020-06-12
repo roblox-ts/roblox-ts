@@ -53,7 +53,6 @@ export interface ProjectOptions {
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
-	public readonly rojoFilePath: string | undefined;
 
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
@@ -81,14 +80,16 @@ export class Project {
 
 		// set up project paths
 		this.projectPath = path.dirname(tsConfigPath);
-		this.nodeModulesPath = path.join(this.projectPath, "node_modules", "@rbxts");
 
-		// retrieve package.json
-		const pkgJsonPath = path.join(this.projectPath, "package.json");
-		if (fs.pathExistsSync(pkgJsonPath)) {
-			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
-			this.pkgVersion = pkgJson.version;
+		const pkgJsonPath = ts.findPackageJson(this.projectPath, (ts.sys as unknown) as ts.LanguageServiceHost);
+		if (!pkgJsonPath) {
+			throw new ProjectError("Unable to find package.json");
 		}
+
+		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+		this.pkgVersion = pkgJson.version;
+
+		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), "node_modules", "@rbxts");
 
 		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.projectOptions.rojo);
 		if (rojoConfigPath) {
@@ -105,11 +106,12 @@ export class Project {
 
 		// validates and establishes runtime library
 		if (this.projectType !== ProjectType.Package) {
-			const runtimeFsPath = path.join(this.projectOptions.includePath, "RuntimeLib.lua");
+			const includePath = path.resolve(this.projectOptions.includePath);
+			const runtimeFsPath = path.join(includePath, "RuntimeLib.lua");
 			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
 			if (!runtimeLibRbxPath) {
 				throw new ProjectError(
-					`A Rojo project file was found ( ${this.rojoFilePath} ), but contained no data for include folder!`,
+					`A Rojo project file was found ( ${rojoConfigPath} ), but contained no data for include folder!`,
 				);
 			} else if (this.rojoConfig.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
 				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);

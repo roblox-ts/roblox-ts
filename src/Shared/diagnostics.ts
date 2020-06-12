@@ -38,7 +38,10 @@ let id = 0;
  * @param messages The list of messages to include in the error report.
  */
 function diagnostic(...messages: Array<string>): DiagnosticFactory {
-	const result = (node: ts.Node) => createDiagnosticWithLocation(result.id, messages.join("\n"), node);
+	const result = (node: ts.Node) => {
+		debugger;
+		return createDiagnosticWithLocation(result.id, messages.join("\n"), node);
+	};
 	result.id = id++;
 	return result;
 }

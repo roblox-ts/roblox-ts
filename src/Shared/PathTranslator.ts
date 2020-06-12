@@ -100,7 +100,7 @@ export class PathTranslator {
 	 * - `.d.tsx?` -> `.tsx?` -> `.lua`
 	 * 	- `index` -> `init`
 	 */
-	public getImportPath(filePath: string) {
+	public getImportPath(filePath: string, isNodeModule = false) {
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 
@@ -118,6 +118,6 @@ export class PathTranslator {
 			pathInfo.exts.push(LUA_EXT); // push .lua
 		}
 
-		return makeRelative(pathInfo);
+		return isNodeModule ? pathInfo.join() : makeRelative(pathInfo);
 	}
 }

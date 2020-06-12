@@ -56,6 +56,7 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.StringLiteral, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
 		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
+		/* isNodeModule */ true,
 	);
 	const moduleRbxPath = state.rojoConfig.getRbxPathFromFilePath(moduleOutPath);
 	if (!moduleRbxPath) {

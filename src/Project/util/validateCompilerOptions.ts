@@ -54,7 +54,7 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 	}
 
 	if (opts.typeRoots === undefined || !validateTypeRoots(nodeModulesPath, opts.typeRoots)) {
-		errors.push(`${y(`"typeRoots"`)} must contain ${y(`[ "node_modules/@rbxts" ]`)}`);
+		errors.push(`${y(`"typeRoots"`)} must contain ${y(nodeModulesPath)}`);
 	}
 
 	// configurable compiler options
