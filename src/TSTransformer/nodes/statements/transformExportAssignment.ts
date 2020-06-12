@@ -33,9 +33,26 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 	}
 }
 
+function transformExportDefault(state: TransformState, node: ts.ExportAssignment) {
+	const statements = lua.list.make<lua.Statement>();
+
+	const { expression, statements: expPreqreqs } = state.capture(() => transformExpression(state, node.expression));
+	lua.list.pushList(statements, expPreqreqs);
+	lua.list.push(
+		statements,
+		lua.create(lua.SyntaxKind.VariableDeclaration, {
+			left: lua.id("default"),
+			right: expression,
+		}),
+	);
+
+	return statements;
+}
+
 export function transformExportAssignment(state: TransformState, node: ts.ExportAssignment) {
 	if (node.isExportEquals) {
 		return transformExportEquals(state, node);
+	} else {
+		return transformExportDefault(state, node);
 	}
-	return lua.list.make<lua.Statement>();
 }

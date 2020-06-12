@@ -234,6 +234,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = lua.list.make<lua.Statement>();
 
+	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
+
 	/*
 		local className;
 		do
@@ -244,17 +246,23 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	const shouldUseInternalName = isClassExpression && node.name !== undefined;
 
-	const returnVar = shouldUseInternalName
-		? lua.tempId()
-		: node.name
-		? transformIdentifierDefined(state, node.name)
-		: lua.tempId();
+	let returnVar: lua.Identifier | lua.TemporaryIdentifier;
+	if (shouldUseInternalName) {
+		returnVar = lua.tempId();
+	} else if (node.name) {
+		returnVar = transformIdentifierDefined(state, node.name);
+	} else if (isExportDefault) {
+		returnVar = lua.id("default");
+	} else {
+		returnVar = lua.tempId();
+	}
 
-	const internalName = shouldUseInternalName
-		? node.name
-			? transformIdentifierDefined(state, node.name)
-			: lua.tempId()
-		: returnVar;
+	let internalName: lua.Identifier | lua.TemporaryIdentifier;
+	if (shouldUseInternalName) {
+		internalName = node.name ? transformIdentifierDefined(state, node.name) : lua.tempId();
+	} else {
+		internalName = returnVar;
+	}
 
 	lua.list.push(
 		statements,

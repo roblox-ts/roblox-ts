@@ -14,8 +14,17 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
 	if (declaration && ts.isExportSpecifier(declaration)) {
 		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
 	} else {
-		const read = exportSymbol.name === "default" ? ts.skipAlias(exportSymbol, state.typeChecker) : exportSymbol;
-		return [exportSymbol.name, lua.id(read.name)];
+		let name = exportSymbol.name;
+		if (
+			exportSymbol.name === "default" &&
+			declaration &&
+			(ts.isFunctionDeclaration(declaration) || ts.isClassDeclaration(declaration)) &&
+			declaration.name
+		) {
+			name = declaration.name.text;
+		}
+
+		return [exportSymbol.name, lua.id(name)];
 	}
 }
 
