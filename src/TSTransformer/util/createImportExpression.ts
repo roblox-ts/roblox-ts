@@ -1,21 +1,13 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import path from "path";
-import fs from "fs-extra";
 import { diagnostics } from "Shared/diagnostics";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
-
-function getSourceFileFromModuleSpecifier(state: TransformState, moduleSpecifier: ts.StringLiteral) {
-	const symbol = state.typeChecker.getSymbolAtLocation(moduleSpecifier);
-	if (symbol) {
-		assert(ts.isSourceFile(symbol.valueDeclaration));
-		return symbol.valueDeclaration;
-	}
-}
+import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = lua.list.make<lua.Expression>();
@@ -84,7 +76,7 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.StringLiteral,
 ): lua.IndexableExpression {
-	const moduleFile = getSourceFileFromModuleSpecifier(state, moduleSpecifier);
+	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
 	if (!moduleFile) {
 		state.addDiagnostic(diagnostics.noModuleSpecifierFile(moduleSpecifier));
 		return lua.emptyId();

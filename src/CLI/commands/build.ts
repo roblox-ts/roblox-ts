@@ -1,11 +1,11 @@
 import ts from "byots";
-import fs from "fs-extra";
 import { CLIError } from "CLI/errors/CLIError";
-import { Watcher } from "CLI/modules/Watcher";
+import fs from "fs-extra";
 import path from "path";
 import { Project, ProjectOptions } from "Project";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { assert } from "Shared/util/assert";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -55,7 +55,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				describe: "Manually select Rojo configuration file",
 			}),
 
-	handler: async argv => {
+	handler: argv => {
 		// attempt to retrieve TypeScript configuration JSON path
 		let tsConfigPath: string | undefined = path.resolve(argv.project);
 		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
@@ -72,13 +72,13 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 
 		// if watch mode is enabled
 		if (argv.watch) {
-			new Watcher(tsConfigPath, projectOptions);
+			assert(false, "Not implemented");
 		} else {
 			try {
 				// attempt to build the project
 				const project = new Project(tsConfigPath, projectOptions);
-				await project.cleanup();
-				project.compile();
+				project.cleanup();
+				project.compileAll();
 			} catch (e) {
 				// catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {

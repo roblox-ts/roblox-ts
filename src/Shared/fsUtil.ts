@@ -1,5 +1,5 @@
-import path from "path";
 import fs from "fs-extra";
+import path from "path";
 import { PathTranslator } from "Shared/PathTranslator";
 
 /**
@@ -11,10 +11,10 @@ export function isPathDescendantOf(filePath: string, dirPath: string) {
 	return dirPath === filePath || !path.relative(dirPath, filePath).startsWith("..");
 }
 
-export async function isOutputFileOrphaned(translator: PathTranslator, filePath: string) {
+export function isOutputFileOrphaned(translator: PathTranslator, filePath: string) {
 	const inputPaths = translator.getInputPaths(filePath);
 	for (const path of inputPaths) {
-		if (await fs.pathExists(path)) {
+		if (fs.pathExistsSync(path)) {
 			return false;
 		}
 	}
@@ -29,15 +29,15 @@ export async function isOutputFileOrphaned(translator: PathTranslator, filePath:
 /**
  * Cleanup a directory recursively
  */
-export async function cleanupDirRecursively(translator: PathTranslator, dir = translator.outDir) {
-	if (await fs.pathExists(dir)) {
-		for (const name of await fs.readdir(dir)) {
+export function cleanupDirRecursively(translator: PathTranslator, dir = translator.outDir) {
+	if (fs.pathExistsSync(dir)) {
+		for (const name of fs.readdirSync(dir)) {
 			const itemPath = path.join(dir, name);
-			if ((await fs.stat(itemPath)).isDirectory()) {
-				await cleanupDirRecursively(translator, itemPath);
+			if (fs.statSync(itemPath).isDirectory()) {
+				cleanupDirRecursively(translator, itemPath);
 			}
-			if (await isOutputFileOrphaned(translator, itemPath)) {
-				await fs.remove(itemPath);
+			if (isOutputFileOrphaned(translator, itemPath)) {
+				fs.removeSync(itemPath);
 				console.log("remove", itemPath);
 			}
 		}

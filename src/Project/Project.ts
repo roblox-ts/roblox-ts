@@ -23,6 +23,7 @@ import {
 	TransformState,
 } from "TSTransformer";
 import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
+import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
 const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
@@ -210,9 +211,9 @@ export class Project {
 	 * cleans up 'orphaned' files - Files which don't belong to any source file
 	 * in the out directory.
 	 */
-	public async cleanup() {
-		if (fs.pathExists(this.compilerOptions.outDir!)) {
-			await cleanupDirRecursively(this.pathTranslator);
+	public cleanup() {
+		if (fs.pathExistsSync(this.compilerOptions.outDir!)) {
+			cleanupDirRecursively(this.pathTranslator);
 		}
 	}
 
@@ -264,19 +265,33 @@ export class Project {
 		fs.copySync(LIB_PATH, this.includePath);
 	}
 
+	public compileAll() {
+		this.copyInclude();
+		this.compileFiles(this.getChangedFilesSet());
+		this.program.getProgram().emitBuildInfo();
+
+		console.log(
+			this.program
+				.getSourceFiles()
+				.map(sourceFile =>
+					sourceFile.imports
+						.map(v => getSourceFileFromModuleSpecifier(this.typeChecker, v))
+						.map(v => v?.fileName),
+				),
+		);
+	}
+
 	/**
 	 * 'transpiles' TypeScript project into a logically identical Lua project.
 	 *
 	 * writes rendered lua source to the out directory.
 	 */
-	public compile() {
-		this.copyInclude();
-
+	public compileFiles(filesSet: Set<string>) {
 		const multiTransformState = new MultiTransformState(this.pkgVersion);
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
 		// iterate through each source file in the project as a `ts.SourceFile`
-		this.getChangedFilesSet().forEach((_, fileName) => {
+		filesSet.forEach(fileName => {
 			const sourceFile = this.program.getSourceFile(fileName);
 			assert(sourceFile);
 
@@ -323,7 +338,5 @@ export class Project {
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
 		}
-
-		this.program.getProgram().emitBuildInfo();
 	}
 }
