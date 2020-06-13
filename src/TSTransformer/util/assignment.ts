@@ -46,6 +46,7 @@ function wrapRightIfDoubleBinary(expression: lua.Expression) {
 }
 
 export function createCompoundAssignmentStatement(
+	state: TransformState,
 	writable: NodeWithType<lua.WritableExpression>,
 	readable: NodeWithType<lua.WritableExpression>,
 	operator: ts.SyntaxKind,
@@ -53,7 +54,7 @@ export function createCompoundAssignmentStatement(
 ) {
 	return createAssignmentStatement(
 		writable.node,
-		wrapRightIfDoubleBinary(createBinaryFromOperator(readable, operator, value)),
+		wrapRightIfDoubleBinary(createBinaryFromOperator(state, readable, operator, value)),
 	);
 }
 
@@ -67,6 +68,6 @@ export function createCompoundAssignmentExpression(
 	return createAssignmentExpression(
 		state,
 		writable.node,
-		wrapRightIfDoubleBinary(createBinaryFromOperator(readable, operator, value)),
+		wrapRightIfDoubleBinary(createBinaryFromOperator(state, readable, operator, value)),
 	);
 }

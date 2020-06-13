@@ -3,6 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import * as tsst from "ts-simple-type";
 import { NodeWithType } from "TSTransformer/types/NodeWithType";
+import { TransformState } from "TSTransformer/classes/TransformState";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison
@@ -74,6 +75,7 @@ function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType
 }
 
 export function createBinaryFromOperator(
+	state: TransformState,
 	left: NodeWithType<lua.Expression>,
 	operatorKind: ts.SyntaxKind,
 	right: NodeWithType<lua.Expression>,
@@ -101,8 +103,15 @@ export function createBinaryFromOperator(
 		});
 	}
 
-	// TODO ts.SyntaxKind.GreaterThanGreaterThanToken -> TS.bit_lrsh
-	// TODO ts.SyntaxKind.GreaterThanGreaterThanEqualsToken -> TS.bit_lrsh
+	if (
+		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
+		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
+	) {
+		return lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("bit_lrsh"),
+			args: lua.list.make(left.node, right.node),
+		});
+	}
 
 	assert(false, `Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
 }

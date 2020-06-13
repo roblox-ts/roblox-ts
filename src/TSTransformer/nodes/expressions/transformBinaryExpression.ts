@@ -263,6 +263,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	return createBinaryFromOperator(
+		state,
 		{
 			node: left,
 			type: state.getSimpleTypeFromNode(node.left),
