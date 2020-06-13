@@ -6,6 +6,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
 import { warn } from "Shared/warn";
+import { Lazy } from "Shared/classes/Lazy";
 
 interface RojoTreeProperty {
 	Type: string;
@@ -105,9 +106,9 @@ function stripExts(filePath: string) {
 }
 
 const SCHEMA_PATH = path.join(__dirname, "..", "..", "rojo-schema.json");
-const validateRojo = ajv.compile(JSON.parse(fs.readFileSync(SCHEMA_PATH).toString()));
+const validateRojo = new Lazy(() => ajv.compile(JSON.parse(fs.readFileSync(SCHEMA_PATH).toString())));
 function isValidRojoConfig(value: unknown): value is RojoFile {
-	return validateRojo(value) === true;
+	return validateRojo.get()(value) === true;
 }
 
 export const RbxPathParent = Symbol("Parent");
@@ -187,7 +188,7 @@ export class RojoConfig {
 			if (isValidRojoConfig(objectJson)) {
 				return new RojoConfig(path.resolve(rojoPath, ".."), objectJson);
 			} else {
-				throw new ProjectError("Invalid Rojo configuration!\n" + JSON.stringify(validateRojo.errors));
+				throw new ProjectError("Invalid Rojo configuration!\n" + JSON.stringify(validateRojo.get().errors));
 			}
 		} else {
 			throw new ProjectError(`${rojoPath} is not a valid path!`);
