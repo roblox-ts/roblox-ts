@@ -11,7 +11,7 @@ export class DiagnosticError extends LoggableError {
 		super();
 	}
 
-	public log() {
-		console.log(formatDiagnostics(this.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts"));
+	public toString() {
+		return formatDiagnostics(this.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts");
 	}
 }

@@ -1,7 +1,6 @@
 import ts from "byots";
 import { renderAST } from "LuaRenderer";
-import path from "path";
-import { VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { ProjectType } from "Shared/constants";
@@ -9,15 +8,19 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { PathTranslator } from "Shared/PathTranslator";
 import { RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
-import { GlobalSymbols, MacroManager, MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
+import {
+	GlobalSymbols,
+	MacroManager,
+	MultiTransformState,
+	transformSourceFile,
+	TransformState,
+	RoactSymbolManager,
+} from "TSTransformer";
 
-// all virual paths use /
-const join = path.posix.join;
-
-const PROJECT_DIR = path.posix.sep;
-const ROOT_DIR = join(PROJECT_DIR, "src");
-const OUT_DIR = join(PROJECT_DIR, "out");
-const PLAYGROUND_PATH = join(ROOT_DIR, "playground.tsx");
+const PROJECT_DIR = PATH_SEP;
+const ROOT_DIR = pathJoin(PROJECT_DIR, "src");
+const OUT_DIR = pathJoin(PROJECT_DIR, "out");
+const PLAYGROUND_PATH = pathJoin(ROOT_DIR, "playground.tsx");
 
 export class VirtualProject {
 	public readonly vfs: VirtualFileSystem;
@@ -32,7 +35,7 @@ export class VirtualProject {
 	private program: ts.Program | undefined;
 
 	constructor() {
-		this.nodeModulesPath = join(PROJECT_DIR, "node_modules", "@rbxts");
+		this.nodeModulesPath = pathJoin(PROJECT_DIR, "node_modules", "@rbxts");
 
 		this.compilerOptions = {
 			allowSyntheticDefaultImports: true,
@@ -52,10 +55,18 @@ export class VirtualProject {
 
 		this.vfs = new VirtualFileSystem();
 
-		this.compilerHost = ts.createCompilerHost(this.compilerOptions);
+		const system = {
+			getExecutingFilePath: () => __filename,
+			getCurrentDirectory: () => "/",
+		} as ts.System;
+
+		this.compilerHost = ts.createCompilerHostWorker(this.compilerOptions, undefined, system);
 		this.compilerHost.readFile = filePath => this.vfs.readFile(filePath);
 		this.compilerHost.fileExists = filePath => this.vfs.fileExists(filePath);
 		this.compilerHost.directoryExists = dirPath => this.vfs.directoryExists(dirPath);
+		this.compilerHost.getDirectories = dirPath => this.vfs.getDirectories(dirPath);
+		this.compilerHost.useCaseSensitiveFileNames = () => true;
+		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoConfig = RojoConfig.synthetic(PROJECT_DIR);
 		this.pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined);
@@ -65,9 +76,18 @@ export class VirtualProject {
 	public compileSource(source: string) {
 		this.vfs.writeFile(PLAYGROUND_PATH, source);
 
-		this.program = ts.createProgram(this.vfs.getFilePaths(), this.compilerOptions, this.compilerHost, this.program);
+		const rootNames = this.vfs
+			.getFilePaths()
+			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
+		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
 
 		const typeChecker = this.program.getTypeChecker();
+
+		let roactSymbolManager: RoactSymbolManager | undefined;
+		const roactIndexSourceFile = this.program.getSourceFile(pathJoin(this.nodeModulesPath, "roact", "index.d.ts"));
+		if (roactIndexSourceFile) {
+			roactSymbolManager = new RoactSymbolManager(typeChecker, roactIndexSourceFile);
+		}
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
 		assert(sourceFile);
@@ -89,12 +109,12 @@ export class VirtualProject {
 			this.pathTranslator,
 			undefined,
 			this.nodeModulesPath,
-			undefined,
+			["node_modules"],
 			this.nodeModulesPathMapping,
 			typeChecker,
 			new GlobalSymbols(typeChecker),
 			new MacroManager(this.program, typeChecker, this.nodeModulesPath),
-			undefined,
+			roactSymbolManager,
 			ProjectType.Model,
 			undefined,
 			sourceFile,

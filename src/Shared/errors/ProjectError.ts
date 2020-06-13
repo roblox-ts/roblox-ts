@@ -9,7 +9,7 @@ export class ProjectError extends LoggableError {
 		super();
 	}
 
-	public log() {
-		console.log(chalk.redBright("Project Error:"), this.message);
+	public toString() {
+		return chalk.redBright("Project Error:") + " " + this.message;
 	}
 }

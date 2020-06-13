@@ -1,5 +1,6 @@
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { dir } from "console";
 
 interface VirtualFile {
 	name: string;
@@ -11,7 +12,18 @@ interface VirtualDirectory {
 	children: Map<string, VirtualDirectory | VirtualFile>;
 }
 
-const PATH_SEP = "/";
+export const PATH_SEP = "/";
+
+export function pathJoin(...parts: Array<string>): string {
+	let result = parts[0];
+	for (let i = 1; i < parts.length; i++) {
+		if (!result.endsWith(PATH_SEP)) {
+			result += PATH_SEP;
+		}
+		result += parts[i];
+	}
+	return result;
+}
 
 export class VirtualFileSystem {
 	private root: VirtualDirectory;
@@ -77,6 +89,21 @@ export class VirtualFileSystem {
 	public directoryExists(dirPath: string) {
 		const item = this.get(dirPath);
 		return item !== undefined && "children" in item;
+	}
+
+	public getDirectories(dirPath: string) {
+		const result = new Array<string>();
+
+		const item = this.get(dirPath);
+		if (item && "children" in item) {
+			for (const [name, child] of item.children) {
+				if ("children" in child) {
+					result.push(pathJoin(dirPath, name));
+				}
+			}
+		}
+
+		return result;
 	}
 
 	public getFilePaths() {
