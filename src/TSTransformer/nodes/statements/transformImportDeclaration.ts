@@ -62,12 +62,12 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	if (uses === 1) {
 		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
 	} else if (uses > 1) {
-		const importExp = lua.tempId();
+		importExp = lua.tempId();
 		lua.list.push(
 			statements,
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: importExp,
-				right: importExp,
+				left: importExp as lua.TemporaryIdentifier,
+				right: createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 			}),
 		);
 	}
