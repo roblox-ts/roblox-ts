@@ -140,8 +140,8 @@ export class Project {
 					const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
 					const mainPath = pkgJson.main;
 					// both types and typings are valid
-					const typesPath = pkgJson.types ?? pkgJson.typings;
-					if (mainPath && typesPath) {
+					const typesPath = pkgJson.types ?? pkgJson.typings ?? "index.d.ts";
+					if (mainPath) {
 						this.nodeModulesPathMapping.set(
 							path.resolve(pkgPath, typesPath),
 							path.resolve(pkgPath, mainPath),
