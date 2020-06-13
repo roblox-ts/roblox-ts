@@ -70,11 +70,6 @@ export class MacroManager {
 		// iterate through each file in the types include directory
 		for (const fileName of INCLUDE_FILES) {
 			const filePath = path.join(typesPath, fileName);
-			if (!fs.pathExistsSync(filePath)) {
-				throw new ProjectError(`MacroManager could not find path ${filePath}`);
-			}
-
-			// get the source file for the include directory
 			const sourceFile = program.getSourceFile(filePath);
 			if (!sourceFile) {
 				throw new ProjectError(`MacroManager Could not find source file for ${filePath}`);
