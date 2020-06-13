@@ -66,9 +66,9 @@ export class Project {
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
 	private readonly rojoConfig: RojoConfig;
 	private readonly pathTranslator: PathTranslator;
-	private readonly pkgVersion?: string;
-	private readonly runtimeLibRbxPath?: RbxPath;
-	private readonly nodeModulesRbxPath?: RbxPath;
+	private readonly pkgVersion: string | undefined;
+	private readonly runtimeLibRbxPath: RbxPath | undefined;
+	private readonly nodeModulesRbxPath: RbxPath | undefined;
 	private readonly includePath: string;
 
 	public readonly projectType: ProjectType;
