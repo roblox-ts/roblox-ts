@@ -269,16 +269,6 @@ export class Project {
 		this.copyInclude();
 		this.compileFiles(this.getChangedFilesSet());
 		this.program.getProgram().emitBuildInfo();
-
-		console.log(
-			this.program
-				.getSourceFiles()
-				.map(sourceFile =>
-					sourceFile.imports
-						.map(v => getSourceFileFromModuleSpecifier(this.typeChecker, v))
-						.map(v => v?.fileName),
-				),
-		);
 	}
 
 	/**
