@@ -49,6 +49,7 @@ export class TransformState {
 		public readonly macroManager: MacroManager,
 		public readonly roactSymbolManager: RoactSymbolManager | undefined,
 		public readonly projectType: ProjectType,
+		public readonly pkgVersion: string | undefined,
 		public readonly sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();

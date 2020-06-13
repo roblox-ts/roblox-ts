@@ -9,5 +9,5 @@ export class MultiTransformState {
 	public readonly getModuleExportsCache = new Map<ts.Symbol, Array<ts.Symbol>>();
 	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, string>>();
 
-	constructor(public readonly pkgVersion: string | undefined) {}
+	constructor() {}
 }

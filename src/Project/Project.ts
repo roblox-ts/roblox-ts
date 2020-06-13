@@ -277,7 +277,7 @@ export class Project {
 	 * writes rendered lua source to the out directory.
 	 */
 	public compileFiles(filesSet: Set<string>) {
-		const multiTransformState = new MultiTransformState(this.pkgVersion);
+		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
 		// iterate through each source file in the project as a `ts.SourceFile`
@@ -311,6 +311,7 @@ export class Project {
 					this.macroManager,
 					this.roactSymbolManager,
 					this.projectType,
+					this.pkgVersion,
 					sourceFile,
 				);
 
