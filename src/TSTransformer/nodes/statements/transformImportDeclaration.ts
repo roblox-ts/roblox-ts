@@ -18,6 +18,19 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	return uses;
 }
 
+function isDefaultExport(exportDec: ts.Declaration) {
+	if (ts.isExportAssignment(exportDec) && !exportDec.isExportEquals) {
+		return true;
+	}
+	if (
+		(ts.isFunctionDeclaration(exportDec) || ts.isClassDeclaration(exportDec)) &&
+		!!(exportDec.modifierFlagsCache & ts.ModifierFlags.ExportDefault)
+	) {
+		return true;
+	}
+	return false;
+}
+
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	assert(ts.isStringLiteral(node.moduleSpecifier));
 
@@ -70,8 +83,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (isReferenceOfValue(state, aliasSymbol)) {
 			const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
 			assert(exportSymbol);
-			const exportDec = exportSymbol.valueDeclaration;
-			if (exportDec && ts.isExportAssignment(exportDec) && !exportDec.isExportEquals) {
+			if (exportSymbol.valueDeclaration && isDefaultExport(exportSymbol.valueDeclaration)) {
 				lua.list.pushList(
 					statements,
 					transformVariable(
