@@ -139,13 +139,12 @@ export class Project {
 				const pkgJsonPath = path.join(pkgPath, "package.json");
 				if (fs.existsSync(pkgJsonPath)) {
 					const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
-					const mainPath = pkgJson.main;
-					// both types and typings are valid
+					// both "types" and "typings" are valid
 					const typesPath = pkgJson.types ?? pkgJson.typings ?? "index.d.ts";
-					if (mainPath) {
+					if (pkgJson.main) {
 						this.nodeModulesPathMapping.set(
 							path.resolve(pkgPath, typesPath),
-							path.resolve(pkgPath, mainPath),
+							path.resolve(pkgPath, pkgJson.main),
 						);
 					}
 				}
