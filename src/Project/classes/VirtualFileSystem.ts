@@ -41,7 +41,6 @@ export class VirtualFileSystem {
 			currentDir = child;
 		}
 
-		assert(!currentDir.children.has(fileName));
 		currentDir.children.set(fileName, {
 			name: fileName,
 			content,

@@ -29,6 +29,8 @@ export class VirtualProject {
 	private readonly nodeModulesPathMapping: Map<string, string>;
 	private readonly compilerHost: ts.CompilerHost;
 
+	private program: ts.Program | undefined;
+
 	constructor() {
 		this.nodeModulesPath = join(PROJECT_DIR, "node_modules", "@rbxts");
 
@@ -63,15 +65,11 @@ export class VirtualProject {
 	public compileSource(source: string) {
 		this.vfs.writeFile(PLAYGROUND_PATH, source);
 
-		const program = ts.createProgram({
-			rootNames: this.vfs.getFilePaths(),
-			options: this.compilerOptions,
-			host: this.compilerHost,
-		});
+		this.program = ts.createProgram(this.vfs.getFilePaths(), this.compilerOptions, this.compilerHost, this.program);
 
-		const typeChecker = program.getTypeChecker();
+		const typeChecker = this.program.getTypeChecker();
 
-		const sourceFile = program.getSourceFile(PLAYGROUND_PATH);
+		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
 		assert(sourceFile);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
@@ -80,7 +78,7 @@ export class VirtualProject {
 		totalDiagnostics.push(...customPreEmitDiagnostics);
 		if (totalDiagnostics.length > 0) throw new DiagnosticError(totalDiagnostics);
 
-		const preEmitDiagnostics = ts.getPreEmitDiagnostics(program, sourceFile);
+		const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 		totalDiagnostics.push(...preEmitDiagnostics);
 		if (totalDiagnostics.length > 0) throw new DiagnosticError(totalDiagnostics);
 
@@ -95,7 +93,7 @@ export class VirtualProject {
 			this.nodeModulesPathMapping,
 			typeChecker,
 			new GlobalSymbols(typeChecker),
-			new MacroManager(program, typeChecker, this.nodeModulesPath),
+			new MacroManager(this.program, typeChecker, this.nodeModulesPath),
 			undefined,
 			ProjectType.Model,
 			undefined,
