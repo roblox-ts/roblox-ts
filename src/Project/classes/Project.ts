@@ -29,7 +29,7 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: "",
 };
 
-const LIB_PATH = path.join(__dirname, "..", "..", "lib");
+const LIB_PATH = path.join(__dirname, "..", "..", "..", "lib");
 
 /**
  * The options of the project.
