@@ -68,7 +68,8 @@ export class PathTranslator {
 		const possiblePaths = new Array<string>();
 		const pathInfo = PathInfo.from(filePath);
 
-		if (pathInfo.extsPeek() === LUA_EXT) {
+		// index.*.lua cannot come from a .ts file
+		if (pathInfo.extsPeek() === LUA_EXT && pathInfo.fileName !== INDEX_NAME) {
 			pathInfo.exts.pop();
 			const originalFileName = pathInfo.fileName;
 
