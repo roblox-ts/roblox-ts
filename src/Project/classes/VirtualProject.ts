@@ -109,7 +109,7 @@ export class VirtualProject {
 			this.pathTranslator,
 			undefined,
 			this.nodeModulesPath,
-			["node_modules"],
+			["node_modules", "@rbxts"],
 			this.nodeModulesPathMapping,
 			typeChecker,
 			new GlobalSymbols(typeChecker),
