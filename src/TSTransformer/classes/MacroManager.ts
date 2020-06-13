@@ -52,11 +52,7 @@ export class MacroManager {
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
-	constructor(
-		program: ts.EmitAndSemanticDiagnosticsBuilderProgram,
-		typeChecker: ts.TypeChecker,
-		nodeModulesPath: string,
-	) {
+	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
 		// initialize maps
 		const typeAliases = new Map<string, Set<ts.Symbol>>();
 		const identifiers = new Map<string, Set<ts.Symbol>>();

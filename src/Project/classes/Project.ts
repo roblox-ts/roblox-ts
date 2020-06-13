@@ -4,6 +4,7 @@ import { renderAST } from "LuaRenderer";
 import path from "path";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
+import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
@@ -22,11 +23,6 @@ import {
 	transformSourceFile,
 	TransformState,
 } from "TSTransformer";
-import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
-import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
-
-export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
-const preEmitDiagnostics: Array<PreEmitChecker> = [fileIsModule];
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
@@ -191,7 +187,7 @@ export class Project {
 		this.typeChecker = this.program.getProgram().getTypeChecker();
 
 		this.globalSymbols = new GlobalSymbols(this.typeChecker);
-		this.macroManager = new MacroManager(this.program, this.typeChecker, this.nodeModulesPath);
+		this.macroManager = new MacroManager(this.program.getProgram(), this.typeChecker, this.nodeModulesPath);
 
 		const roactIndexSourceFile = this.program.getSourceFile(path.join(this.nodeModulesPath, "roact", "index.d.ts"));
 		if (roactIndexSourceFile) {
@@ -214,12 +210,6 @@ export class Project {
 		if (fs.pathExistsSync(this.compilerOptions.outDir!)) {
 			cleanupDirRecursively(this.pathTranslator);
 		}
-	}
-
-	private getCustomPreEmitDiagnostics(sourceFile: ts.SourceFile) {
-		const diagnostics: Array<ts.Diagnostic> = [];
-		preEmitDiagnostics.forEach(check => diagnostics.push(...check(sourceFile)));
-		return diagnostics;
 	}
 
 	/**
@@ -287,7 +277,7 @@ export class Project {
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
 				console.log("compile", sourceFile.fileName);
 
-				const customPreEmitDiagnostics = this.getCustomPreEmitDiagnostics(sourceFile);
+				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
 
