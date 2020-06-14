@@ -1,4 +1,5 @@
 import chalk from "chalk";
+import { LogService } from "Shared/classes/LogService";
 
 // force colors
 chalk.level = chalk.Level.Basic;
@@ -8,5 +9,5 @@ chalk.level = chalk.Level.Basic;
  * @param message
  */
 export function warn(message: string) {
-	console.log(chalk.yellow("Compiler Warning:"), message);
+	LogService.writeLine(`${chalk.yellow("Compiler Warning:")} ${message}`);
 }

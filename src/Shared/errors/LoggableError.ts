@@ -1,6 +1,8 @@
+import { LogService } from "Shared/classes/LogService";
+
 export abstract class LoggableError {
 	public abstract toString(): string;
 	public log() {
-		console.log(this.toString());
+		LogService.writeLine(this.toString());
 	}
 }

@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import path from "path";
+import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoConfig } from "Shared/classes/RojoConfig";
 import { diagnostics } from "Shared/diagnostics";
-import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";

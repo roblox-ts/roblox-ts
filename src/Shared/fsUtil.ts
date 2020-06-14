@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import path from "path";
+import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/PathTranslator";
 
 /**
@@ -38,7 +39,7 @@ export function cleanupDirRecursively(translator: PathTranslator, dir = translat
 			}
 			if (isOutputFileOrphaned(translator, itemPath)) {
 				fs.removeSync(itemPath);
-				console.log("remove", itemPath);
+				LogService.writeLine(`remove ${itemPath}`);
 			}
 		}
 	}

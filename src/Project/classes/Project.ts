@@ -6,12 +6,13 @@ import { createParseConfigFileHost } from "Project/util/createParseConfigFileHos
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
+import { LogService } from "Shared/classes/LogService";
+import { NetworkType, RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { cleanupDirRecursively } from "Shared/fsUtil";
 import { PathTranslator } from "Shared/PathTranslator";
-import { NetworkType, RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { compilerVersion } from "Shared/version";
@@ -275,7 +276,7 @@ export class Project {
 			assert(sourceFile);
 
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
-				console.log("compile", sourceFile.fileName);
+				LogService.writeLine(`compile ${sourceFile.fileName}`);
 
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);

@@ -1,8 +1,8 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
 import { PathTranslator } from "Shared/PathTranslator";
-import { RbxPath, RojoConfig } from "Shared/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";

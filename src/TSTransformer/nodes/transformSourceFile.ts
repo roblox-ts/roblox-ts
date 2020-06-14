@@ -1,6 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
-import { RbxType } from "Shared/RojoConfig";
+import { RbxType } from "Shared/classes/RojoConfig";
 import { assert } from "Shared/util/assert";
 import { compilerVersion } from "Shared/version";
 import { TransformState } from "TSTransformer";

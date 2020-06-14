@@ -36,12 +36,16 @@
 				"readonly": "generic"
 			}
 		],
-		"no-restricted-imports": ["error", {
-			"patterns": [
-				".*"
-			]
-		}],
-		"@typescript-eslint/no-floating-promises": ["error", { "ignoreVoid": true }],
+		"no-restricted-imports": [
+			"error",
+			{
+				"patterns": [".*"]
+			}
+		],
+		"@typescript-eslint/no-floating-promises": [
+			"error",
+			{ "ignoreVoid": true }
+		],
 		"@typescript-eslint/no-unused-vars": "off",
 		"@typescript-eslint/explicit-function-return-type": "off",
 		"@typescript-eslint/interface-name-prefix": "off",
@@ -53,6 +57,7 @@
 		"@typescript-eslint/no-require-imports": "error",
 		"@typescript-eslint/no-unused-expressions": "warn",
 		"prefer-const": "warn",
-		"no-undef-init": "error"
+		"no-undef-init": "error",
+		"no-console": "error"
 	}
 }
