@@ -602,7 +602,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							expression: convertToIndexableExpression(valuesId),
 							index: keyId,
 						}),
-						right: lua.array([lua.binary(keyId, "-", lua.number(1)), valueId]),
+						right: lua.array([offset(keyId, -1), valueId]),
 					}),
 				),
 			}),
