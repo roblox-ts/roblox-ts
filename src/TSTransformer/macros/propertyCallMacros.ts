@@ -1220,6 +1220,10 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 			index: transformExpression(state, node.arguments[0]),
 		}),
 
+	entries: (state, node, expression) => {
+		return createKeyValuesEntriesMethod(state, node, expression, [lua.tempId(), lua.tempId()]);
+	},
+
 	values: runtimeLib("Object_values"),
 };
 
@@ -1281,6 +1285,41 @@ function makeArrayKeyValuesEntriesMethod(
 	};
 }
 
+function createKeyValuesEntriesMethod(
+	state: TransformState,
+	node: ts.CallExpression,
+	expression: lua.Expression,
+	loopIds: Array<lua.AnyIdentifier>,
+) {
+	const valuesId = state.pushToVar(lua.array());
+	const iterId = state.pushToVar(lua.number(0));
+
+	state.prereq(
+		lua.create(lua.SyntaxKind.ForStatement, {
+			ids: lua.list.make(...loopIds),
+			expression: lua.create(lua.SyntaxKind.CallExpression, {
+				expression: lua.globals.pairs,
+				args: lua.list.make(expression),
+			}),
+			statements: lua.list.make(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: iterId,
+					right: lua.binary(iterId, "+", lua.number(1)),
+				}),
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(valuesId),
+						index: iterId,
+					}),
+					right: lua.array(loopIds),
+				}),
+			),
+		}),
+	);
+
+	return valuesId;
+}
+
 function makeKeysValuesEntriesMethod(
 	loopIds: Array<lua.AnyIdentifier>,
 	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
@@ -1322,7 +1361,10 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 
 	keys: makeKeysValuesEntriesMethod([lua.tempId()], key => key),
 	values: makeKeysValuesEntriesMethod([lua.emptyId(), lua.tempId()], (_, value) => value),
-	entries: makeKeysValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) => lua.array([key, value])),
+	entries: (state, node, expression) => {
+		expression = transformExpression(state, node.arguments[0]);
+		return createKeyValuesEntriesMethod(state, node, expression, [lua.tempId(), lua.tempId()]);
+	},
 
 	copy: makeCopyMethod(lua.globals.pairs, (state, node, expression) => transformExpression(state, node.arguments[0])),
 };
