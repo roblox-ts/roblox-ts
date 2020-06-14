@@ -1221,10 +1221,19 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		}),
 
 	entries: (state, node, expression) => {
-		return createKeyValuesEntriesMethod(state, node, expression, [lua.tempId(), lua.tempId()]);
+		const ids = [lua.tempId(), lua.tempId()];
+		return createKeyValuesEntriesMethod(state, node, expression, ids, lua.array(ids));
 	},
 
-	values: runtimeLib("Object_values"),
+	keys: (state, node, expression) => {
+		const keyId = lua.tempId();
+		return createKeyValuesEntriesMethod(state, node, expression, [keyId], keyId);
+	},
+
+	values: (state, node, expression) => {
+		const valueId = lua.tempId();
+		return createKeyValuesEntriesMethod(state, node, expression, [lua.emptyId(), valueId], valueId);
+	},
 };
 
 const MAP_METHODS: MacroList<PropertyCallMacro> = {
@@ -1289,14 +1298,15 @@ function createKeyValuesEntriesMethod(
 	state: TransformState,
 	node: ts.CallExpression,
 	expression: lua.Expression,
-	loopIds: Array<lua.AnyIdentifier>,
+	ids: Array<lua.AnyIdentifier>,
+	right: lua.Expression,
 ) {
 	const valuesId = state.pushToVar(lua.array());
 	const iterId = state.pushToVar(lua.number(0));
 
 	state.prereq(
 		lua.create(lua.SyntaxKind.ForStatement, {
-			ids: lua.list.make(...loopIds),
+			ids: lua.list.make(...ids),
 			expression: lua.create(lua.SyntaxKind.CallExpression, {
 				expression: lua.globals.pairs,
 				args: lua.list.make(expression),
@@ -1311,45 +1321,13 @@ function createKeyValuesEntriesMethod(
 						expression: convertToIndexableExpression(valuesId),
 						index: iterId,
 					}),
-					right: lua.array(loopIds),
+					right,
 				}),
 			),
 		}),
 	);
 
 	return valuesId;
-}
-
-function makeKeysValuesEntriesMethod(
-	loopIds: Array<lua.AnyIdentifier>,
-	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
-): PropertyCallMacro {
-	return (state, node, expression) => {
-		const valuesId = state.pushToVar(lua.array());
-
-		const size = lua.unary("#", valuesId);
-
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(...loopIds),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.pairs,
-					args: lua.list.make(transformExpression(state, node.arguments[0])),
-				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(valuesId),
-							index: lua.binary(size, "+", lua.number(1)),
-						}),
-						right: generator(...loopIds),
-					}),
-				),
-			}),
-		);
-
-		return valuesId;
-	};
 }
 
 const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
@@ -1359,11 +1337,22 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	fromEntries: runtimeLib("Object_fromEntries", true),
 	isEmpty: runtimeLib("Object_isEmpty", true),
 
-	keys: makeKeysValuesEntriesMethod([lua.tempId()], key => key),
-	values: makeKeysValuesEntriesMethod([lua.emptyId(), lua.tempId()], (_, value) => value),
+	keys: (state, node, expression) => {
+		expression = transformExpression(state, node.arguments[0]);
+		const keyId = lua.tempId();
+		return createKeyValuesEntriesMethod(state, node, expression, [keyId], keyId);
+	},
+
+	values: (state, node, expression) => {
+		expression = transformExpression(state, node.arguments[0]);
+		const valueId = lua.tempId();
+		return createKeyValuesEntriesMethod(state, node, expression, [lua.emptyId(), valueId], valueId);
+	},
+
 	entries: (state, node, expression) => {
 		expression = transformExpression(state, node.arguments[0]);
-		return createKeyValuesEntriesMethod(state, node, expression, [lua.tempId(), lua.tempId()]);
+		const ids = [lua.tempId(), lua.tempId()];
+		return createKeyValuesEntriesMethod(state, node, expression, ids, lua.array(ids));
 	},
 
 	copy: makeCopyMethod(lua.globals.pairs, (state, node, expression) => transformExpression(state, node.arguments[0])),
