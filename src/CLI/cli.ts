@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { CLIError } from "CLI/errors/CLIError";
+import { PACKAGE_ROOT } from "Shared/constants";
 import yargs from "yargs";
 
 const cli = yargs
@@ -16,7 +17,7 @@ const cli = yargs
 	.describe("version", "show version information")
 
 	// commands
-	.commandDir(`${__dirname}/commands`)
+	.commandDir(`${PACKAGE_ROOT}/out/CLI/commands`)
 
 	// options
 	.recommendCommands()

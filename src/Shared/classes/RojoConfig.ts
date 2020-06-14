@@ -1,12 +1,12 @@
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
-import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, SERVER_SUBEXT } from "Shared/constants";
+import { Lazy } from "Shared/classes/Lazy";
+import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
 import { warn } from "Shared/warn";
-import { Lazy } from "Shared/classes/Lazy";
 
 interface RojoTreeProperty {
 	Type: string;
@@ -105,7 +105,7 @@ function stripExts(filePath: string) {
 	return filePath;
 }
 
-const SCHEMA_PATH = path.join(__dirname, "..", "..", "..", "rojo-schema.json");
+const SCHEMA_PATH = path.join(PACKAGE_ROOT, "rojo-schema.json");
 const validateRojo = new Lazy(() => ajv.compile(JSON.parse(fs.readFileSync(SCHEMA_PATH).toString())));
 function isValidRojoConfig(value: unknown): value is RojoFile {
 	return validateRojo.get()(value) === true;

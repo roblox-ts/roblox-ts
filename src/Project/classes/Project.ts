@@ -9,13 +9,12 @@ import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
-import { ProjectType } from "Shared/constants";
+import { COMPILER_VERSION, PACKAGE_ROOT, ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { cleanupDirRecursively } from "Shared/fsUtil";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { compilerVersion } from "Shared/version";
 import {
 	GlobalSymbols,
 	MacroManager,
@@ -30,7 +29,7 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	rojo: "",
 };
 
-const LIB_PATH = path.join(__dirname, "..", "..", "..", "lib");
+const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
 /**
  * The options of the project.
@@ -176,7 +175,7 @@ export class Project {
 
 		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 		// @ts-ignore
-		ts.version = compilerVersion + rojoHash;
+		ts.version = COMPILER_VERSION + rojoHash;
 
 		this.program = ts.createEmitAndSemanticDiagnosticsBuilderProgram(
 			parsedCommandLine.fileNames,
