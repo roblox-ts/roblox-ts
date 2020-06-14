@@ -2,15 +2,12 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
-import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
+import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { isArrayType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
-import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 
 const wrapFactory = (global: lua.IndexableExpression) => (expression: lua.Expression) =>
 	lua.create(lua.SyntaxKind.CallExpression, {
