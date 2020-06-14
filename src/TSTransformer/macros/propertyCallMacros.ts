@@ -16,6 +16,13 @@ function wrapParenthesesIfBinary(expression: lua.Expression) {
 	return expression;
 }
 
+function ipairs(expression: lua.Expression): lua.Expression {
+	return lua.create(lua.SyntaxKind.CallExpression, {
+		expression: lua.globals.ipairs,
+		args: lua.list.make(expression),
+	});
+}
+
 function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 	return (state, node, expression) => {
 		const args = lua.list.make(...ensureTransformOrder(state, node.arguments));
@@ -95,10 +102,7 @@ function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): Pro
 
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				ids: lua.list.make(loopId, valueId),
 				statements: lua.list.make<lua.Statement>(
 					lua.create(lua.SyntaxKind.IfStatement, {
@@ -375,10 +379,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				lua.create(lua.SyntaxKind.ForStatement, {
 					ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
-					expression: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.ipairs,
-						args: lua.list.make(arg),
-					}),
+					expression: ipairs(arg),
 					statements: lua.list.make(
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -603,10 +604,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.CallStatement, {
 						expression: lua.create(lua.SyntaxKind.CallExpression, {
@@ -631,10 +629,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
@@ -665,10 +660,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make<lua.Statement>(
 					lua.create(lua.SyntaxKind.VariableDeclaration, {
 						left: resultId,
@@ -782,10 +774,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.IfStatement, {
 						condition: lua.create(lua.SyntaxKind.BinaryExpression, {
@@ -877,10 +866,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const valueId = lua.tempId();
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				ids: lua.list.make(keyId, valueId),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
@@ -1188,10 +1174,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.CallStatement, {
 						expression: lua.create(lua.SyntaxKind.CallExpression, {
@@ -1275,16 +1258,13 @@ function makeArrayKeyValuesEntriesMethod(
 	loopIds: Array<lua.AnyIdentifier>,
 	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
 ): PropertyCallMacro {
-	return (state, _node, expression) => {
+	return (state, node, expression) => {
 		const valuesId = state.pushToVar(lua.array());
 
 		state.prereq(
 			lua.create(lua.SyntaxKind.ForStatement, {
 				ids: lua.list.make(...loopIds),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(expression),
-				}),
+				expression: ipairs(expression),
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
