@@ -587,9 +587,29 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		lua.list.make(valueId, offset(keyId, -1), expression),
 	),
 
-	entries: makeArrayKeyValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) =>
-		lua.array([lua.binary(key, "-", lua.number(1)), value]),
-	),
+	entries: (state, node, expression) => {
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		const valuesId = state.pushToVar(lua.array());
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: ipairs(expression),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(valuesId),
+							index: keyId,
+						}),
+						right: lua.array([lua.binary(keyId, "-", lua.number(1)), valueId]),
+					}),
+				),
+			}),
+		);
+
+		return valuesId;
+	},
 
 	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
 		lua.list.make(valueId, offset(keyId, -1), expression),
@@ -1266,33 +1286,6 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
 		}),
 };
-
-function makeArrayKeyValuesEntriesMethod(
-	loopIds: Array<lua.AnyIdentifier>,
-	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
-): PropertyCallMacro {
-	return (state, node, expression) => {
-		const valuesId = state.pushToVar(lua.array());
-
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(...loopIds),
-				expression: ipairs(expression),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(valuesId),
-							index: loopIds[0],
-						}),
-						right: generator(...loopIds),
-					}),
-				),
-			}),
-		);
-
-		return valuesId;
-	};
-}
 
 function createKeyValuesEntriesMethod(
 	state: TransformState,
