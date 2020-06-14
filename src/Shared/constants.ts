@@ -1,9 +1,9 @@
 import path from "path";
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-export const COMPILER_VERSION = require("./../../package.json").version;
-
 export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+export const COMPILER_VERSION = require(path.join(PACKAGE_ROOT, "package.json")).version;
 
 export const TS_EXT = "ts";
 export const TSX_EXT = "tsx";
