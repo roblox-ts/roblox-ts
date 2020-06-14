@@ -586,6 +586,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		lua.list.make(valueId, offset(keyId, -1), expression),
 	),
 
+	entries: makeArrayKeyValuesEntriesMethod([lua.tempId(), lua.tempId()], (key, value) =>
+		lua.array([lua.binary(key, "-", lua.number(1)), value]),
+	),
+
 	some: makeSomeMethod(lua.globals.ipairs, (keyId, valueId, expression) =>
 		lua.list.make(valueId, offset(keyId, -1), expression),
 	),
@@ -1266,6 +1270,36 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
 		}),
 };
+
+function makeArrayKeyValuesEntriesMethod(
+	loopIds: Array<lua.AnyIdentifier>,
+	generator: (...loopIds: Array<lua.AnyIdentifier>) => lua.Expression,
+): PropertyCallMacro {
+	return (state, _node, expression) => {
+		const valuesId = state.pushToVar(lua.array());
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(...loopIds),
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.ipairs,
+					args: lua.list.make(expression),
+				}),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(valuesId),
+							index: loopIds[0],
+						}),
+						right: generator(...loopIds),
+					}),
+				),
+			}),
+		);
+
+		return valuesId;
+	};
+}
 
 function makeKeysValuesEntriesMethod(
 	loopIds: Array<lua.AnyIdentifier>,
