@@ -1,23 +1,35 @@
 import ts from "byots";
 import yargs from "yargs";
 
-const command = "init";
+interface InitOptions {}
 
-const describe = "Create a project from a template";
-
-function handler(argv: yargs.Arguments, name: string) {
-	console.log("init", name, argv);
+enum TemplateType {
+	Game = "game",
+	Model = "model",
+	Plugin = "plugin",
+	Package = "package",
 }
 
-const builder: yargs.CommandBuilder = () =>
-	yargs
-		.command(["game", "place"], "Generate a Roblox place", {}, argv => handler(argv, "game"))
-		.command("model", "Generate a Roblox model", {}, argv => handler(argv, "model"))
-		.command("plugin", "Generate a Roblox Studio plugin", {}, argv => handler(argv, "plugin"))
-		.command("package", "Generate a roblox-ts npm package", {}, argv => handler(argv, "package"))
-		.demandCommand();
+function initialize(argv: yargs.Arguments<InitOptions>, type: TemplateType) {
+	if (type === TemplateType.Game) {
+	} else if (type === TemplateType.Model) {
+	} else if (type === TemplateType.Plugin) {
+	} else if (type === TemplateType.Package) {
+	}
+}
 
 /**
  * Defines behavior of `rbxtsc init` command.
  */
-export = ts.identity<yargs.CommandModule>({ command, describe, builder, handler: () => {} });
+export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
+	command: "init",
+	describe: "Create a project from a template",
+	builder: () =>
+		yargs
+			.command(["game", "place"], "Generate a Roblox place", {}, argv => initialize(argv, TemplateType.Game))
+			.command("model", "Generate a Roblox model", {}, argv => initialize(argv, TemplateType.Model))
+			.command("plugin", "Generate a Roblox Studio plugin", {}, argv => initialize(argv, TemplateType.Plugin))
+			.command("package", "Generate a roblox-ts npm package", {}, argv => initialize(argv, TemplateType.Package))
+			.demandCommand(),
+	handler: () => {},
+});

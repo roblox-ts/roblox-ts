@@ -3,10 +3,10 @@ import { renderAST } from "LuaRenderer";
 import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { PathTranslator } from "Shared/PathTranslator";
 import { assert } from "Shared/util/assert";
 import {
 	GlobalSymbols,

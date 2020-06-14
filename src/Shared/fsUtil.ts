@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import path from "path";
 import { LogService } from "Shared/classes/LogService";
-import { PathTranslator } from "Shared/PathTranslator";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 
 /**
  * Checks if the `filePath` path is a descendant of the `dirPath` path.

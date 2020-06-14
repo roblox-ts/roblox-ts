@@ -7,12 +7,12 @@ import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramH
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { LogService } from "Shared/classes/LogService";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { cleanupDirRecursively } from "Shared/fsUtil";
-import { PathTranslator } from "Shared/PathTranslator";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { compilerVersion } from "Shared/version";
