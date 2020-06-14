@@ -105,7 +105,7 @@ function stripExts(filePath: string) {
 	return filePath;
 }
 
-const SCHEMA_PATH = path.join(__dirname, "..", "..", "rojo-schema.json");
+const SCHEMA_PATH = path.join(__dirname, "..", "..", "..", "rojo-schema.json");
 const validateRojo = new Lazy(() => ajv.compile(JSON.parse(fs.readFileSync(SCHEMA_PATH).toString())));
 function isValidRojoConfig(value: unknown): value is RojoFile {
 	return validateRojo.get()(value) === true;
