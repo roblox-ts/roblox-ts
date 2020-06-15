@@ -11,4 +11,9 @@ export class Lazy<T> {
 		}
 		return this.value as T;
 	}
+
+	public set(value: T) {
+		this.isInitialized = true;
+		this.value = value;
+	}
 }

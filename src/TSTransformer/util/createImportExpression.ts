@@ -45,7 +45,7 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	return pathExpressions;
 }
 
-function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.StringLiteral, moduleFilePath: string) {
+function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
 		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
@@ -74,7 +74,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.StringL
 export function createImportExpression(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
-	moduleSpecifier: ts.StringLiteral,
+	moduleSpecifier: ts.Expression,
 ): lua.IndexableExpression {
 	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
 	if (!moduleFile) {
