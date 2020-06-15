@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isReferenceOfValue } from "TSTransformer/util/symbolUtils";
+import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;
@@ -83,7 +84,11 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (isReferenceOfValue(state, aliasSymbol)) {
 			const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
 			assert(exportSymbol);
-			if (exportSymbol.valueDeclaration && isDefaultExport(exportSymbol.valueDeclaration)) {
+
+			const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
+			if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && v.isExportEquals)) {
+				lua.list.pushList(statements, transformVariable(state, defaultImport, importExp).statements);
+			} else {
 				lua.list.pushList(
 					statements,
 					transformVariable(
@@ -95,8 +100,6 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 						}),
 					).statements,
 				);
-			} else {
-				lua.list.pushList(statements, transformVariable(state, defaultImport, importExp).statements);
 			}
 		}
 	}
