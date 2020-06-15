@@ -4,14 +4,14 @@ import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
+import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isArrayType } from "TSTransformer/util/types";
+import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	if (!lua.isCall(exp)) {
@@ -21,7 +21,7 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	const parent = skipUpwards(node).parent;
 
 	// `foo()`
-	if (ts.isExpressionStatement(parent)) {
+	if (ts.isExpressionStatement(parent) || ts.isForStatement(parent)) {
 		return false;
 	}
 
