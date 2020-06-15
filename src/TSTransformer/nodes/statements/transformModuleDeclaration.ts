@@ -13,7 +13,7 @@ import { getAncestor } from "TSTransformer/util/traversal";
 function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 	let amtValueDeclarations = 0;
 	for (const declaration of symbol.declarations) {
-		if (!ts.isModuleDeclaration(declaration) || ts.isInstantiatedModule(declaration, false)) {
+		if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
 			amtValueDeclarations++;
 			if (amtValueDeclarations > 1) {
 				return true;

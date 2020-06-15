@@ -6,13 +6,26 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 
+function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
+	let amtValueDefinitions = 0;
+	for (const declaration of symbol.declarations) {
+		if (ts.isEnumDeclaration(declaration) && !!(declaration.modifierFlagsCache & ts.ModifierFlags.Const)) {
+			amtValueDefinitions++;
+			if (amtValueDefinitions > 1) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
-	if (node.modifiers?.find(modifier => modifier.kind === ts.SyntaxKind.ConstKeyword)) {
+	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Const)) {
 		return lua.list.make<lua.Statement>();
 	}
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && symbol.declarations.length > 1) {
+	if (symbol && hasMultipleDefinitions(symbol)) {
 		state.addDiagnostic(diagnostics.noEnumMerging(node));
 		return lua.list.make<lua.Statement>();
 	}
