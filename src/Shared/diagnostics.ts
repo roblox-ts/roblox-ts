@@ -64,7 +64,11 @@ export const diagnostics = {
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
 	// banned expressions
-	noDeleteExpression: diagnostic("`delete` operator is not supported!"),
+	noDeleteExpression: diagnostic(
+		"The `delete` operator is not supported!",
+		suggestion("Set the property to `undefined` instead."),
+		issue(547),
+	),
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noTypeOfExpression: diagnostic(
