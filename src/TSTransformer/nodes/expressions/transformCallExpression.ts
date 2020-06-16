@@ -133,8 +133,8 @@ export function transformElementCallExpressionInner(
 	const argumentExp = lua.list.shift(args)!;
 
 	if (isMethod(state, node.expression)) {
-		const selfId = state.pushToVarIfComplex(expression);
-		lua.list.unshift(args, selfId);
+		expression = state.pushToVarIfComplex(expression);
+		lua.list.unshift(args, expression);
 	}
 
 	const exp = lua.create(lua.SyntaxKind.CallExpression, {
