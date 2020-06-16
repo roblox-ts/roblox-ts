@@ -269,51 +269,58 @@ export class Project {
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
-		// iterate through each source file in the project as a `ts.SourceFile`
-		filesSet.forEach(fileName => {
+		const sourceFiles = new Array<ts.SourceFile>();
+		for (const fileName of filesSet) {
 			const sourceFile = this.program.getSourceFile(fileName);
 			assert(sourceFile);
-
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
-				LogService.writeLine(`compile ${sourceFile.fileName}`);
-
-				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
-				totalDiagnostics.push(...customPreEmitDiagnostics);
-				if (totalDiagnostics.length > 0) return;
-
-				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
-				totalDiagnostics.push(...preEmitDiagnostics);
-				if (totalDiagnostics.length > 0) return;
-
-				// create a new transform state for the file
-				const transformState = new TransformState(
-					this.compilerOptions,
-					multiTransformState,
-					this.rojoConfig,
-					this.pathTranslator,
-					this.runtimeLibRbxPath,
-					this.nodeModulesPath,
-					this.nodeModulesRbxPath,
-					this.nodeModulesPathMapping,
-					this.typeChecker,
-					this.globalSymbols,
-					this.macroManager,
-					this.roactSymbolManager,
-					this.projectType,
-					this.pkgVersion,
-					sourceFile,
-				);
-
-				// create a new Lua abstract syntax tree for the file
-				const luaAST = transformSourceFile(transformState, sourceFile);
-				totalDiagnostics.push(...transformState.diagnostics);
-				if (totalDiagnostics.length > 0) return;
-
-				// render lua abstract syntax tree and output only if there were no diagnostics
-				const luaSource = renderAST(luaAST);
-				fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
+				sourceFiles.push(sourceFile);
 			}
-		});
+		}
+
+		const progressLength = String(sourceFiles.length).length * 2 + 1;
+		for (let i = 0; i < sourceFiles.length; i++) {
+			const sourceFile = sourceFiles[i];
+
+			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressLength);
+			LogService.writeLine(`${progress} compile ${sourceFile.fileName}`);
+
+			const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
+			totalDiagnostics.push(...customPreEmitDiagnostics);
+			if (totalDiagnostics.length > 0) return;
+
+			const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
+			totalDiagnostics.push(...preEmitDiagnostics);
+			if (totalDiagnostics.length > 0) return;
+
+			// create a new transform state for the file
+			const transformState = new TransformState(
+				this.compilerOptions,
+				multiTransformState,
+				this.rojoConfig,
+				this.pathTranslator,
+				this.runtimeLibRbxPath,
+				this.nodeModulesPath,
+				this.nodeModulesRbxPath,
+				this.nodeModulesPathMapping,
+				this.typeChecker,
+				this.globalSymbols,
+				this.macroManager,
+				this.roactSymbolManager,
+				this.projectType,
+				this.pkgVersion,
+				sourceFile,
+			);
+
+			// create a new Lua abstract syntax tree for the file
+			const luaAST = transformSourceFile(transformState, sourceFile);
+			totalDiagnostics.push(...transformState.diagnostics);
+			if (totalDiagnostics.length > 0) return;
+
+			// render lua abstract syntax tree and output only if there were no diagnostics
+			const luaSource = renderAST(luaAST);
+			fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
+		}
 
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
