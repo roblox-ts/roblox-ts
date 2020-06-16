@@ -2,6 +2,21 @@ import ts from "byots";
 import * as tsst from "ts-simple-type";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 
+export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
+	if (type.isUnion() || type.isIntersection()) {
+		for (const t of type.types) {
+			walkTypes(t, callback);
+		}
+	} else {
+		const constraint = type.getConstraint();
+		if (constraint) {
+			walkTypes(constraint, callback);
+		} else {
+			callback(type);
+		}
+	}
+}
+
 function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
 		return type.types.every(t => typeConstraint(t, callback));

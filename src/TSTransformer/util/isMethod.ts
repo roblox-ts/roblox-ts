@@ -2,6 +2,7 @@ import ts from "byots";
 import { diagnostics } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { walkTypes } from "TSTransformer/util/types";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];
@@ -25,16 +26,6 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	return false;
 }
 
-function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
-	if (type.isUnion() || type.isIntersection()) {
-		for (const t of type.types) {
-			walkTypes(t, callback);
-		}
-	} else {
-		callback(type);
-	}
-}
-
 function isMethodInner(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
@@ -51,21 +42,17 @@ function isMethodInner(
 		}
 	}
 
-	walkTypes(type, t => {
-		if (t.symbol) {
-			for (const declaration of t.symbol.declarations) {
-				if (ts.isTypeLiteralNode(declaration)) {
-					for (const callSignature of t.getCallSignatures()) {
-						if (callSignature.declaration) {
-							checkMethod(callSignature.declaration);
-						}
-					}
-				} else {
-					checkMethod(declaration);
+	for (const declaration of type.symbol.declarations) {
+		if (ts.isTypeLiteralNode(declaration)) {
+			for (const callSignature of type.getCallSignatures()) {
+				if (callSignature.declaration) {
+					checkMethod(callSignature.declaration);
 				}
 			}
+		} else {
+			checkMethod(declaration);
 		}
-	});
+	}
 
 	if (hasMethodDefinition && hasCallbackDefinition) {
 		state.addDiagnostic(diagnostics.noMixedTypeCall(node));
@@ -74,27 +61,19 @@ function isMethodInner(
 	return hasMethodDefinition;
 }
 
-function getDefinedType(state: TransformState, type: ts.Type) {
-	if (type.isUnion()) {
-		for (const subType of type.types) {
-			if (subType.symbol && !state.typeChecker.isUndefinedSymbol(subType.symbol)) {
-				return subType;
-			}
-		}
-	} else {
-		return type;
-	}
-}
-
 export function isMethod(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
 ): boolean {
-	const type = getDefinedType(state, state.getType(node));
-	if (!type || !type.symbol) {
-		return false;
-	}
-	return getOrSetDefault(state.multiTransformState.isMethodCache, type.symbol, () =>
-		isMethodInner(state, node, type),
-	);
+	let result = false;
+
+	walkTypes(state.getType(node), t => {
+		if (t.symbol) {
+			result =
+				result ||
+				getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () => isMethodInner(state, node, t));
+		}
+	});
+
+	return result;
 }
