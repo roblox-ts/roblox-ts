@@ -287,11 +287,11 @@ export class Project {
 
 			const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 			totalDiagnostics.push(...customPreEmitDiagnostics);
-			if (totalDiagnostics.length > 0) return;
+			if (totalDiagnostics.length > 0) break;
 
 			const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
 			totalDiagnostics.push(...preEmitDiagnostics);
-			if (totalDiagnostics.length > 0) return;
+			if (totalDiagnostics.length > 0) break;
 
 			// create a new transform state for the file
 			const transformState = new TransformState(
@@ -316,7 +316,7 @@ export class Project {
 			// create a new Lua abstract syntax tree for the file
 			const luaAST = transformSourceFile(transformState, sourceFile);
 			totalDiagnostics.push(...transformState.diagnostics);
-			if (totalDiagnostics.length > 0) return;
+			if (totalDiagnostics.length > 0) break;
 
 			// render lua abstract syntax tree and output only if there were no diagnostics
 			const luaSource = renderAST(luaAST);
