@@ -27,5 +27,18 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		);
 	}
 
-	return lua.create(lua.SyntaxKind.FunctionExpression, { statements, parameters, hasDotDotDot });
+	let expression: lua.Expression = lua.create(lua.SyntaxKind.FunctionExpression, {
+		hasDotDotDot,
+		parameters,
+		statements,
+	});
+
+	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
+		expression = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("async"),
+			args: lua.list.make(expression),
+		});
+	}
+
+	return expression;
 }

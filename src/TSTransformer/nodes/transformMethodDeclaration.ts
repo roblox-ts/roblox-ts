@@ -29,31 +29,50 @@ export function transformMethodDeclaration(
 
 	const name = transformObjectKey(state, node.name);
 
-	// can we use `class:name()`?
-	if (lua.isStringLiteral(name) && !lua.isMap(ptr.value) && isMethod(state, node)) {
-		lua.list.shift(parameters); // remove `self`
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.MethodDeclaration, {
-				expression: ptr.value,
-				name: name.value,
-				statements,
-				parameters,
-				hasDotDotDot,
-			}),
-		);
+	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+
+	// can we use `function class:name() end`?
+	if (!isAsync && lua.isStringLiteral(name) && !lua.isMap(ptr.value)) {
+		if (isMethod(state, node)) {
+			lua.list.shift(parameters); // remove `self`
+			return lua.list.make(
+				lua.create(lua.SyntaxKind.MethodDeclaration, {
+					expression: ptr.value,
+					name: name.value,
+					statements,
+					parameters,
+					hasDotDotDot,
+				}),
+			);
+		} else {
+			return lua.list.make(
+				lua.create(lua.SyntaxKind.FunctionDeclaration, {
+					name: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						expression: ptr.value,
+						name: name.value,
+					}),
+					localize: false,
+					statements,
+					parameters,
+					hasDotDotDot,
+				}),
+			);
+		}
+	}
+
+	let expression: lua.Expression = lua.create(lua.SyntaxKind.FunctionExpression, {
+		statements,
+		parameters,
+		hasDotDotDot,
+	});
+
+	if (isAsync) {
+		expression = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("async"),
+			args: lua.list.make(expression),
+		});
 	}
 
 	// we have to use `class[name] = function()`
-	return state.capturePrereqs(() =>
-		assignToMapPointer(
-			state,
-			ptr,
-			name,
-			lua.create(lua.SyntaxKind.FunctionExpression, {
-				statements,
-				parameters,
-				hasDotDotDot,
-			}),
-		),
-	);
+	return state.capturePrereqs(() => assignToMapPointer(state, ptr, name, expression));
 }
