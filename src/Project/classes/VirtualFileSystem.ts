@@ -1,6 +1,5 @@
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { dir } from "console";
 
 interface VirtualFile {
 	name: string;
