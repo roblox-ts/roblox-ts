@@ -184,7 +184,7 @@ export class Project {
 			ts.readBuilderProgram(this.compilerOptions, createReadBuildProgramHost()),
 		);
 
-		this.typeChecker = this.program.getProgram().getTypeChecker();
+		this.typeChecker = this.program.getProgram().getDiagnosticsProducingTypeChecker();
 
 		this.globalSymbols = new GlobalSymbols(this.typeChecker);
 		this.macroManager = new MacroManager(this.program.getProgram(), this.typeChecker, this.nodeModulesPath);
@@ -304,6 +304,7 @@ export class Project {
 				this.nodeModulesRbxPath,
 				this.nodeModulesPathMapping,
 				this.typeChecker,
+				this.typeChecker.getEmitResolver(sourceFile),
 				this.globalSymbols,
 				this.macroManager,
 				this.roactSymbolManager,

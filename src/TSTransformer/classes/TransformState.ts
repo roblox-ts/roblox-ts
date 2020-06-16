@@ -45,6 +45,7 @@ export class TransformState {
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
 		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
+		public readonly resolver: ts.EmitResolver,
 		public readonly globalSymbols: GlobalSymbols,
 		public readonly macroManager: MacroManager,
 		public readonly roactSymbolManager: RoactSymbolManager | undefined,

@@ -3,15 +3,12 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isReferenceOfValue } from "TSTransformer/util/symbolUtils";
 
 function countImportExpUses(state: TransformState, exportClause?: ts.NamespaceExport | ts.NamedExports) {
 	let uses = 0;
 	if (exportClause && ts.isNamedExports(exportClause)) {
 		for (const element of exportClause.elements) {
-			const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
-			assert(aliasSymbol);
-			if (isReferenceOfValue(state, aliasSymbol)) {
+			if (state.resolver.isReferencedAliasDeclaration(element)) {
 				uses++;
 			}
 		}
@@ -53,9 +50,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		if (ts.isNamedExports(exportClause)) {
 			// export { a, b, c } from "./module";
 			for (const element of exportClause.elements) {
-				const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
-				assert(aliasSymbol);
-				if (isReferenceOfValue(state, aliasSymbol)) {
+				if (state.resolver.isReferencedAliasDeclaration(element)) {
 					lua.list.push(
 						statements,
 						lua.create(lua.SyntaxKind.Assignment, {

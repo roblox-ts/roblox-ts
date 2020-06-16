@@ -81,7 +81,7 @@ export class VirtualProject {
 			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
 
-		const typeChecker = this.program.getTypeChecker();
+		const typeChecker = this.program.getDiagnosticsProducingTypeChecker();
 
 		let roactSymbolManager: RoactSymbolManager | undefined;
 		const roactIndexSourceFile = this.program.getSourceFile(pathJoin(this.nodeModulesPath, "roact", "index.d.ts"));
@@ -112,6 +112,7 @@ export class VirtualProject {
 			["node_modules", "@rbxts"],
 			this.nodeModulesPathMapping,
 			typeChecker,
+			typeChecker.getEmitResolver(sourceFile),
 			new GlobalSymbols(typeChecker),
 			new MacroManager(this.program, typeChecker, this.nodeModulesPath),
 			roactSymbolManager,

@@ -1,36 +1,34 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
-import { isReferenceOfValue } from "TSTransformer/util/symbolUtils";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
-import { Lazy } from "Shared/classes/Lazy";
 
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;
-	ts.forEachImportClauseDeclaration(importClause, declaration => {
-		const aliasSymbol = state.typeChecker.getSymbolAtLocation(declaration.name ?? declaration);
-		assert(aliasSymbol);
-		if (isReferenceOfValue(state, aliasSymbol)) {
+
+	if (importClause.name) {
+		if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 			uses++;
 		}
-	});
-	return uses;
-}
+	}
 
-function isDefaultExport(exportDec: ts.Declaration) {
-	if (ts.isExportAssignment(exportDec) && !exportDec.isExportEquals) {
-		return true;
+	if (importClause.namedBindings) {
+		if (ts.isNamespaceImport(importClause.namedBindings)) {
+			uses++;
+		} else {
+			for (const element of importClause.namedBindings.elements) {
+				if (state.resolver.isReferencedAliasDeclaration(element)) {
+					uses++;
+				}
+			}
+		}
 	}
-	if (
-		(ts.isFunctionDeclaration(exportDec) || ts.isClassDeclaration(exportDec)) &&
-		!!(exportDec.modifierFlagsCache & ts.ModifierFlags.ExportDefault)
-	) {
-		return true;
-	}
-	return false;
+
+	return uses;
 }
 
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
@@ -43,9 +41,6 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	const importExp = new Lazy(() => createImportExpression(state, node.getSourceFile(), node.moduleSpecifier));
 
 	if (importClause) {
-		const defaultImport = importClause.name;
-		const namedBindings = importClause.namedBindings;
-
 		// detect if we need to push to a new var or not
 		const uses = countImportExpUses(state, importClause);
 		if (uses > 1) {
@@ -61,22 +56,20 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		}
 
 		// default import logic
-		if (defaultImport) {
-			const aliasSymbol = state.typeChecker.getSymbolAtLocation(defaultImport);
-			assert(aliasSymbol);
-			if (isReferenceOfValue(state, aliasSymbol)) {
-				const exportSymbol = state.typeChecker.getImmediateAliasedSymbol(aliasSymbol);
-				assert(exportSymbol);
-
+		if (importClause.name) {
+			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && v.isExportEquals)) {
-					lua.list.pushList(statements, transformVariable(state, defaultImport, importExp.get()).statements);
+					lua.list.pushList(
+						statements,
+						transformVariable(state, importClause.name, importExp.get()).statements,
+					);
 				} else {
 					lua.list.pushList(
 						statements,
 						transformVariable(
 							state,
-							defaultImport,
+							importClause.name,
 							lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 								expression: importExp.get(),
 								name: "default",
@@ -87,17 +80,17 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			}
 		}
 
-		if (namedBindings) {
+		if (importClause.namedBindings) {
 			// namespace import logic
-			if (ts.isNamespaceImport(namedBindings)) {
-				lua.list.pushList(statements, transformVariable(state, namedBindings.name, importExp.get()).statements);
+			if (ts.isNamespaceImport(importClause.namedBindings)) {
+				lua.list.pushList(
+					statements,
+					transformVariable(state, importClause.namedBindings.name, importExp.get()).statements,
+				);
 			} else {
 				// named elements import logic
-				for (const element of namedBindings.elements) {
-					const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
-					assert(aliasSymbol);
-
-					if (isReferenceOfValue(state, aliasSymbol)) {
+				for (const element of importClause.namedBindings.elements) {
+					if (state.resolver.isReferencedAliasDeclaration(element)) {
 						lua.list.pushList(
 							statements,
 							transformVariable(
