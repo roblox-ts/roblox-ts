@@ -31,13 +31,15 @@ export function transformStatementList(
 		);
 
 		// iterate through each of the leading comments of the statement
-		for (const comment of state.getLeadingComments(statement)) {
-			lua.list.push(
-				result,
-				lua.create(lua.SyntaxKind.Comment, {
-					text: comment,
-				}),
-			);
+		if (state.compilerOptions.removeComments !== true) {
+			for (const comment of state.getLeadingComments(statement)) {
+				lua.list.push(
+					result,
+					lua.create(lua.SyntaxKind.Comment, {
+						text: comment,
+					}),
+				);
+			}
 		}
 
 		// check statement for hoisting
@@ -76,7 +78,7 @@ export function transformStatementList(
 		}
 	}
 
-	if (statements.length > 0) {
+	if (state.compilerOptions.removeComments !== true && statements.length > 0) {
 		const lastParentToken = statements[statements.length - 1].parent.getLastToken();
 		if (lastParentToken) {
 			for (const comment of state.getLeadingComments(lastParentToken)) {
