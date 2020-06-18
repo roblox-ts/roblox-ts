@@ -964,18 +964,13 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		let sizeExp: lua.Expression = lua.unary("#", expression);
 
 		const valueIsUsed = !isUsedAsStatement(node);
-		const retValue = valueIsUsed ? lua.tempId() : lua.nil();
-
+		let retValue: lua.TemporaryIdentifier;
 		if (valueIsUsed) {
-			assert(lua.isTemporaryIdentifier(retValue));
 			sizeExp = state.pushToVar(sizeExp);
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: retValue,
-					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: sizeExp,
-					}),
+			retValue = state.pushToVar(
+				lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: sizeExp,
 				}),
 			);
 		}
@@ -990,7 +985,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return retValue;
+		return valueIsUsed ? retValue! : lua.nil();
 	},
 
 	shift: (state, node, expression) =>
@@ -1039,19 +1034,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		expression = state.pushToVarIfComplex(expression);
 
-		const valueIsUsed = !isUsedAsStatement(node);
-
 		const lengthId = state.pushToVar(lua.unary("#", expression));
 
-		const valueId = lua.tempId();
+		const valueIsUsed = !isUsedAsStatement(node);
+		let valueId: lua.TemporaryIdentifier;
 		if (valueIsUsed) {
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: valueId,
-					right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: offset(arg, 1),
-					}),
+			valueId = state.pushToVar(
+				lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: offset(arg, 1),
 				}),
 			);
 		}
@@ -1079,7 +1070,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueId : lua.nil();
+		return valueIsUsed ? valueId! : lua.nil();
 	},
 };
 
@@ -1128,19 +1119,16 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	delete: (state, node, expression) => {
 		const valueIsUsed = !isUsedAsStatement(node);
-		const valueExistedId = lua.tempId();
+		let valueExistedId: lua.TemporaryIdentifier;
 		if (valueIsUsed) {
-			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
-					left: valueExistedId,
-					right: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(expression),
-							index: transformExpression(state, node.arguments[0]),
-						}),
-						operator: "~=",
-						right: lua.nil(),
+			valueExistedId = state.pushToVar(
+				lua.create(lua.SyntaxKind.BinaryExpression, {
+					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(expression),
+						index: transformExpression(state, node.arguments[0]),
 					}),
+					operator: "~=",
+					right: lua.nil(),
 				}),
 			);
 		}
@@ -1155,7 +1143,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueExistedId : lua.nil();
+		return valueIsUsed ? valueExistedId! : lua.nil();
 	},
 
 	clear: (state, node, expression) => {

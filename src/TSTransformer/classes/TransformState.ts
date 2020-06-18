@@ -248,9 +248,10 @@ export class TransformState {
 
 	/**
 	 * Declares and defines a new lua variable. Pushes that new variable to a new lua.TemporaryIdentifier.
+	 * Can also be used to initialise a new tempId without a value
 	 * @param expression
 	 */
-	public pushToVar(expression: lua.Expression) {
+	public pushToVar(expression: lua.Expression | undefined) {
 		const temp = lua.tempId();
 		this.prereq(
 			lua.create(lua.SyntaxKind.VariableDeclaration, {
