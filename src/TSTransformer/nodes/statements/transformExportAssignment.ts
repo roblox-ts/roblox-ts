@@ -18,7 +18,8 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 
 	state.hasExportEquals = true;
 
-	const finalStatement = state.sourceFile.statements[state.sourceFile.statements.length - 1];
+	const sourceFile = node.getSourceFile();
+	const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
 	if (finalStatement === node) {
 		return lua.list.make<lua.Statement>(
 			lua.create(lua.SyntaxKind.ReturnStatement, { expression: transformExpression(state, node.expression) }),

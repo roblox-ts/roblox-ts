@@ -34,7 +34,12 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
  * @param symbol The symbol of the file.
  * @param statements The transformed list of statements of the state.
  */
-function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua.List<lua.Statement>) {
+function handleExports(
+	state: TransformState,
+	sourceFile: ts.SourceFile,
+	symbol: ts.Symbol,
+	statements: lua.List<lua.Statement>,
+) {
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, lua.Identifier]>();
 	if (!state.hasExportEquals) {
@@ -52,7 +57,7 @@ function handleExports(state: TransformState, symbol: ts.Symbol, statements: lua
 
 	if (state.hasExportEquals) {
 		// local exports variable is created in transformExportAssignment
-		const finalStatement = state.sourceFile.statements[state.sourceFile.statements.length - 1];
+		const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
 		if (!ts.isExportAssignment(finalStatement) || !finalStatement.isExportEquals) {
 			lua.list.push(
 				statements,
@@ -124,11 +129,11 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`
 	const statements = transformStatementList(state, node.statements);
 
-	handleExports(state, symbol, statements);
+	handleExports(state, node, symbol, statements);
 
 	// moduleScripts must `return nil` if they do not export any values
 	if (!statements.tail || !lua.isReturnStatement(statements.tail.value)) {
-		const outputPath = state.pathTranslator.getOutputPath(state.sourceFile.fileName);
+		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
 		if (state.rojoConfig.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
 			lua.list.push(statements, lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
 		}

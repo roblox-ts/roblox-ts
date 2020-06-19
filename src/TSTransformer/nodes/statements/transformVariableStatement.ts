@@ -33,7 +33,7 @@ function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: 
 		ts.FindAllReferences.Core.eachSymbolReferenceInFile(
 			node,
 			state.typeChecker,
-			state.sourceFile,
+			node.getSourceFile(),
 			token => {
 				if (!isAncestorOf(caseClause, token)) {
 					return true;
@@ -52,9 +52,6 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 	return state.capture(() => {
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 		assert(symbol);
-
-		const sourceFileSymbol = state.typeChecker.getSymbolAtLocation(state.sourceFile);
-		assert(sourceFileSymbol);
 
 		// export let
 		if (isDefinedAsLet(state, symbol)) {
