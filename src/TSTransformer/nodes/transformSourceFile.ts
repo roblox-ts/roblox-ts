@@ -123,7 +123,7 @@ function handleExports(
  */
 export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
+	assert(symbol, "Could not find symbol for sourcefile");
 	state.setModuleIdBySymbol(symbol, lua.globals.exports);
 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`

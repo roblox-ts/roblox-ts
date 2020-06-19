@@ -9,7 +9,7 @@ class PathInfo {
 		const dirName = path.dirname(filePath);
 		const exts = filePath.slice(dirName.length + path.sep.length).split(".");
 		const fileName = exts.shift();
-		assert(fileName);
+		assert(fileName !== undefined, "Filepath was a directory, not a file");
 		return new PathInfo(dirName, fileName, exts);
 	}
 

@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { getNodeKind } from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -60,5 +60,5 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		);
 		return lua.unary("not", checks);
 	}
-	assert(false, `Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);
+	assert(false, `Unsupported PrefixUnaryExpression operator: ${getNodeKind(node)}`);
 }

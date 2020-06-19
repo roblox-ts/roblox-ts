@@ -27,7 +27,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 	if (ts.isIdentifier(node)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {
-			assert(state.roactSymbolManager);
+			assert(state.roactSymbolManager, "Attempt to use jsx without a state.roactSymbolManager");
 			const className = state.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
 			if (className !== undefined) {
 				return lua.string(className);
@@ -261,11 +261,17 @@ function isFlatObject(expression: ts.ObjectLiteralExpression) {
 }
 
 function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
-	assert(attribute.initializer && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression);
+	assert(
+		attribute.initializer && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression,
+		"JsxAttribute had no initializer",
+	);
 	const expression = attribute.initializer.expression;
 	if (ts.isObjectLiteralExpression(expression) && isFlatObject(expression)) {
 		for (const property of expression.properties) {
-			assert(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name));
+			assert(
+				ts.isPropertyAssignment(property) && ts.isIdentifier(property.name),
+				"property wasn't a property assignment or had a non-identifier name",
+			);
 			const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, property.initializer);
 			if (!lua.list.isEmpty(initPrereqs)) {
 				disableMapInline(state, attributesPtr);
@@ -378,7 +384,7 @@ function transformJsxChildren(
 		}
 
 		// not available when jsxFactory is set
-		assert(!ts.isJsxFragment(child));
+		assert(!ts.isJsxFragment(child), "Will not happen");
 
 		if (ts.isJsxExpression(child)) {
 			const innerExp = child.expression;
@@ -391,7 +397,7 @@ function transformJsxChildren(
 
 				if (child.dotDotDotToken) {
 					disableInline();
-					assert(lua.isAnyIdentifier(childrenPtr.value));
+					assert(lua.isAnyIdentifier(childrenPtr.value), "pointer.value was not an identifier");
 					state.prereqList(statements);
 					state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 				} else {
@@ -413,15 +419,15 @@ function transformJsxChildren(
 						amtChildrenSinceUpdate++;
 					} else if (isArrayType(state, type)) {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(lua.isAnyIdentifier(childrenPtr.value), "pointer.value was not an identifier");
 						state.prereq(createJsxAddNumericChildren(childrenPtr.value, lengthId, expression));
 					} else if (isMapType(state, type)) {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(lua.isAnyIdentifier(childrenPtr.value), "pointer.value was not an identifier");
 						state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 					} else {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(lua.isAnyIdentifier(childrenPtr.value), "pointer.value was not an identifier");
 						state.prereq(
 							createJsxAddAmbiguousChild(
 								childrenPtr.value,

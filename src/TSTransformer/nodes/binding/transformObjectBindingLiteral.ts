@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { getNodeKind } from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -22,7 +22,7 @@ export function transformObjectBindingLiteral(
 			const value = objectAccessor(state, parentId, name, name, name);
 			const id = transformWritableExpression(state, name, property.objectAssignmentInitializer !== undefined);
 			state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: id, right: value }));
-			assert(lua.isAnyIdentifier(id));
+			assert(lua.isAnyIdentifier(id), "transformWritableExpression did not return an identifier");
 			if (property.objectAssignmentInitializer) {
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
@@ -50,20 +50,20 @@ export function transformObjectBindingLiteral(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				assert(ts.isIdentifier(name));
+				assert(ts.isIdentifier(name), "name wasn't an identifier");
 				transformArrayBindingLiteral(state, init, id, getSubType(state, accessType, name.text));
 			} else if (ts.isObjectLiteralExpression(init)) {
 				const id = state.pushToVar(value);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				assert(ts.isIdentifier(name));
+				assert(ts.isIdentifier(name), "name wasn't an identifier");
 				transformObjectBindingLiteral(state, init, id, getSubType(state, accessType, name.text));
 			} else {
-				assert(false);
+				assert(false, `Unexpected node kind ${getNodeKind(init)}`);
 			}
 		} else {
-			assert(false);
+			assert(false, `Unexpected node kind ${getNodeKind(property)}`);
 		}
 	}
 }

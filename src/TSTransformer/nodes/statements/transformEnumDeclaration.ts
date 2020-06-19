@@ -46,7 +46,10 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 		for (const member of node.members) {
 			// TS will error otherwise
-			assert(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name));
+			assert(
+				ts.isIdentifier(member.name) || ts.isStringLiteral(member.name),
+				"member.name wasn't a string literal or identifier",
+			);
 
 			const nameStr = member.name.text;
 			const value = state.typeChecker.getConstantValue(member);
@@ -57,7 +60,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			} else if (typeof value === "number") {
 				valueExp = lua.number(value);
 			} else {
-				assert(member.initializer);
+				assert(member.initializer, "member had no initializer");
 				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer));
 			}
 

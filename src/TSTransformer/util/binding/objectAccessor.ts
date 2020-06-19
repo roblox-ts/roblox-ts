@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { getNodeKind } from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -28,5 +28,5 @@ export const objectAccessor = (
 			index: transformExpression(state, name),
 		});
 	}
-	assert(false);
+	assert(false, `Unexpected node kind ${getNodeKind(name)}`);
 };

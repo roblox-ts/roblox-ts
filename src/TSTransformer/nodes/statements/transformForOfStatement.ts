@@ -8,6 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { isArrayType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
+import { diagnostics } from "Shared/diagnostics";
 
 const wrapFactory = (global: lua.IndexableExpression) => (expression: lua.Expression) =>
 	lua.create(lua.SyntaxKind.CallExpression, {
@@ -51,7 +52,7 @@ function getMapLoopStructure(
 	// optimized
 	if (ts.isArrayBindingPattern(name)) {
 		// 0, 1, and 2 are possible, but not more than that?
-		assert(name.elements.length <= 2);
+		assert(name.elements.length <= 2, "Will not happen");
 
 		const firstElement = name.elements[0];
 		if (firstElement === undefined || ts.isOmittedExpression(firstElement)) {
@@ -120,14 +121,19 @@ function getLoopStructure(state: TransformState, name: ts.BindingName, innerExp:
 	} else if (isStringType(expType)) {
 		expression = getStringLoopStructure(state, ids, initializers, name, innerExp);
 	} else {
-		assert(false);
+		assert(false, "Unexpected type");
 	}
 	return { ids, expression, initializers };
 }
 
 export function transformForOfStatement(state: TransformState, node: ts.ForOfStatement) {
-	assert(ts.isVariableDeclarationList(node.initializer) && node.initializer.declarations.length === 1);
-	assert(!node.awaitModifier);
+	assert(
+		ts.isVariableDeclarationList(node.initializer) && node.initializer.declarations.length === 1,
+		"node.initializer had wasn't an array with 1 member",
+	);
+	if (node.awaitModifier) {
+		state.addDiagnostic(diagnostics.noAwaitForOf(node));
+	}
 
 	const name = node.initializer.declarations[0].name;
 

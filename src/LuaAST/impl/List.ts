@@ -2,6 +2,7 @@ import * as lua from "LuaAST";
 import { NoInfer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 
+const READONLY_MESSAGE = (name: string) => `Attempt to call list.${name} on a readonly list`;
 const LIST_MARKER = Symbol("List");
 
 export type ListNode<T extends lua.Node> = {
@@ -53,8 +54,8 @@ export namespace list {
 		for (let i = 1; i < nonEmptyLists.length; i++) {
 			const list = nonEmptyLists[i];
 			const prevList = nonEmptyLists[i - 1];
-			assert(!list.readonly);
-			assert(!prevList.readonly);
+			assert(!list.readonly, READONLY_MESSAGE("join"));
+			assert(!prevList.readonly, READONLY_MESSAGE("join"));
 			list.readonly = true;
 			list.head!.prev = prevList.tail!;
 			prevList.tail!.next = list.head!;
@@ -74,7 +75,7 @@ export namespace list {
 // list utility functions
 export namespace list {
 	export function push<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		assert(!list.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("push"));
 		const node = lua.list.makeNode(value);
 		if (list.tail) {
 			list.tail.next = node;
@@ -86,8 +87,8 @@ export namespace list {
 	}
 
 	export function pushList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
-		assert(!list.readonly);
-		assert(!other.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("pushList"));
+		assert(!other.readonly, READONLY_MESSAGE("pushList"));
 		other.readonly = true;
 
 		if (other.head && other.tail) {
@@ -103,7 +104,7 @@ export namespace list {
 	}
 
 	export function pop<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		assert(!list.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("pop"));
 		if (list.tail) {
 			const tail = list.tail;
 			if (tail.prev) {
@@ -118,7 +119,7 @@ export namespace list {
 	}
 
 	export function shift<T extends lua.Node>(list: lua.List<T>): T | undefined {
-		assert(!list.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("shift"));
 		if (list.head) {
 			const head = list.head;
 			if (head.next) {
@@ -133,7 +134,7 @@ export namespace list {
 	}
 
 	export function unshift<T extends lua.Node>(list: lua.List<T>, value: NoInfer<T>) {
-		assert(!list.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("unshift"));
 		const node = lua.list.makeNode(value);
 		if (list.head) {
 			list.head.prev = node;
@@ -145,8 +146,8 @@ export namespace list {
 	}
 
 	export function unshiftList<T extends lua.Node>(list: lua.List<T>, other: lua.List<T>) {
-		assert(!list.readonly);
-		assert(!other.readonly);
+		assert(!list.readonly, READONLY_MESSAGE("unshiftList"));
+		assert(!other.readonly, READONLY_MESSAGE("unshiftList"));
 		other.readonly = true;
 
 		if (other.head && other.tail) {

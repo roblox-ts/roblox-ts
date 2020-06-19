@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { getNodeKind } from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -68,7 +68,7 @@ function transformLuaTupleDestructure(
 					}
 					transformObjectBindingLiteral(state, element, id, getSubType(state, accessType, index));
 				} else {
-					assert(false);
+					assert(false, `Unexpected node kind ${getNodeKind(element)}`);
 				}
 			}
 			index++;

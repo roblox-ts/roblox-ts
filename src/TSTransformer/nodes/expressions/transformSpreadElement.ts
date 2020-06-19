@@ -10,12 +10,12 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
 
-	assert(ts.isCallExpression(node.parent));
+	assert(ts.isCallExpression(node.parent), "SpreadElement was outside a function call");
 	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
 	}
 
-	assert(isArrayType(state, state.getType(node.expression)));
+	assert(isArrayType(state, state.getType(node.expression)), "SpreadElement wasn't a spreadable type");
 
 	return lua.create(lua.SyntaxKind.CallExpression, {
 		expression: lua.globals.unpack,

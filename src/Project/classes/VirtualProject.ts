@@ -90,7 +90,7 @@ export class VirtualProject {
 		}
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
-		assert(sourceFile);
+		assert(sourceFile, `Did not get sourceFile for ${PLAYGROUND_PATH}`);
 
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 

@@ -48,7 +48,7 @@ export class VirtualFileSystem {
 				name,
 				children: new Map(),
 			}));
-			assert("children" in child);
+			assert("children" in child, "Child is not a VirtualDirectory");
 			currentDir = child;
 		}
 

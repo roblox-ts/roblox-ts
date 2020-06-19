@@ -19,7 +19,7 @@ function countImportExpUses(state: TransformState, exportClause?: ts.NamespaceEx
 }
 
 function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) {
-	assert(node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier));
+	assert(node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier), "node.moduleSpecifier wasn't a string");
 
 	const statements = lua.list.make<lua.Statement>();
 	let importExp: lua.IndexableExpression | undefined;

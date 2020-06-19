@@ -82,7 +82,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
+	assert(symbol, "Could not find symbol for node");
 
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
 		return lua.nil();

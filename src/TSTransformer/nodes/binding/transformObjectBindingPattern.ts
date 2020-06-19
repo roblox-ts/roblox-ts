@@ -24,7 +24,7 @@ export function transformObjectBindingPattern(
 			const value = objectAccessor(state, parentId, name, prop, name);
 			const { expression: id, statements } = transformVariable(state, name, value);
 			state.prereqList(statements);
-			assert(lua.isAnyIdentifier(id));
+			assert(lua.isAnyIdentifier(id), "transformVariable did not return an identifier as expression");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}

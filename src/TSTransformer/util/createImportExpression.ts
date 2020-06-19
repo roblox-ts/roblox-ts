@@ -12,7 +12,7 @@ import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFi
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = lua.list.make<lua.Expression>();
 	const serviceName = moduleRbxPath.shift();
-	assert(serviceName);
+	assert(serviceName, "moduleRbxPath had no members");
 	lua.list.push(pathExpressions, createGetService(serviceName));
 	for (const pathPart of moduleRbxPath) {
 		lua.list.push(pathExpressions, lua.string(pathPart));
@@ -38,7 +38,7 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	// create descending path pieces
 	for (; i < relativePath.length; i++) {
 		const pathPart = relativePath[i];
-		assert(typeof pathPart === "string");
+		assert(typeof pathPart === "string", "pathPart wasn't a string");
 		lua.list.push(pathExpressions, lua.string(pathPart));
 	}
 
@@ -56,11 +56,11 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		return lua.emptyId();
 	}
 
-	assert(state.nodeModulesRbxPath);
+	assert(state.nodeModulesRbxPath, "No nodemodules path");
 	const relativeToNodeModulesRbxPath = RojoConfig.relative(state.nodeModulesRbxPath, moduleRbxPath);
 	const moduleName = relativeToNodeModulesRbxPath.shift();
-	assert(moduleName && typeof moduleName === "string");
-	assert(relativeToNodeModulesRbxPath[0] !== RbxPathParent);
+	assert(moduleName && typeof moduleName === "string", "moduleName wasn't a string");
+	assert(relativeToNodeModulesRbxPath[0] !== RbxPathParent, "relativePath[0] was a RbxPathParent");
 
 	return propertyAccessExpressionChain(
 		lua.create(lua.SyntaxKind.CallExpression, {

@@ -119,7 +119,7 @@ export class TransformState {
 	 */
 	public popPrereqStatementsStack() {
 		const poppedValue = this.prereqStatementsStack.pop();
-		assert(poppedValue);
+		assert(poppedValue, "PrereqStatementsStack was empty");
 		return poppedValue;
 	}
 
@@ -166,8 +166,8 @@ export class TransformState {
 	/**
 	 * Returns the expression and prerequisite statements created by `callback`.
 	 */
-	public capture(callback: () => lua.Expression) {
-		let expression!: lua.Expression;
+	public capture<T extends lua.Expression>(callback: () => T) {
+		let expression!: T;
 		const statements = this.capturePrereqs(() => (expression = callback()));
 		return { expression, statements };
 	}
@@ -179,7 +179,7 @@ export class TransformState {
 	public noPrereqs(callback: () => lua.Expression) {
 		let expression!: lua.Expression;
 		const statements = this.capturePrereqs(() => (expression = callback()));
-		assert(lua.list.isEmpty(statements));
+		assert(lua.list.isEmpty(statements), "Callback generated prereqs");
 		return expression;
 	}
 
@@ -209,7 +209,7 @@ export class TransformState {
 			const rbxPath = [...this.runtimeLibRbxPath];
 			// create an expression to obtain the service where RuntimeLib is stored
 			const serviceName = rbxPath.shift();
-			assert(serviceName);
+			assert(serviceName, "rbxPath had no members");
 
 			let expression: lua.IndexableExpression = createGetService(serviceName);
 			// iterate through the rest of the path
@@ -315,7 +315,7 @@ export class TransformState {
 		const exportSymbol = this.typeChecker.getSymbolAtLocation(
 			ts.isSourceFile(moduleAncestor) ? moduleAncestor : moduleAncestor.name,
 		);
-		assert(exportSymbol);
+		assert(exportSymbol, "Could not find symbol for node");
 		return exportSymbol;
 	}
 
@@ -323,7 +323,7 @@ export class TransformState {
 
 	private getModuleIdFromSymbol(moduleSymbol: ts.Symbol) {
 		const moduleId = this.moduleIdBySymbol.get(moduleSymbol);
-		assert(moduleId);
+		assert(moduleId, "Could not find moduleId for moduleSymbol");
 		return moduleId;
 	}
 

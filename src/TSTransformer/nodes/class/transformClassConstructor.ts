@@ -34,7 +34,7 @@ export function transformClassConstructor(
 		lua.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-		assert(originNode.body);
+		assert(originNode.body, "originNode had no body");
 
 		let bodyStatements = getStatements(originNode.body);
 		const firstStatement = bodyStatements[0];

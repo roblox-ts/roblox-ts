@@ -13,12 +13,12 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
 
-	assert(node.name || isExportDefault);
+	assert(node.name || isExportDefault, "Function declaration had no name and was not an export default");
 
 	let localize = isExportDefault;
 	if (node.name) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-		assert(symbol);
+		assert(symbol, "Could not find symbol for node.name");
 		localize = state.isHoisted.get(symbol) !== true;
 	}
 

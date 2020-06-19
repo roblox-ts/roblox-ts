@@ -115,7 +115,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			lua.list.isEmpty(statements))
 	) {
 		const expression = importExp.get();
-		assert(lua.isCallExpression(expression));
+		assert(lua.isCallExpression(expression), "Import expression wasn't a function call");
 		lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression }));
 	}
 

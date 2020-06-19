@@ -85,7 +85,7 @@ export class MacroManager {
 						() => new Set<ts.Symbol>(),
 					);
 					const symbol = statement.symbol;
-					assert(symbol);
+					assert(symbol, "Statement had no associated symbol");
 					typeAliasSymbols.add(symbol);
 				} else if (ts.isVariableStatement(statement)) {
 					for (const declaration of statement.declarationList.declarations) {
@@ -96,15 +96,15 @@ export class MacroManager {
 								identifierName,
 								() => new Set<ts.Symbol>(),
 							);
-							assert(declaration.symbol);
+							assert(declaration.symbol, "Declaration had no associated symbol");
 							identifierSymbols.add(declaration.symbol);
 						}
 					}
 				} else if (ts.isFunctionDeclaration(statement)) {
-					assert(statement.name);
+					assert(statement.name, "Function declaration had no name");
 					const functionSymbols = getOrSetDefault(functions, statement.name.text, () => new Set<ts.Symbol>());
 					const symbol = getType(typeChecker, statement).symbol;
-					assert(symbol);
+					assert(symbol, "Function declaration had no associated symbol");
 					functionSymbols.add(symbol);
 				} else if (ts.isInterfaceDeclaration(statement)) {
 					const interfaceInfo = getOrSetDefault(interfaces, statement.name.text, () => ({
@@ -114,9 +114,9 @@ export class MacroManager {
 					}));
 
 					const symbol = getType(typeChecker, statement).symbol;
-					assert(symbol);
+					assert(symbol, "Interface declaration had no associated symbol");
 					interfaceInfo.symbols.add(symbol);
-					assert(interfaceInfo.symbols.size === 1);
+					assert(interfaceInfo.symbols.size === 1, "Interface did not have precisely 1 symbol associated");
 
 					for (const member of statement.members) {
 						if (ts.isMethodSignature(member)) {
@@ -128,11 +128,11 @@ export class MacroManager {
 									() => new Set<ts.Symbol>(),
 								);
 								const symbol = getType(typeChecker, member).symbol;
-								assert(symbol);
+								assert(symbol, "Identifier had no associated symbol");
 								methodSymbols.add(symbol);
 							}
 						} else if (ts.isConstructSignatureDeclaration(member)) {
-							assert(member.symbol);
+							assert(member.symbol, "Construct signature had no associated symbol");
 							interfaceInfo.constructors.add(member.symbol);
 						}
 					}
@@ -224,7 +224,7 @@ export class MacroManager {
 
 	public getSymbolOrThrow(name: string) {
 		const symbol = this.symbols.get(name);
-		assert(symbol);
+		assert(symbol, `Could not find symbol ${name}`);
 		return symbol;
 	}
 

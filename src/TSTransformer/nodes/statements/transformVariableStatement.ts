@@ -51,7 +51,7 @@ function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: lua.Expression) {
 	return state.capture(() => {
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
-		assert(symbol);
+		assert(symbol, "Could not find symbol for identifier");
 
 		// export let
 		if (isDefinedAsLet(state, symbol)) {
@@ -132,7 +132,7 @@ export function transformVariableDeclaration(
 		return transformVariable(state, node.name, value).statements;
 	} else {
 		// in destructuring, rhs must be executed first
-		assert(node.initializer && value);
+		assert(node.initializer && value, "Node had no initializer or no value");
 		const name = node.name;
 		if (ts.isArrayBindingPattern(name)) {
 			if (lua.isCall(value) && isLuaTupleType(state, state.getType(node.initializer))) {

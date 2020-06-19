@@ -72,7 +72,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 
 		// if watch mode is enabled
 		if (argv.watch) {
-			assert(false, "Not implemented");
+			assert(false, "Watch mode has not been implemented yet");
 		} else {
 			try {
 				// attempt to build the project

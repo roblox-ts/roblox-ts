@@ -29,7 +29,7 @@ export function transformArrayBindingPattern(
 			if (ts.isIdentifier(name)) {
 				const { expression: id, statements } = transformVariable(state, name, value);
 				state.prereqList(statements);
-				assert(lua.isAnyIdentifier(id));
+				assert(lua.isAnyIdentifier(id), "transformVariable did not return identifier as expression");
 				if (element.initializer) {
 					state.prereq(transformInitializer(state, id, element.initializer));
 				}

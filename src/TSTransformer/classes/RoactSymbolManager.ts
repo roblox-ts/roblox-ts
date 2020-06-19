@@ -19,10 +19,10 @@ function getChildByNameOrThrow(children: ReadonlyArray<ts.Node>, childName: stri
 			name = child.name.text;
 		} else if (ts.isVariableStatement(child)) {
 			const nameNode = child.declarationList.declarations[0].name;
-			assert(ts.isIdentifier(nameNode));
+			assert(ts.isIdentifier(nameNode), "Child's name wasn't an identifier");
 			name = nameNode.text;
 		} else if (ts.isPropertySignature(child)) {
-			assert(ts.isIdentifier(child.name));
+			assert(ts.isIdentifier(child.name), "Child's name wasn't an identifier");
 			name = child.name.text;
 		}
 		if (name !== undefined && name === childName) {
@@ -38,11 +38,14 @@ export class RoactSymbolManager {
 
 	constructor(typeChecker: ts.TypeChecker, roactIndexSourceFile: ts.SourceFile) {
 		const roactNamespace = getChildByNameOrThrow(roactIndexSourceFile.statements, "Roact");
-		assert(ts.isModuleDeclaration(roactNamespace) && roactNamespace.body && ts.isModuleBlock(roactNamespace.body));
+		assert(
+			ts.isModuleDeclaration(roactNamespace) && roactNamespace.body && ts.isModuleBlock(roactNamespace.body),
+			"Roact index sourceFile wasn't a module",
+		);
 
 		const addSymbolFromNode = (name: string, node: ts.Node) => {
 			const symbol = typeChecker.getSymbolAtLocation(node);
-			assert(symbol);
+			assert(symbol, "Could not find symbol for node");
 			assert(!this.symbols.has(name), `symbols already contains ${name}`);
 			this.symbols.set(name, symbol);
 		};
@@ -60,7 +63,7 @@ export class RoactSymbolManager {
 				}
 			} else if (ts.isVariableStatement(statement)) {
 				const nameNode = statement.declarationList.declarations[0].name;
-				assert(ts.isIdentifier(nameNode));
+				assert(ts.isIdentifier(nameNode), "Child's name wasn't an identifier");
 				if (roactSymbolNameSet.has(nameNode.text)) {
 					addSymbolFromNode(nameNode.text, nameNode);
 				}
@@ -74,10 +77,16 @@ export class RoactSymbolManager {
 
 		// JSX intrinsic elements
 		for (const symbol of typeChecker.getJsxIntrinsicTagNamesAt(roactIndexSourceFile)) {
-			assert(ts.isPropertySignature(symbol.valueDeclaration));
-			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
+			assert(
+				ts.isPropertySignature(symbol.valueDeclaration),
+				"Symbol.valueDeclaration wasn't a property signature",
+			);
+			assert(
+				symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type),
+				"symbol.valueDeclaration.type wasn't a TypeReference",
+			);
 			const className = symbol.valueDeclaration.type.typeArguments?.[0].getText();
-			assert(className);
+			assert(className, "className had no text");
 			this.jsxIntrinsicNameMap.set(symbol, className);
 		}
 	}

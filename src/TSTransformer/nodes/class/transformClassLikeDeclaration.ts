@@ -34,7 +34,7 @@ function createRoactBoilerplate(
 	isClassExpression: boolean,
 ) {
 	const extendsNode = getExtendsNode(node);
-	assert(extendsNode);
+	assert(extendsNode, "Roact class did not extends from anything");
 
 	const statements = lua.list.make<lua.Statement>();
 

@@ -165,7 +165,7 @@ export class Project {
 
 		let rojoHash = "";
 		if (rojoConfigPath) {
-			assert(host.createHash);
+			assert(host.createHash, "ts.CompilerHost did not have createHash method");
 			rojoHash = "-" + host.createHash(fs.readFileSync(rojoConfigPath).toString());
 		}
 
@@ -272,7 +272,7 @@ export class Project {
 		const sourceFiles = new Array<ts.SourceFile>();
 		for (const fileName of filesSet) {
 			const sourceFile = this.program.getSourceFile(fileName);
-			assert(sourceFile);
+			assert(sourceFile, `Did not get sourceFile for ${fileName}`);
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
 				sourceFiles.push(sourceFile);
 			}

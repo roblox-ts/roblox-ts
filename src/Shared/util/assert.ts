@@ -3,7 +3,7 @@
  * @param value The value to check the truthiness of
  * @param message Optional. The message of the error
  */
-export function assert(value: unknown, message?: string): asserts value {
+export function assert(value: unknown, message: string): asserts value {
 	if (!value) {
 		debugger;
 		// TODO instruct user to post issue

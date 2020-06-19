@@ -19,17 +19,17 @@ export function getSubType(
 	if (!ts.isArray(type)) {
 		if (typeof index === "string") {
 			const prop = type.getProperty(index);
-			assert(prop && prop.valueDeclaration);
+			assert(prop && prop.valueDeclaration, "property had no valueDeclaration");
 			return state.getType(prop.valueDeclaration);
 		} else if (isLuaTupleType(state, type)) {
-			assert(type.aliasTypeArguments);
+			assert(type.aliasTypeArguments, "type had no aliasTypeArguments");
 			return getSubType(state, type.aliasTypeArguments[0], index);
 		} else if (isArrayType(state, type)) {
 			if (state.typeChecker.isTupleType(type)) {
 				return getTypeArguments(state, type)[0];
 			} else {
 				const numIndexType = type.getNumberIndexType();
-				assert(numIndexType);
+				assert(numIndexType, "Could not find number index type");
 				return numIndexType;
 			}
 		} else if (isStringType(type)) {
@@ -48,5 +48,5 @@ export function getSubType(
 	} else if (typeof index === "number") {
 		return type[index];
 	}
-	assert(false);
+	assert(false, "Could not find subtype");
 }

@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 export class GlobalSymbols {
 	private getSymbolOrThrow(symbolName: string) {
 		const symbol = this.typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.Value, false);
-		assert(symbol);
+		assert(symbol, `Did not find symbol for ${symbolName}`);
 		return symbol;
 	}
 

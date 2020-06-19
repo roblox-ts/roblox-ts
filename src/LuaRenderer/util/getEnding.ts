@@ -26,7 +26,7 @@ function endsWithIndexableExpression(node: lua.Statement) {
 		if (node.right) {
 			furthestRight = node.right;
 		} else if (lua.list.isList(node.left)) {
-			assert(node.left.tail);
+			assert(node.left.tail, "Variable assignment identifier list was empty");
 			furthestRight = node.left.tail.value;
 		} else {
 			furthestRight = node.left;

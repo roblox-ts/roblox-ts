@@ -10,7 +10,7 @@ import { isStringType } from "TSTransformer/util/types";
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral
 	// and will be handled in transformStringLiteral
-	assert(node.templateSpans.length > 0);
+	assert(node.templateSpans.length > 0, "Will not happen");
 
 	const expressions = new Array<lua.Expression>();
 

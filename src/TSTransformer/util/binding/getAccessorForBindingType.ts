@@ -247,5 +247,5 @@ export function getAccessorForBindingType(
 		// TODO super?
 		return iterAccessor;
 	}
-	assert(false);
+	assert(false, "Unexpected type");
 }

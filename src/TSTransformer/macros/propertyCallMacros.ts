@@ -56,7 +56,7 @@ function makeMathSet(...operators: Array<lua.BinaryOperator>) {
 	const result: { [index: string]: PropertyCallMacro } = {};
 	for (const operator of operators) {
 		const methodName = OPERATOR_TO_NAME_MAP.get(operator);
-		assert(methodName);
+		assert(methodName, `makeMathSet received unknown operator ${operator}`);
 		result[methodName] = makeMathMethod(operator);
 	}
 	return result;

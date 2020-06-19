@@ -63,7 +63,7 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 
 		// parameter property
 		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
-			assert(lua.isIdentifier(paramId));
+			assert(lua.isIdentifier(paramId), "Parameter property was not an identifier");
 			lua.list.push(
 				statements,
 				lua.create(lua.SyntaxKind.Assignment, {

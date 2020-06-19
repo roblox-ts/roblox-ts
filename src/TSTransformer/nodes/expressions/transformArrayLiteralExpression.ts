@@ -35,12 +35,12 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	for (let i = 0; i < node.elements.length; i++) {
 		const element = node.elements[i];
 		if (ts.isSpreadElement(element)) {
-			assert(isArrayType(state, state.getType(element.expression)));
+			assert(isArrayType(state, state.getType(element.expression)), "spread element wasn't spreadable");
 			if (lua.isArray(ptr.value)) {
 				disableArrayInline(state, ptr);
 				updateLengthId();
 			}
-			assert(lua.isAnyIdentifier(ptr.value));
+			assert(lua.isAnyIdentifier(ptr.value), "Pointer value wasn't an identifier");
 			const spreadExp = transformExpression(state, element.expression);
 			const keyId = lua.tempId();
 			const valueId = lua.tempId();

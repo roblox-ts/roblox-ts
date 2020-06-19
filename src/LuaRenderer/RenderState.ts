@@ -34,7 +34,7 @@ export class RenderState {
 	 */
 	public pushScope() {
 		const top = this.scopeStack[this.scopeStack.length - 1];
-		assert(top !== undefined);
+		assert(top !== undefined, "RenderState.pushScope didn't have a previous scope");
 		this.scopeStack.push(top);
 	}
 

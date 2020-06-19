@@ -25,7 +25,7 @@ function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 
 function transformNamespace(state: TransformState, name: ts.Identifier, body: ts.NamespaceBody) {
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
-	assert(symbol);
+	assert(symbol, "Could not find symbol for name");
 
 	const nameExp = transformIdentifierDefined(state, name);
 
@@ -58,7 +58,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 				const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
 				if (isSymbolOfValue(originalSymbol) && !isDefinedAsLet(state, originalSymbol)) {
 					const statement = getAncestor(exportSymbol.valueDeclaration, ts.isStatement);
-					assert(statement);
+					assert(statement, "Will not happen");
 					getOrSetDefault(exportsMap, statement, () => []).push(exportSymbol.name);
 				}
 			}
@@ -103,8 +103,8 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 	}
 
 	// ts.StringLiteral is only in the case of `declare module "X" {}`? Should be filtered out above
-	assert(!ts.isStringLiteral(node.name));
-	assert(node.body && !ts.isIdentifier(node.body));
+	assert(!ts.isStringLiteral(node.name), "Will not happen");
+	assert(node.body && !ts.isIdentifier(node.body), "Module declaration had no body");
 	// unsure how to filter out ts.JSDocNamespaceBody
 	return transformNamespace(state, node.name, node.body as ts.NamespaceBody);
 }

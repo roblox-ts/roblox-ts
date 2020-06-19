@@ -32,7 +32,7 @@ export function transformWritableExpression(
 	} else {
 		const transformed = transformExpression(state, node);
 		// could be lua.PropertyAccessExpression from export let
-		assert(lua.isWritableExpression(transformed));
+		assert(lua.isWritableExpression(transformed), "transformed expression was not writable");
 		return transformed;
 	}
 }
