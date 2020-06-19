@@ -58,7 +58,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 
 		// export let
 		if (isDefinedAsLet(state, symbol)) {
-			const exportAccess = state.getModuleIdPropertyAccess(symbol, identifier);
+			const exportAccess = state.getModuleIdPropertyAccess(symbol);
 			if (exportAccess) {
 				if (right) {
 					state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: exportAccess, right }));

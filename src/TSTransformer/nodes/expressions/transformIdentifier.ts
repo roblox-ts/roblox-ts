@@ -112,8 +112,8 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	}
 
 	// exit here for export let so we don't check hoist later
-	if (symbol.valueDeclaration && symbol.valueDeclaration.getSourceFile() === state.sourceFile) {
-		const exportAccess = state.getModuleIdPropertyAccess(symbol, node);
+	if (symbol.valueDeclaration && symbol.valueDeclaration.getSourceFile() === node.getSourceFile()) {
+		const exportAccess = state.getModuleIdPropertyAccess(symbol);
 		if (exportAccess && isDefinedAsLet(state, symbol)) {
 			return exportAccess;
 		}

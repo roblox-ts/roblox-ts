@@ -288,20 +288,12 @@ export class TransformState {
 		return this.pushToVar(expression);
 	}
 
-	/**
-	 *
-	 * @param moduleSymbol
-	 */
 	public getModuleExports(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsCache, moduleSymbol, () =>
 			this.typeChecker.getExportsOfModule(moduleSymbol),
 		);
 	}
 
-	/**
-	 *
-	 * @param moduleSymbol
-	 */
 	public getModuleExportsAliasMap(moduleSymbol: ts.Symbol) {
 		return getOrSetDefault(this.multiTransformState.getModuleExportsAliasMapCache, moduleSymbol, () => {
 			const aliasMap = new Map<ts.Symbol, string>();
@@ -335,36 +327,21 @@ export class TransformState {
 		return moduleId;
 	}
 
-	/**
-	 *
-	 * @param moduleSymbol
-	 * @param moduleId
-	 */
 	public setModuleIdBySymbol(moduleSymbol: ts.Symbol, moduleId: lua.AnyIdentifier) {
 		this.moduleIdBySymbol.set(moduleSymbol, moduleId);
 	}
 
-	/**
-	 *
-	 * @param node
-	 */
 	public getModuleIdFromNode(node: ts.Node) {
 		const moduleSymbol = this.getModuleSymbolFromNode(node);
 		return this.getModuleIdFromSymbol(moduleSymbol);
 	}
 
-	/**
-	 *
-	 * @param idSymbol
-	 * @param identifier
-	 */
-	public getModuleIdPropertyAccess(idSymbol: ts.Symbol, identifier: ts.Identifier) {
+	public getModuleIdPropertyAccess(idSymbol: ts.Symbol) {
 		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
-		const moduleId = this.getModuleIdFromSymbol(moduleSymbol);
 		const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
 		if (alias) {
 			return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: moduleId,
+				expression: this.getModuleIdFromSymbol(moduleSymbol),
 				name: alias,
 			});
 		}
