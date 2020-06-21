@@ -250,14 +250,34 @@ export class Project {
 		return changedFilesSet;
 	}
 
+	private getRootDirs() {
+		const rootDirs = this.compilerOptions.rootDir ? [this.compilerOptions.rootDir] : this.compilerOptions.rootDirs;
+		assert(rootDirs);
+		return rootDirs;
+	}
+
 	public copyInclude() {
 		fs.copySync(LIB_PATH, this.includePath);
+	}
+
+	public copyFiles(sources: Set<string>) {
+		const commonDir = this.program.getProgram().getCommonSourceDirectory();
+		assert(this.compilerOptions.outDir);
+		for (const source of sources) {
+			fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
+				filter: src =>
+					!src.endsWith(ts.Extension.Ts) &&
+					!src.endsWith(ts.Extension.Tsx) &&
+					!src.endsWith(ts.Extension.Dts),
+			});
+		}
 	}
 
 	public compileAll() {
 		this.copyInclude();
 		this.compileFiles(this.getChangedFilesSet());
 		this.program.getProgram().emitBuildInfo();
+		this.copyFiles(new Set(this.getRootDirs()));
 	}
 
 	/**
