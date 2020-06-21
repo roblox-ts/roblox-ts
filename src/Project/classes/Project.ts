@@ -23,8 +23,6 @@ import {
 	transformSourceFile,
 	TransformState,
 } from "TSTransformer";
-import { start } from "repl";
-import { string } from "yargs";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
