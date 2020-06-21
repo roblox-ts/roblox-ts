@@ -265,10 +265,7 @@ export class Project {
 		assert(this.compilerOptions.outDir);
 		for (const source of sources) {
 			fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
-				filter: src =>
-					!src.endsWith(ts.Extension.Ts) &&
-					!src.endsWith(ts.Extension.Tsx) &&
-					!src.endsWith(ts.Extension.Dts),
+				filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
 			});
 		}
 	}
