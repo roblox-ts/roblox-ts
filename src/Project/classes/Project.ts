@@ -23,6 +23,8 @@ import {
 	transformSourceFile,
 	TransformState,
 } from "TSTransformer";
+import { start } from "repl";
+import { string } from "yargs";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
@@ -257,24 +259,35 @@ export class Project {
 	}
 
 	public copyInclude() {
-		fs.copySync(LIB_PATH, this.includePath);
+		this.benchmark("copying include files", () => {
+			fs.copySync(LIB_PATH, this.includePath);
+		});
 	}
 
 	public copyFiles(sources: Set<string>) {
-		const commonDir = this.program.getProgram().getCommonSourceDirectory();
-		assert(this.compilerOptions.outDir);
-		for (const source of sources) {
-			fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
-				filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
-			});
-		}
+		this.benchmark("copying non-compiled files", () => {
+			const commonDir = this.program.getProgram().getCommonSourceDirectory();
+			assert(this.compilerOptions.outDir);
+			for (const source of sources) {
+				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
+					filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
+				});
+			}
+		});
 	}
 
 	public compileAll() {
-		this.copyInclude();
 		this.compileFiles(this.getChangedFilesSet());
 		this.program.getProgram().emitBuildInfo();
+		this.copyInclude();
 		this.copyFiles(new Set(this.getRootDirs()));
+	}
+
+	private benchmark(name: string, callback: () => void) {
+		LogService.write(`${name}`);
+		const startTime = Date.now();
+		callback();
+		LogService.write(` ( ${Date.now() - startTime} ms )\n`);
 	}
 
 	/**
@@ -295,53 +308,70 @@ export class Project {
 			}
 		}
 
+		const fileWriteQueue = new Array<{ path: string; source: string }>();
+
 		const progressLength = String(sourceFiles.length).length * 2 + 1;
 		for (let i = 0; i < sourceFiles.length; i++) {
 			const sourceFile = sourceFiles[i];
 
 			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressLength);
-			LogService.writeLine(`${progress} compile ${sourceFile.fileName}`);
 
-			const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
-			totalDiagnostics.push(...customPreEmitDiagnostics);
+			this.benchmark(`${progress} compiling ${sourceFile.fileName}`, () => {
+				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
+				totalDiagnostics.push(...customPreEmitDiagnostics);
+				if (totalDiagnostics.length > 0) return;
+
+				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
+				totalDiagnostics.push(...preEmitDiagnostics);
+				if (totalDiagnostics.length > 0) return;
+
+				// create a new transform state for the file
+				const transformState = new TransformState(
+					this.compilerOptions,
+					multiTransformState,
+					this.rojoConfig,
+					this.pathTranslator,
+					this.runtimeLibRbxPath,
+					this.nodeModulesPath,
+					this.nodeModulesRbxPath,
+					this.nodeModulesPathMapping,
+					this.typeChecker,
+					this.typeChecker.getEmitResolver(sourceFile),
+					this.globalSymbols,
+					this.macroManager,
+					this.roactSymbolManager,
+					this.projectType,
+					this.pkgVersion,
+					sourceFile,
+				);
+
+				// create a new Lua abstract syntax tree for the file
+				const luaAST = transformSourceFile(transformState, sourceFile);
+				totalDiagnostics.push(...transformState.diagnostics);
+				if (totalDiagnostics.length > 0) return;
+
+				// render lua abstract syntax tree and output only if there were no diagnostics
+				const luaSource = renderAST(luaAST);
+
+				fileWriteQueue.push({
+					path: this.pathTranslator.getOutputPath(sourceFile.fileName),
+					source: luaSource,
+				});
+			});
+
 			if (totalDiagnostics.length > 0) break;
-
-			const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
-			totalDiagnostics.push(...preEmitDiagnostics);
-			if (totalDiagnostics.length > 0) break;
-
-			// create a new transform state for the file
-			const transformState = new TransformState(
-				this.compilerOptions,
-				multiTransformState,
-				this.rojoConfig,
-				this.pathTranslator,
-				this.runtimeLibRbxPath,
-				this.nodeModulesPath,
-				this.nodeModulesRbxPath,
-				this.nodeModulesPathMapping,
-				this.typeChecker,
-				this.typeChecker.getEmitResolver(sourceFile),
-				this.globalSymbols,
-				this.macroManager,
-				this.roactSymbolManager,
-				this.projectType,
-				this.pkgVersion,
-				sourceFile,
-			);
-
-			// create a new Lua abstract syntax tree for the file
-			const luaAST = transformSourceFile(transformState, sourceFile);
-			totalDiagnostics.push(...transformState.diagnostics);
-			if (totalDiagnostics.length > 0) break;
-
-			// render lua abstract syntax tree and output only if there were no diagnostics
-			const luaSource = renderAST(luaAST);
-			fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), luaSource);
 		}
 
 		if (totalDiagnostics.length > 0) {
 			throw new DiagnosticError(totalDiagnostics);
+		}
+
+		if (fileWriteQueue.length > 0) {
+			this.benchmark("writing compiled files", () => {
+				for (const fileInfo of fileWriteQueue) {
+					fs.outputFileSync(fileInfo.path, fileInfo.source);
+				}
+			});
 		}
 	}
 }
