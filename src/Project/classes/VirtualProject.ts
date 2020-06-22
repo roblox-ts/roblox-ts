@@ -69,7 +69,7 @@ export class VirtualProject {
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoConfig = RojoConfig.synthetic(PROJECT_DIR);
-		this.pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined);
+		this.pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
 		this.nodeModulesPathMapping = new Map<string, string>();
 	}
 

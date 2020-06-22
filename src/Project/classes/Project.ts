@@ -200,6 +200,7 @@ export class Project {
 			this.program.getProgram().getCommonSourceDirectory(),
 			this.compilerOptions.outDir!,
 			ts.getTsBuildInfoEmitOutputFilePath(this.compilerOptions),
+			this.compilerOptions.declaration === true,
 		);
 	}
 
@@ -346,7 +347,7 @@ export class Project {
 			}
 		}
 
-		const fileWriteQueue = new Array<{ path: string; source: string }>();
+		const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 
 		const progressLength = String(sourceFiles.length).length * 2 + 1;
 		for (let i = 0; i < sourceFiles.length; i++) {
@@ -389,12 +390,9 @@ export class Project {
 				if (totalDiagnostics.length > 0) return;
 
 				// render lua abstract syntax tree and output only if there were no diagnostics
-				const luaSource = renderAST(luaAST);
+				const source = renderAST(luaAST);
 
-				fileWriteQueue.push({
-					path: this.pathTranslator.getOutputPath(sourceFile.fileName),
-					source: luaSource,
-				});
+				fileWriteQueue.push({ sourceFile, source });
 			});
 
 			if (totalDiagnostics.length > 0) break;
@@ -407,7 +405,11 @@ export class Project {
 		if (fileWriteQueue.length > 0) {
 			this.benchmark("writing compiled files", () => {
 				for (const fileInfo of fileWriteQueue) {
-					fs.outputFileSync(fileInfo.path, fileInfo.source);
+					const { sourceFile, source } = fileInfo;
+					fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), source);
+					if (this.compilerOptions.declaration) {
+						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true);
+					}
 				}
 			});
 		}

@@ -27,6 +27,7 @@ export class PathTranslator {
 		public readonly rootDir: string,
 		public readonly outDir: string,
 		public readonly buildInfoOutputPath: string | undefined,
+		public readonly declaration: boolean,
 	) {}
 
 	private makeRelativeFactory(from = this.rootDir, to = this.outDir) {
@@ -90,6 +91,27 @@ export class PathTranslator {
 
 			pathInfo.fileName = originalFileName;
 			pathInfo.exts.push(LUA_EXT);
+		}
+
+		if (this.declaration) {
+			if (TS_REGEX.test(pathInfo.extsPeek() ?? "") && pathInfo.extsPeek(1) === D_EXT) {
+				const tsExt = pathInfo.exts.pop(); // pop .tsx?
+				assert(tsExt);
+				pathInfo.exts.pop(); // pop .d
+
+				// .ts
+				pathInfo.exts.push(TS_EXT);
+				possiblePaths.push(makeRelative(pathInfo));
+				pathInfo.exts.pop();
+
+				// .tsx
+				pathInfo.exts.push(TSX_EXT);
+				possiblePaths.push(makeRelative(pathInfo));
+				pathInfo.exts.pop();
+
+				pathInfo.exts.push(D_EXT);
+				pathInfo.exts.push(tsExt);
+			}
 		}
 
 		possiblePaths.push(makeRelative(pathInfo));
