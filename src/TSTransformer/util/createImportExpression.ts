@@ -75,7 +75,7 @@ export function createImportExpression(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
-): lua.IndexableExpression {
+): lua.CallExpression | lua.EmptyIdentifier {
 	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
 	if (!moduleFile) {
 		state.addDiagnostic(diagnostics.noModuleSpecifierFile(moduleSpecifier));

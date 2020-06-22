@@ -22,9 +22,9 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		// ensure we emit something
 		if (
 			state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
-			lua.list.isEmpty(statements)
+			lua.list.isEmpty(statements) &&
+			lua.isCallExpression(importExp)
 		) {
-			assert(lua.isCallExpression(importExp));
 			lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression: importExp }));
 		}
 

@@ -38,7 +38,9 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	const statements = lua.list.make<lua.Statement>();
 
-	const importExp = new Lazy(() => createImportExpression(state, node.getSourceFile(), node.moduleSpecifier));
+	const importExp = new Lazy<lua.CallExpression | lua.AnyIdentifier>(() =>
+		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
+	);
 
 	if (importClause) {
 		// detect if we need to push to a new var or not
@@ -115,8 +117,9 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			lua.list.isEmpty(statements))
 	) {
 		const expression = importExp.get();
-		assert(lua.isCallExpression(expression));
-		lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression }));
+		if (lua.isCallExpression(expression)) {
+			lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression }));
+		}
 	}
 
 	return statements;
