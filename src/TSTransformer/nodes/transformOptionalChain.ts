@@ -267,8 +267,6 @@ function transformOptionalChainInner(
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
-			// TODO maybe handle this case better? `[1, 2, 3]?.map((v) => v + 1).size();`
-
 			const isUsed =
 				!lua.isEmptyIdentifier(newValue) && !lua.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
 
