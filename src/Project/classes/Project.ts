@@ -352,7 +352,6 @@ export class Project {
 		const progressLength = String(sourceFiles.length).length * 2 + 1;
 		for (let i = 0; i < sourceFiles.length; i++) {
 			const sourceFile = sourceFiles[i];
-
 			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressLength);
 
 			this.benchmark(`${progress} compiling ${sourceFile.fileName}`, () => {
