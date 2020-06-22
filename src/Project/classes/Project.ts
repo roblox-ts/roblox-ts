@@ -12,7 +12,6 @@ import { NetworkType, RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { COMPILER_VERSION, PACKAGE_ROOT, ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { cleanupDirRecursively } from "Shared/fsUtil";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import {
@@ -53,10 +52,11 @@ export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
 
+	private readonly verbose: boolean;
+	private readonly projectOptions: ProjectOptions;
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly typeChecker: ts.TypeChecker;
-	private readonly projectOptions: ProjectOptions;
 	private readonly globalSymbols: GlobalSymbols;
 	private readonly macroManager: MacroManager;
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
@@ -75,7 +75,8 @@ export class Project {
 	 * @param tsConfigPath The path to the TypeScript configuration.
 	 * @param opts The options of the project.
 	 */
-	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
+	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, verbose: boolean) {
+		this.verbose = verbose;
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		// set up project paths
@@ -202,13 +203,47 @@ export class Project {
 		);
 	}
 
+	private isOutputFileOrphaned(filePath: string) {
+		const inputPaths = this.pathTranslator.getInputPaths(filePath);
+		for (const path of inputPaths) {
+			if (fs.pathExistsSync(path)) {
+				return false;
+			}
+		}
+
+		if (this.pathTranslator.buildInfoOutputPath === filePath) {
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Cleanup a directory recursively
+	 */
+	private cleanupDirRecursively(dir: string) {
+		if (fs.pathExistsSync(dir)) {
+			for (const name of fs.readdirSync(dir)) {
+				const itemPath = path.join(dir, name);
+				if (fs.statSync(itemPath).isDirectory()) {
+					this.cleanupDirRecursively(itemPath);
+				}
+				if (this.isOutputFileOrphaned(itemPath)) {
+					fs.removeSync(itemPath);
+					if (this.verbose) LogService.writeLine(`remove ${itemPath}`);
+				}
+			}
+		}
+	}
+
 	/**
 	 * cleans up 'orphaned' files - Files which don't belong to any source file
 	 * in the out directory.
 	 */
 	public cleanup() {
-		if (fs.pathExistsSync(this.compilerOptions.outDir!)) {
-			cleanupDirRecursively(this.pathTranslator);
+		const outDir = this.pathTranslator.outDir;
+		if (fs.pathExistsSync(outDir)) {
+			this.cleanupDirRecursively(outDir);
 		}
 	}
 
@@ -283,10 +318,10 @@ export class Project {
 	}
 
 	private benchmark(name: string, callback: () => void) {
-		LogService.write(`${name}`);
+		if (this.verbose) LogService.write(`${name}`);
 		const startTime = Date.now();
 		callback();
-		LogService.write(` ( ${Date.now() - startTime} ms )\n`);
+		if (this.verbose) LogService.write(` ( ${Date.now() - startTime} ms )\n`);
 	}
 
 	/**

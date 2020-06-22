@@ -20,6 +20,7 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 interface CLIOptions {
 	project: string;
 	watch: boolean;
+	verbose: boolean;
 }
 
 /**
@@ -43,6 +44,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				boolean: true,
 				default: false,
 				describe: "enable watch mode",
+			})
+			.option("verbose", {
+				boolean: true,
+				default: false,
+				describe: "enable verbose logs",
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("includePath", {
@@ -76,7 +82,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 		} else {
 			try {
 				// attempt to build the project
-				const project = new Project(tsConfigPath, projectOptions);
+				const project = new Project(tsConfigPath, projectOptions, argv.verbose);
 				project.cleanup();
 				project.compileAll();
 			} catch (e) {
