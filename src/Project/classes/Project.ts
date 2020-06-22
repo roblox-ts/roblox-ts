@@ -30,24 +30,16 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
-/**
- * The options of the project.
- */
+/** The options of the project. */
 export interface ProjectOptions {
-	/**
-	 * The path to the include directory.
-	 */
+	/** The path to the include directory. */
 	includePath: string;
 
-	/**
-	 * The path to the rojo configuration.
-	 */
+	/** The path to the rojo configuration. */
 	rojo: string;
 }
 
-/**
- * Represents a roblox-ts project.
- */
+/** Represents a roblox-ts project. */
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
@@ -71,10 +63,6 @@ export class Project {
 
 	private readonly nodeModulesPathMapping = new Map<string, string>();
 
-	/**
-	 * @param tsConfigPath The path to the TypeScript configuration.
-	 * @param opts The options of the project.
-	 */
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, verbose: boolean) {
 		this.verbose = verbose;
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
@@ -219,9 +207,7 @@ export class Project {
 		return true;
 	}
 
-	/**
-	 * Cleanup a directory recursively
-	 */
+	/** cleanup a directory recursively */
 	private cleanupDirRecursively(dir: string) {
 		if (fs.pathExistsSync(dir)) {
 			for (const name of fs.readdirSync(dir)) {
@@ -237,10 +223,7 @@ export class Project {
 		}
 	}
 
-	/**
-	 * cleans up 'orphaned' files - Files which don't belong to any source file
-	 * in the out directory.
-	 */
+	/** cleans up 'orphaned' files - Files which don't belong to any source file in the out directory. */
 	public cleanup() {
 		const outDir = this.pathTranslator.outDir;
 		if (fs.pathExistsSync(outDir)) {
