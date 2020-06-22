@@ -14,7 +14,7 @@
 	"scripts": {
 		"eslint": "npx eslint \"src/**/*.ts\" --max-warnings 0",
 		"build": "npx ttsc -b",
-		"watch": "npx ttsc -b -w",
+		"build-watch": "npx ttsc -b -w",
 		"prepare": "npm run build",
 		"devlink": "cd devlink && npm link"
 	},
