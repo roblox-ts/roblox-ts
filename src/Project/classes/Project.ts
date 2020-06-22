@@ -318,10 +318,14 @@ export class Project {
 	}
 
 	private benchmark(name: string, callback: () => void) {
-		if (this.verbose) LogService.write(`${name}`);
-		const startTime = Date.now();
-		callback();
-		if (this.verbose) LogService.write(` ( ${Date.now() - startTime} ms )\n`);
+		if (this.verbose) {
+			LogService.write(`${name}`);
+			const startTime = Date.now();
+			callback();
+			LogService.write(` ( ${Date.now() - startTime} ms )\n`);
+		} else {
+			callback();
+		}
 	}
 
 	/**
