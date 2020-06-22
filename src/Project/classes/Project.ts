@@ -258,7 +258,7 @@ export class Project {
 
 	public copyInclude() {
 		this.benchmark("copying include files", () => {
-			fs.copySync(LIB_PATH, this.includePath);
+			fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 		});
 	}
 
@@ -269,6 +269,7 @@ export class Project {
 			for (const source of sources) {
 				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
 					filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
+					dereference: true,
 				});
 			}
 		});
