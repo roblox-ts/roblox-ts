@@ -7,15 +7,6 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 function transformExportEquals(state: TransformState, node: ts.ExportAssignment) {
-	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
-	if (symbol && isDefinedAsLet(state, symbol)) {
-		state.addDiagnostic(diagnostics.noExportAssignmentLet(node));
-	}
-
-	if (symbol && isSymbolOfValue(symbol)) {
-		return lua.list.make<lua.Statement>();
-	}
-
 	state.hasExportEquals = true;
 
 	const sourceFile = node.getSourceFile();
@@ -51,6 +42,15 @@ function transformExportDefault(state: TransformState, node: ts.ExportAssignment
 }
 
 export function transformExportAssignment(state: TransformState, node: ts.ExportAssignment) {
+	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
+	if (symbol && isDefinedAsLet(state, symbol)) {
+		state.addDiagnostic(diagnostics.noExportAssignmentLet(node));
+	}
+
+	if (symbol && !isSymbolOfValue(symbol)) {
+		return lua.list.make<lua.Statement>();
+	}
+
 	if (node.isExportEquals) {
 		return transformExportEquals(state, node);
 	} else {
