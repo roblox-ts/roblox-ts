@@ -3,12 +3,26 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+
+function isExportSpecifierValue(state: TransformState, element: ts.ExportSpecifier) {
+	if (element.name.text === "default") {
+		const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
+		assert(aliasSymbol);
+		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+			return true;
+		}
+	} else if (state.resolver.isReferencedAliasDeclaration(element)) {
+		return true;
+	}
+	return false;
+}
 
 function countImportExpUses(state: TransformState, exportClause?: ts.NamespaceExport | ts.NamedExports) {
 	let uses = 0;
 	if (exportClause && ts.isNamedExports(exportClause)) {
 		for (const element of exportClause.elements) {
-			if (state.resolver.isReferencedAliasDeclaration(element)) {
+			if (isExportSpecifierValue(state, element)) {
 				uses++;
 			}
 		}
@@ -50,7 +64,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		if (ts.isNamedExports(exportClause)) {
 			// export { a, b, c } from "./module";
 			for (const element of exportClause.elements) {
-				if (state.resolver.isReferencedAliasDeclaration(element)) {
+				if (isExportSpecifierValue(state, element)) {
 					lua.list.push(
 						statements,
 						lua.create(lua.SyntaxKind.Assignment, {
