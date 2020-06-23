@@ -10,7 +10,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
@@ -63,10 +63,12 @@ export function transformCallExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	const type = state.getType(node.expression);
-	const macro = state.macroManager.getCallMacro(type.symbol);
-	if (macro) {
-		return macro(state, node, expression);
+	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	if (symbol) {
+		const macro = state.macroManager.getCallMacro(symbol);
+		if (macro) {
+			return macro(state, node, expression);
+		}
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
@@ -87,10 +89,12 @@ export function transformPropertyCallExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	const type = state.getType(node.expression);
-	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
-	if (macro) {
-		return macro(state, node, expression);
+	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	if (symbol) {
+		const macro = state.macroManager.getPropertyCallMacro(symbol);
+		if (macro) {
+			return macro(state, node, expression);
+		}
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
@@ -123,10 +127,12 @@ export function transformElementCallExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	const type = state.getType(node.expression);
-	const macro = state.macroManager.getPropertyCallMacro(type.symbol);
-	if (macro) {
-		return macro(state, node, expression);
+	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	if (symbol) {
+		const macro = state.macroManager.getPropertyCallMacro(symbol);
+		if (macro) {
+			return macro(state, node, expression);
+		}
 	}
 
 	const args = lua.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));

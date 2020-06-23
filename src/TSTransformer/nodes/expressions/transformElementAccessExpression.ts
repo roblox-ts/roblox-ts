@@ -8,7 +8,7 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { offset } from "TSTransformer/util/offset";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType, getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformElementAccessExpressionInner(
@@ -20,9 +20,12 @@ export function transformElementAccessExpressionInner(
 	validateNotAnyType(state, node.expression);
 	validateNotAnyType(state, node.argumentExpression);
 
-	if (state.macroManager.getPropertyCallMacro(state.getType(node).symbol)) {
-		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
-		return lua.emptyId();
+	const symbol = getFirstDefinedSymbol(state, state.getType(node));
+	if (symbol) {
+		if (state.macroManager.getPropertyCallMacro(symbol)) {
+			state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+			return lua.emptyId();
+		}
 	}
 
 	if (isMethod(state, node)) {

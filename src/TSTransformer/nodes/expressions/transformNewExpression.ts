@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { getFirstConstructSymbol } from "TSTransformer/util/getFirstConstructSymbol";
+import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformNewExpression(state: TransformState, node: ts.NewExpression) {

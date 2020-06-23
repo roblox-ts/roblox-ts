@@ -15,6 +15,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -246,11 +247,13 @@ function transformOptionalChainInner(
 			const { expression: newValue, statements: ifStatements } = state.capture(() => {
 				let newExpression: lua.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
-					const symbol = state.getType(item.node.expression).symbol;
-					const macro = state.macroManager.getPropertyCallMacro(symbol);
-					if (macro) {
-						state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
-						return lua.emptyId();
+					const symbol = getFirstDefinedSymbol(state, state.getType(item.node.expression));
+					if (symbol) {
+						const macro = state.macroManager.getPropertyCallMacro(symbol);
+						if (macro) {
+							state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
+							return lua.emptyId();
+						}
 					}
 
 					const args = lua.list.make(...ensureTransformOrder(state, item.args));

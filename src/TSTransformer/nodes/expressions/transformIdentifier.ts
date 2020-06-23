@@ -5,9 +5,9 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
-import { getFirstConstructSymbol } from "TSTransformer/util/getFirstConstructSymbol";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { getFirstConstructSymbol } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	return lua.create(lua.SyntaxKind.Identifier, {

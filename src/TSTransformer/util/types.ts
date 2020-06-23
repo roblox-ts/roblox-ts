@@ -137,3 +137,30 @@ export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
 	const isAssignableToUndefined = tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED);
 	return isAssignableToFalse || isAssignableToUndefined;
 }
+
+export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression) {
+	const type = state.getType(expression);
+	if (type.symbol) {
+		for (const declaration of type.symbol.declarations ?? []) {
+			if (ts.isInterfaceDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isConstructSignatureDeclaration(member)) {
+						return member.symbol;
+					}
+				}
+			}
+		}
+	}
+}
+
+export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
+	if (type.isUnion() || type.isIntersection()) {
+		for (const t of type.types) {
+			if (t.symbol && !state.typeChecker.isUndefinedSymbol(t.symbol)) {
+				return t.symbol;
+			}
+		}
+	} else {
+		return type.symbol;
+	}
+}
