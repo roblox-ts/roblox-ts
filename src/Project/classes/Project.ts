@@ -332,10 +332,10 @@ export class Project {
 
 		const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 
-		const progressLength = String(sourceFiles.length).length * 2 + 1;
+		const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 		for (let i = 0; i < sourceFiles.length; i++) {
 			const sourceFile = sourceFiles[i];
-			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressLength);
+			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 
 			this.benchmark(`${progress} compiling ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
