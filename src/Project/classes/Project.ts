@@ -330,7 +330,6 @@ export class Project {
 			}
 		}
 
-		const commonSourceDir = this.program.getProgram().getCommonSourceDirectory();
 		const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 
 		const progressLength = String(sourceFiles.length).length * 2 + 1;
@@ -338,7 +337,7 @@ export class Project {
 			const sourceFile = sourceFiles[i];
 			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressLength);
 
-			this.benchmark(`${progress} compiling ${path.relative(commonSourceDir, sourceFile.fileName)}`, () => {
+			this.benchmark(`${progress} compiling ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
