@@ -8,6 +8,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+import { getAncestor } from "TSTransformer/util/traversal";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, lua.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -49,6 +50,15 @@ function handleExports(
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
+				}
+				if (exportSymbol.name === "default") {
+					const declaration = exportSymbol.declarations[0];
+					if (declaration) {
+						const ancestor = getAncestor(declaration, ts.isExportDeclaration);
+						if (ancestor && ancestor.moduleSpecifier !== undefined) {
+							continue;
+						}
+					}
 				}
 				exportPairs.push(getExportPair(state, exportSymbol));
 			}
