@@ -14,29 +14,9 @@ function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression
 	);
 }
 
-export function transformReturnStatement(state: TransformState, node: ts.ReturnStatement) {
-	if (!node.expression) {
-		if (isReturnBlockedByTryStatement(node)) {
-			state.markTryUses("usesReturn");
-
-			return lua.list.make(
-				lua.create(lua.SyntaxKind.ReturnStatement, {
-					expression: lua.list.make<lua.Expression>(state.TS("TRY_RETURN"), lua.array()),
-				}),
-			);
-		}
-
-		return lua.list.make(lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
-	}
-
-	let expression: lua.Expression | lua.List<lua.Expression> = transformExpression(
-		state,
-		skipDownwards(node.expression),
-	);
-	if (
-		isLuaTupleType(state, state.getType(node.expression)) &&
-		!isTupleReturningCall(state, node.expression, expression)
-	) {
+export function transformReturnStatementInner(state: TransformState, returnExp: ts.Expression) {
+	let expression: lua.Expression | lua.List<lua.Expression> = transformExpression(state, skipDownwards(returnExp));
+	if (isLuaTupleType(state, state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 		if (lua.isArray(expression)) {
 			expression = expression.members;
 		} else {
@@ -47,20 +27,33 @@ export function transformReturnStatement(state: TransformState, node: ts.ReturnS
 		}
 	}
 
-	if (isReturnBlockedByTryStatement(node)) {
+	if (isReturnBlockedByTryStatement(returnExp)) {
 		state.markTryUses("usesReturn");
 
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression: lua.list.make<lua.Expression>(
-					state.TS("TRY_RETURN"),
-					lua.create(lua.SyntaxKind.Array, {
-						members: lua.list.isList(expression) ? expression : lua.list.make(expression),
-					}),
-				),
-			}),
-		);
+		return lua.create(lua.SyntaxKind.ReturnStatement, {
+			expression: lua.list.make<lua.Expression>(
+				state.TS("TRY_RETURN"),
+				lua.create(lua.SyntaxKind.Array, {
+					members: lua.list.isList(expression) ? expression : lua.list.make(expression),
+				}),
+			),
+		});
 	}
 
-	return lua.list.make(lua.create(lua.SyntaxKind.ReturnStatement, { expression }));
+	return lua.create(lua.SyntaxKind.ReturnStatement, { expression });
+}
+
+export function transformReturnStatement(state: TransformState, node: ts.ReturnStatement) {
+	if (!node.expression) {
+		if (isReturnBlockedByTryStatement(node)) {
+			state.markTryUses("usesReturn");
+			return lua.list.make(
+				lua.create(lua.SyntaxKind.ReturnStatement, {
+					expression: lua.list.make<lua.Expression>(state.TS("TRY_RETURN"), lua.array()),
+				}),
+			);
+		}
+		return lua.list.make(lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
+	}
+	return lua.list.make(transformReturnStatementInner(state, node.expression));
 }

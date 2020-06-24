@@ -166,8 +166,8 @@ export class TransformState {
 	/**
 	 * Returns the expression and prerequisite statements created by `callback`.
 	 */
-	public capture(callback: () => lua.Expression) {
-		let expression!: lua.Expression;
+	public capture<T extends lua.Node>(callback: () => T) {
+		let expression!: T;
 		const statements = this.capturePrereqs(() => (expression = callback()));
 		return { expression, statements };
 	}

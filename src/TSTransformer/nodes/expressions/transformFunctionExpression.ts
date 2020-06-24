@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	if (node.name) {
@@ -17,14 +18,11 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	if (ts.isFunctionBody(body)) {
 		lua.list.pushList(statements, transformStatementList(state, body.statements));
 	} else {
-		const { expression, statements: expressionPrereqs } = state.capture(() => transformExpression(state, body));
-		lua.list.pushList(statements, expressionPrereqs);
-		lua.list.push(
-			statements,
-			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression,
-			}),
+		const { expression: returnStatement, statements: prereqs } = state.capture(() =>
+			transformReturnStatementInner(state, body),
 		);
+		lua.list.pushList(statements, prereqs);
+		lua.list.push(statements, returnStatement);
 	}
 
 	let expression: lua.Expression = lua.create(lua.SyntaxKind.FunctionExpression, {
