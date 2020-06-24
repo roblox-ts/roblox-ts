@@ -2,10 +2,9 @@ import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	if (node.name) {
