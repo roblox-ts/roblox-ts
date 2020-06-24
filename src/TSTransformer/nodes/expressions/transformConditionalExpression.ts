@@ -7,10 +7,10 @@ import { canTypeBeLuaFalsy } from "TSTransformer/util/types";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const condition = transformExpression(state, node.condition);
-	const { expression: whenTrue, statements: whenTruePrereqs } = state.capture(() =>
+	const [whenTrue, whenTruePrereqs] = state.capture(() =>
 		transformExpression(state, node.whenTrue),
 	);
-	const { expression: whenFalse, statements: whenFalsePrereqs } = state.capture(() =>
+	const [whenFalse, whenFalsePrereqs] = state.capture(() =>
 		transformExpression(state, node.whenFalse),
 	);
 	if (

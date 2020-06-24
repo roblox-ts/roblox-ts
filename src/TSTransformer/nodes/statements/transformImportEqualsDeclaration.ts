@@ -16,7 +16,7 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(aliasSymbol);
 		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			lua.list.pushList(statements, transformVariable(state, node.name, importExp).statements);
+			lua.list.pushList(statements, transformVariable(state, node.name, importExp)[1]);
 		}
 
 		// ensure we emit something

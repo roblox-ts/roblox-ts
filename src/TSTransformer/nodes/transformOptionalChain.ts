@@ -241,10 +241,10 @@ function transformOptionalChainInner(
 		}
 
 		// capture so we can wrap later if necessary
-		const { expression: result, statements: prereqStatements } = state.capture(() => {
+		const [result, prereqStatements] = state.capture(() => {
 			tempId = createOrSetTempId(state, tempId, expression);
 
-			const { expression: newValue, statements: ifStatements } = state.capture(() => {
+			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: lua.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
 					const symbol = getFirstDefinedSymbol(state, state.getType(item.node.expression));

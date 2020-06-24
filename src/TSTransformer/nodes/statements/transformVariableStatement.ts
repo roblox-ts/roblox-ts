@@ -129,7 +129,7 @@ export function transformVariableDeclaration(
 	const value = node.initializer ? transformExpression(state, node.initializer) : undefined;
 
 	if (ts.isIdentifier(node.name)) {
-		return transformVariable(state, node.name, value).statements;
+		return transformVariable(state, node.name, value)[1];
 	} else {
 		// in destructuring, rhs must be executed first
 		assert(node.initializer && value);

@@ -12,9 +12,8 @@ function transformCaseClauseExpression(
 	fallThroughFlagId: lua.TemporaryIdentifier,
 	canFallThroughTo: boolean,
 ) {
-	const capturePrereqsResult = state.capture(() => transformExpression(state, caseClauseExpression));
-	let { statements: prereqStatements } = capturePrereqsResult;
-	const { expression } = capturePrereqsResult;
+	// eslint-disable-next-line prefer-const
+	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
 	let condition: lua.Expression = lua.binary(switchExpression, "==", expression);
 

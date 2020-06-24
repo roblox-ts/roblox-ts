@@ -62,10 +62,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && v.isExportEquals)) {
-					lua.list.pushList(
-						statements,
-						transformVariable(state, importClause.name, importExp.get()).statements,
-					);
+					lua.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
 				} else {
 					lua.list.pushList(
 						statements,
@@ -76,7 +73,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 								expression: importExp.get(),
 								name: "default",
 							}),
-						).statements,
+						)[1],
 					);
 				}
 			}
@@ -87,7 +84,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			if (ts.isNamespaceImport(importClause.namedBindings)) {
 				lua.list.pushList(
 					statements,
-					transformVariable(state, importClause.namedBindings.name, importExp.get()).statements,
+					transformVariable(state, importClause.namedBindings.name, importExp.get())[1],
 				);
 			} else {
 				// named elements import logic
@@ -102,7 +99,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 									expression: importExp.get(),
 									name: (element.propertyName ?? element.name).text,
 								}),
-							).statements,
+							)[1],
 						);
 					}
 				}

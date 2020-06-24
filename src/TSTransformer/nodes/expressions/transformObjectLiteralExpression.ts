@@ -13,16 +13,16 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	const left = state.capture(() => transformObjectKey(state, name));
-	const right = state.capture(() => transformExpression(state, initializer));
+	const [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
+	const [right, rightPreqreqs] = state.capture(() => transformExpression(state, initializer));
 
-	if (!lua.list.isEmpty(left.statements) || !lua.list.isEmpty(right.statements)) {
+	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPreqreqs)) {
 		disableMapInline(state, ptr);
 	}
 
-	state.prereqList(left.statements);
-	state.prereqList(right.statements);
-	assignToMapPointer(state, ptr, left.expression, right.expression);
+	state.prereqList(leftPrereqs);
+	state.prereqList(rightPreqreqs);
+	assignToMapPointer(state, ptr, left, right);
 }
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {

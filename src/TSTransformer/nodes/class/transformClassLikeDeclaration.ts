@@ -38,7 +38,7 @@ function createRoactBoilerplate(
 
 	const statements = lua.list.make<lua.Statement>();
 
-	const { expression: extendsExp, statements: extendsExpPrereqs } = state.capture(() =>
+	const [extendsExp, extendsExpPrereqs] = state.capture(() =>
 		transformExpression(state, extendsNode.expression),
 	);
 	lua.list.pushList(statements, extendsExpPrereqs);
@@ -112,7 +112,7 @@ function createBoilerplate(
 			state.addDiagnostic(diagnostics.noRoactInheritance(node));
 		}
 
-		const { expression: extendsExp, statements: extendsExpPrereqs } = state.capture(() =>
+		const [extendsExp, extendsExpPrereqs] = state.capture(() =>
 			transformExpression(state, extendsNode.expression),
 		);
 		const superId = lua.id("super");

@@ -48,17 +48,17 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 	}
 }
 
-function transformJsxInitializer(state: TransformState, initializer: ts.Expression | undefined) {
+function transformJsxInitializer(
+	state: TransformState,
+	initializer: ts.Expression | undefined,
+): [lua.Expression, lua.List<lua.Statement>] {
 	if (initializer && ts.isJsxExpression(initializer)) {
 		initializer = initializer.expression;
 	}
 	if (initializer) {
 		return state.capture(() => transformExpression(state, initializer!));
 	} else {
-		return {
-			expression: lua.bool(true),
-			statements: lua.list.make<lua.Statement>(),
-		};
+		return [lua.bool(true), lua.list.make<lua.Statement>()];
 	}
 }
 
@@ -224,10 +224,10 @@ function createJsxAddAmbiguousChild(
 
 // maybe unnecessary?
 function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpression) {
-	const tagNameCaptures = state.capture(() => transformJsxTagNameExpression(state, tagName));
-	let tagNameExp = tagNameCaptures.expression;
-	if (!lua.list.isEmpty(tagNameCaptures.statements)) {
-		state.prereqList(tagNameCaptures.statements);
+	const [expression, prereqs] = state.capture(() => transformJsxTagNameExpression(state, tagName));
+	let tagNameExp = expression;
+	if (!lua.list.isEmpty(prereqs)) {
+		state.prereqList(prereqs);
 		tagNameExp = state.pushToVarIfComplex(tagNameExp);
 	}
 	return tagNameExp;
@@ -266,7 +266,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 	if (ts.isObjectLiteralExpression(expression) && isFlatObject(expression)) {
 		for (const property of expression.properties) {
 			assert(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name));
-			const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, property.initializer);
+			const [init, initPrereqs] = transformJsxInitializer(state, property.initializer);
 			if (!lua.list.isEmpty(initPrereqs)) {
 				disableMapInline(state, attributesPtr);
 			}
@@ -312,7 +312,7 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 		return;
 	}
 
-	const { expression: init, statements: initPrereqs } = transformJsxInitializer(state, attribute.initializer);
+	const [init, initPrereqs] = transformJsxInitializer(state, attribute.initializer);
 	if (!lua.list.isEmpty(initPrereqs)) {
 		disableMapInline(state, attributesPtr);
 		state.prereqList(initPrereqs);
@@ -383,16 +383,16 @@ function transformJsxChildren(
 		if (ts.isJsxExpression(child)) {
 			const innerExp = child.expression;
 			if (innerExp) {
-				const { expression, statements } = state.capture(() => transformExpression(state, innerExp));
-				if (!lua.list.isEmpty(statements)) {
-					state.prereqList(statements);
+				const [expression, prereqs] = state.capture(() => transformExpression(state, innerExp));
+				if (!lua.list.isEmpty(prereqs)) {
+					state.prereqList(prereqs);
 					disableInline();
 				}
 
 				if (child.dotDotDotToken) {
 					disableInline();
 					assert(lua.isAnyIdentifier(childrenPtr.value));
-					state.prereqList(statements);
+					state.prereqList(prereqs);
 					state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
@@ -437,11 +437,11 @@ function transformJsxChildren(
 				}
 			}
 		} else {
-			const { expression, statements } = state.capture(() => transformExpression(state, child));
-			if (!lua.list.isEmpty(statements)) {
+			const [expression, preqreqs] = state.capture(() => transformExpression(state, child));
+			if (!lua.list.isEmpty(preqreqs)) {
 				disableInline();
 			}
-			state.prereqList(statements);
+			state.prereqList(preqreqs);
 
 			const key = getKeyValue(child);
 			if (key) {

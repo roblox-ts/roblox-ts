@@ -38,9 +38,9 @@ function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
-		const { expression: right, statements } = state.capture(() => transformExpression(state, node.arguments[0]));
-		const left = lua.list.isEmpty(statements) ? expression : state.pushToVar(expression);
-		state.prereqList(statements);
+		const [right, preqreqs] = state.capture(() => transformExpression(state, node.arguments[0]));
+		const left = lua.list.isEmpty(preqreqs) ? expression : state.pushToVar(expression);
+		state.prereqList(preqreqs);
 		return lua.binary(wrapParenthesesIfBinary(left), operator, wrapParenthesesIfBinary(right));
 	};
 }
@@ -903,9 +903,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const args = lua.list.make<lua.Expression>(resultId);
 
 		if (node.arguments.length > 0) {
-			const { expression: argExp, statements: argPrereqs } = state.capture(() =>
-				transformExpression(state, node.arguments[0]),
-			);
+			const [argExp, argPrereqs] = state.capture(() => transformExpression(state, node.arguments[0]));
 			state.prereqList(argPrereqs);
 			lua.list.push(args, argExp);
 		}
@@ -1387,31 +1385,31 @@ function wasExpressionPushed(statements: lua.List<lua.Statement>, expression: lu
 
 function wrapComments(methodName: string, callback: PropertyCallMacro): PropertyCallMacro {
 	return (state, callNode, callExp) => {
-		const { expression, statements } = state.capture(() => callback(state, callNode, callExp));
+		const [expression, prereqs] = state.capture(() => callback(state, callNode, callExp));
 
-		let size = lua.list.size(statements);
+		let size = lua.list.size(prereqs);
 		if (size > 0) {
 			// detect the case of `expression = state.pushToVarIfComplex(expression);` and put header after
-			const wasPushed = wasExpressionPushed(statements, callExp);
+			const wasPushed = wasExpressionPushed(prereqs, callExp);
 			let pushStatement: lua.Statement | undefined;
 			if (wasPushed) {
-				pushStatement = lua.list.shift(statements);
+				pushStatement = lua.list.shift(prereqs);
 				size--;
 			}
 			if (size > 0) {
-				lua.list.unshift(statements, header(methodName));
+				lua.list.unshift(prereqs, header(methodName));
 				if (wasPushed && pushStatement) {
-					lua.list.unshift(statements, pushStatement);
+					lua.list.unshift(prereqs, pushStatement);
 				}
-				lua.list.push(statements, footer(methodName));
+				lua.list.push(prereqs, footer(methodName));
 			} else {
 				if (wasPushed && pushStatement) {
-					lua.list.unshift(statements, pushStatement);
+					lua.list.unshift(prereqs, pushStatement);
 				}
 			}
 		}
 
-		state.prereqList(statements);
+		state.prereqList(prereqs);
 		return expression;
 	};
 }

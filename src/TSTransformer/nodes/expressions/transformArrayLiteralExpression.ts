@@ -66,15 +66,15 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 				updateLengthId();
 			}
 		} else {
-			const { expression, statements } = state.capture(() => transformExpression(state, element));
-			if (lua.isArray(ptr.value) && !lua.list.isEmpty(statements)) {
+			const [expression, preqreqs] = state.capture(() => transformExpression(state, element));
+			if (lua.isArray(ptr.value) && !lua.list.isEmpty(preqreqs)) {
 				disableArrayInline(state, ptr);
 				updateLengthId();
 			}
 			if (lua.isArray(ptr.value)) {
 				lua.list.push(ptr.value.members, expression);
 			} else {
-				state.prereqList(statements);
+				state.prereqList(preqreqs);
 				state.prereq(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {

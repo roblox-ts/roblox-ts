@@ -1,7 +1,6 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { diagnostics } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
@@ -27,9 +26,8 @@ export function transformArrayBindingPattern(
 			const name = element.name;
 			const value = accessor(state, parentId, index, idStack, false);
 			if (ts.isIdentifier(name)) {
-				const { expression: id, statements } = transformVariable(state, name, value);
-				state.prereqList(statements);
-				assert(lua.isAnyIdentifier(id));
+				const [id, preqreqs] = transformVariable(state, name, value);
+				state.prereqList(preqreqs);
 				if (element.initializer) {
 					state.prereq(transformInitializer(state, id, element.initializer));
 				}

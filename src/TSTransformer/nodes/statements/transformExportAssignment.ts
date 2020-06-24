@@ -28,8 +28,8 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 function transformExportDefault(state: TransformState, node: ts.ExportAssignment) {
 	const statements = lua.list.make<lua.Statement>();
 
-	const { expression, statements: expPreqreqs } = state.capture(() => transformExpression(state, node.expression));
-	lua.list.pushList(statements, expPreqreqs);
+	const [expression, preqreqs] = state.capture(() => transformExpression(state, node.expression));
+	lua.list.pushList(statements, preqreqs);
 	lua.list.push(
 		statements,
 		lua.create(lua.SyntaxKind.VariableDeclaration, {
