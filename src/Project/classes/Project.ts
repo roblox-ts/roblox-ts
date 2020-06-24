@@ -30,6 +30,15 @@ const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
+function findAncestorDir(dirs: Array<string>) {
+	dirs = dirs.map(path.normalize).map(v => (v.endsWith(path.sep) ? v : v + path.sep));
+	let currentDir = dirs[0];
+	while (!dirs.every(v => v.startsWith(currentDir))) {
+		currentDir = path.join(currentDir, "..");
+	}
+	return currentDir;
+}
+
 /** The options of the project. */
 export interface ProjectOptions {
 	/** The path to the include directory. */
@@ -58,6 +67,7 @@ export class Project {
 	private readonly runtimeLibRbxPath: RbxPath | undefined;
 	private readonly nodeModulesRbxPath: RbxPath | undefined;
 	private readonly includePath: string;
+	private readonly rootDir: string;
 
 	public readonly projectType: ProjectType;
 
@@ -183,9 +193,11 @@ export class Project {
 			this.roactSymbolManager = new RoactSymbolManager(this.typeChecker, roactIndexSourceFile);
 		}
 
+		this.rootDir = findAncestorDir([this.program.getProgram().getCommonSourceDirectory(), ...this.getRootDirs()]);
+
 		// create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
 		this.pathTranslator = new PathTranslator(
-			this.program.getProgram().getCommonSourceDirectory(),
+			this.rootDir,
 			this.compilerOptions.outDir!,
 			ts.getTsBuildInfoEmitOutputFilePath(this.compilerOptions),
 			this.compilerOptions.declaration === true,
@@ -283,10 +295,9 @@ export class Project {
 
 	public copyFiles(sources: Set<string>) {
 		this.benchmark("copying non-compiled files", () => {
-			const commonDir = this.program.getProgram().getCommonSourceDirectory();
 			assert(this.compilerOptions.outDir);
 			for (const source of sources) {
-				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(commonDir, source)), {
+				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(this.rootDir, source)), {
 					filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
 					dereference: true,
 				});
