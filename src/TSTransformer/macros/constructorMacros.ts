@@ -35,7 +35,7 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 		return lua.set();
 	}
 	const arg = node.arguments[0];
-	// spread transforms to `unpack(t)`, which should not be transformed to `{ [unpack(t)] = true }`
+	// spreads cause prereq array, which cannot be optimised like this
 	if (ts.isArrayLiteralExpression(arg) && !arg.elements.some(ts.isSpreadElement)) {
 		return lua.set(ensureTransformOrder(state, arg.elements));
 	} else {
