@@ -35,7 +35,8 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 		return lua.set();
 	}
 	const arg = node.arguments[0];
-	if (ts.isArrayLiteralExpression(arg)) {
+	// spread transforms to `unpack(t)`, which should not be transformed to `{ [unpack(t)] = true }`
+	if (ts.isArrayLiteralExpression(arg) && !arg.elements.some(ts.isSpreadElement)) {
 		return lua.set(ensureTransformOrder(state, arg.elements));
 	} else {
 		const id = state.pushToVar(lua.set());

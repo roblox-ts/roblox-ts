@@ -11,9 +11,9 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	validateNotAnyType(state, node.expression);
 
 	const parent = node.parent;
-	assert(ts.isCallExpression(parent) || ts.isNewExpression(parent));
-	assert(parent.arguments);
-	if (parent.arguments[parent.arguments.length - 1] !== node) {
+	const args = ts.isArrayLiteralExpression(parent) ? parent.elements : parent.arguments;
+	assert(args);
+	if (args[args.length - 1] !== node) {
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
 	}
 
