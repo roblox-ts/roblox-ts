@@ -23,6 +23,13 @@ function ipairs(expression: lua.Expression): lua.Expression {
 	});
 }
 
+function pairs(expression: lua.Expression): lua.Expression {
+	return lua.create(lua.SyntaxKind.CallExpression, {
+		expression: lua.globals.pairs,
+		args: lua.list.make(expression),
+	});
+}
+
 function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 	return (state, node, expression) => {
 		const args = lua.list.make(...ensureTransformOrder(state, node.arguments));
@@ -1199,6 +1206,30 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 
 const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...READONLY_SET_MAP_SHARED_METHODS,
+
+	forEach: (state, node, expression) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const callbackId = state.pushToVarIfComplex(transformExpression(state, node.arguments[0]));
+		const keyId = lua.tempId();
+		const valueId = lua.tempId();
+		state.prereq(
+			lua.create(lua.SyntaxKind.ForStatement, {
+				ids: lua.list.make(keyId, valueId),
+				expression: pairs(expression),
+				statements: lua.list.make(
+					lua.create(lua.SyntaxKind.CallStatement, {
+						expression: lua.create(lua.SyntaxKind.CallExpression, {
+							expression: callbackId,
+							args: lua.list.make(valueId, keyId, expression),
+						}),
+					}),
+				),
+			}),
+		);
+
+		return lua.nil();
+	},
 
 	get: (state, node, expression) =>
 		lua.create(lua.SyntaxKind.ComputedIndexExpression, {
