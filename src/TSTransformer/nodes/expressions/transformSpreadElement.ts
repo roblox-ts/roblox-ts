@@ -10,8 +10,10 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
 
-	assert(ts.isCallExpression(node.parent));
-	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
+	const parent = node.parent;
+	assert(ts.isCallExpression(parent) || ts.isNewExpression(parent));
+	assert(parent.arguments);
+	if (parent.arguments[parent.arguments.length - 1] !== node) {
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
 	}
 
