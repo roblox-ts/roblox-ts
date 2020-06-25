@@ -38,9 +38,7 @@ function createRoactBoilerplate(
 
 	const statements = lua.list.make<lua.Statement>();
 
-	const [extendsExp, extendsExpPrereqs] = state.capture(() =>
-		transformExpression(state, extendsNode.expression),
-	);
+	const [extendsExp, extendsExpPrereqs] = state.capture(() => transformExpression(state, extendsNode.expression));
 	lua.list.pushList(statements, extendsExpPrereqs);
 
 	const classNameStr = lua.isIdentifier(className) ? className.name : "Anonymous";
@@ -112,9 +110,7 @@ function createBoilerplate(
 			state.addDiagnostic(diagnostics.noRoactInheritance(node));
 		}
 
-		const [extendsExp, extendsExpPrereqs] = state.capture(() =>
-			transformExpression(state, extendsNode.expression),
-		);
+		const [extendsExp, extendsExpPrereqs] = state.capture(() => transformExpression(state, extendsNode.expression));
 		const superId = lua.id("super");
 		lua.list.pushList(statements, extendsExpPrereqs);
 		lua.list.push(

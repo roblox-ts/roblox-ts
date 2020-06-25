@@ -133,9 +133,7 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 
 	const result = lua.list.make<lua.Statement>();
 
-	const [innerExp, innerExpPrereqs] = state.capture(() =>
-		transformExpression(state, node.expression),
-	);
+	const [innerExp, innerExpPrereqs] = state.capture(() => transformExpression(state, node.expression));
 	lua.list.pushList(result, innerExpPrereqs);
 
 	const expType = state.getType(node.expression);
