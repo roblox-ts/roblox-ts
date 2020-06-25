@@ -40,13 +40,13 @@ function getLogicalChain(
 ): Array<LogicalChainItem> {
 	return flattenByOperator(node, binaryOperatorKind).map((original, index, array) => {
 		const type = state.getType(original);
-		const [expression, preqreqs] = state.capture(() => transformExpression(state, original));
+		const [expression, prereqs] = state.capture(() => transformExpression(state, original));
 		let inline = false;
 		if (enableInlining) {
 			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(state, type);
-			inline = lua.list.isEmpty(preqreqs) && !willWrap;
+			inline = lua.list.isEmpty(prereqs) && !willWrap;
 		}
-		return { type, expression, statements: preqreqs, inline };
+		return { type, expression, statements: prereqs, inline };
 	});
 }
 

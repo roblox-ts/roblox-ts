@@ -55,9 +55,9 @@ export function transformWritableAssignment(
 	multipleUse: boolean,
 ) {
 	const writable = transformWritableExpression(state, writeNode, multipleUse);
-	const [value, preqreqs] = state.capture(() => transformExpression(state, valueNode));
-	const readable = lua.list.isEmpty(preqreqs) ? writable : state.pushToVar(writable);
-	state.prereqList(preqreqs);
+	const [value, prereqs] = state.capture(() => transformExpression(state, valueNode));
+	const readable = lua.list.isEmpty(prereqs) ? writable : state.pushToVar(writable);
+	state.prereqList(prereqs);
 	return { writable, readable, value };
 }
 

@@ -42,17 +42,17 @@ export function transformElementAccessExpressionInner(
 		return typeof constantValue === "string" ? lua.string(constantValue) : lua.number(constantValue);
 	}
 
-	const [index, preqreqs] = state.capture(() => transformExpression(state, argumentExpression));
+	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
 	const expType = state.getType(node.expression);
-	if (!lua.list.isEmpty(preqreqs)) {
+	if (!lua.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
 		if (isLuaTupleType(state, expType)) {
 			expression = lua.array([expression]);
 		}
 
 		expression = state.pushToVar(expression);
-		state.prereqList(preqreqs);
+		state.prereqList(prereqs);
 	}
 
 	// LuaTuple<T> checks

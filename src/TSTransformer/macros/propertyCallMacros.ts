@@ -38,9 +38,9 @@ function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 
 function makeMathMethod(operator: lua.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression) => {
-		const [right, preqreqs] = state.capture(() => transformExpression(state, node.arguments[0]));
-		const left = lua.list.isEmpty(preqreqs) ? expression : state.pushToVar(expression);
-		state.prereqList(preqreqs);
+		const [right, prereqs] = state.capture(() => transformExpression(state, node.arguments[0]));
+		const left = lua.list.isEmpty(prereqs) ? expression : state.pushToVar(expression);
+		state.prereqList(prereqs);
 		return lua.binary(wrapParenthesesIfBinary(left), operator, wrapParenthesesIfBinary(right));
 	};
 }

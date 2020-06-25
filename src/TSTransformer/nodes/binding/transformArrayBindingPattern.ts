@@ -26,8 +26,8 @@ export function transformArrayBindingPattern(
 			const name = element.name;
 			const value = accessor(state, parentId, index, idStack, false);
 			if (ts.isIdentifier(name)) {
-				const [id, preqreqs] = transformVariable(state, name, value);
-				state.prereqList(preqreqs);
+				const [id, prereqs] = transformVariable(state, name, value);
+				state.prereqList(prereqs);
 				if (element.initializer) {
 					state.prereq(transformInitializer(state, id, element.initializer));
 				}

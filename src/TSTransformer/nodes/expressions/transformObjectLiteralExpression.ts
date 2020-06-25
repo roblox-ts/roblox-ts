@@ -14,14 +14,14 @@ function transformPropertyAssignment(
 	initializer: ts.Expression,
 ) {
 	const [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
-	const [right, rightPreqreqs] = state.capture(() => transformExpression(state, initializer));
+	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 
-	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPreqreqs)) {
+	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
 	}
 
 	state.prereqList(leftPrereqs);
-	state.prereqList(rightPreqreqs);
+	state.prereqList(rightPrereqs);
 	assignToMapPointer(state, ptr, left, right);
 }
 

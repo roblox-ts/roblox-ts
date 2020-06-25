@@ -437,11 +437,11 @@ function transformJsxChildren(
 				}
 			}
 		} else {
-			const [expression, preqreqs] = state.capture(() => transformExpression(state, child));
-			if (!lua.list.isEmpty(preqreqs)) {
+			const [expression, prereqs] = state.capture(() => transformExpression(state, child));
+			if (!lua.list.isEmpty(prereqs)) {
 				disableInline();
 			}
-			state.prereqList(preqreqs);
+			state.prereqList(prereqs);
 
 			const key = getKeyValue(child);
 			if (key) {

@@ -168,8 +168,8 @@ export class TransformState {
 	 */
 	public capture<T extends lua.Node>(callback: () => T): [T, lua.List<lua.Statement>] {
 		let node!: T;
-		const preqreqs = this.capturePrereqs(() => (node = callback()));
-		return [node, preqreqs];
+		const prereqs = this.capturePrereqs(() => (node = callback()));
+		return [node, prereqs];
 	}
 
 	/**
