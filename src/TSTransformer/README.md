@@ -188,7 +188,7 @@ In other words, TS AST -> Lua AST
 
 -   [x] ReadonlyMap.isEmpty()
 -   [ ] ReadonlyMap.toString()
--   [ ] ReadonlyMap.forEach()
+-   [x] ReadonlyMap.forEach()
 -   [x] ReadonlyMap.size()
 -   [x] ReadonlyMap.values()
 -   [x] ReadonlyMap.has()
