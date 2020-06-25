@@ -173,7 +173,7 @@ In other words, TS AST -> Lua AST
 -   [ ] ReadonlySet.toString()
 -   [x] ReadonlySet.forEach()
 -   [x] ReadonlySet.size()
--   [ ] ReadonlySet.values()
+-   [x] ReadonlySet.values()
 -   [x] ReadonlySet.has()
 -   [ ] ReadonlySet.union()
 -   [ ] ReadonlySet.intersect()

@@ -1181,6 +1181,11 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 
 		return lua.nil();
 	},
+
+	values: (state, node, expression) => {
+		const valueId = lua.tempId();
+		return createKeyValuesEntriesMethod(state, node, expression, [valueId], valueId);
+	},
 };
 
 const SET_METHODS: MacroList<PropertyCallMacro> = {
