@@ -874,51 +874,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	findIndex: makeFindMethod(lua.number(-1), false),
 
 	copy: makeCopyMethod(lua.globals.ipairs, (state, node, expression) => expression),
-
-	// deepCopy
-
-	// deepEquals
-
-	sort: (state, node, expression) => {
-		const resultId = state.pushToVar(lua.array());
-
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				expression: ipairs(expression),
-				ids: lua.list.make(keyId, valueId),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-							expression: resultId,
-							index: keyId,
-						}),
-						right: valueId,
-					}),
-				),
-			}),
-		);
-
-		const args = lua.list.make<lua.Expression>(resultId);
-
-		if (node.arguments.length > 0) {
-			const [argExp, argPrereqs] = state.capture(() => transformExpression(state, node.arguments[0]));
-			state.prereqList(argPrereqs);
-			lua.list.push(args, argExp);
-		}
-
-		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.table.sort,
-					args,
-				}),
-			}),
-		);
-
-		return resultId;
-	},
 };
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
@@ -1069,6 +1024,31 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		return valueIsUsed ? valueId! : lua.nil();
+	},
+
+	sort: (state, node, expression) => {
+		const valueIsUsed = !isUsedAsStatement(node);
+		if (valueIsUsed) {
+			expression = state.pushToVarIfComplex(expression);
+		}
+
+		const args = lua.list.make<lua.Expression>(expression);
+		if (node.arguments.length > 0) {
+			const [argExp, argPrereqs] = state.capture(() => transformExpression(state, node.arguments[0]));
+			state.prereqList(argPrereqs);
+			lua.list.push(args, argExp);
+		}
+
+		state.prereq(
+			lua.create(lua.SyntaxKind.CallStatement, {
+				expression: lua.create(lua.SyntaxKind.CallExpression, {
+					expression: lua.globals.table.sort,
+					args,
+				}),
+			}),
+		);
+
+		return valueIsUsed ? expression : lua.nil();
 	},
 };
 
