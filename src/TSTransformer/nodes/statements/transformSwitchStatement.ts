@@ -65,10 +65,11 @@ function transformCaseClause(
 		canFallThroughTo,
 	);
 
-	const firstStatement = node.statements[0];
+	const nonEmptyStatements = node.statements.filter(v => !ts.isEmptyStatement(v));
+	const firstStatement = nonEmptyStatements[0];
 	const statements = transformStatementList(
 		state,
-		node.statements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
+		nonEmptyStatements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
 	);
 
 	const canFallThroughFrom = statements.tail !== undefined && !lua.isFinalStatement(statements.tail.value);
