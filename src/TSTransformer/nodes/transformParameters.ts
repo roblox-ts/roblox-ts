@@ -60,21 +60,6 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 				);
 			}
 		}
-
-		// parameter property
-		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
-			assert(lua.isIdentifier(paramId));
-			lua.list.push(
-				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression: lua.globals.self,
-						name: paramId.name,
-					}),
-					right: paramId,
-				}),
-			);
-		}
 	}
 
 	return {

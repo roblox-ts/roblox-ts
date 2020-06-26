@@ -4,15 +4,19 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
-import { transformClassElement } from "TSTransformer/nodes/class/transformClassElement";
+import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 
-function hasConstructor(node: ts.ClassLikeDeclaration) {
-	return node.members.some(element => ts.isConstructorDeclaration(element) && element.body !== undefined);
+function getConstructor(node: ts.ClassLikeDeclaration): (ts.ConstructorDeclaration & { body: ts.Block }) | undefined {
+	return node.members.find(
+		(element): element is ts.ConstructorDeclaration & { body: ts.Block } =>
+			ts.isConstructorDeclaration(element) && element.body !== undefined,
+	);
 }
 
 function createNameFunction(name: string) {
@@ -75,6 +79,7 @@ function createBoilerplate(
 	isClassExpression: boolean,
 ) {
 	const statements = lua.list.make<lua.Statement>();
+
 	/* boilerplate:
 		className = setmetatable({}, {
 			__tostring = function() return "className" end;
@@ -279,14 +284,42 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	} else {
 		lua.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 	}
-	if (!hasConstructor(node)) {
-		lua.list.pushList(
-			statementsInner,
-			transformClassConstructor(state, node, node.members, { value: internalName }),
-		);
-	}
+
+	lua.list.pushList(
+		statementsInner,
+		transformClassConstructor(state, node, { value: internalName }, getConstructor(node)),
+	);
+
+	const methods = new Array<ts.MethodDeclaration>();
+	const staticProperties = new Array<ts.PropertyDeclaration>();
 	for (const member of node.members) {
-		lua.list.pushList(statementsInner, transformClassElement(state, member, { value: internalName }));
+		if (
+			ts.isConstructorDeclaration(member) ||
+			ts.isIndexSignatureDeclaration(member) ||
+			ts.isSemicolonClassElement(member)
+		) {
+			continue;
+		} else if (ts.isMethodDeclaration(member)) {
+			methods.push(member);
+		} else if (ts.isPropertyDeclaration(member)) {
+			// do not emit non-static properties here
+			if (!ts.hasStaticModifier(member)) {
+				continue;
+			}
+			staticProperties.push(member);
+		} else if (ts.isAccessor(member)) {
+			state.addDiagnostic(diagnostics.noGetterSetter(member));
+		} else {
+			assert(false, "Not implemented!");
+		}
+	}
+
+	for (const method of methods) {
+		lua.list.pushList(statementsInner, transformMethodDeclaration(state, method, { value: internalName }));
+	}
+
+	for (const property of staticProperties) {
+		lua.list.pushList(statementsInner, transformPropertyDeclaration(state, property, { value: internalName }));
 	}
 
 	// if using internal name, assign to return var

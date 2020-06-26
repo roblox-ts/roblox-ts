@@ -6,11 +6,15 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { Pointer } from "TSTransformer/util/pointer";
 
-export function transformClassProperty(
+export function transformPropertyDeclaration(
 	state: TransformState,
 	node: ts.PropertyDeclaration,
 	ptr: Pointer<lua.AnyIdentifier>,
 ) {
+	if (!ts.hasStaticModifier(node)) {
+		return lua.list.make<lua.Statement>();
+	}
+
 	if (ts.isPrivateIdentifier(node.name)) {
 		state.addDiagnostic(diagnostics.noPrivateIdentifier(node));
 		return lua.list.make<lua.Statement>();
