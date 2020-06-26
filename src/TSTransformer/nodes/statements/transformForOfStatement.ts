@@ -120,7 +120,7 @@ function getLoopStructure(state: TransformState, name: ts.BindingName, innerExp:
 	} else if (isStringType(expType)) {
 		expression = getStringLoopStructure(state, ids, initializers, name, innerExp);
 	} else {
-		assert(false);
+		assert(false, "Not implemented");
 	}
 	return { ids, expression, initializers };
 }
