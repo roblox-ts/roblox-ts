@@ -892,10 +892,11 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const args = ensureTransformOrder(state, node.arguments);
+		const valueIsUsed = !isUsedAsStatement(node);
+		const uses = (valueIsUsed ? 1 : 0) + args.length;
 
 		let sizeExp: lua.Expression = lua.unary("#", expression);
-
-		if (args.length > 1) {
+		if (uses > 1) {
 			sizeExp = state.pushToVar(sizeExp);
 		}
 
@@ -911,11 +912,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		if (!isUsedAsStatement(node)) {
-			return lua.binary(sizeExp, "+", lua.number(args.length));
-		} else {
-			return lua.nil();
-		}
+		return valueIsUsed ? lua.binary(sizeExp, "+", lua.number(args.length)) : lua.nil();
 	},
 
 	pop: (state, node, expression) => {
