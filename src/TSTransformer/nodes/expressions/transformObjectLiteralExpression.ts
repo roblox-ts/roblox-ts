@@ -6,6 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
+import { canBeUndefined } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
@@ -27,27 +28,41 @@ function transformPropertyAssignment(
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
 	disableMapInline(state, ptr);
-	const spreadExp = transformExpression(state, property.expression);
+	let spreadExp = transformExpression(state, property.expression);
+
+	const possiblyUndefined = canBeUndefined(state, state.getType(property.expression));
+	if (possiblyUndefined) {
+		spreadExp = state.pushToVarIfComplex(spreadExp);
+	}
+
 	const keyId = lua.tempId();
 	const valueId = lua.tempId();
-	state.prereq(
-		lua.create(lua.SyntaxKind.ForStatement, {
-			ids: lua.list.make(keyId, valueId),
-			expression: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.pairs,
-				args: lua.list.make(spreadExp),
-			}),
-			statements: lua.list.make(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: ptr.value,
-						index: keyId,
-					}),
-					right: valueId,
-				}),
-			),
+	let statement: lua.Statement = lua.create(lua.SyntaxKind.ForStatement, {
+		ids: lua.list.make(keyId, valueId),
+		expression: lua.create(lua.SyntaxKind.CallExpression, {
+			expression: lua.globals.pairs,
+			args: lua.list.make(spreadExp),
 		}),
-	);
+		statements: lua.list.make(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression: ptr.value,
+					index: keyId,
+				}),
+				right: valueId,
+			}),
+		),
+	});
+
+	if (possiblyUndefined) {
+		statement = lua.create(lua.SyntaxKind.IfStatement, {
+			condition: spreadExp,
+			statements: lua.list.make(statement),
+			elseBody: lua.list.make(),
+		});
+	}
+
+	state.prereq(statement);
 }
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {

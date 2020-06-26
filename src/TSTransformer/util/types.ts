@@ -128,14 +128,24 @@ export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
 }
 
+const isAssignableToUndefined = (simpleType: tsst.SimpleType) =>
+	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED);
+const isAssignableToFalse = (simpleType: tsst.SimpleType) => tsst.isAssignableToValue(simpleType, false);
+
+/**
+ * Uses ts-simple-type to check if a type is assignable to `undefined`
+ */
+export function canBeUndefined(state: TransformState, type: ts.Type) {
+	const simpleType = state.getSimpleType(type);
+	return isAssignableToUndefined(simpleType);
+}
+
 /**
  * Uses ts-simple-type to check if a type is assignable to `false` or `undefined`
  */
 export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
 	const simpleType = state.getSimpleType(type);
-	const isAssignableToFalse = tsst.isAssignableToValue(simpleType, false);
-	const isAssignableToUndefined = tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED);
-	return isAssignableToFalse || isAssignableToUndefined;
+	return isAssignableToFalse(simpleType) || isAssignableToUndefined(simpleType);
 }
 
 export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression) {

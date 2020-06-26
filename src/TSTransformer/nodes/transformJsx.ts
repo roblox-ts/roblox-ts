@@ -17,7 +17,7 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
-import { isArrayType, isMapType } from "TSTransformer/util/types";
+import { isArrayType, isMapType, canBeUndefined } from "TSTransformer/util/types";
 
 function Roact(...indices: Array<string>) {
 	return propertyAccessExpressionChain(lua.id("Roact"), indices);
@@ -70,10 +70,20 @@ function getAttributes(node: ts.JsxElement | ts.JsxSelfClosingElement) {
 	}
 }
 
-function createJsxAttributeLoop(attributesPtrValue: lua.AnyIdentifier, expression: lua.Expression) {
+function createJsxAttributeLoop(
+	state: TransformState,
+	attributesPtrValue: lua.AnyIdentifier,
+	expression: lua.Expression,
+	type: ts.Type,
+) {
+	const possiblyUndefined = canBeUndefined(state, type);
+	if (possiblyUndefined) {
+		expression = state.pushToVarIfComplex(expression);
+	}
+
 	const keyId = lua.tempId();
 	const valueId = lua.tempId();
-	return lua.create(lua.SyntaxKind.ForStatement, {
+	let statement: lua.Statement = lua.create(lua.SyntaxKind.ForStatement, {
 		ids: lua.list.make(keyId, valueId),
 		expression: lua.create(lua.SyntaxKind.CallExpression, {
 			expression: lua.globals.pairs,
@@ -89,6 +99,16 @@ function createJsxAttributeLoop(attributesPtrValue: lua.AnyIdentifier, expressio
 			}),
 		),
 	});
+
+	if (possiblyUndefined) {
+		statement = lua.create(lua.SyntaxKind.IfStatement, {
+			condition: expression,
+			statements: lua.list.make(statement),
+			elseBody: lua.list.make(),
+		});
+	}
+
+	return statement;
 }
 
 /** `children[lengthId + keyId] = valueId` */
@@ -327,10 +347,12 @@ function transformJsxAttributes(state: TransformState, attributes: ts.JsxAttribu
 		if (ts.isJsxAttribute(attribute)) {
 			transformJsxAttribute(state, attribute, attributesPtr);
 		} else {
-			// spread attribute
+			// spread attributes
 			disableMapInline(state, attributesPtr);
 			const expression = transformExpression(state, attribute.expression);
-			state.prereq(createJsxAttributeLoop(attributesPtr.value, expression));
+			state.prereq(
+				createJsxAttributeLoop(state, attributesPtr.value, expression, state.getType(attribute.expression)),
+			);
 		}
 	}
 }
@@ -390,6 +412,7 @@ function transformJsxChildren(
 				}
 
 				if (child.dotDotDotToken) {
+					// spread children
 					disableInline();
 					assert(lua.isAnyIdentifier(childrenPtr.value));
 					state.prereqList(prereqs);
