@@ -14,6 +14,7 @@ export function transformObjectBindingPattern(
 	parentId: lua.AnyIdentifier,
 ) {
 	validateNotAnyType(state, bindingPattern);
+	const accessType = state.getType(bindingPattern);
 
 	for (const element of bindingPattern.elements) {
 		if (element.dotDotDotToken) {
@@ -23,14 +24,14 @@ export function transformObjectBindingPattern(
 		const name = element.name;
 		const prop = element.propertyName;
 		if (ts.isIdentifier(name)) {
-			const value = objectAccessor(state, parentId, name, prop, name);
+			const value = objectAccessor(state, parentId, accessType, prop ?? name);
 			const [id, prereqs] = transformVariable(state, name, value);
 			state.prereqList(prereqs);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}
 		} else {
-			const value = objectAccessor(state, parentId, name, prop, name);
+			const value = objectAccessor(state, parentId, accessType, prop ?? name);
 			const id = state.pushToVar(value);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

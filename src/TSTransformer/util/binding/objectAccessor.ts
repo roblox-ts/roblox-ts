@@ -8,9 +8,8 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 export const objectAccessor = (
 	state: TransformState,
 	parentId: lua.AnyIdentifier,
-	node: ts.Node,
-	name: ts.Node = node,
-	alias: ts.Node = node,
+	accessType: ts.Type | ReadonlyArray<ts.Type>,
+	name: ts.Node,
 ): lua.Expression => {
 	if (ts.isIdentifier(name)) {
 		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
@@ -20,7 +19,7 @@ export const objectAccessor = (
 	} else if (ts.isComputedPropertyName(name)) {
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
-			index: addOneIfArrayType(state, state.getType(name), transformExpression(state, name.expression)),
+			index: addOneIfArrayType(state, accessType, transformExpression(state, name.expression)),
 		});
 	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
 		return lua.create(lua.SyntaxKind.ComputedIndexExpression, {

@@ -19,7 +19,7 @@ export function transformObjectBindingLiteral(
 	for (const property of bindingLiteral.properties) {
 		if (ts.isShorthandPropertyAssignment(property)) {
 			const name = property.name;
-			const value = objectAccessor(state, parentId, name, name, name);
+			const value = objectAccessor(state, parentId, accessType, name);
 			const id = transformWritableExpression(state, name, property.objectAssignmentInitializer !== undefined);
 			state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: id, right: value }));
 			assert(lua.isAnyIdentifier(id));
@@ -31,14 +31,14 @@ export function transformObjectBindingLiteral(
 			return;
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;
-			let init: ts.Expression | ts.ObjectLiteralElementLike = property.initializer;
+			let init = property.initializer;
 			let initializer: ts.Expression | undefined;
 			if (ts.isBinaryExpression(property.initializer)) {
 				initializer = skipDownwards(property.initializer.right);
 				init = skipDownwards(property.initializer.left);
 			}
 
-			const value = objectAccessor(state, parentId, name, name, name);
+			const value = objectAccessor(state, parentId, accessType, name);
 			if (ts.isIdentifier(init) || ts.isElementAccessExpression(init) || ts.isPropertyAccessExpression(init)) {
 				const id = transformWritableExpression(state, init, initializer !== undefined);
 				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: id, right: value }));
