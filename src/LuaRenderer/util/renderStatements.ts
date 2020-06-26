@@ -12,15 +12,16 @@ import { assert } from "Shared/util/assert";
 export function renderStatements(state: RenderState, statements: lua.List<lua.Statement>) {
 	let result = "";
 	let listNode = statements.head;
-	let canAddNewStatement = true;
+	let hasFinalStatent = false;
 	while (listNode !== undefined) {
-		assert(canAddNewStatement, "Cannot render statement after break or return!");
+		assert(!hasFinalStatent || lua.isComment(listNode.value), "Cannot render statement after break or return!!");
+		hasFinalStatent = hasFinalStatent || lua.isFinalStatement(listNode.value);
+
 		state.pushListNode(listNode);
-		const statement = listNode.value;
-		result += render(state, statement);
-		canAddNewStatement = !lua.isFinalStatement(statement);
-		listNode = listNode.next;
+		result += render(state, listNode.value);
 		state.popListNode();
+
+		listNode = listNode.next;
 	}
 	return result;
 }

@@ -126,6 +126,13 @@ function handleExports(
 	}
 }
 
+function getLastNonCommentStatement(listNode?: lua.ListNode<lua.Statement>) {
+	while (listNode && lua.isComment(listNode.value)) {
+		listNode = listNode.prev;
+	}
+	return listNode;
+}
+
 /**
  * Creates and returns a lua.list<> (lua AST).
  * @param state The current transform state.
@@ -142,7 +149,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	handleExports(state, node, symbol, statements);
 
 	// moduleScripts must `return nil` if they do not export any values
-	if (!statements.tail || !lua.isReturnStatement(statements.tail.value)) {
+	const lastStatement = getLastNonCommentStatement(statements.tail);
+	if (!lastStatement || !lua.isReturnStatement(lastStatement.value)) {
 		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
 		if (state.rojoConfig.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
 			lua.list.push(statements, lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
