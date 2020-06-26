@@ -6,12 +6,15 @@ import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transf
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformObjectBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ObjectBindingPattern,
 	parentId: lua.AnyIdentifier,
 ) {
+	validateNotAnyType(state, bindingPattern);
+
 	for (const element of bindingPattern.elements) {
 		if (element.dotDotDotToken) {
 			state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
