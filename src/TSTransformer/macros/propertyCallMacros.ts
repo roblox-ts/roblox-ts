@@ -124,7 +124,7 @@ function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): Pro
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: returnId,
-								right: returnValue ? valueId : loopId,
+								right: returnValue ? valueId : offset(loopId, -1),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
 						),
