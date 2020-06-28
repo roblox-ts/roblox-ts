@@ -16,7 +16,7 @@ function transformUnaryExpressionStatement(
 	state: TransformState,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
-	const writable = transformWritableExpression(state, node.operand, true);
+	const writable = transformWritableExpression(state, node.operand, false);
 	const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
 	return lua.create(lua.SyntaxKind.Assignment, {
 		left: writable,
