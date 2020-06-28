@@ -42,6 +42,7 @@ export function assignToMapPointer(
 					expression: ptr.value,
 					index: left,
 				}),
+				operator: "=",
 				right,
 			}),
 		);
@@ -69,6 +70,7 @@ export function assignToMixedTablePointer(
 					expression: ptr.value,
 					index: left,
 				}),
+				operator: "=",
 				right,
 			}),
 		);

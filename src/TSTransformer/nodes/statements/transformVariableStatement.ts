@@ -58,7 +58,13 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 			const exportAccess = state.getModuleIdPropertyAccess(symbol);
 			if (exportAccess) {
 				if (right) {
-					state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: exportAccess, right }));
+					state.prereq(
+						lua.create(lua.SyntaxKind.Assignment, {
+							left: exportAccess,
+							operator: "=",
+							right,
+						}),
+					);
 				}
 				return exportAccess;
 			}
@@ -69,7 +75,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		if (state.isHoisted.get(symbol) === true) {
 			// no need to do `x = nil` if the variable is already created
 			if (right) {
-				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left, right }));
+				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left, operator: "=", right }));
 			}
 		} else {
 			state.prereq(lua.create(lua.SyntaxKind.VariableDeclaration, { left, right }));

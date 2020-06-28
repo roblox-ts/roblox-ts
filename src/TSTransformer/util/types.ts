@@ -174,3 +174,7 @@ export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
 		return type.symbol;
 	}
 }
+
+export function isStringSimpleType(type: tsst.SimpleType) {
+	return type.kind === tsst.SimpleTypeKind.STRING || type.kind === tsst.SimpleTypeKind.STRING_LITERAL;
+}

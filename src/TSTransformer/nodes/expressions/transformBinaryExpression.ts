@@ -12,15 +12,20 @@ import {
 	transformWritableAssignmentWithType,
 	transformWritableExpression,
 } from "TSTransformer/nodes/transformWritable";
-import { createAssignmentExpression, createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
+import {
+	createAssignmentExpression,
+	createCompoundAssignmentExpression,
+	getSimpleAssignmentOperator,
+} from "TSTransformer/util/assignment";
 import { getSubType } from "TSTransformer/util/binding/getSubType";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isNumberType } from "TSTransformer/util/types";
+import { isLuaTupleType, isNumberType, isStringSimpleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { wrapToString } from "TSTransformer/util/wrapToString";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
@@ -77,6 +82,7 @@ function transformLuaTupleDestructure(
 	state.prereq(
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: writes,
+			operator: "=",
 			right: value,
 		}),
 	);
@@ -138,6 +144,7 @@ function createBinaryInstanceOf(state: TransformState, left: lua.Expression, rig
 								// break
 								lua.create(lua.SyntaxKind.Assignment, {
 									left: returnId,
+									operator: "=",
 									right: lua.bool(true),
 								}),
 								lua.create(lua.SyntaxKind.BreakStatement, {}),
@@ -158,6 +165,7 @@ function createBinaryInstanceOf(state: TransformState, left: lua.Expression, rig
 										// objId = metatableId.__index
 										lua.create(lua.SyntaxKind.Assignment, {
 											left: objId,
+											operator: "=",
 											right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 												expression: metatableId,
 												name: "__index",
@@ -229,16 +237,37 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			return parentId;
 		}
 
+		const writableType = state.getType(node.left);
+		const valueType = state.getType(node.right);
+		const rightSimpleType = state.getSimpleType(valueType);
+		const operator = getSimpleAssignmentOperator(
+			state.getSimpleType(writableType),
+			operatorKind as ts.AssignmentOperator,
+			rightSimpleType,
+		);
 		const { writable, readable, value } = transformWritableAssignmentWithType(
 			state,
 			node.left,
 			node.right,
-			ts.isCompoundAssignment(operatorKind),
+			operator === undefined,
 		);
-		if (ts.isCompoundAssignment(operatorKind)) {
-			return createCompoundAssignmentExpression(state, writable, readable, operatorKind, value);
+		if (operator !== undefined) {
+			return createAssignmentExpression(
+				state,
+				writable,
+				operator,
+				operator === "..=" && !isStringSimpleType(rightSimpleType) ? wrapToString(value) : value,
+			);
 		} else {
-			return createAssignmentExpression(state, writable.node, value.node);
+			return createCompoundAssignmentExpression(
+				state,
+				writable,
+				writableType,
+				readable,
+				operatorKind,
+				value,
+				valueType,
+			);
 		}
 	}
 
@@ -264,14 +293,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	return createBinaryFromOperator(
 		state,
-		{
-			node: left,
-			type: state.getSimpleTypeFromNode(node.left),
-		},
+		left,
+		state.getType(node.left),
 		operatorKind,
-		{
-			node: right,
-			type: state.getSimpleTypeFromNode(node.right),
-		},
+		right,
+		state.getType(node.right),
 	);
 }

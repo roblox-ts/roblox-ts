@@ -11,6 +11,7 @@ export function transformInitializer(state: TransformState, id: lua.WritableExpr
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: id,
+					operator: "=",
 					right: transformExpression(state, initializer),
 				}),
 			);

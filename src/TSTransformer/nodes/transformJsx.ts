@@ -95,6 +95,7 @@ function createJsxAttributeLoop(
 					expression: attributesPtrValue,
 					index: keyId,
 				}),
+				operator: "=",
 				right: valueId,
 			}),
 		),
@@ -123,6 +124,7 @@ function createJsxAddNumericChild(
 			expression: childrenPtrValue,
 			index: lua.binary(lengthId, "+", key),
 		}),
+		operator: "=",
 		right: value,
 	});
 }
@@ -138,6 +140,7 @@ function createJsxAddKeyChild(
 			expression: childrenPtrValue,
 			index: keyId,
 		}),
+		operator: "=",
 		right: valueId,
 	});
 }
@@ -315,6 +318,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 								index: keyId,
 							}),
 						}),
+						operator: "=",
 						right: valueId,
 					}),
 				),
@@ -368,13 +372,22 @@ function transformJsxChildren(
 	let amtChildrenSinceUpdate = 0;
 
 	function updateLengthId() {
-		state.prereq(
-			lua.create(lengthInitialized ? lua.SyntaxKind.Assignment : lua.SyntaxKind.VariableDeclaration, {
-				left: lengthId,
-				right: lua.unary("#", childrenPtr.value),
-			}),
-		);
-		if (!lengthInitialized) {
+		const right = lua.unary("#", childrenPtr.value);
+		if (lengthInitialized) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: lengthId,
+					operator: "=",
+					right,
+				}),
+			);
+		} else {
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: lengthId,
+					right,
+				}),
+			);
 			lengthInitialized = true;
 		}
 		amtChildrenSinceUpdate = 0;

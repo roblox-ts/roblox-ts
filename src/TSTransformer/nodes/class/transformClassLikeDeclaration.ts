@@ -47,17 +47,30 @@ function createRoactBoilerplate(
 
 	const classNameStr = lua.isIdentifier(className) ? className.name : "Anonymous";
 
-	lua.list.push(
-		statements,
-		lua.create(isClassExpression && node.name ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
-			left: isClassExpression && node.name ? transformIdentifierDefined(state, node.name) : className,
-			right: lua.create(lua.SyntaxKind.MethodCallExpression, {
-				expression: convertToIndexableExpression(extendsExp),
-				name: "extend",
-				args: lua.list.make(lua.string(classNameStr)),
+	const right = lua.create(lua.SyntaxKind.MethodCallExpression, {
+		expression: convertToIndexableExpression(extendsExp),
+		name: "extend",
+		args: lua.list.make(lua.string(classNameStr)),
+	});
+
+	if (isClassExpression && node.name) {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: transformIdentifierDefined(state, node.name),
+				right,
 			}),
-		}),
-	);
+		);
+	} else {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: className,
+				operator: "=",
+				right,
+			}),
+		);
+	}
 
 	return statements;
 }
@@ -134,16 +147,29 @@ function createBoilerplate(
 		);
 	}
 
-	lua.list.push(
-		statements,
-		lua.create(isClassExpression && node.name ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
-			left: isClassExpression && node.name ? transformIdentifierDefined(state, node.name) : className,
-			right: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.setmetatable,
-				args: lua.list.make(lua.map(), lua.create(lua.SyntaxKind.Map, { fields: metatableFields })),
+	const metatable = lua.create(lua.SyntaxKind.CallExpression, {
+		expression: lua.globals.setmetatable,
+		args: lua.list.make(lua.map(), lua.create(lua.SyntaxKind.Map, { fields: metatableFields })),
+	});
+
+	if (isClassExpression && node.name) {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: transformIdentifierDefined(state, node.name),
+				right: metatable,
 			}),
-		}),
-	);
+		);
+	} else {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: className,
+				operator: "=",
+				right: metatable,
+			}),
+		);
+	}
 
 	//	className.__index = className;
 	lua.list.push(
@@ -153,6 +179,7 @@ function createBoilerplate(
 				name: "__index",
 				expression: className,
 			}),
+			operator: "=",
 			right: className,
 		}),
 	);
@@ -328,6 +355,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			statementsInner,
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: returnVar,
+				operator: "=",
 				right: internalName,
 			}),
 		);

@@ -4,7 +4,6 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -37,18 +36,7 @@ export function transformWritableExpression(
 	}
 }
 
-export function transformWritableExpressionWithType(
-	state: TransformState,
-	node: ts.Expression,
-	multipleUse: boolean,
-): NodeWithType<lua.WritableExpression> {
-	return {
-		node: transformWritableExpression(state, node, multipleUse),
-		type: state.getSimpleTypeFromNode(node),
-	};
-}
-
-export function transformWritableAssignment(
+export function transformWritableAssignmentWithType(
 	state: TransformState,
 	writeNode: ts.Expression,
 	valueNode: ts.Expression,
@@ -59,27 +47,4 @@ export function transformWritableAssignment(
 	const readable = lua.list.isEmpty(prereqs) ? writable : state.pushToVar(writable);
 	state.prereqList(prereqs);
 	return { writable, readable, value };
-}
-
-export function transformWritableAssignmentWithType(
-	state: TransformState,
-	writeNode: ts.Expression,
-	valueNode: ts.Expression,
-	multipleUse: boolean,
-) {
-	const { writable, readable, value } = transformWritableAssignment(state, writeNode, valueNode, multipleUse);
-	return {
-		writable: {
-			node: writable,
-			type: state.getSimpleTypeFromNode(writeNode),
-		},
-		readable: {
-			node: readable,
-			type: state.getSimpleTypeFromNode(writeNode),
-		},
-		value: {
-			node: value,
-			type: state.getSimpleTypeFromNode(valueNode),
-		},
-	};
 }

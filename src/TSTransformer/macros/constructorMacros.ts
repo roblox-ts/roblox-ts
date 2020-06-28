@@ -54,6 +54,7 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 							expression: id,
 							index: valueId,
 						}),
+						operator: "=",
 						right: lua.bool(true),
 					}),
 				),
@@ -96,6 +97,7 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 								index: lua.number(1),
 							}),
 						}),
+						operator: "=",
 						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: valueId,
 							index: lua.number(2),

@@ -62,12 +62,22 @@ function buildLogicalChainPrereqs(
 ) {
 	const expInfo = chain[index];
 	state.prereqList(expInfo.statements);
-	state.prereq(
-		lua.create(index === 0 ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
-			left: conditionId,
-			right: expInfo.expression,
-		}),
-	);
+	if (index === 0) {
+		state.prereq(
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: conditionId,
+				right: expInfo.expression,
+			}),
+		);
+	} else {
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: conditionId,
+				operator: "=",
+				right: expInfo.expression,
+			}),
+		);
+	}
 	if (index + 1 < chain.length) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.IfStatement, {

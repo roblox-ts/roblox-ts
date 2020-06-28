@@ -35,13 +35,24 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 	const containerId = lua.tempId();
 	state.setModuleIdBySymbol(symbol, containerId);
 
-	lua.list.push(
-		statements,
-		lua.create(state.isHoisted.get(symbol) ? lua.SyntaxKind.Assignment : lua.SyntaxKind.VariableDeclaration, {
-			left: nameExp,
-			right: lua.map(),
-		}),
-	);
+	if (state.isHoisted.get(symbol)) {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: nameExp,
+				operator: "=",
+				right: lua.map(),
+			}),
+		);
+	} else {
+		lua.list.push(
+			statements,
+			lua.create(lua.SyntaxKind.VariableDeclaration, {
+				left: nameExp,
+				right: lua.map(),
+			}),
+		);
+	}
 
 	const moduleExports = state.getModuleExports(symbol);
 	if (moduleExports.length > 0) {
@@ -79,6 +90,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 					expression: containerId,
 					name: body.name.text,
 				}),
+				operator: "=",
 				right: transformIdentifierDefined(state, body.name),
 			}),
 		);

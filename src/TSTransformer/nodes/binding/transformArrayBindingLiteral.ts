@@ -39,7 +39,13 @@ export function transformArrayBindingLiteral(
 				ts.isPropertyAccessExpression(element)
 			) {
 				const id = transformWritableExpression(state, element, initializer !== undefined);
-				state.prereq(lua.create(lua.SyntaxKind.Assignment, { left: id, right: value }));
+				state.prereq(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: id,
+						operator: "=",
+						right: value,
+					}),
+				);
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
