@@ -74,16 +74,16 @@ export function transformClassConstructor(
 			const name = member.name;
 			if (ts.isPrivateIdentifier(name)) {
 				state.addDiagnostic(diagnostics.noPrivateIdentifier(node));
-				return lua.list.make<lua.Statement>();
+				continue;
+			}
+
+			const initializer = member.initializer;
+			if (!initializer) {
+				continue;
 			}
 
 			const [index, indexPrereqs] = state.capture(() => transformObjectKey(state, name));
 			lua.list.pushList(statements, indexPrereqs);
-
-			const initializer = member.initializer;
-			if (!initializer) {
-				return lua.list.make<lua.Statement>();
-			}
 
 			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 			lua.list.pushList(statements, rightPrereqs);
