@@ -16,3 +16,5 @@ export type BinaryOperator =
 	| "or";
 
 export type UnaryOperator = "-" | "not" | "#";
+
+export type AssignmentOperator = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "^=" | "..=";

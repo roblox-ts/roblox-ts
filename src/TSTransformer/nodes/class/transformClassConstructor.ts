@@ -61,6 +61,7 @@ export function transformClassConstructor(
 						expression: lua.globals.self,
 						name: paramId.name,
 					}),
+					operator: "=",
 					right: paramId,
 				}),
 			);
@@ -95,6 +96,7 @@ export function transformClassConstructor(
 						expression: ptr.value,
 						index,
 					}),
+					operator: "=",
 					right,
 				}),
 			);

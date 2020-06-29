@@ -49,6 +49,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 					expression: ptr.value,
 					index: keyId,
 				}),
+				operator: "=",
 				right: valueId,
 			}),
 		),

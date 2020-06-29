@@ -25,6 +25,7 @@ function transformCaseClauseExpression(
 				prereqStatements,
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: fallThroughFlagId,
+					operator: "=",
 					right: expression,
 				}),
 			);
@@ -78,6 +79,7 @@ function transformCaseClause(
 			statements,
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: fallThroughFlagId,
+				operator: "=",
 				right: lua.bool(true),
 			}),
 		);

@@ -93,6 +93,7 @@ function handleExports(
 						expression: lua.globals.exports,
 						name: exportKey,
 					}),
+					operator: "=",
 					right: exportId,
 				}),
 			);

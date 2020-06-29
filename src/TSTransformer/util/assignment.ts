@@ -1,25 +1,50 @@
 import ts from "byots";
 import * as lua from "LuaAST";
+import tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
-import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
+import { isStringSimpleType } from "TSTransformer/util/types";
 
-export function createAssignmentStatement(writable: lua.WritableExpression, value: lua.Expression) {
-	return lua.create(lua.SyntaxKind.Assignment, {
-		left: writable,
-		right: value,
-	});
+const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, lua.AssignmentOperator>([
+	// compound assignment
+	[ts.SyntaxKind.MinusEqualsToken, "-="],
+	[ts.SyntaxKind.AsteriskEqualsToken, "*="],
+	[ts.SyntaxKind.SlashEqualsToken, "/="],
+	[ts.SyntaxKind.AsteriskAsteriskEqualsToken, "^="],
+	[ts.SyntaxKind.PercentEqualsToken, "%="],
+
+	// unary
+	[ts.SyntaxKind.PlusPlusToken, "+="],
+	[ts.SyntaxKind.MinusMinusToken, "-="],
+
+	// normal assignment
+	[ts.SyntaxKind.EqualsToken, "="],
+]);
+
+export function getSimpleAssignmentOperator(
+	leftType: tsst.SimpleType,
+	operatorKind: ts.AssignmentOperator,
+	rightType: tsst.SimpleType,
+) {
+	// plus
+	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
+		return isStringSimpleType(leftType) || isStringSimpleType(rightType) ? "..=" : "+=";
+	}
+
+	return COMPOUND_OPERATOR_MAP.get(operatorKind);
 }
 
 export function createAssignmentExpression(
 	state: TransformState,
 	readable: lua.WritableExpression,
+	operator: lua.AssignmentOperator,
 	value: lua.Expression,
 ) {
 	if (lua.isAnyIdentifier(readable)) {
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: readable,
+				operator,
 				right: value,
 			}),
 		);
@@ -29,6 +54,7 @@ export function createAssignmentExpression(
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: readable,
+				operator,
 				right: id,
 			}),
 		);
@@ -36,7 +62,7 @@ export function createAssignmentExpression(
 	}
 }
 
-function wrapRightIfDoubleBinary(expression: lua.Expression) {
+function wrapRightIfBinary(expression: lua.Expression) {
 	if (lua.isBinaryExpression(expression) && lua.isBinaryExpression(expression.right)) {
 		expression.right = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
 			expression: expression.right,
@@ -47,27 +73,33 @@ function wrapRightIfDoubleBinary(expression: lua.Expression) {
 
 export function createCompoundAssignmentStatement(
 	state: TransformState,
-	writable: NodeWithType<lua.WritableExpression>,
-	readable: NodeWithType<lua.WritableExpression>,
+	writable: lua.WritableExpression,
+	writableType: ts.Type,
+	readable: lua.WritableExpression,
 	operator: ts.SyntaxKind,
-	value: NodeWithType<lua.Expression>,
+	value: lua.Expression,
+	valueType: ts.Type,
 ) {
-	return createAssignmentStatement(
-		writable.node,
-		wrapRightIfDoubleBinary(createBinaryFromOperator(state, readable, operator, value)),
-	);
+	return lua.create(lua.SyntaxKind.Assignment, {
+		left: writable,
+		operator: "=",
+		right: wrapRightIfBinary(createBinaryFromOperator(state, readable, writableType, operator, value, valueType)),
+	});
 }
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
-	writable: NodeWithType<lua.WritableExpression>,
-	readable: NodeWithType<lua.WritableExpression>,
+	writable: lua.WritableExpression,
+	writableType: ts.Type,
+	readable: lua.WritableExpression,
 	operator: ts.SyntaxKind,
-	value: NodeWithType<lua.Expression>,
+	value: lua.Expression,
+	valueType: ts.Type,
 ) {
 	return createAssignmentExpression(
 		state,
-		writable.node,
-		wrapRightIfDoubleBinary(createBinaryFromOperator(state, readable, operator, value)),
+		writable,
+		"=",
+		wrapRightIfBinary(createBinaryFromOperator(state, readable, writableType, operator, value, valueType)),
 	);
 }

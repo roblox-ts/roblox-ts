@@ -28,21 +28,32 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
-		return lua.list.make(
-			lua.create(localize ? lua.SyntaxKind.VariableDeclaration : lua.SyntaxKind.Assignment, {
-				left: name,
-				right: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: state.TS("async"),
-					args: lua.list.make(
-						lua.create(lua.SyntaxKind.FunctionExpression, {
-							hasDotDotDot,
-							parameters,
-							statements,
-						}),
-					),
+		const right = lua.create(lua.SyntaxKind.CallExpression, {
+			expression: state.TS("async"),
+			args: lua.list.make(
+				lua.create(lua.SyntaxKind.FunctionExpression, {
+					hasDotDotDot,
+					parameters,
+					statements,
 				}),
-			}),
-		);
+			),
+		});
+		if (localize) {
+			return lua.list.make(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: name,
+					right,
+				}),
+			);
+		} else {
+			return lua.list.make(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: name,
+					operator: "=",
+					right,
+				}),
+			);
+		}
 	} else {
 		return lua.list.make(
 			lua.create(lua.SyntaxKind.FunctionDeclaration, { localize, name, statements, parameters, hasDotDotDot }),

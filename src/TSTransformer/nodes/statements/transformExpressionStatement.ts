@@ -4,45 +4,69 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
 	transformWritableAssignmentWithType,
-	transformWritableExpressionWithType,
+	transformWritableExpression,
 } from "TSTransformer/nodes/transformWritable";
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
-import { createAssignmentStatement, createCompoundAssignmentStatement } from "TSTransformer/util/assignment";
-import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
+import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import { isStringSimpleType } from "TSTransformer/util/types";
+import { wrapToString } from "TSTransformer/util/wrapToString";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
-	const writable = transformWritableExpressionWithType(state, node.operand, true);
-	return createCompoundAssignmentStatement(
-		state,
-		writable,
-		writable,
-		node.operator,
-		createNodeWithType(lua.number(1)),
-	);
+	const writable = transformWritableExpression(state, node.operand, false);
+	const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+	return lua.create(lua.SyntaxKind.Assignment, {
+		left: writable,
+		operator,
+		right: lua.number(1),
+	});
 }
 
 export function transformExpressionStatementInner(state: TransformState, expression: ts.Expression) {
 	if (ts.isBinaryExpression(expression)) {
-		const operator = expression.operatorToken.kind;
+		const operatorKind = expression.operatorToken.kind;
 		if (
-			ts.isAssignmentOperator(operator) &&
+			ts.isAssignmentOperator(operatorKind) &&
 			!ts.isArrayLiteralExpression(expression.left) &&
 			!ts.isObjectLiteralExpression(expression.left)
 		) {
+			const writableType = state.getType(expression.left);
+			const valueType = state.getType(expression.right);
+			const rightSimpleType = state.getSimpleType(valueType);
+			const operator = getSimpleAssignmentOperator(
+				state.getSimpleType(writableType),
+				operatorKind as ts.AssignmentOperator,
+				rightSimpleType,
+			);
 			const { writable, readable, value } = transformWritableAssignmentWithType(
 				state,
 				expression.left,
 				expression.right,
-				ts.isCompoundAssignment(operator),
+				operator === undefined,
 			);
-			if (ts.isCompoundAssignment(operator)) {
-				return lua.list.make(createCompoundAssignmentStatement(state, writable, readable, operator, value));
+			if (operator !== undefined) {
+				return lua.list.make(
+					lua.create(lua.SyntaxKind.Assignment, {
+						left: writable,
+						operator,
+						right: operator === "..=" && !isStringSimpleType(rightSimpleType) ? wrapToString(value) : value,
+					}),
+				);
 			} else {
-				return lua.list.make(createAssignmentStatement(writable.node, value.node));
+				return lua.list.make(
+					createCompoundAssignmentStatement(
+						state,
+						writable,
+						writableType,
+						readable,
+						operatorKind,
+						value,
+						valueType,
+					),
+				);
 			}
 		}
 	} else if (

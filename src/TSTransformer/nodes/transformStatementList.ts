@@ -70,6 +70,7 @@ export function transformStatementList(
 								expression: containerId,
 								name: exportName,
 							}),
+							operator: "=",
 							right: lua.id(exportName),
 						}),
 					);

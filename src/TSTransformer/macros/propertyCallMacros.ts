@@ -124,6 +124,7 @@ function makeFindMethod(initialValue: lua.Expression, returnValue: boolean): Pro
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: returnId,
+								operator: "=",
 								right: returnValue ? valueId : offset(loopId, -1),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
@@ -197,6 +198,7 @@ function createReduceMethod(
 			statements: lua.list.make(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: resultId,
+					operator: "=",
 					right: lua.create(lua.SyntaxKind.CallExpression, {
 						expression: callbackId,
 						args: lua.list.make(
@@ -245,6 +247,7 @@ function makeCopyMethod(iterator: lua.Identifier, makeExpression: PropertyCallMa
 							expression: arrayCopyId,
 							index: keyId,
 						}),
+						operator: "=",
 						right: valueId,
 					}),
 				),
@@ -309,6 +312,7 @@ function makeEveryOrSomeMethod(
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: resultId,
+								operator: "=",
 								right: lua.bool(!initialState),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
@@ -393,10 +397,12 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 								expression: resultId,
 								index: sizeId,
 							}),
+							operator: "=",
 							right: valueId,
 						}),
 						lua.create(lua.SyntaxKind.Assignment, {
 							left: sizeId,
+							operator: "=",
 							right: offset(sizeId, 1),
 						}),
 					),
@@ -469,6 +475,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							expression: resultId,
 							index: sizeId,
 						}),
+						operator: "=",
 						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: convertToIndexableExpression(expression),
 							index: iteratorId,
@@ -476,6 +483,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					}),
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: sizeId,
+						operator: "=",
 						right: offset(sizeId, 1),
 					}),
 				),
@@ -513,6 +521,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: resultId,
+								operator: "=",
 								right: lua.bool(true),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
@@ -577,6 +586,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make<lua.Statement>(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: result,
+								operator: "=",
 								right: offset(iterator, -1),
 							}),
 							lua.create(lua.SyntaxKind.BreakStatement, {}),
@@ -609,6 +619,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							expression: convertToIndexableExpression(valuesId),
 							index: keyId,
 						}),
+						operator: "=",
 						right: lua.array([offset(keyId, -1), valueId]),
 					}),
 				),
@@ -663,6 +674,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							expression: newValueId,
 							index: keyId,
 						}),
+						operator: "=",
 						right: lua.create(lua.SyntaxKind.CallExpression, {
 							expression: callbackId,
 							args: lua.list.make(valueId, offset(keyId, -1), expression),
@@ -701,6 +713,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: lengthId,
+								operator: "=",
 								right: lua.binary(lengthId, "+", lua.number(1)),
 							}),
 							lua.create(lua.SyntaxKind.Assignment, {
@@ -708,6 +721,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 									expression: newValueId,
 									index: lengthId,
 								}),
+								operator: "=",
 								right: resultId,
 							}),
 						),
@@ -738,6 +752,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: lengthId,
+								operator: "=",
 								right: indexId1,
 							}),
 						),
@@ -771,6 +786,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: resultLengthId,
+								operator: "=",
 								right: lua.binary(resultLengthId, "+", lua.number(1)),
 							}),
 							lua.create(lua.SyntaxKind.Assignment, {
@@ -778,6 +794,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 									expression: resultId,
 									index: resultLengthId,
 								}),
+								operator: "=",
 								right: valueId,
 							}),
 						),
@@ -815,6 +832,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: lua.list.make(
 							lua.create(lua.SyntaxKind.Assignment, {
 								left: lengthId,
+								operator: "=",
 								right: lua.binary(lengthId, "+", lua.number(1)),
 							}),
 							lua.create(lua.SyntaxKind.Assignment, {
@@ -822,6 +840,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 									expression: newValueId,
 									index: lengthId,
 								}),
+								operator: "=",
 								right: valueId,
 							}),
 						),
@@ -862,6 +881,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 							expression: resultId,
 							index: idxId,
 						}),
+						operator: "=",
 						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 							expression: convertToIndexableExpression(expression),
 							index: lua.binary(lengthId, "+", lua.binary(lua.number(1), "-", idxId)),
@@ -907,6 +927,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						expression: convertToIndexableExpression(expression),
 						index: lua.binary(sizeExp, "+", lua.number(i + 1)),
 					}),
+					operator: "=",
 					right: args[i],
 				}),
 			);
@@ -938,6 +959,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: sizeExp,
 				}),
+				operator: "=",
 				right: lua.nil(),
 			}),
 		);
@@ -1010,6 +1032,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: offset(arg, 1),
 				}),
+				operator: "=",
 				right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
 					expression: convertToIndexableExpression(expression),
 					index: lengthId,
@@ -1023,6 +1046,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: lengthId,
 				}),
+				operator: "=",
 				right: lua.nil(),
 			}),
 		);
@@ -1081,6 +1105,7 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 				statements: lua.list.make(
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: sizeId,
+						operator: "=",
 						right: lua.binary(sizeId, "+", lua.number(1)),
 					}),
 				),
@@ -1121,6 +1146,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: transformExpression(state, node.arguments[0]),
 				}),
+				operator: "=",
 				right: lua.nil(),
 			}),
 		);
@@ -1144,6 +1170,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 							expression: convertToIndexableExpression(expression),
 							index: keyId,
 						}),
+						operator: "=",
 						right: lua.nil(),
 					}),
 				),
@@ -1199,6 +1226,7 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: transformExpression(state, node.arguments[0]),
 				}),
+				operator: "=",
 				right: lua.bool(true),
 			}),
 		);
@@ -1270,6 +1298,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 					expression: convertToIndexableExpression(expression),
 					index: keyExp,
 				}),
+				operator: "=",
 				right: valueExp,
 			}),
 		);
@@ -1306,6 +1335,7 @@ function createKeyValuesEntriesMethod(
 			statements: lua.list.make(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: iterId,
+					operator: "=",
 					right: lua.binary(iterId, "+", lua.number(1)),
 				}),
 				lua.create(lua.SyntaxKind.Assignment, {
@@ -1313,6 +1343,7 @@ function createKeyValuesEntriesMethod(
 						expression: convertToIndexableExpression(valuesId),
 						index: iterId,
 					}),
+					operator: "=",
 					right,
 				}),
 			),

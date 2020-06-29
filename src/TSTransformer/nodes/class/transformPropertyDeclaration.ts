@@ -30,6 +30,7 @@ export function transformPropertyDeclaration(
 				expression: ptr.value,
 				index: transformObjectKey(state, node.name),
 			}),
+			operator: "=",
 			right: transformExpression(state, node.initializer),
 		}),
 	);

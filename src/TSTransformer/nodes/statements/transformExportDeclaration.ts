@@ -72,6 +72,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 								expression: moduleId,
 								name: element.name.text,
 							}),
+							operator: "=",
 							right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
 								expression: importExp,
 								name: element.name.text,
@@ -89,6 +90,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 						expression: moduleId,
 						name: exportClause.name.text,
 					}),
+					operator: "=",
 					right: importExp,
 				}),
 			);
@@ -111,6 +113,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 							expression: moduleId,
 							index: keyId,
 						}),
+						operator: "=",
 						right: valueId,
 					}),
 				),

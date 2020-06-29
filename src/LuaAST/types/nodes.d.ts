@@ -118,6 +118,7 @@ export interface MixedTable extends lua.Expression<lua.SyntaxKind.MixedTable> {
 // statements
 export interface Assignment extends lua.Statement<lua.SyntaxKind.Assignment> {
 	left: lua.WritableExpression | lua.List<lua.WritableExpression>;
+	operator: lua.AssignmentOperator;
 	right: lua.Expression;
 }
 

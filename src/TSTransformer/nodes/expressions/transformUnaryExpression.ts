@@ -3,12 +3,7 @@ import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import {
-	transformWritableExpression,
-	transformWritableExpressionWithType,
-} from "TSTransformer/nodes/transformWritable";
-import { createCompoundAssignmentExpression } from "TSTransformer/util/assignment";
-import { createNodeWithType } from "TSTransformer/util/createNodeWithType";
+import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
@@ -25,13 +20,13 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 		}),
 	);
 
-	const readable = lua.isAnyIdentifier(writable) ? writable : origValue;
-	const operator: lua.BinaryOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+" : "-";
+	const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
 
 	state.prereq(
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: writable,
-			right: lua.binary(readable, operator, lua.number(1)),
+			operator,
+			right: lua.number(1),
 		}),
 	);
 
@@ -42,14 +37,16 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 	validateNotAnyType(state, node.operand);
 
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
-		const writable = transformWritableExpressionWithType(state, node.operand, true);
-		return createCompoundAssignmentExpression(
-			state,
-			writable,
-			writable,
-			node.operator,
-			createNodeWithType(lua.number(1)),
+		const writable = transformWritableExpression(state, node.operand, true);
+		const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+		state.prereq(
+			lua.create(lua.SyntaxKind.Assignment, {
+				left: writable,
+				operator,
+				right: lua.number(1),
+			}),
 		);
+		return writable;
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		return lua.unary("-", transformExpression(state, node.operand));
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {

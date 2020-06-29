@@ -1,9 +1,9 @@
 import ts from "byots";
 import * as lua from "LuaAST";
 import { assert } from "Shared/util/assert";
-import * as tsst from "ts-simple-type";
-import { NodeWithType } from "TSTransformer/types/NodeWithType";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { isStringSimpleType } from "TSTransformer/util/types";
+import { wrapToString } from "TSTransformer/util/wrapToString";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	// comparison
@@ -20,17 +20,6 @@ const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
 	[ts.SyntaxKind.SlashToken, "/"],
 	[ts.SyntaxKind.AsteriskAsteriskToken, "^"],
 	[ts.SyntaxKind.PercentToken, "%"],
-
-	// compound assignment
-	[ts.SyntaxKind.MinusEqualsToken, "-"],
-	[ts.SyntaxKind.AsteriskEqualsToken, "*"],
-	[ts.SyntaxKind.SlashEqualsToken, "/"],
-	[ts.SyntaxKind.AsteriskAsteriskEqualsToken, "^"],
-	[ts.SyntaxKind.PercentEqualsToken, "%"],
-
-	// unary
-	[ts.SyntaxKind.PlusPlusToken, "+"],
-	[ts.SyntaxKind.MinusMinusToken, "-"],
 ]);
 
 const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
@@ -49,46 +38,39 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
-function isStringSimpleType(type: tsst.SimpleType) {
-	return type.kind === tsst.SimpleTypeKind.STRING || type.kind === tsst.SimpleTypeKind.STRING_LITERAL;
-}
-
-function createToString(expression: lua.Expression) {
-	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.globals.tostring,
-		args: lua.list.make(expression),
-	});
-}
-
-function createBinaryAdd(left: NodeWithType<lua.Expression>, right: NodeWithType<lua.Expression>) {
-	const leftIsString = isStringSimpleType(left.type);
-	const rightIsString = isStringSimpleType(right.type);
+function createBinaryAdd(
+	state: TransformState,
+	left: lua.Expression,
+	leftType: ts.Type,
+	right: lua.Expression,
+	rightType: ts.Type,
+) {
+	const leftIsString = isStringSimpleType(state.getSimpleType(leftType));
+	const rightIsString = isStringSimpleType(state.getSimpleType(rightType));
 	if (leftIsString || rightIsString) {
-		return lua.binary(
-			leftIsString ? left.node : createToString(left.node),
-			"..",
-			rightIsString ? right.node : createToString(right.node),
-		);
+		return lua.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
 	} else {
-		return lua.binary(left.node, "+", right.node);
+		return lua.binary(left, "+", right);
 	}
 }
 
 export function createBinaryFromOperator(
 	state: TransformState,
-	left: NodeWithType<lua.Expression>,
+	left: lua.Expression,
+	leftType: ts.Type,
 	operatorKind: ts.SyntaxKind,
-	right: NodeWithType<lua.Expression>,
+	right: lua.Expression,
+	rightType: ts.Type,
 ): lua.Expression {
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
-		return lua.binary(left.node, operator, right.node);
+		return lua.binary(left, operator, right);
 	}
 
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return createBinaryAdd(left, right);
+		return createBinaryAdd(state, left, leftType, right, rightType);
 	}
 
 	// bitwise
@@ -99,7 +81,7 @@ export function createBinaryFromOperator(
 				expression: lua.globals.bit32,
 				name: bit32Name,
 			}),
-			args: lua.list.make(left.node, right.node),
+			args: lua.list.make(left, right),
 		});
 	}
 
@@ -109,9 +91,9 @@ export function createBinaryFromOperator(
 	) {
 		return lua.create(lua.SyntaxKind.CallExpression, {
 			expression: state.TS("bit_lrsh"),
-			args: lua.list.make(left.node, right.node),
+			args: lua.list.make(left, right),
 		});
 	}
 
-	assert(false, `Unrecognized operatorToken: ${ts.SyntaxKind[operatorKind]}`);
+	assert(false, `Unrecognized operator: ${ts.SyntaxKind[operatorKind]}`);
 }

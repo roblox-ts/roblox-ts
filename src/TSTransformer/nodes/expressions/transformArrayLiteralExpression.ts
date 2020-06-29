@@ -20,13 +20,22 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	let amtElementsSinceUpdate = 0;
 
 	function updateLengthId() {
-		state.prereq(
-			lua.create(lengthInitialized ? lua.SyntaxKind.Assignment : lua.SyntaxKind.VariableDeclaration, {
-				left: lengthId,
-				right: lua.unary("#", ptr.value),
-			}),
-		);
-		if (!lengthInitialized) {
+		const right = lua.unary("#", ptr.value);
+		if (lengthInitialized) {
+			state.prereq(
+				lua.create(lua.SyntaxKind.Assignment, {
+					left: lengthId,
+					operator: "=",
+					right,
+				}),
+			);
+		} else {
+			state.prereq(
+				lua.create(lua.SyntaxKind.VariableDeclaration, {
+					left: lengthId,
+					right,
+				}),
+			);
 			lengthInitialized = true;
 		}
 		amtElementsSinceUpdate = 0;
@@ -57,6 +66,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 								expression: ptr.value,
 								index: lua.binary(lengthId, "+", keyId),
 							}),
+							operator: "=",
 							right: valueId,
 						}),
 					),
@@ -81,6 +91,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 							expression: ptr.value,
 							index: lua.binary(lengthId, "+", lua.number(amtElementsSinceUpdate + 1)),
 						}),
+						operator: "=",
 						right: expression,
 					}),
 				);

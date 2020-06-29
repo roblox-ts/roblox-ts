@@ -36,6 +36,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		whenTruePrereqs,
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: tempId,
+			operator: "=",
 			right: whenTrue,
 		}),
 	);
@@ -43,6 +44,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		whenFalsePrereqs,
 		lua.create(lua.SyntaxKind.Assignment, {
 			left: tempId,
+			operator: "=",
 			right: whenFalse,
 		}),
 	);

@@ -180,6 +180,7 @@ function createOrSetTempId(
 			state.prereq(
 				lua.create(lua.SyntaxKind.Assignment, {
 					left: tempId,
+					operator: "=",
 					right: expression,
 				}),
 			);
@@ -278,6 +279,7 @@ function transformOptionalChainInner(
 					ifStatements,
 					lua.create(lua.SyntaxKind.Assignment, {
 						left: tempId,
+						operator: "=",
 						right: newValue,
 					}),
 				);

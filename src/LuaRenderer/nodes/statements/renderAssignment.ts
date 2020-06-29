@@ -6,5 +6,5 @@ export function renderAssignment(state: RenderState, node: lua.Assignment) {
 		? lua.list.mapToArray(node.left, id => render(state, id)).join(", ")
 		: render(state, node.left);
 	const rightStr = render(state, node.right);
-	return state.line(`${leftStr} = ${rightStr}`, node);
+	return state.line(`${leftStr} ${node.operator} ${rightStr}`, node);
 }

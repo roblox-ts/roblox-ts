@@ -37,6 +37,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		state.prereq(
 			lua.create(lua.SyntaxKind.Assignment, {
 				left: id,
+				operator: "=",
 				right: lua.create(lua.SyntaxKind.CallExpression, {
 					expression: lua.globals.setmetatable,
 					args: lua.list.make(lua.map(), lua.map([[lua.strings.__index, inverseId]])),
@@ -67,6 +68,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 						expression: id,
 						name: nameStr,
 					}),
+					operator: "=",
 					right: valueExp,
 				}),
 			);
@@ -77,6 +79,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 						expression: inverseId,
 						index: valueExp,
 					}),
+					operator: "=",
 					right: lua.string(nameStr),
 				}),
 			);
