@@ -1,44 +1,44 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 
 export interface Pointer<T> {
 	value: T;
 }
 
-export type MapPointer = Pointer<lua.Map | lua.TemporaryIdentifier>;
-export type ArrayPointer = Pointer<lua.Array | lua.TemporaryIdentifier>;
-export type MixedTablePointer = Pointer<lua.MixedTable | lua.TemporaryIdentifier>;
+export type MapPointer = Pointer<luau.Map | luau.TemporaryIdentifier>;
+export type ArrayPointer = Pointer<luau.Array | luau.TemporaryIdentifier>;
+export type MixedTablePointer = Pointer<luau.MixedTable | luau.TemporaryIdentifier>;
 
 export function createMapPointer(): MapPointer {
-	return { value: lua.map() };
+	return { value: luau.map() };
 }
 
 export function createArrayPointer(): ArrayPointer {
-	return { value: lua.array() };
+	return { value: luau.array() };
 }
 
 export function createMixedTablePointer(): MixedTablePointer {
-	return { value: lua.mixedTable() };
+	return { value: luau.mixedTable() };
 }
 
 export function assignToMapPointer(
 	state: TransformState,
-	ptr: Pointer<lua.Map | lua.AnyIdentifier>,
-	left: lua.Expression,
-	right: lua.Expression,
+	ptr: Pointer<luau.Map | luau.AnyIdentifier>,
+	left: luau.Expression,
+	right: luau.Expression,
 ) {
-	if (lua.isMap(ptr.value)) {
-		lua.list.push(
+	if (luau.isMap(ptr.value)) {
+		luau.list.push(
 			ptr.value.fields,
-			lua.create(lua.SyntaxKind.MapField, {
+			luau.create(luau.SyntaxKind.MapField, {
 				index: left,
 				value: right,
 			}),
 		);
 	} else {
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: ptr.value,
 					index: left,
 				}),
@@ -52,21 +52,21 @@ export function assignToMapPointer(
 export function assignToMixedTablePointer(
 	state: TransformState,
 	ptr: MixedTablePointer,
-	left: lua.Expression,
-	right: lua.Expression,
+	left: luau.Expression,
+	right: luau.Expression,
 ) {
-	if (lua.isMixedTable(ptr.value)) {
-		lua.list.push(
+	if (luau.isMixedTable(ptr.value)) {
+		luau.list.push(
 			ptr.value.fields,
-			lua.create(lua.SyntaxKind.MapField, {
+			luau.create(luau.SyntaxKind.MapField, {
 				index: left,
 				value: right,
 			}),
 		);
 	} else {
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: ptr.value,
 					index: left,
 				}),
@@ -80,8 +80,8 @@ export function assignToMixedTablePointer(
 export function disableMapInline(
 	state: TransformState,
 	ptr: MapPointer,
-): asserts ptr is Pointer<lua.TemporaryIdentifier> {
-	if (lua.isMap(ptr.value)) {
+): asserts ptr is Pointer<luau.TemporaryIdentifier> {
+	if (luau.isMap(ptr.value)) {
 		ptr.value = state.pushToVar(ptr.value);
 	}
 }
@@ -89,8 +89,8 @@ export function disableMapInline(
 export function disableArrayInline(
 	state: TransformState,
 	ptr: ArrayPointer,
-): asserts ptr is Pointer<lua.TemporaryIdentifier> {
-	if (lua.isArray(ptr.value)) {
+): asserts ptr is Pointer<luau.TemporaryIdentifier> {
+	if (luau.isArray(ptr.value)) {
 		ptr.value = state.pushToVar(ptr.value);
 	}
 }
@@ -98,8 +98,8 @@ export function disableArrayInline(
 export function disableMixedTableInline(
 	state: TransformState,
 	ptr: MixedTablePointer,
-): asserts ptr is Pointer<lua.TemporaryIdentifier> {
-	if (lua.isMixedTable(ptr.value)) {
+): asserts ptr is Pointer<luau.TemporaryIdentifier> {
+	if (luau.isMixedTable(ptr.value)) {
 		ptr.value = state.pushToVar(ptr.value);
 	}
 }

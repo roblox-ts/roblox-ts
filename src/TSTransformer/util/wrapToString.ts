@@ -1,8 +1,8 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
-export function wrapToString(expression: lua.Expression) {
-	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.globals.tostring,
-		args: lua.list.make(expression),
+export function wrapToString(expression: luau.Expression) {
+	return luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.tostring,
+		args: luau.list.make(expression),
 	});
 }

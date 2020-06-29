@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { DiagnosticFactory, diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -27,7 +27,7 @@ import { transformVariableStatement } from "TSTransformer/nodes/statements/trans
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
 
-const NO_EMIT = () => lua.list.make<lua.Statement>();
+const NO_EMIT = () => luau.list.make<luau.Statement>();
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));
@@ -35,7 +35,7 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StatementTransformer = (state: TransformState, node: any) => lua.List<lua.Statement>;
+type StatementTransformer = (state: TransformState, node: any) => luau.List<luau.Statement>;
 
 /**
  * Definitions for different types of transformations.
@@ -77,11 +77,11 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 ]);
 
 /**
- * Transforms a singular `ts.Statement` in a `lua.list<...>`.
+ * Transforms a singular `ts.Statement` in a `luau.list<...>`.
  * @param state The current transform state.
  * @param node The `ts.Statement` to transform.
  */
-export function transformStatement(state: TransformState, node: ts.Statement): lua.List<lua.Statement> {
+export function transformStatement(state: TransformState, node: ts.Statement): luau.List<luau.Statement> {
 	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();

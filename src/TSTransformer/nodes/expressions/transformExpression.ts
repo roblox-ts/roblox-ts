@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { DiagnosticFactory, diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -38,11 +38,11 @@ import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));
-	return lua.emptyId();
+	return luau.emptyId();
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type ExpressionTransformer = (state: TransformState, node: any) => lua.Expression;
+type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
 
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
@@ -85,7 +85,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 ]);
 
-export function transformExpression(state: TransformState, node: ts.Expression): lua.Expression {
+export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);

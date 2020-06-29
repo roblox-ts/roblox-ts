@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -29,36 +29,36 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 
 	const nameExp = transformIdentifierDefined(state, name);
 
-	const statements = lua.list.make<lua.Statement>();
-	const doStatements = lua.list.make<lua.Statement>();
+	const statements = luau.list.make<luau.Statement>();
+	const doStatements = luau.list.make<luau.Statement>();
 
-	const containerId = lua.tempId();
+	const containerId = luau.tempId();
 	state.setModuleIdBySymbol(symbol, containerId);
 
 	if (state.isHoisted.get(symbol)) {
-		lua.list.push(
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.Assignment, {
+			luau.create(luau.SyntaxKind.Assignment, {
 				left: nameExp,
 				operator: "=",
-				right: lua.map(),
+				right: luau.map(),
 			}),
 		);
 	} else {
-		lua.list.push(
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: nameExp,
-				right: lua.map(),
+				right: luau.map(),
 			}),
 		);
 	}
 
 	const moduleExports = state.getModuleExports(symbol);
 	if (moduleExports.length > 0) {
-		lua.list.push(
+		luau.list.push(
 			doStatements,
-			lua.create(lua.SyntaxKind.VariableDeclaration, { left: containerId, right: nameExp }),
+			luau.create(luau.SyntaxKind.VariableDeclaration, { left: containerId, right: nameExp }),
 		);
 	}
 
@@ -74,7 +74,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 				}
 			}
 		}
-		lua.list.pushList(
+		luau.list.pushList(
 			doStatements,
 			transformStatementList(state, body.statements, {
 				id: containerId,
@@ -82,11 +82,11 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 			}),
 		);
 	} else {
-		lua.list.pushList(doStatements, transformNamespace(state, body.name, body.body));
-		lua.list.push(
+		luau.list.pushList(doStatements, transformNamespace(state, body.name, body.body));
+		luau.list.push(
 			doStatements,
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 					expression: containerId,
 					name: body.name.text,
 				}),
@@ -96,7 +96,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 		);
 	}
 
-	lua.list.push(statements, lua.create(lua.SyntaxKind.DoStatement, { statements: doStatements }));
+	luau.list.push(statements, luau.create(luau.SyntaxKind.DoStatement, { statements: doStatements }));
 
 	return statements;
 }
@@ -104,14 +104,14 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 export function transformModuleDeclaration(state: TransformState, node: ts.ModuleDeclaration) {
 	// type-only namespace
 	if (!ts.isInstantiatedModule(node, false)) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleInstantiations(symbol)) {
 		state.addDiagnostic(diagnostics.noNamespaceMerging(node));
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	// ts.StringLiteral is only in the case of `declare module "X" {}`? Should be filtered out above

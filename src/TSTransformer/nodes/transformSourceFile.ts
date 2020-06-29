@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { RbxType } from "Shared/classes/RojoConfig";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
@@ -10,7 +10,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 
-function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, lua.Identifier] {
+function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string, luau.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
 		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
@@ -25,7 +25,7 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
 			name = declaration.name.text;
 		}
 
-		return [exportSymbol.name, lua.id(name)];
+		return [exportSymbol.name, luau.id(name)];
 	}
 }
 
@@ -39,10 +39,10 @@ function handleExports(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	symbol: ts.Symbol,
-	statements: lua.List<lua.Statement>,
+	statements: luau.List<luau.Statement>,
 ) {
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[string, lua.Identifier]>();
+	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
@@ -69,28 +69,28 @@ function handleExports(
 		// local exports variable is created in transformExportAssignment
 		const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
 		if (!ts.isExportAssignment(finalStatement) || !finalStatement.isExportEquals) {
-			lua.list.push(
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.ReturnStatement, {
-					expression: lua.globals.exports,
+				luau.create(luau.SyntaxKind.ReturnStatement, {
+					expression: luau.globals.exports,
 				}),
 			);
 		}
 	} else if (mustPushExports) {
 		// if there's an export let/from, we need to put `local exports = {}` at the top of the file
-		lua.list.unshift(
+		luau.list.unshift(
 			statements,
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.globals.exports,
-				right: lua.map(),
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.globals.exports,
+				right: luau.map(),
 			}),
 		);
 		for (const [exportKey, exportId] of exportPairs) {
-			lua.list.push(
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression: lua.globals.exports,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+						expression: luau.globals.exports,
 						name: exportKey,
 					}),
 					operator: "=",
@@ -98,28 +98,28 @@ function handleExports(
 				}),
 			);
 		}
-		lua.list.push(
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression: lua.globals.exports,
+			luau.create(luau.SyntaxKind.ReturnStatement, {
+				expression: luau.globals.exports,
 			}),
 		);
 	} else if (exportPairs.length > 0) {
 		// only regular exports, we can do this as just returning an object at the bottom of the file
-		const fields = lua.list.make<lua.MapField>();
+		const fields = luau.list.make<luau.MapField>();
 		for (const [exportKey, exportId] of exportPairs) {
-			lua.list.push(
+			luau.list.push(
 				fields,
-				lua.create(lua.SyntaxKind.MapField, {
-					index: lua.string(exportKey),
+				luau.create(luau.SyntaxKind.MapField, {
+					index: luau.string(exportKey),
 					value: exportId,
 				}),
 			);
 		}
-		lua.list.push(
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.ReturnStatement, {
-				expression: lua.create(lua.SyntaxKind.Map, {
+			luau.create(luau.SyntaxKind.ReturnStatement, {
+				expression: luau.create(luau.SyntaxKind.Map, {
 					fields,
 				}),
 			}),
@@ -127,22 +127,22 @@ function handleExports(
 	}
 }
 
-function getLastNonCommentStatement(listNode?: lua.ListNode<lua.Statement>) {
-	while (listNode && lua.isComment(listNode.value)) {
+function getLastNonCommentStatement(listNode?: luau.ListNode<luau.Statement>) {
+	while (listNode && luau.isComment(listNode.value)) {
 		listNode = listNode.prev;
 	}
 	return listNode;
 }
 
 /**
- * Creates and returns a lua.list<> (lua AST).
+ * Creates and returns a luau.list<luau.Statement> (Luau AST).
  * @param state The current transform state.
- * @param node The sourcefile to convert to a lua AST.
+ * @param node The sourcefile to convert to a Luau AST.
  */
 export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	assert(symbol);
-	state.setModuleIdBySymbol(symbol, lua.globals.exports);
+	state.setModuleIdBySymbol(symbol, luau.globals.exports);
 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`
 	const statements = transformStatementList(state, node.statements);
@@ -151,20 +151,20 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 
 	// moduleScripts must `return nil` if they do not export any values
 	const lastStatement = getLastNonCommentStatement(statements.tail);
-	if (!lastStatement || !lua.isReturnStatement(lastStatement.value)) {
+	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
 		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
 		if (state.rojoConfig.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
-			lua.list.push(statements, lua.create(lua.SyntaxKind.ReturnStatement, { expression: lua.nil() }));
+			luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
 		}
 	}
 
 	// add the Runtime library to the tree if it is used
 	if (state.usesRuntimeLib) {
-		lua.list.unshift(statements, state.createRuntimeLibImport());
+		luau.list.unshift(statements, state.createRuntimeLibImport());
 	}
 
 	// add build information to the tree
-	lua.list.unshift(statements, lua.comment(`Compiled with roblox-ts v${COMPILER_VERSION}`));
+	luau.list.unshift(statements, luau.comment(`Compiled with roblox-ts v${COMPILER_VERSION}`));
 
 	return statements;
 }

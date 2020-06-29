@@ -1,15 +1,15 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
-export function transformInitializer(state: TransformState, id: lua.WritableExpression, initializer: ts.Expression) {
-	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.binary(id, "==", lua.nil()),
-		elseBody: lua.list.make(),
+export function transformInitializer(state: TransformState, id: luau.WritableExpression, initializer: ts.Expression) {
+	return luau.create(luau.SyntaxKind.IfStatement, {
+		condition: luau.binary(id, "==", luau.nil()),
+		elseBody: luau.list.make(),
 		statements: state.capturePrereqs(() => {
 			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
+				luau.create(luau.SyntaxKind.Assignment, {
 					left: id,
 					operator: "=",
 					right: transformExpression(state, initializer),

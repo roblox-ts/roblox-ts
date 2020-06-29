@@ -1,6 +1,6 @@
 import ts from "byots";
 import fs from "fs-extra";
-import { renderAST } from "LuaRenderer";
+import { renderAST } from "LuauRenderer";
 import path from "path";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
@@ -324,9 +324,9 @@ export class Project {
 	}
 
 	/**
-	 * 'transpiles' TypeScript project into a logically identical Lua project.
+	 * 'transpiles' TypeScript project into a logically identical Luau project.
 	 *
-	 * writes rendered lua source to the out directory.
+	 * writes rendered Luau source to the out directory.
 	 */
 	public compileFiles(filesSet: Set<string>) {
 		const multiTransformState = new MultiTransformState();
@@ -377,13 +377,13 @@ export class Project {
 					sourceFile,
 				);
 
-				// create a new Lua abstract syntax tree for the file
-				const luaAST = transformSourceFile(transformState, sourceFile);
+				// create a new Luau abstract syntax tree for the file
+				const luauAST = transformSourceFile(transformState, sourceFile);
 				totalDiagnostics.push(...transformState.diagnostics);
 				if (totalDiagnostics.length > 0) return;
 
-				// render lua abstract syntax tree and output only if there were no diagnostics
-				const source = renderAST(luaAST);
+				// render Luau abstract syntax tree and output only if there were no diagnostics
+				const source = renderAST(luauAST);
 
 				fileWriteQueue.push({ sourceFile, source });
 			});

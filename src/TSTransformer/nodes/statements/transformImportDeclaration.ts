@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -34,11 +34,11 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	// no emit for type only
 	const importClause = node.importClause;
-	if (importClause && importClause.isTypeOnly) return lua.list.make<lua.Statement>();
+	if (importClause && importClause.isTypeOnly) return luau.list.make<luau.Statement>();
 
-	const statements = lua.list.make<lua.Statement>();
+	const statements = luau.list.make<luau.Statement>();
 
-	const importExp = new Lazy<lua.CallExpression | lua.AnyIdentifier>(() =>
+	const importExp = new Lazy<luau.CallExpression | luau.AnyIdentifier>(() =>
 		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 	);
 
@@ -46,10 +46,10 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		// detect if we need to push to a new var or not
 		const uses = countImportExpUses(state, importClause);
 		if (uses > 1) {
-			const id = lua.tempId();
-			lua.list.push(
+			const id = luau.tempId();
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: id,
 					right: importExp.get(),
 				}),
@@ -62,14 +62,14 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && v.isExportEquals)) {
-					lua.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
+					luau.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
 				} else {
-					lua.list.pushList(
+					luau.list.pushList(
 						statements,
 						transformVariable(
 							state,
 							importClause.name,
-							lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+							luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 								expression: importExp.get(),
 								name: "default",
 							}),
@@ -82,7 +82,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (importClause.namedBindings) {
 			// namespace import logic
 			if (ts.isNamespaceImport(importClause.namedBindings)) {
-				lua.list.pushList(
+				luau.list.pushList(
 					statements,
 					transformVariable(state, importClause.namedBindings.name, importExp.get())[1],
 				);
@@ -90,12 +90,12 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				// named elements import logic
 				for (const element of importClause.namedBindings.elements) {
 					if (state.resolver.isReferencedAliasDeclaration(element)) {
-						lua.list.pushList(
+						luau.list.pushList(
 							statements,
 							transformVariable(
 								state,
 								element.name,
-								lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+								luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 									expression: importExp.get(),
 									name: (element.propertyName ?? element.name).text,
 								}),
@@ -111,11 +111,11 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	if (
 		!importClause ||
 		(state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
-			lua.list.isEmpty(statements))
+			luau.list.isEmpty(statements))
 	) {
 		const expression = importExp.get();
-		if (lua.isCallExpression(expression)) {
-			lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression }));
+		if (luau.isCallExpression(expression)) {
+			luau.list.push(statements, luau.create(luau.SyntaxKind.CallStatement, { expression }));
 		}
 	}
 

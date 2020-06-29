@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -9,36 +9,36 @@ export function transformTaggedTemplateExpression(state: TransformState, node: t
 	const tagExp = transformExpression(state, node.tag);
 
 	if (ts.isTemplateExpression(node.template)) {
-		const strings = lua.list.make<lua.Expression>();
-		lua.list.push(strings, lua.string(node.template.head.text));
+		const strings = luau.list.make<luau.Expression>();
+		luau.list.push(strings, luau.string(node.template.head.text));
 		for (const templateSpan of node.template.templateSpans) {
-			lua.list.push(strings, lua.string(templateSpan.literal.text));
+			luau.list.push(strings, luau.string(templateSpan.literal.text));
 		}
 
-		const expressions = lua.list.make(
+		const expressions = luau.list.make(
 			...ensureTransformOrder(
 				state,
 				node.template.templateSpans.map(templateSpan => templateSpan.expression),
 			),
 		);
 
-		const args = lua.list.make<lua.Expression>();
-		lua.list.push(
+		const args = luau.list.make<luau.Expression>();
+		luau.list.push(
 			args,
-			lua.create(lua.SyntaxKind.Array, {
+			luau.create(luau.SyntaxKind.Array, {
 				members: strings,
 			}),
 		);
-		lua.list.pushList(args, expressions);
+		luau.list.pushList(args, expressions);
 
-		return lua.create(lua.SyntaxKind.CallExpression, {
+		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: convertToIndexableExpression(tagExp),
 			args,
 		});
 	} else {
-		return lua.create(lua.SyntaxKind.CallExpression, {
+		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: convertToIndexableExpression(tagExp),
-			args: lua.list.make(lua.array([lua.string(node.template.text)])),
+			args: luau.list.make(luau.array([luau.string(node.template.text)])),
 		});
 	}
 }

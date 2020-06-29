@@ -1,4 +1,4 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -7,54 +7,54 @@ const PRIMITIVE_LUA_TYPES = new Set(["nil", "boolean", "string", "number", "tabl
 
 export const CALL_MACROS: MacroList<CallMacro> = {
 	typeOf: (state, node) => {
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.typeof,
-			args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.typeof,
+			args: luau.list.make(...ensureTransformOrder(state, node.arguments)),
 		});
 	},
 
 	typeIs: (state, node) => {
 		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
-		const typeFunc = lua.isStringLiteral(typeStr) && PRIMITIVE_LUA_TYPES.has(typeStr.value) ? "type" : "typeof";
-		const left = lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.id(typeFunc),
-			args: lua.list.make(value),
+		const typeFunc = luau.isStringLiteral(typeStr) && PRIMITIVE_LUA_TYPES.has(typeStr.value) ? "type" : "typeof";
+		const left = luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.id(typeFunc),
+			args: luau.list.make(value),
 		});
-		return lua.binary(left, "==", typeStr);
+		return luau.binary(left, "==", typeStr);
 	},
 
 	classIs: (state, node) => {
 		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
-		const left = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		const left = luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 			expression: convertToIndexableExpression(value),
 			name: "ClassName",
 		});
-		return lua.binary(left, "==", typeStr);
+		return luau.binary(left, "==", typeStr);
 	},
 
 	opcall: (state, node) => {
-		const successId = lua.tempId();
-		const valueOrErrorId = lua.tempId();
+		const successId = luau.tempId();
+		const valueOrErrorId = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.list.make(successId, valueOrErrorId),
-				right: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.pcall,
-					args: lua.list.make(...ensureTransformOrder(state, node.arguments)),
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.list.make(successId, valueOrErrorId),
+				right: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.pcall,
+					args: luau.list.make(...ensureTransformOrder(state, node.arguments)),
 				}),
 			}),
 		);
 
-		const successExp = lua.map([
-			[lua.strings.success, lua.bool(true)],
-			[lua.strings.value, valueOrErrorId],
+		const successExp = luau.map([
+			[luau.strings.success, luau.bool(true)],
+			[luau.strings.value, valueOrErrorId],
 		]);
 
-		const failureExp = lua.map([
-			[lua.strings.success, lua.bool(false)],
-			[lua.strings.error, valueOrErrorId],
+		const failureExp = luau.map([
+			[luau.strings.success, luau.bool(false)],
+			[luau.strings.error, valueOrErrorId],
 		]);
 
-		return lua.binary(successId, "and", lua.binary(successExp, "or", failureExp));
+		return luau.binary(successId, "and", luau.binary(successExp, "or", failureExp));
 	},
 };

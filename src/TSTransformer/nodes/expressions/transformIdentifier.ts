@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -10,7 +10,7 @@ import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
-	return lua.create(lua.SyntaxKind.Identifier, {
+	return luau.create(luau.SyntaxKind.Identifier, {
 		name: node.text,
 	});
 }
@@ -85,7 +85,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	assert(symbol);
 
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
-		return lua.nil();
+		return luau.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
 		state.addDiagnostic(diagnostics.noArguments(node));
 	} else if (symbol === state.globalSymbols.globalThis) {
@@ -108,7 +108,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 
 	if (!ts.isCallExpression(skipUpwards(node).parent) && state.macroManager.getCallMacro(symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
-		return lua.emptyId();
+		return luau.emptyId();
 	}
 
 	// exit here for export let so we don't check hoist later

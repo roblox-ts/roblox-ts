@@ -1,4 +1,4 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import ts from "byots";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -11,21 +11,21 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		assert(ts.isStringLiteral(node.moduleReference.expression));
 		const importExp = createImportExpression(state, node.getSourceFile(), node.moduleReference.expression);
 
-		const statements = lua.list.make<lua.Statement>();
+		const statements = luau.list.make<luau.Statement>();
 
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(aliasSymbol);
 		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			lua.list.pushList(statements, transformVariable(state, node.name, importExp)[1]);
+			luau.list.pushList(statements, transformVariable(state, node.name, importExp)[1]);
 		}
 
 		// ensure we emit something
 		if (
 			state.compilerOptions.importsNotUsedAsValues === ts.ImportsNotUsedAsValues.Preserve &&
-			lua.list.isEmpty(statements) &&
-			lua.isCallExpression(importExp)
+			luau.list.isEmpty(statements) &&
+			luau.isCallExpression(importExp)
 		) {
-			lua.list.push(statements, lua.create(lua.SyntaxKind.CallStatement, { expression: importExp }));
+			luau.list.push(statements, luau.create(luau.SyntaxKind.CallStatement, { expression: importExp }));
 		}
 
 		return statements;

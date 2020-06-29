@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -12,31 +12,31 @@ import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
 export function transformMethodDeclaration(
 	state: TransformState,
 	node: ts.MethodDeclaration,
-	ptr: Pointer<lua.Map | lua.AnyIdentifier>,
+	ptr: Pointer<luau.Map | luau.AnyIdentifier>,
 ) {
 	if (!node.body) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
 		state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
-	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
+	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	const name = transformObjectKey(state, node.name);
 
 	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
 
 	// can we use `function class:name() end`?
-	if (!isAsync && lua.isStringLiteral(name) && !lua.isMap(ptr.value)) {
+	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value)) {
 		if (isMethod(state, node)) {
-			lua.list.shift(parameters); // remove `self`
-			return lua.list.make(
-				lua.create(lua.SyntaxKind.MethodDeclaration, {
+			luau.list.shift(parameters); // remove `self`
+			return luau.list.make(
+				luau.create(luau.SyntaxKind.MethodDeclaration, {
 					expression: ptr.value,
 					name: name.value,
 					statements,
@@ -45,9 +45,9 @@ export function transformMethodDeclaration(
 				}),
 			);
 		} else {
-			return lua.list.make(
-				lua.create(lua.SyntaxKind.FunctionDeclaration, {
-					name: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+			return luau.list.make(
+				luau.create(luau.SyntaxKind.FunctionDeclaration, {
+					name: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 						expression: ptr.value,
 						name: name.value,
 					}),
@@ -60,16 +60,16 @@ export function transformMethodDeclaration(
 		}
 	}
 
-	let expression: lua.Expression = lua.create(lua.SyntaxKind.FunctionExpression, {
+	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {
 		statements,
 		parameters,
 		hasDotDotDot,
 	});
 
 	if (isAsync) {
-		expression = lua.create(lua.SyntaxKind.CallExpression, {
+		expression = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("async"),
-			args: lua.list.make(expression),
+			args: luau.list.make(expression),
 		});
 	}
 

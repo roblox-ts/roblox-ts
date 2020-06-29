@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -17,7 +17,7 @@ function transformPropertyAssignment(
 	const [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
 	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 
-	if (!lua.list.isEmpty(leftPrereqs) || !lua.list.isEmpty(rightPrereqs)) {
+	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
 	}
 
@@ -35,17 +35,17 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		spreadExp = state.pushToVarIfComplex(spreadExp);
 	}
 
-	const keyId = lua.tempId();
-	const valueId = lua.tempId();
-	let statement: lua.Statement = lua.create(lua.SyntaxKind.ForStatement, {
-		ids: lua.list.make(keyId, valueId),
-		expression: lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.pairs,
-			args: lua.list.make(spreadExp),
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(spreadExp),
 		}),
-		statements: lua.list.make(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: ptr.value,
 					index: keyId,
 				}),
@@ -56,10 +56,10 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	});
 
 	if (possiblyUndefined) {
-		statement = lua.create(lua.SyntaxKind.IfStatement, {
+		statement = luau.create(luau.SyntaxKind.IfStatement, {
 			condition: spreadExp,
-			statements: lua.list.make(statement),
-			elseBody: lua.list.make(),
+			statements: luau.list.make(statement),
+			elseBody: luau.list.make(),
 		});
 	}
 
@@ -67,8 +67,8 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 }
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
-	// starts as lua.Map, becomes lua.TemporaryIdentifier when `disableInline` is called
-	const ptr: MapPointer = { value: lua.map() };
+	// starts as luau.Map, becomes luau.TemporaryIdentifier when `disableInline` is called
+	const ptr: MapPointer = { value: luau.map() };
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {

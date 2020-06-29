@@ -1,14 +1,14 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
-export function offset(expression: lua.Expression, value: number) {
+export function offset(expression: luau.Expression, value: number) {
 	if (value === 0) {
 		return expression;
 	}
-	if (lua.isNumberLiteral(expression)) {
-		return lua.create(lua.SyntaxKind.NumberLiteral, {
+	if (luau.isNumberLiteral(expression)) {
+		return luau.create(luau.SyntaxKind.NumberLiteral, {
 			value: expression.value + value,
 		});
 	} else {
-		return lua.binary(expression, value > 0 ? "+" : "-", lua.number(Math.abs(value)));
+		return luau.binary(expression, value > 0 ? "+" : "-", luau.number(Math.abs(value)));
 	}
 }

@@ -1,8 +1,8 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
-export function convertToIndexableExpression(expression: lua.Expression) {
-	if (lua.isIndexableExpression(expression)) {
+export function convertToIndexableExpression(expression: luau.Expression) {
+	if (luau.isIndexableExpression(expression)) {
 		return expression;
 	}
-	return lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression });
+	return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 }

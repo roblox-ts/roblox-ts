@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState, TryUses } from "TSTransformer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import {
@@ -9,16 +9,16 @@ import {
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 
 function transformCatchClause(state: TransformState, node: ts.CatchClause) {
-	const parameters = lua.list.make<lua.AnyIdentifier>();
-	const statements = lua.list.make<lua.Statement>();
+	const parameters = luau.list.make<luau.AnyIdentifier>();
+	const statements = luau.list.make<luau.Statement>();
 
 	if (node.variableDeclaration) {
-		lua.list.push(parameters, transformBindingName(state, node.variableDeclaration.name, statements));
+		luau.list.push(parameters, transformBindingName(state, node.variableDeclaration.name, statements));
 	}
 
-	lua.list.pushList(statements, transformStatementList(state, node.block.statements));
+	luau.list.pushList(statements, transformStatementList(state, node.block.statements));
 
-	const catchFunction = lua.create(lua.SyntaxKind.FunctionExpression, {
+	const catchFunction = luau.create(luau.SyntaxKind.FunctionExpression, {
 		parameters,
 		hasDotDotDot: false,
 		statements,
@@ -30,32 +30,32 @@ function transformCatchClause(state: TransformState, node: ts.CatchClause) {
 function transformIntoTryCall(
 	state: TransformState,
 	node: ts.TryStatement,
-	exitTypeId: lua.TemporaryIdentifier,
-	returnsId: lua.TemporaryIdentifier,
+	exitTypeId: luau.TemporaryIdentifier,
+	returnsId: luau.TemporaryIdentifier,
 	tryUses: TryUses,
 ) {
-	const tryCallArgs = lua.list.make<lua.Expression>();
+	const tryCallArgs = luau.list.make<luau.Expression>();
 
-	lua.list.push(
+	luau.list.push(
 		tryCallArgs,
-		lua.create(lua.SyntaxKind.FunctionExpression, {
-			parameters: lua.list.make(),
+		luau.create(luau.SyntaxKind.FunctionExpression, {
+			parameters: luau.list.make(),
 			hasDotDotDot: false,
 			statements: transformStatementList(state, node.tryBlock.statements),
 		}),
 	);
 
 	if (node.catchClause) {
-		lua.list.push(tryCallArgs, transformCatchClause(state, node.catchClause));
+		luau.list.push(tryCallArgs, transformCatchClause(state, node.catchClause));
 	} else if (node.finallyBlock) {
-		lua.list.push(tryCallArgs, lua.nil());
+		luau.list.push(tryCallArgs, luau.nil());
 	}
 
 	if (node.finallyBlock) {
-		lua.list.push(
+		luau.list.push(
 			tryCallArgs,
-			lua.create(lua.SyntaxKind.FunctionExpression, {
-				parameters: lua.list.make(),
+			luau.create(luau.SyntaxKind.FunctionExpression, {
+				parameters: luau.list.make(),
 				hasDotDotDot: false,
 				statements: transformStatementList(state, node.finallyBlock.statements),
 			}),
@@ -63,17 +63,17 @@ function transformIntoTryCall(
 	}
 
 	if (!tryUses.usesReturn && !tryUses.usesBreak && !tryUses.usesContinue) {
-		return lua.create(lua.SyntaxKind.CallStatement, {
-			expression: lua.create(lua.SyntaxKind.CallExpression, {
+		return luau.create(luau.SyntaxKind.CallStatement, {
+			expression: luau.create(luau.SyntaxKind.CallExpression, {
 				expression: state.TS("try"),
 				args: tryCallArgs,
 			}),
 		});
 	}
 
-	return lua.create(lua.SyntaxKind.VariableDeclaration, {
-		left: lua.list.make(exitTypeId, returnsId),
-		right: lua.create(lua.SyntaxKind.CallExpression, {
+	return luau.create(luau.SyntaxKind.VariableDeclaration, {
+		left: luau.list.make(exitTypeId, returnsId),
+		right: luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("try"),
 			args: tryCallArgs,
 		}),
@@ -82,45 +82,45 @@ function transformIntoTryCall(
 
 function createFlowControlCondition(
 	state: TransformState,
-	exitTypeId: lua.TemporaryIdentifier,
+	exitTypeId: luau.TemporaryIdentifier,
 	flowControlConstant: string,
 ) {
-	return lua.binary(exitTypeId, "==", state.TS(flowControlConstant));
+	return luau.binary(exitTypeId, "==", state.TS(flowControlConstant));
 }
 
-type FlowControlCase = { condition?: lua.Expression; statements: lua.List<lua.Statement> };
+type FlowControlCase = { condition?: luau.Expression; statements: luau.List<luau.Statement> };
 
-function collapseFlowControlCases(exitTypeId: lua.TemporaryIdentifier, cases: Array<FlowControlCase>) {
+function collapseFlowControlCases(exitTypeId: luau.TemporaryIdentifier, cases: Array<FlowControlCase>) {
 	if (cases.length === 0) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	} else {
-		let nextStatements = lua.create(lua.SyntaxKind.IfStatement, {
+		let nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
 			condition: exitTypeId,
 			statements: cases[cases.length - 1].statements,
-			elseBody: lua.list.make(),
+			elseBody: luau.list.make(),
 		});
 		for (let i = cases.length - 2; i >= 0; i--) {
-			nextStatements = lua.create(lua.SyntaxKind.IfStatement, {
+			nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
 				condition: cases[i].condition || exitTypeId,
 				statements: cases[i].statements,
 				elseBody: nextStatements,
 			});
 		}
-		return lua.list.make(nextStatements);
+		return luau.list.make(nextStatements);
 	}
 }
 
 function transformFlowControl(
 	state: TransformState,
 	node: ts.TryStatement,
-	exitTypeId: lua.TemporaryIdentifier,
-	returnsId: lua.TemporaryIdentifier,
+	exitTypeId: luau.TemporaryIdentifier,
+	returnsId: luau.TemporaryIdentifier,
 	tryUses: TryUses,
 ) {
 	const flowControlCases = new Array<FlowControlCase>();
 
 	if (!tryUses.usesReturn && !tryUses.usesBreak && !tryUses.usesContinue) {
-		return lua.list.make();
+		return luau.list.make();
 	}
 
 	const returnBlocked = isReturnBlockedByTryStatement(node.parent);
@@ -140,9 +140,9 @@ function transformFlowControl(
 		if (returnBlocked) {
 			flowControlCases.push({
 				condition: createFlowControlCondition(state, exitTypeId, "TRY_RETURN"),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.ReturnStatement, {
-						expression: lua.list.make(exitTypeId, returnsId),
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.ReturnStatement, {
+						expression: luau.list.make(exitTypeId, returnsId),
 					}),
 				),
 			});
@@ -152,11 +152,11 @@ function transformFlowControl(
 		} else {
 			flowControlCases.push({
 				condition: createFlowControlCondition(state, exitTypeId, "TRY_RETURN"),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.ReturnStatement, {
-						expression: lua.create(lua.SyntaxKind.CallExpression, {
-							expression: lua.globals.unpack,
-							args: lua.list.make<lua.Expression>(returnsId),
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.ReturnStatement, {
+						expression: luau.create(luau.SyntaxKind.CallExpression, {
+							expression: luau.globals.unpack,
+							args: luau.list.make<luau.Expression>(returnsId),
 						}),
 					}),
 				),
@@ -167,8 +167,8 @@ function transformFlowControl(
 	if (tryUses.usesBreak || tryUses.usesContinue) {
 		if (breakBlocked) {
 			flowControlCases.push({
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.ReturnStatement, {
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.ReturnStatement, {
 						expression: exitTypeId,
 					}),
 				),
@@ -177,13 +177,13 @@ function transformFlowControl(
 			if (tryUses.usesBreak) {
 				flowControlCases.push({
 					condition: createFlowControlCondition(state, exitTypeId, "TRY_BREAK"),
-					statements: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 				});
 			}
 			if (tryUses.usesContinue) {
 				flowControlCases.push({
 					condition: createFlowControlCondition(state, exitTypeId, "TRY_CONTINUE"),
-					statements: lua.list.make(lua.create(lua.SyntaxKind.ContinueStatement, {})),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
 				});
 			}
 		}
@@ -193,15 +193,15 @@ function transformFlowControl(
 }
 
 export function transformTryStatement(state: TransformState, node: ts.TryStatement) {
-	const statements = lua.list.make<lua.Statement>();
-	const exitTypeId = lua.tempId();
-	const returnsId = lua.tempId();
+	const statements = luau.list.make<luau.Statement>();
+	const exitTypeId = luau.tempId();
+	const returnsId = luau.tempId();
 
 	const tryUses = state.pushTryUsesStack();
-	lua.list.push(statements, transformIntoTryCall(state, node, exitTypeId, returnsId, tryUses));
+	luau.list.push(statements, transformIntoTryCall(state, node, exitTypeId, returnsId, tryUses));
 	state.popTryUsesStack();
 
-	lua.list.pushList(statements, transformFlowControl(state, node, exitTypeId, returnsId, tryUses));
+	luau.list.pushList(statements, transformFlowControl(state, node, exitTypeId, returnsId, tryUses));
 
 	return statements;
 }

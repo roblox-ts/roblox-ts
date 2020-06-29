@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -21,26 +21,26 @@ function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Const)) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleDefinitions(symbol)) {
 		state.addDiagnostic(diagnostics.noEnumMerging(node));
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	const id = transformIdentifierDefined(state, node.name);
 
 	const statements = state.capturePrereqs(() => {
-		const inverseId = state.pushToVar(lua.map());
+		const inverseId = state.pushToVar(luau.map());
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
+			luau.create(luau.SyntaxKind.Assignment, {
 				left: id,
 				operator: "=",
-				right: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.setmetatable,
-					args: lua.list.make(lua.map(), lua.map([[lua.strings.__index, inverseId]])),
+				right: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.setmetatable,
+					args: luau.list.make(luau.map(), luau.map([[luau.strings.__index, inverseId]])),
 				}),
 			}),
 		);
@@ -52,19 +52,19 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			const nameStr = member.name.text;
 			const value = state.typeChecker.getConstantValue(member);
 
-			let valueExp: lua.Expression;
+			let valueExp: luau.Expression;
 			if (typeof value === "string") {
-				valueExp = lua.string(value);
+				valueExp = luau.string(value);
 			} else if (typeof value === "number") {
-				valueExp = lua.number(value);
+				valueExp = luau.number(value);
 			} else {
 				assert(member.initializer);
 				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer));
 			}
 
 			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 						expression: id,
 						name: nameStr,
 					}),
@@ -74,20 +74,20 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			);
 
 			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: inverseId,
 						index: valueExp,
 					}),
 					operator: "=",
-					right: lua.string(nameStr),
+					right: luau.string(nameStr),
 				}),
 			);
 		}
 	});
 
-	return lua.list.make<lua.Statement>(
-		lua.create(lua.SyntaxKind.VariableDeclaration, { left: id, right: undefined }),
-		lua.create(lua.SyntaxKind.DoStatement, { statements }),
+	return luau.list.make<luau.Statement>(
+		luau.create(luau.SyntaxKind.VariableDeclaration, { left: id, right: undefined }),
+		luau.create(luau.SyntaxKind.DoStatement, { statements }),
 	);
 }

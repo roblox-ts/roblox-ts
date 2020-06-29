@@ -1,6 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
-import { TemporaryIdentifier } from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import {
@@ -154,7 +153,7 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 	return { chain, expression };
 }
 
-function transformChainItem(state: TransformState, expression: lua.Expression, item: ChainItem) {
+function transformChainItem(state: TransformState, expression: luau.Expression, item: ChainItem) {
 	if (item.kind === OptionalChainItemKind.PropertyAccess) {
 		return transformPropertyAccessExpressionInner(state, item.node, expression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
@@ -170,15 +169,15 @@ function transformChainItem(state: TransformState, expression: lua.Expression, i
 
 function createOrSetTempId(
 	state: TransformState,
-	tempId: lua.TemporaryIdentifier | undefined,
-	expression: lua.Expression,
+	tempId: luau.TemporaryIdentifier | undefined,
+	expression: luau.Expression,
 ) {
 	if (tempId === undefined) {
 		tempId = state.pushToVar(expression);
 	} else {
 		if (tempId !== expression) {
 			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
+				luau.create(luau.SyntaxKind.Assignment, {
 					left: tempId,
 					operator: "=",
 					right: expression,
@@ -189,11 +188,11 @@ function createOrSetTempId(
 	return tempId;
 }
 
-function createNilCheck(tempId: TemporaryIdentifier, statements: lua.List<lua.Statement>) {
-	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.binary(tempId, "~=", lua.nil()),
+function createNilCheck(tempId: luau.TemporaryIdentifier, statements: luau.List<luau.Statement>) {
+	return luau.create(luau.SyntaxKind.IfStatement, {
+		condition: luau.binary(tempId, "~=", luau.nil()),
 		statements,
-		elseBody: lua.list.make(),
+		elseBody: luau.list.make(),
 	});
 }
 
@@ -204,15 +203,15 @@ function isCompoundCall(item: ChainItem): item is PropertyCallItem | ElementCall
 function transformOptionalChainInner(
 	state: TransformState,
 	chain: Array<ChainItem>,
-	expression: lua.Expression,
-	tempId: lua.TemporaryIdentifier | undefined = undefined,
+	expression: luau.Expression,
+	tempId: luau.TemporaryIdentifier | undefined = undefined,
 	index = 0,
-): lua.Expression {
+): luau.Expression {
 	if (index >= chain.length) return expression;
 	const item = chain[index];
 	if (item.optional || (isCompoundCall(item) && item.callOptional)) {
 		let isMethodCall = false;
-		let selfParam: lua.TemporaryIdentifier | undefined;
+		let selfParam: luau.TemporaryIdentifier | undefined;
 
 		if (isCompoundCall(item)) {
 			isMethodCall = isMethod(state, item.node.expression);
@@ -228,12 +227,12 @@ function transformOptionalChainInner(
 
 			if (item.callOptional) {
 				if (item.kind === OptionalChainItemKind.PropertyCall) {
-					expression = lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+					expression = luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 						expression: convertToIndexableExpression(expression),
 						name: item.name,
 					});
 				} else {
-					expression = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+					expression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(expression),
 						index: transformExpression(state, item.expression),
 					});
@@ -246,22 +245,22 @@ function transformOptionalChainInner(
 			tempId = createOrSetTempId(state, tempId, expression);
 
 			const [newValue, ifStatements] = state.capture(() => {
-				let newExpression: lua.Expression;
+				let newExpression: luau.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
 					const symbol = getFirstDefinedSymbol(state, state.getType(item.node.expression));
 					if (symbol) {
 						const macro = state.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
 							state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
-							return lua.emptyId();
+							return luau.emptyId();
 						}
 					}
 
-					const args = lua.list.make(...ensureTransformOrder(state, item.args));
+					const args = luau.list.make(...ensureTransformOrder(state, item.args));
 					if (isMethodCall) {
-						lua.list.unshift(args, selfParam!);
+						luau.list.unshift(args, selfParam!);
 					}
-					newExpression = lua.create(lua.SyntaxKind.CallExpression, {
+					newExpression = luau.create(luau.SyntaxKind.CallExpression, {
 						expression: tempId!,
 						args,
 					});
@@ -272,22 +271,22 @@ function transformOptionalChainInner(
 			});
 
 			const isUsed =
-				!lua.isEmptyIdentifier(newValue) && !lua.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
+				!luau.isEmptyIdentifier(newValue) && !luau.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
 
 			if (tempId !== newValue && isUsed) {
-				lua.list.push(
+				luau.list.push(
 					ifStatements,
-					lua.create(lua.SyntaxKind.Assignment, {
+					luau.create(luau.SyntaxKind.Assignment, {
 						left: tempId,
 						operator: "=",
 						right: newValue,
 					}),
 				);
 			} else {
-				if (lua.isCall(newValue)) {
-					lua.list.push(
+				if (luau.isCall(newValue)) {
+					luau.list.push(
 						ifStatements,
-						lua.create(lua.SyntaxKind.CallStatement, {
+						luau.create(luau.SyntaxKind.CallStatement, {
 							expression: newValue,
 						}),
 					);
@@ -296,7 +295,7 @@ function transformOptionalChainInner(
 
 			state.prereq(createNilCheck(tempId, ifStatements));
 
-			return isUsed ? tempId : lua.emptyId();
+			return isUsed ? tempId : luau.emptyId();
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {
@@ -320,7 +319,7 @@ function transformOptionalChainInner(
 export function transformOptionalChain(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.CallExpression,
-): lua.Expression {
+): luau.Expression {
 	const { chain, expression } = flattenOptionalChain(state, node);
 	return transformOptionalChainInner(state, chain, transformExpression(state, expression));
 }

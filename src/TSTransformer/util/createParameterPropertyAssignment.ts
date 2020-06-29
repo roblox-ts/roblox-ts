@@ -1,5 +1,5 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
-export function createParameterPropertyAssignment(identifier: lua.Identifier) {
+export function createParameterPropertyAssignment(identifier: luau.Identifier) {
 	return;
 }

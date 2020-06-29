@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { offset } from "TSTransformer/util/offset";
 import { isArrayType } from "TSTransformer/util/types";
@@ -7,7 +7,7 @@ import { isArrayType } from "TSTransformer/util/types";
 export function addOneIfArrayType(
 	state: TransformState,
 	type: ts.Type | ReadonlyArray<ts.Type>,
-	expression: lua.Expression,
+	expression: luau.Expression,
 ) {
 	if (ts.isArray(type) || isArrayType(state, type)) {
 		return offset(expression, 1);

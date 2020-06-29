@@ -1,18 +1,18 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 
 export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
-	return lua.create(lua.SyntaxKind.TrueLiteral, {});
+	return luau.create(luau.SyntaxKind.TrueLiteral, {});
 }
 
 export function transformFalseKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.FalseKeyword>) {
-	return lua.create(lua.SyntaxKind.FalseLiteral, {});
+	return luau.create(luau.SyntaxKind.FalseLiteral, {});
 }
 
 export function transformNumericLiteral(state: TransformState, node: ts.NumericLiteral) {
-	return lua.create(lua.SyntaxKind.NumberLiteral, {
+	return luau.create(luau.SyntaxKind.NumberLiteral, {
 		value: Number(node.text),
 	});
 }

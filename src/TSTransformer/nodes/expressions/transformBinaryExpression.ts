@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -30,15 +30,15 @@ import { wrapToString } from "TSTransformer/util/wrapToString";
 function transformLuaTupleDestructure(
 	state: TransformState,
 	bindingLiteral: ts.ArrayLiteralExpression,
-	value: lua.Expression,
+	value: luau.Expression,
 	accessType: ts.Type,
 ) {
 	let index = 0;
-	const writes = lua.list.make<lua.WritableExpression>();
+	const writes = luau.list.make<luau.WritableExpression>();
 	const statements = state.capturePrereqs(() => {
 		for (let element of bindingLiteral.elements) {
 			if (ts.isOmittedExpression(element)) {
-				lua.list.push(writes, lua.emptyId());
+				luau.list.push(writes, luau.emptyId());
 			} else if (ts.isSpreadElement(element)) {
 				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
 			} else {
@@ -54,20 +54,20 @@ function transformLuaTupleDestructure(
 					ts.isPropertyAccessExpression(element)
 				) {
 					const id = transformWritableExpression(state, element, true);
-					lua.list.push(writes, id);
+					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
 				} else if (ts.isArrayLiteralExpression(element)) {
-					const id = lua.tempId();
-					lua.list.push(writes, id);
+					const id = luau.tempId();
+					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
 					transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 				} else if (ts.isObjectLiteralExpression(element)) {
-					const id = lua.tempId();
-					lua.list.push(writes, id);
+					const id = luau.tempId();
+					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
@@ -80,7 +80,7 @@ function transformLuaTupleDestructure(
 		}
 	});
 	state.prereq(
-		lua.create(lua.SyntaxKind.Assignment, {
+		luau.create(luau.SyntaxKind.Assignment, {
 			left: writes,
 			operator: "=",
 			right: value,
@@ -89,97 +89,97 @@ function transformLuaTupleDestructure(
 	state.prereqList(statements);
 }
 
-function createBinaryIn(left: lua.Expression, right: lua.Expression) {
-	const leftExp = lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+function createBinaryIn(left: luau.Expression, right: luau.Expression) {
+	const leftExp = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(right),
 		index: left,
 	});
-	return lua.binary(leftExp, "~=", lua.nil());
+	return luau.binary(leftExp, "~=", luau.nil());
 }
 
-function createBinaryInstanceOf(state: TransformState, left: lua.Expression, right: lua.Expression) {
+function createBinaryInstanceOf(state: TransformState, left: luau.Expression, right: luau.Expression) {
 	left = state.pushToVarIfComplex(left);
 	right = state.pushToVarIfComplex(right);
 
-	const returnId = state.pushToVar(lua.bool(false));
-	const objId = lua.tempId();
-	const metatableId = lua.tempId();
+	const returnId = state.pushToVar(luau.bool(false));
+	const objId = luau.tempId();
+	const metatableId = luau.tempId();
 
 	state.prereq(
-		lua.create(lua.SyntaxKind.IfStatement, {
-			condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-				left: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.type,
-					args: lua.list.make(left),
+		luau.create(luau.SyntaxKind.IfStatement, {
+			condition: luau.create(luau.SyntaxKind.BinaryExpression, {
+				left: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.type,
+					args: luau.list.make(left),
 				}),
 				operator: "==",
-				right: lua.string("table"),
+				right: luau.string("table"),
 			}),
-			statements: lua.list.make<lua.Statement>(
+			statements: luau.list.make<luau.Statement>(
 				// objId = getmetatable(obj)
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: objId,
-					right: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.getmetatable,
-						args: lua.list.make(left),
+					right: luau.create(luau.SyntaxKind.CallExpression, {
+						expression: luau.globals.getmetatable,
+						args: luau.list.make(left),
 					}),
 				}),
-				lua.create(lua.SyntaxKind.WhileStatement, {
+				luau.create(luau.SyntaxKind.WhileStatement, {
 					// objId ~= nil
-					condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+					condition: luau.create(luau.SyntaxKind.BinaryExpression, {
 						left: objId,
 						operator: "~=",
-						right: lua.nil(),
+						right: luau.nil(),
 					}),
-					statements: lua.list.make<lua.Statement>(
-						lua.create(lua.SyntaxKind.IfStatement, {
+					statements: luau.list.make<luau.Statement>(
+						luau.create(luau.SyntaxKind.IfStatement, {
 							// objId == class
-							condition: lua.create(lua.SyntaxKind.BinaryExpression, {
+							condition: luau.create(luau.SyntaxKind.BinaryExpression, {
 								left: objId,
 								operator: "==",
 								right,
 							}),
-							statements: lua.list.make<lua.Statement>(
+							statements: luau.list.make<luau.Statement>(
 								// returnId = true
 								// break
-								lua.create(lua.SyntaxKind.Assignment, {
+								luau.create(luau.SyntaxKind.Assignment, {
 									left: returnId,
 									operator: "=",
-									right: lua.bool(true),
+									right: luau.bool(true),
 								}),
-								lua.create(lua.SyntaxKind.BreakStatement, {}),
+								luau.create(luau.SyntaxKind.BreakStatement, {}),
 							),
-							elseBody: lua.list.make<lua.Statement>(
+							elseBody: luau.list.make<luau.Statement>(
 								// local metatableId = getmetatable(objId)
-								lua.create(lua.SyntaxKind.VariableDeclaration, {
+								luau.create(luau.SyntaxKind.VariableDeclaration, {
 									left: metatableId,
-									right: lua.create(lua.SyntaxKind.CallExpression, {
-										expression: lua.globals.getmetatable,
-										args: lua.list.make(objId),
+									right: luau.create(luau.SyntaxKind.CallExpression, {
+										expression: luau.globals.getmetatable,
+										args: luau.list.make(objId),
 									}),
 								}),
 								// if metatableId then
-								lua.create(lua.SyntaxKind.IfStatement, {
+								luau.create(luau.SyntaxKind.IfStatement, {
 									condition: metatableId,
-									statements: lua.list.make(
+									statements: luau.list.make(
 										// objId = metatableId.__index
-										lua.create(lua.SyntaxKind.Assignment, {
+										luau.create(luau.SyntaxKind.Assignment, {
 											left: objId,
 											operator: "=",
-											right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+											right: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 												expression: metatableId,
 												name: "__index",
 											}),
 										}),
 									),
-									elseBody: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
+									elseBody: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 								}),
 							),
 						}),
 					),
 				}),
 			),
-			elseBody: lua.list.make(),
+			elseBody: luau.list.make(),
 		}),
 	);
 
@@ -195,13 +195,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		state.addDiagnostic(diagnostics.noEqualsEquals(node));
-		return lua.emptyId();
+		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		state.addDiagnostic(diagnostics.noExclamationEquals(node));
-		return lua.emptyId();
+		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
 		state.addDiagnostic(diagnostics.noComma(node));
-		return lua.emptyId();
+		return luau.emptyId();
 	}
 
 	// logical
@@ -219,12 +219,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			const rightExp = transformExpression(state, node.right);
 			const accessType = state.getType(node.right);
 
-			if (lua.isCall(rightExp) && isLuaTupleType(state, accessType)) {
+			if (luau.isCall(rightExp) && isLuaTupleType(state, accessType)) {
 				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
 				if (!isUsedAsStatement(node)) {
 					state.addDiagnostic(diagnostics.noDestructureAssignmentExpression(node));
 				}
-				return lua.emptyId();
+				return luau.emptyId();
 			}
 
 			const parentId = state.pushToVar(rightExp);

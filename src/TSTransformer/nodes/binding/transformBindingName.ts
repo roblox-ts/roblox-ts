@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
@@ -8,14 +8,14 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 export function transformBindingName(
 	state: TransformState,
 	name: ts.BindingName,
-	initializers: lua.List<lua.Statement>,
+	initializers: luau.List<luau.Statement>,
 ) {
-	let id: lua.AnyIdentifier;
+	let id: luau.AnyIdentifier;
 	if (ts.isIdentifier(name)) {
 		id = transformIdentifierDefined(state, name);
 	} else {
-		id = lua.tempId();
-		lua.list.pushList(
+		id = luau.tempId();
+		luau.list.pushList(
 			initializers,
 			state.capturePrereqs(() => {
 				if (ts.isArrayBindingPattern(name)) {

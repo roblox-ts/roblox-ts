@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import {
@@ -17,11 +17,11 @@ function transformUnaryExpressionStatement(
 	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
 ) {
 	const writable = transformWritableExpression(state, node.operand, false);
-	const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
-	return lua.create(lua.SyntaxKind.Assignment, {
+	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator,
-		right: lua.number(1),
+		right: luau.number(1),
 	});
 }
 
@@ -48,15 +48,15 @@ export function transformExpressionStatementInner(state: TransformState, express
 				operator === undefined,
 			);
 			if (operator !== undefined) {
-				return lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
+				return luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,
 						operator,
 						right: operator === "..=" && !isStringSimpleType(rightSimpleType) ? wrapToString(value) : value,
 					}),
 				);
 			} else {
-				return lua.list.make(
+				return luau.list.make(
 					createCompoundAssignmentStatement(
 						state,
 						writable,
@@ -73,18 +73,18 @@ export function transformExpressionStatementInner(state: TransformState, express
 		(ts.isPrefixUnaryExpression(expression) || ts.isPostfixUnaryExpression(expression)) &&
 		isUnaryAssignmentOperator(expression.operator)
 	) {
-		return lua.list.make(transformUnaryExpressionStatement(state, expression));
+		return luau.list.make(transformUnaryExpressionStatement(state, expression));
 	}
 
 	const transformed = transformExpression(state, expression);
-	if (lua.isCall(transformed)) {
-		return lua.list.make(lua.create(lua.SyntaxKind.CallStatement, { expression: transformed }));
-	} else if (lua.isAnyIdentifier(transformed) || lua.isNilLiteral(transformed)) {
-		return lua.list.make<lua.Statement>();
+	if (luau.isCall(transformed)) {
+		return luau.list.make(luau.create(luau.SyntaxKind.CallStatement, { expression: transformed }));
+	} else if (luau.isAnyIdentifier(transformed) || luau.isNilLiteral(transformed)) {
+		return luau.list.make<luau.Statement>();
 	} else {
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.emptyId(),
+		return luau.list.make(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.emptyId(),
 				right: transformed,
 			}),
 		);

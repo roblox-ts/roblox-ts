@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
@@ -35,8 +35,8 @@ function countImportExpUses(state: TransformState, exportClause?: ts.NamespaceEx
 function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) {
 	assert(node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier));
 
-	const statements = lua.list.make<lua.Statement>();
-	let importExp: lua.IndexableExpression | undefined;
+	const statements = luau.list.make<luau.Statement>();
+	let importExp: luau.IndexableExpression | undefined;
 
 	const exportClause = node.exportClause;
 
@@ -45,11 +45,11 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 	if (uses === 1) {
 		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
 	} else if (uses > 1) {
-		importExp = lua.tempId();
-		lua.list.push(
+		importExp = luau.tempId();
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: importExp as lua.TemporaryIdentifier,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: importExp as luau.TemporaryIdentifier,
 				right: createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 			}),
 		);
@@ -65,15 +65,15 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			// export { a, b, c } from "./module";
 			for (const element of exportClause.elements) {
 				if (isExportSpecifierValue(state, element)) {
-					lua.list.push(
+					luau.list.push(
 						statements,
-						lua.create(lua.SyntaxKind.Assignment, {
-							left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 								expression: moduleId,
 								name: element.name.text,
 							}),
 							operator: "=",
-							right: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+							right: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 								expression: importExp,
 								name: element.name.text,
 							}),
@@ -83,10 +83,10 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			}
 		} else {
 			// export * as foo from "./module";
-			lua.list.push(
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 						expression: moduleId,
 						name: exportClause.name.text,
 					}),
@@ -97,19 +97,19 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		}
 	} else {
 		// export * from "./module";
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
-		lua.list.push(
+		const keyId = luau.tempId();
+		const valueId = luau.tempId();
+		luau.list.push(
 			statements,
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.pairs,
-					args: lua.list.make(importExp),
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make(keyId, valueId),
+				expression: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.pairs,
+					args: luau.list.make(importExp),
 				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: moduleId,
 							index: keyId,
 						}),
@@ -127,11 +127,11 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 }
 
 export function transformExportDeclaration(state: TransformState, node: ts.ExportDeclaration) {
-	if (node.isTypeOnly) return lua.list.make<lua.Statement>();
+	if (node.isTypeOnly) return luau.list.make<luau.Statement>();
 
 	if (node.moduleSpecifier) {
 		return transformExportFrom(state, node);
 	}
 
-	return lua.list.make<lua.Statement>();
+	return luau.list.make<luau.Statement>();
 }

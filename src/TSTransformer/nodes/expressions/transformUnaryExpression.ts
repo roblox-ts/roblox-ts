@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -11,22 +11,22 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 	validateNotAnyType(state, node.operand);
 
 	const writable = transformWritableExpression(state, node.operand, true);
-	const origValue = lua.tempId();
+	const origValue = luau.tempId();
 
 	state.prereq(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: origValue,
 			right: writable,
 		}),
 	);
 
-	const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
 
 	state.prereq(
-		lua.create(lua.SyntaxKind.Assignment, {
+		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
 			operator,
-			right: lua.number(1),
+			right: luau.number(1),
 		}),
 	);
 
@@ -38,24 +38,24 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
 		const writable = transformWritableExpression(state, node.operand, true);
-		const operator: lua.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+		const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
+			luau.create(luau.SyntaxKind.Assignment, {
 				left: writable,
 				operator,
-				right: lua.number(1),
+				right: luau.number(1),
 			}),
 		);
 		return writable;
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
-		return lua.unary("-", transformExpression(state, node.operand));
+		return luau.unary("-", transformExpression(state, node.operand));
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
 		const checks = createTruthinessChecks(
 			state,
 			transformExpression(state, node.operand),
 			state.getType(node.operand),
 		);
-		return lua.unary("not", checks);
+		return luau.unary("not", checks);
 	}
 	assert(false, `Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);
 }

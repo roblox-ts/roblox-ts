@@ -1,15 +1,15 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
 const TEMPLATE_EDGE = "`".length;
 const TEMPLATE_EXP_START = "${".length;
 const TEMPLATE_EXP_END = "}".length;
 
 /**
- * Creates a `lua.StringLiteral` from a `ts.TemplateLiteralToken | ts.StringLiteral`
+ * Creates a `luau.StringLiteral` from a `ts.TemplateLiteralToken | ts.StringLiteral`
  * Cannot just use `node.text` because that converts `\\n` to be `\n`.
  */
-export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral): lua.StringLiteral {
+export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral): luau.StringLiteral {
 	let text = node.getText();
 	if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
 		text = ts.stripQuotes(text);
@@ -23,5 +23,5 @@ export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.Strin
 		// remove starting } and ending `
 		text = text.slice(TEMPLATE_EXP_END, -TEMPLATE_EDGE);
 	}
-	return lua.string(text);
+	return luau.string(text);
 }

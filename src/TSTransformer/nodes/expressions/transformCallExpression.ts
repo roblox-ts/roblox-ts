@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -13,8 +13,8 @@ import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
-function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
-	if (!lua.isCall(exp)) {
+function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
+	if (!luau.isCall(exp)) {
 		return true;
 	}
 
@@ -48,9 +48,9 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: lua.Expression) {
 	return true;
 }
 
-function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: lua.Expression) {
+function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
 	if (isLuaTupleType(state, state.getType(node)) && shouldWrapLuaTuple(node, exp)) {
-		return lua.array([exp]);
+		return luau.array([exp]);
 	}
 	return exp;
 }
@@ -58,7 +58,7 @@ function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, ex
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
-	expression: lua.Expression,
+	expression: luau.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
 	validateNotAnyType(state, node.expression);
@@ -71,8 +71,8 @@ export function transformCallExpressionInner(
 		}
 	}
 
-	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
-	const exp = lua.create(lua.SyntaxKind.CallExpression, {
+	const args = luau.list.make(...ensureTransformOrder(state, nodeArguments));
+	const exp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: convertToIndexableExpression(expression),
 		args,
 	});
@@ -83,7 +83,7 @@ export function transformCallExpressionInner(
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-	expression: lua.Expression,
+	expression: luau.Expression,
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -97,17 +97,17 @@ export function transformPropertyCallExpressionInner(
 		}
 	}
 
-	const args = lua.list.make(...ensureTransformOrder(state, nodeArguments));
-	let exp: lua.Expression;
+	const args = luau.list.make(...ensureTransformOrder(state, nodeArguments));
+	let exp: luau.Expression;
 	if (isMethod(state, node.expression)) {
-		exp = lua.create(lua.SyntaxKind.MethodCallExpression, {
+		exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 			name,
 			expression: convertToIndexableExpression(expression),
 			args,
 		});
 	} else {
-		exp = lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		exp = luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 				expression: convertToIndexableExpression(expression),
 				name,
 			}),
@@ -121,7 +121,7 @@ export function transformPropertyCallExpressionInner(
 export function transformElementCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression & { expression: ts.ElementAccessExpression },
-	expression: lua.Expression,
+	expression: luau.Expression,
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -135,16 +135,16 @@ export function transformElementCallExpressionInner(
 		}
 	}
 
-	const args = lua.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
-	const argumentExp = lua.list.shift(args)!;
+	const args = luau.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
+	const argumentExp = luau.list.shift(args)!;
 
 	if (isMethod(state, node.expression)) {
 		expression = state.pushToVarIfComplex(expression);
-		lua.list.unshift(args, expression);
+		luau.list.unshift(args, expression);
 	}
 
-	const exp = lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	const exp = luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: addOneIfArrayType(state, state.getType(node.expression.expression), argumentExp),
 		}),
@@ -162,32 +162,32 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 			if (insideRoactComponent) {
 				state.addDiagnostic(diagnostics.noSuperPropertyCallRoactComponent(node));
 			}
-			return lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-					expression: lua.globals.super,
+			return luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					expression: luau.globals.super,
 					name: "constructor",
 				}),
-				args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+				args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
 			});
 		} else if (ts.isSuperProperty(node.expression)) {
 			if (insideRoactComponent) {
 				state.addDiagnostic(diagnostics.noSuperConstructorRoactComponent(node));
 			}
 			if (ts.isPropertyAccessExpression(node.expression)) {
-				return lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression: lua.globals.super,
+				return luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+						expression: luau.globals.super,
 						name: node.expression.name.text,
 					}),
-					args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+					args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
 				});
 			} else {
-				return lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
-						expression: lua.globals.super,
+				return luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: luau.globals.super,
 						index: transformExpression(state, node.expression.argumentExpression),
 					}),
-					args: lua.list.make(lua.globals.self, ...ensureTransformOrder(state, node.arguments)),
+					args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
 				});
 			}
 		}

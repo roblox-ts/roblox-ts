@@ -1,11 +1,11 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { isStringSimpleType } from "TSTransformer/util/types";
 
-const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, lua.AssignmentOperator>([
+const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// compound assignment
 	[ts.SyntaxKind.MinusEqualsToken, "-="],
 	[ts.SyntaxKind.AsteriskEqualsToken, "*="],
@@ -36,13 +36,13 @@ export function getSimpleAssignmentOperator(
 
 export function createAssignmentExpression(
 	state: TransformState,
-	readable: lua.WritableExpression,
-	operator: lua.AssignmentOperator,
-	value: lua.Expression,
+	readable: luau.WritableExpression,
+	operator: luau.AssignmentOperator,
+	value: luau.Expression,
 ) {
-	if (lua.isAnyIdentifier(readable)) {
+	if (luau.isAnyIdentifier(readable)) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
+			luau.create(luau.SyntaxKind.Assignment, {
 				left: readable,
 				operator,
 				right: value,
@@ -52,7 +52,7 @@ export function createAssignmentExpression(
 	} else {
 		const id = state.pushToVar(value);
 		state.prereq(
-			lua.create(lua.SyntaxKind.Assignment, {
+			luau.create(luau.SyntaxKind.Assignment, {
 				left: readable,
 				operator,
 				right: id,
@@ -62,9 +62,9 @@ export function createAssignmentExpression(
 	}
 }
 
-function wrapRightIfBinary(expression: lua.Expression) {
-	if (lua.isBinaryExpression(expression) && lua.isBinaryExpression(expression.right)) {
-		expression.right = lua.create(lua.SyntaxKind.ParenthesizedExpression, {
+function wrapRightIfBinary(expression: luau.Expression) {
+	if (luau.isBinaryExpression(expression) && luau.isBinaryExpression(expression.right)) {
+		expression.right = luau.create(luau.SyntaxKind.ParenthesizedExpression, {
 			expression: expression.right,
 		});
 	}
@@ -73,14 +73,14 @@ function wrapRightIfBinary(expression: lua.Expression) {
 
 export function createCompoundAssignmentStatement(
 	state: TransformState,
-	writable: lua.WritableExpression,
+	writable: luau.WritableExpression,
 	writableType: ts.Type,
-	readable: lua.WritableExpression,
+	readable: luau.WritableExpression,
 	operator: ts.SyntaxKind,
-	value: lua.Expression,
+	value: luau.Expression,
 	valueType: ts.Type,
 ) {
-	return lua.create(lua.SyntaxKind.Assignment, {
+	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator: "=",
 		right: wrapRightIfBinary(createBinaryFromOperator(state, readable, writableType, operator, value, valueType)),
@@ -89,11 +89,11 @@ export function createCompoundAssignmentStatement(
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
-	writable: lua.WritableExpression,
+	writable: luau.WritableExpression,
 	writableType: ts.Type,
-	readable: lua.WritableExpression,
+	readable: luau.WritableExpression,
 	operator: ts.SyntaxKind,
-	value: lua.Expression,
+	value: luau.Expression,
 	valueType: ts.Type,
 ) {
 	return createAssignmentExpression(

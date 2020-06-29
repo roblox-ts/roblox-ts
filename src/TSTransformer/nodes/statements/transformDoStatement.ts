@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -13,17 +13,17 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 		createTruthinessChecks(state, transformExpression(state, node.expression), state.getType(node.expression)),
 	);
 
-	return lua.list.make(
-		lua.create(lua.SyntaxKind.RepeatStatement, {
-			statements: lua.list.join(
-				lua.list.make(
-					lua.create(lua.SyntaxKind.DoStatement, {
+	return luau.list.make(
+		luau.create(luau.SyntaxKind.RepeatStatement, {
+			statements: luau.list.join(
+				luau.list.make(
+					luau.create(luau.SyntaxKind.DoStatement, {
 						statements,
 					}),
 				),
 				conditionPrereqs,
 			),
-			condition: lua.unary("not", condition),
+			condition: luau.unary("not", condition),
 		}),
 	);
 }

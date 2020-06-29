@@ -1,12 +1,12 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { skipDownwards } from "TSTransformer/util/traversal";
 
 export function transformAwaitExpression(state: TransformState, node: ts.AwaitExpression) {
-	return lua.create(lua.SyntaxKind.CallExpression, {
+	return luau.create(luau.SyntaxKind.CallExpression, {
 		expression: state.TS("await"),
-		args: lua.list.make(transformExpression(state, skipDownwards(node.expression))),
+		args: luau.list.make(transformExpression(state, skipDownwards(node.expression))),
 	});
 }

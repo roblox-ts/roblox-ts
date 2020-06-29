@@ -6,7 +6,7 @@ import yargs from "yargs";
 
 const cli = yargs
 	// help
-	.usage("roblox-ts - A TypeScript-to-Lua Compiler for Roblox")
+	.usage("roblox-ts - A TypeScript-to-Luau Compiler for Roblox")
 	.help("help")
 	.alias("h", "help")
 	.describe("help", "show help information")

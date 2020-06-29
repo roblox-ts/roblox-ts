@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -13,31 +13,31 @@ export function transformWhileStatementInner(state: TransformState, condition: t
 		createTruthinessChecks(state, transformExpression(state, condition), state.getType(condition)),
 	);
 
-	if (lua.list.isEmpty(conditionPrereqs)) {
-		return lua.create(lua.SyntaxKind.WhileStatement, {
+	if (luau.list.isEmpty(conditionPrereqs)) {
+		return luau.create(luau.SyntaxKind.WhileStatement, {
 			condition: conditionExp,
 			statements,
 		});
 	} else {
-		const whileStatements = lua.list.make<lua.Statement>();
-		lua.list.pushList(whileStatements, conditionPrereqs);
-		lua.list.push(
+		const whileStatements = luau.list.make<luau.Statement>();
+		luau.list.pushList(whileStatements, conditionPrereqs);
+		luau.list.push(
 			whileStatements,
-			lua.create(lua.SyntaxKind.IfStatement, {
-				condition: lua.unary("not", conditionExp),
-				statements: lua.list.make(lua.create(lua.SyntaxKind.BreakStatement, {})),
-				elseBody: lua.list.make(),
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.unary("not", conditionExp),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+				elseBody: luau.list.make(),
 			}),
 		);
-		lua.list.pushList(whileStatements, statements);
+		luau.list.pushList(whileStatements, statements);
 
-		return lua.create(lua.SyntaxKind.WhileStatement, {
-			condition: lua.bool(true),
+		return luau.create(luau.SyntaxKind.WhileStatement, {
+			condition: luau.bool(true),
 			statements: whileStatements,
 		});
 	}
 }
 
 export function transformWhileStatement(state: TransformState, node: ts.WhileStatement) {
-	return lua.list.make(transformWhileStatementInner(state, node.expression, node.statement));
+	return luau.list.make(transformWhileStatementInner(state, node.expression, node.statement));
 }

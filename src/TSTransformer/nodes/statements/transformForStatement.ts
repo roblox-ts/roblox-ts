@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -71,9 +71,9 @@ function getOptimizedForStatement(
 	const id = transformIdentifierDefined(state, varDec.name);
 	const start = state.noPrereqs(() => transformExpression(state, varDecInit));
 	const end = state.noPrereqs(() => transformExpression(state, condition.right));
-	const step = stepValue === 1 ? undefined : lua.number(stepValue);
+	const step = stepValue === 1 ? undefined : luau.number(stepValue);
 	const statements = transformStatementList(state, getStatements(statement));
-	return lua.create(lua.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
+	return luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement) {
@@ -86,44 +86,44 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	// 		node.statement,
 	// 	);
 	// 	if (optimized) {
-	// 		return lua.list.make(optimized);
+	// 		return luau.list.make(optimized);
 	// 	}
 	// }
 
-	const statements = lua.list.make<lua.Statement>();
+	const statements = luau.list.make<luau.Statement>();
 
 	const nodeInitializer = node.initializer;
 	if (nodeInitializer) {
 		if (ts.isVariableDeclarationList(nodeInitializer)) {
 			for (const variableDeclaration of nodeInitializer.declarations) {
-				lua.list.pushList(statements, transformVariableDeclaration(state, variableDeclaration));
+				luau.list.pushList(statements, transformVariableDeclaration(state, variableDeclaration));
 			}
 		} else {
-			lua.list.pushList(statements, transformExpressionStatementInner(state, nodeInitializer));
+			luau.list.pushList(statements, transformExpressionStatementInner(state, nodeInitializer));
 		}
 	}
 
-	let whileStatement: lua.WhileStatement;
+	let whileStatement: luau.WhileStatement;
 	if (node.condition) {
 		whileStatement = transformWhileStatementInner(state, node.condition, node.statement);
 	} else {
 		const statement = node.statement;
 		const statements = transformStatementList(state, getStatements(statement));
-		whileStatement = lua.create(lua.SyntaxKind.WhileStatement, {
-			condition: lua.bool(true),
+		whileStatement = luau.create(luau.SyntaxKind.WhileStatement, {
+			condition: luau.bool(true),
 			statements,
 		});
 	}
-	lua.list.push(statements, whileStatement);
+	luau.list.push(statements, whileStatement);
 
 	const nodeIncrementor = node.incrementor;
 	if (nodeIncrementor) {
-		lua.list.pushList(whileStatement.statements, transformExpressionStatementInner(state, nodeIncrementor));
+		luau.list.pushList(whileStatement.statements, transformExpressionStatementInner(state, nodeIncrementor));
 	}
 
 	if (statements.head === statements.tail) {
 		return statements;
 	} else {
-		return lua.list.make<lua.Statement>(lua.create(lua.SyntaxKind.DoStatement, { statements }));
+		return luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
 	}
 }

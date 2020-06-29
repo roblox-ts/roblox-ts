@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
@@ -12,8 +12,8 @@ export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.T
 	return isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString;
 }
 
-export function createTruthinessChecks(state: TransformState, exp: lua.Expression, nodeType: ts.Type) {
-	const checks = new Array<lua.Expression>();
+export function createTruthinessChecks(state: TransformState, exp: luau.Expression, nodeType: ts.Type) {
+	const checks = new Array<luau.Expression>();
 
 	const simpleType = state.getSimpleType(nodeType);
 	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
@@ -25,16 +25,16 @@ export function createTruthinessChecks(state: TransformState, exp: lua.Expressio
 	}
 
 	if (isAssignableToZero) {
-		checks.push(lua.binary(exp, "~=", lua.create(lua.SyntaxKind.NumberLiteral, { value: 0 })));
+		checks.push(luau.binary(exp, "~=", luau.create(luau.SyntaxKind.NumberLiteral, { value: 0 })));
 	}
 
 	// workaround for https://github.com/microsoft/TypeScript/issues/32778
 	if (isAssignableToZero || isAssignableToNaN) {
-		checks.push(lua.binary(exp, "==", exp));
+		checks.push(luau.binary(exp, "==", exp));
 	}
 
 	if (isAssignableToEmptyString) {
-		checks.push(lua.binary(exp, "~=", lua.create(lua.SyntaxKind.StringLiteral, { value: "" })));
+		checks.push(luau.binary(exp, "~=", luau.create(luau.SyntaxKind.StringLiteral, { value: "" })));
 	}
 
 	checks.push(exp);

@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -20,7 +20,7 @@ import {
 import { isArrayType, isMapType, canBeUndefined } from "TSTransformer/util/types";
 
 function Roact(...indices: Array<string>) {
-	return propertyAccessExpressionChain(lua.id("Roact"), indices);
+	return propertyAccessExpressionChain(luau.id("Roact"), indices);
 }
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
@@ -30,7 +30,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 			assert(state.roactSymbolManager);
 			const className = state.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
 			if (className !== undefined) {
-				return lua.string(className);
+				return luau.string(className);
 			}
 		}
 	}
@@ -39,7 +39,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		if (ts.isPrivateIdentifier(node.name)) {
 			state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
 		}
-		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 			expression: convertToIndexableExpression(transformExpression(state, node.expression)),
 			name: node.name.text,
 		});
@@ -51,14 +51,14 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 function transformJsxInitializer(
 	state: TransformState,
 	initializer: ts.Expression | undefined,
-): [lua.Expression, lua.List<lua.Statement>] {
+): [luau.Expression, luau.List<luau.Statement>] {
 	if (initializer && ts.isJsxExpression(initializer)) {
 		initializer = initializer.expression;
 	}
 	if (initializer) {
 		return state.capture(() => transformExpression(state, initializer!));
 	} else {
-		return [lua.bool(true), lua.list.make<lua.Statement>()];
+		return [luau.bool(true), luau.list.make<luau.Statement>()];
 	}
 }
 
@@ -72,8 +72,8 @@ function getAttributes(node: ts.JsxElement | ts.JsxSelfClosingElement) {
 
 function createJsxAttributeLoop(
 	state: TransformState,
-	attributesPtrValue: lua.AnyIdentifier,
-	expression: lua.Expression,
+	attributesPtrValue: luau.AnyIdentifier,
+	expression: luau.Expression,
 	type: ts.Type,
 ) {
 	const possiblyUndefined = canBeUndefined(state, type);
@@ -81,17 +81,17 @@ function createJsxAttributeLoop(
 		expression = state.pushToVarIfComplex(expression);
 	}
 
-	const keyId = lua.tempId();
-	const valueId = lua.tempId();
-	let statement: lua.Statement = lua.create(lua.SyntaxKind.ForStatement, {
-		ids: lua.list.make(keyId, valueId),
-		expression: lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.pairs,
-			args: lua.list.make(expression),
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
 		}),
-		statements: lua.list.make(
-			lua.create(lua.SyntaxKind.Assignment, {
-				left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: attributesPtrValue,
 					index: keyId,
 				}),
@@ -102,10 +102,10 @@ function createJsxAttributeLoop(
 	});
 
 	if (possiblyUndefined) {
-		statement = lua.create(lua.SyntaxKind.IfStatement, {
+		statement = luau.create(luau.SyntaxKind.IfStatement, {
 			condition: expression,
-			statements: lua.list.make(statement),
-			elseBody: lua.list.make(),
+			statements: luau.list.make(statement),
+			elseBody: luau.list.make(),
 		});
 	}
 
@@ -114,15 +114,15 @@ function createJsxAttributeLoop(
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(
-	childrenPtrValue: lua.AnyIdentifier,
-	lengthId: lua.AnyIdentifier,
-	key: lua.Expression,
-	value: lua.Expression,
+	childrenPtrValue: luau.AnyIdentifier,
+	lengthId: luau.AnyIdentifier,
+	key: luau.Expression,
+	value: luau.Expression,
 ) {
-	return lua.create(lua.SyntaxKind.Assignment, {
-		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	return luau.create(luau.SyntaxKind.Assignment, {
+		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: childrenPtrValue,
-			index: lua.binary(lengthId, "+", key),
+			index: luau.binary(lengthId, "+", key),
 		}),
 		operator: "=",
 		right: value,
@@ -131,12 +131,12 @@ function createJsxAddNumericChild(
 
 /** `children[keyId] = valueId` */
 function createJsxAddKeyChild(
-	childrenPtrValue: lua.AnyIdentifier,
-	keyId: lua.TemporaryIdentifier,
-	valueId: lua.TemporaryIdentifier,
+	childrenPtrValue: luau.AnyIdentifier,
+	keyId: luau.TemporaryIdentifier,
+	valueId: luau.TemporaryIdentifier,
 ) {
-	return lua.create(lua.SyntaxKind.Assignment, {
-		left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	return luau.create(luau.SyntaxKind.Assignment, {
+		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: childrenPtrValue,
 			index: keyId,
 		}),
@@ -146,102 +146,102 @@ function createJsxAddKeyChild(
 }
 
 function createJsxAddNumericChildren(
-	childrenPtrValue: lua.AnyIdentifier,
-	lengthId: lua.AnyIdentifier,
-	expression: lua.Expression,
+	childrenPtrValue: luau.AnyIdentifier,
+	lengthId: luau.AnyIdentifier,
+	expression: luau.Expression,
 ) {
-	const keyId = lua.tempId();
-	const valueId = lua.tempId();
-	return lua.create(lua.SyntaxKind.ForStatement, {
-		ids: lua.list.make(keyId, valueId),
-		expression: lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.pairs,
-			args: lua.list.make(expression),
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
 		}),
-		statements: lua.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
+		statements: luau.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
 	});
 }
 
 function createJsxAddAmbiguousChildren(
-	childrenPtrValue: lua.AnyIdentifier,
-	lengthId: lua.AnyIdentifier,
-	expression: lua.Expression,
+	childrenPtrValue: luau.AnyIdentifier,
+	lengthId: luau.AnyIdentifier,
+	expression: luau.Expression,
 ) {
-	const keyId = lua.tempId();
-	const valueId = lua.tempId();
-	return lua.create(lua.SyntaxKind.ForStatement, {
-		ids: lua.list.make(keyId, valueId),
-		expression: lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.pairs,
-			args: lua.list.make(expression),
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
 		}),
-		statements: lua.list.make<lua.Statement>(
-			lua.create(lua.SyntaxKind.IfStatement, {
+		statements: luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.IfStatement, {
 				// type(keyId) == "string"
-				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.CallExpression, {
-						expression: lua.globals.type,
-						args: lua.list.make(keyId),
+				condition: luau.create(luau.SyntaxKind.BinaryExpression, {
+					left: luau.create(luau.SyntaxKind.CallExpression, {
+						expression: luau.globals.type,
+						args: luau.list.make(keyId),
 					}),
 					operator: "==",
-					right: lua.strings.number,
+					right: luau.strings.number,
 				}),
-				statements: lua.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
-				elseBody: lua.list.make(createJsxAddKeyChild(childrenPtrValue, keyId, valueId)),
+				statements: luau.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
+				elseBody: luau.list.make(createJsxAddKeyChild(childrenPtrValue, keyId, valueId)),
 			}),
 		),
 	});
 }
 
 function createJsxAddAmbiguousChild(
-	childrenPtrValue: lua.AnyIdentifier,
+	childrenPtrValue: luau.AnyIdentifier,
 	amtChildrenSinceUpdate: number,
-	lengthId: lua.AnyIdentifier,
-	expression: lua.IndexableExpression,
+	lengthId: luau.AnyIdentifier,
+	expression: luau.IndexableExpression,
 ) {
-	return lua.create(lua.SyntaxKind.IfStatement, {
-		condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-			left: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.type,
-				args: lua.list.make(expression),
+	return luau.create(luau.SyntaxKind.IfStatement, {
+		condition: luau.create(luau.SyntaxKind.BinaryExpression, {
+			left: luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.type,
+				args: luau.list.make(expression),
 			}),
 			operator: "==",
-			right: lua.strings.table,
+			right: luau.strings.table,
 		}),
-		statements: lua.list.make(
-			lua.create(lua.SyntaxKind.IfStatement, {
-				condition: lua.create(lua.SyntaxKind.BinaryExpression, {
-					left: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.create(luau.SyntaxKind.BinaryExpression, {
+					left: luau.create(luau.SyntaxKind.BinaryExpression, {
+						left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 							expression,
 							name: "props",
 						}),
 						operator: "~=",
-						right: lua.nil(),
+						right: luau.nil(),
 					}),
 
 					operator: "and",
-					right: lua.create(lua.SyntaxKind.BinaryExpression, {
-						left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+					right: luau.create(luau.SyntaxKind.BinaryExpression, {
+						left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 							expression,
 							name: "component",
 						}),
 						operator: "~=",
-						right: lua.nil(),
+						right: luau.nil(),
 					}),
 				}),
-				statements: lua.list.make(
+				statements: luau.list.make(
 					createJsxAddNumericChild(
 						childrenPtrValue,
 						lengthId,
-						lua.number(amtChildrenSinceUpdate + 1),
+						luau.number(amtChildrenSinceUpdate + 1),
 						expression,
 					),
 				),
-				elseBody: lua.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
+				elseBody: luau.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
 			}),
 		),
-		elseBody: lua.list.make(),
+		elseBody: luau.list.make(),
 	});
 }
 
@@ -249,7 +249,7 @@ function createJsxAddAmbiguousChild(
 function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNameExpression) {
 	const [expression, prereqs] = state.capture(() => transformJsxTagNameExpression(state, tagName));
 	let tagNameExp = expression;
-	if (!lua.list.isEmpty(prereqs)) {
+	if (!luau.list.isEmpty(prereqs)) {
 		state.prereqList(prereqs);
 		tagNameExp = state.pushToVarIfComplex(tagNameExp);
 	}
@@ -290,7 +290,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 		for (const property of expression.properties) {
 			assert(ts.isPropertyAssignment(property) && ts.isIdentifier(property.name));
 			const [init, initPrereqs] = transformJsxInitializer(state, property.initializer);
-			if (!lua.list.isEmpty(initPrereqs)) {
+			if (!luau.list.isEmpty(initPrereqs)) {
 				disableMapInline(state, attributesPtr);
 			}
 			state.prereqList(initPrereqs);
@@ -300,20 +300,20 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 		disableMapInline(state, attributesPtr);
 
 		const init = transformExpression(state, expression);
-		const keyId = lua.tempId();
-		const valueId = lua.tempId();
+		const keyId = luau.tempId();
+		const valueId = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make(keyId, valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.pairs,
-					args: lua.list.make(init),
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make(keyId, valueId),
+				expression: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.pairs,
+					args: luau.list.make(init),
 				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: attributesPtr.value,
-							index: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 								expression: Roact(attribute.name.text),
 								index: keyId,
 							}),
@@ -337,12 +337,12 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 	}
 
 	const [init, initPrereqs] = transformJsxInitializer(state, attribute.initializer);
-	if (!lua.list.isEmpty(initPrereqs)) {
+	if (!luau.list.isEmpty(initPrereqs)) {
 		disableMapInline(state, attributesPtr);
 		state.prereqList(initPrereqs);
 	}
 
-	const name = attributeName === REF_ATTRIBUTE_NAME ? Roact("Ref") : lua.string(attributeName);
+	const name = attributeName === REF_ATTRIBUTE_NAME ? Roact("Ref") : luau.string(attributeName);
 	assignToMapPointer(state, attributesPtr, name, init);
 }
 
@@ -367,15 +367,15 @@ function transformJsxChildren(
 	attributesPtr: MapPointer,
 	childrenPtr: MixedTablePointer,
 ) {
-	const lengthId = lua.tempId();
+	const lengthId = luau.tempId();
 	let lengthInitialized = false;
 	let amtChildrenSinceUpdate = 0;
 
 	function updateLengthId() {
-		const right = lua.unary("#", childrenPtr.value);
+		const right = luau.unary("#", childrenPtr.value);
 		if (lengthInitialized) {
 			state.prereq(
-				lua.create(lua.SyntaxKind.Assignment, {
+				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,
 					operator: "=",
 					right,
@@ -383,7 +383,7 @@ function transformJsxChildren(
 			);
 		} else {
 			state.prereq(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: lengthId,
 					right,
 				}),
@@ -394,8 +394,8 @@ function transformJsxChildren(
 	}
 
 	function disableInline() {
-		if (lua.isMixedTable(childrenPtr.value)) {
-			if (lua.isMap(attributesPtr.value) && !lua.list.isEmpty(attributesPtr.value.fields)) {
+		if (luau.isMixedTable(childrenPtr.value)) {
+			if (luau.isMap(attributesPtr.value) && !luau.list.isEmpty(attributesPtr.value.fields)) {
 				disableMapInline(state, attributesPtr);
 			}
 			disableMixedTableInline(state, childrenPtr);
@@ -419,7 +419,7 @@ function transformJsxChildren(
 			const innerExp = child.expression;
 			if (innerExp) {
 				const [expression, prereqs] = state.capture(() => transformExpression(state, innerExp));
-				if (!lua.list.isEmpty(prereqs)) {
+				if (!luau.list.isEmpty(prereqs)) {
 					state.prereqList(prereqs);
 					disableInline();
 				}
@@ -427,21 +427,21 @@ function transformJsxChildren(
 				if (child.dotDotDotToken) {
 					// spread children
 					disableInline();
-					assert(lua.isAnyIdentifier(childrenPtr.value));
+					assert(luau.isAnyIdentifier(childrenPtr.value));
 					state.prereqList(prereqs);
 					state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
 
 					if (state.roactSymbolManager && state.roactSymbolManager.isElementType(type)) {
-						if (lua.isMixedTable(childrenPtr.value)) {
-							lua.list.push(childrenPtr.value.fields, expression);
+						if (luau.isMixedTable(childrenPtr.value)) {
+							luau.list.push(childrenPtr.value.fields, expression);
 						} else {
 							state.prereq(
 								createJsxAddNumericChild(
 									childrenPtr.value,
 									lengthId,
-									lua.number(amtChildrenSinceUpdate + 1),
+									luau.number(amtChildrenSinceUpdate + 1),
 									expression,
 								),
 							);
@@ -449,15 +449,15 @@ function transformJsxChildren(
 						amtChildrenSinceUpdate++;
 					} else if (isArrayType(state, type)) {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(luau.isAnyIdentifier(childrenPtr.value));
 						state.prereq(createJsxAddNumericChildren(childrenPtr.value, lengthId, expression));
 					} else if (isMapType(state, type)) {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(luau.isAnyIdentifier(childrenPtr.value));
 						state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 					} else {
 						disableInline();
-						assert(lua.isAnyIdentifier(childrenPtr.value));
+						assert(luau.isAnyIdentifier(childrenPtr.value));
 						state.prereq(
 							createJsxAddAmbiguousChild(
 								childrenPtr.value,
@@ -474,23 +474,23 @@ function transformJsxChildren(
 			}
 		} else {
 			const [expression, prereqs] = state.capture(() => transformExpression(state, child));
-			if (!lua.list.isEmpty(prereqs)) {
+			if (!luau.list.isEmpty(prereqs)) {
 				disableInline();
 			}
 			state.prereqList(prereqs);
 
 			const key = getKeyValue(child);
 			if (key) {
-				assignToMixedTablePointer(state, childrenPtr, lua.string(key), expression);
+				assignToMixedTablePointer(state, childrenPtr, luau.string(key), expression);
 			} else {
-				if (lua.isMixedTable(childrenPtr.value)) {
-					lua.list.push(childrenPtr.value.fields, expression);
+				if (luau.isMixedTable(childrenPtr.value)) {
+					luau.list.push(childrenPtr.value.fields, expression);
 				} else {
 					state.prereq(
 						createJsxAddNumericChild(
 							childrenPtr.value,
 							lengthId,
-							lua.number(amtChildrenSinceUpdate + 1),
+							luau.number(amtChildrenSinceUpdate + 1),
 							expression,
 						),
 					);
@@ -513,26 +513,26 @@ export function transformJsx(
 		state.typeChecker.getSymbolAtLocation(tagName) ===
 			state.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
-	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : lua.emptyId();
+	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.emptyId();
 	const attributesPtr = createMapPointer();
 	const childrenPtr = createMixedTablePointer();
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
-	const args = lua.list.make<lua.Expression>();
+	const args = luau.list.make<luau.Expression>();
 	if (!isFragment) {
-		lua.list.push(args, tagNameExp);
+		luau.list.push(args, tagNameExp);
 	}
-	const pushAttributes = lua.isAnyIdentifier(attributesPtr.value) || !lua.list.isEmpty(attributesPtr.value.fields);
-	const pushChildren = lua.isAnyIdentifier(childrenPtr.value) || !lua.list.isEmpty(childrenPtr.value.fields);
+	const pushAttributes = luau.isAnyIdentifier(attributesPtr.value) || !luau.list.isEmpty(attributesPtr.value.fields);
+	const pushChildren = luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields);
 	if (!isFragment && (pushAttributes || pushChildren)) {
-		lua.list.push(args, attributesPtr.value);
+		luau.list.push(args, attributesPtr.value);
 	}
 	if (pushChildren) {
-		lua.list.push(args, childrenPtr.value);
+		luau.list.push(args, childrenPtr.value);
 	}
 
-	let result: lua.Expression = lua.create(lua.SyntaxKind.CallExpression, {
+	let result: luau.Expression = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: isFragment ? Roact("createFragment") : Roact("createElement"),
 		args,
 	});
@@ -542,9 +542,9 @@ export function transformJsx(
 	if (!ts.isJsxElement(node.parent)) {
 		const key = getKeyValue(node);
 		if (key) {
-			result = lua.create(lua.SyntaxKind.CallExpression, {
+			result = luau.create(luau.SyntaxKind.CallExpression, {
 				expression: Roact("createFragment"),
-				args: lua.list.make(lua.map([[lua.string(key), result]])),
+				args: luau.list.make(luau.map([[luau.string(key), result]])),
 			});
 		}
 	}

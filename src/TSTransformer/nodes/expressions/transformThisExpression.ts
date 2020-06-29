@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { diagnostics } from "Shared/diagnostics";
 
@@ -9,5 +9,5 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 		state.addDiagnostic(diagnostics.noGlobalThis(node));
 	}
 
-	return lua.globals.self;
+	return luau.globals.self;
 }

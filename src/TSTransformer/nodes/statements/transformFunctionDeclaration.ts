@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -8,7 +8,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.body) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
@@ -22,16 +22,16 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		localize = state.isHoisted.get(symbol) !== true;
 	}
 
-	const name = node.name ? transformIdentifierDefined(state, node.name) : lua.id("default");
+	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
 
 	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
-	lua.list.pushList(statements, transformStatementList(state, node.body.statements));
+	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
-		const right = lua.create(lua.SyntaxKind.CallExpression, {
+		const right = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("async"),
-			args: lua.list.make(
-				lua.create(lua.SyntaxKind.FunctionExpression, {
+			args: luau.list.make(
+				luau.create(luau.SyntaxKind.FunctionExpression, {
 					hasDotDotDot,
 					parameters,
 					statements,
@@ -39,15 +39,15 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 			),
 		});
 		if (localize) {
-			return lua.list.make(
-				lua.create(lua.SyntaxKind.VariableDeclaration, {
+			return luau.list.make(
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: name,
 					right,
 				}),
 			);
 		} else {
-			return lua.list.make(
-				lua.create(lua.SyntaxKind.Assignment, {
+			return luau.list.make(
+				luau.create(luau.SyntaxKind.Assignment, {
 					left: name,
 					operator: "=",
 					right,
@@ -55,8 +55,8 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 			);
 		}
 	} else {
-		return lua.list.make(
-			lua.create(lua.SyntaxKind.FunctionDeclaration, { localize, name, statements, parameters, hasDotDotDot }),
+		return luau.list.make(
+			luau.create(luau.SyntaxKind.FunctionDeclaration, { localize, name, statements, parameters, hasDotDotDot }),
 		);
 	}
 }

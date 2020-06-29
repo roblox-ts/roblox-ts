@@ -1,11 +1,11 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { isStringSimpleType } from "TSTransformer/util/types";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
-const OPERATOR_MAP = new Map<ts.SyntaxKind, lua.BinaryOperator>([
+const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
 	[ts.SyntaxKind.LessThanToken, "<"],
 	[ts.SyntaxKind.GreaterThanToken, ">"],
@@ -40,32 +40,32 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 
 function createBinaryAdd(
 	state: TransformState,
-	left: lua.Expression,
+	left: luau.Expression,
 	leftType: ts.Type,
-	right: lua.Expression,
+	right: luau.Expression,
 	rightType: ts.Type,
 ) {
 	const leftIsString = isStringSimpleType(state.getSimpleType(leftType));
 	const rightIsString = isStringSimpleType(state.getSimpleType(rightType));
 	if (leftIsString || rightIsString) {
-		return lua.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
+		return luau.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
 	} else {
-		return lua.binary(left, "+", right);
+		return luau.binary(left, "+", right);
 	}
 }
 
 export function createBinaryFromOperator(
 	state: TransformState,
-	left: lua.Expression,
+	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.SyntaxKind,
-	right: lua.Expression,
+	right: luau.Expression,
 	rightType: ts.Type,
-): lua.Expression {
+): luau.Expression {
 	// simple
 	const operator = OPERATOR_MAP.get(operatorKind);
 	if (operator !== undefined) {
-		return lua.binary(left, operator, right);
+		return luau.binary(left, operator, right);
 	}
 
 	// plus
@@ -76,12 +76,12 @@ export function createBinaryFromOperator(
 	// bitwise
 	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
 	if (bit32Name !== undefined) {
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-				expression: lua.globals.bit32,
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+				expression: luau.globals.bit32,
 				name: bit32Name,
 			}),
-			args: lua.list.make(left, right),
+			args: luau.list.make(left, right),
 		});
 	}
 
@@ -89,9 +89,9 @@ export function createBinaryFromOperator(
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
 	) {
-		return lua.create(lua.SyntaxKind.CallExpression, {
+		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("bit_lrsh"),
-			args: lua.list.make(left, right),
+			args: luau.list.make(left, right),
 		});
 	}
 

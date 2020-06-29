@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
@@ -11,12 +11,12 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformArrayBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ArrayBindingPattern,
-	parentId: lua.AnyIdentifier,
+	parentId: luau.AnyIdentifier,
 ) {
 	validateNotAnyType(state, bindingPattern);
 
 	let index = 0;
-	const idStack = new Array<lua.AnyIdentifier>();
+	const idStack = new Array<luau.AnyIdentifier>();
 	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {

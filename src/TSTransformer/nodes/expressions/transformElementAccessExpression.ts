@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -14,7 +14,7 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformElementAccessExpressionInner(
 	state: TransformState,
 	node: ts.ElementAccessExpression,
-	expression: lua.Expression,
+	expression: luau.Expression,
 	argumentExpression: ts.Expression,
 ) {
 	validateNotAnyType(state, node.expression);
@@ -24,13 +24,13 @@ export function transformElementAccessExpressionInner(
 	if (symbol) {
 		if (state.macroManager.getPropertyCallMacro(symbol)) {
 			state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
-			return lua.emptyId();
+			return luau.emptyId();
 		}
 	}
 
 	if (isMethod(state, node)) {
 		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
-		return lua.emptyId();
+		return luau.emptyId();
 	}
 
 	if (ts.isPrototypeAccess(node)) {
@@ -39,16 +39,16 @@ export function transformElementAccessExpressionInner(
 
 	const constantValue = state.typeChecker.getConstantValue(node);
 	if (constantValue !== undefined) {
-		return typeof constantValue === "string" ? lua.string(constantValue) : lua.number(constantValue);
+		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
 	}
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
 	const expType = state.getType(node.expression);
-	if (!lua.list.isEmpty(prereqs)) {
+	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
 		if (isLuaTupleType(state, expType)) {
-			expression = lua.array([expression]);
+			expression = luau.array([expression]);
 		}
 
 		expression = state.pushToVar(expression);
@@ -56,19 +56,19 @@ export function transformElementAccessExpressionInner(
 	}
 
 	// LuaTuple<T> checks
-	if (lua.isCall(expression) && isLuaTupleType(state, expType)) {
+	if (luau.isCall(expression) && isLuaTupleType(state, expType)) {
 		// wrap in select() if it isn't the first value
-		if (!lua.isNumberLiteral(index) || index.value !== 0) {
-			expression = lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.select,
-				args: lua.list.make<lua.Expression>(offset(index, 1), expression),
+		if (!luau.isNumberLiteral(index) || index.value !== 0) {
+			expression = luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.select,
+				args: luau.list.make<luau.Expression>(offset(index, 1), expression),
 			});
 		}
 		// parentheses to trim off the rest of the values
-		return lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression });
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 	}
 
-	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfArrayType(state, expType, index),
 	});

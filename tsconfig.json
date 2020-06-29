@@ -8,8 +8,8 @@
 		{ "path": "./src/Shared" },
 		{ "path": "./src/CLI" },
 		{ "path": "./src/Project" },
-		{ "path": "./src/LuaAST" },
-		{ "path": "./src/LuaRenderer" },
+		{ "path": "./src/LuauAST" },
+		{ "path": "./src/LuauRenderer" },
 		{ "path": "./src/TSTransformer" }
 	]
 }

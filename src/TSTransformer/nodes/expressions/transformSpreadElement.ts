@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -17,8 +17,8 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	assert(isArrayType(state, state.getType(node.expression)));
 
-	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.globals.unpack,
-		args: lua.list.make(transformExpression(state, node.expression)),
+	return luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.unpack,
+		args: luau.list.make(transformExpression(state, node.expression)),
 	});
 }

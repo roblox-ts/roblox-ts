@@ -1,20 +1,20 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { ConstructorMacro, MacroList } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
-	return lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.globals.setmetatable,
-		args: lua.list.make<lua.Expression>(macro(state, node), lua.map([[lua.strings.__mode, lua.strings.k]])),
+	return luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.setmetatable,
+		args: luau.list.make<luau.Expression>(macro(state, node), luau.map([[luau.strings.__mode, luau.strings.k]])),
 	});
 }
 
-function isFlatMap(expression: lua.Expression): expression is lua.Array<lua.Array> {
-	if (lua.isArray(expression)) {
-		return lua.list.every(expression.members, member => lua.isArray(member));
+function isFlatMap(expression: luau.Expression): expression is luau.Array<luau.Array> {
+	if (luau.isArray(expression)) {
+		return luau.list.every(expression.members, member => luau.isArray(member));
 	}
 	return false;
 }
@@ -22,40 +22,40 @@ function isFlatMap(expression: lua.Expression): expression is lua.Array<lua.Arra
 const ArrayConstructor: ConstructorMacro = (state, node) => {
 	if (node.arguments && node.arguments.length > 0) {
 		const args = ensureTransformOrder(state, node.arguments);
-		return lua.create(lua.SyntaxKind.CallExpression, {
-			expression: lua.globals.table.create,
-			args: lua.list.make(...args),
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.table.create,
+			args: luau.list.make(...args),
 		});
 	}
-	return lua.array();
+	return luau.array();
 };
 
 const SetConstructor: ConstructorMacro = (state, node) => {
 	if (!node.arguments || node.arguments.length === 0) {
-		return lua.set();
+		return luau.set();
 	}
 	const arg = node.arguments[0];
 	// spreads cause prereq array, which cannot be optimised like this
 	if (ts.isArrayLiteralExpression(arg) && !arg.elements.some(ts.isSpreadElement)) {
-		return lua.set(ensureTransformOrder(state, arg.elements));
+		return luau.set(ensureTransformOrder(state, arg.elements));
 	} else {
-		const id = state.pushToVar(lua.set());
-		const valueId = lua.tempId();
+		const id = state.pushToVar(luau.set());
+		const valueId = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(transformExpression(state, arg)),
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
+				expression: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.ipairs,
+					args: luau.list.make(transformExpression(state, arg)),
 				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: id,
 							index: valueId,
 						}),
 						operator: "=",
-						right: lua.bool(true),
+						right: luau.bool(true),
 					}),
 				),
 			}),
@@ -66,41 +66,41 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 
 const MapConstructor: ConstructorMacro = (state, node) => {
 	if (!node.arguments || node.arguments.length === 0) {
-		return lua.map();
+		return luau.map();
 	}
 	const arg = node.arguments[0];
 	const transformed = transformExpression(state, arg);
 	if (isFlatMap(transformed)) {
 		// TODO make this nicer?
-		const elements = lua.list.toArray(transformed.members).map(e => {
+		const elements = luau.list.toArray(transformed.members).map(e => {
 			// non-null and type assertion because array will always have 2 members,
 			// due to map constructor typing
-			return [e.members.head!.value, e.members.head!.next!.value] as [lua.Expression, lua.Expression];
+			return [e.members.head!.value, e.members.head!.next!.value] as [luau.Expression, luau.Expression];
 		});
-		return lua.map(elements);
+		return luau.map(elements);
 	} else {
-		const id = state.pushToVar(lua.set());
-		const valueId = lua.tempId();
+		const id = state.pushToVar(luau.set());
+		const valueId = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.ForStatement, {
-				ids: lua.list.make<lua.AnyIdentifier>(lua.emptyId(), valueId),
-				expression: lua.create(lua.SyntaxKind.CallExpression, {
-					expression: lua.globals.ipairs,
-					args: lua.list.make(transformed),
+			luau.create(luau.SyntaxKind.ForStatement, {
+				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
+				expression: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.ipairs,
+					args: luau.list.make(transformed),
 				}),
-				statements: lua.list.make(
-					lua.create(lua.SyntaxKind.Assignment, {
-						left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: id,
-							index: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+							index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 								expression: valueId,
-								index: lua.number(1),
+								index: luau.number(1),
 							}),
 						}),
 						operator: "=",
-						right: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+						right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: valueId,
-							index: lua.number(2),
+							index: luau.number(2),
 						}),
 					}),
 				),

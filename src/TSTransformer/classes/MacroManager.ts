@@ -1,5 +1,4 @@
 import ts from "byots";
-import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
@@ -15,7 +14,7 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
-const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
+const INCLUDE_FILES = ["es.d.ts", "luau.d.ts", "macro_math.d.ts", "roblox.d.ts"];
 
 export const SYMBOL_NAMES = {
 	ArrayConstructor: "ArrayConstructor",

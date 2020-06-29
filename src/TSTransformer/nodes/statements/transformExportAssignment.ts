@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -12,12 +12,12 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 	const sourceFile = node.getSourceFile();
 	const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
 	if (finalStatement === node) {
-		return lua.list.make<lua.Statement>(
-			lua.create(lua.SyntaxKind.ReturnStatement, { expression: transformExpression(state, node.expression) }),
+		return luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.ReturnStatement, { expression: transformExpression(state, node.expression) }),
 		);
 	} else {
-		return lua.list.make<lua.Statement>(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
+		return luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: state.getModuleIdFromNode(node),
 				right: transformExpression(state, node.expression),
 			}),
@@ -26,14 +26,14 @@ function transformExportEquals(state: TransformState, node: ts.ExportAssignment)
 }
 
 function transformExportDefault(state: TransformState, node: ts.ExportAssignment) {
-	const statements = lua.list.make<lua.Statement>();
+	const statements = luau.list.make<luau.Statement>();
 
 	const [expression, prereqs] = state.capture(() => transformExpression(state, node.expression));
-	lua.list.pushList(statements, prereqs);
-	lua.list.push(
+	luau.list.pushList(statements, prereqs);
+	luau.list.push(
 		statements,
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
-			left: lua.id("default"),
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: luau.id("default"),
 			right: expression,
 		}),
 	);
@@ -48,7 +48,7 @@ export function transformExportAssignment(state: TransformState, node: ts.Export
 	}
 
 	if (symbol && !isSymbolOfValue(symbol)) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	if (node.isExportEquals) {

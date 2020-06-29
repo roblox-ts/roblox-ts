@@ -1,13 +1,13 @@
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 
 /**
- * Returns a LuaAST node equivalent for `game:GetService(serviceName)`
+ * Returns a LuauAST node equivalent for `game:GetService(serviceName)`
  * @param serviceName The service to get from game.
  */
 export function createGetService(serviceName: string) {
-	return lua.create(lua.SyntaxKind.MethodCallExpression, {
-		expression: lua.globals.game,
+	return luau.create(luau.SyntaxKind.MethodCallExpression, {
+		expression: luau.globals.game,
 		name: "GetService",
-		args: lua.list.make(lua.string(serviceName)),
+		args: luau.list.make(luau.string(serviceName)),
 	});
 }

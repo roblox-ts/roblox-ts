@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -14,17 +14,17 @@ import { Pointer } from "TSTransformer/util/pointer";
 export function transformClassConstructor(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
-	ptr: Pointer<lua.AnyIdentifier>,
+	ptr: Pointer<luau.AnyIdentifier>,
 	originNode?: ts.ConstructorDeclaration & { body: ts.Block },
 ) {
-	const statements = lua.list.make<lua.Statement>();
+	const statements = luau.list.make<luau.Statement>();
 
 	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
 	const isRoact = extendsRoactComponent(state, node);
 	let removeFirstSuper = isRoact;
 
-	let parameters = lua.list.make<lua.AnyIdentifier>();
+	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
 	if (originNode) {
 		const {
@@ -32,7 +32,7 @@ export function transformClassConstructor(
 			parameters: constructorParams,
 			hasDotDotDot: constructorHasDotDotDot,
 		} = transformParameters(state, originNode);
-		lua.list.pushList(statements, paramStatements);
+		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
 	}
@@ -44,7 +44,7 @@ export function transformClassConstructor(
 			if (bodyStatements.length > 0) {
 				const firstStatement = bodyStatements[0];
 				if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-					lua.list.pushList(statements, transformStatementList(state, [firstStatement]));
+					luau.list.pushList(statements, transformStatementList(state, [firstStatement]));
 				}
 			}
 		}
@@ -54,11 +54,11 @@ export function transformClassConstructor(
 		if (ts.isParameterPropertyDeclaration(parameter, parameter.parent)) {
 			transformFirstSuper();
 			const paramId = transformIdentifierDefined(state, parameter.name);
-			lua.list.push(
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
-						expression: lua.globals.self,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+						expression: luau.globals.self,
 						name: paramId.name,
 					}),
 					operator: "=",
@@ -84,15 +84,15 @@ export function transformClassConstructor(
 			}
 
 			const [index, indexPrereqs] = state.capture(() => transformObjectKey(state, name));
-			lua.list.pushList(statements, indexPrereqs);
+			luau.list.pushList(statements, indexPrereqs);
 
 			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
-			lua.list.pushList(statements, rightPrereqs);
+			luau.list.pushList(statements, rightPrereqs);
 
-			lua.list.push(
+			luau.list.push(
 				statements,
-				lua.create(lua.SyntaxKind.Assignment, {
-					left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: ptr.value,
 						index,
 					}),
@@ -111,10 +111,10 @@ export function transformClassConstructor(
 		}
 	}
 
-	lua.list.pushList(statements, transformStatementList(state, bodyStatements));
+	luau.list.pushList(statements, transformStatementList(state, bodyStatements));
 
-	return lua.list.make<lua.Statement>(
-		lua.create(lua.SyntaxKind.MethodDeclaration, {
+	return luau.list.make<luau.Statement>(
+		luau.create(luau.SyntaxKind.MethodDeclaration, {
 			expression: ptr.value,
 			name: isRoact ? "init" : "constructor",
 			statements,

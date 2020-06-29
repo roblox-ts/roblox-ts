@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
@@ -12,7 +12,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 	// and will be handled in transformStringLiteral
 	assert(node.templateSpans.length > 0);
 
-	const expressions = new Array<lua.Expression>();
+	const expressions = new Array<luau.Expression>();
 
 	if (node.head.text.length > 0) {
 		expressions.push(createStringFromLiteral(node.head));
@@ -27,9 +27,9 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		const templateSpan = node.templateSpans[i];
 		let exp = orderedExpressions[i];
 		if (!isStringType(state.getType(templateSpan.expression))) {
-			exp = lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.tostring,
-				args: lua.list.make(exp),
+			exp = luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.tostring,
+				args: luau.list.make(exp),
 			});
 		}
 		expressions.push(exp);

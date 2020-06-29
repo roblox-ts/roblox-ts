@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -9,24 +9,24 @@ import { Pointer } from "TSTransformer/util/pointer";
 export function transformPropertyDeclaration(
 	state: TransformState,
 	node: ts.PropertyDeclaration,
-	ptr: Pointer<lua.AnyIdentifier>,
+	ptr: Pointer<luau.AnyIdentifier>,
 ) {
 	if (!ts.hasStaticModifier(node)) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	if (ts.isPrivateIdentifier(node.name)) {
 		state.addDiagnostic(diagnostics.noPrivateIdentifier(node));
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
 	if (!node.initializer) {
-		return lua.list.make<lua.Statement>();
+		return luau.list.make<luau.Statement>();
 	}
 
-	return lua.list.make(
-		lua.create(lua.SyntaxKind.Assignment, {
-			left: lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	return luau.list.make(
+		luau.create(luau.SyntaxKind.Assignment, {
+			left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: ptr.value,
 				index: transformObjectKey(state, node.name),
 			}),

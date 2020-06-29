@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
@@ -11,7 +11,7 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformObjectBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ObjectBindingPattern,
-	parentId: lua.AnyIdentifier,
+	parentId: luau.AnyIdentifier,
 ) {
 	validateNotAnyType(state, bindingPattern);
 	const accessType = state.getType(bindingPattern);

@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
@@ -15,23 +15,23 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 
 	const body = node.body;
 	if (ts.isFunctionBody(body)) {
-		lua.list.pushList(statements, transformStatementList(state, body.statements));
+		luau.list.pushList(statements, transformStatementList(state, body.statements));
 	} else {
 		const [returnStatement, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
-		lua.list.pushList(statements, prereqs);
-		lua.list.push(statements, returnStatement);
+		luau.list.pushList(statements, prereqs);
+		luau.list.push(statements, returnStatement);
 	}
 
-	let expression: lua.Expression = lua.create(lua.SyntaxKind.FunctionExpression, {
+	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {
 		hasDotDotDot,
 		parameters,
 		statements,
 	});
 
 	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
-		expression = lua.create(lua.SyntaxKind.CallExpression, {
+		expression = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("async"),
-			args: lua.list.make(expression),
+			args: luau.list.make(expression),
 		});
 	}
 

@@ -1,18 +1,18 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 export function transformThrowStatement(state: TransformState, node: ts.ThrowStatement) {
-	const args = lua.list.make<lua.Expression>();
+	const args = luau.list.make<luau.Expression>();
 	if (node.expression !== undefined) {
-		lua.list.push(args, transformExpression(state, node.expression));
+		luau.list.push(args, transformExpression(state, node.expression));
 	}
 
-	return lua.list.make(
-		lua.create(lua.SyntaxKind.CallStatement, {
-			expression: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.error,
+	return luau.list.make(
+		luau.create(luau.SyntaxKind.CallStatement, {
+			expression: luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.error,
 				args,
 			}),
 		}),

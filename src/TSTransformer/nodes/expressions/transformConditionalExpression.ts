@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
@@ -11,38 +11,38 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));
 	if (
 		!canTypeBeLuaFalsy(state, state.getType(node.whenTrue)) &&
-		lua.list.isEmpty(whenTruePrereqs) &&
-		lua.list.isEmpty(whenFalsePrereqs)
+		luau.list.isEmpty(whenTruePrereqs) &&
+		luau.list.isEmpty(whenFalsePrereqs)
 	) {
 		let left = createTruthinessChecks(state, condition, state.getType(node.condition));
-		if (lua.isBinaryExpression(left)) {
-			left = lua.create(lua.SyntaxKind.ParenthesizedExpression, { expression: left });
+		if (luau.isBinaryExpression(left)) {
+			left = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: left });
 		}
 
-		return lua.create(lua.SyntaxKind.ParenthesizedExpression, {
-			expression: lua.binary(lua.binary(left, "and", whenTrue), "or", whenFalse),
+		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+			expression: luau.binary(luau.binary(left, "and", whenTrue), "or", whenFalse),
 		});
 	}
 
-	const tempId = lua.tempId();
+	const tempId = luau.tempId();
 	state.prereq(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: tempId,
 			right: undefined,
 		}),
 	);
 
-	lua.list.push(
+	luau.list.push(
 		whenTruePrereqs,
-		lua.create(lua.SyntaxKind.Assignment, {
+		luau.create(luau.SyntaxKind.Assignment, {
 			left: tempId,
 			operator: "=",
 			right: whenTrue,
 		}),
 	);
-	lua.list.push(
+	luau.list.push(
 		whenFalsePrereqs,
-		lua.create(lua.SyntaxKind.Assignment, {
+		luau.create(luau.SyntaxKind.Assignment, {
 			left: tempId,
 			operator: "=",
 			right: whenFalse,
@@ -50,7 +50,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	);
 
 	state.prereq(
-		lua.create(lua.SyntaxKind.IfStatement, {
+		luau.create(luau.SyntaxKind.IfStatement, {
 			condition,
 			statements: whenTruePrereqs,
 			elseBody: whenFalsePrereqs,

@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
@@ -7,7 +7,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
 
-export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): lua.IfStatement {
+export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): luau.IfStatement {
 	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.expression),
@@ -16,9 +16,9 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 
 	const statements = transformStatementList(state, getStatements(node.thenStatement));
 
-	let elseBody: lua.IfStatement | lua.List<lua.Statement>;
+	let elseBody: luau.IfStatement | luau.List<luau.Statement>;
 	if (node.elseStatement === undefined) {
-		elseBody = lua.list.make<lua.Statement>();
+		elseBody = luau.list.make<luau.Statement>();
 	} else if (ts.isIfStatement(node.elseStatement)) {
 		elseBody = transformIfStatementInner(state, node.elseStatement);
 	} else if (ts.isBlock(node.elseStatement)) {
@@ -27,7 +27,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 		elseBody = transformStatement(state, node.elseStatement);
 	}
 
-	return lua.create(lua.SyntaxKind.IfStatement, {
+	return luau.create(luau.SyntaxKind.IfStatement, {
 		condition,
 		statements,
 		elseBody,
@@ -35,5 +35,5 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 }
 
 export function transformIfStatement(state: TransformState, node: ts.IfStatement) {
-	return lua.list.make(transformIfStatementInner(state, node));
+	return luau.list.make(transformIfStatementInner(state, node));
 }

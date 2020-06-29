@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
@@ -18,30 +18,30 @@ import {
 
 type BindingAccessor = (
 	state: TransformState,
-	parentId: lua.AnyIdentifier,
+	parentId: luau.AnyIdentifier,
 	index: number,
-	idStack: Array<lua.AnyIdentifier>,
+	idStack: Array<luau.AnyIdentifier>,
 	isOmitted: boolean,
-) => lua.Expression;
+) => luau.Expression;
 
 function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
 const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	return lua.create(lua.SyntaxKind.ComputedIndexExpression, {
+	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
-		index: lua.number(index + 1),
+		index: luau.number(index + 1),
 	});
 };
 
 const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	let id: lua.AnyIdentifier;
+	let id: luau.AnyIdentifier;
 	if (idStack.length === 0) {
 		id = state.pushToVar(
-			lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.string.gmatch,
-				args: lua.list.make<lua.Expression>(parentId, lua.globals.utf8.charpattern),
+			luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.string.gmatch,
+				args: luau.list.make<luau.Expression>(parentId, luau.globals.utf8.charpattern),
 			}),
 		);
 		idStack.push(id);
@@ -49,40 +49,40 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 		id = idStack[0];
 	}
 
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: id,
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
 		return callExp;
 	}
 };
 
 const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const args = lua.list.make<lua.Expression>(parentId);
+	const args = luau.list.make<luau.Expression>(parentId);
 	const lastId = peek(idStack);
 	if (lastId) {
-		lua.list.push(args, lastId);
+		luau.list.push(args, lastId);
 	}
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.globals.next,
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.next,
 		args,
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
 		const id = state.pushToVar(callExp);
 		idStack.push(id);
@@ -91,131 +91,131 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 };
 
 const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const args = lua.list.make<lua.Expression>(parentId);
+	const args = luau.list.make<luau.Expression>(parentId);
 	const lastId = peek(idStack);
 	if (lastId) {
-		lua.list.push(args, lastId);
+		luau.list.push(args, lastId);
 	}
-	const keyId = lua.tempId();
-	const valueId = lua.tempId();
-	const ids = lua.list.make(keyId, valueId);
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	const ids = luau.list.make(keyId, valueId);
 	state.prereq(
-		lua.create(lua.SyntaxKind.VariableDeclaration, {
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: ids,
-			right: lua.create(lua.SyntaxKind.CallExpression, {
-				expression: lua.globals.next,
+			right: luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.next,
 				args,
 			}),
 		}),
 	);
 	idStack.push(keyId);
-	return lua.create(lua.SyntaxKind.Array, { members: ids });
+	return luau.create(luau.SyntaxKind.Array, { members: ids });
 };
 
 const iterableFunctionTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: parentId,
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
-		return lua.array([callExp]);
+		return luau.array([callExp]);
 	}
 };
 
 const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: parentId,
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
 		return callExp;
 	}
 };
 
 const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: parentId,
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
-		const id1 = lua.tempId();
-		const id2 = lua.tempId();
+		const id1 = luau.tempId();
+		const id2 = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.list.make(id1, id2),
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.list.make(id1, id2),
 				right: callExp,
 			}),
 		);
-		return lua.array([lua.binary(id1, "and", lua.binary(id1, "-", lua.number(1))), id2]);
+		return luau.array([luau.binary(id1, "and", luau.binary(id1, "-", luau.number(1))), id2]);
 	}
 };
 
 const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: parentId,
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
-		const id1 = lua.tempId();
-		const id2 = lua.tempId();
+		const id1 = luau.tempId();
+		const id2 = luau.tempId();
 		state.prereq(
-			lua.create(lua.SyntaxKind.VariableDeclaration, {
-				left: lua.list.make(id1, id2),
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.list.make(id1, id2),
 				right: callExp,
 			}),
 		);
-		return lua.array([
-			lua.binary(id1, "and", lua.binary(id1, "-", lua.number(1))),
-			lua.binary(id2, "and", lua.binary(id2, "-", lua.number(1))),
+		return luau.array([
+			luau.binary(id1, "and", luau.binary(id1, "-", luau.number(1))),
+			luau.binary(id2, "and", luau.binary(id2, "-", luau.number(1))),
 		]);
 	}
 };
 
 const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = lua.create(lua.SyntaxKind.CallExpression, {
-		expression: lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 			expression: parentId,
 			name: "next",
 		}),
-		args: lua.list.make(),
+		args: luau.list.make(),
 	});
 	if (isOmitted) {
 		state.prereq(
-			lua.create(lua.SyntaxKind.CallStatement, {
+			luau.create(luau.SyntaxKind.CallStatement, {
 				expression: callExp,
 			}),
 		);
-		return lua.emptyId();
+		return luau.emptyId();
 	} else {
-		return lua.create(lua.SyntaxKind.PropertyAccessExpression, {
+		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 			expression: callExp,
 			name: "value",
 		});

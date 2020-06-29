@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as lua from "LuaAST";
+import luau from "LuauAST";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -7,7 +7,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 
 /**
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.
- * Ensures the `lua.Expression` nodes execute in the same order as the `ts.Expression` nodes.
+ * Ensures the `luau.Expression` nodes execute in the same order as the `ts.Expression` nodes.
  */
 export function ensureTransformOrder(
 	state: TransformState,
@@ -16,11 +16,11 @@ export function ensureTransformOrder(
 		state: TransformState,
 		expression: ts.Expression,
 		index: number,
-	) => lua.Expression = transformExpression,
+	) => luau.Expression = transformExpression,
 ) {
 	const expressionInfoList = expressions.map((exp, index) => state.capture(() => transformer(state, exp, index)));
-	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !lua.list.isEmpty(info[1]));
-	const result = new Array<lua.Expression>();
+	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !luau.list.isEmpty(info[1]));
+	const result = new Array<luau.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
 		const info = expressionInfoList[i];
 		state.prereqList(info[1]);
@@ -37,8 +37,8 @@ export function ensureTransformOrder(
 		let expression = info[0];
 		if (
 			i < lastArgWithPrereqsIndex &&
-			!lua.isSimplePrimitive(expression) &&
-			!lua.isTemporaryIdentifier(expression) &&
+			!luau.isSimplePrimitive(expression) &&
+			!luau.isTemporaryIdentifier(expression) &&
 			!isConstVar
 		) {
 			expression = state.pushToVar(expression);

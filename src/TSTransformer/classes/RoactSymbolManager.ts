@@ -1,7 +1,6 @@
 import ts from "byots";
-import path from "path";
-import { isSomeType } from "TSTransformer/util/types";
 import { assert } from "Shared/util/assert";
+import { isSomeType } from "TSTransformer/util/types";
 
 export const ROACT_SYMBOL_NAMES = {
 	Component: "Component",
