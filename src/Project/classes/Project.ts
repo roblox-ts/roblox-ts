@@ -353,7 +353,7 @@ export class Project {
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
 
-				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
+				const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program.getProgram(), sourceFile);
 				totalDiagnostics.push(...preEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
 
