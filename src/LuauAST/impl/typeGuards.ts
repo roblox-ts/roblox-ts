@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import * as luau from "LuauAST/bundle";
 
 function makeGuard<T extends keyof luau.NodeByKind>(...kinds: [...Array<T>]) {
 	return (node: luau.Node): node is luau.NodeByKind[T] => kinds.some(v => v === node.kind);

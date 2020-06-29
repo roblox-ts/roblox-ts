@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import * as luau from "LuauAST/bundle";
 import { NoInfer } from "Shared/types";
 import { assert } from "Shared/util/assert";
 

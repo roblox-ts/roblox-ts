@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import * as luau from "LuauAST/bundle";
 
 export const strings = {
 	// metamethods

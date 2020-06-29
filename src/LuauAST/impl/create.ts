@@ -1,5 +1,5 @@
 // helper creation
-import luau from "LuauAST";
+import * as luau from "LuauAST/bundle";
 
 type AllowedFieldTypes = luau.Node | luau.List<luau.Node> | boolean | number | string | undefined;
 

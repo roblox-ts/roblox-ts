@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import * as luau from "LuauAST/bundle";
 
 const TABLE_ID = luau.id("table");
 const STRING_ID = luau.id("string");
