@@ -5,7 +5,7 @@ import { RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import tsst from "ts-simple-type";
+import * as tsst from "ts-simple-type";
 import { GlobalSymbols, MacroManager, MultiTransformState, RoactSymbolManager } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";

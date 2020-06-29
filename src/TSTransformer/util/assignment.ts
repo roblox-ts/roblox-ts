@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import tsst from "ts-simple-type";
+import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { isStringSimpleType } from "TSTransformer/util/types";
