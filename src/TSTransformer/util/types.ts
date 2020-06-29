@@ -1,5 +1,5 @@
 import ts from "byots";
-import * as tsst from "ts-simple-type";
+import tsst from "ts-simple-type";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 
 export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {

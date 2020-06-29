@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import * as tsst from "ts-simple-type";
+import tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 
