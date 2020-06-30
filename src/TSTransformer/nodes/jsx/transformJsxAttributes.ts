@@ -137,7 +137,8 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 		state.prereqList(initPrereqs);
 	}
 
-	const name = attributeName === REF_ATTRIBUTE_NAME ? createRoactIndex("Ref") : luau.string(attributeName);
+	const name =
+		attributeName === REF_ATTRIBUTE_NAME ? createRoactIndex(REF_ATTRIBUTE_NAME) : luau.string(attributeName);
 	assignToMapPointer(state, attributesPtr, name, init);
 }
 
