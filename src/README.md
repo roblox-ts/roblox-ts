@@ -7,3 +7,30 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [LuauRenderer](./LuauRenderer/README.md)
 -   [Project](./Project/README.md)
 -   [TSTransformer](./TSTransformer/README.md)
+
+### **Todo**
+
+-   [ ] Initialization (`rbxtsc --init`)
+    -   Modes: Game, Model, Plugin, Package (npm)
+    -   Flags: eslint, prettier (implies eslint?), git? (for `git init` + `.gitignore`)
+        -   Should these all default to `true`? i.e. `rbxtsc --init game --prettier=false`
+        -   Should we use something like [inquirer](https://www.npmjs.com/package/inquirer) instead?
+-   [ ] Watch Mode (`rbxtsc -w`)
+    -   Could use built-in TypeScript watch infra, might not work on non-TS files? Chokidar (on non-ts) + TS infra?
+    -   Chokidar -> "full" incremental build? Maybe this is good enough?
+-   [ ] Fix String methods/calls offsetting for arguments + result, add back `string.*` library
+-   [ ] Iteration System
+    -   Array Destructuring - Single iteration of next item in iterable (currently things like arrayAccessor, etc.)
+    -   Array Destructuring Spread - Loop over remaining items in iterable, add to object
+    -   ForOf Statement / Spread Expression - Loop over items in iterable
+    -   Iterables
+        -   [ ] `Array<T>`
+        -   [ ] `Map<K, V>`
+        -   [ ] `Set<T>`
+        -   [ ] `String`
+        -   [ ] `IterableFunction`
+        -   [ ] `IterableFunction LuaTuple<T>`
+        -   [ ] `FirstDecrementedIterableFunction`
+        -   [ ] `DoubleDecrementedIterator`
+        -   [ ] `Generator`
+        -   [ ] `Object` -> `[Symbol.iterator]()`
