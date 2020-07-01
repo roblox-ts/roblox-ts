@@ -3,7 +3,7 @@ import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
-const PRIMITIVE_LUA_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
+const PRIMITIVE_LUAU_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
 	typeOf: (state, node) => {
@@ -15,7 +15,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 
 	typeIs: (state, node) => {
 		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
-		const typeFunc = luau.isStringLiteral(typeStr) && PRIMITIVE_LUA_TYPES.has(typeStr.value) ? "type" : "typeof";
+		const typeFunc = luau.isStringLiteral(typeStr) && PRIMITIVE_LUAU_TYPES.has(typeStr.value) ? "type" : "typeof";
 		const left = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.id(typeFunc),
 			args: luau.list.make(value),

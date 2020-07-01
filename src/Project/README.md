@@ -4,7 +4,7 @@ Controls the orchestration of:
 
 -   loading options from tsconfig.json,
 -   passing TS AST from TS compiler API into TSTransformer,
--   passing Luau AST from TSTransformer into LuaRender,
+-   passing Luau AST from TSTransformer into LuauRender,
 -   writing to file
 
 So in short,
