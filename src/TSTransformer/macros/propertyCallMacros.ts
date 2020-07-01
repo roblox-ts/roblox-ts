@@ -1191,7 +1191,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(valueId),
-				expression: ipairs(expression),
+				expression: pairs(expression),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.create(luau.SyntaxKind.CallExpression, {
