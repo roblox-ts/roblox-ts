@@ -1,14 +1,15 @@
 import ts from "byots";
 import { exec } from "child_process";
+import build from "CLI/commands/build";
+import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
+import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
+import { LogService } from "Shared/classes/LogService";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
-import { CLIError } from "CLI/errors/CLIError";
-import kleur from "kleur";
-import build from "CLI/commands/build";
 
 interface InitOptions {
 	yes: boolean;
@@ -38,6 +39,8 @@ const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
 async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
+	const postEmitLogs = new Array<string>();
+
 	const cwd = process.cwd();
 	const paths = {
 		packageJson: path.join(cwd, "package.json"),
@@ -48,6 +51,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		gitignore: path.join(cwd, ".gitignore"),
 		eslintrc: path.join(cwd, ".eslintrc.json"),
 		settings: path.join(cwd, ".vscode", "settings.json"),
+		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
 
 	const existingPaths = new Array<string>();
@@ -61,7 +65,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	}
 	if (existingPaths.length > 0) {
 		const pathInfo = existingPaths.map(v => `  - ${kleur.yellow(v)}\n`).join("");
-		throw new CLIError(`Cannot initialize project, process would overwrite:\n${pathInfo}`);
+		throw new CLIError(`Cannot initialize project, process could overwrite:\n${pathInfo}`);
 	}
 
 	if (mode === InitMode.None) {
@@ -79,8 +83,13 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		).template;
 	}
 
-	const { git, eslint, prettier }: { git?: boolean; eslint?: boolean; prettier?: boolean } = argv.yes
-		? { git: true, eslint: true, prettier: true }
+	const {
+		git,
+		eslint,
+		prettier,
+		vscode,
+	}: { git?: boolean; eslint?: boolean; prettier?: boolean; vscode?: boolean } = argv.yes
+		? { git: true, eslint: true, prettier: true, vscode: true }
 		: await prompts([
 				{
 					type: "confirm",
@@ -95,9 +104,15 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					initial: true,
 				},
 				{
-					type: prev => prev && "confirm",
+					type: (_, values) => values.eslint && "confirm",
 					name: "prettier",
 					message: "Configure Prettier",
+					initial: true,
+				},
+				{
+					type: (_, values) => values.eslint && "confirm",
+					name: "vscode",
+					message: "Configure VSCode Project Settings",
 					initial: true,
 				},
 		  ]);
@@ -177,6 +192,25 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			await fs.outputFile(paths.eslintrc, JSON.stringify(eslintConfig, undefined, "\t"));
 		}
 
+		if (vscode) {
+			const settings = {
+				"[typescript]": {
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+					"editor.formatOnSave": true,
+				},
+				"eslint.run": "onType",
+				"eslint.enable": true,
+			};
+			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
+
+			const extensions = {
+				recommendations: ["dbaeumer.vscode-eslint"],
+			};
+			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
+
+			postEmitLogs.push("You may need to reload VSCode for automatic formatting to work.");
+		}
+
 		const templateTsConfig = path.join(
 			TEMPLATE_DIR,
 			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
@@ -190,6 +224,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		"Building..",
 		() => build.handler({ project: ".", verbose: false, watch: false, $0: argv.$0, _: argv._ }) as never,
 	);
+
+	for (const line of postEmitLogs) {
+		LogService.writeLine(line);
+	}
 }
 
 const GAME_DESCRIPTION = "Generate a Roblox place";
