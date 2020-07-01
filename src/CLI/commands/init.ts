@@ -39,8 +39,6 @@ const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
 async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
-	const postEmitLogs = new Array<string>();
-
 	const cwd = process.cwd();
 	const paths = {
 		packageJson: path.join(cwd, "package.json"),
@@ -207,8 +205,6 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				recommendations: ["dbaeumer.vscode-eslint"],
 			};
 			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
-
-			postEmitLogs.push("You may need to reload VSCode for automatic formatting to work.");
 		}
 
 		const templateTsConfig = path.join(
@@ -224,10 +220,6 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		"Building..",
 		() => build.handler({ project: ".", verbose: false, watch: false, $0: argv.$0, _: argv._ }) as never,
 	);
-
-	for (const line of postEmitLogs) {
-		LogService.writeLine(line);
-	}
 }
 
 const GAME_DESCRIPTION = "Generate a Roblox place";
