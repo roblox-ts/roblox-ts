@@ -199,7 +199,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					"editor.formatOnSave": true,
 				},
 				"eslint.run": "onType",
-				"eslint.enable": true,
+				"eslint.format.enable": true,
 			};
 			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
 
