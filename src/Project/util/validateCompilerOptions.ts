@@ -1,10 +1,7 @@
 import ts from "byots";
-import chalk from "chalk";
+import kleur from "kleur";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
-
-// force colors
-chalk.level = chalk.Level.Basic;
 
 const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
@@ -14,9 +11,9 @@ const ENFORCED_OPTIONS = {
 	allowSyntheticDefaultImports: true,
 } as const;
 
-/** shorthand for chalk.yellowBright */
+/** shorthand for kleur.yellow */
 function y(str: string) {
-	return chalk.yellowBright(str);
+	return kleur.yellow(str);
 }
 
 function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {

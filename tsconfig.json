@@ -2,7 +2,8 @@
 	"files": [],
 	"compilerOptions": {
 		"composite": true,
-		"baseUrl": "src"
+		"baseUrl": "src",
+		"outDir": "out"
 	},
 	"references": [
 		{ "path": "./src/Shared" },

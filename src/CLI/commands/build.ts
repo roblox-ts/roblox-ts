@@ -61,7 +61,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				describe: "Manually select Rojo configuration file",
 			}),
 
-	handler: argv => {
+	handler: async argv => {
 		// attempt to retrieve TypeScript configuration JSON path
 		let tsConfigPath: string | undefined = path.resolve(argv.project);
 		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {

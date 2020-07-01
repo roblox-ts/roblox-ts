@@ -13,6 +13,7 @@ import { COMPILER_VERSION, PACKAGE_ROOT, ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { benchmarkSync } from "Shared/util/benchmark";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import {
 	GlobalSymbols,
@@ -314,10 +315,7 @@ export class Project {
 
 	private benchmark(name: string, callback: () => void) {
 		if (this.verbose) {
-			LogService.write(`${name}`);
-			const startTime = Date.now();
-			callback();
-			LogService.write(` ( ${Date.now() - startTime} ms )\n`);
+			benchmarkSync(name, callback);
 		} else {
 			callback();
 		}

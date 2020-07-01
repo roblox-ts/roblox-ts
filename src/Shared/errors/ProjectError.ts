@@ -1,8 +1,5 @@
-import chalk from "chalk";
+import kleur from "kleur";
 import { LoggableError } from "Shared/errors/LoggableError";
-
-// force colors
-chalk.level = chalk.Level.Basic;
 
 export class ProjectError extends LoggableError {
 	constructor(private message: string) {
@@ -10,6 +7,6 @@ export class ProjectError extends LoggableError {
 	}
 
 	public toString() {
-		return chalk.redBright("Project Error:") + " " + this.message;
+		return kleur.red("Project Error:") + " " + this.message;
 	}
 }

@@ -7,16 +7,19 @@
 		"strict": true,
 		"noFallthroughCasesInSwitch": true,
 		"strictNullChecks": true,
-		// "noUnusedLocals": true,
 		"esModuleInterop": true,
 		"removeComments": true,
 		"composite": true,
 		"sourceMap": true,
+		"outDir": "out",
 
 		"baseUrl": "src",
 		"plugins": [
 			{ "transform": "typescript-transform-paths" },
-			{ "transform": "typescript-transform-paths", "afterDeclarations": true }
-		],
+			{
+				"transform": "typescript-transform-paths",
+				"afterDeclarations": true
+			}
+		]
 	}
 }

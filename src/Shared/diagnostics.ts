@@ -1,22 +1,19 @@
 import ts from "byots";
-import chalk from "chalk";
+import kleur from "kleur";
 
 export type DiagnosticFactory = {
 	(node: ts.Node): ts.DiagnosticWithLocation;
 	id: number;
 };
 
-// force colors
-chalk.level = chalk.Level.Basic;
-
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
 function suggestion(text: string) {
-	return "Suggestion: " + chalk.yellowBright(text);
+	return "Suggestion: " + kleur.yellow(text);
 }
 
 function issue(id: number) {
-	return "More information: " + chalk.grey(`${REPO_URL}/issues/${id}`);
+	return "More information: " + kleur.grey(`${REPO_URL}/issues/${id}`);
 }
 
 export function createDiagnosticWithLocation(id: number, message: string, node: ts.Node): ts.DiagnosticWithLocation {
