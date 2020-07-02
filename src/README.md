@@ -10,7 +10,7 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 
 ### **Todo**
 
--   [ ] Initialization (`rbxtsc --init`)
+-   [x] Initialization (`rbxtsc --init`)
     -   Modes: Game, Model, Plugin, Package (npm)
     -   Flags: eslint, prettier (implies eslint?), git? (for `git init` + `.gitignore`)
         -   Should these all default to `true`? i.e. `rbxtsc --init game --prettier=false`
@@ -34,3 +34,6 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
         -   [ ] `DoubleDecrementedIterator`
         -   [ ] `Generator`
         -   [ ] `Object` -> `[Symbol.iterator]()`
+-   [ ] Reserved Lua identifiers (`string`, `table`, `nil`, etc.)
+-   [ ] Reserved Class methods (`__index`, `__newindex`, etc.)
+-   [ ] Class static/instance method collision
