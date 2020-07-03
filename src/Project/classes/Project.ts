@@ -197,10 +197,11 @@ export class Project {
 		this.rootDir = findAncestorDir([this.program.getProgram().getCommonSourceDirectory(), ...this.getRootDirs()]);
 
 		// create `PathTranslator` to ensure paths of input, output, and include paths are relative to project
+		const buildInfoPath = ts.getTsBuildInfoEmitOutputFilePath(this.compilerOptions);
 		this.pathTranslator = new PathTranslator(
 			this.rootDir,
 			this.compilerOptions.outDir!,
-			ts.getTsBuildInfoEmitOutputFilePath(this.compilerOptions),
+			buildInfoPath ? path.normalize(buildInfoPath) : undefined,
 			this.compilerOptions.declaration === true,
 		);
 	}
