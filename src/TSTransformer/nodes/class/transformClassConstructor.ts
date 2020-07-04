@@ -93,7 +93,7 @@ export function transformClassConstructor(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: ptr.value,
+						expression: luau.globals.self,
 						index,
 					}),
 					operator: "=",
