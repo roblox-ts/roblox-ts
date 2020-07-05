@@ -280,16 +280,16 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	// TODO issue #715
-	if (
-		operatorKind === ts.SyntaxKind.LessThanToken ||
-		operatorKind === ts.SyntaxKind.LessThanEqualsToken ||
-		operatorKind === ts.SyntaxKind.GreaterThanToken ||
-		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
-	) {
-		if (!isNumberType(state.getType(node.left)) || !isNumberType(state.getType(node.right))) {
-			state.addDiagnostic(diagnostics.noNonNumberRelationOperator(node));
-		}
-	}
+	// if (
+	// 	operatorKind === ts.SyntaxKind.LessThanToken ||
+	// 	operatorKind === ts.SyntaxKind.LessThanEqualsToken ||
+	// 	operatorKind === ts.SyntaxKind.GreaterThanToken ||
+	// 	operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
+	// ) {
+	// 	if (!isNumberType(state.getType(node.left)) || !isNumberType(state.getType(node.right))) {
+	// 		state.addDiagnostic(diagnostics.noNonNumberRelationOperator(node));
+	// 	}
+	// }
 
 	return createBinaryFromOperator(
 		state,
