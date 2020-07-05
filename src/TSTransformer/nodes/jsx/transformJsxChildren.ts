@@ -254,7 +254,7 @@ export function transformJsxChildren(
 						);
 					}
 				}
-				if (i < children.length - 1) {
+				if (!luau.isMixedTable(childrenPtr.value) && i < children.length - 1) {
 					updateLengthId();
 				}
 			}
