@@ -10,10 +10,19 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 
+function isDeclarationOfNamespace(declaration: ts.Declaration) {
+	if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
+		return true;
+	} else if (ts.isFunctionDeclaration(declaration) && declaration.body) {
+		return true;
+	}
+	return false;
+}
+
 function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 	let amtValueDeclarations = 0;
 	for (const declaration of symbol.declarations) {
-		if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
+		if (isDeclarationOfNamespace(declaration)) {
 			amtValueDeclarations++;
 			if (amtValueDeclarations > 1) {
 				return true;
