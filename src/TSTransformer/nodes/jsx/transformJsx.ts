@@ -6,8 +6,9 @@ import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttr
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
-import { getKeyValue } from "TSTransformer/util/jsx/getKeyValue";
+import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 export function transformJsx(
 	state: TransformState,
@@ -46,13 +47,15 @@ export function transformJsx(
 	});
 
 	// if this is a top-level element, handle Key here
-	// otherwise, handle in transformJsxAttributes
+	// otherwise, handle in transformJsxChildren
 	if (!ts.isJsxElement(node.parent)) {
-		const key = getKeyValue(node);
-		if (key) {
+		const keyInitializer = getKeyAttributeInitializer(node);
+		if (keyInitializer) {
+			const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
+			state.prereqList(keyPrereqs);
 			result = luau.create(luau.SyntaxKind.CallExpression, {
 				expression: createRoactIndex("createFragment"),
-				args: luau.list.make(luau.map([[luau.string(key), result]])),
+				args: luau.list.make(luau.map([[key, result]])),
 			});
 		}
 	}

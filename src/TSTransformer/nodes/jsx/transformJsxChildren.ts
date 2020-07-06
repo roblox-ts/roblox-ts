@@ -4,7 +4,7 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { getKeyValue } from "TSTransformer/util/jsx/getKeyValue";
+import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import {
 	assignToMixedTablePointer,
 	disableMapInline,
@@ -265,9 +265,14 @@ export function transformJsxChildren(
 			}
 			state.prereqList(prereqs);
 
-			const key = getKeyValue(child);
-			if (key) {
-				assignToMixedTablePointer(state, childrenPtr, luau.string(key), expression);
+			const keyInitializer = getKeyAttributeInitializer(child);
+			if (keyInitializer) {
+				const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
+				if (!luau.list.isEmpty(keyPrereqs)) {
+					disableInline();
+				}
+				state.prereqList(keyPrereqs);
+				assignToMixedTablePointer(state, childrenPtr, key, expression);
 			} else {
 				if (luau.isMixedTable(childrenPtr.value)) {
 					luau.list.push(childrenPtr.value.fields, expression);
