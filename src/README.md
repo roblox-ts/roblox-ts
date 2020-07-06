@@ -37,3 +37,4 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Reserved Lua identifiers (`string`, `table`, `nil`, etc.)
 -   [ ] Reserved Class methods (`__index`, `__newindex`, etc.)
 -   [ ] Class static/instance method collision
+-   [ ] Macros which access `node.arguments` do not properly account for spreads
