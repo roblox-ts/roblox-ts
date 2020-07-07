@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { skipDownwards } from "TSTransformer/util/traversal";
 
 export function transformWritableExpression(
 	state: TransformState,
@@ -29,8 +30,7 @@ export function transformWritableExpression(
 			index: addOneIfArrayType(state, state.getType(node.expression), index),
 		});
 	} else {
-		const transformed = transformExpression(state, node);
-		// could be luau.PropertyAccessExpression from export let
+		const transformed = transformExpression(state, skipDownwards(node));
 		assert(luau.isWritableExpression(transformed));
 		return transformed;
 	}
