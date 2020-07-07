@@ -198,6 +198,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				},
 				"eslint.run": "onType",
 				"eslint.format.enable": true,
+				"typescript.tsdk": "node_modules/typescript/lib",
 			};
 			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
 
