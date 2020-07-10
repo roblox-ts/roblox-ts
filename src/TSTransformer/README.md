@@ -206,7 +206,7 @@ In other words, TS AST -> Luau AST
 -   [ ] String.endsWith()
 -   [x] String.find()
 -   [x] String.format()
--   [ ] String.includes()
+-   [x] String.includes()
 -   [ ] String.indexOf()
 -   [ ] String.padEnd()
 -   [ ] String.padStart()
