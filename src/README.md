@@ -39,3 +39,4 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Class static/instance method collision
 -   [ ] Macros which access `node.arguments` do not properly account for spreads
 -   [ ] Rewrite RojoConfig to support nested Rojo projects, will be used for packages in the future
+-   [ ] Generator Functions
