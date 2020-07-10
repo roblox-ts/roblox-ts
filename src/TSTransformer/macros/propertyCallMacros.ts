@@ -275,6 +275,44 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 			expression: state.TS("string_find_wrap"),
 			args: luau.list.make(findMacro(state, node, expression)),
 		}),
+	includes: (state, node, expression) => {
+		const tempId = luau.tempId();
+		const string = luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.string.gsub,
+			args: luau.list.make(
+				transformExpression(state, node.arguments[0]),
+				luau.string("%^%$%(%)%%%.%[%]%*%+%-%?"), // matches all literal magic characters
+				luau.create(luau.SyntaxKind.FunctionExpression, {
+					parameters: luau.list.make(tempId),
+					hasDotDotDot: false,
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.ReturnStatement, {
+							expression: luau.binary(luau.string("%"), "..", tempId),
+						}),
+					),
+				}),
+			),
+		});
+		return luau.create(luau.SyntaxKind.BinaryExpression, {
+			left: luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.string.find,
+				args: luau.list.make(
+					node.arguments[1]
+						? luau.create(luau.SyntaxKind.CallExpression, {
+								expression: luau.globals.string.sub,
+								args: luau.list.make(
+									expression,
+									offset(transformExpression(state, node.arguments[1]), 1),
+								),
+						  })
+						: expression,
+					string,
+				),
+			}),
+			operator: "~=",
+			right: luau.nil(),
+		});
+	},
 };
 
 function makeEveryOrSomeMethod(
