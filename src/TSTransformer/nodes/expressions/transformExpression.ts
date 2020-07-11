@@ -32,6 +32,7 @@ import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
+import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
@@ -50,7 +51,6 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(diagnostics.noNullLiteral)],
 	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(diagnostics.noPrivateIdentifier)],
 	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
-	[ts.SyntaxKind.VoidExpression, DIAGNOSTIC(diagnostics.noVoidExpression)],
 	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(diagnostics.noRegex)],
 
 	// regular transforms
@@ -83,6 +83,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
+	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
