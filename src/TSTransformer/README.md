@@ -47,6 +47,7 @@ In other words, TS AST -> Luau AST
 -   [x] OmittedExpression
 -   [x] ThisExpression
 -   [x] SuperExpression
+-   [x] VoidExpression
 -   [x] JsxSelfClosingElement
 -   [x] JsxExpression
 

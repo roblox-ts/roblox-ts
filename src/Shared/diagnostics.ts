@@ -72,7 +72,6 @@ export const diagnostics = {
 		"`typeof` operator is not supported!",
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	),
-	noVoidExpression: diagnostic("`void` operator is not supported!"),
 	noRegex: diagnostic("Regular expressions are not supported!"),
 
 	// banned features
