@@ -259,37 +259,15 @@ function makeCopyMethod(iterator: luau.Identifier, makeExpression: PropertyCallM
 }
 
 const findMacro = makeStringCallback(luau.globals.string.find, [0, 1]);
-const findStringOccurenceMacro: PropertyCallMacro = (state, node, expression) => {
-	const tempId = luau.tempId();
-	const string = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.string.gsub,
-		args: luau.list.make(
-			transformExpression(state, node.arguments[0]),
-			luau.string("%^%$%(%)%%%.%[%]%*%+%-%?"), // matches all literal magic characters
-			luau.create(luau.SyntaxKind.FunctionExpression, {
-				parameters: luau.list.make(tempId),
-				hasDotDotDot: false,
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.ReturnStatement, {
-						expression: luau.binary(luau.string("%"), "..", tempId),
-					}),
-				),
-			}),
-		),
-	});
-	return luau.create(luau.SyntaxKind.CallExpression, {
+const findStringOccurenceMacro: PropertyCallMacro = (state, node, expression) =>
+	luau.create(luau.SyntaxKind.CallExpression, {
 		expression: luau.globals.string.find,
 		args: luau.list.make(
-			node.arguments[1]
-				? luau.create(luau.SyntaxKind.CallExpression, {
-						expression: luau.globals.string.sub,
-						args: luau.list.make(expression, offset(transformExpression(state, node.arguments[1]), 1)),
-				  })
-				: expression,
-			string,
+			expression, // base string
+			transformExpression(state, node.arguments[0]), // search string
+			node.arguments[1] ? offset(transformExpression(state, node.arguments[1]), 1) : luau.number(1),
 		),
 	});
-};
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size,
@@ -313,8 +291,13 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 			right: luau.nil(),
 		}),
 	indexOf: (state, node, expression) => {
+		// pushToVar to avoid LuaTuple unpacking into the usage of the result
 		const result = state.pushToVar(findStringOccurenceMacro(state, node, expression));
-		return luau.binary(luau.binary(result, "~=", luau.nil()), "and", luau.binary(result, "or", luau.number(-1)));
+		return luau.binary(
+			luau.binary(result, "~=", luau.nil()),
+			"and",
+			luau.binary(offset(result, -1), "or", luau.number(-1)),
+		);
 	},
 };
 
