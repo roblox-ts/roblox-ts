@@ -259,6 +259,60 @@ function makeCopyMethod(iterator: luau.Identifier, makeExpression: PropertyCallM
 }
 
 const findMacro = makeStringCallback(luau.globals.string.find, [0, 1]);
+function stringSub(
+	atEnd: boolean,
+	result: luau.Expression,
+	padString: luau.Expression,
+	resultSize: luau.Expression,
+	endSize: luau.Expression,
+) {
+	const string = luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.string.sub,
+		args: luau.list.make<luau.Expression>(padString, luau.number(1), luau.binary(endSize, "-", resultSize)),
+	});
+	return atEnd ? luau.binary(result, "..", string) : luau.binary(string, "..", result);
+}
+function makePadMacro(atEnd: boolean): PropertyCallMacro {
+	return (state, node, expression) => {
+		const result = state.pushToVar(expression);
+		const resultSize = size(state, node, result);
+		const endSize = transformExpression(state, node.arguments[0]);
+		const padString = node.arguments[1] ? transformExpression(state, node.arguments[1]) : luau.string(" ");
+		const statements = luau.list.make<luau.Statement>();
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.binary(resultSize, "<", endSize),
+				statements: luau.list.make<luau.Statement>(
+					luau.create(luau.SyntaxKind.RepeatStatement, {
+						statements: luau.list.make(
+							luau.create(luau.SyntaxKind.Assignment, {
+								left: result,
+								operator: "=",
+								right: atEnd
+									? luau.binary(result, "..", padString)
+									: luau.binary(padString, "..", result),
+							}),
+						),
+						condition: luau.binary(
+							resultSize,
+							">=",
+							state.pushToVar(luau.binary(endSize, "-", luau.unary("#", padString))),
+						),
+					}),
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: result,
+						operator: "=",
+						right: stringSub(atEnd, result, padString, resultSize, endSize),
+					}),
+				),
+				elseBody: luau.list.make(),
+			}),
+		);
+		state.prereqList(statements);
+		return result;
+	};
+}
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size,
@@ -275,6 +329,8 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 			expression: state.TS("string_find_wrap"),
 			args: luau.list.make(findMacro(state, node, expression)),
 		}),
+	padStart: makePadMacro(false),
+	padEnd: makePadMacro(true),
 };
 
 function makeEveryOrSomeMethod(
