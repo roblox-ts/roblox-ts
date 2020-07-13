@@ -89,6 +89,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				// catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {
 					e.log();
+					process.exit(1);
 				} else {
 					throw e;
 				}

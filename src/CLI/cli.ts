@@ -32,5 +32,6 @@ yargs
 			// eslint-disable-next-line no-console
 			console.log(e);
 		}
+		process.exit(1);
 	})
 	.parse();
