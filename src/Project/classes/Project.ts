@@ -27,6 +27,7 @@ import {
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: "",
+	noRuntimeLibs: false
 };
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
@@ -47,6 +48,9 @@ export interface ProjectOptions {
 
 	/** The path to the rojo configuration. */
 	rojo: string;
+
+	/** If runtime libraries should not be copied into the include folder. */
+	noRuntimeLibs: boolean;
 }
 
 /** Represents a roblox-ts project. */
@@ -289,10 +293,13 @@ export class Project {
 		return rootDirs;
 	}
 
+	/** copies runtime libraries into the include path if --noRuntimeLibs was not supplied */
 	public copyInclude() {
-		this.benchmark("copying include files", () => {
-			fs.copySync(LIB_PATH, this.includePath, { dereference: true });
-		});
+		if (!this.projectOptions.noRuntimeLibs) {
+			this.benchmark("copying include files", () => {
+				fs.copySync(LIB_PATH, this.includePath, { dereference: true });
+			});
+		}
 	}
 
 	public copyFiles(sources: Set<string>) {

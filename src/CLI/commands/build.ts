@@ -58,7 +58,12 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			})
 			.option("rojo", {
 				string: true,
-				describe: "Manually select Rojo configuration file",
+				describe: "manually select Rojo configuration file",
+			})
+			.option("noRuntimeLibs", {
+				boolean: true,
+				default: false,
+				describe: "if runtime libs should not be copied into include directory",
 			}),
 
 	handler: async argv => {
