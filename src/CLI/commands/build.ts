@@ -63,7 +63,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			.option("noRuntimeLibs", {
 				boolean: true,
 				default: false,
-				describe: "if runtime libs should not be copied into include directory",
+				describe: "do not copy runtime files into include path",
 			}),
 
 	handler: async argv => {

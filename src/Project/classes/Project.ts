@@ -27,7 +27,7 @@ import {
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: "",
-	noRuntimeLibs: false
+	noRuntimeLibs: false,
 };
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
