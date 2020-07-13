@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { CLIError } from "CLI/errors/CLIError";
-import { PACKAGE_ROOT } from "Shared/constants";
+import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
 import yargs from "yargs";
 
 yargs
@@ -12,7 +12,7 @@ yargs
 	.describe("help", "show help information")
 
 	// version
-	.version()
+	.version(COMPILER_VERSION)
 	.alias("v", "version")
 	.describe("version", "show version information")
 
