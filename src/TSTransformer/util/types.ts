@@ -129,7 +129,8 @@ export function getTypeArguments(state: TransformState, type: ts.Type) {
 }
 
 const isAssignableToUndefined = (simpleType: tsst.SimpleType) =>
-	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED);
+	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED) ||
+	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.VOID);
 const isAssignableToFalse = (simpleType: tsst.SimpleType) => tsst.isAssignableToValue(simpleType, false);
 
 /**
