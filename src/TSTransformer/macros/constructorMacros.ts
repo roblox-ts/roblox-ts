@@ -117,5 +117,5 @@ export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {
 	WeakSetConstructor: (state, node) => wrapWeak(state, node, SetConstructor),
 	WeakMapConstructor: (state, node) => wrapWeak(state, node, MapConstructor),
 	ReadonlyMapConstructor: MapConstructor,
-	ReadonlySetConstructor: MapConstructor,
+	ReadonlySetConstructor: SetConstructor,
 };
