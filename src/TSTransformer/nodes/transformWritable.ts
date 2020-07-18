@@ -36,7 +36,7 @@ export function transformWritableExpression(
 	}
 }
 
-export function transformWritableAssignmentWithType(
+export function transformWritableAssignment(
 	state: TransformState,
 	writeNode: ts.Expression,
 	valueNode: ts.Expression,
@@ -44,7 +44,8 @@ export function transformWritableAssignmentWithType(
 ) {
 	const writable = transformWritableExpression(state, writeNode, multipleUse);
 	const [value, prereqs] = state.capture(() => transformExpression(state, valueNode));
-	const readable = luau.list.isEmpty(prereqs) ? writable : state.pushToVar(writable);
+	// if !multipleUse, readable won't be used anyways
+	const readable = !multipleUse || luau.list.isEmpty(prereqs) ? writable : state.pushToVar(writable);
 	state.prereqList(prereqs);
 	return { writable, readable, value };
 }

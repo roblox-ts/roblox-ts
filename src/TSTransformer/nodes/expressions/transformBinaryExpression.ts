@@ -8,10 +8,7 @@ import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
-import {
-	transformWritableAssignmentWithType,
-	transformWritableExpression,
-} from "TSTransformer/nodes/transformWritable";
+import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import {
 	createAssignmentExpression,
 	createCompoundAssignmentExpression,
@@ -245,7 +242,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operatorKind as ts.AssignmentOperator,
 			rightSimpleType,
 		);
-		const { writable, readable, value } = transformWritableAssignmentWithType(
+		const { writable, readable, value } = transformWritableAssignment(
 			state,
 			node.left,
 			node.right,

@@ -40,26 +40,14 @@ export function createAssignmentExpression(
 	operator: luau.AssignmentOperator,
 	value: luau.Expression,
 ) {
-	if (luau.isAnyIdentifier(readable)) {
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: readable,
-				operator,
-				right: value,
-			}),
-		);
-		return readable;
-	} else {
-		const id = state.pushToVar(value);
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: readable,
-				operator,
-				right: id,
-			}),
-		);
-		return id;
-	}
+	state.prereq(
+		luau.create(luau.SyntaxKind.Assignment, {
+			left: readable,
+			operator,
+			right: value,
+		}),
+	);
+	return readable;
 }
 
 function wrapRightIfBinary(expression: luau.Expression) {
