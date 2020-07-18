@@ -219,7 +219,15 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	await benchmark(
 		"Building..",
-		() => build.handler({ project: ".", verbose: false, watch: false, $0: argv.$0, _: argv._ }) as never,
+		() =>
+			build.handler({
+				project: ".",
+				verbose: false,
+				watch: false,
+				noRuntimeLibs: false,
+				$0: argv.$0,
+				_: argv._,
+			}) as never,
 	);
 }
 

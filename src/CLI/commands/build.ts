@@ -2,7 +2,7 @@ import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { Project, ProjectOptions } from "Project";
+import { Project, ProjectOptions, ProjectFlags } from "Project";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
@@ -17,16 +17,10 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 	}
 }
 
-interface CLIOptions {
-	project: string;
-	watch: boolean;
-	verbose: boolean;
-}
-
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
-export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOptions>>({
+export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFlags>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
@@ -50,6 +44,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				default: false,
 				describe: "enable verbose logs",
 			})
+			.option("noRuntimeLibs", {
+				boolean: true,
+				default: false,
+				describe: "do not copy runtime files into include path",
+			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("includePath", {
 				alias: "i",
@@ -59,11 +58,6 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 			.option("rojo", {
 				string: true,
 				describe: "manually select Rojo configuration file",
-			})
-			.option("noRuntimeLibs", {
-				boolean: true,
-				default: false,
-				describe: "do not copy runtime files into include path",
 			}),
 
 	handler: async argv => {
@@ -79,7 +73,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 
 		// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
-		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv);
+		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv as ProjectFlags);
 
 		// if watch mode is enabled
 		if (argv.watch) {
@@ -87,7 +81,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 		} else {
 			try {
 				// attempt to build the project
-				const project = new Project(tsConfigPath, projectOptions, argv.verbose);
+				const project = new Project(tsConfigPath, projectOptions, argv);
 				project.cleanup();
 				project.compileAll();
 			} catch (e) {

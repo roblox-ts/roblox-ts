@@ -24,11 +24,27 @@ import {
 	TransformState,
 } from "TSTransformer";
 
+/** Root options of the project. */
+export interface ProjectOptions {
+	/** The path to the include directory. */
+	includePath: string;
+
+	/** The path to the rojo configuration. */
+	rojo: string;
+}
+
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: "",
-	noRuntimeLibs: false,
 };
+
+/** Optional flags that add alternate behavior to project. */
+export interface ProjectFlags {
+	project: string;
+	watch: boolean;
+	verbose: boolean;
+	noRuntimeLibs: boolean;
+}
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
@@ -41,24 +57,13 @@ function findAncestorDir(dirs: Array<string>) {
 	return currentDir;
 }
 
-/** The options of the project. */
-export interface ProjectOptions {
-	/** The path to the include directory. */
-	includePath: string;
-
-	/** The path to the rojo configuration. */
-	rojo: string;
-
-	/** If runtime libraries should not be copied into the include folder. */
-	noRuntimeLibs: boolean;
-}
-
 /** Represents a roblox-ts project. */
 export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
 
 	private readonly verbose: boolean;
+	private readonly noRuntimeLibs: boolean;
 	private readonly projectOptions: ProjectOptions;
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
@@ -78,8 +83,10 @@ export class Project {
 
 	private readonly nodeModulesPathMapping = new Map<string, string>();
 
-	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, verbose: boolean) {
-		this.verbose = verbose;
+	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, flags: ProjectFlags) {
+		this.verbose = flags.verbose;
+		this.noRuntimeLibs = flags.noRuntimeLibs;
+
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		// set up project paths
@@ -295,7 +302,7 @@ export class Project {
 
 	/** copies runtime libraries into the include path if --noRuntimeLibs was not supplied */
 	public copyInclude() {
-		if (!this.projectOptions.noRuntimeLibs) {
+		if (!this.noRuntimeLibs) {
 			this.benchmark("copying include files", () => {
 				fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 			});
