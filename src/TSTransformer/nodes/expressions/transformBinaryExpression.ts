@@ -20,7 +20,7 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isNumberType, isStringSimpleType } from "TSTransformer/util/types";
+import { isLuaTupleType, isNumberType, isStringSimpleType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
@@ -276,24 +276,23 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return createBinaryInstanceOf(state, left, right);
 	}
 
-	// TODO issue #715
-	// if (
-	// 	operatorKind === ts.SyntaxKind.LessThanToken ||
-	// 	operatorKind === ts.SyntaxKind.LessThanEqualsToken ||
-	// 	operatorKind === ts.SyntaxKind.GreaterThanToken ||
-	// 	operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
-	// ) {
-	// 	if (!isNumberType(state.getType(node.left)) || !isNumberType(state.getType(node.right))) {
-	// 		state.addDiagnostic(diagnostics.noNonNumberRelationOperator(node));
-	// 	}
-	// }
+	const leftType = state.getType(node.left);
+	const rightType = state.getType(node.right);
 
-	return createBinaryFromOperator(
-		state,
-		left,
-		state.getType(node.left),
-		operatorKind,
-		right,
-		state.getType(node.right),
-	);
+	// TODO issue #715
+	if (
+		operatorKind === ts.SyntaxKind.LessThanToken ||
+		operatorKind === ts.SyntaxKind.LessThanEqualsToken ||
+		operatorKind === ts.SyntaxKind.GreaterThanToken ||
+		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
+	) {
+		if (
+			(!isStringType(leftType) && !isNumberType(leftType)) ||
+			(!isStringType(rightType) && !isNumberType(rightType))
+		) {
+			state.addDiagnostic(diagnostics.noNonNumberStringRelationOperator(node));
+		}
+	}
+
+	return createBinaryFromOperator(state, left, leftType, operatorKind, right, rightType);
 }
