@@ -1,5 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { render, RenderState, renderStatements } from "LuauRenderer";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
 import { ProjectType } from "Shared/constants";
@@ -33,6 +34,14 @@ export class TransformState {
 
 	public addDiagnostic(diagnostic: ts.Diagnostic) {
 		this.diagnostics.push(diagnostic);
+	}
+
+	public debugRender(node: luau.Node) {
+		return render(new RenderState(), node);
+	}
+
+	public debugRenderList(list: luau.List<luau.Statement>) {
+		return renderStatements(new RenderState(), list);
 	}
 
 	constructor(
