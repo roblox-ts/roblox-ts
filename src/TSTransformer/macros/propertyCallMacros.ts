@@ -1081,13 +1081,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
-	isEmpty: (state, node, expression) => {
-		const left = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.next,
-			args: luau.list.make(expression),
-		});
-		return luau.binary(left, "==", luau.nil());
-	},
+	isEmpty: (state, node, expression) =>
+		luau.binary(
+			luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.next,
+				args: luau.list.make(expression),
+			}),
+			"==",
+			luau.nil(),
+		),
 
 	size: (state, node, expression) => {
 		if (isUsedAsStatement(node)) {
@@ -1358,7 +1360,16 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	deepCopy: runtimeLib("Object_deepCopy", true),
 	deepEquals: runtimeLib("Object_deepEquals", true),
 	fromEntries: runtimeLib("Object_fromEntries", true),
-	isEmpty: runtimeLib("Object_isEmpty", true),
+
+	isEmpty: (state, node, expression) =>
+		luau.binary(
+			luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.globals.next,
+				args: luau.list.make(transformExpression(state, node.arguments[0])),
+			}),
+			"==",
+			luau.nil(),
+		),
 
 	keys: (state, node, expression) => {
 		expression = transformExpression(state, node.arguments[0]);

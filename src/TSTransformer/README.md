@@ -129,6 +129,7 @@ In other words, TS AST -> Luau AST
 -   [ ] Object.deepCopy()
 -   [ ] Object.deepEquals()
 -   [ ] Object.toString()
+-   [x] Object.isEmpty()
 
 ### Array Macros
 
