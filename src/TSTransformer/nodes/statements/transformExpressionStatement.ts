@@ -2,10 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import {
-	transformWritableAssignmentWithType,
-	transformWritableExpression,
-} from "TSTransformer/nodes/transformWritable";
+import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -41,7 +38,7 @@ export function transformExpressionStatementInner(state: TransformState, express
 				operatorKind as ts.AssignmentOperator,
 				rightSimpleType,
 			);
-			const { writable, readable, value } = transformWritableAssignmentWithType(
+			const { writable, readable, value } = transformWritableAssignment(
 				state,
 				expression.left,
 				expression.right,
