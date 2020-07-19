@@ -91,6 +91,7 @@ function createBoilerplate(
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
 ) {
+	const isAbstract = node.modifiers?.some(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword);
 	const statements = luau.list.make<luau.Statement>();
 
 	/* boilerplate:
@@ -112,82 +113,97 @@ function createBoilerplate(
 	// 		__index = super,
 	//	});
 
-	const metatableFields = luau.list.make<luau.MapField>();
-	luau.list.push(
-		metatableFields,
-		luau.create(luau.SyntaxKind.MapField, {
-			index: luau.strings.__tostring,
-			value: createNameFunction(luau.isTemporaryIdentifier(className) ? "Anonymous" : className.name),
-		}),
-	);
-
+	// if a class is abstract and it does not extend any class, it can just be a plain table
+	// otherwise we can use the default boilerplate
 	const extendsNode = getExtendsNode(node);
-	if (extendsNode) {
-		const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
-		if (extendsDec && extendsRoactComponent(state, extendsDec)) {
-			state.addDiagnostic(diagnostics.noRoactInheritance(node));
-		}
-
-		const [extendsExp, extendsExpPrereqs] = state.capture(() => transformExpression(state, extendsNode.expression));
-		const superId = luau.id("super");
-		luau.list.pushList(statements, extendsExpPrereqs);
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: superId,
-				right: extendsExp,
-			}),
-		);
-		luau.list.push(
-			metatableFields,
-			luau.create(luau.SyntaxKind.MapField, {
-				index: luau.strings.__index,
-				value: superId,
-			}),
-		);
-	}
-
-	const metatable = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.setmetatable,
-		args: luau.list.make(luau.map(), luau.create(luau.SyntaxKind.Map, { fields: metatableFields })),
-	});
-
-	if (isClassExpression && node.name) {
-		luau.list.push(
-			statements,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: transformIdentifierDefined(state, node.name),
-				right: metatable,
-			}),
-		);
-	} else {
+	if (isAbstract && !extendsNode) {
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: className,
 				operator: "=",
-				right: metatable,
+				right: luau.mixedTable(),
+			}),
+		);
+	} else {
+		const metatableFields = luau.list.make<luau.MapField>();
+		luau.list.push(
+			metatableFields,
+			luau.create(luau.SyntaxKind.MapField, {
+				index: luau.strings.__tostring,
+				value: createNameFunction(luau.isTemporaryIdentifier(className) ? "Anonymous" : className.name),
+			}),
+		);
+
+		if (extendsNode) {
+			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
+			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
+				state.addDiagnostic(diagnostics.noRoactInheritance(node));
+			}
+
+			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
+				transformExpression(state, extendsNode.expression),
+			);
+			const superId = luau.id("super");
+			luau.list.pushList(statements, extendsExpPrereqs);
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: superId,
+					right: extendsExp,
+				}),
+			);
+			luau.list.push(
+				metatableFields,
+				luau.create(luau.SyntaxKind.MapField, {
+					index: luau.strings.__index,
+					value: superId,
+				}),
+			);
+		}
+
+		const metatable = luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.setmetatable,
+			args: luau.list.make(luau.map(), luau.create(luau.SyntaxKind.Map, { fields: metatableFields })),
+		});
+
+		if (isClassExpression && node.name) {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: transformIdentifierDefined(state, node.name),
+					right: metatable,
+				}),
+			);
+		} else {
+			luau.list.push(
+				statements,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: className,
+					operator: "=",
+					right: metatable,
+				}),
+			);
+		}
+
+		//	className.__index = className;
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					name: "__index",
+					expression: className,
+				}),
+				operator: "=",
+				right: className,
 			}),
 		);
 	}
 
-	//	className.__index = className;
-	luau.list.push(
-		statements,
-		luau.create(luau.SyntaxKind.Assignment, {
-			left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				name: "__index",
-				expression: className,
-			}),
-			operator: "=",
-			right: className,
-		}),
-	);
-
-	const statementsInner = luau.list.make<luau.Statement>();
-
 	// statements for className.new
-	if (!node.modifiers?.some(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword)) {
+	if (!isAbstract) {
+		const statementsInner = luau.list.make<luau.Statement>();
+
 		//	local self = setmetatable({}, className);
 		luau.list.push(
 			statementsInner,
