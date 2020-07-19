@@ -187,7 +187,7 @@ function createBoilerplate(
 	const statementsInner = luau.list.make<luau.Statement>();
 
 	// statements for className.new
-	if (!node.modifiers?.find(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword)) {
+	if (!node.modifiers?.some(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword)) {
 		//	local self = setmetatable({}, className);
 		luau.list.push(
 			statementsInner,
