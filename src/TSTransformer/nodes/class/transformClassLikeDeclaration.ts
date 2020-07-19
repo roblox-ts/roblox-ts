@@ -187,53 +187,55 @@ function createBoilerplate(
 	const statementsInner = luau.list.make<luau.Statement>();
 
 	// statements for className.new
-	//	local self = setmetatable({}, className);
-	luau.list.push(
-		statementsInner,
-		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: luau.globals.self,
-			right: luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.setmetatable,
-				args: luau.list.make<luau.Expression>(luau.map(), className),
+	if (!node.modifiers?.find(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword)) {
+		//	local self = setmetatable({}, className);
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.globals.self,
+				right: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.setmetatable,
+					args: luau.list.make<luau.Expression>(luau.map(), className),
+				}),
 			}),
-		}),
-	);
+		);
 
-	//	self:constructor(...);
-	luau.list.push(
-		statementsInner,
-		luau.create(luau.SyntaxKind.CallStatement, {
-			expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
+		//	self:constructor(...);
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
+					expression: luau.globals.self,
+					name: "constructor",
+					args: luau.list.make(luau.create(luau.SyntaxKind.VarArgsLiteral, {})),
+				}),
+			}),
+		);
+
+		//	return self;
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.ReturnStatement, {
 				expression: luau.globals.self,
-				name: "constructor",
-				args: luau.list.make(luau.create(luau.SyntaxKind.VarArgsLiteral, {})),
 			}),
-		}),
-	);
+		);
 
-	//	return self;
-	luau.list.push(
-		statementsInner,
-		luau.create(luau.SyntaxKind.ReturnStatement, {
-			expression: luau.globals.self,
-		}),
-	);
-
-	//	function className.new(...)
-	//	end;
-	luau.list.push(
-		statements,
-		luau.create(luau.SyntaxKind.FunctionDeclaration, {
-			name: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: className,
-				name: "new",
+		//	function className.new(...)
+		//	end;
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.FunctionDeclaration, {
+				name: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					expression: className,
+					name: "new",
+				}),
+				parameters: luau.list.make(),
+				hasDotDotDot: true,
+				statements: statementsInner,
+				localize: false,
 			}),
-			parameters: luau.list.make(),
-			hasDotDotDot: true,
-			statements: statementsInner,
-			localize: false,
-		}),
-	);
+		);
+	}
 
 	return statements;
 }
