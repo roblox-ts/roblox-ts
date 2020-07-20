@@ -74,12 +74,13 @@ You can find your `.ROBLOSECURITY` token in the Chrome developer tools. (Ctrl+Sh
 
 ![https://i.imgur.com/xSiR6tX.png](https://i.imgur.com/xSiR6tX.png)
 
-0. Create a new Roblox account in Chrome's "Incognito" mode
-1. Click on `Application`
-1. Click on `Cookies` > `https://www.roblox.com`
-1. Select `.ROBLOSECURITY` from the "Name" column
-1. Copy the value
-1. **DO NOT LOG OUT**, this will invalidate your `.ROBLOSECURITY` cookie. Instead, just close out of the browser tab.
+1. Create a new Roblox account in Chrome's "Incognito" mode
+2. Open Chrome Developer Tools with Ctrl+Shift+I
+3. Click on `Application`
+4. Click on `Cookies` > `https://www.roblox.com`
+5. Select `.ROBLOSECURITY` from the "Name" column
+6. Copy the value
+7. **DO NOT LOG OUT**, this will invalidate your `.ROBLOSECURITY` cookie. Instead, just close out of the browser tab.
 
 Next, go to your fork repository settings on GitHub.
 
