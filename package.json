@@ -16,7 +16,10 @@
 		"build": "ttsc -b",
 		"build-watch": "ttsc -b -w",
 		"prepare": "npm run build",
-		"devlink": "cd devlink && npm link"
+		"devlink": "cd devlink && npm link",
+		"test": "npm run build && npm run test-build && npm run test-rojo",
+		"test-build": "node out/CLI/cli.js -p ./tests",
+		"test-rojo": "rojo build tests -o tests/test.rbxlx"
 	},
 	"nyc": {
 		"all": true,
