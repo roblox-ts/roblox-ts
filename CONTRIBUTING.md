@@ -78,7 +78,7 @@ You can find your `ROBLOSECURITY` token in the Chrome developer tools. (Ctrl+Shi
 2. Open Chrome Developer Tools with Ctrl+Shift+I
 3. Click on `Application`
 4. Click on `Cookies` > `https://www.roblox.com`
-5. Select `ROBLOSECURITY` from the "Name" column
+5. Select `.ROBLOSECURITY` from the "Name" column
 6. Copy the value
 7. **DO NOT LOG OUT**, this will invalidate your `ROBLOSECURITY` cookie. Instead, just close out of the browser tab.
 
