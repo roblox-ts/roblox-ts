@@ -11,26 +11,36 @@ jobs:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
+      # checkout + npm install
       - uses: actions/checkout@v1
         with:
           submodules: recursive
       - uses: bahmutov/npm-install@v1.1.0
+
+      # run eslint
       - run: npm run eslint
   unit-tests:
     runs-on: windows-latest
     steps:
+      # checkout + npm install
       - uses: actions/checkout@v1
         with:
           submodules: recursive
       - uses: bahmutov/npm-install@v1.1.0
+
+      # install Roblox Studio
       - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/install.py" -OutFile install.py
       - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/GlobalSettings_13.xml" -OutFile GlobalSettings_13.xml
       - run: pip install wget psutil
       - run: python install.py "${{ secrets.ROBLOSECURITY }}"
+
+      # install rojo + run-in-roblox
       - uses: rojo-rbx/setup-foreman@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: foreman install
+
+      # compile and run tests
       - working-directory: .\\tests
         run: npm install
       - run: npm test
