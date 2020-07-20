@@ -31,5 +31,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - run: foreman install
+      - working-directory: .\\tests
+        run: npm install
       - run: npm test
       - run: run-in-roblox --place .\\tests\\test.rbxlx --script .\\tests\\out\\main.server.lua
