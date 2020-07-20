@@ -14,11 +14,15 @@ This guide assumes you have the following installed:
 
 We'll also assume you understand some basic terminal navigation commands (`cd`, `ls`/`dir`, etc.).
 
-Navigate to somewhere you'd like to keep your development copy of **roblox-ts** and then you can run the following commands:
+1. Begin by creating a fork of roblox-ts.
+
+![https://i.imgur.com/wRtbuiy.png](https://i.imgur.com/wRtbuiy.png)
+
+2. Navigate to somewhere you'd like to keep your development copy of **roblox-ts** and then you can run the following commands:
 
 ```sh
-# Clone the git repository (you may prefer to use SSH instead)
-git clone https://github.com/roblox-ts/roblox-ts.git
+# Clone your fork of roblox-ts (you may prefer to use SSH instead)
+git clone https://github.com/YOUR_GITHUB_USERNAME/roblox-ts.git
 # Navigate into the roblox-ts folder
 cd roblox-ts
 # Checkout the refactor branch
@@ -31,9 +35,9 @@ npm run build
 npm run devlink
 ```
 
-You should now be able to use the command `rbxtsc-dev` to run the development compiler!
+3. You should now be able to use the command `rbxtsc-dev` to run the development compiler!
 
-At a later time, if you need to update it:
+4. At a later time, if you need to update it:
 
 ```sh
 # pull latest changes
