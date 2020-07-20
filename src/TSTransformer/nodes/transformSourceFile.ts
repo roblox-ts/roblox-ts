@@ -52,7 +52,7 @@ function handleExports(
 					continue;
 				}
 				if (exportSymbol.name === "default") {
-					const declaration = exportSymbol.declarations[0];
+					const declaration = exportSymbol.getDeclarations()?.[0];
 					if (declaration) {
 						const ancestor = getAncestor(declaration, ts.isExportDeclaration);
 						if (ancestor && ancestor.moduleSpecifier !== undefined) {
