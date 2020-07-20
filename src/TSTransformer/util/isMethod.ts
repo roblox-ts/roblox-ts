@@ -42,15 +42,18 @@ function isMethodInner(
 		}
 	}
 
-	for (const declaration of type.symbol.declarations) {
-		if (ts.isTypeLiteralNode(declaration)) {
-			for (const callSignature of type.getCallSignatures()) {
-				if (callSignature.declaration) {
-					checkMethod(callSignature.declaration);
+	const typeSymbolDeclarations = type.symbol.getDeclarations();
+	if (typeSymbolDeclarations !== undefined) {
+		for (const declaration of typeSymbolDeclarations) {
+			if (ts.isTypeLiteralNode(declaration)) {
+				for (const callSignature of type.getCallSignatures()) {
+					if (callSignature.declaration) {
+						checkMethod(callSignature.declaration);
+					}
 				}
+			} else {
+				checkMethod(declaration);
 			}
-		} else {
-			checkMethod(declaration);
 		}
 	}
 
