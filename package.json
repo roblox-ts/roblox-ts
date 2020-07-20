@@ -17,9 +17,10 @@
 		"build-watch": "ttsc -b -w",
 		"prepare": "npm run build",
 		"devlink": "cd devlink && npm link",
-		"test": "npm run build && npm run test-build && npm run test-rojo",
+		"test": "npm run build && npm run test-build && npm run test-rojo && npm run test-run",
 		"test-build": "node out/CLI/cli.js -p ./tests",
-		"test-rojo": "rojo build tests -o tests/test.rbxlx"
+		"test-rojo": "rojo build tests -o tests/test.rbxlx",
+		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
 	},
 	"nyc": {
 		"all": true,

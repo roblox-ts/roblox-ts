@@ -44,4 +44,3 @@ jobs:
       - working-directory: .\\tests
         run: npm install
       - run: npm test
-      - run: run-in-roblox --place .\\tests\\test.rbxlx --script .\\tests\\out\\main.server.lua
