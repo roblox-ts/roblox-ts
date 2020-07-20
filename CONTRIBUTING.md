@@ -62,3 +62,28 @@ foreman install
 # Compile tests, build .rbxlx, run with run-in-roblox
 npm test
 ```
+
+Unfortunately, Roblox Studio requires authentication to run our tests. You will need to provide a `.ROBLOSECURITY` cookie in your fork to allow tests.\
+It is _highly_ recommended that you create a brand new Roblox account that is only used for this.
+
+You can find your `.ROBLOSECURITY` token in the Chrome developer tools.
+
+![https://i.imgur.com/xSiR6tX.png](https://i.imgur.com/xSiR6tX.png)
+
+0. Create a new Roblox account in Chrome's "Incognito" mode
+1. Click on `Application`
+1. Click on `Cookies` > `https://www.roblox.com`
+1. Select `.ROBLOSECURITY` from the "Name" column
+1. Copy the value
+1. **DO NOT LOG OUT**, this will invalidate your `.ROBLOSECURITY` cookie. Instead, just close out of the browser tab.
+
+Next, go to your fork repository settings on GitHub.
+
+![https://i.imgur.com/gabFmIa.png](https://i.imgur.com/gabFmIa.png)
+
+1. Click on `Settings`
+2. Click on `Secrets`
+3. Click on `New secret`
+4. Set `Name` to `ROBLOSECURITY`
+5. Paste your `.ROBLOSECURITY` cookie value into `Value`
+6. Click on `Add secret`
