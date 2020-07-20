@@ -66,7 +66,7 @@ npm test
 Unfortunately, Roblox Studio requires authentication to run our tests. You will need to provide a `.ROBLOSECURITY` cookie in your fork to allow tests.\
 It is _highly_ recommended that you create a brand new Roblox account that is only used for this.
 
-You can find your `.ROBLOSECURITY` token in the Chrome developer tools.
+You can find your `.ROBLOSECURITY` token in the Chrome developer tools. (Ctrl+Shift+I)
 
 ![https://i.imgur.com/xSiR6tX.png](https://i.imgur.com/xSiR6tX.png)
 
