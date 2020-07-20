@@ -23,28 +23,13 @@ jobs:
         with:
           submodules: recursive
       - uses: bahmutov/npm-install@v1.1.0
-
-      - name: download run-in-roblox
-        run: Invoke-WebRequest -Uri "${{ secrets.RUNINROBLOXDOWNLOAD }}" -OutFile run-in-roblox.exe
-      - name: download roblox install script
-        run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/install.py" -OutFile install.py
-      - name: download settings file
-        run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/GlobalSettings_13.xml" -OutFile GlobalSettings_13.xml
-      - name: install pip deps
-        run: pip install wget psutil
-      - name: install roblox
-        run: python install.py "${{ secrets.ROBLOSECURITY }}"
-
-      - name: install foreman
-        uses: rojo-rbx/setup-foreman@v1
+      - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/install.py" -OutFile install.py
+      - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/GlobalSettings_13.xml" -OutFile GlobalSettings_13.xml
+      - run: pip install wget psutil
+      - run: python install.py "${{ secrets.ROBLOSECURITY }}"
+      - uses: rojo-rbx/setup-foreman@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: install foreman packages (rojo)
-        run: foreman install
-
-      - name: compile main typescript code
-        run: npm test
-
-      - name: run tests
-        run: .\\run-in-roblox.exe --place .\\tests\\build.rbxlx --script .\\tests\\out\\main.server.lua
+      - run: foreman install
+      - run: npm test
+      - run: run-in-roblox --place .\\tests\\test.rbxlx --script .\\tests\\out\\main.server.lua
