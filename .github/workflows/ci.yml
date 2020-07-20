@@ -28,11 +28,15 @@ jobs:
           submodules: recursive
       - uses: bahmutov/npm-install@v1.1.0
 
+      - run: |
+          If([string]::IsNullOrEmpty("${{ secrets.ROBLOSECURITY }}")) {
+            echo "ROBLOSECURITY secret has not been set! Please refer to CONTRIBUTING.md";
+            exit 1;
+          }
+
       # install Roblox Studio
-      - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/install.py" -OutFile install.py
-      - run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/OrbitalOwen/roblox-win-installer/master/GlobalSettings_13.xml" -OutFile GlobalSettings_13.xml
       - run: pip install wget psutil
-      - run: python install.py "${{ secrets.ROBLOSECURITY }}"
+      - run: python .\\tests\\scripts\\install.py "${{ secrets.ROBLOSECURITY }}"
 
       # install rojo + run-in-roblox
       - uses: rojo-rbx/setup-foreman@v1
