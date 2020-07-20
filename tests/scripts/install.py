@@ -134,7 +134,7 @@ def createSettingsFile():
 
     userDir = pathlib.Path.home()
 
-    templateFile = open(os.path.join(sys.path[0], "tests", "scripts", "GlobalSettings_13.xml"), "r")
+    templateFile = open(os.path.join(sys.path[0], "GlobalSettings_13.xml"), "r")
     templateString = templateFile.read()
     templateFile.close()
 
