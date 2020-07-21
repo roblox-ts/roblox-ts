@@ -28,15 +28,16 @@
 		"reporter": [
 			"lcov"
 		],
+		"extension": [
+			".ts"
+		],
 		"include": [
-			"src",
-			"out"
+			"out/**/*.js",
+			"src/**/*.ts"
 		],
 		"exclude": [
 			"src/CLI",
-			"out/CLI",
-			"src/Project",
-			"out/Project"
+			"src/Project"
 		]
 	},
 	"author": "",
