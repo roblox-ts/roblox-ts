@@ -47,7 +47,7 @@ jobs:
       # compile and run tests
       - working-directory: .\\tests
         run: npm install
-      - run: npm test
+      - run: npm run test-ci
 
       # report coverage to coveralls
       - uses: coverallsapp/github-action@master
