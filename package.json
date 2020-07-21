@@ -12,10 +12,10 @@
 		"rbxtsc": "out/CLI/cli.js"
 	},
 	"scripts": {
-		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
+		"prepare": "npm run build",
 		"build": "ttsc -b",
 		"build-watch": "ttsc -b -w",
-		"prepare": "npm run build",
+		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
 		"devlink": "cd devlink && npm link",
 		"test": "npm run build && npm run test-setup && npm run test-compile && npm run test-rojo && npm run test-run",
 		"test-setup": "cd tests && npm install @rbxts/types@latest",
