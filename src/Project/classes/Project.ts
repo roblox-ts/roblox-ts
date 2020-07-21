@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { SourceFile } from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
@@ -252,7 +252,7 @@ export class Project {
 	 *
 	 * if `assumeChangesOnlyAffectDirectDependencies == false`, this will only check direct dependencies
 	 */
-	public getChangedFilesSet() {
+	public getChangedFilePaths() {
 		const buildState = this.program.getState();
 
 		// buildState.referencedMap is sourceFile -> files that this file imports
@@ -315,8 +315,20 @@ export class Project {
 		}
 	}
 
+	public getChangedSourceFiles() {
+		const sourceFiles = new Array<ts.SourceFile>();
+		for (const fileName of this.getChangedFilePaths()) {
+			const sourceFile = this.program.getSourceFile(fileName);
+			assert(sourceFile);
+			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
+				sourceFiles.push(sourceFile);
+			}
+		}
+		return sourceFiles;
+	}
+
 	public compileAll() {
-		this.compileFiles(this.getChangedFilesSet());
+		this.compileFiles(this.getChangedSourceFiles());
 		this.program.getProgram().emitBuildInfo();
 		this.copyInclude();
 		this.copyFiles(new Set(this.getRootDirs()));
@@ -327,18 +339,9 @@ export class Project {
 	 *
 	 * writes rendered Luau source to the out directory.
 	 */
-	public compileFiles(filesSet: Set<string>) {
+	public compileFiles(sourceFiles: Array<SourceFile>) {
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
-
-		const sourceFiles = new Array<ts.SourceFile>();
-		for (const fileName of filesSet) {
-			const sourceFile = this.program.getSourceFile(fileName);
-			assert(sourceFile);
-			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
-				sourceFiles.push(sourceFile);
-			}
-		}
 
 		const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 
