@@ -25,6 +25,7 @@ import {
 } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
+	verbose: false,
 	includePath: "",
 	rojo: "",
 };
@@ -42,6 +43,9 @@ function findAncestorDir(dirs: Array<string>) {
 
 /** The options of the project. */
 export interface ProjectOptions {
+	/** log verbose output */
+	verbose: boolean;
+
 	/** The path to the include directory. */
 	includePath: string;
 
@@ -54,7 +58,6 @@ export class Project {
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
 
-	private readonly verbose: boolean;
 	private readonly projectOptions: ProjectOptions;
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
@@ -74,8 +77,7 @@ export class Project {
 
 	private readonly nodeModulesPathMapping = new Map<string, string>();
 
-	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, verbose: boolean) {
-		this.verbose = verbose;
+	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		// set up project paths
@@ -231,7 +233,7 @@ export class Project {
 				}
 				if (this.isOutputFileOrphaned(itemPath)) {
 					fs.removeSync(itemPath);
-					if (this.verbose) LogService.writeLine(`remove ${itemPath}`);
+					if (this.projectOptions.verbose) LogService.writeLine(`remove ${itemPath}`);
 				}
 			}
 		}
@@ -289,14 +291,14 @@ export class Project {
 		return rootDirs;
 	}
 
-	public copyInclude() {
-		this.benchmark("copying include files", () => {
+	public copyInclude(execute: (name: string, callback: () => void) => void) {
+		execute("copy include files", () => {
 			fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 		});
 	}
 
-	public copyFiles(sources: Set<string>) {
-		this.benchmark("copying non-compiled files", () => {
+	public copyFiles(execute: (name: string, callback: () => void) => void, sources: Set<string>) {
+		execute("copy non-compiled files", () => {
 			assert(this.compilerOptions.outDir);
 			for (const source of sources) {
 				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(this.rootDir, source)), {
@@ -307,19 +309,11 @@ export class Project {
 		});
 	}
 
-	public compileAll() {
-		this.compileFiles(this.getChangedFilesSet());
+	public compileAll(execute: (name: string, callback: () => void) => void = (name, callback) => callback()) {
+		this.compileFiles(execute, this.getChangedFilesSet());
 		this.program.getProgram().emitBuildInfo();
-		this.copyInclude();
-		this.copyFiles(new Set(this.getRootDirs()));
-	}
-
-	private benchmark(name: string, callback: () => void) {
-		if (this.verbose) {
-			benchmarkSync(name, callback);
-		} else {
-			callback();
-		}
+		this.copyInclude(execute);
+		this.copyFiles(execute, new Set(this.getRootDirs()));
 	}
 
 	/**
@@ -327,7 +321,7 @@ export class Project {
 	 *
 	 * writes rendered Luau source to the out directory.
 	 */
-	public compileFiles(filesSet: Set<string>) {
+	public compileFiles(execute: (name: string, callback: () => void) => void, filesSet: Set<string>) {
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
@@ -345,9 +339,13 @@ export class Project {
 		const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 		for (let i = 0; i < sourceFiles.length; i++) {
 			const sourceFile = sourceFiles[i];
-			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 
-			this.benchmark(`${progress} compiling ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
+			let name = `compile ${path.relative(process.cwd(), sourceFile.fileName)}`;
+			if (this.projectOptions.verbose) {
+				name = `${`${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength)} ` + name;
+			}
+
+			execute(name, () => {
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
@@ -395,7 +393,7 @@ export class Project {
 		}
 
 		if (fileWriteQueue.length > 0) {
-			this.benchmark("writing compiled files", () => {
+			execute("writing compiled files", () => {
 				for (const fileInfo of fileWriteQueue) {
 					const { sourceFile, source } = fileInfo;
 					fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), source);

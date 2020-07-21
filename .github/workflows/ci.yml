@@ -45,9 +45,7 @@ jobs:
       - run: foreman install
 
       # compile and run tests
-      - working-directory: .\\tests
-        run: npm install
-      - run: npm run test-ci
+      - run: npm test
 
       # report coverage to coveralls
       - uses: coverallsapp/github-action@master

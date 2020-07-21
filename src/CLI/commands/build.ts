@@ -6,6 +6,7 @@ import { Project, ProjectOptions } from "Project";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
+import { benchmarkSync } from "Shared/util/benchmark";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -82,9 +83,9 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 		} else {
 			try {
 				// attempt to build the project
-				const project = new Project(tsConfigPath, projectOptions, argv.verbose);
+				const project = new Project(tsConfigPath, projectOptions);
 				project.cleanup();
-				project.compileAll();
+				project.compileAll(argv.verbose ? benchmarkSync : undefined);
 			} catch (e) {
 				// catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {
