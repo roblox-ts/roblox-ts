@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts, { SourceFile } from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
@@ -51,12 +51,12 @@ export interface ProjectOptions {
 
 /** Represents a roblox-ts project. */
 export class Project {
+	public readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
 
 	private readonly verbose: boolean;
 	private readonly projectOptions: ProjectOptions;
-	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly globalSymbols: GlobalSymbols;
@@ -252,7 +252,7 @@ export class Project {
 	 *
 	 * if `assumeChangesOnlyAffectDirectDependencies == false`, this will only check direct dependencies
 	 */
-	private getChangedFilesSet() {
+	public getChangedFilePaths() {
 		const buildState = this.program.getState();
 
 		// buildState.referencedMap is sourceFile -> files that this file imports
@@ -283,20 +283,20 @@ export class Project {
 		return changedFilesSet;
 	}
 
-	private getRootDirs() {
+	public getRootDirs() {
 		const rootDirs = this.compilerOptions.rootDir ? [this.compilerOptions.rootDir] : this.compilerOptions.rootDirs;
 		assert(rootDirs);
 		return rootDirs;
 	}
 
 	public copyInclude() {
-		this.benchmark("copying include files", () => {
+		this.benchmark("copy include files", () => {
 			fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 		});
 	}
 
 	public copyFiles(sources: Set<string>) {
-		this.benchmark("copying non-compiled files", () => {
+		this.benchmark("copy non-compiled files", () => {
 			assert(this.compilerOptions.outDir);
 			for (const source of sources) {
 				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(this.rootDir, source)), {
@@ -307,13 +307,6 @@ export class Project {
 		});
 	}
 
-	public compileAll() {
-		this.compileFiles(this.getChangedFilesSet());
-		this.program.getProgram().emitBuildInfo();
-		this.copyInclude();
-		this.copyFiles(new Set(this.getRootDirs()));
-	}
-
 	private benchmark(name: string, callback: () => void) {
 		if (this.verbose) {
 			benchmarkSync(name, callback);
@@ -322,23 +315,33 @@ export class Project {
 		}
 	}
 
-	/**
-	 * 'transpiles' TypeScript project into a logically identical Luau project.
-	 *
-	 * writes rendered Luau source to the out directory.
-	 */
-	public compileFiles(filesSet: Set<string>) {
-		const multiTransformState = new MultiTransformState();
-		const totalDiagnostics = new Array<ts.Diagnostic>();
-
+	public getChangedSourceFiles() {
 		const sourceFiles = new Array<ts.SourceFile>();
-		for (const fileName of filesSet) {
+		for (const fileName of this.getChangedFilePaths()) {
 			const sourceFile = this.program.getSourceFile(fileName);
 			assert(sourceFile);
 			if (!sourceFile.isDeclarationFile && !ts.isJsonSourceFile(sourceFile)) {
 				sourceFiles.push(sourceFile);
 			}
 		}
+		return sourceFiles;
+	}
+
+	public compileAll() {
+		this.compileFiles(this.getChangedSourceFiles());
+		this.program.getProgram().emitBuildInfo();
+		this.copyInclude();
+		this.copyFiles(new Set(this.getRootDirs()));
+	}
+
+	/**
+	 * 'transpiles' TypeScript project into a logically identical Luau project.
+	 *
+	 * writes rendered Luau source to the out directory.
+	 */
+	public compileFiles(sourceFiles: Array<SourceFile>) {
+		const multiTransformState = new MultiTransformState();
+		const totalDiagnostics = new Array<ts.Diagnostic>();
 
 		const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 
@@ -347,7 +350,7 @@ export class Project {
 			const sourceFile = sourceFiles[i];
 			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 
-			this.benchmark(`${progress} compiling ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
+			this.benchmark(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
@@ -398,7 +401,8 @@ export class Project {
 			this.benchmark("writing compiled files", () => {
 				for (const fileInfo of fileWriteQueue) {
 					const { sourceFile, source } = fileInfo;
-					fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), source);
+					const outPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+					fs.outputFileSync(outPath, source);
 					if (this.compilerOptions.declaration) {
 						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true);
 					}

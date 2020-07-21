@@ -7,3 +7,7 @@ out
 .DS_Store
 .history
 .vscode/launch.json
+
+/tests/*.rbxlx
+/tests/*.rbxlx.lock
+/tests/include

@@ -12,16 +12,32 @@
 		"rbxtsc": "out/CLI/cli.js"
 	},
 	"scripts": {
-		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
+		"prepare": "npm run build",
 		"build": "ttsc -b",
 		"build-watch": "ttsc -b -w",
-		"prepare": "npm run build",
-		"devlink": "cd devlink && npm link"
+		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
+		"devlink": "cd devlink && npm link",
+		"test": "npm run build && npm run test-setup && npm run test-compile && npm run test-rojo && npm run test-run",
+		"test-setup": "cd tests && npm install @rbxts/types@latest",
+		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
+		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
+		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
 	},
 	"nyc": {
 		"all": true,
+		"reporter": [
+			"lcov"
+		],
+		"extension": [
+			".ts"
+		],
 		"include": [
-			"out/compiler/**"
+			"out/**/*.js",
+			"src/**/*.ts"
+		],
+		"exclude": [
+			"src/CLI",
+			"src/Project"
 		]
 	},
 	"author": "",
@@ -48,6 +64,7 @@
 		"eslint-config-prettier": "^6.11.0",
 		"eslint-plugin-prettier": "^3.1.3",
 		"mocha": "^7.1.2",
+		"nyc": "^15.1.0",
 		"prettier": "^1.19.1",
 		"ts-node": "^8.10.1",
 		"ttypescript": "^1.5.10",
