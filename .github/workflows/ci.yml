@@ -48,3 +48,8 @@ jobs:
       - working-directory: .\\tests
         run: npm install
       - run: npm test
+
+      # report coverage to coveralls
+      - uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
