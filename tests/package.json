@@ -12,6 +12,6 @@
 	"dependencies": {
 		"@rbxts/services": "^1.1.0",
 		"@rbxts/testez": "^0.3.1-ts.2",
-		"@rbxts/types": "^1.0.382"
+		"@rbxts/types": "^1.0.383"
 	}
 }
