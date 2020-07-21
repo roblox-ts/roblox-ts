@@ -1,11 +1,7 @@
 local Promise = require(script.Parent.Promise)
 
 local RunService = game:GetService("RunService")
-
-local ReplicatedFirst
-if not __LEMUR__ then
-	ReplicatedFirst = game:GetService("ReplicatedFirst")
-end
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 local TS = {}
 
