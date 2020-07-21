@@ -20,7 +20,7 @@
 		"test": "npm run build && npm run test-setup && npm run test-compile && npm run test-rojo && npm run test-run",
 		"test-setup": "cd tests && npm install @rbxts/types@latest",
 		"test-compile": "node out/CLI/cli.js -p ./tests",
-		"test-rojo": "rojo build tests -o tests/test.rbxlx",
+		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
 		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
 	},
 	"nyc": {
