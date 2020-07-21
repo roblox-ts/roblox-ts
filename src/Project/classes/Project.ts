@@ -25,7 +25,6 @@ import {
 } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
-	verbose: false,
 	includePath: "",
 	rojo: "",
 };
@@ -43,9 +42,6 @@ function findAncestorDir(dirs: Array<string>) {
 
 /** The options of the project. */
 export interface ProjectOptions {
-	/** log verbose output */
-	verbose: boolean;
-
 	/** The path to the include directory. */
 	includePath: string;
 
@@ -55,11 +51,12 @@ export interface ProjectOptions {
 
 /** Represents a roblox-ts project. */
 export class Project {
+	public readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	public readonly projectPath: string;
 	public readonly nodeModulesPath: string;
 
+	private readonly verbose: boolean;
 	private readonly projectOptions: ProjectOptions;
-	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly typeChecker: ts.TypeChecker;
 	private readonly globalSymbols: GlobalSymbols;
@@ -77,7 +74,8 @@ export class Project {
 
 	private readonly nodeModulesPathMapping = new Map<string, string>();
 
-	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>) {
+	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, verbose: boolean) {
+		this.verbose = verbose;
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
 		// set up project paths
@@ -233,7 +231,7 @@ export class Project {
 				}
 				if (this.isOutputFileOrphaned(itemPath)) {
 					fs.removeSync(itemPath);
-					if (this.projectOptions.verbose) LogService.writeLine(`remove ${itemPath}`);
+					if (this.verbose) LogService.writeLine(`remove ${itemPath}`);
 				}
 			}
 		}
@@ -254,7 +252,7 @@ export class Project {
 	 *
 	 * if `assumeChangesOnlyAffectDirectDependencies == false`, this will only check direct dependencies
 	 */
-	private getChangedFilesSet() {
+	public getChangedFilesSet() {
 		const buildState = this.program.getState();
 
 		// buildState.referencedMap is sourceFile -> files that this file imports
@@ -285,20 +283,20 @@ export class Project {
 		return changedFilesSet;
 	}
 
-	private getRootDirs() {
+	public getRootDirs() {
 		const rootDirs = this.compilerOptions.rootDir ? [this.compilerOptions.rootDir] : this.compilerOptions.rootDirs;
 		assert(rootDirs);
 		return rootDirs;
 	}
 
-	public copyInclude(execute: (name: string, callback: () => void) => void) {
-		execute("copy include files", () => {
+	public copyInclude() {
+		this.benchmark("copy include files", () => {
 			fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 		});
 	}
 
-	public copyFiles(execute: (name: string, callback: () => void) => void, sources: Set<string>) {
-		execute("copy non-compiled files", () => {
+	public copyFiles(sources: Set<string>) {
+		this.benchmark("copy non-compiled files", () => {
 			assert(this.compilerOptions.outDir);
 			for (const source of sources) {
 				fs.copySync(source, path.join(this.compilerOptions.outDir, path.relative(this.rootDir, source)), {
@@ -309,11 +307,19 @@ export class Project {
 		});
 	}
 
-	public compileAll(execute: (name: string, callback: () => void) => void = (name, callback) => callback()) {
-		this.compileFiles(execute, this.getChangedFilesSet());
+	private benchmark(name: string, callback: () => void) {
+		if (this.verbose) {
+			benchmarkSync(name, callback);
+		} else {
+			callback();
+		}
+	}
+
+	public compileAll() {
+		this.compileFiles(this.getChangedFilesSet());
 		this.program.getProgram().emitBuildInfo();
-		this.copyInclude(execute);
-		this.copyFiles(execute, new Set(this.getRootDirs()));
+		this.copyInclude();
+		this.copyFiles(new Set(this.getRootDirs()));
 	}
 
 	/**
@@ -321,7 +327,7 @@ export class Project {
 	 *
 	 * writes rendered Luau source to the out directory.
 	 */
-	public compileFiles(execute: (name: string, callback: () => void) => void, filesSet: Set<string>) {
+	public compileFiles(filesSet: Set<string>) {
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
@@ -339,13 +345,9 @@ export class Project {
 		const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 		for (let i = 0; i < sourceFiles.length; i++) {
 			const sourceFile = sourceFiles[i];
+			const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 
-			let name = `compile ${path.relative(process.cwd(), sourceFile.fileName)}`;
-			if (this.projectOptions.verbose) {
-				name = `${`${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength)} ` + name;
-			}
-
-			execute(name, () => {
+			this.benchmark(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 				const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
 				totalDiagnostics.push(...customPreEmitDiagnostics);
 				if (totalDiagnostics.length > 0) return;
@@ -393,10 +395,11 @@ export class Project {
 		}
 
 		if (fileWriteQueue.length > 0) {
-			execute("writing compiled files", () => {
+			this.benchmark("writing compiled files", () => {
 				for (const fileInfo of fileWriteQueue) {
 					const { sourceFile, source } = fileInfo;
-					fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), source);
+					const outPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+					fs.outputFileSync(outPath, source);
 					if (this.compilerOptions.declaration) {
 						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true);
 					}

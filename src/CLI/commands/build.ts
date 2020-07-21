@@ -83,9 +83,9 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 		} else {
 			try {
 				// attempt to build the project
-				const project = new Project(tsConfigPath, projectOptions);
+				const project = new Project(tsConfigPath, projectOptions, argv.verbose);
 				project.cleanup();
-				project.compileAll(argv.verbose ? benchmarkSync : undefined);
+				project.compileAll();
 			} catch (e) {
 				// catch recognized errors
 				if (e instanceof ProjectError || e instanceof DiagnosticError) {
