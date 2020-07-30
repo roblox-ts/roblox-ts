@@ -259,6 +259,16 @@ function makeCopyMethod(iterator: luau.Identifier, makeExpression: PropertyCallM
 }
 
 const findMacro = makeStringCallback(luau.globals.string.find, [0, 1]);
+const findStringOccurenceMacro: PropertyCallMacro = (state, node, expression) =>
+	luau.create(luau.SyntaxKind.CallExpression, {
+		expression: luau.globals.string.find,
+		args: luau.list.make(
+			expression, // base string
+			transformExpression(state, node.arguments[0]), // search string
+			node.arguments[1] ? offset(transformExpression(state, node.arguments[1]), 1) : luau.number(1),
+			luau.bool(true),
+		),
+	});
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size,
@@ -275,6 +285,21 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 			expression: state.TS("string_find_wrap"),
 			args: luau.list.make(findMacro(state, node, expression)),
 		}),
+	includes: (state, node, expression) =>
+		luau.create(luau.SyntaxKind.BinaryExpression, {
+			left: findStringOccurenceMacro(state, node, expression),
+			operator: "~=",
+			right: luau.nil(),
+		}),
+	indexOf: (state, node, expression) => {
+		// pushToVar to avoid LuaTuple unpacking into the usage of the result
+		const result = state.pushToVar(findStringOccurenceMacro(state, node, expression));
+		return luau.binary(
+			luau.binary(result, "~=", luau.nil()),
+			"and",
+			luau.binary(offset(result, -1), "or", luau.number(-1)),
+		);
+	},
 };
 
 function makeEveryOrSomeMethod(
