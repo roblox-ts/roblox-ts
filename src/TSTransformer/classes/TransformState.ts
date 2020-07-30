@@ -138,12 +138,17 @@ export class TransformState {
 	 */
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
-		return (
-			commentRanges
-				// filter out non-`ts.SyntaxKind.SingleLineCommentTrivia`
-				.filter(commentRange => commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia)
-				// map each `ts.CommentRange` to its value without the beginning '//'
-				.map(commentRange => this.sourceFileText.substring(commentRange.pos + 2, commentRange.end))
+		return luau.list.make(
+			...commentRanges.map(commentRange =>
+				luau.comment(
+					this.sourceFileText.substring(
+						commentRange.pos + 2,
+						commentRange.kind === ts.SyntaxKind.SingleLineCommentTrivia
+							? commentRange.end
+							: commentRange.end - 2,
+					),
+				),
+			),
 		);
 	}
 

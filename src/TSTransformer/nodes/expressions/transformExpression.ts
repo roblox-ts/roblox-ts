@@ -91,5 +91,5 @@ export function transformExpression(state: TransformState, node: ts.Expression):
 	if (transformer) {
 		return transformer(state, node);
 	}
-	assert(false, `Unknown expression: ${getKindName(node)}`);
+	assert(false, `Unknown expression: ${getKindName(node.kind)}`);
 }

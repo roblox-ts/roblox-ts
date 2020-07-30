@@ -90,7 +90,7 @@ export function id(name: string) {
  * @param text The text of the comment
  */
 export function comment(text: string) {
-	return luau.create(luau.SyntaxKind.Comment, { text: " " + text });
+	return luau.create(luau.SyntaxKind.Comment, { text });
 }
 
 /**
