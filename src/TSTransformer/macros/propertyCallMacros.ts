@@ -266,6 +266,7 @@ const findStringOccurenceMacro: PropertyCallMacro = (state, node, expression) =>
 			expression, // base string
 			transformExpression(state, node.arguments[0]), // search string
 			node.arguments[1] ? offset(transformExpression(state, node.arguments[1]), 1) : luau.number(1),
+			luau.bool(true),
 		),
 	});
 
