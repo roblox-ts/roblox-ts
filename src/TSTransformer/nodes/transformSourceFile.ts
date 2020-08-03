@@ -45,6 +45,9 @@ function handleExports(
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
+			if (exportSymbol.name === "prototype") {
+				continue;
+			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
 			if (isSymbolOfValue(originalSymbol)) {
 				if (isDefinedAsLet(state, originalSymbol)) {
