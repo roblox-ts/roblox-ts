@@ -427,8 +427,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						}),
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: sizeId,
-							operator: "=",
-							right: offset(sizeId, 1),
+							operator: "+=",
+							right: luau.number(1),
 						}),
 					),
 				}),
@@ -508,8 +508,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 					}),
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: sizeId,
-						operator: "=",
-						right: offset(sizeId, 1),
+						operator: "+=",
+						right: luau.number(1),
 					}),
 				),
 			}),
@@ -738,8 +738,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: luau.list.make(
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: lengthId,
-								operator: "=",
-								right: luau.binary(lengthId, "+", luau.number(1)),
+								operator: "+=",
+								right: luau.number(1),
 							}),
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -811,8 +811,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: luau.list.make(
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: resultLengthId,
-								operator: "=",
-								right: luau.binary(resultLengthId, "+", luau.number(1)),
+								operator: "+=",
+								right: luau.number(1),
 							}),
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -857,8 +857,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						statements: luau.list.make(
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: lengthId,
-								operator: "=",
-								right: luau.binary(lengthId, "+", luau.number(1)),
+								operator: "+=",
+								right: luau.number(1),
 							}),
 							luau.create(luau.SyntaxKind.Assignment, {
 								left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -1362,8 +1362,8 @@ function createKeyValuesEntriesMethod(
 			statements: luau.list.make(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: iterId,
-					operator: "=",
-					right: luau.binary(iterId, "+", luau.number(1)),
+					operator: "+=",
+					right: luau.number(1),
 				}),
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
