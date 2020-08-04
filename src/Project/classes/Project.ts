@@ -2,6 +2,8 @@ import ts, { SourceFile } from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
+import { transformPaths } from "Project/transformers/transformPaths";
+import { transformTypeReferenceDirectives } from "Project/transformers/transformTypeReferenceDirectives";
 import { createParseConfigFileHost } from "Project/util/createParseConfigFileHost";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
@@ -404,7 +406,9 @@ export class Project {
 					const outPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 					fs.outputFileSync(outPath, source);
 					if (this.compilerOptions.declaration) {
-						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true);
+						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true, {
+							afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
+						});
 					}
 				}
 			});
