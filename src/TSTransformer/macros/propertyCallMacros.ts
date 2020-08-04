@@ -1132,8 +1132,8 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: sizeId,
-						operator: "=",
-						right: luau.binary(sizeId, "+", luau.number(1)),
+						operator: "+=",
+						right: luau.number(1),
 					}),
 				),
 			}),
