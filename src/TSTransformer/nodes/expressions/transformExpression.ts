@@ -13,6 +13,8 @@ import { transformConditionalExpression } from "TSTransformer/nodes/expressions/
 import { transformElementAccessExpression } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
+import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import {
 	transformFalseKeyword,
 	transformNumericLiteral,
@@ -34,8 +36,6 @@ import {
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
-import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
 	state.addDiagnostic(factory(node));

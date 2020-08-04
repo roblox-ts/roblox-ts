@@ -1,4 +1,4 @@
-import ts, { SourceFile } from "byots";
+import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
@@ -341,7 +341,7 @@ export class Project {
 	 *
 	 * writes rendered Luau source to the out directory.
 	 */
-	public compileFiles(sourceFiles: Array<SourceFile>) {
+	public compileFiles(sourceFiles: Array<ts.SourceFile>) {
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 

@@ -1,12 +1,12 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { TransformState, TryUses } from "TSTransformer";
+import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import {
 	isBreakBlockedByTryStatement,
 	isReturnBlockedByTryStatement,
 } from "TSTransformer/util/isBlockedByTryStatement";
-import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 
 function transformCatchClause(state: TransformState, node: ts.CatchClause) {
 	const parameters = luau.list.make<luau.AnyIdentifier>();

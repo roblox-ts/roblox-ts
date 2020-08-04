@@ -5,8 +5,8 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,

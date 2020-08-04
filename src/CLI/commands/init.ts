@@ -6,7 +6,6 @@ import fs from "fs-extra";
 import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
-import { LogService } from "Shared/classes/LogService";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
