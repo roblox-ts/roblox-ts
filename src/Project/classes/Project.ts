@@ -401,10 +401,8 @@ export class Project {
 
 		if (fileWriteQueue.length > 0) {
 			this.benchmark("writing compiled files", () => {
-				for (const fileInfo of fileWriteQueue) {
-					const { sourceFile, source } = fileInfo;
-					const outPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
-					fs.outputFileSync(outPath, source);
+				for (const { sourceFile, source } of fileWriteQueue) {
+					fs.outputFileSync(this.pathTranslator.getOutputPath(sourceFile.fileName), source);
 					if (this.compilerOptions.declaration) {
 						this.program.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 							afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
