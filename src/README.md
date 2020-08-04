@@ -42,4 +42,4 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Generator Functions
 -   [ ] .d.ts emit improvements
     -   Fix `/// <reference types="types" />` -> `/// <reference types="@rbxts/types" />`
-    -         Redefine imports/exports to use baseUrl correctly
+    -   Redefine imports/exports to use baseUrl correctly
