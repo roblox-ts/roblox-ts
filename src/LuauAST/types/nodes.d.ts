@@ -45,8 +45,10 @@ export interface NumberLiteral extends luau.Expression<luau.SyntaxKind.NumberLit
 	value: number;
 }
 
+export type QuoteType = '"' | "'";
 export interface StringLiteral extends luau.Expression<luau.SyntaxKind.StringLiteral> {
 	value: string;
+	quoteType: QuoteType;
 }
 
 export interface VarArgsLiteral extends luau.Expression<luau.SyntaxKind.VarArgsLiteral> {}

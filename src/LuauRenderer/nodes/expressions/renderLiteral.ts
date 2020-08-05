@@ -8,10 +8,8 @@ export function renderNumberLiteral(state: RenderState, node: luau.NumberLiteral
 
 export function renderStringLiteral(state: RenderState, node: luau.StringLiteral) {
 	const isMultiline = node.value.includes("\n");
-	if (!isMultiline && !node.value.includes('"')) {
-		return `"${node.value}"`;
-	} else if (!isMultiline && !node.value.includes("'")) {
-		return `'${node.value}'`;
+	if (!isMultiline) {
+		return `${node.quoteType}${node.value}${node.quoteType}`;
 	} else {
 		let amtEquals = 0;
 		while (node.value.includes(`]${"=".repeat(amtEquals)}]`)) {

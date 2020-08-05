@@ -73,8 +73,8 @@ export function number(value: number) {
  * Creates a new `string` literal node.
  * @param value The value of the string
  */
-export function string(value: string) {
-	return luau.create(luau.SyntaxKind.StringLiteral, { value });
+export function string(value: string, quoteType: luau.QuoteType = '"') {
+	return luau.create(luau.SyntaxKind.StringLiteral, { value, quoteType });
 }
 
 /**
