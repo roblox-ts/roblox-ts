@@ -7,10 +7,9 @@ export function renderComment(state: RenderState, node: luau.Comment) {
 		let result = state.line("--[[");
 		result += state.block(() =>
 			lines
-				.map(line => {
-					const trimmed = line.trim();
-					return trimmed !== "" ? state.line(trimmed) : "";
-				})
+				.map(line => line.trim())
+				.filter(trimmed => trimmed !== "")
+				.map(line => state.line(line))
 				.join(""),
 		);
 		result += state.line("]]");
