@@ -53,8 +53,14 @@ function startsWithParenthesis(node: luau.Statement) {
 		return startsWithParenthesisInner(node.expression.expression);
 	} else if (luau.isAssignment(node)) {
 		// `(a).b = c`
-		return startsWithParenthesisInner(node.right);
+		if (luau.list.isList(node.left)) {
+			// `(a), b = pcall()` is a syntax error
+			return false;
+		} else {
+			return startsWithParenthesisInner(node.left);
+		}
 	}
+	return false;
 }
 
 function getNextNonComment(state: RenderState, node: luau.Statement) {
