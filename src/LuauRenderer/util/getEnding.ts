@@ -54,8 +54,8 @@ function startsWithParenthesis(node: luau.Statement) {
 	} else if (luau.isAssignment(node)) {
 		// `(a).b = c`
 		if (luau.list.isList(node.left)) {
-			// `(a), b = pcall()` is a syntax error
-			return false;
+			assert(node.left.head);
+			return startsWithParenthesisInner(node.left.head.value);
 		} else {
 			return startsWithParenthesisInner(node.left);
 		}
