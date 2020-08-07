@@ -10,6 +10,7 @@ import { transformBinaryExpression } from "TSTransformer/nodes/expressions/trans
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformClassExpression } from "TSTransformer/nodes/expressions/transformClassExpression";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
+import { transformDeleteExpression } from "TSTransformer/nodes/expressions/transformDeleteExpression";
 import { transformElementAccessExpression } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -47,7 +48,7 @@ type ExpressionTransformer = (state: TransformState, node: any) => luau.Expressi
 
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
-	[ts.SyntaxKind.DeleteExpression, DIAGNOSTIC(diagnostics.noDeleteExpression)],
+	[ts.SyntaxKind.DeleteExpression, transformDeleteExpression],
 	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(diagnostics.noNullLiteral)],
 	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(diagnostics.noPrivateIdentifier)],
 	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],

@@ -61,11 +61,6 @@ export const diagnostics = {
 	noDebuggerStatement: diagnostic("`debugger` is not supported!"),
 
 	// banned expressions
-	noDeleteExpression: diagnostic(
-		"The `delete` operator is not supported!",
-		suggestion("Set the property to `undefined` instead."),
-		issue(547),
-	),
 	noNullLiteral: diagnostic("`null` is not supported!", suggestion("Use `undefined` instead.")),
 	noPrivateIdentifier: diagnostic("Private identifiers are not supported!"),
 	noTypeOfExpression: diagnostic(
@@ -96,6 +91,7 @@ export const diagnostics = {
 	noPrototype: diagnostic("`prototype` is not supported!"),
 	noSuperProperty: diagnostic("super properties are not supported!"),
 	noNonNumberStringRelationOperator: diagnostic("Relation operators can only be used on number or string types!"),
+	noComplexDelete: diagnostic("The `delete` operator is not supported for complex expressions!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
