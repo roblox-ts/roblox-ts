@@ -95,5 +95,13 @@ export function createBinaryFromOperator(
 		});
 	}
 
+	if (
+		operatorKind === ts.SyntaxKind.BarBarEqualsToken ||
+		operatorKind === ts.SyntaxKind.QuestionQuestionEqualsToken ||
+		operatorKind === ts.SyntaxKind.AmpersandAmpersandEqualsToken
+	) {
+		assert(false, "`||=`, `&&=` and `??=` are not implemented");
+	}
+
 	assert(false, `Unrecognized operator: ${ts.SyntaxKind[operatorKind]}`);
 }

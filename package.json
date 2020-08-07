@@ -43,13 +43,13 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"byots": "^4.0.0-dev.20200512.13.50",
+		"byots": "^4.1.0-dev.20200806.14.47",
 		"chokidar": "^3.4.0",
 		"fs-extra": "^8.1.0",
 		"kleur": "^3.0.3",
 		"prompts": "^2.3.2",
 		"ts-simple-type": "^0.3.7",
-		"typescript": "^3.9.5",
+		"typescript": "^4.0.1-rc",
 		"yargs": "^15.3.1"
 	},
 	"devDependencies": {
