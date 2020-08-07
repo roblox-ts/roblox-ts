@@ -255,6 +255,6 @@ export class MacroManager {
 		if (parentClass && MACRO_ONLY_CLASSES[parentClass.name] !== undefined && !macro) {
 			assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented yet!`);
 		}
-		return this.propertyCallMacros.get(symbol);
+		return macro;
 	}
 }
