@@ -250,7 +250,9 @@ export class MacroManager {
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
-		assert(symbol.parent);
+		if (!symbol.parent) {
+			return macro;
+		}
 		const parentClass = this.symbols.get(symbol.parent.name);
 		if (parentClass && MACRO_ONLY_CLASSES[parentClass.name] !== undefined && !macro) {
 			assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented yet!`);
