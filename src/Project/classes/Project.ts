@@ -88,8 +88,10 @@ export class Project {
 			throw new ProjectError("Unable to find package.json");
 		}
 
-		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
-		this.pkgVersion = pkgJson.version;
+		try {
+			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			this.pkgVersion = pkgJson.version;
+		} catch (e) {}
 
 		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), "node_modules", "@rbxts");
 
