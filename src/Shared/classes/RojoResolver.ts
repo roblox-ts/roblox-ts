@@ -4,10 +4,10 @@ import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
 import { Lazy } from "Shared/classes/Lazy";
-import { CLIENT_SUBEXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT, LUA_EXT, INIT_NAME } from "Shared/constants";
-import { warn } from "Shared/warn";
+import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT } from "Shared/constants";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
+import { warn } from "Shared/warn";
 
 interface RojoTreeProperty {
 	Type: string;
