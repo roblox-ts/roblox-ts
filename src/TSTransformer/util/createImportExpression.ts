@@ -11,11 +11,11 @@ import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFi
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = luau.list.make<luau.Expression>();
-	const serviceName = moduleRbxPath.shift();
+	const serviceName = moduleRbxPath[0];
 	assert(serviceName);
 	luau.list.push(pathExpressions, createGetService(serviceName));
-	for (const pathPart of moduleRbxPath) {
-		luau.list.push(pathExpressions, luau.string(pathPart));
+	for (let i = 1; i < moduleRbxPath.length; i++) {
+		luau.list.push(pathExpressions, luau.string(moduleRbxPath[i]));
 	}
 	return pathExpressions;
 }
