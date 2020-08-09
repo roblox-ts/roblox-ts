@@ -70,7 +70,7 @@ const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
 /**
  * Represents a roblox tree path.
  */
-export type RbxPath = Array<string>;
+export type RbxPath = ReadonlyArray<string>;
 export type ReadonlyRbxPath = ReadonlyArray<string>;
 export type RelativeRbxPath = Array<string | RbxPathParent>;
 
@@ -242,7 +242,7 @@ export class RojoResolver {
 		if (item) this.rbxPath.pop();
 	}
 
-	public getRbxPathFromFilePath(filePath: string) {
+	public getRbxPathFromFilePath(filePath: string): RbxPath | undefined {
 		if (!path.isAbsolute(filePath)) {
 			filePath = path.resolve(filePath);
 		}
