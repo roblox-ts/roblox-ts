@@ -4,12 +4,10 @@ import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
 import { Lazy } from "Shared/classes/Lazy";
-import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT } from "Shared/constants";
-import { ProjectError } from "Shared/errors/ProjectError";
+import { CLIENT_SUBEXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT, LUA_EXT, INIT_NAME } from "Shared/constants";
+import { warn } from "Shared/warn";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
-import { warn } from "Shared/warn";
-import { dir } from "console";
 
 interface RojoTreeProperty {
 	Type: string;
@@ -77,8 +75,7 @@ export type ReadonlyRbxPath = ReadonlyArray<string>;
 export type RelativeRbxPath = Array<string | RbxPathParent>;
 
 interface PartitionInfo {
-	isFile: boolean;
-	base: RbxPath;
+	rbxPath: RbxPath;
 	fsPath: string;
 }
 
@@ -95,14 +92,13 @@ export enum NetworkType {
 	Server,
 }
 
-// does not use path.basename() intentionally!
 function stripExts(filePath: string) {
 	const ext = path.extname(filePath);
-	if (ext.length > 0) {
+	if (ext === LUA_EXT) {
 		filePath = filePath.slice(0, -ext.length);
 	}
 	const subext = path.extname(filePath);
-	if (subext.length > 0) {
+	if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
 		filePath = filePath.slice(0, -subext.length);
 	}
 	return filePath;
@@ -137,23 +133,45 @@ export class RojoResolver {
 		return candidates[0];
 	}
 
-	constructor(rojoConfigFilePath: string) {
-		this.parseConfig(rojoConfigFilePath);
+	public static fromPath(rojoConfigFilePath: string) {
+		if (!path.isAbsolute(rojoConfigFilePath)) {
+			rojoConfigFilePath = path.resolve(rojoConfigFilePath);
+		}
+
+		const resolver = new RojoResolver();
+		resolver.parseConfig(rojoConfigFilePath, true);
+		return resolver;
+	}
+
+	/**
+	 * Create a synthetic RojoResolver for ProjectType.Package.
+	 * Forces all imports to be relative.
+	 */
+	public static synthetic(projectDir: string) {
+		const resolver = new RojoResolver();
+		resolver.parseTree(projectDir, "", { $path: projectDir } as RojoTree);
+		return resolver;
 	}
 
 	private rbxPath = new Array<string>();
+	private partitions = new Array<PartitionInfo>();
+	private filePathToRbxPathMap = new Map<string, RbxPath>();
+	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
+	public isGame = false;
 
-	private parseConfig(rojoConfigFilePath: string) {
+	private parseConfig(rojoConfigFilePath: string, topLevel = false) {
 		if (fs.pathExistsSync(rojoConfigFilePath)) {
 			let configJson: unknown;
 			try {
 				configJson = JSON.parse(fs.readFileSync(rojoConfigFilePath).toString());
 			} catch (e) {}
 			if (isValidRojoConfig(configJson)) {
+				if (topLevel) {
+					this.isGame = configJson.tree.$className === "DataModel";
+				}
 				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree);
 			} else {
-				warn(`RojoResolver: Invalid configuration!`);
-				console.log(validateRojo.get().errors);
+				warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
 			}
 		} else {
 			warn(`RojoResolver: Path does not exist "${rojoConfigFilePath}"`);
@@ -163,10 +181,8 @@ export class RojoResolver {
 	private parseTree(basePath: string, name: string, tree: RojoTree) {
 		this.rbxPath.push(name);
 
-		console.log(this.rbxPath.join("."), tree.$path ?? tree.$className ?? "???");
-
 		if (tree.$path) {
-			this.parsePath(basePath, tree.$path);
+			this.parsePath(path.resolve(basePath, tree.$path));
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {
@@ -176,8 +192,17 @@ export class RojoResolver {
 		this.rbxPath.pop();
 	}
 
-	private parsePath(basePath: string, relativePath: string) {
-		const itemPath = path.resolve(basePath, relativePath);
+	private parsePath(itemPath: string) {
+		const ext = path.extname(itemPath);
+		if (ext === LUA_EXT) {
+			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
+		} else {
+			this.partitions.unshift({
+				fsPath: itemPath,
+				rbxPath: [...this.rbxPath],
+			});
+		}
+
 		if (fs.existsSync(itemPath) && fs.statSync(itemPath).isDirectory()) {
 			this.searchDirectory(itemPath);
 		}
@@ -185,15 +210,122 @@ export class RojoResolver {
 
 	private searchDirectory(directory: string) {
 		const children = fs.readdirSync(directory);
+
+		// default.project.json
 		if (children.includes(ROJO_DEFAULT_NAME)) {
 			this.parseConfig(path.join(directory, ROJO_DEFAULT_NAME));
 			return;
 		}
+
+		// *.project.json
+		for (const child of children) {
+			const childPath = path.join(directory, child);
+			if (fs.statSync(childPath).isFile() && child !== ROJO_DEFAULT_NAME && ROJO_FILE_REGEX.test(child)) {
+				this.parseConfig(childPath);
+			}
+		}
+
+		// folders
 		for (const child of children) {
 			const childPath = path.join(directory, child);
 			if (fs.statSync(childPath).isDirectory()) {
 				this.searchDirectory(childPath);
 			}
 		}
+	}
+
+	public getRbxPathFromFilePath(filePath: string) {
+		if (!path.isAbsolute(filePath)) {
+			filePath = path.resolve(filePath);
+		}
+		const rbxPath = this.filePathToRbxPathMap.get(filePath);
+		if (rbxPath) {
+			return rbxPath;
+		}
+		for (const partition of this.partitions) {
+			if (isPathDescendantOf(filePath, partition.fsPath)) {
+				const stripped = stripExts(filePath);
+				const relativePath = path.relative(partition.fsPath, stripped);
+				const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
+				if (relativeParts[relativeParts.length - 1] === INIT_NAME) {
+					relativeParts.pop();
+				}
+				return partition.rbxPath.concat(relativeParts);
+			}
+		}
+	}
+
+	public getRbxTypeFromFilePath(filePath: string): RbxType {
+		const subext = path.extname(path.basename(filePath, path.extname(filePath))).slice(1);
+		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
+	}
+
+	private getContainer(from: Array<RbxPath>, rbxPath?: RbxPath) {
+		if (this.isGame) {
+			if (rbxPath) {
+				for (const container of from) {
+					if (arrayStartsWith(rbxPath, container)) {
+						return container;
+					}
+				}
+			}
+		}
+	}
+
+	public getFileRelation(fileRbxPath: RbxPath, moduleRbxPath: RbxPath): FileRelation {
+		const fileContainer = this.getContainer(this.isolatedContainers, fileRbxPath);
+		const moduleContainer = this.getContainer(this.isolatedContainers, moduleRbxPath);
+		if (fileContainer && moduleContainer) {
+			if (fileContainer === moduleContainer) {
+				return FileRelation.InToIn;
+			} else {
+				return FileRelation.OutToIn;
+			}
+		} else if (fileContainer && !moduleContainer) {
+			return FileRelation.InToOut;
+		} else if (!fileContainer && moduleContainer) {
+			return FileRelation.OutToIn;
+		} else {
+			// !fileContainer && !moduleContainer
+			return FileRelation.OutToOut;
+		}
+	}
+
+	public isIsolated(rbxPath: RbxPath) {
+		return this.getContainer(this.isolatedContainers, rbxPath) !== undefined;
+	}
+
+	public getNetworkType(rbxPath: RbxPath): NetworkType {
+		if (this.getContainer(SERVER_CONTAINERS, rbxPath)) {
+			return NetworkType.Server;
+		}
+		if (this.getContainer(CLIENT_CONTAINERS, rbxPath)) {
+			return NetworkType.Client;
+		}
+		return NetworkType.Unknown;
+	}
+
+	public static relative(rbxFrom: ReadonlyRbxPath, rbxTo: ReadonlyRbxPath) {
+		const maxLength = Math.max(rbxFrom.length, rbxTo.length);
+		let diffIndex = maxLength;
+		for (let i = 0; i < maxLength; i++) {
+			if (rbxFrom[i] !== rbxTo[i]) {
+				diffIndex = i;
+				break;
+			}
+		}
+
+		const result: RelativeRbxPath = new Array<string | RbxPathParent>();
+		if (diffIndex < rbxFrom.length) {
+			for (let i = 0; i < rbxFrom.length - diffIndex; i++) {
+				result.push(RbxPathParent);
+			}
+		}
+
+		for (let i = diffIndex; i < rbxTo.length; i++) {
+			result.push(rbxTo[i]);
+		}
+
+		return result;
 	}
 }
