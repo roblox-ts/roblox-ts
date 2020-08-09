@@ -2,7 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
+import { RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -47,7 +47,7 @@ export class TransformState {
 	constructor(
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly multiTransformState: MultiTransformState,
-		public readonly rojoConfig: RojoConfig,
+		public readonly rojoResolver: RojoResolver,
 		public readonly pathTranslator: PathTranslator,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly nodeModulesPath: string,

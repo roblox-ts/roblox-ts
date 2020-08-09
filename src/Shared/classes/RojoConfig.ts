@@ -227,7 +227,7 @@ export class RojoConfig {
 	}
 
 	public getRbxTypeFromFilePath(filePath: string): RbxType {
-		const subext = path.extname(path.basename(filePath, path.extname(filePath))).slice(1);
+		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
 		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
 	}
 

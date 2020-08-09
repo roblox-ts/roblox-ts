@@ -4,7 +4,7 @@ import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFi
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { RojoConfig } from "Shared/classes/RojoConfig";
+import { RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
@@ -26,7 +26,7 @@ export class VirtualProject {
 	public readonly vfs: VirtualFileSystem;
 
 	private readonly compilerOptions: ts.CompilerOptions;
-	private readonly rojoConfig: RojoConfig;
+	private readonly rojoResolver: RojoResolver;
 	private readonly pathTranslator: PathTranslator;
 	private readonly nodeModulesPath: string;
 	private readonly nodeModulesPathMapping: Map<string, string>;
@@ -68,7 +68,7 @@ export class VirtualProject {
 		this.compilerHost.useCaseSensitiveFileNames = () => true;
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
-		this.rojoConfig = RojoConfig.synthetic(PROJECT_DIR);
+		this.rojoResolver = RojoResolver.synthetic(PROJECT_DIR);
 		this.pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
 		this.nodeModulesPathMapping = new Map<string, string>();
 	}
@@ -105,7 +105,7 @@ export class VirtualProject {
 		const transformState = new TransformState(
 			this.compilerOptions,
 			new MultiTransformState(),
-			this.rojoConfig,
+			this.rojoResolver,
 			this.pathTranslator,
 			undefined,
 			this.nodeModulesPath,

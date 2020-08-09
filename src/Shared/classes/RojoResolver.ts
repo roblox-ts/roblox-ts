@@ -159,17 +159,14 @@ export class RojoResolver {
 	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 	public isGame = false;
 
-	private parseConfig(rojoConfigFilePath: string, topLevel = false) {
+	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
 		if (fs.pathExistsSync(rojoConfigFilePath)) {
 			let configJson: unknown;
 			try {
 				configJson = JSON.parse(fs.readFileSync(rojoConfigFilePath).toString());
 			} catch (e) {}
 			if (isValidRojoConfig(configJson)) {
-				if (topLevel) {
-					this.isGame = configJson.tree.$className === "DataModel";
-				}
-				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree);
+				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
 			} else {
 				warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
 			}
@@ -178,44 +175,53 @@ export class RojoResolver {
 		}
 	}
 
-	private parseTree(basePath: string, name: string, tree: RojoTree) {
-		this.rbxPath.push(name);
+	private parseTree(basePath: string, name: string, tree: RojoTree, doNotPush = false) {
+		if (!doNotPush) this.rbxPath.push(name);
 
 		if (tree.$path) {
 			this.parsePath(path.resolve(basePath, tree.$path));
+		}
+
+		if (tree.$className === "DataModel") {
+			this.isGame = true;
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {
 			this.parseTree(basePath, childName, tree[childName]);
 		}
 
-		this.rbxPath.pop();
+		if (!doNotPush) this.rbxPath.pop();
 	}
 
 	private parsePath(itemPath: string) {
-		const ext = path.extname(itemPath);
-		if (ext === LUA_EXT) {
+		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
-			this.partitions.unshift({
-				fsPath: itemPath,
-				rbxPath: [...this.rbxPath],
-			});
-		}
-
-		if (fs.existsSync(itemPath) && fs.statSync(itemPath).isDirectory()) {
-			this.searchDirectory(itemPath);
+			if (
+				fs.existsSync(itemPath) &&
+				fs.statSync(itemPath).isDirectory() &&
+				fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)
+			) {
+				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
+			} else {
+				this.partitions.unshift({
+					fsPath: itemPath,
+					rbxPath: [...this.rbxPath],
+				});
+				this.searchDirectory(itemPath);
+			}
 		}
 	}
 
-	private searchDirectory(directory: string) {
+	private searchDirectory(directory: string, item?: string) {
 		const children = fs.readdirSync(directory);
 
-		// default.project.json
 		if (children.includes(ROJO_DEFAULT_NAME)) {
 			this.parseConfig(path.join(directory, ROJO_DEFAULT_NAME));
 			return;
 		}
+
+		if (item) this.rbxPath.push(item);
 
 		// *.project.json
 		for (const child of children) {
@@ -229,9 +235,11 @@ export class RojoResolver {
 		for (const child of children) {
 			const childPath = path.join(directory, child);
 			if (fs.statSync(childPath).isDirectory()) {
-				this.searchDirectory(childPath);
+				this.searchDirectory(childPath, child);
 			}
 		}
+
+		if (item) this.rbxPath.pop();
 	}
 
 	public getRbxPathFromFilePath(filePath: string) {
@@ -256,7 +264,7 @@ export class RojoResolver {
 	}
 
 	public getRbxTypeFromFilePath(filePath: string): RbxType {
-		const subext = path.extname(path.basename(filePath, path.extname(filePath))).slice(1);
+		const subext = path.extname(path.basename(filePath, path.extname(filePath)));
 		return SUB_EXT_TYPE_MAP.get(subext) ?? RbxType.Unknown;
 	}
 

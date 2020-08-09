@@ -6,9 +6,11 @@ import { assert } from "Shared/util/assert";
 export = ts.identity<yargs.CommandModule<{}, {}>>({
 	command: "rojo",
 	describe: "test",
-	handler: () => {
+	builder: () => yargs.strict(false),
+	handler: argv => {
 		const rojoConfigFilePath = RojoResolver.findRojoConfigFilePath(process.cwd());
 		assert(rojoConfigFilePath);
-		const rojoResolver = new RojoResolver(rojoConfigFilePath);
+		const rojoResolver = RojoResolver.fromPath(rojoConfigFilePath);
+		console.log(rojoResolver.getRbxPathFromFilePath(argv._[1]));
 	},
 });
