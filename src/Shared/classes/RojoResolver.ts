@@ -40,8 +40,6 @@ const ROJO_FILE_REGEX = /^.+\.project\.json$/;
 const ROJO_DEFAULT_NAME = "default.project.json";
 const ROJO_OLD_NAME = "roblox-project.json";
 
-const FOLDER_EXT = "";
-
 export enum RbxType {
 	ModuleScript,
 	Script,
@@ -91,7 +89,7 @@ export enum NetworkType {
 	Server,
 }
 
-function stripExts(filePath: string) {
+function stripRojoExts(filePath: string) {
 	const ext = path.extname(filePath);
 	if (ext === LUA_EXT) {
 		filePath = filePath.slice(0, -ext.length);
@@ -251,7 +249,7 @@ export class RojoResolver {
 		}
 		for (const partition of this.partitions) {
 			if (isPathDescendantOf(filePath, partition.fsPath)) {
-				const stripped = stripExts(filePath);
+				const stripped = stripRojoExts(filePath);
 				const relativePath = path.relative(partition.fsPath, stripped);
 				const relativeParts = relativePath === "" ? [] : relativePath.split(path.sep);
 				if (relativeParts[relativeParts.length - 1] === INIT_NAME) {
