@@ -203,12 +203,8 @@ export class RojoResolver {
 	private parsePath(itemPath: string) {
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
-		} else {
-			if (
-				fs.existsSync(itemPath) &&
-				fs.statSync(itemPath).isDirectory() &&
-				fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)
-			) {
+		} else if (fs.existsSync(itemPath)) {
+			if (fs.statSync(itemPath).isDirectory() && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
 				this.partitions.unshift({
