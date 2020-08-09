@@ -4,7 +4,15 @@ import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
 import { Lazy } from "Shared/classes/Lazy";
-import { CLIENT_SUBEXT, INIT_NAME, LUA_EXT, MODULE_SUBEXT, PACKAGE_ROOT, SERVER_SUBEXT } from "Shared/constants";
+import {
+	CLIENT_SUBEXT,
+	INIT_NAME,
+	LUA_EXT,
+	MODULE_SUBEXT,
+	PACKAGE_ROOT,
+	SERVER_SUBEXT,
+	JSON_EXT,
+} from "Shared/constants";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
 import { warn } from "Shared/warn";
@@ -93,10 +101,12 @@ function stripRojoExts(filePath: string) {
 	const ext = path.extname(filePath);
 	if (ext === LUA_EXT) {
 		filePath = filePath.slice(0, -ext.length);
-	}
-	const subext = path.extname(filePath);
-	if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
-		filePath = filePath.slice(0, -subext.length);
+		const subext = path.extname(filePath);
+		if (subext === SERVER_SUBEXT || subext === CLIENT_SUBEXT) {
+			filePath = filePath.slice(0, -subext.length);
+		}
+	} else if (ext === JSON_EXT) {
+		filePath = filePath.slice(0, -ext.length);
 	}
 	return filePath;
 }
