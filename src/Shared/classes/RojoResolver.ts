@@ -71,7 +71,6 @@ const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
  * Represents a roblox tree path.
  */
 export type RbxPath = ReadonlyArray<string>;
-export type ReadonlyRbxPath = ReadonlyArray<string>;
 export type RelativeRbxPath = Array<string | RbxPathParent>;
 
 interface PartitionInfo {
@@ -313,7 +312,7 @@ export class RojoResolver {
 		return NetworkType.Unknown;
 	}
 
-	public static relative(rbxFrom: ReadonlyRbxPath, rbxTo: ReadonlyRbxPath) {
+	public static relative(rbxFrom: RbxPath, rbxTo: RbxPath) {
 		const maxLength = Math.max(rbxFrom.length, rbxTo.length);
 		let diffIndex = maxLength;
 		for (let i = 0; i < maxLength; i++) {
