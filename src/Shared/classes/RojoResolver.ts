@@ -141,12 +141,8 @@ export class RojoResolver {
 	}
 
 	public static fromPath(rojoConfigFilePath: string) {
-		if (!path.isAbsolute(rojoConfigFilePath)) {
-			rojoConfigFilePath = path.resolve(rojoConfigFilePath);
-		}
-
 		const resolver = new RojoResolver();
-		resolver.parseConfig(rojoConfigFilePath, true);
+		resolver.parseConfig(path.resolve(rojoConfigFilePath), true);
 		return resolver;
 	}
 
@@ -207,6 +203,11 @@ export class RojoResolver {
 			if (fs.statSync(itemPath).isDirectory() && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
+				console.log("add partition", {
+					fsPath: itemPath,
+					rbxPath: [...this.rbxPath],
+				});
+
 				this.partitions.unshift({
 					fsPath: itemPath,
 					rbxPath: [...this.rbxPath],
@@ -246,9 +247,8 @@ export class RojoResolver {
 	}
 
 	public getRbxPathFromFilePath(filePath: string): RbxPath | undefined {
-		if (!path.isAbsolute(filePath)) {
-			filePath = path.resolve(filePath);
-		}
+		filePath = path.resolve(filePath);
+		console.log("getRbxPathFromFilePath", filePath);
 		const rbxPath = this.filePathToRbxPathMap.get(filePath);
 		if (rbxPath) {
 			return rbxPath;
