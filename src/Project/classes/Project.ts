@@ -10,7 +10,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { NetworkType, RbxPath, RojoConfig } from "Shared/classes/RojoConfig";
+import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { COMPILER_VERSION, PACKAGE_ROOT, ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
@@ -29,6 +29,7 @@ import {
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: "",
+	type: "game",
 };
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
@@ -49,6 +50,9 @@ export interface ProjectOptions {
 
 	/** The path to the rojo configuration. */
 	rojo: string;
+
+	/** The type of project */
+	type: "game" | "model" | "package";
 }
 
 /** Represents a roblox-ts project. */
@@ -64,15 +68,12 @@ export class Project {
 	private readonly globalSymbols: GlobalSymbols;
 	private readonly macroManager: MacroManager;
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
-	private readonly rojoConfig: RojoConfig;
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion: string | undefined;
-	private readonly runtimeLibRbxPath: RbxPath | undefined;
-	private readonly nodeModulesRbxPath: RbxPath | undefined;
 	private readonly includePath: string;
 	private readonly rootDir: string;
 
-	public readonly projectType: ProjectType;
+	private readonly rojoConfigPath: string | undefined;
 
 	private readonly nodeModulesPathMapping = new Map<string, string>();
 
@@ -95,44 +96,16 @@ export class Project {
 
 		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), "node_modules", "@rbxts");
 
-		const rojoConfigPath = RojoConfig.findRojoConfigFilePath(this.projectPath, this.projectOptions.rojo);
-		if (rojoConfigPath) {
-			this.rojoConfig = RojoConfig.fromPath(rojoConfigPath);
-			if (this.rojoConfig.isGame()) {
-				this.projectType = ProjectType.Game;
-			} else {
-				this.projectType = ProjectType.Model;
-			}
+		if (this.projectOptions.rojo) {
+			this.rojoConfigPath = path.resolve(this.projectOptions.rojo);
 		} else {
-			this.rojoConfig = RojoConfig.synthetic(this.projectPath);
-			this.projectType = ProjectType.Package;
+			this.rojoConfigPath = RojoResolver.findRojoConfigFilePath(this.projectPath);
 		}
 
 		// intentionally use || here for empty string case
 		this.includePath = path.resolve(this.projectOptions.includePath || path.join(this.projectPath, "include"));
 
-		// validates and establishes runtime library
-		if (this.projectType !== ProjectType.Package) {
-			const runtimeFsPath = path.join(this.includePath, "RuntimeLib.lua");
-			const runtimeLibRbxPath = this.rojoConfig.getRbxPathFromFilePath(runtimeFsPath);
-			if (!runtimeLibRbxPath) {
-				throw new ProjectError(
-					`A Rojo project file was found ( ${path.relative(
-						this.projectPath,
-						rojoConfigPath!,
-					)} ), but contained no data for include folder!`,
-				);
-			} else if (this.rojoConfig.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
-				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
-			} else if (this.rojoConfig.isIsolated(runtimeLibRbxPath)) {
-				throw new ProjectError(`Runtime library cannot be in an isolated container!`);
-			}
-			this.runtimeLibRbxPath = runtimeLibRbxPath;
-		}
-
 		if (fs.pathExistsSync(this.nodeModulesPath)) {
-			this.nodeModulesRbxPath = this.rojoConfig.getRbxPathFromFilePath(this.nodeModulesPath);
-
 			// map module paths
 			for (const pkgName of fs.readdirSync(this.nodeModulesPath)) {
 				const pkgPath = path.join(this.nodeModulesPath, pkgName);
@@ -168,9 +141,9 @@ export class Project {
 		const host = ts.createIncrementalCompilerHost(this.compilerOptions);
 
 		let rojoHash = "";
-		if (rojoConfigPath) {
+		if (this.rojoConfigPath) {
 			assert(host.createHash);
-			rojoHash = "-" + host.createHash(fs.readFileSync(rojoConfigPath).toString());
+			rojoHash = "-" + host.createHash(fs.readFileSync(this.rojoConfigPath).toString());
 		}
 
 		// super hack!
@@ -332,10 +305,10 @@ export class Project {
 	}
 
 	public compileAll() {
-		this.compileFiles(this.getChangedSourceFiles());
-		this.program.getProgram().emitBuildInfo();
 		this.copyInclude();
 		this.copyFiles(new Set(this.getRootDirs()));
+		this.compileFiles(this.getChangedSourceFiles());
+		this.program.getProgram().emitBuildInfo();
 	}
 
 	/**
@@ -344,6 +317,31 @@ export class Project {
 	 * writes rendered Luau source to the out directory.
 	 */
 	public compileFiles(sourceFiles: Array<ts.SourceFile>) {
+		const rojoResolver = this.rojoConfigPath
+			? RojoResolver.fromPath(this.rojoConfigPath)
+			: RojoResolver.synthetic(this.projectPath);
+
+		const projectType = this.projectOptions.type as ProjectType;
+
+		// validates and establishes runtime library
+		let runtimeLibRbxPath: RbxPath | undefined;
+		if (projectType !== ProjectType.Package) {
+			const runtimeFsPath = path.join(this.includePath, "RuntimeLib.lua");
+			runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(runtimeFsPath);
+			if (!runtimeLibRbxPath) {
+				throw new ProjectError(`Rojo config contained no data for include folder!`);
+			} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
+				throw new ProjectError(`Runtime library cannot be in a server-only or client-only container!`);
+			} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
+				throw new ProjectError(`Runtime library cannot be in an isolated container!`);
+			}
+		}
+
+		let nodeModulesRbxPath: RbxPath | undefined;
+		if (fs.pathExistsSync(this.nodeModulesPath)) {
+			nodeModulesRbxPath = rojoResolver.getRbxPathFromFilePath(this.nodeModulesPath);
+		}
+
 		const multiTransformState = new MultiTransformState();
 		const totalDiagnostics = new Array<ts.Diagnostic>();
 
@@ -367,18 +365,18 @@ export class Project {
 				const transformState = new TransformState(
 					this.compilerOptions,
 					multiTransformState,
-					this.rojoConfig,
+					rojoResolver,
 					this.pathTranslator,
-					this.runtimeLibRbxPath,
+					runtimeLibRbxPath,
 					this.nodeModulesPath,
-					this.nodeModulesRbxPath,
+					nodeModulesRbxPath,
 					this.nodeModulesPathMapping,
 					this.typeChecker,
 					this.typeChecker.getEmitResolver(sourceFile),
 					this.globalSymbols,
 					this.macroManager,
 					this.roactSymbolManager,
-					this.projectType,
+					projectType,
 					this.pkgVersion,
 					sourceFile,
 				);

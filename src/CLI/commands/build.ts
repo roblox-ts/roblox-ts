@@ -51,6 +51,9 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & CLIOption
 				describe: "enable verbose logs",
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
+			.option("type", {
+				choices: ["game", "model", "package"] as const,
+			})
 			.option("includePath", {
 				alias: "i",
 				string: true,

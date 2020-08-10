@@ -7,8 +7,9 @@ class PathInfo {
 
 	public static from(filePath: string) {
 		const dirName = path.dirname(filePath);
-		const exts = filePath.slice(dirName.length + path.sep.length).split(".");
-		const fileName = exts.shift();
+		const parts = filePath.slice(dirName.length + path.sep.length).split(".");
+		const fileName = parts.shift();
+		const exts = parts.map(v => "." + v);
 		assert(fileName !== undefined);
 		return new PathInfo(dirName, fileName, exts);
 	}
@@ -18,7 +19,7 @@ class PathInfo {
 	}
 
 	public join(): string {
-		return path.join(this.dirName, [this.fileName, ...this.exts].join("."));
+		return path.join(this.dirName, [this.fileName, ...this.exts].join(""));
 	}
 }
 
