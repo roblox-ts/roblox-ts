@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
@@ -7,11 +5,11 @@ import { Lazy } from "Shared/classes/Lazy";
 import {
 	CLIENT_SUBEXT,
 	INIT_NAME,
+	JSON_EXT,
 	LUA_EXT,
 	MODULE_SUBEXT,
 	PACKAGE_ROOT,
 	SERVER_SUBEXT,
-	JSON_EXT,
 } from "Shared/constants";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
@@ -199,20 +197,19 @@ export class RojoResolver {
 	private parsePath(itemPath: string) {
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
-		} else if (fs.existsSync(itemPath)) {
-			if (fs.statSync(itemPath).isDirectory() && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
+		} else {
+			const exists = fs.pathExistsSync(itemPath);
+			if (exists && fs.statSync(itemPath).isDirectory() && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
-				console.log("add partition", {
-					fsPath: itemPath,
-					rbxPath: [...this.rbxPath],
-				});
-
 				this.partitions.unshift({
 					fsPath: itemPath,
 					rbxPath: [...this.rbxPath],
 				});
-				this.searchDirectory(itemPath);
+
+				if (exists) {
+					this.searchDirectory(itemPath);
+				}
 			}
 		}
 	}
@@ -248,7 +245,6 @@ export class RojoResolver {
 
 	public getRbxPathFromFilePath(filePath: string): RbxPath | undefined {
 		filePath = path.resolve(filePath);
-		console.log("getRbxPathFromFilePath", filePath);
 		const rbxPath = this.filePathToRbxPathMap.get(filePath);
 		if (rbxPath) {
 			return rbxPath;
