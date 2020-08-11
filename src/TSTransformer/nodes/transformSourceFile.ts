@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { RbxType } from "Shared/classes/RojoConfig";
+import { RbxType } from "Shared/classes/RojoResolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -156,14 +156,14 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	const lastStatement = getLastNonCommentStatement(statements.tail);
 	if (!lastStatement || !luau.isReturnStatement(lastStatement.value)) {
 		const outputPath = state.pathTranslator.getOutputPath(node.fileName);
-		if (state.rojoConfig.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
+		if (state.rojoResolver.getRbxTypeFromFilePath(outputPath) === RbxType.ModuleScript) {
 			luau.list.push(statements, luau.create(luau.SyntaxKind.ReturnStatement, { expression: luau.nil() }));
 		}
 	}
 
 	// add the Runtime library to the tree if it is used
 	if (state.usesRuntimeLib) {
-		luau.list.unshift(statements, state.createRuntimeLibImport());
+		luau.list.unshift(statements, state.createRuntimeLibImport(node));
 	}
 
 	// add build information to the tree

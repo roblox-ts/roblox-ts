@@ -73,7 +73,7 @@ function transformCaseClause(
 		nonEmptyStatements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
 	);
 
-	const canFallThroughFrom = statements.tail !== undefined && !luau.isFinalStatement(statements.tail.value);
+	const canFallThroughFrom = statements.tail === undefined || !luau.isFinalStatement(statements.tail.value);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
 		luau.list.push(
 			statements,

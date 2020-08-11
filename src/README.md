@@ -38,8 +38,8 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Reserved Class methods (`__index`, `__newindex`, etc.)
 -   [ ] Class static/instance method collision
 -   [ ] Macros which access `node.arguments` do not properly account for spreads
--   [ ] Rewrite RojoConfig to support nested Rojo projects, will be used for packages in the future
--   [ ] Add RojoConfig support for symlinks in node_modules
+-   [x] Rewrite RojoResolver to support nested Rojo projects, will be used for packages in the future
+-   [ ] Add RojoResolver support for symlinks in node_modules
 -   [ ] Generator Functions
 -   [x] .d.ts emit improvements
     -   Fix `/// <reference types="types" />` -> `/// <reference types="@rbxts/types" />`

@@ -25,12 +25,16 @@ yargs
 	.wrap(yargs.terminalWidth())
 
 	// execute
-	.fail((_, e: unknown) => {
+	.fail((str, e: unknown) => {
 		if (e instanceof CLIError) {
 			e.log();
 		} else {
 			// eslint-disable-next-line no-console
-			console.log(e);
+			console.log(str);
+			if (e) {
+				// eslint-disable-next-line no-console
+				console.log(e);
+			}
 		}
 		process.exit(1);
 	})

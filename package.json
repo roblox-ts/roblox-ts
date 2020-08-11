@@ -44,6 +44,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"byots": "^4.1.0-dev.20200806.14.47",
+		"ajv": "^6.12.3",
 		"chokidar": "^3.4.0",
 		"fs-extra": "^8.1.0",
 		"kleur": "^3.0.3",
