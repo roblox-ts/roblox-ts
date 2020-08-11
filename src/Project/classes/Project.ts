@@ -29,7 +29,7 @@ import {
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: "",
-	type: "game",
+	type: undefined,
 };
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
@@ -52,7 +52,7 @@ export interface ProjectOptions {
 	rojo: string;
 
 	/** The type of project */
-	type: "game" | "model" | "package";
+	type: "game" | "model" | "package" | undefined;
 }
 
 /** Represents a roblox-ts project. */
@@ -321,7 +321,14 @@ export class Project {
 			? RojoResolver.fromPath(this.rojoConfigPath)
 			: RojoResolver.synthetic(this.projectPath);
 
-		const projectType = this.projectOptions.type as ProjectType;
+		let projectType = this.projectOptions.type as ProjectType | undefined;
+		if (!projectType) {
+			if (rojoResolver.isGame) {
+				projectType = ProjectType.Game;
+			} else {
+				projectType = ProjectType.Model;
+			}
+		}
 
 		// validates and establishes runtime library
 		let runtimeLibRbxPath: RbxPath | undefined;

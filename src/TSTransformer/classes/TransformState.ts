@@ -2,13 +2,15 @@ import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
-import { ProjectType } from "Shared/constants";
+import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
+import { PARENT_FIELD, ProjectType } from "Shared/constants";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";
 import { GlobalSymbols, MacroManager, MultiTransformState, RoactSymbolManager } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
+import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import originalTS from "typescript";
 
@@ -58,7 +60,7 @@ export class TransformState {
 		public readonly globalSymbols: GlobalSymbols,
 		public readonly macroManager: MacroManager,
 		public readonly roactSymbolManager: RoactSymbolManager | undefined,
-		public readonly projectType: ProjectType,
+		public readonly projectType: ProjectType | undefined,
 		public readonly pkgVersion: string | undefined,
 		sourceFile: ts.SourceFile,
 	) {
@@ -217,7 +219,7 @@ export class TransformState {
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */
-	public createRuntimeLibImport() {
+	public createRuntimeLibImport(sourceFile: ts.SourceFile) {
 		// if the transform state has the game path to the RuntimeLib.lua
 		if (this.runtimeLibRbxPath) {
 			if (this.projectType === ProjectType.Game) {
@@ -248,8 +250,30 @@ export class TransformState {
 					right: expression,
 				});
 			} else {
-				// TODO: relative runtime lib for Model
-				assert(false, "Not implemented");
+				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+				if (!rbxPath) {
+					this.addDiagnostic(diagnostics.noRojoData(sourceFile));
+					return luau.create(luau.SyntaxKind.VariableDeclaration, {
+						left: RUNTIME_LIB_ID,
+						right: luau.nil(),
+					});
+				}
+
+				return luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: RUNTIME_LIB_ID,
+					right: luau.create(luau.SyntaxKind.CallExpression, {
+						expression: luau.globals.require,
+						args: luau.list.make(
+							propertyAccessExpressionChain(
+								luau.globals.script,
+								RojoResolver.relative(rbxPath, this.runtimeLibRbxPath).map(v =>
+									v === RbxPathParent ? PARENT_FIELD : v,
+								),
+							),
+						),
+					}),
+				});
 			}
 		} else {
 			// we pass RuntimeLib access to packages via `_G[script] = TS`

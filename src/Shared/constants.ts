@@ -20,7 +20,10 @@ export const SERVER_SUBEXT = ".server";
 export const CLIENT_SUBEXT = ".client";
 export const MODULE_SUBEXT = "";
 
+export const PARENT_FIELD = "Parent";
+
 export enum ProjectType {
+	None = "none",
 	Game = "game",
 	Model = "model",
 	Package = "package",

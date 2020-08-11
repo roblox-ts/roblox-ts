@@ -163,7 +163,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 
 	// add the Runtime library to the tree if it is used
 	if (state.usesRuntimeLib) {
-		luau.list.unshift(statements, state.createRuntimeLibImport());
+		luau.list.unshift(statements, state.createRuntimeLibImport(node));
 	}
 
 	// add build information to the tree
