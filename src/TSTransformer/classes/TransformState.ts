@@ -220,33 +220,37 @@ export class TransformState {
 	public createRuntimeLibImport() {
 		// if the transform state has the game path to the RuntimeLib.lua
 		if (this.runtimeLibRbxPath) {
-			const rbxPath = [...this.runtimeLibRbxPath];
-			// create an expression to obtain the service where RuntimeLib is stored
-			const serviceName = rbxPath.shift();
-			assert(serviceName);
+			if (this.projectType === ProjectType.Game) {
+				// create an expression to obtain the service where RuntimeLib is stored
+				const serviceName = this.runtimeLibRbxPath[0];
+				assert(serviceName);
 
-			let expression: luau.IndexableExpression = createGetService(serviceName);
-			// iterate through the rest of the path
-			// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
-			for (const pathPart of rbxPath) {
-				expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
-					expression,
-					name: "WaitForChild",
-					args: luau.list.make(luau.string(pathPart)),
+				let expression: luau.IndexableExpression = createGetService(serviceName);
+				// iterate through the rest of the path
+				// for each instance in the path, create a new WaitForChild call to be added on to the end of the final expression
+				for (let i = 1; i < this.runtimeLibRbxPath.length; i++) {
+					expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
+						expression,
+						name: "WaitForChild",
+						args: luau.list.make(luau.string(this.runtimeLibRbxPath[i])),
+					});
+				}
+
+				// nest the chain of `WaitForChild`s inside a require call
+				expression = luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.require,
+					args: luau.list.make(expression),
 				});
+
+				// create a variable declaration for this call
+				return luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: RUNTIME_LIB_ID,
+					right: expression,
+				});
+			} else {
+				// TODO: relative runtime lib for Model
+				assert("Not implemented");
 			}
-
-			// nest the chain of `WaitForChild`s inside a require call
-			expression = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.require,
-				args: luau.list.make(expression),
-			});
-
-			// create a variable declaration for this call
-			return luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: RUNTIME_LIB_ID,
-				right: expression,
-			});
 		} else {
 			// we pass RuntimeLib access to packages via `_G[script] = TS`
 			// access it here via `local TS = _G[script]`

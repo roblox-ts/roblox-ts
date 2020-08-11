@@ -75,7 +75,7 @@ const SERVER_CONTAINERS = [["ServerStorage"], ["ServerScriptService"]];
  * Represents a roblox tree path.
  */
 export type RbxPath = ReadonlyArray<string>;
-export type RelativeRbxPath = Array<string | RbxPathParent>;
+export type RelativeRbxPath = ReadonlyArray<string | RbxPathParent>;
 
 interface PartitionInfo {
 	rbxPath: RbxPath;
@@ -138,8 +138,9 @@ export class RojoResolver {
 		return candidates[0];
 	}
 
-	public static fromPath(rojoConfigFilePath: string) {
+	public static fromPath(rojoConfigFilePath: string, useFileSystem = true) {
 		const resolver = new RojoResolver();
+		resolver.fs = useFileSystem;
 		resolver.parseConfig(path.resolve(rojoConfigFilePath), true);
 		return resolver;
 	}
@@ -148,9 +149,11 @@ export class RojoResolver {
 	 * Create a synthetic RojoResolver for ProjectType.Package.
 	 * Forces all imports to be relative.
 	 */
-	public static synthetic(projectDir: string) {
+	private fs = true;
+	public static synthetic(projectDir: string, useFileSystem = true) {
 		const resolver = new RojoResolver();
-		resolver.parseTree(projectDir, "", { $path: projectDir } as RojoTree);
+		resolver.fs = useFileSystem;
+		resolver.parseTree(projectDir, "", { $path: projectDir } as RojoTree, true);
 		return resolver;
 	}
 
@@ -161,6 +164,7 @@ export class RojoResolver {
 	public isGame = false;
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
+		if (!this.fs) return;
 		if (fs.pathExistsSync(rojoConfigFilePath)) {
 			let configJson: unknown;
 			try {
@@ -198,8 +202,12 @@ export class RojoResolver {
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
-			const exists = fs.pathExistsSync(itemPath);
-			if (exists && fs.statSync(itemPath).isDirectory() && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
+			if (
+				this.fs &&
+				fs.pathExistsSync(itemPath) &&
+				fs.statSync(itemPath).isDirectory() &&
+				fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)
+			) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
 				this.partitions.unshift({
@@ -207,7 +215,7 @@ export class RojoResolver {
 					rbxPath: [...this.rbxPath],
 				});
 
-				if (exists) {
+				if (this.fs && fs.pathExistsSync(itemPath)) {
 					this.searchDirectory(itemPath);
 				}
 			}
@@ -312,7 +320,7 @@ export class RojoResolver {
 		return NetworkType.Unknown;
 	}
 
-	public static relative(rbxFrom: RbxPath, rbxTo: RbxPath) {
+	public static relative(rbxFrom: RbxPath, rbxTo: RbxPath): RelativeRbxPath {
 		const maxLength = Math.max(rbxFrom.length, rbxTo.length);
 		let diffIndex = maxLength;
 		for (let i = 0; i < maxLength; i++) {
@@ -322,7 +330,7 @@ export class RojoResolver {
 			}
 		}
 
-		const result: RelativeRbxPath = new Array<string | RbxPathParent>();
+		const result = new Array<string | RbxPathParent>();
 		if (diffIndex < rbxFrom.length) {
 			for (let i = 0; i < rbxFrom.length - diffIndex; i++) {
 				result.push(RbxPathParent);
