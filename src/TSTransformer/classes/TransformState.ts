@@ -249,7 +249,7 @@ export class TransformState {
 				});
 			} else {
 				// TODO: relative runtime lib for Model
-				assert("Not implemented");
+				assert(false, "Not implemented");
 			}
 		} else {
 			// we pass RuntimeLib access to packages via `_G[script] = TS`
