@@ -1,0 +1,11 @@
+{
+	"name": "roblox-ts",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"postCreateCommand": ".devcontainer/setup-playground.sh",
+	"extensions": [
+		"editorconfig.editorconfig",
+		"dbaeumer.vscode-eslint"
+	]
+}
