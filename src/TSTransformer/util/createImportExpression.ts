@@ -1,4 +1,4 @@
-import ts, { computeCommonSourceDirectoryOfFilenames } from "byots";
+import ts from "byots";
 import luau from "LuauAST";
 import path from "path";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "Shared/classes/RojoResolver";
