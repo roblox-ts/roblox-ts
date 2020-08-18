@@ -22,7 +22,6 @@ import {
 	transformTrueKeyword,
 } from "TSTransformer/nodes/expressions/transformLiteral";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
-import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
@@ -30,6 +29,7 @@ import { transformSpreadElement } from "TSTransformer/nodes/expressions/transfor
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
+import { transformTypeAssertionExpression } from "TSTransformer/nodes/expressions/transformTypeAssertExpressions";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -69,7 +69,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.JsxElement, transformJsxElement],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
-	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
+	[ts.SyntaxKind.NonNullExpression, transformTypeAssertionExpression],
 	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
@@ -84,6 +84,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
+	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertionExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
