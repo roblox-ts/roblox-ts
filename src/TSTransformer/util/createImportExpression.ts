@@ -2,7 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import path from "path";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "Shared/classes/RojoResolver";
-import { PARENT_FIELD } from "Shared/constants";
+import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -107,7 +107,7 @@ export function createImportExpression(
 			return luau.emptyId();
 		}
 
-		if (state.rojoResolver.isGame) {
+		if (state.projectType === ProjectType.Game) {
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
 				luau.list.pushList(importPathExpressions, getAbsoluteImport(moduleRbxPath));
