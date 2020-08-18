@@ -17,6 +17,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { benchmarkSync } from "Shared/util/benchmark";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import { cmdSync } from "Shared/util/cmd";
 import {
 	GlobalSymbols,
 	MacroManager,
@@ -70,6 +71,7 @@ export class Project {
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
 	private readonly pathTranslator: PathTranslator;
 	private readonly pkgVersion: string | undefined;
+	private readonly gitCommit: string | undefined;
 	private readonly includePath: string;
 	private readonly rootDir: string;
 
@@ -92,6 +94,22 @@ export class Project {
 		try {
 			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 			this.pkgVersion = pkgJson.version;
+		} catch (e) {}
+
+		try {
+			const lines = cmdSync("git", ["log"]);
+			for (const line of lines) {
+				if (line && line[0]) {
+					// git outputs "commit 40charactersLongId (more info)""
+					const output = line.toString();
+					if (output.startsWith("fatal")) {
+						break;
+					}
+					const gitCommit = output.slice(7, 47);
+					this.gitCommit = gitCommit;
+					break;
+				}
+			}
 		} catch (e) {}
 
 		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), "node_modules", "@rbxts");
@@ -385,6 +403,7 @@ export class Project {
 					this.roactSymbolManager,
 					projectType,
 					this.pkgVersion,
+					this.gitCommit,
 					sourceFile,
 				);
 

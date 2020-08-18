@@ -118,6 +118,7 @@ export class VirtualProject {
 			roactSymbolManager,
 			ProjectType.Model,
 			undefined,
+			undefined,
 			sourceFile,
 		);
 

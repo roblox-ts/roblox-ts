@@ -62,6 +62,7 @@ export class TransformState {
 		public readonly roactSymbolManager: RoactSymbolManager | undefined,
 		public readonly projectType: ProjectType | undefined,
 		public readonly pkgVersion: string | undefined,
+		public readonly gitCommit: string | undefined,
 		sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
