@@ -40,41 +40,41 @@ type StatementTransformer = (state: TransformState, node: any) => luau.List<luau
 /**
  * Definitions for different types of transformations.
  */
-const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
+const TRANSFORMER_BY_KIND: Partial<Record<ts.Statement["kind"], StatementTransformer>> = {
 	// no emit
-	[ts.SyntaxKind.InterfaceDeclaration, NO_EMIT],
-	[ts.SyntaxKind.TypeAliasDeclaration, NO_EMIT],
-	[ts.SyntaxKind.EmptyStatement, NO_EMIT],
+	[ts.SyntaxKind.InterfaceDeclaration]: NO_EMIT,
+	[ts.SyntaxKind.TypeAliasDeclaration]: NO_EMIT,
+	[ts.SyntaxKind.EmptyStatement]: NO_EMIT,
 
 	// banned statements
-	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(diagnostics.noForInStatement)],
-	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(diagnostics.noLabeledStatement)],
-	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(diagnostics.noDebuggerStatement)],
+	[ts.SyntaxKind.ForInStatement]: DIAGNOSTIC(diagnostics.noForInStatement),
+	[ts.SyntaxKind.LabeledStatement]: DIAGNOSTIC(diagnostics.noLabeledStatement),
+	[ts.SyntaxKind.DebuggerStatement]: DIAGNOSTIC(diagnostics.noDebuggerStatement),
 
 	// regular transforms
-	[ts.SyntaxKind.Block, transformBlock],
-	[ts.SyntaxKind.BreakStatement, transformBreakStatement],
-	[ts.SyntaxKind.ClassDeclaration, transformClassDeclaration],
-	[ts.SyntaxKind.ContinueStatement, transformContinueStatement],
-	[ts.SyntaxKind.DoStatement, transformDoStatement],
-	[ts.SyntaxKind.EnumDeclaration, transformEnumDeclaration],
-	[ts.SyntaxKind.ExportAssignment, transformExportAssignment],
-	[ts.SyntaxKind.ExportDeclaration, transformExportDeclaration],
-	[ts.SyntaxKind.ExpressionStatement, transformExpressionStatement],
-	[ts.SyntaxKind.ForOfStatement, transformForOfStatement],
-	[ts.SyntaxKind.ForStatement, transformForStatement],
-	[ts.SyntaxKind.FunctionDeclaration, transformFunctionDeclaration],
-	[ts.SyntaxKind.IfStatement, transformIfStatement],
-	[ts.SyntaxKind.ImportDeclaration, transformImportDeclaration],
-	[ts.SyntaxKind.ImportEqualsDeclaration, transformImportEqualsDeclaration],
-	[ts.SyntaxKind.ModuleDeclaration, transformModuleDeclaration],
-	[ts.SyntaxKind.ReturnStatement, transformReturnStatement],
-	[ts.SyntaxKind.SwitchStatement, transformSwitchStatement],
-	[ts.SyntaxKind.ThrowStatement, transformThrowStatement],
-	[ts.SyntaxKind.TryStatement, transformTryStatement],
-	[ts.SyntaxKind.VariableStatement, transformVariableStatement],
-	[ts.SyntaxKind.WhileStatement, transformWhileStatement],
-]);
+	[ts.SyntaxKind.Block]: transformBlock,
+	[ts.SyntaxKind.BreakStatement]: transformBreakStatement,
+	[ts.SyntaxKind.ClassDeclaration]: transformClassDeclaration,
+	[ts.SyntaxKind.ContinueStatement]: transformContinueStatement,
+	[ts.SyntaxKind.DoStatement]: transformDoStatement,
+	[ts.SyntaxKind.EnumDeclaration]: transformEnumDeclaration,
+	[ts.SyntaxKind.ExportAssignment]: transformExportAssignment,
+	[ts.SyntaxKind.ExportDeclaration]: transformExportDeclaration,
+	[ts.SyntaxKind.ExpressionStatement]: transformExpressionStatement,
+	[ts.SyntaxKind.ForOfStatement]: transformForOfStatement,
+	[ts.SyntaxKind.ForStatement]: transformForStatement,
+	[ts.SyntaxKind.FunctionDeclaration]: transformFunctionDeclaration,
+	[ts.SyntaxKind.IfStatement]: transformIfStatement,
+	[ts.SyntaxKind.ImportDeclaration]: transformImportDeclaration,
+	[ts.SyntaxKind.ImportEqualsDeclaration]: transformImportEqualsDeclaration,
+	[ts.SyntaxKind.ModuleDeclaration]: transformModuleDeclaration,
+	[ts.SyntaxKind.ReturnStatement]: transformReturnStatement,
+	[ts.SyntaxKind.SwitchStatement]: transformSwitchStatement,
+	[ts.SyntaxKind.ThrowStatement]: transformThrowStatement,
+	[ts.SyntaxKind.TryStatement]: transformTryStatement,
+	[ts.SyntaxKind.VariableStatement]: transformVariableStatement,
+	[ts.SyntaxKind.WhileStatement]: transformWhileStatement,
+};
 
 /**
  * Transforms a singular `ts.Statement` in a `luau.list<...>`.
@@ -85,7 +85,7 @@ export function transformStatement(state: TransformState, node: ts.Statement): l
 	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
 	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
-	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
+	const transformer = TRANSFORMER_BY_KIND[node.kind];
 	if (transformer) {
 		return transformer(state, node);
 	}
