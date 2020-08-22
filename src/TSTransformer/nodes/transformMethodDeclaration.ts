@@ -33,8 +33,8 @@ export function transformMethodDeclaration(
 	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
 
 	// can we use `function class:name() end`?
-	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value)) {
-		if (isMethod(state, node) && isValidLuauIdentifier(name.value)) {
+	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && isValidLuauIdentifier(name.value)) {
+		if (isMethod(state, node)) {
 			luau.list.shift(parameters); // remove `self`
 			return luau.list.make(
 				luau.create(luau.SyntaxKind.MethodDeclaration, {
