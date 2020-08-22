@@ -8,6 +8,7 @@ import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -33,7 +34,7 @@ export function transformMethodDeclaration(
 
 	// can we use `function class:name() end`?
 	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value)) {
-		if (isMethod(state, node)) {
+		if (isMethod(state, node) && isValidLuauIdentifier(name.value)) {
 			luau.list.shift(parameters); // remove `self`
 			return luau.list.make(
 				luau.create(luau.SyntaxKind.MethodDeclaration, {

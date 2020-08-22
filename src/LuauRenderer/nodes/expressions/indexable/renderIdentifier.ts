@@ -1,6 +1,6 @@
 import luau from "LuauAST";
 import { RenderState } from "LuauRenderer";
-import { isValidLuauIdentifier } from "LuauRenderer/util/isValidLuauIdentifier";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { assert } from "Shared/util/assert";
 
 export function renderIdentifier(state: RenderState, node: luau.Identifier) {

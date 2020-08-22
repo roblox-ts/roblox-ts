@@ -1,6 +1,6 @@
 import luau from "LuauAST";
 import { render, RenderState } from "LuauRenderer";
-import { isValidLuauIdentifier } from "LuauRenderer/util/isValidLuauIdentifier";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 
 export function renderPropertyAccessExpression(state: RenderState, node: luau.PropertyAccessExpression) {
 	const expStr = render(state, node.expression);
