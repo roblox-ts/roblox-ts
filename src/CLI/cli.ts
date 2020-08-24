@@ -30,11 +30,9 @@ yargs
 			e.log();
 		} else {
 			// eslint-disable-next-line no-console
-			console.log(str);
-			if (e) {
-				// eslint-disable-next-line no-console
-				console.log(e);
-			}
+			if (str !== undefined && str !== null) console.log(str);
+			// eslint-disable-next-line no-console
+			if (e) console.log(e);
 		}
 		process.exit(1);
 	})
