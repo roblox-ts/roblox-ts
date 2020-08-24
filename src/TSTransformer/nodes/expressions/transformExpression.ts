@@ -27,6 +27,7 @@ import { transformStringLiteral } from "TSTransformer/nodes/expressions/transfor
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
+import { transformTypeAssertion } from "TSTransformer/nodes/expressions/transformTypeAssertion";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -80,6 +81,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
+	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertion],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 ]);
 
