@@ -4,8 +4,8 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { isArrayType } from "TSTransformer/util/types";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
+import { isArrayType } from "TSTransformer/util/types";
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {

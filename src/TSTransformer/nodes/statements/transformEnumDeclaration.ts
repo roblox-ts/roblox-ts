@@ -8,11 +8,14 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 
 function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 	let amtValueDefinitions = 0;
-	for (const declaration of symbol.declarations) {
-		if (ts.isEnumDeclaration(declaration) && !!(declaration.modifierFlagsCache & ts.ModifierFlags.Const)) {
-			amtValueDefinitions++;
-			if (amtValueDefinitions > 1) {
-				return true;
+	const declarations = symbol.getDeclarations();
+	if (declarations) {
+		for (const declaration of declarations) {
+			if (ts.isEnumDeclaration(declaration) && !!(declaration.modifierFlagsCache & ts.ModifierFlags.Const)) {
+				amtValueDefinitions++;
+				if (amtValueDefinitions > 1) {
+					return true;
+				}
 			}
 		}
 	}

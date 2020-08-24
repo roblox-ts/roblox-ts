@@ -89,5 +89,5 @@ export function transformStatement(state: TransformState, node: ts.Statement): l
 	if (transformer) {
 		return transformer(state, node);
 	}
-	assert(false, `Unknown statement: ${getKindName(node)}`);
+	assert(false, `Unknown statement: ${getKindName(node.kind)}`);
 }

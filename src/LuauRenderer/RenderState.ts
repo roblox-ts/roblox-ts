@@ -1,7 +1,7 @@
 import luau from "LuauAST";
+import { getEnding } from "LuauRenderer/util/getEnding";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { getEnding } from "LuauRenderer/util/getEnding";
 
 const INDENT_CHARACTER = "\t";
 const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;

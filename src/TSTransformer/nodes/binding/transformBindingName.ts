@@ -1,9 +1,9 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 
 export function transformBindingName(
 	state: TransformState,

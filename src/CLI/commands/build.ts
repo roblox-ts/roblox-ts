@@ -50,6 +50,9 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				describe: "do not copy include files",
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
+			.option("type", {
+				choices: ["game", "model", "package"] as const,
+			})
 			.option("includePath", {
 				alias: "i",
 				string: true,

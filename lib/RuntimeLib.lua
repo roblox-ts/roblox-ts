@@ -1,11 +1,7 @@
 local Promise = require(script.Parent.Promise)
 
 local RunService = game:GetService("RunService")
-
-local ReplicatedFirst
-if not __LEMUR__ then
-	ReplicatedFirst = game:GetService("ReplicatedFirst")
-end
+local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 local TS = {}
 
@@ -59,12 +55,12 @@ end
 
 -- module resolution
 function TS.getModule(object, moduleName)
-	if not __LEMUR__ and object:IsDescendantOf(ReplicatedFirst) then
+	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
 		warn("roblox-ts packages should not be used from ReplicatedFirst!")
 	end
 
 	-- ensure modules have fully replicated
-	if not __LEMUR__ and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
+	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 

@@ -9,15 +9,44 @@ on:
 jobs:
   build-and-lint:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
-
     runs-on: ubuntu-latest
-
     steps:
+      # checkout + npm install
       - uses: actions/checkout@v1
         with:
           submodules: recursive
+      - uses: bahmutov/npm-install@v1.1.0
 
-      - uses: bahmutov/npm-install@v1
+      # run eslint
+      - run: npm run eslint
+  unit-tests:
+    runs-on: windows-latest
+    steps:
+      # checkout + npm install
+      - uses: actions/checkout@v1
+        with:
+          submodules: recursive
+      - uses: bahmutov/npm-install@v1.1.0
 
-      - name: Run ESLint
-        run: npm run eslint
+      # install Roblox Studio
+      - run: pip install wget psutil
+      - run: |
+          if (![string]::IsNullOrEmpty("${{ secrets.ROBLOSECURITY }}")) {
+            python tests/scripts/install.py "${{ secrets.ROBLOSECURITY }}"
+          } else {
+            python tests/scripts/install.py "_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_A9B74A05E539AD89AA607767A66ED14F9D7D8111197D862C5A5080AE4F06A4999D6C54B14C25717DFF698F987ED6578F41F2981A0122B9D5CBF4CEAC05A23F7A87210EC1F482DB00C6C6BF059D3ABAC5FC33A4D44560DAA4F8B1EC02EB643F44B12C9D6900C399510EAD18C88D20CD5A51113BCC7529E06F289590BE4C16B2C7DD464D6DD1DA03FF7D3D830D6AA0F3D4B93D0C15EB4C12F00AF041457973A784B040F6A63E41E311E7772A3687C4B9E6A32BC9FE46B7AC1740F1ADAEE50D179C891DA643D5DC05489C241A79B934005985D7551ACFA8B16E12A26AAD4CA60D18CFF970A898D3AE10DCC7D28DB87419A90950C7BD5ED57AF041E0048B0347DAD857EF7C610F5448C0AD73CA42F83E776E095DF3330CA91D57A9F5395EDCCDEE2AF09330E9AEEA4E775E0EF685BFBE660DA5D79FE1"
+          }
+
+      # install rojo + run-in-roblox
+      - uses: rojo-rbx/setup-foreman@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - run: foreman install
+
+      # compile and run tests
+      - run: npm test
+
+      # report coverage to coveralls
+      - uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

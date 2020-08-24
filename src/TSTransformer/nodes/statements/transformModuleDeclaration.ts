@@ -21,11 +21,14 @@ function isDeclarationOfNamespace(declaration: ts.Declaration) {
 
 function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 	let amtValueDeclarations = 0;
-	for (const declaration of symbol.declarations) {
-		if (isDeclarationOfNamespace(declaration)) {
-			amtValueDeclarations++;
-			if (amtValueDeclarations > 1) {
-				return true;
+	const declarations = symbol.getDeclarations();
+	if (declarations) {
+		for (const declaration of declarations) {
+			if (isDeclarationOfNamespace(declaration)) {
+				amtValueDeclarations++;
+				if (amtValueDeclarations > 1) {
+					return true;
+				}
 			}
 		}
 	}

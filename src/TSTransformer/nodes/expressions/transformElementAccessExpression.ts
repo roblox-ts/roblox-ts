@@ -8,7 +8,7 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { offset } from "TSTransformer/util/offset";
-import { isLuaTupleType, getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformElementAccessExpressionInner(

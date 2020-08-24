@@ -6,13 +6,16 @@ import fs from "fs-extra";
 import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
-import { LogService } from "Shared/classes/LogService";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
 
 interface InitOptions {
 	yes: boolean;
+	git?: boolean;
+	eslint?: boolean;
+	prettier?: boolean;
+	vscode?: boolean;
 }
 
 enum InitMode {
@@ -82,33 +85,33 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	}
 
 	const {
-		git,
-		eslint,
-		prettier,
-		vscode,
+		git = argv.git ?? false,
+		eslint = argv.eslint ?? false,
+		prettier = argv.prettier ?? false,
+		vscode = argv.vscode ?? false,
 	}: { git?: boolean; eslint?: boolean; prettier?: boolean; vscode?: boolean } = argv.yes
 		? { git: true, eslint: true, prettier: true, vscode: true }
 		: await prompts([
 				{
-					type: "confirm",
+					type: () => argv.git === undefined && "confirm",
 					name: "git",
 					message: "Configure Git",
 					initial: true,
 				},
 				{
-					type: "confirm",
+					type: () => argv.eslint === undefined && "confirm",
 					name: "eslint",
 					message: "Configure ESLint",
 					initial: true,
 				},
 				{
-					type: (_, values) => values.eslint && "confirm",
+					type: (_, values) => values.eslint && argv.prettier === undefined && "confirm",
 					name: "prettier",
 					message: "Configure Prettier",
 					initial: true,
 				},
 				{
-					type: (_, values) => values.eslint && "confirm",
+					type: (_, values) => values.eslint && argv.vscode === undefined && "confirm",
 					name: "vscode",
 					message: "Configure VSCode Project Settings",
 					initial: true,
@@ -249,6 +252,22 @@ export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
 				boolean: true,
 				default: false,
 				describe: "recommended options",
+			})
+			.option("git", {
+				boolean: true,
+				describe: "Configure Git",
+			})
+			.option("eslint", {
+				boolean: true,
+				describe: "Configure ESLint",
+			})
+			.option("prettier", {
+				boolean: true,
+				describe: "Configure Prettier",
+			})
+			.option("vscode", {
+				boolean: true,
+				describe: "Configure VSCode Project Settings",
 			})
 			.command([InitMode.Game, InitMode.Place], GAME_DESCRIPTION, {}, argv => init(argv as never, InitMode.Game))
 			.command(InitMode.Model, MODEL_DESCRIPTION, {}, argv => init(argv as never, InitMode.Model))

@@ -32,14 +32,7 @@ export function transformStatementList(
 
 		// iterate through each of the leading comments of the statement
 		if (state.compilerOptions.removeComments !== true) {
-			for (const comment of state.getLeadingComments(statement)) {
-				luau.list.push(
-					result,
-					luau.create(luau.SyntaxKind.Comment, {
-						text: comment,
-					}),
-				);
-			}
+			luau.list.pushList(result, state.getLeadingComments(statement));
 		}
 
 		// check statement for hoisting
@@ -82,14 +75,7 @@ export function transformStatementList(
 	if (state.compilerOptions.removeComments !== true && statements.length > 0) {
 		const lastParentToken = statements[statements.length - 1].parent.getLastToken();
 		if (lastParentToken) {
-			for (const comment of state.getLeadingComments(lastParentToken)) {
-				luau.list.push(
-					result,
-					luau.create(luau.SyntaxKind.Comment, {
-						text: comment,
-					}),
-				);
-			}
+			luau.list.pushList(result, state.getLeadingComments(lastParentToken));
 		}
 	}
 

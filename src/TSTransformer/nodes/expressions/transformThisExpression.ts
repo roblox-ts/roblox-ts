@@ -1,7 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { TransformState } from "TSTransformer";
 import { diagnostics } from "Shared/diagnostics";
+import { TransformState } from "TSTransformer";
 
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);

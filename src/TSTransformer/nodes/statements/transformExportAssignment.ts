@@ -47,7 +47,7 @@ export function transformExportAssignment(state: TransformState, node: ts.Export
 		state.addDiagnostic(diagnostics.noExportAssignmentLet(node));
 	}
 
-	if (symbol && !isSymbolOfValue(symbol)) {
+	if (symbol && !isSymbolOfValue(ts.skipAlias(symbol, state.typeChecker))) {
 		return luau.list.make<luau.Statement>();
 	}
 

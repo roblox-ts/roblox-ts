@@ -29,6 +29,7 @@ export const globals = {
 		find: property(STRING_ID, "find"),
 		format: property(STRING_ID, "format"),
 		gmatch: property(STRING_ID, "gmatch"),
+		gsub: property(STRING_ID, "gsub"),
 		match: property(STRING_ID, "match"),
 		rep: property(STRING_ID, "rep"),
 		split: property(STRING_ID, "split"),

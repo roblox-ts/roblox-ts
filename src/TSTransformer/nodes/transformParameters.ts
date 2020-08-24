@@ -1,6 +1,5 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
