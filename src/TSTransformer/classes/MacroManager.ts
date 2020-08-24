@@ -41,6 +41,15 @@ export const SYMBOL_NAMES = {
 	TemplateStringsArray: "TemplateStringsArray",
 } as const;
 
+const MACRO_ONLY_CLASSES: Record<string, string> = {
+	ReadonlyArray: "ReadonlyArray",
+	Array: "Array",
+	ReadonlyMap: "ReadonlyMap",
+	Map: "Map",
+	ReadonlySet: "ReadonlySet",
+	Set: "Set",
+} as const;
+
 /**
  * Manages the macros of the ts.
  */
@@ -240,6 +249,14 @@ export class MacroManager {
 	}
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
-		return this.propertyCallMacros.get(symbol);
+		const macro = this.propertyCallMacros.get(symbol);
+		if (!symbol.parent) {
+			return macro;
+		}
+		const parentClass = this.symbols.get(symbol.parent.name);
+		if (parentClass && MACRO_ONLY_CLASSES[parentClass.name] !== undefined && !macro) {
+			assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented yet!`);
+		}
+		return macro;
 	}
 }
