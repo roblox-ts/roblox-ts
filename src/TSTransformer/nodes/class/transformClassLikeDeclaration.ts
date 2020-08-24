@@ -91,7 +91,7 @@ function createBoilerplate(
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
 ) {
-	const isAbstract = node.modifiers?.some(predicate => predicate.kind === ts.SyntaxKind.AbstractKeyword);
+	const isAbstract = !!(node.modifierFlagsCache & ts.ModifierFlags.Abstract);
 	const statements = luau.list.make<luau.Statement>();
 
 	/* boilerplate:
