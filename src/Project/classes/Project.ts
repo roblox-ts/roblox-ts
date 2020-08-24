@@ -43,7 +43,7 @@ export interface ProjectFlags {
 	project: string;
 	watch: boolean;
 	verbose: boolean;
-	noRuntimeLibs: boolean;
+	noInclude: boolean;
 }
 
 const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
@@ -63,7 +63,7 @@ export class Project {
 	public readonly nodeModulesPath: string;
 
 	private readonly verbose: boolean;
-	private readonly noRuntimeLibs: boolean;
+	private readonly noInclude: boolean;
 	private readonly projectOptions: ProjectOptions;
 	private readonly program: ts.EmitAndSemanticDiagnosticsBuilderProgram;
 	private readonly compilerOptions: ts.CompilerOptions;
@@ -85,7 +85,7 @@ export class Project {
 
 	constructor(tsConfigPath: string, opts: Partial<ProjectOptions>, flags: ProjectFlags) {
 		this.verbose = flags.verbose;
-		this.noRuntimeLibs = flags.noRuntimeLibs;
+		this.noInclude = flags.noInclude;
 
 		this.projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 
@@ -300,9 +300,9 @@ export class Project {
 		return rootDirs;
 	}
 
-	/** copies runtime libraries into the include path if --noRuntimeLibs was not supplied */
+	/** copies runtime libraries into the include path if --noInclude was not supplied */
 	public copyInclude() {
-		if (!this.noRuntimeLibs) {
+		if (!this.noInclude) {
 			this.benchmark("copying include files", () => {
 				fs.copySync(LIB_PATH, this.includePath, { dereference: true });
 			});

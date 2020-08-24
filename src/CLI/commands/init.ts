@@ -224,7 +224,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				project: ".",
 				verbose: false,
 				watch: false,
-				noRuntimeLibs: false,
+				noInclude: false,
 				$0: argv.$0,
 				_: argv._,
 			}) as never,

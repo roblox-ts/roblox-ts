@@ -44,10 +44,10 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "enable verbose logs",
 			})
-			.option("noRuntimeLibs", {
+			.option("noInclude", {
 				boolean: true,
 				default: false,
-				describe: "do not copy runtime files into include path",
+				describe: "do not copy include files",
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("includePath", {
