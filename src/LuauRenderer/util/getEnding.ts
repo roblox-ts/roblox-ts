@@ -52,9 +52,16 @@ function startsWithParenthesis(node: luau.Statement) {
 		// `(a)()`
 		return startsWithParenthesisInner(node.expression.expression);
 	} else if (luau.isAssignment(node)) {
-		// `(a).b = c`
-		return startsWithParenthesisInner(node.right);
+		if (luau.list.isList(node.left)) {
+			// `(a).b, c = d`
+			assert(node.left.head);
+			return startsWithParenthesisInner(node.left.head.value);
+		} else {
+			// `(a).b = c`
+			return startsWithParenthesisInner(node.left);
+		}
 	}
+	return false;
 }
 
 function getNextNonComment(state: RenderState, node: luau.Statement) {

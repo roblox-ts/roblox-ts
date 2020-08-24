@@ -14,7 +14,6 @@ So in short,
 
 -   Create ts.Program, ts.TypeChecker
 -   Validate compiler options
--   Create RojoConfig
 -   Orchaestrate compile process (above)
 -   Single file compiling (watch mode) - might need to also compile referencing files recursively
 -   Compile by source (playground)

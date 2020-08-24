@@ -2,13 +2,13 @@ import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 
 export function transformJsx(
 	state: TransformState,

@@ -1,0 +1,282 @@
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+	<External>null</External>
+	<External>nil</External>
+	<Item class="GameSettings" referent="RBX26BCA1220E2D481998546ADD68E13BBB">
+		<Properties>
+			<string name="AdditionalCoreIncludeDirs"></string>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<float name="BubbleChatLifetime">30</float>
+			<int name="BubbleChatMaxBubbles">3</int>
+			<int name="ChatHistory">100</int>
+			<int name="ChatScrollLength">5</int>
+			<bool name="HardwareMouse">false</bool>
+			<string name="Name">Game Options</string>
+			<string name="OverrideStarterScript"></string>
+			<int name="ReportAbuseChatHistory">50</int>
+			<bool name="SoftwareSound">false</bool>
+			<BinaryString name="Tags"></BinaryString>
+			<bool name="VideoCaptureEnabled">true</bool>
+			<token name="VideoQuality">1</token>
+		</Properties>
+	</Item>
+	<Item class="LuaSettings" referent="RBX734B5CF5461C4BBCA1F36D441528FA14">
+		<Properties>
+			<bool name="AreScriptStartsReported">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<double name="DefaultWaitTime">0.02999999999999999889</double>
+			<string name="Name">Lua</string>
+			<BinaryString name="Tags"></BinaryString>
+			<float name="WaitingThreadsBudget">0.100000001</float>
+		</Properties>
+	</Item>
+	<Item class="DebugSettings" referent="RBXF45EA52151AF4493863DA108B7C7C7AC">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<bool name="IsFmodProfilingEnabled">false</bool>
+			<bool name="IsScriptStackTracingEnabled">true</bool>
+			<string name="Name">Diagnostics</string>
+			<bool name="ReportSoundWarnings">false</bool>
+			<BinaryString name="Tags"></BinaryString>
+			<token name="TickCountPreciseOverride">2</token>
+		</Properties>
+	</Item>
+	<Item class="PhysicsSettings" referent="RBX48F4B3C6F231440F9F875378D02445F3">
+		<Properties>
+			<bool name="AllowSleep">true</bool>
+			<bool name="AreAnchorsShown">false</bool>
+			<bool name="AreAssembliesShown">false</bool>
+			<bool name="AreAwakePartsHighlighted">false</bool>
+			<bool name="AreBodyTypesShown">false</bool>
+			<bool name="AreContactIslandsShown">false</bool>
+			<bool name="AreContactPointsShown">false</bool>
+			<bool name="AreJointCoordinatesShown">false</bool>
+			<bool name="AreMechanismsShown">false</bool>
+			<bool name="AreModelCoordsShown">false</bool>
+			<bool name="AreOwnersShown">false</bool>
+			<bool name="ArePartCoordsShown">false</bool>
+			<bool name="AreRegionsShown">false</bool>
+			<bool name="AreTerrainReplicationRegionsShown">false</bool>
+			<bool name="AreUnalignedPartsShown">false</bool>
+			<bool name="AreWorldCoordsShown">false</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<bool name="DisableCSGv2">false</bool>
+			<bool name="IsReceiveAgeShown">false</bool>
+			<bool name="IsTreeShown">false</bool>
+			<string name="Name">Physics</string>
+			<token name="PhysicsEnvironmentalThrottle">0</token>
+			<bool name="ShowDecompositionGeometry">false</bool>
+			<BinaryString name="Tags"></BinaryString>
+			<double name="ThrottleAdjustTime">1</double>
+			<bool name="UseCSGv2">false</bool>
+		</Properties>
+	</Item>
+	<Item class="Studio" referent="RBX93687DFB11CC47E39B17496FC5E888F1">
+		<Properties>
+			<bool name="Always Save Script Changes">false</bool>
+			<bool name="Animate Hover Over">true</bool>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<bool name="Auto Closing Brackets">true</bool>
+			<bool name="Auto Closing Quotes">true</bool>
+			<bool name="Auto Indent">true</bool>
+			<bool name="Auto-Recovery Enabled">true</bool>
+			<int name="Auto-Recovery Interval (Minutes)">5</int>
+			<QDir name="Auto-Recovery Path">%UserProfile%/Documents/ROBLOX/AutoSaves</QDir>
+			<Color3 name="Background Color">
+				<R>1</R>
+				<G>1</G>
+				<B>1</B>
+			</Color3>
+			<token name="Basic Objects Display Mode">1</token>
+			<Color3 name="Built-in Function Color">
+				<R>0</R>
+				<G>0</G>
+				<B>0.498039246</B>
+			</Color3>
+			<float name="Camera Mouse Wheel Speed">15</float>
+			<float name="Camera Shift Speed">0.200000003</float>
+			<float name="Camera Speed">1.5</float>
+			<bool name="Camera Zoom to Mouse Position">true</bool>
+			<bool name="Clear Output On Start">true</bool>
+			<Color3 name="Comment Color">
+				<R>0</R>
+				<G>0.498039246</G>
+				<B>0.0352941193</B>
+			</Color3>
+			<QDir name="DefaultScriptFileDir">%UserProfile%/Documents/ROBLOX/Scripts</QDir>
+			<bool name="DeprecatedObjectsShown">false</bool>
+			<int name="Device Pairing Code">0</int>
+			<bool name="Disable Accurate Play Solo">false</bool>
+			<bool name="Drag Multiple Parts As Single Part">false</bool>
+			<bool name="Enable Autocomplete">true</bool>
+			<bool name="Enable CoreScript Debugger">false</bool>
+			<Color3 name="Error Color">
+				<R>1</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<Color3 name="Find Selection Background Color">
+				<R>1</R>
+				<G>0.886274576</G>
+				<B>0.654901981</B>
+			</Color3>
+			<QFont name="Font">Courier New,10,-1,5,50,0,0,0,0,0</QFont>
+			<token name="Hover Animate Speed">1</token>
+			<Color3 name="Hover Over Color">
+				<R>0.699999988</R>
+				<G>0.899999976</G>
+				<B>1</B>
+			</Color3>
+			<Color3 name="Keyword Color">
+				<R>0</R>
+				<G>0</G>
+				<B>0.498039246</B>
+			</Color3>
+			<token name="Language">0</token>
+			<float name="Line Thickness">0.0399999991</float>
+			<QDir name="LocalAssetsFolder">%UserProfile%/AppData/Local/Roblox/LocalAssets</QDir>
+			<bool name="LuaDebuggerEnabled">true</bool>
+			<Color3 name="Matching Word Background Color">
+				<R>0.886274576</R>
+				<G>0.90196085</G>
+				<B>0.839215755</B>
+			</Color3>
+			<int name="Maximum Output Lines">5000</int>
+			<string name="Name">Studio</string>
+			<Color3 name="Number Color">
+				<R>0</R>
+				<G>0.498039246</G>
+				<B>0.498039246</B>
+			</Color3>
+			<bool name="Only Play Audio from Window in Focus">true</bool>
+			<Color3 name="Operator Color">
+				<R>0.498039246</R>
+				<G>0.498039246</G>
+				<B>0</B>
+			</Color3>
+			<QFont name="Output Font">MS Shell Dlg 2,8.25,-1,5,50,0,0,0,0,0</QFont>
+			<token name="Output Layout Mode">1</token>
+			<bool name="OverrideCoreScripts">false</bool>
+			<QDir name="OverrideCoreScriptsDir">%UserProfile%/AppData/Local/Roblox/CoreScriptOverrides</QDir>
+			<token name="PermissionLevelShown">0</token>
+			<bool name="PluginDebuggingEnabled">false</bool>
+			<QDir name="PluginsDir">%UserProfile%/AppData/Local/Roblox/Plugins</QDir>
+			<Color3 name="Preprocessor Color">
+				<R>0.498039246</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<int name="Render Throttle Percentage">75</int>
+			<bool name="Respect Studio shortcuts when game has focus">true</bool>
+			<token name="RuntimeUndoBehavior">0</token>
+			<int name="ScriptTimeoutLength">10</int>
+			<Color3 name="Select Color">
+				<R>0.100000001</R>
+				<G>0.600000024</G>
+				<B>1</B>
+			</Color3>
+			<Color3 name="Select/Hover Color">
+				<R>0.699999988</R>
+				<G>0.699999988</G>
+				<B>0.699999988</B>
+			</Color3>
+			<Color3 name="Selection Background Color">
+				<R>0.431372583</R>
+				<G>0.631372571</G>
+				<B>0.945098102</B>
+			</Color3>
+			<Color3 name="Selection Color">
+				<R>1</R>
+				<G>1</G>
+				<B>1</B>
+			</Color3>
+			<token name="Server Audio Behavior">2</token>
+			<bool name="Show Core GUI in Explorer while Playing">false</bool>
+			<bool name="Show Diagnostics Bar">false</bool>
+			<bool name="Show Hidden Objects in Explorer">false</bool>
+			<bool name="Show Hover Over">true</bool>
+			<bool name="Show Navigation Mesh">false</bool>
+			<bool name="Show Plugin GUI Service in Explorer">false</bool>
+			<bool name="Show QT warnings in output">false</bool>
+			<bool name="Show plus button on hover in Explorer">true</bool>
+			<bool name="Skip Closing Brackets and Quotes">true</bool>
+			<Color3 name="String Color">
+				<R>0.498039246</R>
+				<G>0</G>
+				<B>0.498039246</B>
+			</Color3>
+			<int name="Tab Width">4</int>
+			<BinaryString name="Tags"></BinaryString>
+			<Color3 name="Text Color">
+				<R>0</R>
+				<G>0</G>
+				<B>0</B>
+			</Color3>
+			<bool name="Text Wrapping">false</bool>
+			<Color3 name="Warning Color">
+				<R>0</R>
+				<G>0</G>
+				<B>1</B>
+			</Color3>
+		</Properties>
+	</Item>
+	<Item class="NetworkSettings" referent="RBX01840261FD1C477EBBE5422CDCFCD7BF">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<int name="DataMtuAdjust">-200</int>
+			<float name="DataSendRate">30</float>
+			<bool name="HttpProxyEnabled">false</bool>
+			<string name="HttpProxyURL"></string>
+			<double name="IncommingReplicationLag">0</double>
+			<string name="Name">Network</string>
+			<int name="PhysicsMtuAdjust">-200</int>
+			<int name="PreferredClientPort">0</int>
+			<bool name="PrintFilters">false</bool>
+			<bool name="PrintInstances">false</bool>
+			<bool name="PrintJoinSizeBreakdown">false</bool>
+			<bool name="PrintPhysicsErrors">false</bool>
+			<bool name="PrintSplitMessage">false</bool>
+			<bool name="PrintStreamInstanceQuota">false</bool>
+			<bool name="PrintTouches">false</bool>
+			<double name="ReceiveRate">60</double>
+			<bool name="RenderStreamedRegions">false</bool>
+			<bool name="ShowActiveAnimationAsset">false</bool>
+			<BinaryString name="Tags"></BinaryString>
+			<float name="TouchSendRate">10</float>
+			<bool name="TrackDataTypes">false</bool>
+			<bool name="TrackPhysicsDetails">false</bool>
+		</Properties>
+	</Item>
+	<Item class="RenderSettings" referent="RBX063F2A44BC4742D894942FD4D2F85F2F">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<int name="AutoFRMLevel">1</int>
+			<bool name="EagerBulkExecution">false</bool>
+			<token name="EditQualityLevel">1</token>
+			<bool name="ExportMergeByMaterial">false</bool>
+			<token name="FrameRateManager">0</token>
+			<token name="GraphicsMode">1</token>
+			<int name="MeshCacheSize">33554432</int>
+			<string name="Name">Rendering</string>
+			<token name="QualityLevel">1</token>
+			<bool name="ReloadAssets">false</bool>
+			<bool name="RenderCSGTrianglesDebug">false</bool>
+			<bool name="ShowBoundingBoxes">false</bool>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+	</Item>
+	<Item class="TaskScheduler" referent="RBX18099FED50D54EC192612B8ECB5C10A3">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<string name="Name">Task Scheduler</string>
+			<BinaryString name="Tags"></BinaryString>
+			<token name="ThreadPoolConfig">0</token>
+		</Properties>
+	</Item>
+	<Item class="Selection" referent="RBXFE82163211F14C2DA72FDF939C41D5F7">
+		<Properties>
+			<BinaryString name="AttributesSerialize"></BinaryString>
+			<string name="Name">Selection</string>
+			<BinaryString name="Tags"></BinaryString>
+		</Properties>
+	</Item>
+</roblox>

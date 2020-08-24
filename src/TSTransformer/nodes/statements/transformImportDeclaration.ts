@@ -1,7 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { Lazy } from "Shared/classes/Lazy";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";

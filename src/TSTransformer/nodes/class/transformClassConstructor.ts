@@ -8,6 +8,7 @@ import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { Pointer } from "TSTransformer/util/pointer";
@@ -36,7 +37,10 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (getExtendsNode(node)) {
+	} else if (!isRoact && getExtendsNode(node)) {
+		// if extends + no constructor:
+		// - add ... to params
+		// - add super.constructor(self, ...)
 		hasDotDotDot = true;
 		luau.list.push(
 			statements,
