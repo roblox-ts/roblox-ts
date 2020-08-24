@@ -276,6 +276,15 @@ function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration)
 	return false;
 }
 
+function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
+	if (node.name) {
+		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
+		assert(symbol);
+		return state.isHoisted.get(symbol) === true;
+	}
+	return false;
+}
+
 export function transformClassLikeDeclaration(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
@@ -310,13 +319,15 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		internalName = returnVar;
 	}
 
-	luau.list.push(
-		statements,
-		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: returnVar,
-			right: undefined,
-		}),
-	);
+	if (!isClassHoisted(state, node)) {
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: returnVar,
+				right: undefined,
+			}),
+		);
+	}
 
 	if (extendsMacroClass(state, node)) {
 		state.addDiagnostic(diagnostics.noMacroExtends(node));
