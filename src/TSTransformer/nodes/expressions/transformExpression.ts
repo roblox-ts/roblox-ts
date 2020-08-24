@@ -7,6 +7,7 @@ import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions
 import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
+import { transformFalseKeyword, transformTrueKeyword } from "TSTransformer/nodes/expressions/transformBooleanLiteral";
 import { transformCallExpression } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformClassExpression } from "TSTransformer/nodes/expressions/transformClassExpression";
 import { transformConditionalExpression } from "TSTransformer/nodes/expressions/transformConditionalExpression";
@@ -15,18 +16,14 @@ import { transformFunctionExpression } from "TSTransformer/nodes/expressions/tra
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
-import {
-	transformFalseKeyword,
-	transformNumericLiteral,
-	transformStringLiteral,
-	transformTrueKeyword,
-} from "TSTransformer/nodes/expressions/transformLiteral";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
 import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
+import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
+import { transformStringLiteral } from "TSTransformer/nodes/expressions/transformStringLiteral";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
