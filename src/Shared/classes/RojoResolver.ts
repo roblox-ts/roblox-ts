@@ -202,12 +202,8 @@ export class RojoResolver {
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
-			if (
-				this.fs &&
-				fs.pathExistsSync(itemPath) &&
-				fs.statSync(itemPath).isDirectory() &&
-				fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)
-			) {
+			const isDirectory = this.fs && fs.pathExistsSync(itemPath) && fs.statSync(itemPath).isDirectory();
+			if (isDirectory && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
 				this.partitions.unshift({
@@ -215,7 +211,7 @@ export class RojoResolver {
 					rbxPath: [...this.rbxPath],
 				});
 
-				if (this.fs && fs.pathExistsSync(itemPath)) {
+				if (isDirectory) {
 					this.searchDirectory(itemPath);
 				}
 			}
