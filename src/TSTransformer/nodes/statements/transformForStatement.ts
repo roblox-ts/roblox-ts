@@ -76,6 +76,45 @@ function getOptimizedForStatement(
 	return luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
 }
 
+function addIncrementor(list: luau.List<luau.Statement>, node: luau.ListNode<luau.Statement>, incrementor: luau.List<luau.Assignment> | luau.List<luau.CallStatement> | luau.List<luau.Statement<keyof luau.StatementByKind>> | luau.List<luau.VariableDeclaration>) {
+	if (!incrementor.head) {
+		return;
+	}
+
+	if (!incrementor.tail) {
+		return;
+	}
+
+	const statement = node.value;
+
+	if (luau.isContinueStatement(statement)) {
+		const incrementorClone = luau.list.clone(incrementor);
+
+		if (node.prev) {
+			node.prev.next = incrementorClone.head;
+		} else if (node === list.head) {
+			list.head = incrementorClone.head;
+		}
+
+		node.prev = incrementorClone.tail;
+
+		incrementorClone.tail!.next = node;
+	}
+
+	if (luau.isIfStatement(statement) || luau.isDoStatement(statement)) {
+		const statements = statement.statements;
+		const statementsHead = statements.head;
+
+		if (statementsHead) {
+			addIncrementor(statements, statementsHead, incrementor);
+		}
+	}
+
+	if (node.next) {
+		addIncrementor(list, node.next, incrementor);
+	}
+}
+
 export function transformForStatement(state: TransformState, node: ts.ForStatement) {
 	// if (node.initializer && node.condition && node.incrementor) {
 	// 	const optimized = getOptimizedForStatement(
@@ -114,11 +153,21 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 			statements,
 		});
 	}
+
 	luau.list.push(statements, whileStatement);
 
 	const nodeIncrementor = node.incrementor;
+
 	if (nodeIncrementor) {
-		luau.list.pushList(whileStatement.statements, transformExpressionStatementInner(state, nodeIncrementor));
+		const transformed = transformExpressionStatementInner(state, nodeIncrementor);
+
+		if (whileStatement.statements.head) {
+			addIncrementor(whileStatement.statements, whileStatement.statements.head, transformed);
+		}
+
+		if (!whileStatement.statements.tail || !luau.isFinalStatement(whileStatement.statements.tail.value)) {
+			luau.list.pushList(whileStatement.statements, transformed);
+		}
 	}
 
 	if (statements.head === statements.tail) {

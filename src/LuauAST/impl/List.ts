@@ -73,6 +73,14 @@ export namespace list {
 
 // list utility functions
 export namespace list {
+	export function clone<T extends luau.Node>(list: luau.List<T>): luau.List<T> {
+		const newList = luau.list.make<T>();
+		luau.list.forEach(list, element => {
+			luau.list.push(newList, element);
+		});
+		return newList;
+	}
+
 	export function push<T extends luau.Node>(list: luau.List<T>, value: NoInfer<T>) {
 		assert(!list.readonly);
 		const node = luau.list.makeNode(value);
