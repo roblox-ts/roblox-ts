@@ -45,9 +45,5 @@ export function transformPropertyAccessExpressionInner(
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
-	if (ts.isSuperProperty(node)) {
-		state.addDiagnostic(diagnostics.noSuperProperty(node));
-	}
-
 	return transformOptionalChain(state, node);
 }
