@@ -93,7 +93,7 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return macro(state, node, expression);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}
 	}
 
