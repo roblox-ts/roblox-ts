@@ -76,7 +76,11 @@ function getOptimizedForStatement(
 	return luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements });
 }
 
-function addIncrementor(list: luau.List<luau.Statement>, node: luau.ListNode<luau.Statement>, incrementor: luau.List<luau.Statement>) {
+function addIncrementor(
+	list: luau.List<luau.Statement>,
+	node: luau.ListNode<luau.Statement>,
+	incrementor: luau.List<luau.Statement>
+) {
 	if (!incrementor.head) {
 		return;
 	}
