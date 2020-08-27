@@ -79,7 +79,7 @@ function getOptimizedForStatement(
 function addIncrementor(
 	list: luau.List<luau.Statement>,
 	node: luau.ListNode<luau.Statement>,
-	incrementor: luau.List<luau.Statement>
+	incrementor: luau.List<luau.Statement>,
 ) {
 	if (!incrementor.head) {
 		return;
