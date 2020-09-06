@@ -9,13 +9,6 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 
-function wrapParenthesesIfBinary(expression: luau.Expression) {
-	if (luau.isBinaryExpression(expression)) {
-		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
-	}
-	return expression;
-}
-
 function ipairs(expression: luau.Expression): luau.Expression {
 	return luau.create(luau.SyntaxKind.CallExpression, {
 		expression: luau.globals.ipairs,
@@ -48,7 +41,7 @@ function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 		const [right, prereqs] = state.capture(() => transformExpression(state, node.arguments[0]));
 		const left = luau.list.isEmpty(prereqs) ? expression : state.pushToVar(expression);
 		state.prereqList(prereqs);
-		return luau.binary(wrapParenthesesIfBinary(left), operator, wrapParenthesesIfBinary(right));
+		return luau.binary(left, operator, right);
 	};
 }
 

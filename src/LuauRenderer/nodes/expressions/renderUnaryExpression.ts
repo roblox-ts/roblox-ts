@@ -1,28 +1,24 @@
 import luau from "LuauAST";
 import { render, RenderState } from "LuauRenderer";
+import { needsParentheses } from "LuauRenderer/util/needsParentheses";
 
-function needsParentheses(expression: luau.Expression, operator: luau.UnaryOperator) {
+function needsInnerParentheses(node: luau.UnaryExpression) {
 	// #{} and -{} are invalid
-	if ((operator === "#" || operator === "-") && luau.isTable(expression)) {
-		return true;
-	}
-
-	// we should do -(a + b) instead of -a + b
-	if (luau.isBinaryExpression(expression)) {
+	if ((node.operator === "#" || node.operator === "-") && luau.isTable(node.expression)) {
 		return true;
 	}
 
 	return false;
 }
 
-function needsSpace(expression: luau.Expression, operator: luau.UnaryOperator) {
+function needsSpace(node: luau.UnaryExpression) {
 	// not always needs a space
-	if (operator === "not") {
+	if (node.operator === "not") {
 		return true;
 	}
 
 	// "--" will create a comment!
-	if (luau.isUnaryExpression(expression) && expression.operator === "-") {
+	if (luau.isUnaryExpression(node.expression) && node.expression.operator === "-") {
 		// previous expression was also "-"
 		return true;
 	}
@@ -34,13 +30,19 @@ export function renderUnaryExpression(state: RenderState, node: luau.UnaryExpres
 	let expStr = render(state, node.expression);
 	let opStr = node.operator;
 
-	if (needsSpace(node.expression, node.operator)) {
+	if (needsSpace(node)) {
 		opStr += " ";
 	}
 
-	if (needsParentheses(node.expression, node.operator)) {
+	if (needsInnerParentheses(node)) {
 		expStr = `(${expStr})`;
 	}
 
-	return `${opStr}${expStr}`;
+	let result = `${opStr}${expStr}`;
+
+	if (needsParentheses(node)) {
+		result = `(${result})`;
+	}
+
+	return result;
 }
