@@ -116,20 +116,33 @@ function createJsxAddAmbiguousChild(
 					left: luau.create(luau.SyntaxKind.BinaryExpression, {
 						left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 							expression,
-							name: "props",
+							name: "elements",
 						}),
 						operator: "~=",
 						right: luau.nil(),
 					}),
 
-					operator: "and",
+					operator: "or",
+
 					right: luau.create(luau.SyntaxKind.BinaryExpression, {
-						left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-							expression,
-							name: "component",
+						left: luau.create(luau.SyntaxKind.BinaryExpression, {
+							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+								expression,
+								name: "props",
+							}),
+							operator: "~=",
+							right: luau.nil(),
 						}),
-						operator: "~=",
-						right: luau.nil(),
+
+						operator: "and",
+						right: luau.create(luau.SyntaxKind.BinaryExpression, {
+							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+								expression,
+								name: "component",
+							}),
+							operator: "~=",
+							right: luau.nil(),
+						}),
 					}),
 				}),
 				statements: luau.list.make(
