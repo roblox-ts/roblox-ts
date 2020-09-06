@@ -50,15 +50,6 @@ export function createAssignmentExpression(
 	return readable;
 }
 
-function wrapRightIfBinary(expression: luau.Expression) {
-	if (luau.isBinaryExpression(expression) && luau.isBinaryExpression(expression.right)) {
-		expression.right = luau.create(luau.SyntaxKind.ParenthesizedExpression, {
-			expression: expression.right,
-		});
-	}
-	return expression;
-}
-
 export function createCompoundAssignmentStatement(
 	state: TransformState,
 	writable: luau.WritableExpression,
@@ -71,7 +62,7 @@ export function createCompoundAssignmentStatement(
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator: "=",
-		right: wrapRightIfBinary(createBinaryFromOperator(state, readable, writableType, operator, value, valueType)),
+		right: createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
 	});
 }
 
@@ -88,6 +79,6 @@ export function createCompoundAssignmentExpression(
 		state,
 		writable,
 		"=",
-		wrapRightIfBinary(createBinaryFromOperator(state, readable, writableType, operator, value, valueType)),
+		createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
 	);
 }

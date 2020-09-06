@@ -561,21 +561,17 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			luau.list.push(findArgs, offset(nodeArgs[1], 1));
 		}
 
-		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
-			expression: offset(
-				luau.create(luau.SyntaxKind.ParenthesizedExpression, {
-					expression: luau.create(luau.SyntaxKind.BinaryExpression, {
-						left: luau.create(luau.SyntaxKind.CallExpression, {
-							expression: luau.globals.table.find,
-							args: findArgs,
-						}),
-						operator: "or",
-						right: luau.number(0),
-					}),
+		return offset(
+			luau.create(luau.SyntaxKind.BinaryExpression, {
+				left: luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.table.find,
+					args: findArgs,
 				}),
-				-1,
-			),
-		});
+				operator: "or",
+				right: luau.number(0),
+			}),
+			-1,
+		);
 	},
 
 	lastIndexOf: (state, node, expression) => {

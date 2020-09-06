@@ -14,14 +14,11 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		luau.list.isEmpty(whenTruePrereqs) &&
 		luau.list.isEmpty(whenFalsePrereqs)
 	) {
-		let left = createTruthinessChecks(state, condition, state.getType(node.condition));
-		if (luau.isBinaryExpression(left)) {
-			left = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: left });
-		}
-
-		return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
-			expression: luau.binary(luau.binary(left, "and", whenTrue), "or", whenFalse),
-		});
+		return luau.binary(
+			luau.binary(createTruthinessChecks(state, condition, state.getType(node.condition)), "and", whenTrue),
+			"or",
+			whenFalse,
+		);
 	}
 
 	const tempId = luau.tempId();
