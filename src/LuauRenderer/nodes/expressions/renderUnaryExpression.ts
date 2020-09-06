@@ -8,11 +8,6 @@ function needsInnerParentheses(node: luau.UnaryExpression) {
 		return true;
 	}
 
-	// we should do -(a + b) instead of -a + b
-	if (luau.isBinaryExpression(node.expression)) {
-		return true;
-	}
-
 	return false;
 }
 

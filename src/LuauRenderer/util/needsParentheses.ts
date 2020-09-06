@@ -36,12 +36,17 @@ const BINARY_OPERATOR_PRECEDENCE: { [K in luau.BinaryOperator]: number } = {
 	"^": 8,
 };
 
+function getPrecedence(node: luau.BinaryExpression | luau.UnaryExpression) {
+	if (luau.isBinaryExpression(node)) {
+		return BINARY_OPERATOR_PRECEDENCE[node.operator];
+	} else {
+		return UNARY_OPERATOR_PRECEDENCE[node.operator];
+	}
+}
+
 export function needsParentheses(node: luau.BinaryExpression | luau.UnaryExpression) {
-	if (node.parent && luau.isBinaryExpression(node.parent)) {
-		const precedence = luau.isBinaryExpression(node)
-			? BINARY_OPERATOR_PRECEDENCE[node.operator]
-			: UNARY_OPERATOR_PRECEDENCE[node.operator];
-		return precedence < BINARY_OPERATOR_PRECEDENCE[node.parent.operator];
+	if (node.parent && (luau.isBinaryExpression(node.parent) || luau.isUnaryExpression(node.parent))) {
+		return getPrecedence(node) < getPrecedence(node.parent);
 	}
 	return false;
 }
