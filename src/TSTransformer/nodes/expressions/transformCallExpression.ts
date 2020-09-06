@@ -67,7 +67,7 @@ export function transformCallExpressionInner(
 	if (symbol) {
 		const macro = state.macroManager.getCallMacro(symbol);
 		if (macro) {
-			return macro(state, node, expression);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}
 	}
 
@@ -131,7 +131,7 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return macro(state, node, expression);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}
 	}
 
