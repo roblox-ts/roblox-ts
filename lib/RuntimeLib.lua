@@ -259,29 +259,29 @@ function TS.try(func, catch, finally)
 	return exitType, returns
 end
 
--- LEGACY RUNTIME FUNCTIONS
-
-local HttpService = game:GetService("HttpService")
-
-function TS.generator(c)
-	c = coroutine.create(c)
-
-	local o = {
+function TS.generator(callback)
+	local co = coroutine.create(callback)
+	return {
 		next = function(...)
-			if coroutine.status(c) == "dead" then
+			if coroutine.status(co) == "dead" then
 				return { done = true }
 			else
-				local success, value = coroutine.resume(c, ...)
-				if success == false then error(value, 2) end
-				return { value = value, done = coroutine.status(c) == "dead" }
+				local success, value = coroutine.resume(co, ...)
+				if success == false then
+					error(value, 2)
+				end
+				return {
+					value = value,
+					done = coroutine.status(co) == "dead"
+				}
 			end
 		end
 	}
-
-	o[TS.Symbol_iterator] = function() return o end
-
-	return o
 end
+
+-- LEGACY RUNTIME FUNCTIONS
+
+local HttpService = game:GetService("HttpService")
 
 -- utility functions
 local function copy(object)
