@@ -13,11 +13,12 @@ import {
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
 import { isArrayType, isMapType } from "TSTransformer/util/types";
+import { offset } from "TSTransformer/util/offset";
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(
 	childrenPtrValue: luau.AnyIdentifier,
-	lengthId: luau.AnyIdentifier,
+	lengthId: luau.Expression,
 	key: luau.Expression,
 	value: luau.Expression,
 ) {
@@ -49,6 +50,7 @@ function createJsxAddKeyChild(
 
 function createJsxAddNumericChildren(
 	childrenPtrValue: luau.AnyIdentifier,
+	amtChildrenSinceUpdate: number,
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 ) {
@@ -60,12 +62,15 @@ function createJsxAddNumericChildren(
 			expression: luau.globals.pairs,
 			args: luau.list.make(expression),
 		}),
-		statements: luau.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
+		statements: luau.list.make(
+			createJsxAddNumericChild(childrenPtrValue, offset(lengthId, amtChildrenSinceUpdate), keyId, valueId),
+		),
 	});
 }
 
 function createJsxAddAmbiguousChildren(
 	childrenPtrValue: luau.AnyIdentifier,
+	amtChildrenSinceUpdate: number,
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 ) {
@@ -88,7 +93,14 @@ function createJsxAddAmbiguousChildren(
 					operator: "==",
 					right: luau.strings.number,
 				}),
-				statements: luau.list.make(createJsxAddNumericChild(childrenPtrValue, lengthId, keyId, valueId)),
+				statements: luau.list.make(
+					createJsxAddNumericChild(
+						childrenPtrValue,
+						offset(lengthId, amtChildrenSinceUpdate),
+						keyId,
+						valueId,
+					),
+				),
 				elseBody: luau.list.make(createJsxAddKeyChild(childrenPtrValue, keyId, valueId)),
 			}),
 		),
@@ -153,7 +165,9 @@ function createJsxAddAmbiguousChild(
 						expression,
 					),
 				),
-				elseBody: luau.list.make(createJsxAddAmbiguousChildren(childrenPtrValue, lengthId, expression)),
+				elseBody: luau.list.make(
+					createJsxAddAmbiguousChildren(childrenPtrValue, amtChildrenSinceUpdate, lengthId, expression),
+				),
 			}),
 		),
 		elseBody: luau.list.make(),
@@ -202,6 +216,12 @@ export function transformJsxChildren(
 		}
 	}
 
+	let lastUsefulElementIndex: number;
+	for (lastUsefulElementIndex = children.length - 1; lastUsefulElementIndex >= 0; lastUsefulElementIndex--) {
+		const child = children[lastUsefulElementIndex];
+		if (!ts.isJsxText(child) || !child.containsOnlyTriviaWhiteSpaces) break;
+	}
+
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
 		if (ts.isJsxText(child)) {
@@ -228,7 +248,9 @@ export function transformJsxChildren(
 					disableInline();
 					assert(luau.isAnyIdentifier(childrenPtr.value));
 					state.prereqList(prereqs);
-					state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
+					state.prereq(
+						createJsxAddAmbiguousChildren(childrenPtr.value, amtChildrenSinceUpdate, lengthId, expression),
+					);
 				} else {
 					const type = state.getType(innerExp);
 
@@ -246,28 +268,40 @@ export function transformJsxChildren(
 							);
 						}
 						amtChildrenSinceUpdate++;
-					} else if (isArrayType(state, type)) {
-						disableInline();
-						assert(luau.isAnyIdentifier(childrenPtr.value));
-						state.prereq(createJsxAddNumericChildren(childrenPtr.value, lengthId, expression));
-					} else if (isMapType(state, type)) {
-						disableInline();
-						assert(luau.isAnyIdentifier(childrenPtr.value));
-						state.prereq(createJsxAddAmbiguousChildren(childrenPtr.value, lengthId, expression));
 					} else {
 						disableInline();
 						assert(luau.isAnyIdentifier(childrenPtr.value));
-						state.prereq(
-							createJsxAddAmbiguousChild(
-								childrenPtr.value,
-								amtChildrenSinceUpdate,
-								lengthId,
-								state.pushToVarIfNonId(expression),
-							),
-						);
+						if (isArrayType(state, type)) {
+							state.prereq(
+								createJsxAddNumericChildren(
+									childrenPtr.value,
+									amtChildrenSinceUpdate,
+									lengthId,
+									expression,
+								),
+							);
+						} else if (isMapType(state, type)) {
+							state.prereq(
+								createJsxAddAmbiguousChildren(
+									childrenPtr.value,
+									amtChildrenSinceUpdate,
+									lengthId,
+									expression,
+								),
+							);
+						} else {
+							state.prereq(
+								createJsxAddAmbiguousChild(
+									childrenPtr.value,
+									amtChildrenSinceUpdate,
+									lengthId,
+									state.pushToVarIfNonId(expression),
+								),
+							);
+						}
 					}
 				}
-				if (!luau.isMixedTable(childrenPtr.value) && i < children.length - 1) {
+				if (!luau.isMixedTable(childrenPtr.value) && i < lastUsefulElementIndex) {
 					updateLengthId();
 				}
 			}
