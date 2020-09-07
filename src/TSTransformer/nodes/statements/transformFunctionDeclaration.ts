@@ -15,17 +15,17 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	assert(node.name || isExportDefault);
 
+	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
+
+	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
+
 	let localize = isExportDefault;
 	if (node.name) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(symbol);
 		localize = state.isHoisted.get(symbol) !== true;
 	}
-
-	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
-
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
-	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
 		const right = luau.create(luau.SyntaxKind.CallExpression, {
