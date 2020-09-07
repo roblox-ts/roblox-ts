@@ -5,13 +5,15 @@ import { TransformState } from "TSTransformer";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	if (node.name) {
 		state.addDiagnostic(diagnostics.noFunctionExpressionName(node.name));
 	}
 
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	// eslint-disable-next-line prefer-const
+	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 
 	const body = node.body;
 	if (ts.isFunctionBody(body)) {
@@ -20,6 +22,10 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		const [returnStatement, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
 		luau.list.pushList(statements, prereqs);
 		luau.list.push(statements, returnStatement);
+	}
+
+	if (node.asteriskToken) {
+		statements = wrapStatementsAsGenerator(state, statements);
 	}
 
 	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {

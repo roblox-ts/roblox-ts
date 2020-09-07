@@ -1,9 +1,10 @@
 import * as luau from "LuauAST/bundle";
 
-const TABLE_ID = luau.id("table");
-const STRING_ID = luau.id("string");
-const UTF8_ID = luau.id("utf8");
+const COROUTINE_ID = luau.id("coroutine");
 const MATH_ID = luau.id("math");
+const STRING_ID = luau.id("string");
+const TABLE_ID = luau.id("table");
+const UTF8_ID = luau.id("utf8");
 
 function property(id: luau.Identifier, name: string) {
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, { expression: id, name: name });
@@ -12,6 +13,9 @@ function property(id: luau.Identifier, name: string) {
 export const globals = {
 	_G: luau.id("_G"),
 	bit32: luau.id("bit32"),
+	coroutine: {
+		yield: property(COROUTINE_ID, "yield"),
+	},
 	error: luau.id("error"),
 	exports: luau.id("exports"),
 	getmetatable: luau.id("getmetatable"),

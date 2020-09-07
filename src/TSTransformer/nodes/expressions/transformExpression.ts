@@ -33,6 +33,7 @@ import {
 	transformPrefixUnaryExpression,
 } from "TSTransformer/nodes/expressions/transformUnaryExpression";
 import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
+import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
@@ -83,6 +84,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
 	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertion],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
+	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
 ]);
 
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
