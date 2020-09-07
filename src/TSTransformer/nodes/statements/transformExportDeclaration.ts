@@ -6,15 +6,15 @@ import { createImportExpression } from "TSTransformer/util/createImportExpressio
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 function isExportSpecifierValue(state: TransformState, element: ts.ExportSpecifier) {
-	if (element.name.text === "default") {
-		const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
-		assert(aliasSymbol);
-		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			return true;
-		}
-	} else if (state.resolver.isReferencedAliasDeclaration(element)) {
+	if (state.resolver.isReferencedAliasDeclaration(element)) {
 		return true;
 	}
+
+	const aliasSymbol = state.typeChecker.getSymbolAtLocation(element.name);
+	if (aliasSymbol && isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
+		return true;
+	}
+
 	return false;
 }
 

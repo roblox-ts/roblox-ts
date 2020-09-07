@@ -49,7 +49,7 @@ function handleExports(
 				continue;
 			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (isSymbolOfValue(originalSymbol)) {
+			if (isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration.getSourceFile() === sourceFile) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
