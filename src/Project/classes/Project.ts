@@ -11,7 +11,7 @@ import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
-import { COMPILER_VERSION, PACKAGE_ROOT, ProjectType } from "Shared/constants";
+import { COMPILER_VERSION, NODE_MODULES, PACKAGE_ROOT, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
@@ -60,7 +60,7 @@ export interface ProjectOptions {
 	rojo: string;
 
 	/** The type of project */
-	type: "game" | "model" | "package" | undefined;
+	type: ProjectType | undefined;
 }
 
 /** Represents a roblox-ts project. */
@@ -78,6 +78,7 @@ export class Project {
 	private readonly macroManager: MacroManager;
 	private readonly roactSymbolManager: RoactSymbolManager | undefined;
 	private readonly pathTranslator: PathTranslator;
+	private readonly isPackage: boolean | undefined;
 	private readonly pkgVersion: string | undefined;
 	private readonly includePath: string;
 	private readonly rootDir: string;
@@ -102,10 +103,11 @@ export class Project {
 
 		try {
 			const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
+			this.isPackage = (pkgJson.name ?? "").startsWith(RBXTS_SCOPE + "/");
 			this.pkgVersion = pkgJson.version;
 		} catch (e) {}
 
-		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), "node_modules", "@rbxts");
+		this.nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES, RBXTS_SCOPE);
 
 		if (this.projectOptions.rojo) {
 			this.rojoConfigPath = path.resolve(this.projectOptions.rojo);
@@ -335,13 +337,19 @@ export class Project {
 			? RojoResolver.fromPath(this.rojoConfigPath)
 			: RojoResolver.synthetic(this.projectPath);
 
-		let projectType = this.projectOptions.type as ProjectType | undefined;
+		let projectType = this.projectOptions.type;
 		if (!projectType) {
-			if (rojoResolver.isGame) {
+			if (this.isPackage) {
+				projectType = ProjectType.Package;
+			} else if (rojoResolver.isGame) {
 				projectType = ProjectType.Game;
 			} else {
 				projectType = ProjectType.Model;
 			}
+		}
+
+		if (this.verbose) {
+			LogService.writeLine(`Compiling as ${projectType}..`);
 		}
 
 		// validates and establishes runtime library

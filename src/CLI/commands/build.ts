@@ -2,7 +2,8 @@ import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { Project, ProjectOptions, ProjectFlags } from "Project";
+import { Project, ProjectFlags, ProjectOptions } from "Project";
+import { ProjectType } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
@@ -51,7 +52,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
-				choices: ["game", "model", "package"] as const,
+				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
 			})
 			.option("includePath", {
 				alias: "i",

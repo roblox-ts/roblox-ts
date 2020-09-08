@@ -5,7 +5,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoResolver } from "Shared/classes/RojoResolver";
-import { ProjectType } from "Shared/constants";
+import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import {
@@ -35,7 +35,7 @@ export class VirtualProject {
 	private program: ts.Program | undefined;
 
 	constructor() {
-		this.nodeModulesPath = pathJoin(PROJECT_DIR, "node_modules", "@rbxts");
+		this.nodeModulesPath = pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE);
 
 		this.compilerOptions = {
 			allowSyntheticDefaultImports: true,
@@ -109,7 +109,7 @@ export class VirtualProject {
 			this.pathTranslator,
 			undefined,
 			this.nodeModulesPath,
-			["node_modules", "@rbxts"],
+			[NODE_MODULES, RBXTS_SCOPE],
 			this.nodeModulesPathMapping,
 			typeChecker,
 			typeChecker.getEmitResolver(sourceFile),

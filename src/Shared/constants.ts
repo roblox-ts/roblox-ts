@@ -6,6 +6,9 @@ export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 export const COMPILER_VERSION = require("../../package.json").version;
 
+export const NODE_MODULES = "node_modules";
+export const RBXTS_SCOPE = "@rbxts";
+
 export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
 export const TS_REGEX = /\.tsx?/;
@@ -23,7 +26,6 @@ export const MODULE_SUBEXT = "";
 export const PARENT_FIELD = "Parent";
 
 export enum ProjectType {
-	None = "none",
 	Game = "game",
 	Model = "model",
 	Package = "package",
