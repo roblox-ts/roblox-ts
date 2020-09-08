@@ -288,9 +288,9 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 		// pushToVar to avoid LuaTuple unpacking into the usage of the result
 		const result = state.pushToVar(findStringOccurenceMacro(state, node, expression));
 		return luau.binary(
-			luau.binary(result, "~=", luau.nil()),
-			"and",
-			luau.binary(offset(result, -1), "or", luau.number(-1)),
+			luau.binary(luau.binary(result, "~=", luau.nil()), "and", offset(result, -1)),
+			"or",
+			luau.number(-1),
 		);
 	},
 };
