@@ -55,6 +55,6 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 			[luau.strings.error, valueOrErrorId],
 		]);
 
-		return luau.binary(successId, "and", luau.binary(successExp, "or", failureExp));
+		return luau.binary(luau.binary(successId, "and", successExp), "or", failureExp);
 	},
 };
