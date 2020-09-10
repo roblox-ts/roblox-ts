@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
@@ -15,6 +16,10 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
 
 	assert(node.name || isExportDefault);
+
+	if (node.name) {
+		validateIdentifier(state, node.name);
+	}
 
 	const name = node.name ? transformIdentifierDefined(state, node.name) : luau.id("default");
 

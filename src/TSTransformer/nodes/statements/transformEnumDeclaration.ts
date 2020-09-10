@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 	let amtValueDefinitions = 0;
@@ -32,6 +33,8 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		state.addDiagnostic(diagnostics.noEnumMerging(node));
 		return luau.list.make<luau.Statement>();
 	}
+
+	validateIdentifier(state, node.name);
 
 	const id = transformIdentifierDefined(state, node.name);
 

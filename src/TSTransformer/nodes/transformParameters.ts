@@ -6,6 +6,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 export function transformParameters(state: TransformState, node: ts.SignatureDeclarationBase) {
 	const parameters = luau.list.make<luau.AnyIdentifier>();
@@ -21,9 +22,13 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 			continue;
 		}
 
-		const paramId = ts.isIdentifier(parameter.name)
-			? transformIdentifierDefined(state, parameter.name)
-			: luau.tempId();
+		let paramId: luau.Identifier | luau.TemporaryIdentifier;
+		if (ts.isIdentifier(parameter.name)) {
+			paramId = transformIdentifierDefined(state, parameter.name);
+			validateIdentifier(state, parameter.name);
+		} else {
+			paramId = luau.tempId();
+		}
 
 		if (parameter.dotDotDotToken) {
 			hasDotDotDot = true;

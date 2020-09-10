@@ -52,6 +52,9 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
  * Defines diagnostic error messages
  */
 export const diagnostics = {
+	// reserved identifiers
+	noReservedIdentifier: diagnostic(`Reserved Lua keywords cannot be used as identifiers!`),
+
 	// banned statements
 	noForInStatement: diagnostic(
 		"for-in loop statements are not supported!",

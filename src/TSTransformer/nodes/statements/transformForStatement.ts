@@ -9,6 +9,7 @@ import { transformWhileStatementInner } from "TSTransformer/nodes/statements/tra
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { isNumberType } from "TSTransformer/util/types";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function getIncrementorValue(state: TransformState, symbol: ts.Symbol, incrementor: ts.Expression) {
 	if (
@@ -67,6 +68,8 @@ function getOptimizedForStatement(
 	) {
 		return undefined;
 	}
+
+	validateIdentifier(state, varDec.name);
 
 	const id = transformIdentifierDefined(state, varDec.name);
 	const start = state.noPrereqs(() => transformExpression(state, varDecInit));

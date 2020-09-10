@@ -11,6 +11,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function getConstructor(node: ts.ClassLikeDeclaration): (ts.ConstructorDeclaration & { body: ts.Block }) | undefined {
 	return node.members.find(
@@ -290,6 +291,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const statements = luau.list.make<luau.Statement>();
 
 	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
+
+	if (node.name) {
+		validateIdentifier(state, node.name);
+	}
 
 	/*
 		local className;

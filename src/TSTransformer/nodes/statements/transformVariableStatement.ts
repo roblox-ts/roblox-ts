@@ -12,6 +12,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
 	if (state.isHoisted.get(symbol) !== undefined) {
@@ -50,6 +51,8 @@ function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: 
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: luau.Expression) {
 	return state.capture(() => {
+		validateIdentifier(state, identifier);
+
 		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
 		assert(symbol);
 
@@ -102,6 +105,7 @@ function transformLuaTupleDestructure(
 						return;
 					}
 					if (ts.isIdentifier(element.name)) {
+						validateIdentifier(state, element.name);
 						const id = transformIdentifierDefined(state, element.name);
 						luau.list.push(ids, id);
 						if (element.initializer) {

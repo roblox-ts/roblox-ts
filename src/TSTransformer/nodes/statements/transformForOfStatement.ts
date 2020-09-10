@@ -8,6 +8,7 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { isArrayType, isMapType, isSetType, isStringType } from "TSTransformer/util/types";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 const wrapFactory = (global: luau.IndexableExpression) => (expression: luau.Expression) =>
 	luau.create(luau.SyntaxKind.CallExpression, {
@@ -130,6 +131,10 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	assert(!node.awaitModifier);
 
 	const name = node.initializer.declarations[0].name;
+
+	if (ts.isIdentifier(name)) {
+		validateIdentifier(state, name);
+	}
 
 	const result = luau.list.make<luau.Statement>();
 

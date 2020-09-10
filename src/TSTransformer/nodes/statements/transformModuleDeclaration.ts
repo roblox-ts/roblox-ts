@@ -9,6 +9,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
+import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
 	if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
@@ -38,6 +39,8 @@ function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 function transformNamespace(state: TransformState, name: ts.Identifier, body: ts.NamespaceBody) {
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
 	assert(symbol);
+
+	validateIdentifier(state, name);
 
 	const nameExp = transformIdentifierDefined(state, name);
 
