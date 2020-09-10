@@ -102,6 +102,7 @@ export const diagnostics = {
 	noNonNumberStringRelationOperator: diagnostic("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: diagnostic("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: diagnostic("Instance methods cannot use the same name as static methods!"),
+	noUnaryPlus: diagnostic("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
