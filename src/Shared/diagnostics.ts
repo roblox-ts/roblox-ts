@@ -54,6 +54,7 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
 export const diagnostics = {
 	// reserved identifiers
 	noReservedIdentifier: diagnostic(`Reserved Lua keywords cannot be used as identifiers!`),
+	noClassMetamethods: diagnostic(`Metamethods cannot be used in class definitions!`),
 
 	// banned statements
 	noForInStatement: diagnostic(

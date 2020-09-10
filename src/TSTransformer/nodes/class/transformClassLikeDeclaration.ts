@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { isLuauMetamethod } from "Shared/util/isLuauMetamethod";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
@@ -376,6 +377,9 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	for (const method of methods) {
+		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
+			state.addDiagnostic(diagnostics.noClassMetamethods(method.name));
+		}
 		luau.list.pushList(statementsInner, transformMethodDeclaration(state, method, { value: internalName }));
 	}
 
