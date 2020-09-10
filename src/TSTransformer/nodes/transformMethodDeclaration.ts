@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
@@ -32,7 +33,7 @@ export function transformMethodDeclaration(
 	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
 
 	// can we use `function class:name() end`?
-	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value)) {
+	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && isValidLuauIdentifier(name.value)) {
 		if (isMethod(state, node)) {
 			luau.list.shift(parameters); // remove `self`
 			return luau.list.make(

@@ -1,6 +1,6 @@
 import luau from "LuauAST";
 import { render, RenderState } from "LuauRenderer";
-import { isValidLuauIdentifier } from "LuauRenderer/util/isValidLuauIdentifier";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 
 export function renderComputedIndexExpression(state: RenderState, node: luau.ComputedIndexExpression) {
 	const expStr = render(state, node.expression);

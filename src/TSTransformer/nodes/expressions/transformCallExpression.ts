@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
+import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
@@ -100,11 +101,23 @@ export function transformPropertyCallExpressionInner(
 	const args = luau.list.make(...ensureTransformOrder(state, nodeArguments));
 	let exp: luau.Expression;
 	if (isMethod(state, node.expression)) {
-		exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
-			name,
-			expression: convertToIndexableExpression(expression),
-			args,
-		});
+		if (isValidLuauIdentifier(name)) {
+			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
+				name,
+				expression: convertToIndexableExpression(expression),
+				args,
+			});
+		} else {
+			expression = state.pushToVarIfComplex(expression);
+			luau.list.unshift(args, expression);
+			exp = luau.create(luau.SyntaxKind.CallExpression, {
+				expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					expression: convertToIndexableExpression(expression),
+					name,
+				}),
+				args,
+			});
+		}
 	} else {
 		exp = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
