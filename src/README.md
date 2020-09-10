@@ -35,8 +35,8 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
         -   [ ] `Generator`
         -   [ ] `Object` -> `[Symbol.iterator]()`
 -   [x] Reserved Lua identifiers (`and`, `or`, `then`, `nil`, etc.)
--   [ ] Reserved Class methods (`__index`, `__newindex`, etc.)
--   [ ] Class static/instance method collision
+-   [x] Reserved Class methods (`__index`, `__newindex`, etc.)
+-   [x] Class static/instance method collision
 -   [ ] Macros which access `node.arguments` do not properly account for spreads
 -   [x] Rewrite RojoResolver to support nested Rojo projects, will be used for packages in the future
 -   [ ] Add RojoResolver support for symlinks in node_modules
