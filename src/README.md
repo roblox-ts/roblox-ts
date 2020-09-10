@@ -28,12 +28,8 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
         -   [ ] `Map<K, V>`
         -   [ ] `Set<T>`
         -   [ ] `String`
-        -   [ ] `IterableFunction`
-        -   [ ] `IterableFunction LuaTuple<T>`
-        -   [ ] `FirstDecrementedIterableFunction`
-        -   [ ] `DoubleDecrementedIterator`
+        -   [ ] `IterableFunction<LuaTuple<T>>`
         -   [ ] `Generator`
-        -   [ ] `Object` -> `[Symbol.iterator]()`
 -   [x] Reserved Lua identifiers (`and`, `or`, `then`, `nil`, etc.)
 -   [x] Reserved Class methods (`__index`, `__newindex`, etc.)
 -   [x] Class static/instance method collision
