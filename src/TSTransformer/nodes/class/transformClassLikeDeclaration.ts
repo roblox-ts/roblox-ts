@@ -376,10 +376,27 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 	}
 
+	const classSymbol = node.name && state.typeChecker.getSymbolAtLocation(node.name);
+	const classType = classSymbol && state.typeChecker.getTypeOfSymbolAtLocation(classSymbol, node);
+	const instanceType = state.typeChecker.getTypeAtLocation(node);
+
 	for (const method of methods) {
 		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
 			state.addDiagnostic(diagnostics.noClassMetamethods(method.name));
 		}
+
+		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
+			if (!!(method.modifierFlagsCache & ts.ModifierFlags.Static)) {
+				if (instanceType.getProperty(method.name.text) !== undefined) {
+					state.addDiagnostic(diagnostics.noInstanceMethodCollisions(method));
+				}
+			} else {
+				if (classType?.getProperty(method.name.text) !== undefined) {
+					state.addDiagnostic(diagnostics.noStaticMethodCollisions(method));
+				}
+			}
+		}
+
 		luau.list.pushList(statementsInner, transformMethodDeclaration(state, method, { value: internalName }));
 	}
 
