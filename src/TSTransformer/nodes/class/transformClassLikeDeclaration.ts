@@ -376,9 +376,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 	}
 
-	const classSymbol = node.name && state.typeChecker.getSymbolAtLocation(node.name);
-	const classType = classSymbol && state.typeChecker.getTypeOfSymbolAtLocation(classSymbol, node);
-	const instanceType = state.typeChecker.getTypeAtLocation(node);
+	const classType = state.typeChecker.getTypeOfSymbolAtLocation(node.symbol, node);
+	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
 
 	for (const method of methods) {
 		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
@@ -391,7 +390,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 					state.addDiagnostic(diagnostics.noInstanceMethodCollisions(method));
 				}
 			} else {
-				if (classType?.getProperty(method.name.text) !== undefined) {
+				if (classType.getProperty(method.name.text) !== undefined) {
 					state.addDiagnostic(diagnostics.noStaticMethodCollisions(method));
 				}
 			}
