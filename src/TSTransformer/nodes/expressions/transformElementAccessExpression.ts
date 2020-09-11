@@ -68,6 +68,20 @@ export function transformElementAccessExpressionInner(
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 	}
 
+	if (ts.isDeleteExpression(node.parent)) {
+		state.prereq(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: convertToIndexableExpression(expression),
+					index: addOneIfArrayType(state, expType, index),
+				}),
+				operator: "=",
+				right: luau.nil(),
+			}),
+		);
+		return luau.bool(true);
+	}
+
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
 		index: addOneIfArrayType(state, expType, index),

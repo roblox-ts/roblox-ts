@@ -38,6 +38,20 @@ export function transformPropertyAccessExpressionInner(
 		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
 	}
 
+	if (ts.isDeleteExpression(node.parent)) {
+		state.prereq(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					expression: convertToIndexableExpression(expression),
+					name,
+				}),
+				operator: "=",
+				right: luau.nil(),
+			}),
+		);
+		return luau.bool(true);
+	}
+
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 		expression: convertToIndexableExpression(expression),
 		name,
