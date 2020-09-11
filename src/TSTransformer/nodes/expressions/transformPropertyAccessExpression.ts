@@ -5,7 +5,6 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -52,7 +51,7 @@ export function transformPropertyAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return isUsedAsStatement(parent) ? luau.nil() : luau.bool(true);
+		return luau.nil();
 	}
 
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
