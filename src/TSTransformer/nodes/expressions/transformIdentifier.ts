@@ -34,6 +34,11 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 		return;
 	}
 
+	// class expressions can self refer
+	if (ts.isClassLike(declaration)) {
+		return;
+	}
+
 	const declarationStatement = getAncestor(declaration, ts.isStatement);
 	if (
 		!declarationStatement ||
