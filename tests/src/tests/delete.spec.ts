@@ -61,6 +61,12 @@ export = () => {
 
 			expect(myTrollies.c.apples).to.equal(undefined);
 		});
+
+		it("should work with optional property", () => {
+			const trollies: { c: fruits | undefined } = { c: undefined };
+
+			expect(delete trollies.c?.apples).to.equal(true);
+		});
 	});
 
 	describe("should work with function", () => {
