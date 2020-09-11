@@ -7,6 +7,7 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -79,7 +80,11 @@ export function transformElementAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return luau.bool(true);
+		if (isUsedAsStatement(node.parent)) {
+			return luau.nil();
+		} else {
+			return luau.bool(true);
+		}
 	}
 
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
