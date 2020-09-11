@@ -52,11 +52,7 @@ export function transformPropertyAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		if (isUsedAsStatement(parent)) {
-			return luau.nil();
-		} else {
-			return luau.bool(true);
-		}
+		return isUsedAsStatement(parent) ? luau.nil() : luau.bool(true);
 	}
 
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
