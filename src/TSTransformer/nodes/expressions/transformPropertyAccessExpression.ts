@@ -5,6 +5,8 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
+import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
@@ -36,6 +38,21 @@ export function transformPropertyAccessExpressionInner(
 	const constantValue = state.typeChecker.getConstantValue(node);
 	if (constantValue !== undefined) {
 		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
+	}
+
+	const parent = skipUpwards(node).parent;
+	if (ts.isDeleteExpression(parent)) {
+		state.prereq(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+					expression: convertToIndexableExpression(expression),
+					name,
+				}),
+				operator: "=",
+				right: luau.nil(),
+			}),
+		);
+		return isUsedAsStatement(parent) ? luau.nil() : luau.bool(true);
 	}
 
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
