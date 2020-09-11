@@ -9,6 +9,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
+import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
@@ -69,7 +70,8 @@ export function transformElementAccessExpressionInner(
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 	}
 
-	if (ts.isDeleteExpression(node.parent)) {
+	const parent = skipUpwards(node).parent;
+	if (ts.isDeleteExpression(parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -80,7 +82,7 @@ export function transformElementAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		if (isUsedAsStatement(node.parent)) {
+		if (isUsedAsStatement(parent)) {
 			return luau.nil();
 		} else {
 			return luau.bool(true);
