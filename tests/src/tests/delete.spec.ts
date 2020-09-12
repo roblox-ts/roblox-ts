@@ -3,19 +3,65 @@
 type fruits = {
 	apples?: number;
 	bananas: number;
+	pears?: number;
 };
 
 export = () => {
 	describe("should work for objects", () => {
-		it("should delete from the object", () => {
+		it("should delete from the object with property acccess", () => {
 			const myTrolly: fruits = {
 				apples: 5,
 				bananas: 6,
+				pears: 7,
 			};
 
 			delete myTrolly.apples;
+			delete (myTrolly.pears);
 
 			expect(myTrolly.apples).to.equal(undefined);
+			expect(myTrolly.pears).to.equal(undefined);
+		});
+
+		it("should delete with optional property access", () => {
+			const myTrolly: fruits = {
+				apples: 5,
+				bananas: 6,
+				pears: 7,
+			};
+
+			delete myTrolly?.apples;
+			delete (myTrolly?.pears);
+
+			expect(myTrolly.apples).to.equal(undefined);
+			expect(myTrolly.pears).to.equal(undefined);
+		});
+
+		it("should delete from the object with element access", () => {
+			const myTrolly: fruits = {
+				apples: 5,
+				bananas: 6,
+				pears: 7,
+			};
+
+			delete myTrolly["apples"];
+			delete (myTrolly["pears"]);
+
+			expect(myTrolly.apples).to.equal(undefined);
+			expect(myTrolly.pears).to.equal(undefined);
+		});
+
+		it("should delete with optional element access", () => {
+			const myTrolly: fruits = {
+				apples: 5,
+				bananas: 6,
+				pears: 7,
+			};
+
+			delete myTrolly?.["apples"];
+			delete (myTrolly?.["pears"]);
+
+			expect(myTrolly.apples).to.equal(undefined);
+			expect(myTrolly.pears).to.equal(undefined);
 		});
 
 		it("should not delete other properties", () => {
@@ -25,28 +71,11 @@ export = () => {
 			};
 
 			delete myTrolly.apples;
+			delete myTrolly?.apples;
+			delete myTrolly?.["apples"];
+			delete myTrolly?.["apples"];
 
 			expect(myTrolly.bananas).to.equal(6);
-		});
-
-		it("should delete functions", () => {
-			const myObj: { myFoo?: () => void } = {
-				myFoo: () => {
-					print("hello world");
-				},
-			};
-
-			delete myObj.myFoo;
-
-			expect(myObj.myFoo).to.equal(undefined);
-		});
-
-		it("should delete array items", () => {
-			const myArr = [1, 2, 3, 4, 5];
-
-			delete myArr[2];
-
-			expect(myArr[2]).to.equal(undefined);
 		});
 
 		it("should be able to do objects inside objects", () => {
@@ -61,34 +90,48 @@ export = () => {
 
 			expect(myTrollies.c.apples).to.equal(undefined);
 		});
-
-		it("should work with optional property", () => {
-			const trollies: { c: fruits | undefined } = { c: undefined };
-
-			expect(delete trollies.c?.apples).to.equal(true);
-		});
 	});
 
-	describe("should work with function", () => {
-		it("should work with objects", () => {
-			const myObj: fruits = {
-				apples: 5,
-				bananas: 6,
-			};
+	// we use this function as otherwise TypeScript will evaluate the type of the variable and determine if it's possible to perform optional chaining on it.
+	function getFruitsOrUndefined(): fruits | undefined {
+		return undefined;
+	}
 
-			delete (myObj.apples);
-			expect(myObj.apples).to.equal(undefined);
-		});
-	});
-
-	describe("should return the correct values", () => {
-		it("should return true", () => {
+	describe("should return true", () => {
+		it("should return true for property access", () => {
 			const myTrolly: fruits = {
 				apples: 5,
 				bananas: 6,
+				pears: 7,
 			};
 
-			expect(delete myTrolly.apples).to.equal(true); // should return true if successfully deleted
+			expect(delete myTrolly.apples).to.equal(true);
+			expect(delete (myTrolly.pears)).to.equal(true);
+		});
+
+		it("should return true for optional property access", () => {
+			const myTrolly = getFruitsOrUndefined();
+
+			expect(delete myTrolly?.apples).to.equal(true);
+			expect(delete (myTrolly?.pears)).to.equal(true);
+		});
+
+		it("should return true for element access", () => {
+			const myTrolly: fruits = {
+				apples: 5,
+				bananas: 6,
+				pears: 7,
+			};
+
+			expect(delete myTrolly["apples"]).to.equal(true);
+			expect(delete (myTrolly["apples"])).to.equal(true);
+		});
+
+		it("should return true for optional element access", () => {
+			const myTrolly = getFruitsOrUndefined();
+
+			expect(delete myTrolly?.["apples"]).to.equal(true);
+			expect(delete (myTrolly?.["pears"])).to.equal(true);
 		});
 	});
 };
