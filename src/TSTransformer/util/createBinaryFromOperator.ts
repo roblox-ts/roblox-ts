@@ -2,7 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
-import { isStringSimpleType } from "TSTransformer/util/types";
+import { isStringType } from "TSTransformer/util/types";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
@@ -45,8 +45,8 @@ function createBinaryAdd(
 	right: luau.Expression,
 	rightType: ts.Type,
 ) {
-	const leftIsString = isStringSimpleType(state.getSimpleType(leftType));
-	const rightIsString = isStringSimpleType(state.getSimpleType(rightType));
+	const leftIsString = isStringType(leftType);
+	const rightIsString = isStringType(rightType);
 	if (leftIsString || rightIsString) {
 		return luau.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
 	} else {
