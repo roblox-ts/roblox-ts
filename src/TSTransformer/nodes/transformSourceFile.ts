@@ -29,6 +29,26 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [string,
 	}
 }
 
+function isExportSymbolFromImport(state: TransformState, exportSymbol: ts.Symbol) {
+	const exportDeclarations = exportSymbol.getDeclarations();
+	if (exportDeclarations && exportDeclarations.length > 0 && ts.isExportSpecifier(exportDeclarations[0])) {
+		const importSymbol = state.typeChecker.getExportSpecifierLocalTargetSymbol(
+			exportDeclarations[0] as ts.ExportSpecifier,
+		);
+		if (importSymbol) {
+			const importDeclarations = importSymbol.getDeclarations();
+			if (
+				importDeclarations &&
+				importDeclarations.length > 0 &&
+				getAncestor(importDeclarations[0], ts.isImportDeclaration) !== undefined
+			) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 /**
  * Adds export information to the end of the tree.
  * @param state The current transform state.
@@ -49,7 +69,10 @@ function handleExports(
 				continue;
 			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration.getSourceFile() === sourceFile) {
+			if (
+				isExportSymbolFromImport(state, exportSymbol) ||
+				(isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration.getSourceFile() === sourceFile)
+			) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
