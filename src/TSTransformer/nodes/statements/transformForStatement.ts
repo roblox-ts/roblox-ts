@@ -1,5 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -81,16 +82,9 @@ function addIncrementor(
 	node: luau.ListNode<luau.Statement>,
 	incrementor: luau.List<luau.Statement>,
 ) {
-	if (!incrementor.head) {
-		return;
-	}
-
-	if (!incrementor.tail) {
-		return;
-	}
+	assert(!luau.list.isEmpty(list));
 
 	const statement = node.value;
-
 	if (luau.isContinueStatement(statement)) {
 		const incrementorClone = luau.list.clone(incrementor);
 
@@ -105,13 +99,8 @@ function addIncrementor(
 		incrementorClone.tail!.next = node;
 	}
 
-	if (luau.isIfStatement(statement) || luau.isDoStatement(statement)) {
-		const statements = statement.statements;
-		const statementsHead = statements.head;
-
-		if (statementsHead) {
-			addIncrementor(statements, statementsHead, incrementor);
-		}
+	if ((luau.isIfStatement(statement) || luau.isDoStatement(statement)) && statement.statements.head) {
+		addIncrementor(statement.statements, statement.statements.head, incrementor);
 	}
 
 	if (node.next) {
