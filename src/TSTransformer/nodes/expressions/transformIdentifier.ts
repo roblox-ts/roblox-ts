@@ -6,7 +6,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
-import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { getAncestor, isAncestorOf, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
@@ -35,7 +35,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 	}
 
 	// class expressions can self refer
-	if (ts.isClassLike(declaration)) {
+	if (ts.isClassLike(declaration) && isAncestorOf(declaration, node)) {
 		return;
 	}
 
