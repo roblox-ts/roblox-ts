@@ -1,0 +1,15 @@
+{
+	"configurations": [
+		{
+			"type": "node",
+			"request": "launch",
+			"name": "demo",
+			"preLaunchTask": "npm: build",
+			"program": "${workspaceFolder}/out/CLI/cli.js",
+			"cwd": "/path/to/project",
+			"args": ["--verbose"],
+			"sourceMaps": true,
+			"skipFiles": ["<node_internals>/**"]
+		}
+	]
+}
