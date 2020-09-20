@@ -26,7 +26,7 @@ export function getSubType(
 			return getSubType(state, type.aliasTypeArguments[0], index);
 		} else if (isArrayType(state, type)) {
 			if (state.typeChecker.isTupleType(type)) {
-				return getTypeArguments(state, type)[0];
+				return getSubType(state, getTypeArguments(state, type), index);
 			} else {
 				const numIndexType = type.getNumberIndexType();
 				assert(numIndexType);
