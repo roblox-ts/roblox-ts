@@ -6,6 +6,7 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 
@@ -23,9 +24,23 @@ function pairs(expression: luau.Expression): luau.Expression {
 	});
 }
 
+function ensureTransformAndEvalutationOrder(
+	state: TransformState,
+	expressions: ReadonlyArray<ts.Expression>,
+	transformer: (
+		state: TransformState,
+		expression: ts.Expression,
+		index: number,
+	) => luau.Expression = transformExpression,
+): Array<luau.Expression> {
+	return ensureTransformOrder(state, expressions, transformer).map(arg =>
+		expressionMightMutate(arg) ? state.pushToVar(arg) : arg,
+	);
+}
+
 function runtimeLib(name: string, isStatic = false): PropertyCallMacro {
 	return (state, node, expression) => {
-		const args = luau.list.make(...ensureTransformOrder(state, node.arguments));
+		const args = luau.list.make(...ensureTransformAndEvalutationOrder(state, node.arguments));
 		if (!isStatic) {
 			luau.list.unshift(args, expression);
 		}
@@ -83,7 +98,7 @@ function makeStringCallback(
 	argOffsets: Array<number> = [],
 ): PropertyCallMacro {
 	return (state, node, expression) => {
-		const args = offsetArguments(ensureTransformOrder(state, node.arguments), argOffsets);
+		const args = offsetArguments(ensureTransformAndEvalutationOrder(state, node.arguments), argOffsets);
 		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: strCallback,
 			args: luau.list.make(expression, ...args),
@@ -140,7 +155,7 @@ function createReduceMethod(
 	end: luau.Expression,
 	step: number,
 ): luau.Expression {
-	const args = ensureTransformOrder(state, node.arguments);
+	const args = ensureTransformAndEvalutationOrder(state, node.arguments);
 
 	const lengthExp = luau.unary("#", expression);
 
@@ -373,19 +388,29 @@ function argumentsWithDefaults(
 	args: ts.NodeArray<ts.Expression>,
 	defaults: Array<luau.Expression>,
 ): Array<luau.Expression> {
-	const transformed = ensureTransformOrder(state, args, (state, exp, index) => {
-		const type = state.getType(exp);
+	const transformed = ensureTransformAndEvalutationOrder(state, args, (state, exp, index) =>
+		state.getType(exp).flags === ts.TypeFlags.Undefined ? defaults[index] : transformExpression(state, exp),
+	);
 
-		return type.flags === ts.TypeFlags.Undefined ? defaults[index] : transformExpression(state, exp);
-	});
-
-	for (const i in defaults) {
+	for (let i = 0; i < defaults.length; i++) {
 		if (transformed[i] === undefined) {
 			transformed[i] = defaults[i];
 		}
 	}
 
 	return transformed;
+}
+
+function tryGetNumberLiteralValue(exp: luau.Expression) {
+	if (luau.isNumberLiteral(exp)) {
+		return exp.value;
+	}
+
+	if (luau.isUnaryExpression(exp) && exp.operator === "-" && luau.isNumberLiteral(exp.expression)) {
+		return -exp.expression.value;
+	}
+
+	return undefined;
 }
 
 const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
@@ -400,7 +425,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	concat: (state, node, expression) => {
 		const resultId = state.pushToVar(luau.array());
 
-		const args = ensureTransformOrder(state, node.arguments);
+		const args = ensureTransformAndEvalutationOrder(state, node.arguments);
 		args.unshift(expression);
 
 		const sizeId = state.pushToVar(luau.number(1));
@@ -444,66 +469,85 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	slice: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		const lengthOfExpression = luau.unary("#", expression);
+		const lengthOfExpression = state.pushToVar(luau.unary("#", expression));
 		const args = argumentsWithDefaults(state, node.arguments, [luau.number(0), lengthOfExpression]);
 
-		// returns the value of a 'NegativeLiteral'
-		// however, those do not exist
-		// so this function will check to see if:
-		//		exp is a UnaryExpression
-		//		the expression of exp is a NumberLiteral
-		//		the operator is unary minus
-		// then return the value of that literal
-		const getValueFromNegativeLiteral = (exp: luau.Expression) =>
-			luau.isUnaryExpression(exp) && luau.isNumberLiteral(exp.expression) && exp.operator === "-"
-				? -exp.expression.value
-				: undefined;
-
-		let start = args[0];
-		const startValue = getValueFromNegativeLiteral(start);
-		if (startValue) {
-			start = offset(lengthOfExpression, startValue + 1);
+		let startExp = args[0];
+		const startValue = tryGetNumberLiteralValue(startExp);
+		if (startValue !== undefined) {
+			if (startValue < 0) {
+				startExp = offset(lengthOfExpression, startValue);
+			}
 		} else {
-			start = offset(start, 1);
+			startExp = state.pushToVarIfNonId(startExp);
+			assert(luau.isWritableExpression(startExp));
+			state.prereq(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(startExp, "<", luau.number(0)),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: startExp,
+							operator: "+=",
+							right: lengthOfExpression,
+						}),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
 		}
 
-		let end = args[1];
-		const endValue = getValueFromNegativeLiteral(end);
-		if (endValue) {
-			end = offset(lengthOfExpression, endValue);
-		} else if (end !== lengthOfExpression) {
-			end = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.math.min,
-				args: luau.list.make(lengthOfExpression, end),
-			});
+		let endExp = args[1];
+		const endValue = tryGetNumberLiteralValue(endExp);
+		if (endValue !== undefined) {
+			if (endValue < 0) {
+				endExp = offset(lengthOfExpression, endValue);
+			}
+		} else if (endExp !== lengthOfExpression) {
+			endExp = state.pushToVarIfNonId(endExp);
+			assert(luau.isWritableExpression(endExp));
+			state.prereq(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(endExp, "<", luau.number(0)),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: endExp,
+							operator: "+=",
+							right: lengthOfExpression,
+						}),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
 		}
 
 		const resultId = state.pushToVar(luau.array());
-
-		const sizeId = state.pushToVar(luau.number(1));
 		const iteratorId = luau.tempId();
 		state.prereq(
 			luau.create(luau.SyntaxKind.NumericForStatement, {
 				id: iteratorId,
-				start,
-				end,
+				start: offset(startExp, 1),
+				end: endExp,
 				step: undefined,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: resultId,
-							index: sizeId,
+							index:
+								luau.isNumberLiteral(startExp) && startExp.value === 0
+									? iteratorId
+									: luau.binary(
+											iteratorId,
+											"-",
+											luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+												expression: startExp,
+											}),
+									  ),
 						}),
 						operator: "=",
 						right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: convertToIndexableExpression(expression),
 							index: iteratorId,
 						}),
-					}),
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: sizeId,
-						operator: "+=",
-						right: luau.number(1),
 					}),
 				),
 			}),
@@ -515,7 +559,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	includes: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		const nodeArgs = ensureTransformOrder(state, node.arguments);
+		const nodeArgs = ensureTransformAndEvalutationOrder(state, node.arguments);
 		const startIndex = offset(nodeArgs.length > 1 ? nodeArgs[1] : luau.number(0), 1);
 
 		const resultId = state.pushToVar(luau.bool(false));
@@ -555,7 +599,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	indexOf: (state, node, expression) => {
-		const nodeArgs = ensureTransformOrder(state, node.arguments);
+		const nodeArgs = ensureTransformAndEvalutationOrder(state, node.arguments);
 		const findArgs = luau.list.make(expression, nodeArgs[0]);
 
 		if (nodeArgs.length > 1) {
@@ -576,7 +620,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	lastIndexOf: (state, node, expression) => {
-		const nodeArgs = ensureTransformOrder(state, node.arguments);
+		const nodeArgs = ensureTransformAndEvalutationOrder(state, node.arguments);
 
 		const startExpression = nodeArgs.length > 1 ? offset(nodeArgs[1], 1) : luau.unary("#", expression);
 
@@ -926,7 +970,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		expression = state.pushToVarIfComplex(expression);
 
-		const args = ensureTransformOrder(state, node.arguments);
+		const args = ensureTransformAndEvalutationOrder(state, node.arguments).map(arg =>
+			state.pushToVarIfComplex(arg),
+		);
 		const valueIsUsed = !isUsedAsStatement(node);
 		const uses = (valueIsUsed ? 1 : 0) + args.length;
 
@@ -991,7 +1037,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	unshift: (state, node, expression) => {
 		expression = state.pushToVarIfComplex(expression);
 
-		const args = ensureTransformOrder(state, node.arguments);
+		const args = ensureTransformAndEvalutationOrder(state, node.arguments);
 
 		for (let i = args.length - 1; i >= 0; i--) {
 			const arg = args[i];
@@ -1009,7 +1055,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	insert: (state, node, expression) => {
-		const args = ensureTransformOrder(state, node.arguments);
+		const args = ensureTransformAndEvalutationOrder(state, node.arguments);
 
 		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.globals.table.insert,
@@ -1020,7 +1066,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	remove: (state, node, expression) =>
 		luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.globals.table.remove,
-			args: luau.list.make(expression, offset(ensureTransformOrder(state, node.arguments)[0], 1)),
+			args: luau.list.make(expression, offset(ensureTransformAndEvalutationOrder(state, node.arguments)[0], 1)),
 		}),
 
 	unorderedRemove: (state, node, expression) => {
@@ -1304,7 +1350,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 	...SET_MAP_SHARED_METHODS,
 
 	set: (state, node, expression) => {
-		const [keyExp, valueExp] = ensureTransformOrder(state, node.arguments);
+		const [keyExp, valueExp] = ensureTransformAndEvalutationOrder(state, node.arguments);
 		const valueIsUsed = !isUsedAsStatement(node);
 		if (valueIsUsed) {
 			expression = state.pushToVarIfComplex(expression);
@@ -1328,7 +1374,7 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 		luau.create(luau.SyntaxKind.MethodCallExpression, {
 			expression: convertToIndexableExpression(expression),
 			name: "andThen",
-			args: luau.list.make(...ensureTransformOrder(state, node.arguments)),
+			args: luau.list.make(...ensureTransformAndEvalutationOrder(state, node.arguments)),
 		}),
 };
 
