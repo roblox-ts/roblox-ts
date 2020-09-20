@@ -7,7 +7,7 @@ export function renderForStatement(state: RenderState, node: luau.ForStatement) 
 	// technically, this is the same scope as inside the for loop, but I think this is okay for our purposes
 	state.pushScope();
 
-	const idsStr = luau.list.mapToArray(node.ids, id => render(state, id)).join(", ");
+	const idsStr = luau.list.mapToArray(node.ids, id => render(state, id)).join(", ") || "_";
 	const expStr = render(state, node.expression);
 
 	let result = "";

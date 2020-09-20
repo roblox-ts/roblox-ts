@@ -29,7 +29,7 @@ export const SYMBOL_NAMES = {
 	DoubleDecrementedIterableFunction: "DoubleDecrementedIterableFunction",
 	FirstDecrementedIterableFunction: "FirstDecrementedIterableFunction",
 	IterableFunction: "IterableFunction",
-	IterableIterator: "IterableIterator",
+	Generator: "Generator",
 	LuaTuple: "LuaTuple",
 	Map: "Map",
 	ReadonlyArray: "ReadonlyArray",

@@ -103,6 +103,8 @@ export const diagnostics = {
 	noInstanceMethodCollisions: diagnostic("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: diagnostic("Instance methods cannot use the same name as static methods!"),
 	noUnaryPlus: diagnostic("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
+	noLuaTupleIterationWithoutDestructure: diagnostic("IterableFunction<LuaTuple<T>> must be destructured in-line!"),
+	noAwaitForOf: diagnostic("`await` is not supported in for-of loops!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),
@@ -121,7 +123,7 @@ export const diagnostics = {
 	noMacroExtends: diagnostic("Cannot extend from a macro class!"),
 
 	// import/export
-	missingImportOrExport: diagnostic(
+	noNonModule: diagnostic(
 		"File does not have an import or export statement!",
 		suggestion("Add `export {};` as the first line."),
 		issue(1043),

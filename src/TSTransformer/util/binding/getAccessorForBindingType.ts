@@ -3,13 +3,10 @@ import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
-	getTypeArguments,
 	isArrayType,
-	isDoubleDecrementedIterableFunctionType,
-	isFirstDecrementedIterableFunctionType,
 	isGeneratorType,
+	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
-	isLuaTupleType,
 	isMapType,
 	isObjectType,
 	isSetType,
@@ -112,7 +109,7 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	return luau.create(luau.SyntaxKind.Array, { members: ids });
 };
 
-const iterableFunctionTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: parentId,
 		args: luau.list.make(),
@@ -235,16 +232,11 @@ export function getAccessorForBindingType(
 		return setAccessor;
 	} else if (isMapType(state, type)) {
 		return mapAccessor;
+	} else if (isIterableFunctionLuaTupleType(state, type)) {
+		return iterableFunctionLuaTupleAccessor;
 	} else if (isIterableFunctionType(state, type)) {
-		return isLuaTupleType(state, getTypeArguments(state, type)[0])
-			? iterableFunctionTupleAccessor
-			: iterableFunctionAccessor;
-	} else if (isFirstDecrementedIterableFunctionType(state, type)) {
-		return firstDecrementedIterableAccessor;
-	} else if (isDoubleDecrementedIterableFunctionType(state, type)) {
-		return doubleDecrementedIteratorAccessor;
+		return iterableFunctionAccessor;
 	} else if (isGeneratorType(state, type) || isObjectType(type) || ts.isThis(node)) {
-		// TODO super?
 		return iterAccessor;
 	}
 	assert(false);

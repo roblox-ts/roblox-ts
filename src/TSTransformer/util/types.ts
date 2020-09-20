@@ -99,25 +99,46 @@ export function isStringType(type: ts.Type) {
 }
 
 export function isGeneratorType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableIterator));
+	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator));
 }
 
 export function isIterableFunctionType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction));
+	return isSomeType(type, t => {
+		if (t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction)) {
+			return true;
+		}
+
+		// temporary?
+		if (
+			t.symbol.name === "FirstDecrementedIterableFunction" ||
+			t.symbol.name === "DoubleDecrementedIterableFunction"
+		) {
+			return true;
+		}
+
+		return false;
+	});
 }
 
-export function isFirstDecrementedIterableFunctionType(state: TransformState, type: ts.Type) {
-	return isSomeType(
-		type,
-		t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.FirstDecrementedIterableFunction),
-	);
-}
+export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.Type) {
+	if (!isIterableFunctionType(state, type)) {
+		return false;
+	}
 
-export function isDoubleDecrementedIterableFunctionType(state: TransformState, type: ts.Type) {
-	return isSomeType(
-		type,
-		t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.DoubleDecrementedIterableFunction),
-	);
+	// temporary?
+	if (
+		isSomeType(
+			type,
+			t =>
+				t.symbol.name === "FirstDecrementedIterableFunction" ||
+				t.symbol.name === "DoubleDecrementedIterableFunction",
+		)
+	) {
+		return true;
+	}
+
+	const firstTypeArg: ts.Type | undefined = getTypeArguments(state, type)[0];
+	return firstTypeArg !== undefined && isLuaTupleType(state, firstTypeArg);
 }
 
 export function isObjectType(type: ts.Type) {

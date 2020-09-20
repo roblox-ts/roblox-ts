@@ -15,7 +15,7 @@ function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 }
 
 function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
-	if (ts.isFunctionLike(node)) {
+	if (ts.isFunctionLike(node) && !ts.isFunctionDeclaration(node)) {
 		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
 			return !(state.getType(thisParam).flags & ts.TypeFlags.Void);
@@ -34,25 +34,25 @@ function isMethodInner(
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
-	function checkMethod(node: ts.Node) {
-		if (isMethodDeclaration(state, node)) {
-			hasMethodDefinition = true;
-		} else {
-			hasCallbackDefinition = true;
-		}
-	}
-
 	const declarations = type.symbol.getDeclarations();
 	if (declarations) {
 		for (const declaration of declarations) {
 			if (ts.isTypeLiteralNode(declaration)) {
 				for (const callSignature of type.getCallSignatures()) {
 					if (callSignature.declaration) {
-						checkMethod(callSignature.declaration);
+						if (isMethodDeclaration(state, callSignature.declaration)) {
+							hasMethodDefinition = true;
+						} else {
+							hasCallbackDefinition = true;
+						}
 					}
 				}
 			} else {
-				checkMethod(declaration);
+				if (isMethodDeclaration(state, declaration)) {
+					hasMethodDefinition = true;
+				} else {
+					hasCallbackDefinition = true;
+				}
 			}
 		}
 	}

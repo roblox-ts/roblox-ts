@@ -273,6 +273,7 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
 	byte: makeStringCallback(luau.globals.string.byte, [1, 1]),
 	format: makeStringCallback(luau.globals.string.format),
+	gmatch: makeStringCallback(luau.globals.string.gmatch),
 	find: (state, node, expression) =>
 		luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("string_find_wrap"),

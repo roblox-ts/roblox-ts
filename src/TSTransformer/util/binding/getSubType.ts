@@ -42,7 +42,7 @@ export function getSubType(
 			// Map<K, V> -> [K, V]
 			return getTypeArguments(state, type);
 		} else if (isGeneratorType(state, type)) {
-			// IterableIterator<T> -> T
+			// Generator<T> -> T
 			return getTypeArguments(state, type)[0];
 		}
 	} else if (typeof index === "number") {
