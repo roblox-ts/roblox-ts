@@ -61,6 +61,14 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 			state.getType(node.operand),
 		);
 		return luau.unary("not", checks);
+	} else if (node.operator === ts.SyntaxKind.TildeToken) {
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
+				expression: luau.globals.bit32,
+				name: "bnot",
+			}),
+			args: luau.list.make(transformExpression(state, node.operand)),
+		});
 	}
 	assert(false, `Unsupported PrefixUnaryExpression operator: ${getKindName(node.operator)}`);
 }
