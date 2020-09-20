@@ -105,6 +105,7 @@ export const diagnostics = {
 	noUnaryPlus: diagnostic("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noLuaTupleIterationWithoutDestructure: diagnostic("IterableFunction<LuaTuple<T>> must be destructured in-line!"),
 	noAwaitForOf: diagnostic("`await` is not supported in for-of loops!"),
+	noAsyncGeneratorFunctions: diagnostic("Async generator functions are not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: diagnostic("Macro methods can not be optionally called!"),

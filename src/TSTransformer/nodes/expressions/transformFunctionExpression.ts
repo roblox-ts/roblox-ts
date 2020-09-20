@@ -24,7 +24,12 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		luau.list.push(statements, returnStatement);
 	}
 
+	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+
 	if (node.asteriskToken) {
+		if (isAsync) {
+			state.addDiagnostic(diagnostics.noAsyncGeneratorFunctions(node));
+		}
 		statements = wrapStatementsAsGenerator(state, statements);
 	}
 
@@ -34,7 +39,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		statements,
 	});
 
-	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
+	if (isAsync) {
 		expression = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("async"),
 			args: luau.list.make(expression),

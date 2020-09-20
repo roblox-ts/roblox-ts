@@ -1,5 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -34,11 +35,16 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		localize = state.isHoisted.get(symbol) !== true;
 	}
 
+	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+
 	if (node.asteriskToken) {
+		if (isAsync) {
+			state.addDiagnostic(diagnostics.noAsyncGeneratorFunctions(node));
+		}
 		statements = wrapStatementsAsGenerator(state, statements);
 	}
 
-	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Async)) {
+	if (isAsync) {
 		const right = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: state.TS("async"),
 			args: luau.list.make(
