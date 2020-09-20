@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { getKindName } from "TSTransformer/util/getKindName";
 import { isStringType } from "TSTransformer/util/types";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
@@ -95,5 +96,5 @@ export function createBinaryFromOperator(
 		});
 	}
 
-	assert(false, `Unrecognized operator: ${ts.SyntaxKind[operatorKind]}`);
+	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);
 }

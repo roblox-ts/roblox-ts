@@ -6,6 +6,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { getKindName } from "TSTransformer/util/getKindName";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
@@ -61,5 +62,5 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		);
 		return luau.unary("not", checks);
 	}
-	assert(false, `Unsupported PrefixUnaryExpression operator: ${ts.SyntaxKind[node.operator]}`);
+	assert(false, `Unsupported PrefixUnaryExpression operator: ${getKindName(node.operator)}`);
 }

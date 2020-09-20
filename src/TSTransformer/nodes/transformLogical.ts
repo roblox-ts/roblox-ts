@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
+import { getKindName } from "TSTransformer/util/getKindName";
 
 interface LogicalChainItem {
 	type: ts.Type;
@@ -170,5 +171,5 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		buildLogicalChainPrereqs(state, chain, conditionId, conditionId => luau.binary(conditionId, "==", luau.nil()));
 		return conditionId;
 	}
-	assert(false, "Not implemented");
+	assert(false, `Operator not implemented: ${getKindName(node.operatorToken.kind)}`);
 }

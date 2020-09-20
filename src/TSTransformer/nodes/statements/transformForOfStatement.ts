@@ -176,7 +176,7 @@ function getLoopBuilder(state: TransformState, type: ts.Type): LoopBuilder {
 	} else if (isGeneratorType(state, type)) {
 		return buildGeneratorLoop;
 	} else {
-		assert(false, "Not implemented");
+		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
 }
 

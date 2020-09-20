@@ -31,6 +31,6 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		return statements;
 	} else {
 		// Identifier | QualifiedName
-		assert(false, "Not implemented!");
+		assert(false, "Identifier and QualifiedName are not implemented for ImportEqualsDeclaration!");
 	}
 }
