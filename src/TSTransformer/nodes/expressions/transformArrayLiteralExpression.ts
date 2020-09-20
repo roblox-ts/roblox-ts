@@ -5,7 +5,72 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
-import { isArrayType } from "TSTransformer/util/types";
+import { isArrayType, isStringType } from "TSTransformer/util/types";
+
+type OptimizedSpreadBuilder = (
+	state: TransformState,
+	expression: luau.Expression,
+	arrayId: luau.AnyIdentifier,
+	lengthId: luau.AnyIdentifier,
+) => luau.Statement;
+
+const optimizedArraySpreadBuilder: OptimizedSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.ipairs,
+			args: luau.list.make(expression),
+		}),
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: luau.binary(lengthId, "+", keyId),
+				}),
+				operator: "=",
+				right: valueId,
+			}),
+		),
+	});
+};
+
+const optimizedStringSpreadBuilder: OptimizedSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.string.gmatch,
+			args: luau.list.make(expression, luau.globals.utf8.charpattern),
+		}),
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: valueId,
+			}),
+		),
+	});
+};
+
+function getOptimizedSpreadBuilder(state: TransformState, type: ts.Type): OptimizedSpreadBuilder | undefined {
+	if (isArrayType(state, type)) {
+		return optimizedArraySpreadBuilder;
+	} else if (isStringType(type)) {
+		return optimizedStringSpreadBuilder;
+	} else {
+		return undefined;
+	}
+}
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {
@@ -44,34 +109,21 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	for (let i = 0; i < node.elements.length; i++) {
 		const element = node.elements[i];
 		if (ts.isSpreadElement(element)) {
-			assert(isArrayType(state, state.getType(element.expression)));
 			if (luau.isArray(ptr.value)) {
 				disableArrayInline(state, ptr);
 				updateLengthId();
 			}
 			assert(luau.isAnyIdentifier(ptr.value));
-			const spreadExp = transformExpression(state, element.expression);
-			const keyId = luau.tempId();
-			const valueId = luau.tempId();
-			state.prereq(
-				luau.create(luau.SyntaxKind.ForStatement, {
-					ids: luau.list.make(keyId, valueId),
-					expression: luau.create(luau.SyntaxKind.CallExpression, {
-						expression: luau.globals.ipairs,
-						args: luau.list.make(spreadExp),
-					}),
-					statements: luau.list.make(
-						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: ptr.value,
-								index: luau.binary(lengthId, "+", keyId),
-							}),
-							operator: "=",
-							right: valueId,
-						}),
-					),
-				}),
-			);
+
+			const type = state.getType(element.expression);
+			const optimizedSpreadBuilder = getOptimizedSpreadBuilder(state, type);
+			if (optimizedSpreadBuilder) {
+				const spreadExp = transformExpression(state, element.expression);
+				state.prereq(optimizedSpreadBuilder(state, spreadExp, ptr.value, lengthId));
+			} else {
+				assert(false, "Not implemented");
+			}
+
 			if (i < node.elements.length - 1) {
 				updateLengthId();
 			}
