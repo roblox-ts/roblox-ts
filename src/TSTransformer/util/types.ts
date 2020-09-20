@@ -110,8 +110,9 @@ export function isIterableFunctionType(state: TransformState, type: ts.Type) {
 
 		// temporary?
 		if (
-			t.symbol.name === "FirstDecrementedIterableFunction" ||
-			t.symbol.name === "DoubleDecrementedIterableFunction"
+			t.symbol &&
+			(t.symbol.name === "FirstDecrementedIterableFunction" ||
+				t.symbol.name === "DoubleDecrementedIterableFunction")
 		) {
 			return true;
 		}
@@ -130,8 +131,9 @@ export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.T
 		isSomeType(
 			type,
 			t =>
-				t.symbol.name === "FirstDecrementedIterableFunction" ||
-				t.symbol.name === "DoubleDecrementedIterableFunction",
+				t.symbol &&
+				(t.symbol.name === "FirstDecrementedIterableFunction" ||
+					t.symbol.name === "DoubleDecrementedIterableFunction"),
 		)
 	) {
 		return true;
