@@ -239,5 +239,5 @@ export function getAccessorForBindingType(
 	} else if (isGeneratorType(state, type) || isObjectType(type) || ts.isThis(node)) {
 		return iterAccessor;
 	}
-	assert(false);
+	assert(false, `Destructuring not supported for type: ${state.typeChecker.typeToString(type)}`);
 }
