@@ -18,7 +18,7 @@ function transformCaseClauseExpression(
 	let condition: luau.Expression = luau.binary(switchExpression, "==", expression);
 
 	if (canFallThroughTo) {
-		if (prereqStatements.head) {
+		if (!luau.list.isEmpty(prereqStatements)) {
 			const noFallThroughCondition = luau.unary("not", fallThroughFlagId);
 
 			luau.list.push(
@@ -26,7 +26,7 @@ function transformCaseClauseExpression(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: fallThroughFlagId,
 					operator: "=",
-					right: expression,
+					right: condition,
 				}),
 			);
 
