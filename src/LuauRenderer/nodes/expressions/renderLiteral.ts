@@ -3,7 +3,7 @@ import { RenderState } from "LuauRenderer";
 import { isValidLuauNumberLiteral } from "Shared/util/isValidLuauNumberLiteral";
 
 export function renderNumberLiteral(state: RenderState, node: luau.NumberLiteral) {
-	return isValidLuauNumberLiteral(node.value) ? node.value : String(Number(node.value));
+	return isValidLuauNumberLiteral(node.value) ? node.value : String(Number(node.value.replace(/_/g, "")));
 }
 
 export function renderStringLiteral(state: RenderState, node: luau.StringLiteral) {
