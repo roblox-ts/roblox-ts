@@ -14,15 +14,20 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	const [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
+	// eslint-disable-next-line prefer-const
+	let [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
 	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 
 	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
 	}
 
-	state.prereqList(leftPrereqs);
+	if (!luau.list.isEmpty(leftPrereqs)) {
+		state.prereqList(leftPrereqs);
+		left = state.pushToVar(left);
+	}
 	state.prereqList(rightPrereqs);
+
 	assignToMapPointer(state, ptr, left, right);
 }
 
