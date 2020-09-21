@@ -3,6 +3,8 @@ import { diagnostics } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { walkTypes } from "TSTransformer/util/types";
+import { getKindName } from "TSTransformer/util/getKindName";
+import { skipUpwards } from "TSTransformer/util/traversal";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];
@@ -15,12 +17,32 @@ function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 }
 
 function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
-	if (ts.isFunctionLike(node) && !ts.isFunctionDeclaration(node)) {
+	if (ts.isFunctionLike(node)) {
 		const thisParam = getThisParameter(node.parameters);
 		if (thisParam) {
 			return !(state.getType(thisParam).flags & ts.TypeFlags.Void);
 		} else {
-			return ts.isMethodDeclaration(node) || ts.isMethodSignature(node);
+			// namespace declare functions with `this` arg defined (i.e. utf8)
+			if (ts.isFunctionDeclaration(node)) {
+				return false;
+			}
+
+			if (ts.isMethodDeclaration(node) || ts.isMethodSignature(node)) {
+				return true;
+			}
+
+			// for some reason, FunctionExpressions within ObjectLiteralExpressions are implicitly methods
+			if (ts.isFunctionExpression(node)) {
+				const parent = skipUpwards(node).parent;
+				if (ts.isPropertyAssignment(parent)) {
+					const grandparent = skipUpwards(parent).parent;
+					if (ts.isObjectLiteralExpression(grandparent)) {
+						return true;
+					}
+				}
+			}
+
+			return false;
 		}
 	}
 	return false;
