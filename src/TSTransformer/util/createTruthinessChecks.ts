@@ -25,7 +25,7 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 	}
 
 	if (isAssignableToZero) {
-		checks.push(luau.binary(exp, "~=", luau.create(luau.SyntaxKind.NumberLiteral, { value: 0 })));
+		checks.push(luau.binary(exp, "~=", luau.number(0)));
 	}
 
 	// workaround for https://github.com/microsoft/TypeScript/issues/32778
@@ -34,7 +34,7 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 	}
 
 	if (isAssignableToEmptyString) {
-		checks.push(luau.binary(exp, "~=", luau.create(luau.SyntaxKind.StringLiteral, { value: "" })));
+		checks.push(luau.binary(exp, "~=", luau.string("")));
 	}
 
 	checks.push(exp);
