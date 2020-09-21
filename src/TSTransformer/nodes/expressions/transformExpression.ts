@@ -47,10 +47,11 @@ type ExpressionTransformer = (state: TransformState, node: any) => luau.Expressi
 
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
+	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(diagnostics.noBigInt)],
 	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(diagnostics.noNullLiteral)],
 	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(diagnostics.noPrivateIdentifier)],
-	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
 	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(diagnostics.noRegex)],
+	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
 
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
