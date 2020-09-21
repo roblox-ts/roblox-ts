@@ -286,7 +286,7 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	split: makeStringCallback(luau.globals.string.split),
 	slice: makeStringCallback(luau.globals.string.sub, [1, 0]),
 	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
-	byte: makeStringCallback(luau.globals.string.byte, [1, 1]),
+	byte: makeStringCallback(luau.globals.string.byte, [1, 0]),
 	format: makeStringCallback(luau.globals.string.format),
 	gmatch: makeStringCallback(luau.globals.string.gmatch),
 	find: (state, node, expression) =>
