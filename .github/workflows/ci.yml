@@ -11,12 +11,12 @@ jobs:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v1
         with:
           submodules: recursive
 
-      - name: Install NPM Dependencies
+      - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.1.0
 
       - name: Run ESLint
@@ -24,15 +24,15 @@ jobs:
   unit-tests:
     runs-on: windows-latest
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v1
         with:
           submodules: recursive
 
-      - name: Install NPM Dependencies
+      - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.1.0
 
-      - name: Install Python Dependencies
+      - name: Install Python dependencies
         run: pip install wget psutil
 
       - name: Install Roblox Studio
@@ -51,7 +51,7 @@ jobs:
       - name: Install Rojo and run-in-roblox
         run: foreman install
 
-      - name: Copmile and Run Tests
+      - name: Compile and run tests
         run: npm test
 
       - name: Report Coverage
