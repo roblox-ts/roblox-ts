@@ -249,7 +249,7 @@ export = () => {
 		})(5);
 
 		const obj = {
-			saferNum: function (n: number): number {
+			saferNum: function (this: void, n: number): number {
 				return n === n && n > 0 ? n : 0;
 			}, // wouldn't compile previously because it is a named function
 		};
