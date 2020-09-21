@@ -15,6 +15,8 @@ import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
+const MAGIC_TO_STRING_METHOD = "toString";
+
 function getConstructor(node: ts.ClassLikeDeclaration): (ts.ConstructorDeclaration & { body: ts.Block }) | undefined {
 	return node.members.find(
 		(element): element is ts.ConstructorDeclaration & { body: ts.Block } =>
@@ -398,6 +400,28 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 
 		luau.list.pushList(statementsInner, transformMethodDeclaration(state, method, { value: internalName }));
+	}
+
+	const toStringProperty = instanceType.getProperty(MAGIC_TO_STRING_METHOD);
+	if (toStringProperty && !!(toStringProperty.flags & ts.SymbolFlags.Method)) {
+		luau.list.push(
+			statementsInner,
+			luau.create(luau.SyntaxKind.MethodDeclaration, {
+				expression: internalName,
+				name: "__tostring",
+				hasDotDotDot: false,
+				parameters: luau.list.make(),
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.ReturnStatement, {
+						expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
+							expression: luau.globals.self,
+							name: MAGIC_TO_STRING_METHOD,
+							args: luau.list.make(),
+						}),
+					}),
+				),
+			}),
+		);
 	}
 
 	for (const property of staticProperties) {
