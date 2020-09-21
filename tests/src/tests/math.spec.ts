@@ -111,7 +111,6 @@ export = () => {
 		});
 	});
 
-	// unfortunately, these are the only types and operators that lemur supports
 	describe("should support macro math", () => {
 		it("should add UDim values", () => {
 			const a = new UDim(1, 10);

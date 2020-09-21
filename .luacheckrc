@@ -88,8 +88,6 @@ stds.roblox = {
 				"split"
 			}
 		},
-
-		"__LEMUR__",
     }
 }
 
