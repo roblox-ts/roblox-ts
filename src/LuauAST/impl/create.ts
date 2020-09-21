@@ -66,7 +66,7 @@ export function bool(value: boolean) {
  * @param value The number to make
  */
 export function number(value: number) {
-	return luau.create(luau.SyntaxKind.NumberLiteral, { value });
+	return luau.create(luau.SyntaxKind.NumberLiteral, { value: String(value) });
 }
 
 /**

@@ -84,7 +84,7 @@ function offsetArguments(args: Array<luau.Expression>, argOffsets: Array<number>
 		if (offsetValue !== 0) {
 			const arg = args[i];
 			if (luau.isNumberLiteral(arg)) {
-				args[i] = luau.number(arg.value + offsetValue);
+				args[i] = luau.number(Number(arg.value) + offsetValue);
 			} else {
 				args[i] = offset(arg, offsetValue);
 			}
@@ -403,11 +403,11 @@ function argumentsWithDefaults(
 
 function tryGetNumberLiteralValue(exp: luau.Expression) {
 	if (luau.isNumberLiteral(exp)) {
-		return exp.value;
+		return Number(exp.value);
 	}
 
 	if (luau.isUnaryExpression(exp) && exp.operator === "-" && luau.isNumberLiteral(exp.expression)) {
-		return -exp.expression.value;
+		return -Number(exp.expression.value);
 	}
 
 	return undefined;
@@ -533,7 +533,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: resultId,
 							index:
-								luau.isNumberLiteral(startExp) && startExp.value === 0
+								luau.isNumberLiteral(startExp) && Number(startExp.value) === 0
 									? iteratorId
 									: luau.binary(
 											iteratorId,

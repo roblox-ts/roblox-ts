@@ -5,7 +5,7 @@ export function offset(expression: luau.Expression, value: number) {
 		return expression;
 	}
 	if (luau.isNumberLiteral(expression)) {
-		return luau.number(expression.value + value);
+		return luau.number(Number(expression.value) + value);
 	} else {
 		return luau.binary(expression, value > 0 ? "+" : "-", luau.number(Math.abs(value)));
 	}

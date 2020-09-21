@@ -1,9 +1,9 @@
 import luau from "LuauAST";
 import { RenderState } from "LuauRenderer";
+import { isValidLuauNumberLiteral } from "Shared/util/isValidLuauNumberLiteral";
 
 export function renderNumberLiteral(state: RenderState, node: luau.NumberLiteral) {
-	// TODO exponents?
-	return `${node.value}`;
+	return isValidLuauNumberLiteral(node.value) ? node.value : String(Number(node.value));
 }
 
 export function renderStringLiteral(state: RenderState, node: luau.StringLiteral) {

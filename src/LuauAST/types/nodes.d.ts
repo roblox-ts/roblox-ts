@@ -42,7 +42,7 @@ export interface FalseLiteral extends luau.Expression<luau.SyntaxKind.FalseLiter
 export interface TrueLiteral extends luau.Expression<luau.SyntaxKind.TrueLiteral> {}
 
 export interface NumberLiteral extends luau.Expression<luau.SyntaxKind.NumberLiteral> {
-	value: number;
+	value: string;
 }
 
 export interface StringLiteral extends luau.Expression<luau.SyntaxKind.StringLiteral> {

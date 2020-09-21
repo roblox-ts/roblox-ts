@@ -4,6 +4,6 @@ import { TransformState } from "TSTransformer";
 
 export function transformNumericLiteral(state: TransformState, node: ts.NumericLiteral) {
 	return luau.create(luau.SyntaxKind.NumberLiteral, {
-		value: Number(node.text),
+		value: node.getText(),
 	});
 }
