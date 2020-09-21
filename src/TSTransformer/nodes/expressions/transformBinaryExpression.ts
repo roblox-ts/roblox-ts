@@ -246,6 +246,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			state,
 			node.left,
 			node.right,
+			true,
 			operator === undefined,
 		);
 		if (operator !== undefined) {

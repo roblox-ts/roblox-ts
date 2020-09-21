@@ -43,6 +43,7 @@ export function transformExpressionStatementInner(state: TransformState, express
 				expression.left,
 				expression.right,
 				operator === undefined,
+				operator === undefined,
 			);
 			if (operator !== undefined) {
 				return luau.list.make(
