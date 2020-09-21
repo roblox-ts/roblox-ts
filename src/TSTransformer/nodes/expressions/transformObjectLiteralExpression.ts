@@ -20,12 +20,10 @@ function transformPropertyAssignment(
 
 	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
-	}
-
-	if (!luau.list.isEmpty(leftPrereqs)) {
 		state.prereqList(leftPrereqs);
 		left = state.pushToVar(left);
 	}
+
 	state.prereqList(rightPrereqs);
 
 	assignToMapPointer(state, ptr, left, right);
