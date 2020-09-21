@@ -86,7 +86,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 		} else if (ts.isSpreadAssignment(property)) {
 			transformSpreadAssignment(state, ptr, property);
 		} else if (ts.isMethodDeclaration(property)) {
-			transformMethodDeclaration(state, property, ptr);
+			state.prereqList(transformMethodDeclaration(state, property, ptr));
 		} else {
 			// must be ts.AccessorDeclaration, which is banned
 			state.addDiagnostic(diagnostics.noGetterSetter(property));
