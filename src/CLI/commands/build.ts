@@ -18,6 +18,17 @@ function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOption
 	}
 }
 
+function findTsConfigPath(projectPath: string) {
+	let tsConfigPath: string | undefined = path.resolve(projectPath);
+	if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
+		tsConfigPath = ts.findConfigFile(tsConfigPath, ts.sys.fileExists);
+		if (tsConfigPath === undefined) {
+			throw new CLIError("Unable to find tsconfig.json!");
+		}
+	}
+	return path.resolve(process.cwd(), tsConfigPath);
+}
+
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
@@ -65,19 +76,14 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			}),
 
 	handler: async argv => {
-		// attempt to retrieve TypeScript configuration JSON path
-		let tsConfigPath: string | undefined = path.resolve(argv.project);
-		if (!fs.existsSync(tsConfigPath) || !fs.statSync(tsConfigPath).isFile()) {
-			tsConfigPath = ts.findConfigFile(tsConfigPath, ts.sys.fileExists);
-			if (tsConfigPath === undefined) {
-				throw new CLIError("Unable to find tsconfig.json!");
-			}
-		}
-		tsConfigPath = path.resolve(process.cwd(), tsConfigPath);
+		const tsConfigPath = findTsConfigPath(argv.project);
 
 		// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
-		const tsConfigProjectOptions = getTsConfigProjectOptions(tsConfigPath);
-		const projectOptions: Partial<ProjectOptions> = Object.assign({}, tsConfigProjectOptions, argv as ProjectFlags);
+		const projectOptions: Partial<ProjectOptions> = Object.assign(
+			{},
+			getTsConfigProjectOptions(tsConfigPath),
+			argv as ProjectFlags,
+		);
 
 		// if watch mode is enabled
 		if (argv.watch) {
