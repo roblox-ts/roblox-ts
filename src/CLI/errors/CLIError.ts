@@ -1,5 +1,6 @@
-import kleur from "kleur";
+import ts from "byots";
 import { LoggableError } from "Shared/errors/LoggableError";
+import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
 export class CLIError extends LoggableError {
 	constructor(private message: string) {
@@ -7,6 +8,15 @@ export class CLIError extends LoggableError {
 	}
 
 	public toString() {
-		return kleur.red("CLI Error:") + " " + this.message;
+		return formatDiagnostics([
+			{
+				category: ts.DiagnosticCategory.Error,
+				code: (" roblox-ts" as unknown) as number,
+				file: undefined,
+				messageText: this.message,
+				start: undefined,
+				length: undefined,
+			},
+		]).replace(/TS roblox\-ts/g, "roblox-ts");
 	}
 }

@@ -46,6 +46,8 @@ export class TransformState {
 		return renderStatements(new RenderState(), list);
 	}
 
+	public readonly resolver: ts.EmitResolver;
+
 	constructor(
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly multiTransformState: MultiTransformState,
@@ -56,7 +58,6 @@ export class TransformState {
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
 		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
-		public readonly resolver: ts.EmitResolver,
 		public readonly globalSymbols: GlobalSymbols,
 		public readonly macroManager: MacroManager,
 		public readonly roactSymbolManager: RoactSymbolManager | undefined,
@@ -65,6 +66,7 @@ export class TransformState {
 		sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
+		this.resolver = typeChecker.getEmitResolver(sourceFile);
 	}
 
 	public readonly tryUsesStack = new Array<TryUses>();
@@ -159,7 +161,10 @@ export class TransformState {
 	 * @param type The type to convert.
 	 */
 	public getSimpleType(type: ts.Type) {
-		return tsst.toSimpleType(type as originalTS.Type, this.typeChecker as originalTS.TypeChecker);
+		return tsst.toSimpleType(
+			(type as unknown) as originalTS.Type,
+			(this.typeChecker as unknown) as originalTS.TypeChecker,
+		);
 	}
 
 	/**

@@ -1,6 +1,7 @@
 import path from "path";
 
 export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
+export const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
 // intentionally not using PACKAGE_ROOT because playground has webpack issues
 // eslint-disable-next-line @typescript-eslint/no-require-imports

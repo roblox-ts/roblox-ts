@@ -1,8 +1,8 @@
 import ts from "byots";
 import { renderAST } from "LuauRenderer";
 import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoResolver } from "Shared/classes/RojoResolver";
 import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
@@ -112,7 +112,6 @@ export class VirtualProject {
 			[NODE_MODULES, RBXTS_SCOPE],
 			this.nodeModulesPathMapping,
 			typeChecker,
-			typeChecker.getEmitResolver(sourceFile),
 			new GlobalSymbols(typeChecker),
 			new MacroManager(this.program, typeChecker, this.nodeModulesPath),
 			roactSymbolManager,
