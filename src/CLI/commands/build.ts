@@ -9,8 +9,7 @@ import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchPro
 import { ProjectFlags, ProjectOptions } from "Project/types";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectError } from "Shared/errors/ProjectError";
+import { LoggableError } from "Shared/errors/LoggableError";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -91,6 +90,8 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 
 		LogService.verbose = argv.verbose === true;
 
+		const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+
 		try {
 			const data = createProjectData(tsConfigPath, projectOptions, argv);
 			if (argv.watch) {
@@ -99,11 +100,13 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				const program = createProjectProgram(data);
 				const services = createProjectServices(program, data);
 				cleanup(services.pathTranslator);
-				compileAll(program, data, services);
+				const emitResult = compileAll(program, data, services);
+				for (const diagnostic of emitResult.diagnostics) {
+					diagnosticReporter(diagnostic);
+				}
 			}
 		} catch (e) {
-			// catch recognized errors
-			if (e instanceof ProjectError || e instanceof DiagnosticError) {
+			if (e instanceof LoggableError) {
 				e.log();
 				process.exit(1);
 			} else {
