@@ -66,7 +66,7 @@ export function transformCallExpressionInner(
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
 	if (symbol) {
-		const macro = state.macroManager.getCallMacro(symbol);
+		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
 			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}
@@ -92,7 +92,7 @@ export function transformPropertyCallExpressionInner(
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
 	if (symbol) {
-		const macro = state.macroManager.getPropertyCallMacro(symbol);
+		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
 			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}
@@ -142,7 +142,7 @@ export function transformElementCallExpressionInner(
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
 	if (symbol) {
-		const macro = state.macroManager.getPropertyCallMacro(symbol);
+		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
 			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
 		}

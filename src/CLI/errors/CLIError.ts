@@ -1,12 +1,8 @@
-import kleur from "kleur";
-import { LoggableError } from "Shared/errors/LoggableError";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
+import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
-export class CLIError extends LoggableError {
-	constructor(private message: string) {
-		super();
-	}
-
-	public toString() {
-		return kleur.red("CLI Error:") + " " + this.message;
+export class CLIError extends DiagnosticError {
+	constructor(message: string) {
+		super([createTextDiagnostic(message)]);
 	}
 }

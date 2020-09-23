@@ -254,7 +254,7 @@ export function transformJsxChildren(
 				} else {
 					const type = state.getType(innerExp);
 
-					if (state.roactSymbolManager && state.roactSymbolManager.isElementType(type)) {
+					if (state.services.roactSymbolManager && state.services.roactSymbolManager.isElementType(type)) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {

@@ -1,4 +1,5 @@
 export class LogService {
+	public static verbose = false;
 	private static partial = false;
 
 	static write(message: string) {
@@ -12,6 +13,12 @@ export class LogService {
 		}
 		for (const message of messages) {
 			this.write(message + "\n");
+		}
+	}
+
+	static writeLineIfVerbose(...messages: Array<unknown>) {
+		if (this.verbose) {
+			this.writeLine(...messages);
 		}
 	}
 }

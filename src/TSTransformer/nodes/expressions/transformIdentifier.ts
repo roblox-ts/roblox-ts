@@ -94,11 +94,11 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return luau.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
 		state.addDiagnostic(diagnostics.noArguments(node));
-	} else if (symbol === state.globalSymbols.globalThis) {
+	} else if (symbol === state.services.globalSymbols.globalThis) {
 		state.addDiagnostic(diagnostics.noGlobalThis(node));
 	}
 
-	const macro = state.macroManager.getIdentifierMacro(symbol);
+	const macro = state.services.macroManager.getIdentifierMacro(symbol);
 	if (macro) {
 		return macro(state, node);
 	}
@@ -106,13 +106,13 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	// TODO is this slow?
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
-		const constructorMacro = state.macroManager.getConstructorMacro(constructSymbol);
+		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
 		if (constructorMacro) {
 			state.addDiagnostic(diagnostics.noConstructorMacroWithoutNew(node));
 		}
 	}
 
-	if (!ts.isCallExpression(skipUpwards(node).parent) && state.macroManager.getCallMacro(symbol)) {
+	if (!ts.isCallExpression(skipUpwards(node).parent) && state.services.macroManager.getCallMacro(symbol)) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return luau.emptyId();
 	}

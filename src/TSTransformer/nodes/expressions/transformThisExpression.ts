@@ -5,7 +5,7 @@ import { TransformState } from "TSTransformer";
 
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
-	if (symbol === state.globalSymbols.globalThis) {
+	if (symbol === state.services.globalSymbols.globalThis) {
 		state.addDiagnostic(diagnostics.noGlobalThis(node));
 	}
 

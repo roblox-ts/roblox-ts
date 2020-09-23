@@ -2,11 +2,14 @@ import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { Project, ProjectFlags, ProjectOptions } from "Project";
+import { compileAll } from "Project";
+import { createProjectData, createProjectProgram, createProjectServices } from "Project/functions/bootstrap";
+import { cleanup } from "Project/functions/cleanup";
+import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
+import { ProjectFlags, ProjectOptions } from "Project/types";
+import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectError } from "Shared/errors/ProjectError";
-import { assert } from "Shared/util/assert";
+import { LoggableError } from "Shared/errors/LoggableError";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -51,6 +54,12 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "enable watch mode",
 			})
+			.option("usePolling", {
+				alias: "w",
+				boolean: true,
+				default: false,
+				describe: "use polling for watch mode",
+			})
 			.option("verbose", {
 				boolean: true,
 				default: false,
@@ -85,23 +94,29 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			argv as ProjectFlags,
 		);
 
-		// if watch mode is enabled
-		if (argv.watch) {
-			assert(false, "Watch mode is not implemented");
-		} else {
-			try {
-				// attempt to build the project
-				const project = new Project(tsConfigPath, projectOptions, argv);
-				project.cleanup();
-				project.compileAll();
-			} catch (e) {
-				// catch recognized errors
-				if (e instanceof ProjectError || e instanceof DiagnosticError) {
-					e.log();
-					process.exit(1);
-				} else {
-					throw e;
+		LogService.verbose = argv.verbose === true;
+
+		const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+
+		try {
+			const data = createProjectData(tsConfigPath, projectOptions, argv);
+			if (argv.watch) {
+				setupProjectWatchProgram(data, argv.usePolling);
+			} else {
+				const program = createProjectProgram(data);
+				const services = createProjectServices(program, data);
+				cleanup(services.pathTranslator);
+				const emitResult = compileAll(program, data, services);
+				for (const diagnostic of emitResult.diagnostics) {
+					diagnosticReporter(diagnostic);
 				}
+			}
+		} catch (e) {
+			if (e instanceof LoggableError) {
+				e.log();
+				process.exit(1);
+			} else {
+				throw e;
 			}
 		}
 	},

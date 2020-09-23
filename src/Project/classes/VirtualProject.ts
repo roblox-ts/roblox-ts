@@ -1,10 +1,11 @@
 import ts from "byots";
 import { renderAST } from "LuauRenderer";
 import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
+import { ProjectData, ProjectServices } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { validateCompilerOptions } from "Project/util/validateCompilerOptions";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { RojoResolver } from "Shared/classes/RojoResolver";
+import { RojoResolver, RbxPath } from "Shared/classes/RojoResolver";
 import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
@@ -23,19 +24,30 @@ const OUT_DIR = pathJoin(PROJECT_DIR, "out");
 const PLAYGROUND_PATH = pathJoin(ROOT_DIR, "playground.tsx");
 
 export class VirtualProject {
+	private readonly data: ProjectData;
+
 	public readonly vfs: VirtualFileSystem;
 
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly rojoResolver: RojoResolver;
-	private readonly pathTranslator: PathTranslator;
-	private readonly nodeModulesPath: string;
-	private readonly nodeModulesPathMapping: Map<string, string>;
 	private readonly compilerHost: ts.CompilerHost;
 
 	private program: ts.Program | undefined;
+	private typeChecker: ts.TypeChecker | undefined;
 
 	constructor() {
-		this.nodeModulesPath = pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE);
+		this.data = {
+			includePath: "",
+			isPackage: false,
+			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE),
+			nodeModulesPathMapping: new Map(),
+			noInclude: false,
+			pkgVersion: "",
+			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
+			projectPath: "",
+			rojoConfigPath: undefined,
+			tsConfigPath: "",
+		};
 
 		this.compilerOptions = {
 			allowSyntheticDefaultImports: true,
@@ -44,14 +56,14 @@ export class VirtualProject {
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
-			typeRoots: [this.nodeModulesPath],
+			typeRoots: [this.data.nodeModulesPath],
 			resolveJsonModule: true,
 			rootDir: ROOT_DIR,
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
 			jsxFactory: "Roact.createElement",
 		};
-		validateCompilerOptions(this.compilerOptions, this.nodeModulesPath);
+		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
 
 		this.vfs = new VirtualFileSystem();
 
@@ -69,8 +81,25 @@ export class VirtualProject {
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoResolver = RojoResolver.synthetic(PROJECT_DIR, false);
-		this.pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
-		this.nodeModulesPathMapping = new Map<string, string>();
+	}
+
+	private createServices(): ProjectServices {
+		assert(this.program && this.typeChecker);
+		const globalSymbols = new GlobalSymbols(this.typeChecker);
+		const macroManager = new MacroManager(this.program, this.typeChecker, this.data.nodeModulesPath);
+		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
+		const roactIndexSourceFile = this.program.getSourceFile(
+			pathJoin(this.data.nodeModulesPath, "roact", "index.d.ts"),
+		);
+		const roactSymbolManager = roactIndexSourceFile
+			? new RoactSymbolManager(this.typeChecker, roactIndexSourceFile)
+			: undefined;
+		return {
+			globalSymbols,
+			macroManager,
+			pathTranslator,
+			roactSymbolManager,
+		};
 	}
 
 	public compileSource(source: string) {
@@ -80,50 +109,40 @@ export class VirtualProject {
 			.getFilePaths()
 			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
+		this.typeChecker = this.program.getDiagnosticsProducingTypeChecker();
 
-		const typeChecker = this.program.getDiagnosticsProducingTypeChecker();
-
-		let roactSymbolManager: RoactSymbolManager | undefined;
-		const roactIndexSourceFile = this.program.getSourceFile(pathJoin(this.nodeModulesPath, "roact", "index.d.ts"));
-		if (roactIndexSourceFile) {
-			roactSymbolManager = new RoactSymbolManager(typeChecker, roactIndexSourceFile);
-		}
+		const services = this.createServices();
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);
 		assert(sourceFile);
 
-		const totalDiagnostics = new Array<ts.Diagnostic>();
+		const diagnostics = new Array<ts.Diagnostic>();
+		if (diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile)) > 0) throw new DiagnosticError(diagnostics);
+		if (diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile)) > 0)
+			throw new DiagnosticError(diagnostics);
 
-		const customPreEmitDiagnostics = getCustomPreEmitDiagnostics(sourceFile);
-		totalDiagnostics.push(...customPreEmitDiagnostics);
-		if (totalDiagnostics.length > 0) throw new DiagnosticError(totalDiagnostics);
+		const multiTransformState = new MultiTransformState();
 
-		const preEmitDiagnostics = ts.getPreEmitDiagnostics(this.program, sourceFile);
-		totalDiagnostics.push(...preEmitDiagnostics);
-		if (totalDiagnostics.length > 0) throw new DiagnosticError(totalDiagnostics);
+		const runtimeLibRbxPath = undefined;
+		const nodeModulesRbxPath: RbxPath = [];
+		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
+			this.data,
+			services,
+			multiTransformState,
 			this.compilerOptions,
-			new MultiTransformState(),
 			this.rojoResolver,
-			this.pathTranslator,
-			undefined,
-			this.nodeModulesPath,
-			[NODE_MODULES, RBXTS_SCOPE],
-			this.nodeModulesPathMapping,
-			typeChecker,
-			typeChecker.getEmitResolver(sourceFile),
-			new GlobalSymbols(typeChecker),
-			new MacroManager(this.program, typeChecker, this.nodeModulesPath),
-			roactSymbolManager,
-			ProjectType.Model,
-			undefined,
+			runtimeLibRbxPath,
+			nodeModulesRbxPath,
+			this.typeChecker,
+			projectType,
 			sourceFile,
 		);
 
 		const luaAST = transformSourceFile(transformState, sourceFile);
-		totalDiagnostics.push(...transformState.diagnostics);
-		if (totalDiagnostics.length > 0) throw new DiagnosticError(totalDiagnostics);
+		diagnostics.push(...transformState.diagnostics);
+		if (diagnostics.length > 0) throw new DiagnosticError(diagnostics);
 
 		const luaSource = renderAST(luaAST);
 		return luaSource;

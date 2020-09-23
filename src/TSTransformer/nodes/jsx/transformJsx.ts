@@ -18,9 +18,9 @@ export function transformJsx(
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
 	const isFragment =
-		state.roactSymbolManager &&
+		state.services.roactSymbolManager &&
 		state.typeChecker.getSymbolAtLocation(tagName) ===
-			state.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
+			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
 	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.emptyId();
 	const attributesPtr = createMapPointer();

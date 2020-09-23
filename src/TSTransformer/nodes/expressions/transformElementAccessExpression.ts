@@ -23,7 +23,7 @@ export function transformElementAccessExpressionInner(
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node));
 	if (symbol) {
-		if (state.macroManager.getPropertyCallMacro(symbol)) {
+		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
 			state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 			return luau.emptyId();
 		}

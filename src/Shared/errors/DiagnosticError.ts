@@ -3,7 +3,7 @@ import { LoggableError } from "Shared/errors/LoggableError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
 export class DiagnosticError extends LoggableError {
-	constructor(private diagnostics: Array<ts.Diagnostic>) {
+	constructor(public readonly diagnostics: ReadonlyArray<ts.Diagnostic>) {
 		super();
 	}
 
