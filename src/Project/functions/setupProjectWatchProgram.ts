@@ -12,19 +12,11 @@ import { ProjectServices } from "Project/types";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 
-const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
-	awaitWriteFinish: {
-		pollInterval: 10,
-		stabilityThreshold: 50,
-	},
-	ignoreInitial: true,
-};
-
 function isCompilableFile(fsPath: string) {
 	return fsPath.endsWith(ts.Extension.Ts) || fsPath.endsWith(ts.Extension.Tsx);
 }
 
-export function setupProjectWatchProgram(data: ProjectData) {
+export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	// eslint-disable-next-line prefer-const
 	let { fileNames, options } = getParsedCommandLine(data);
 
@@ -105,7 +97,15 @@ export function setupProjectWatchProgram(data: ProjectData) {
 	}
 
 	chokidar
-		.watch(getRootDirs(options), CHOKIDAR_OPTIONS)
+		.watch(getRootDirs(options), {
+			awaitWriteFinish: {
+				pollInterval: 10,
+				stabilityThreshold: 50,
+			},
+			ignoreInitial: true,
+			disableGlobbing: true,
+			usePolling,
+		})
 		.on("change", fsPath => compile(fsPath))
 		.on("add", fsPath => {
 			fileNames.push(fsPath);

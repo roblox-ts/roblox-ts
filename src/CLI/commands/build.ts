@@ -54,6 +54,12 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "enable watch mode",
 			})
+			.option("usePolling", {
+				alias: "w",
+				boolean: true,
+				default: false,
+				describe: "use polling for watch mode",
+			})
 			.option("verbose", {
 				boolean: true,
 				default: false,
@@ -95,7 +101,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 		try {
 			const data = createProjectData(tsConfigPath, projectOptions, argv);
 			if (argv.watch) {
-				setupProjectWatchProgram(data);
+				setupProjectWatchProgram(data, argv.usePolling);
 			} else {
 				const program = createProjectProgram(data);
 				const services = createProjectServices(program, data);

@@ -14,6 +14,7 @@ export interface ProjectFlags {
 	project: string;
 	verbose: boolean;
 	watch: boolean;
+	usePolling: boolean;
 }
 
 export interface ProjectServices {
