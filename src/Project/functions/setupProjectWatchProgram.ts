@@ -5,6 +5,7 @@ import { tryRemove } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyItem } from "Project/functions/copyFiles";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
+import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectServices } from "Project/types";
@@ -76,10 +77,11 @@ export function setupProjectWatchProgram(data: ProjectData) {
 			return emitResult;
 		} else if (fsPath !== undefined) {
 			if (isCompilableFile(fsPath)) {
-				const sourceFile = program.getSourceFile(fsPath);
-				assert(sourceFile, `Could not find sourceFile for ${fsPath}`);
-				const emitResult = compileFiles(program, data, services, [sourceFile]);
-				program.getProgram().emitBuildInfo();
+				const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : fsPath);
+				const emitResult = compileFiles(program, data, services, sourceFiles);
+				if (emitResult.diagnostics.length === 0) {
+					program.getProgram().emitBuildInfo();
+				}
 				return emitResult;
 			} else {
 				copyItem(services, fsPath);

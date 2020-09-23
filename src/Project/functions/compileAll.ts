@@ -10,6 +10,8 @@ export function compileAll(program: ts.BuilderProgram, data: ProjectData, servic
 	copyInclude(data);
 	copyFiles(program, services, new Set(getRootDirs(program.getCompilerOptions())));
 	const emitResult = compileFiles(program, data, services, getChangedSourceFiles(program));
-	program.getProgram().emitBuildInfo();
+	if (emitResult.diagnostics.length === 0) {
+		program.getProgram().emitBuildInfo();
+	}
 	return emitResult;
 }
