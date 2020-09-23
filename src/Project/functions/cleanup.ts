@@ -4,8 +4,7 @@ import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 
 function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) {
-	const inputPaths = pathTranslator.getInputPaths(filePath);
-	for (const path of inputPaths) {
+	for (const path of pathTranslator.getInputPaths(filePath)) {
 		if (fs.pathExistsSync(path)) {
 			return false;
 		}
