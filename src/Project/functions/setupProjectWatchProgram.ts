@@ -112,14 +112,17 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		})
 		.on("change", fsPath => onFileChanged(fsPath))
 		.on("add", fsPath => {
-			fileNames.push(fsPath);
+			if (isCompilableFile(fsPath)) {
+				fileNames.push(fsPath);
+			}
 			onFileChanged(fsPath);
 		})
 		.on("unlink", fsPath => {
+			if (isCompilableFile(fsPath)) {
+				fileNames = fileNames.filter(v => v === fsPath);
+			}
 			assert(services);
-			fileNames = fileNames.filter(v => v === fsPath);
-			const outPath = services.pathTranslator.getOutputPath(fsPath);
-			tryRemove(services.pathTranslator, outPath);
+			tryRemove(services.pathTranslator, services.pathTranslator.getOutputPath(fsPath));
 		});
 
 	reportText("Starting compilation in watch mode...");
