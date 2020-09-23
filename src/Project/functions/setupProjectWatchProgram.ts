@@ -83,7 +83,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function compile(fsPath?: string) {
-		reportText("File change detected. Starting incremental compilation...");
 		refreshProgram();
 		const emitResult = compileWithEmitResult(fsPath);
 		for (const diagnostic of emitResult.diagnostics) {
@@ -96,6 +95,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		);
 	}
 
+	function onFileChanged(fsPath: string) {
+		reportText("File change detected. Starting incremental compilation...");
+		compile(fsPath);
+	}
+
 	chokidar
 		.watch(getRootDirs(options), {
 			awaitWriteFinish: {
@@ -106,10 +110,10 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			disableGlobbing: true,
 			usePolling,
 		})
-		.on("change", fsPath => compile(fsPath))
+		.on("change", fsPath => onFileChanged(fsPath))
 		.on("add", fsPath => {
 			fileNames.push(fsPath);
-			compile(fsPath);
+			onFileChanged(fsPath);
 		})
 		.on("unlink", fsPath => {
 			assert(services);
