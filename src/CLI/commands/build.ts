@@ -2,16 +2,10 @@ import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import {
-	createProjectData,
-	createProjectProgram,
-	createProjectServices,
-	createProjectWatchProgram,
-} from "Project/functions/bootstrap";
+import { compileAll } from "Project";
+import { createProjectData, createProjectProgram, createProjectServices } from "Project/functions/bootstrap";
 import { cleanup } from "Project/functions/cleanup";
-import { copyFiles } from "Project/functions/copyFiles";
-import { copyInclude } from "Project/functions/copyInclude";
-import { getRootDirs } from "Project/functions/getRootDirs";
+import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { ProjectFlags, ProjectOptions } from "Project/types";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
@@ -100,17 +94,12 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 		try {
 			const data = createProjectData(tsConfigPath, projectOptions, argv);
 			if (argv.watch) {
-				createProjectWatchProgram(data);
+				setupProjectWatchProgram(data);
 			} else {
 				const program = createProjectProgram(data);
 				const services = createProjectServices(program, data);
 				cleanup(services.pathTranslator);
-				copyInclude(data);
-				copyFiles(program, services, new Set(getRootDirs(program)));
-				const emitResult = program.emit();
-				if (emitResult.diagnostics.length > 0) {
-					throw new DiagnosticError(emitResult.diagnostics);
-				}
+				compileAll(program, data, services);
 			}
 		} catch (e) {
 			// catch recognized errors

@@ -1,5 +1,6 @@
 import ts from "byots";
 import kleur from "kleur";
+import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 
 export type DiagnosticFactory = {
 	(node: ts.Node): ts.DiagnosticWithLocation;
@@ -14,19 +15,6 @@ function suggestion(text: string) {
 
 function issue(id: number) {
 	return "More information: " + kleur.grey(`${REPO_URL}/issues/${id}`);
-}
-
-export function createDiagnosticWithLocation(id: number, message: string, node: ts.Node): ts.DiagnosticWithLocation {
-	return {
-		category: ts.DiagnosticCategory.Error,
-		code: (" roblox-ts" as unknown) as number,
-		file: node.getSourceFile(),
-		messageText: message,
-		start: node.getStart(),
-		length: node.getWidth(),
-		diagnosticType: 0,
-		id,
-	} as ts.DiagnosticWithLocation;
 }
 
 let id = 0;

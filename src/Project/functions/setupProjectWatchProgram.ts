@@ -1,0 +1,108 @@
+import ts from "byots";
+import chokidar from "chokidar";
+import { compileAll, createProjectServices, ProjectData } from "Project";
+import { tryRemove } from "Project/functions/cleanup";
+import { compileFiles } from "Project/functions/compileFiles";
+import { copyItem } from "Project/functions/copyFiles";
+import { createProgramFactory } from "Project/functions/createProgramFactory";
+import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
+import { getRootDirs } from "Project/functions/getRootDirs";
+import { ProjectServices } from "Project/types";
+import { assert } from "Shared/util/assert";
+
+const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
+	awaitWriteFinish: {
+		pollInterval: 10,
+		stabilityThreshold: 50,
+	},
+	ignoreInitial: true,
+};
+
+function isCompilableFile(fsPath: string) {
+	return fsPath.endsWith(ts.Extension.Ts) || fsPath.endsWith(ts.Extension.Tsx);
+}
+
+export function setupProjectWatchProgram(data: ProjectData) {
+	// eslint-disable-next-line prefer-const
+	let { fileNames, options } = getParsedCommandLine(data);
+
+	let initialCompileCompleted = false;
+
+	let program!: ts.EmitAndSemanticDiagnosticsBuilderProgram;
+	let services!: ProjectServices;
+	const createProgram = createProgramFactory(data, options);
+	function refreshProgram() {
+		program = createProgram(fileNames, options);
+		services = createProjectServices(program, data);
+	}
+	refreshProgram();
+
+	const watchReporter = ts.createWatchStatusReporter(ts.sys, true);
+	const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+
+	function reportText(text: string) {
+		watchReporter(
+			{
+				category: ts.DiagnosticCategory.Message,
+				messageText: text,
+				code: 1234,
+				file: undefined,
+				length: undefined,
+				start: undefined,
+			},
+			ts.sys.newLine,
+			options,
+		);
+	}
+
+	function compileWithEmitResult(fsPath?: string): ts.EmitResult {
+		if (!initialCompileCompleted) {
+			const emitResult = compileAll(program, data, services);
+			if (emitResult.diagnostics.length === 0) {
+				initialCompileCompleted = true;
+			}
+			return emitResult;
+		} else if (fsPath !== undefined) {
+			if (isCompilableFile(fsPath)) {
+				const sourceFile = program.getSourceFile(fsPath);
+				assert(sourceFile, `Could not find sourceFile for ${fsPath}`);
+				const emitResult = compileFiles(program, data, services, [sourceFile]);
+				program.getProgram().emitBuildInfo();
+				return emitResult;
+			} else {
+				copyItem(services, fsPath);
+			}
+		}
+		return { emitSkipped: false, diagnostics: [] };
+	}
+
+	function compile(fsPath?: string) {
+		reportText("File change detected. Starting incremental compilation...");
+		refreshProgram();
+		const emitResult = compileWithEmitResult(fsPath);
+		for (const diagnostic of emitResult.diagnostics) {
+			diagnosticReporter(diagnostic);
+		}
+		reportText(
+			`Found ${emitResult.diagnostics.length} error${
+				emitResult.diagnostics.length === 1 ? "" : "s"
+			}. Watching for file changes.`,
+		);
+	}
+
+	chokidar
+		.watch(getRootDirs(options), CHOKIDAR_OPTIONS)
+		.on("change", fsPath => compile(fsPath))
+		.on("add", fsPath => {
+			fileNames.push(fsPath);
+			compile(fsPath);
+		})
+		.on("unlink", fsPath => {
+			fileNames = fileNames.filter(v => v === fsPath);
+			const outPath = services.pathTranslator.getOutputPath(fsPath);
+			tryRemove(services.pathTranslator, outPath);
+		});
+
+	reportText("Starting compilation in watch mode...");
+	compile();
+}

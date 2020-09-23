@@ -1,19 +1,13 @@
 import { describe } from "mocha";
 import path from "path";
-import {
-	createProjectData,
-	createProjectProgram,
-	createProjectServices,
-	getPreEmitInfo,
-} from "Project/functions/bootstrap";
-import { compileFiles, compileFile } from "Project/functions/compileFiles";
+import { createProjectData, createProjectProgram, createProjectServices } from "Project/functions/bootstrap";
+import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { PACKAGE_ROOT } from "Shared/constants";
-import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectError } from "Shared/errors/ProjectError";
+import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
 describe("should compile tests project", () => {
 	const data = createProjectData(
@@ -31,34 +25,18 @@ describe("should compile tests project", () => {
 
 	it("should copy include files", () => copyInclude(data));
 
-	it("should copy non-compiled files", () => copyFiles(program, services, new Set(getRootDirs(program))));
-
-	const { multiTransformState, rojoResolver, projectType, runtimeLibRbxPath, nodeModulesRbxPath } = getPreEmitInfo(
-		data,
-	);
+	it("should copy non-compiled files", () => {
+		copyFiles(program, services, new Set(getRootDirs(program.getCompilerOptions())));
+	});
 
 	for (const sourceFile of getChangedSourceFiles(program)) {
 		const fileName = path.relative(process.cwd(), sourceFile.fileName);
 		it(`should compile ${fileName}`, done => {
-			try {
-				compileFile(
-					program,
-					data,
-					services,
-					sourceFile,
-					multiTransformState,
-					rojoResolver,
-					projectType,
-					runtimeLibRbxPath,
-					nodeModulesRbxPath,
-				);
+			const emitResult = compileFiles(program, data, services, [sourceFile]);
+			if (emitResult.diagnostics.length > 0) {
+				done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
+			} else {
 				done();
-			} catch (e) {
-				if (e instanceof ProjectError || e instanceof DiagnosticError) {
-					done(new Error("\n" + e.toString()));
-				} else {
-					done(e);
-				}
 			}
 		});
 	}

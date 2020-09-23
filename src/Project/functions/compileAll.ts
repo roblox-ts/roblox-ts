@@ -8,7 +8,8 @@ import { ProjectData, ProjectServices } from "Project/types";
 
 export function compileAll(program: ts.BuilderProgram, data: ProjectData, services: ProjectServices) {
 	copyInclude(data);
-	copyFiles(program, services, new Set(getRootDirs(program)));
-	compileFiles(program, data, services, getChangedSourceFiles(program));
+	copyFiles(program, services, new Set(getRootDirs(program.getCompilerOptions())));
+	const emitResult = compileFiles(program, data, services, getChangedSourceFiles(program));
 	program.getProgram().emitBuildInfo();
+	return emitResult;
 }
