@@ -1,14 +1,13 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import * as tsst from "ts-simple-type";
-import { GlobalSymbols, MacroManager, MultiTransformState, RoactSymbolManager } from "TSTransformer";
+import { MultiTransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
@@ -49,20 +48,15 @@ export class TransformState {
 	public readonly resolver: ts.EmitResolver;
 
 	constructor(
-		public readonly compilerOptions: ts.CompilerOptions,
+		public readonly data: import("Project/types").ProjectData,
+		public readonly services: import("Project/types").ProjectServices,
 		public readonly multiTransformState: MultiTransformState,
+		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
-		public readonly pathTranslator: PathTranslator,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
-		public readonly nodeModulesPath: string,
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
-		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly typeChecker: ts.TypeChecker,
-		public readonly globalSymbols: GlobalSymbols,
-		public readonly macroManager: MacroManager,
-		public readonly roactSymbolManager: RoactSymbolManager | undefined,
-		public readonly projectType: ProjectType | undefined,
-		public readonly pkgVersion: string | undefined,
+		public readonly projectType: ProjectType,
 		sourceFile: ts.SourceFile,
 	) {
 		this.sourceFileText = sourceFile.getFullText();
@@ -255,7 +249,7 @@ export class TransformState {
 					right: expression,
 				});
 			} else {
-				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+				const sourceOutPath = this.services.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					this.addDiagnostic(diagnostics.noRojoData(sourceFile));

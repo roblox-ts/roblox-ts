@@ -49,10 +49,10 @@ export function isArrayType(state: TransformState, type: ts.Type) {
 		t =>
 			state.typeChecker.isTupleType(t) ||
 			state.typeChecker.isArrayLikeType(t) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray),
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray),
 	);
 }
 
@@ -60,8 +60,8 @@ export function isSetType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySet) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Set),
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySet) ||
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Set),
 	);
 }
 
@@ -69,13 +69,13 @@ export function isMapType(state: TransformState, type: ts.Type) {
 	return isSomeType(
 		type,
 		t =>
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMap) ||
-			t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Map),
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMap) ||
+			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Map),
 	);
 }
 
 export function isLuaTupleType(state: TransformState, type: ts.Type) {
-	return type.aliasSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
+	return type.aliasSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
 }
 
 export function isNumberType(type: ts.Type) {
@@ -99,12 +99,12 @@ export function isStringType(type: ts.Type) {
 }
 
 export function isGeneratorType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator));
+	return isSomeType(type, t => t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator));
 }
 
 export function isIterableFunctionType(state: TransformState, type: ts.Type) {
 	return isSomeType(type, t => {
-		if (t.symbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction)) {
+		if (t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction)) {
 			return true;
 		}
 

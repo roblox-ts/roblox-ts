@@ -80,30 +80,22 @@ export function compileFiles(
 			if (diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile)) > 0) return;
 			if (diagnostics.push(...ts.getPreEmitDiagnostics(program.getProgram(), sourceFile)) > 0) return;
 
-			// create a new transform state for the file
 			const transformState = new TransformState(
-				compilerOptions,
+				data,
+				services,
 				multiTransformState,
+				compilerOptions,
 				rojoResolver,
-				services.pathTranslator,
 				runtimeLibRbxPath,
-				data.nodeModulesPath,
 				nodeModulesRbxPath,
-				data.nodeModulesPathMapping,
 				typeChecker,
-				services.globalSymbols,
-				services.macroManager,
-				services.roactSymbolManager,
 				projectType,
-				data.pkgVersion,
 				sourceFile,
 			);
 
-			// create a new Luau abstract syntax tree for the file
 			const luauAST = transformSourceFile(transformState, sourceFile);
 			if (diagnostics.push(...transformState.diagnostics) > 0) return;
 
-			// render Luau abstract syntax tree and output only if there were no diagnostics
 			const source = renderAST(luauAST);
 
 			fileWriteQueue.push({ sourceFile, source });

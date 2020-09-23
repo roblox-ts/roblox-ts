@@ -24,7 +24,6 @@ export interface ProjectServices {
 }
 
 export interface ProjectData {
-	tsConfigPath: string;
 	includePath: string;
 	isPackage: boolean;
 	nodeModulesPath: string;
@@ -34,4 +33,5 @@ export interface ProjectData {
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
+	tsConfigPath: string;
 }

@@ -249,7 +249,7 @@ function transformOptionalChainInner(
 				if (isCompoundCall(item) && item.callOptional) {
 					const symbol = getFirstDefinedSymbol(state, state.getType(item.node.expression));
 					if (symbol) {
-						const macro = state.macroManager.getPropertyCallMacro(symbol);
+						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
 							state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
 							return luau.emptyId();

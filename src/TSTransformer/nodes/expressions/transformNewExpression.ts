@@ -12,7 +12,7 @@ export function transformNewExpression(state: TransformState, node: ts.NewExpres
 
 	const symbol = getFirstConstructSymbol(state, node.expression);
 	if (symbol) {
-		const macro = state.macroManager.getConstructorMacro(symbol);
+		const macro = state.services.macroManager.getConstructorMacro(symbol);
 		if (macro) {
 			return macro(state, node);
 		}

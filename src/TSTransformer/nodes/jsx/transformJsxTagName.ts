@@ -10,8 +10,8 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 	if (ts.isIdentifier(node)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {
-			assert(state.roactSymbolManager);
-			const className = state.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
+			assert(state.services.roactSymbolManager);
+			const className = state.services.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
 			if (className !== undefined) {
 				return luau.string(className);
 			}

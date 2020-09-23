@@ -268,13 +268,13 @@ function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration)
 		if (aliasSymbol) {
 			const originalSymbol = ts.skipAlias(aliasSymbol, state.typeChecker);
 			return (
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
-				originalSymbol === state.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
+				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
 			);
 		}
 	}
