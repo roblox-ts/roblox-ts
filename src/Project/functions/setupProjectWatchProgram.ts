@@ -8,6 +8,7 @@ import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectServices } from "Project/types";
+import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -28,12 +29,22 @@ export function setupProjectWatchProgram(data: ProjectData) {
 
 	let initialCompileCompleted = false;
 
-	let program!: ts.EmitAndSemanticDiagnosticsBuilderProgram;
-	let services!: ProjectServices;
+	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
+	let services: ProjectServices | undefined;
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
-		program = createProgram(fileNames, options);
-		services = createProjectServices(program, data);
+		try {
+			program = createProgram(fileNames, options);
+			services = createProjectServices(program, data);
+		} catch (e) {
+			if (e instanceof DiagnosticError) {
+				for (const diagnostic of e.diagnostics) {
+					diagnosticReporter(diagnostic);
+				}
+			} else {
+				throw e;
+			}
+		}
 	}
 	refreshProgram();
 
@@ -56,6 +67,7 @@ export function setupProjectWatchProgram(data: ProjectData) {
 	}
 
 	function compileWithEmitResult(fsPath?: string): ts.EmitResult {
+		assert(program && services);
 		if (!initialCompileCompleted) {
 			const emitResult = compileAll(program, data, services);
 			if (emitResult.diagnostics.length === 0) {
@@ -98,6 +110,7 @@ export function setupProjectWatchProgram(data: ProjectData) {
 			compile(fsPath);
 		})
 		.on("unlink", fsPath => {
+			assert(services);
 			fileNames = fileNames.filter(v => v === fsPath);
 			const outPath = services.pathTranslator.getOutputPath(fsPath);
 			tryRemove(services.pathTranslator, outPath);
