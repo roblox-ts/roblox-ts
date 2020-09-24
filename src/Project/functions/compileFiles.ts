@@ -118,5 +118,9 @@ export function compileFiles(
 		});
 	}
 
+	if (diagnostics.length === 0) {
+		program.getProgram().emitBuildInfo();
+	}
+
 	return { emitSkipped: false, diagnostics };
 }

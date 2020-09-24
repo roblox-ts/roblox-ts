@@ -1,20 +1,17 @@
-import ts from "byots";
 import fs from "fs-extra";
 import { ProjectServices } from "Project/types";
-import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
+import { isCompilableFile } from "Shared/util/isCompilableFile";
 
 export function copyItem(services: ProjectServices, item: string) {
 	fs.copySync(item, services.pathTranslator.getOutputPath(item), {
-		filter: src => !src.endsWith(ts.Extension.Ts) && !src.endsWith(ts.Extension.Tsx),
+		filter: src => !isCompilableFile(src),
 		dereference: true,
 	});
 }
 
-export function copyFiles(program: ts.BuilderProgram, services: ProjectServices, sources: Set<string>) {
-	const compilerOptions = program.getCompilerOptions();
+export function copyFiles(services: ProjectServices, sources: Set<string>) {
 	benchmarkIfVerbose("copy non-compiled files", () => {
-		assert(compilerOptions.outDir);
 		for (const source of sources) {
 			copyItem(services, source);
 		}

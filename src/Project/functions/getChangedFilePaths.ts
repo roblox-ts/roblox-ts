@@ -8,7 +8,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
  *
  * if `assumeChangesOnlyAffectDirectDependencies == false`, this will only check direct dependencies
  */
-export function getChangedFilePaths(program: ts.BuilderProgram, fsPath?: string) {
+export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Array<string>) {
 	const compilerOptions = program.getCompilerOptions();
 	const buildState = program.getState();
 
@@ -35,8 +35,10 @@ export function getChangedFilePaths(program: ts.BuilderProgram, fsPath?: string)
 		});
 	};
 
-	if (fsPath) {
-		search(fsPath);
+	if (pathHints) {
+		for (const hint of pathHints) {
+			search(hint);
+		}
 	} else {
 		buildState.changedFilesSet?.forEach((_, fileName) => search(fileName));
 	}

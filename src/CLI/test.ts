@@ -26,9 +26,7 @@ describe("should compile tests project", () => {
 
 	it("should copy include files", () => copyInclude(data));
 
-	it("should copy non-compiled files", () => {
-		copyFiles(program, services, new Set(getRootDirs(program.getCompilerOptions())));
-	});
+	it("should copy non-compiled files", () => copyFiles(services, new Set(getRootDirs(program.getCompilerOptions()))));
 
 	for (const sourceFile of getChangedSourceFiles(program)) {
 		const fileName = path.relative(process.cwd(), sourceFile.fileName);

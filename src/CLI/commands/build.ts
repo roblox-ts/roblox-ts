@@ -2,9 +2,13 @@ import ts from "byots";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
-import { compileAll } from "Project";
 import { createProjectData, createProjectProgram, createProjectServices } from "Project/functions/bootstrap";
 import { cleanup } from "Project/functions/cleanup";
+import { compileFiles } from "Project/functions/compileFiles";
+import { copyFiles } from "Project/functions/copyFiles";
+import { copyInclude } from "Project/functions/copyInclude";
+import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
+import { getRootDirs } from "Project/functions/getRootDirs";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { ProjectFlags, ProjectOptions } from "Project/types";
 import { LogService } from "Shared/classes/LogService";
@@ -106,7 +110,9 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				const program = createProjectProgram(data);
 				const services = createProjectServices(program, data);
 				cleanup(services.pathTranslator);
-				const emitResult = compileAll(program, data, services);
+				copyInclude(data);
+				copyFiles(services, new Set(getRootDirs(program.getCompilerOptions())));
+				const emitResult = compileFiles(program, data, services, getChangedSourceFiles(program));
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}

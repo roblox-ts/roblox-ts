@@ -5,8 +5,6 @@ import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 export function copyInclude(data: ProjectData) {
 	if (!data.noInclude) {
-		benchmarkIfVerbose("copy include files", () => {
-			fs.copySync(LIB_PATH, data.includePath, { dereference: true });
-		});
+		benchmarkIfVerbose("copy include files", () => fs.copySync(LIB_PATH, data.includePath, { dereference: true }));
 	}
 }
