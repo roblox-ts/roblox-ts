@@ -12,9 +12,9 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectServices } from "Project/types";
 import { isCompilableFile } from "Project/util/isCompilableFile";
+import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
-import { walkDirectorySync } from "Shared/util/walkDirectorySync";
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
