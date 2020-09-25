@@ -17,10 +17,10 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 	return true;
 }
 
-export function tryRemove(pathTranslator: PathTranslator, itemPath: string) {
-	if (isOutputFileOrphaned(pathTranslator, itemPath)) {
-		fs.removeSync(itemPath);
-		LogService.writeLineIfVerbose(`remove ${itemPath}`);
+export function tryRemoveOutput(pathTranslator: PathTranslator, outPath: string) {
+	if (isOutputFileOrphaned(pathTranslator, outPath)) {
+		fs.removeSync(outPath);
+		LogService.writeLineIfVerbose(`remove ${outPath}`);
 	}
 }
 
@@ -31,7 +31,7 @@ function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 			if (fs.statSync(itemPath).isDirectory()) {
 				cleanupDirRecursively(pathTranslator, itemPath);
 			}
-			tryRemove(pathTranslator, itemPath);
+			tryRemoveOutput(pathTranslator, itemPath);
 		}
 	}
 }

@@ -2,7 +2,7 @@ import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { createProjectServices, ProjectData } from "Project";
-import { cleanup, tryRemove } from "Project/functions/cleanup";
+import { cleanup, tryRemoveOutput } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles, copyItem } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
@@ -124,7 +124,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		refreshProgram();
 		assert(program && services);
 		for (const fsPath of filesToClean) {
-			tryRemove(services.pathTranslator, services.pathTranslator.getOutputPath(fsPath));
+			tryRemoveOutput(services.pathTranslator, services.pathTranslator.getOutputPath(fsPath));
 		}
 		for (const fsPath of filesToCopy) {
 			copyItem(services, fsPath);
