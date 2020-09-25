@@ -1,9 +1,11 @@
 import { describe } from "mocha";
 import path from "path";
-import { createProjectData, createProjectProgram, createProjectServices } from "Project/functions/bootstrap";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
+import { createProjectData } from "Project/functions/createProjectData";
+import { createProjectProgram } from "Project/functions/createProjectProgram";
+import { createProjectServices } from "Project/functions/createProjectServices";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { PACKAGE_ROOT } from "Shared/constants";

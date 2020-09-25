@@ -1,16 +1,10 @@
 import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
-import { createProgramFactory } from "Project/functions/createProgramFactory";
-import { findAncestorDir } from "Project/functions/findAncestorDir";
-import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
-import { getRootDirs } from "Project/functions/getRootDirs";
-import { ProjectData, ProjectFlags, ProjectOptions, ProjectServices } from "Project/types";
-import { PathTranslator } from "Shared/classes/PathTranslator";
+import { ProjectData, ProjectFlags, ProjectOptions } from "Project/types";
 import { RojoResolver } from "Shared/classes/RojoResolver";
 import { NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
-import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
@@ -76,36 +70,4 @@ export function createProjectData(
 		projectPath,
 		rojoConfigPath,
 	};
-}
-
-export function createProjectServices(program: ts.BuilderProgram, data: ProjectData): ProjectServices {
-	const compilerOptions = program.getCompilerOptions();
-	const typeChecker = program.getProgram().getDiagnosticsProducingTypeChecker();
-
-	const globalSymbols = new GlobalSymbols(typeChecker);
-
-	const macroManager = new MacroManager(program.getProgram(), typeChecker, data.nodeModulesPath);
-
-	const rootDir = findAncestorDir([program.getProgram().getCommonSourceDirectory(), ...getRootDirs(compilerOptions)]);
-	const outDir = compilerOptions.outDir!;
-	let buildInfoPath = ts.getTsBuildInfoEmitOutputFilePath(compilerOptions);
-	if (buildInfoPath !== undefined) {
-		buildInfoPath = path.normalize(buildInfoPath);
-	}
-	const declaration = compilerOptions.declaration === true;
-	const pathTranslator = new PathTranslator(rootDir, outDir, buildInfoPath, declaration);
-
-	const roactIndexSourceFile = program.getSourceFile(path.join(data.nodeModulesPath, "roact", "index.d.ts"));
-	let roactSymbolManager: RoactSymbolManager | undefined;
-	if (roactIndexSourceFile) {
-		roactSymbolManager = new RoactSymbolManager(typeChecker, roactIndexSourceFile);
-	}
-
-	return { globalSymbols, macroManager, pathTranslator, roactSymbolManager };
-}
-
-export function createProjectProgram(data: ProjectData) {
-	const { fileNames, options } = getParsedCommandLine(data);
-	const createProgram = createProgramFactory(data, options);
-	return createProgram(fileNames, options);
 }
