@@ -1,8 +1,8 @@
 import ts from "byots";
 import path from "path";
-import { findAncestorDir } from "Project/util/findAncestorDir";
-import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectData, ProjectServices } from "Project/types";
+import { findAncestorDir } from "Project/util/findAncestorDir";
+import { getRootDirs } from "Project/util/getRootDirs";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
 

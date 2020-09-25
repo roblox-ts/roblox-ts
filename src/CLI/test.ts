@@ -7,7 +7,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { createProjectServices } from "Project/functions/createProjectServices";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { getRootDirs } from "Project/functions/getRootDirs";
+import { getRootDirs } from "Project/util/getRootDirs";
 import { PACKAGE_ROOT } from "Shared/constants";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 
