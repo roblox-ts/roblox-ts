@@ -149,19 +149,27 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		reportEmitResult(emitResult);
 	}
 
-	function collectEvent(type: "add" | "change" | "remove", fsPath: string) {
-		if (type === "add") {
-			filesToAdd.add(fsPath);
-		} else if (type === "change") {
-			filesToChange.add(fsPath);
-		} else {
-			filesToDelete.add(fsPath);
-		}
+	function openEventCollection() {
 		if (!collecting) {
 			collecting = true;
 			reportText("File change detected. Starting incremental compilation...");
 			setTimeout(closeEventCollection, 100);
 		}
+	}
+
+	function collectAddEvent(fsPath: string) {
+		filesToAdd.add(fsPath);
+		openEventCollection();
+	}
+
+	function collectChangeEvent(fsPath: string) {
+		filesToChange.add(fsPath);
+		openEventCollection();
+	}
+
+	function collectDeleteEvent(fsPath: string) {
+		filesToDelete.add(fsPath);
+		openEventCollection();
 	}
 
 	chokidar
@@ -174,11 +182,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			disableGlobbing: true,
 			usePolling,
 		})
-		.on("add", fsPath => collectEvent("add", fsPath))
-		.on("addDir", fsPath => collectEvent("add", fsPath))
-		.on("change", fsPath => collectEvent("change", fsPath))
-		.on("unlink", fsPath => collectEvent("remove", fsPath))
-		.on("unlinkDir", fsPath => collectEvent("remove", fsPath));
+		.on("add", collectAddEvent)
+		.on("addDir", collectAddEvent)
+		.on("change", collectChangeEvent)
+		.on("unlink", collectDeleteEvent)
+		.on("unlinkDir", collectDeleteEvent);
 
 	reportText("Starting compilation in watch mode...");
 	reportEmitResult(runInitialCompile());
