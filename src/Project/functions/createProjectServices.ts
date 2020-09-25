@@ -1,6 +1,6 @@
 import ts from "byots";
 import path from "path";
-import { findAncestorDir } from "Project/functions/findAncestorDir";
+import { findAncestorDir } from "Project/util/findAncestorDir";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectData, ProjectServices } from "Project/types";
 import { PathTranslator } from "Shared/classes/PathTranslator";
