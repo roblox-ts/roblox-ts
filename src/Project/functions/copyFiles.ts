@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import { ProjectServices } from "Project/types";
+import { isCompilableFile } from "Project/util/isCompilableFile";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
-import { isCompilableFile } from "Shared/util/isCompilableFile";
 
 export function copyItem(services: ProjectServices, item: string) {
 	fs.copySync(item, services.pathTranslator.getOutputPath(item), {

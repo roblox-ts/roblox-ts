@@ -11,9 +11,9 @@ import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { getRootDirs } from "Project/functions/getRootDirs";
 import { ProjectServices } from "Project/types";
+import { isCompilableFile } from "Project/util/isCompilableFile";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
-import { isCompilableFile } from "Shared/util/isCompilableFile";
 import { walkDirectorySync } from "Shared/util/walkDirectorySync";
 
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
