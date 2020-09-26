@@ -12,7 +12,6 @@ export const RBXTS_SCOPE = "@rbxts";
 
 export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
-export const TS_REGEX = /\.tsx?/;
 export const D_EXT = ".d";
 export const DTS_EXT = D_EXT + TS_EXT;
 export const LUA_EXT = ".lua";

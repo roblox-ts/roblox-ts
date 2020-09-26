@@ -1,5 +1,5 @@
 import path from "path";
-import { D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TSX_EXT, TS_EXT, TS_REGEX } from "Shared/constants";
+import { D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TSX_EXT, TS_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
@@ -45,7 +45,7 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 
-		if (TS_REGEX.test(pathInfo.extsPeek() ?? "") && pathInfo.extsPeek(1) !== D_EXT) {
+		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
 			pathInfo.exts.pop(); // pop .tsx?
 
 			// index -> init
@@ -95,7 +95,7 @@ export class PathTranslator {
 		}
 
 		if (this.declaration) {
-			if (TS_REGEX.test(pathInfo.extsPeek() ?? "") && pathInfo.extsPeek(1) === D_EXT) {
+			if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) === D_EXT) {
 				const tsExt = pathInfo.exts.pop(); // pop .tsx?
 				assert(tsExt);
 				pathInfo.exts.pop(); // pop .d
@@ -128,7 +128,7 @@ export class PathTranslator {
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 
-		if (TS_REGEX.test(pathInfo.extsPeek() ?? "")) {
+		if (pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) {
 			pathInfo.exts.pop(); // pop .tsx?
 			if (pathInfo.extsPeek() === D_EXT) {
 				pathInfo.exts.pop(); // pop .d
