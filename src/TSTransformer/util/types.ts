@@ -168,15 +168,15 @@ export function getTypeArguments(state: TransformState, type: ts.Type) {
 
 export function isPossiblyFalse(state: TransformState, type: ts.Type) {
 	return isPossiblyType(type, t => {
-		if (!!(t.flags && ts.TypeFlags.BooleanLiteral)) {
+		if (!!(t.flags & ts.TypeFlags.BooleanLiteral)) {
 			return t === state.typeChecker.getFalseType();
 		}
-		return !!(t.flags && ts.TypeFlags.Boolean);
+		return !!(t.flags & ts.TypeFlags.Boolean);
 	});
 }
 
 export function isPossiblyUndefined(type: ts.Type) {
-	return isPossiblyType(type, t => !!(t.flags && ts.TypeFlags.Undefined) || !!(t.flags && ts.TypeFlags.Void));
+	return isPossiblyType(type, t => !!(t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)));
 }
 
 export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
