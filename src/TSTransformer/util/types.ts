@@ -179,10 +179,6 @@ export function isPossiblyUndefined(type: ts.Type) {
 	return isPossiblyType(type, t => !!(t.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void)));
 }
 
-export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
-	return isPossiblyFalse(state, type) || isPossiblyUndefined(type);
-}
-
 export function isPossiblyZero(type: ts.Type) {
 	return isPossiblyType(type, t => {
 		if (t.isNumberLiteral()) {
