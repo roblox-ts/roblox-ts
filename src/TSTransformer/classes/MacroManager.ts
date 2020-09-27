@@ -32,6 +32,7 @@ export const SYMBOL_NAMES = {
 	Generator: "Generator",
 	LuaTuple: "LuaTuple",
 	Map: "Map",
+	Object: "Object",
 	ReadonlyArray: "ReadonlyArray",
 	ReadonlyMap: "ReadonlyMap",
 	ReadonlySet: "ReadonlySet",

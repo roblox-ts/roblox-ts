@@ -109,6 +109,7 @@ export const diagnostics = {
 		"Cannot index a macro without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
+	noObjectWithoutMethod: diagnostic("Cannot access `Object` without calling a function on it!"),
 	noConstructorMacroWithoutNew: diagnostic("Cannot index a constructor macro without using the `new` operator!"),
 	noMacroExtends: diagnostic("Cannot extend from a macro class!"),
 

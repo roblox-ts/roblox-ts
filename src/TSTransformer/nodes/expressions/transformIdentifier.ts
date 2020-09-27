@@ -3,7 +3,7 @@ import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf, skipUpwards } from "TSTransformer/util/traversal";
@@ -101,6 +101,10 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const macro = state.services.macroManager.getIdentifierMacro(symbol);
 	if (macro) {
 		return macro(state, node);
+	}
+
+	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object)) {
+		state.addDiagnostic(diagnostics.noObjectWithoutMethod(node));
 	}
 
 	// TODO is this slow?
