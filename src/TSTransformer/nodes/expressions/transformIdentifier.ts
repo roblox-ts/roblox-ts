@@ -22,12 +22,22 @@ function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {
 	return node.parent ? node : undefined;
 }
 
+// for some reason, symbol.valueDeclaration doesn't point to imports?
+function getDeclarationFromImport(symbol: ts.Symbol) {
+	for (const declaration of symbol.declarations) {
+		const importDec = getAncestor(declaration, ts.isImportDeclaration);
+		if (importDec) {
+			return declaration;
+		}
+	}
+}
+
 function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
 	if (state.isHoisted.get(symbol) !== undefined) {
 		return;
 	}
 
-	const declaration = symbol.valueDeclaration;
+	const declaration = symbol.valueDeclaration ?? getDeclarationFromImport(symbol);
 
 	// parameters cannot be hoisted
 	if (!declaration || ts.isParameter(declaration) || ts.isShorthandPropertyAssignment(declaration)) {
