@@ -12,9 +12,11 @@ function checkIsAssignableToZero(type: ts.Type) {
 		return isNumberType(t);
 	});
 }
+
 function checkIsAssignableToNaN(type: ts.Type) {
 	return isPossiblyType(type, t => isNumberType(t));
 }
+
 function checkIsAssignableToEmptyString(type: ts.Type) {
 	return isPossiblyType(type, t => {
 		if (t.isStringLiteral()) {
@@ -23,6 +25,7 @@ function checkIsAssignableToEmptyString(type: ts.Type) {
 		return isStringType(t);
 	});
 }
+
 export function willCreateTruthinessChecks(type: ts.Type) {
 	return checkIsAssignableToZero(type) || checkIsAssignableToNaN(type) || checkIsAssignableToEmptyString(type);
 }
