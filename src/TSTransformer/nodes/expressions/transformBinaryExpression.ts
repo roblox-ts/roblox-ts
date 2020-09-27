@@ -20,7 +20,7 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isNumberType, isStringSimpleType, isStringType } from "TSTransformer/util/types";
+import { isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
@@ -236,12 +236,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 		const writableType = state.getType(node.left);
 		const valueType = state.getType(node.right);
-		const rightSimpleType = state.getSimpleType(valueType);
-		const operator = getSimpleAssignmentOperator(
-			state.getSimpleType(writableType),
-			operatorKind as ts.AssignmentOperator,
-			rightSimpleType,
-		);
+		const operator = getSimpleAssignmentOperator(writableType, operatorKind as ts.AssignmentOperator, valueType);
 		const { writable, readable, value } = transformWritableAssignment(
 			state,
 			node.left,
@@ -254,7 +249,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isStringSimpleType(rightSimpleType) ? wrapToString(value) : value,
+				operator === "..=" && !isStringType(valueType) ? wrapToString(value) : value,
 			);
 		} else {
 			return createCompoundAssignmentExpression(

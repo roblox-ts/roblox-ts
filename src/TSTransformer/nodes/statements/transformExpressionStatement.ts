@@ -6,7 +6,7 @@ import { transformWritableAssignment, transformWritableExpression } from "TSTran
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isStringSimpleType } from "TSTransformer/util/types";
+import { isStringType } from "TSTransformer/util/types";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
 function transformUnaryExpressionStatement(
@@ -32,11 +32,10 @@ export function transformExpressionStatementInner(state: TransformState, express
 		) {
 			const writableType = state.getType(expression.left);
 			const valueType = state.getType(expression.right);
-			const rightSimpleType = state.getSimpleType(valueType);
 			const operator = getSimpleAssignmentOperator(
-				state.getSimpleType(writableType),
+				writableType,
 				operatorKind as ts.AssignmentOperator,
-				rightSimpleType,
+				valueType,
 			);
 			const { writable, readable, value } = transformWritableAssignment(
 				state,
@@ -50,7 +49,7 @@ export function transformExpressionStatementInner(state: TransformState, express
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,
 						operator,
-						right: operator === "..=" && !isStringSimpleType(rightSimpleType) ? wrapToString(value) : value,
+						right: operator === "..=" && !isStringType(valueType) ? wrapToString(value) : value,
 					}),
 				);
 			} else {

@@ -6,12 +6,10 @@ import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import * as tsst from "ts-simple-type";
 import { MultiTransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
-import originalTS from "typescript";
 
 /**
  * The ID of the Runtime library.
@@ -148,25 +146,6 @@ export class TransformState {
 				),
 			),
 		);
-	}
-
-	/**
-	 * Converts a TypeScript type into a "SimpleType"
-	 * @param type The type to convert.
-	 */
-	public getSimpleType(type: ts.Type) {
-		return tsst.toSimpleType(
-			(type as unknown) as originalTS.Type,
-			(this.typeChecker as unknown) as originalTS.TypeChecker,
-		);
-	}
-
-	/**
-	 * Converts the TypeScript type of `node` into a "SimpleType"
-	 * @param node The node with the type to convert.
-	 */
-	public getSimpleTypeFromNode(node: ts.Node) {
-		return this.getSimpleType(this.getType(node));
 	}
 
 	/**

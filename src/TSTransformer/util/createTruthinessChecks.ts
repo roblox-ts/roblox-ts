@@ -1,28 +1,23 @@
 import ts from "byots";
 import luau from "LuauAST";
-import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
+import { isPossiblyEmptyString, isPossiblyNaN, isPossiblyZero } from "TSTransformer/util/types";
 
-export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
-	const simpleType = state.getSimpleType(nodeType);
-	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
-	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
-	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
-	return isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString;
+export function willCreateTruthinessChecks(type: ts.Type) {
+	return isPossiblyZero(type) || isPossiblyNaN(type) || isPossiblyEmptyString(type);
 }
 
-export function createTruthinessChecks(state: TransformState, exp: luau.Expression, nodeType: ts.Type) {
-	const checks = new Array<luau.Expression>();
-
-	const simpleType = state.getSimpleType(nodeType);
-	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
-	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
-	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
+export function createTruthinessChecks(state: TransformState, exp: luau.Expression, type: ts.Type) {
+	const isAssignableToZero = isPossiblyZero(type);
+	const isAssignableToNaN = isPossiblyNaN(type);
+	const isAssignableToEmptyString = isPossiblyEmptyString(type);
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = state.pushToVarIfComplex(exp);
 	}
+
+	const checks = new Array<luau.Expression>();
 
 	if (isAssignableToZero) {
 		checks.push(luau.binary(exp, "~=", luau.number(0)));
