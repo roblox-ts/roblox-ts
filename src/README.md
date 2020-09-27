@@ -18,3 +18,4 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Remove string input incrementing and output decrementing
 -   [ ] Add error for using spread operator on macros
 -   [ ] Add error for using macros with union types
+-   [ ] Improve JSX expression type detection
