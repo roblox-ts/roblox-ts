@@ -9,6 +9,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
+import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
 
 function ipairs(expression: luau.Expression): luau.Expression {
 	return luau.create(luau.SyntaxKind.CallExpression, {
@@ -459,6 +460,38 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	join: (state, node, expression) => {
 		const args = argumentsWithDefaults(state, node.arguments, [luau.strings[", "]]);
+		const indexType = state.typeChecker.getIndexTypeOfType(
+			state.getType(node.expression.expression),
+			ts.IndexKind.Number,
+		);
+
+		// table.concat only works on string and number types, so call tostring() otherwise
+		if (indexType && isPossiblyType(indexType, type => !isStringType(type) && !isNumberType(type))) {
+			const id = state.pushToVar(luau.map());
+			const keyId = luau.tempId();
+			const valueId = luau.tempId();
+			state.prereq(
+				luau.create(luau.SyntaxKind.ForStatement, {
+					ids: luau.list.make(keyId, valueId),
+					expression: ipairs(expression),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+								expression: id,
+								index: keyId,
+							}),
+							operator: "=",
+							right: luau.create(luau.SyntaxKind.CallExpression, {
+								expression: luau.globals.tostring,
+								args: luau.list.make(valueId),
+							}),
+						}),
+					),
+				}),
+			);
+
+			expression = id;
+		}
 
 		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.globals.table.concat,

@@ -121,8 +121,12 @@ export = () => {
 
 	it("should support join", () => {
 		const a = [1, 2, 3];
+		const b = [true, false, true];
 		expect(a.join(", ")).to.equal("1, 2, 3");
 		expect([1, 2, 3].join(", ")).to.equal("1, 2, 3");
+		expect(b.join(", ")).to.equal("true, false, true");
+		expect([true, false, true].join(", ")).to.equal("true, false, true");
+		expect([1, "a", true].join(", ")).to.equal("1, a, true");
 	});
 
 	it("should support reverse", () => {
