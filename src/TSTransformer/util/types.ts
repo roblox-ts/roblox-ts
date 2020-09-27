@@ -44,6 +44,16 @@ function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean
 	} else if (type.isIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callback));
 	} else {
+		// any or unknown
+		if (!!(type.flags & ts.TypeFlags.AnyOrUnknown)) {
+			return true;
+		}
+
+		// defined type
+		if (!!(type.flags & ts.TypeFlags.Object) && type.getProperties().length === 0) {
+			return true;
+		}
+
 		return callback(type);
 	}
 }
