@@ -6,7 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isPossiblyUndefined } from "TSTransformer/util/types";
+import { isPossiblyType, isPossiblyUndefined } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
@@ -33,8 +33,11 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	disableMapInline(state, ptr);
 	let spreadExp = transformExpression(state, property.expression);
 
-	const possiblyUndefined = isPossiblyUndefined(state.getType(property.expression));
-	if (possiblyUndefined) {
+	const type = state.getType(property.expression);
+
+	const possiblyUndefined = isPossiblyUndefined(type);
+	const isPossiblyNonObject = isPossiblyType(type, t => !(t.flags & ts.TypeFlags.Object));
+	if (possiblyUndefined || isPossiblyNonObject) {
 		spreadExp = state.pushToVarIfComplex(spreadExp);
 	}
 
@@ -58,7 +61,20 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		),
 	});
 
-	if (possiblyUndefined) {
+	if (isPossiblyNonObject) {
+		statement = luau.create(luau.SyntaxKind.IfStatement, {
+			condition: luau.binary(
+				luau.create(luau.SyntaxKind.CallExpression, {
+					expression: luau.globals.type,
+					args: luau.list.make(spreadExp),
+				}),
+				"==",
+				luau.strings.table,
+			),
+			statements: luau.list.make(statement),
+			elseBody: luau.list.make(),
+		});
+	} else if (possiblyUndefined) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
 			condition: spreadExp,
 			statements: luau.list.make(statement),
