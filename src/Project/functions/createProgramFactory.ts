@@ -18,7 +18,7 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
 	// rojoHash makes it so that changes to the rojo config will trigger full re-compile
 
-	// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
 	ts.version = COMPILER_VERSION + rojoHash;
 

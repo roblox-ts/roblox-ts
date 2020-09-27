@@ -171,7 +171,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				},
 				plugins: ["@typescript-eslint", "roblox-ts"],
 				extends: ["plugin:@typescript-eslint/recommended", "plugin:roblox-ts/recommended"],
-				rules: ts.identity<{ [index: string]: object }>({}),
+				rules: ts.identity<{ [index: string]: unknown }>({}),
 			};
 
 			if (prettier) {
@@ -243,6 +243,7 @@ const PACKAGE_DESCRIPTION = "Generate a roblox-ts npm package";
 /**
  * Defines behavior of `rbxtsc init` command.
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
 	command: "init",
 	describe: "Create a project from a template",

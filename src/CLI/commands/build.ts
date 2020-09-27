@@ -41,6 +41,7 @@ function findTsConfigPath(projectPath: string) {
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFlags>>({
 	command: ["$0", "build"],
 
