@@ -143,59 +143,6 @@ const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idSta
 	}
 };
 
-const firstDecrementedIterableAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: parentId,
-		args: luau.list.make(),
-	});
-	if (isOmitted) {
-		state.prereq(
-			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: callExp,
-			}),
-		);
-		return luau.emptyId();
-	} else {
-		const id1 = luau.tempId();
-		const id2 = luau.tempId();
-		state.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.list.make(id1, id2),
-				right: callExp,
-			}),
-		);
-		return luau.array([luau.binary(id1, "and", luau.binary(id1, "-", luau.number(1))), id2]);
-	}
-};
-
-const doubleDecrementedIteratorAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: parentId,
-		args: luau.list.make(),
-	});
-	if (isOmitted) {
-		state.prereq(
-			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: callExp,
-			}),
-		);
-		return luau.emptyId();
-	} else {
-		const id1 = luau.tempId();
-		const id2 = luau.tempId();
-		state.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.list.make(id1, id2),
-				right: callExp,
-			}),
-		);
-		return luau.array([
-			luau.binary(id1, "and", luau.binary(id1, "-", luau.number(1))),
-			luau.binary(id2, "and", luau.binary(id2, "-", luau.number(1))),
-		]);
-	}
-};
-
 const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
