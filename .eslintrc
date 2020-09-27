@@ -26,7 +26,8 @@
 				"singleQuote": false,
 				"printWidth": 120,
 				"tabWidth": 4,
-				"useTabs": true
+				"useTabs": true,
+				"arrowParens": "avoid"
 			}
 		],
 		"@typescript-eslint/array-type": [
