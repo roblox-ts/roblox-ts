@@ -46,6 +46,11 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 		return false;
 	}
 
+	// `void foo()`
+	if (ts.isVoidExpression(parent)) {
+		return false;
+	}
+
 	return true;
 }
 
