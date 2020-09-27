@@ -6,7 +6,6 @@ export * from "LuauAST/impl/typeGuards";
 export * from "LuauAST/types/mapping";
 export * from "LuauAST/types/nodes";
 export * from "LuauAST/types/types";
-export * from "LuauAST/util/visualizeAST";
 
 // depends on above files
 export * from "LuauAST/impl/globals";
