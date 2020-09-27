@@ -183,6 +183,28 @@ export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
 	return isPossiblyFalse(state, type) || isPossiblyUndefined(type);
 }
 
+export function isPossiblyZero(type: ts.Type) {
+	return isPossiblyType(type, t => {
+		if (t.isNumberLiteral()) {
+			return t.value === 0;
+		}
+		return isNumberType(t);
+	});
+}
+
+export function isPossiblyNaN(type: ts.Type) {
+	return isPossiblyType(type, t => isNumberType(t) && !t.isNumberLiteral());
+}
+
+export function isPossiblyEmptyString(type: ts.Type) {
+	return isPossiblyType(type, t => {
+		if (t.isStringLiteral()) {
+			return t.value === "";
+		}
+		return isStringType(t);
+	});
+}
+
 export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression) {
 	const type = state.getType(expression);
 	if (type.symbol) {
