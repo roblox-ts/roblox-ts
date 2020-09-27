@@ -27,15 +27,7 @@ function isTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boole
 }
 
 export function isType(type: ts.Type, cb: (type: ts.Type) => boolean) {
-	if (isTypeInner(type, cb)) {
-		return true;
-	} else {
-		const constraint = type.getConstraint();
-		if (constraint && isTypeInner(constraint, cb)) {
-			return true;
-		}
-	}
-	return false;
+	return isTypeInner(type.getConstraint() ?? type, cb);
 }
 
 function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
@@ -44,8 +36,8 @@ function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean
 	} else if (type.isIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callback));
 	} else {
-		// any or unknown
-		if (!!(type.flags & ts.TypeFlags.AnyOrUnknown)) {
+		// type variable without constraint, any, or unknown
+		if (!!(type.flags & (ts.TypeFlags.TypeVariable | ts.TypeFlags.AnyOrUnknown))) {
 			return true;
 		}
 
@@ -59,15 +51,7 @@ function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean
 }
 
 export function isPossiblyType(type: ts.Type, cb: (type: ts.Type) => boolean) {
-	if (isPossiblyTypeInner(type, cb)) {
-		return true;
-	} else {
-		const constraint = type.getConstraint();
-		if (constraint && isPossiblyTypeInner(constraint, cb)) {
-			return true;
-		}
-	}
-	return false;
+	return isPossiblyTypeInner(type.getConstraint() ?? type, cb);
 }
 
 export function isAnyType(type: ts.Type) {
