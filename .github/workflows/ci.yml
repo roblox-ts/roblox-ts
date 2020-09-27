@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - refactor
+      - master
 
 jobs:
   build-and-lint:
