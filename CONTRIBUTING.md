@@ -25,8 +25,6 @@ We'll also assume you understand some basic terminal navigation commands (`cd`, 
 git clone https://github.com/YOUR_GITHUB_USERNAME/roblox-ts.git
 # Navigate into the roblox-ts folder
 cd roblox-ts
-# Checkout the refactor branch
-git checkout refactor
 # Install dependency packages (node_modules)
 npm install
 # build the compiler
