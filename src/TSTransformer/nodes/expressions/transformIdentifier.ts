@@ -94,6 +94,17 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 	return;
 }
 
+function isValidObjectUse(node: ts.Identifier) {
+	const parent = skipUpwards(node).parent;
+	if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) {
+		const grandParent = skipUpwards(parent).parent;
+		if (ts.isCallExpression(grandParent)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
@@ -113,7 +124,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return macro(state, node);
 	}
 
-	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object)) {
+	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object) && !isValidObjectUse(node)) {
 		state.addDiagnostic(diagnostics.noObjectWithoutMethod(node));
 	}
 
