@@ -16,7 +16,7 @@ import { isPossiblyUndefined } from "TSTransformer/util/types";
 function transformJsxInitializer(
 	state: TransformState,
 	initializer: ts.Expression | undefined,
-): [luau.Expression, luau.List<luau.Statement>] {
+): [node: luau.Expression, prereqs: luau.List<luau.Statement>] {
 	if (initializer && ts.isJsxExpression(initializer)) {
 		initializer = initializer.expression;
 	}
