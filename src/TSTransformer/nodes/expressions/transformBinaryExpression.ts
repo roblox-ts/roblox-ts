@@ -8,6 +8,7 @@ import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
+import { transformLogicalOrCoalescingAssignmentExpression } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import {
 	createAssignmentExpression,
@@ -208,6 +209,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.QuestionQuestionToken
 	) {
 		return transformLogical(state, node);
+	}
+
+	if (ts.isLogicalOrCoalescingAssignmentExpression(node)) {
+		return transformLogicalOrCoalescingAssignmentExpression(state, node);
 	}
 
 	if (ts.isAssignmentOperator(operatorKind)) {

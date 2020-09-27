@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformLogicalOrCoalescingAssignmentExpressionStatement } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
@@ -22,10 +23,15 @@ function transformUnaryExpressionStatement(
 	});
 }
 
-export function transformExpressionStatementInner(state: TransformState, expression: ts.Expression) {
+export function transformExpressionStatementInner(
+	state: TransformState,
+	expression: ts.Expression,
+): luau.List<luau.Statement> {
 	if (ts.isBinaryExpression(expression)) {
 		const operatorKind = expression.operatorToken.kind;
-		if (
+		if (ts.isLogicalOrCoalescingAssignmentExpression(expression)) {
+			return transformLogicalOrCoalescingAssignmentExpressionStatement(state, expression);
+		} else if (
 			ts.isAssignmentOperator(operatorKind) &&
 			!ts.isArrayLiteralExpression(expression.left) &&
 			!ts.isObjectLiteralExpression(expression.left)
