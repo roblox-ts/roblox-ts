@@ -1,5 +1,4 @@
 import ts from "byots";
-import * as tsst from "ts-simple-type";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 
 export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
@@ -17,22 +16,44 @@ export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
 	}
 }
 
-function typeConstraint(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
+function isTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
-		return type.types.every(t => typeConstraint(t, callback));
+		return type.types.every(t => isTypeInner(t, callback));
 	} else if (type.isIntersection()) {
-		return type.types.some(t => typeConstraint(t, callback));
+		return type.types.some(t => isTypeInner(t, callback));
 	} else {
 		return callback(type);
 	}
 }
 
-export function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
-	if (typeConstraint(type, cb)) {
+export function isType(type: ts.Type, cb: (type: ts.Type) => boolean) {
+	if (isTypeInner(type, cb)) {
 		return true;
 	} else {
 		const constraint = type.getConstraint();
-		if (constraint && typeConstraint(constraint, cb)) {
+		if (constraint && isTypeInner(constraint, cb)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
+	if (type.isUnion()) {
+		return type.types.some(t => isPossiblyTypeInner(t, callback));
+	} else if (type.isIntersection()) {
+		return type.types.some(t => isPossiblyTypeInner(t, callback));
+	} else {
+		return callback(type);
+	}
+}
+
+export function isPossiblyType(type: ts.Type, cb: (type: ts.Type) => boolean) {
+	if (isPossiblyTypeInner(type, cb)) {
+		return true;
+	} else {
+		const constraint = type.getConstraint();
+		if (constraint && isPossiblyTypeInner(constraint, cb)) {
 			return true;
 		}
 	}
@@ -40,11 +61,11 @@ export function isSomeType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 }
 
 export function isAnyType(type: ts.Type) {
-	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.Any));
+	return isType(type, t => !!(t.flags & ts.TypeFlags.Any));
 }
 
 export function isArrayType(state: TransformState, type: ts.Type) {
-	return isSomeType(
+	return isType(
 		type,
 		t =>
 			state.typeChecker.isTupleType(t) ||
@@ -57,7 +78,7 @@ export function isArrayType(state: TransformState, type: ts.Type) {
 }
 
 export function isSetType(state: TransformState, type: ts.Type) {
-	return isSomeType(
+	return isType(
 		type,
 		t =>
 			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySet) ||
@@ -66,7 +87,7 @@ export function isSetType(state: TransformState, type: ts.Type) {
 }
 
 export function isMapType(state: TransformState, type: ts.Type) {
-	return isSomeType(
+	return isType(
 		type,
 		t =>
 			t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMap) ||
@@ -79,7 +100,7 @@ export function isLuaTupleType(state: TransformState, type: ts.Type) {
 }
 
 export function isNumberType(type: ts.Type) {
-	return isSomeType(
+	return isType(
 		type,
 		t =>
 			!!(t.flags & ts.TypeFlags.Number) ||
@@ -89,7 +110,7 @@ export function isNumberType(type: ts.Type) {
 }
 
 export function isStringType(type: ts.Type) {
-	return isSomeType(
+	return isType(
 		type,
 		t =>
 			!!(t.flags & ts.TypeFlags.String) ||
@@ -99,11 +120,11 @@ export function isStringType(type: ts.Type) {
 }
 
 export function isGeneratorType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator));
+	return isType(type, t => t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator));
 }
 
 export function isIterableFunctionType(state: TransformState, type: ts.Type) {
-	return isSomeType(type, t => {
+	return isType(type, t => {
 		if (t.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction)) {
 			return true;
 		}
@@ -128,7 +149,7 @@ export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.T
 
 	// temporary?
 	if (
-		isSomeType(
+		isType(
 			type,
 			t =>
 				t.symbol &&
@@ -144,32 +165,28 @@ export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.T
 }
 
 export function isObjectType(type: ts.Type) {
-	return isSomeType(type, t => !!(t.flags & ts.TypeFlags.Object));
+	return isType(type, t => !!(t.flags & ts.TypeFlags.Object));
 }
 
 export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
 }
 
-const isAssignableToUndefined = (simpleType: tsst.SimpleType) =>
-	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.UNDEFINED) ||
-	tsst.isAssignableToSimpleTypeKind(simpleType, tsst.SimpleTypeKind.VOID);
-const isAssignableToFalse = (simpleType: tsst.SimpleType) => tsst.isAssignableToValue(simpleType, false);
-
-/**
- * Uses ts-simple-type to check if a type is assignable to `undefined`
- */
-export function canBeUndefined(state: TransformState, type: ts.Type) {
-	const simpleType = state.getSimpleType(type);
-	return isAssignableToUndefined(simpleType);
+export function isPossiblyFalse(state: TransformState, type: ts.Type) {
+	return isPossiblyType(type, t => {
+		if (!!(t.flags && ts.TypeFlags.BooleanLiteral)) {
+			return t === state.typeChecker.getFalseType();
+		}
+		return !!(t.flags && ts.TypeFlags.Boolean);
+	});
 }
 
-/**
- * Uses ts-simple-type to check if a type is assignable to `false` or `undefined`
- */
+export function isPossiblyUndefined(type: ts.Type) {
+	return isPossiblyType(type, t => !!(t.flags && ts.TypeFlags.Undefined) || !!(t.flags && ts.TypeFlags.Void));
+}
+
 export function canTypeBeLuaFalsy(state: TransformState, type: ts.Type) {
-	const simpleType = state.getSimpleType(type);
-	return isAssignableToFalse(simpleType) || isAssignableToUndefined(simpleType);
+	return isPossiblyFalse(state, type) || isPossiblyUndefined(type);
 }
 
 export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression) {
@@ -200,8 +217,4 @@ export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
 	} else {
 		return type.symbol;
 	}
-}
-
-export function isStringSimpleType(type: tsst.SimpleType) {
-	return type.kind === tsst.SimpleTypeKind.STRING || type.kind === tsst.SimpleTypeKind.STRING_LITERAL;
 }

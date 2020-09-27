@@ -44,7 +44,7 @@ function getLogicalChain(
 		const [expression, prereqs] = state.capture(() => transformExpression(state, original));
 		let inline = false;
 		if (enableInlining) {
-			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(state, type);
+			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(type);
 			inline = luau.list.isEmpty(prereqs) && !willWrap;
 		}
 		return { type, expression, statements: prereqs, inline };

@@ -1,9 +1,8 @@
 import ts from "byots";
 import luau from "LuauAST";
-import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { isStringSimpleType } from "TSTransformer/util/types";
+import { isStringType } from "TSTransformer/util/types";
 
 const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// compound assignment
@@ -22,13 +21,13 @@ const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 ]);
 
 export function getSimpleAssignmentOperator(
-	leftType: tsst.SimpleType,
+	leftType: ts.Type,
 	operatorKind: ts.AssignmentOperator,
-	rightType: tsst.SimpleType,
+	rightType: ts.Type,
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return isStringSimpleType(leftType) || isStringSimpleType(rightType) ? "..=" : "+=";
+		return isStringType(leftType) || isStringType(rightType) ? "..=" : "+=";
 	}
 
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);

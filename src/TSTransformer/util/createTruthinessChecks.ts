@@ -1,28 +1,42 @@
 import ts from "byots";
 import luau from "LuauAST";
-import * as tsst from "ts-simple-type";
 import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
+import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
 
-export function willCreateTruthinessChecks(state: TransformState, nodeType: ts.Type) {
-	const simpleType = state.getSimpleType(nodeType);
-	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
-	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
-	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
-	return isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString;
+function checkIsAssignableToZero(type: ts.Type) {
+	return isPossiblyType(type, t => {
+		if (t.isNumberLiteral()) {
+			return t.value === 0;
+		}
+		return isNumberType(t);
+	});
+}
+function checkIsAssignableToNaN(type: ts.Type) {
+	return isPossiblyType(type, t => isNumberType(t));
+}
+function checkIsAssignableToEmptyString(type: ts.Type) {
+	return isPossiblyType(type, t => {
+		if (t.isStringLiteral()) {
+			return t.value === "";
+		}
+		return isStringType(t);
+	});
+}
+export function willCreateTruthinessChecks(type: ts.Type) {
+	return checkIsAssignableToZero(type) || checkIsAssignableToNaN(type) || checkIsAssignableToEmptyString(type);
 }
 
-export function createTruthinessChecks(state: TransformState, exp: luau.Expression, nodeType: ts.Type) {
-	const checks = new Array<luau.Expression>();
-
-	const simpleType = state.getSimpleType(nodeType);
-	const isAssignableToZero = tsst.isAssignableToValue(simpleType, 0);
-	const isAssignableToNaN = tsst.isAssignableToValue(simpleType, NaN);
-	const isAssignableToEmptyString = tsst.isAssignableToValue(simpleType, "");
+export function createTruthinessChecks(state: TransformState, exp: luau.Expression, type: ts.Type) {
+	const isAssignableToZero = checkIsAssignableToZero(type);
+	const isAssignableToNaN = checkIsAssignableToNaN(type);
+	const isAssignableToEmptyString = checkIsAssignableToEmptyString(type);
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = state.pushToVarIfComplex(exp);
 	}
+
+	const checks = new Array<luau.Expression>();
 
 	if (isAssignableToZero) {
 		checks.push(luau.binary(exp, "~=", luau.number(0)));
