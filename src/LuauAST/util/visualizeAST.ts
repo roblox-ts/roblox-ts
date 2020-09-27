@@ -34,7 +34,7 @@ function visualizeNode(node: luau.Node) {
 export function visualizeAST(ast: luau.Node | luau.List<luau.Node>) {
 	return JSON.stringify(
 		ast,
-		function(key, value) {
+		function (key, value) {
 			if (luau.isNode(value)) {
 				const result = visualizeNode(value);
 				if (result !== undefined) {
