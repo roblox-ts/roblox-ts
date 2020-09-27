@@ -14,7 +14,7 @@ The roblox-ts compiler is made up of 5 subprojects that each have their own goal
 -   [ ] Finish array spread expression types
 -   [ ] Add optimization for expressions in the form of `[...exp]` (reuse spread expression functions without `unpack()`)
 -   [ ] Add for-of loop optimizations for `Object.values`, `Object.keys`, `Object.entries`, etc.
--   [ ] Upgrade to TypeScript 4.0 and add support for `&&=`, `||=`, `??=`
+-   [x] Upgrade to TypeScript 4.0 and add support for `&&=`, `||=`, `??=`
 -   [ ] Remove string input incrementing and output decrementing
 -   [ ] Add error for using spread operator on macros
 -   [ ] Add error for using macros with union types
