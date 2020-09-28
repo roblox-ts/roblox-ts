@@ -128,7 +128,6 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		state.addDiagnostic(diagnostics.noObjectWithoutMethod(node));
 	}
 
-	// TODO is this slow?
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
