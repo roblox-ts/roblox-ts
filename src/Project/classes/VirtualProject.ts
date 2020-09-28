@@ -44,7 +44,7 @@ export class VirtualProject {
 			noInclude: false,
 			pkgVersion: "",
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
-			projectPath: "",
+			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
 		};
@@ -124,7 +124,7 @@ export class VirtualProject {
 		const multiTransformState = new MultiTransformState();
 
 		const runtimeLibRbxPath = undefined;
-		const nodeModulesRbxPath: RbxPath = [];
+		const nodeModulesRbxPath: RbxPath = [NODE_MODULES, RBXTS_SCOPE];
 		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
