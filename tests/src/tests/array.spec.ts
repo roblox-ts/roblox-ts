@@ -182,8 +182,27 @@ export = () => {
 		expect(f[1]).to.equal(2);
 	});
 
-	// TODO issue #98
-	it("should support sort", () => {});
+	it("should support sort", () => {
+		const x = [4, 2, 6, 2, 1];
+		x.sort();
+		expect(x[0]).to.equal(1);
+		expect(x[1]).to.equal(2);
+		expect(x[2]).to.equal(2);
+		expect(x[3]).to.equal(4);
+		expect(x[4]).to.equal(6);
+		expect(x.sort((a, b) => a < b)).to.equal(x);
+		expect(x[0]).to.equal(1);
+		expect(x[1]).to.equal(2);
+		expect(x[2]).to.equal(2);
+		expect(x[3]).to.equal(4);
+		expect(x[4]).to.equal(6);
+		expect(x.sort((a, b) => a > b)).to.equal(x);
+		expect(x[0]).to.equal(6);
+		expect(x[1]).to.equal(4);
+		expect(x[2]).to.equal(2);
+		expect(x[3]).to.equal(2);
+		expect(x[4]).to.equal(1);
+	});
 
 	it("should support unshift", () => {
 		const a = [1, 2, 3];
