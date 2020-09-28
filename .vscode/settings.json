@@ -9,6 +9,8 @@
 	"typescript.preferences.importModuleSpecifier": "non-relative",
 	"typescript.preferences.quoteStyle": "double",
 	"[markdown]": {
-		"editor.formatOnSave": false
+		"editor.formatOnSave": false,
+		"editor.wordWrap": "bounded",
+		"editor.wordWrapColumn": 120
 	}
 }
