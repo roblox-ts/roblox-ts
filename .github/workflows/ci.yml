@@ -56,6 +56,6 @@ jobs:
 
       - name: Report Coverage
         continue-on-error: true
-        uses: coverallsapp/github-action@master
+        uses: coverallsapp/github-action@v1.1.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
