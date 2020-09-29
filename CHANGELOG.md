@@ -1,7 +1,7 @@
 ## 1.0.0-beta.1
 
 - Fixed bug with playground imports
-- Symlinks inside node_modules should work now, allowing pnpm and local packages
+- Fixed symlinks inside node_modules, allowing pnpm and local packages
 - Added `--usePolling` to indicate that watch mode should use polling instead of fs events
 
 ## 1.0.0-beta.0
