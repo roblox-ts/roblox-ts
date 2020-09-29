@@ -1,4 +1,5 @@
 import ts from "byots";
+import fs from "fs-extra";
 import path from "path";
 import { ProjectData, ProjectServices } from "Project/types";
 import { findAncestorDir } from "Project/util/findAncestorDir";
@@ -23,7 +24,11 @@ export function createProjectServices(program: ts.BuilderProgram, data: ProjectD
 	const declaration = compilerOptions.declaration === true;
 	const pathTranslator = new PathTranslator(rootDir, outDir, buildInfoPath, declaration);
 
-	const roactIndexSourceFile = program.getSourceFile(path.join(data.nodeModulesPath, "roact", "index.d.ts"));
+	let roactIndexSourceFilePath = path.join(data.nodeModulesPath, "roact", "index.d.ts");
+	if (fs.pathExistsSync(roactIndexSourceFilePath)) {
+		roactIndexSourceFilePath = fs.realpathSync(roactIndexSourceFilePath);
+	}
+	const roactIndexSourceFile = program.getSourceFile(roactIndexSourceFilePath);
 	let roactSymbolManager: RoactSymbolManager | undefined;
 	if (roactIndexSourceFile) {
 		roactSymbolManager = new RoactSymbolManager(typeChecker, roactIndexSourceFile);

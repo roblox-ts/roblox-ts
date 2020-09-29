@@ -33,7 +33,7 @@ describe("should compile tests project", () => {
 	for (const sourceFile of getChangedSourceFiles(program)) {
 		const fileName = path.relative(process.cwd(), sourceFile.fileName);
 		it(`should compile ${fileName}`, done => {
-			const emitResult = compileFiles(program, data, services, [sourceFile]);
+			const emitResult = compileFiles(program.getProgram(), data, services, [sourceFile]);
 			if (emitResult.diagnostics.length > 0) {
 				done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
 			} else {

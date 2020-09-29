@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
+import path from "path";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { diagnostics } from "Shared/diagnostics";
@@ -51,6 +52,7 @@ export class TransformState {
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
+		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly nodeModulesRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
@@ -365,5 +367,20 @@ export class TransformState {
 				name: alias,
 			});
 		}
+	}
+
+	/** attempts to reverse symlink lookup */
+	public guessVirtualPath(fsPath: string) {
+		const original = fsPath;
+		while (true) {
+			const parent = path.dirname(fsPath);
+			if (fsPath === parent) break;
+			fsPath = parent;
+			const symlink = this.reverseSymlinkMap.get(fsPath);
+			if (symlink) {
+				return path.join(symlink, path.relative(fsPath, original));
+			}
+		}
+		return original;
 	}
 }

@@ -84,10 +84,11 @@ export function createImportExpression(
 	const importPathExpressions = luau.list.make<luau.Expression>();
 	luau.list.push(importPathExpressions, luau.globals.script);
 
-	if (ts.isInsideNodeModules(moduleFile.fileName)) {
-		luau.list.push(importPathExpressions, getNodeModulesImport(state, moduleSpecifier, moduleFile.fileName));
+	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
+	if (ts.isInsideNodeModules(virtualPath)) {
+		luau.list.push(importPathExpressions, getNodeModulesImport(state, moduleSpecifier, virtualPath));
 	} else {
-		const moduleOutPath = state.services.pathTranslator.getImportPath(moduleFile.fileName);
+		const moduleOutPath = state.services.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			state.addDiagnostic(diagnostics.noRojoData(moduleSpecifier));

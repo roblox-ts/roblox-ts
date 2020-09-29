@@ -30,25 +30,46 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 	};
 }
 
+const getCanonicalFileName: ts.GetCanonicalFileName = v => v;
+function getReverseSymlinkMap(program: ts.Program) {
+	const symlinkCache = ts.discoverProbableSymlinks(
+		program.getSourceFiles(),
+		getCanonicalFileName,
+		ts.sys.getCurrentDirectory(),
+	);
+	const directoriesMap = symlinkCache.getSymlinkedDirectories();
+	const result = new Map<string, string>();
+	if (directoriesMap) {
+		directoriesMap.forEach((dir, fsPath) => {
+			if (typeof dir !== "boolean") {
+				result.set(dir.real, fsPath);
+			}
+		});
+	}
+	return result;
+}
+
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
  *
  * writes rendered Luau source to the out directory.
  */
 export function compileFiles(
-	program: ts.BuilderProgram,
+	program: ts.Program,
 	data: ProjectData,
 	services: ProjectServices,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
-	const typeChecker = program.getProgram().getDiagnosticsProducingTypeChecker();
+	const typeChecker = program.getDiagnosticsProducingTypeChecker();
 
 	const multiTransformState = new MultiTransformState();
 
 	const rojoResolver = data.rojoConfigPath
 		? RojoResolver.fromPath(data.rojoConfigPath)
 		: RojoResolver.synthetic(data.projectPath);
+
+	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
 	const projectType = data.projectOptions.type ?? inferProjectType(data, rojoResolver);
 
@@ -78,7 +99,7 @@ export function compileFiles(
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			if (diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile)) > 0) return;
-			if (diagnostics.push(...ts.getPreEmitDiagnostics(program.getProgram(), sourceFile)) > 0) return;
+			if (diagnostics.push(...ts.getPreEmitDiagnostics(program, sourceFile)) > 0) return;
 
 			const transformState = new TransformState(
 				data,
@@ -86,6 +107,7 @@ export function compileFiles(
 				multiTransformState,
 				compilerOptions,
 				rojoResolver,
+				reverseSymlinkMap,
 				runtimeLibRbxPath,
 				nodeModulesRbxPath,
 				typeChecker,
@@ -119,7 +141,7 @@ export function compileFiles(
 	}
 
 	if (diagnostics.length === 0) {
-		program.getProgram().emitBuildInfo();
+		program.emitBuildInfo();
 	}
 
 	return { emitSkipped: false, diagnostics };

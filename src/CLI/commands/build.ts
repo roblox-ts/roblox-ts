@@ -115,7 +115,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				cleanup(services.pathTranslator);
 				copyInclude(data);
 				copyFiles(services, new Set(getRootDirs(program.getCompilerOptions())));
-				const emitResult = compileFiles(program, data, services, getChangedSourceFiles(program));
+				const emitResult = compileFiles(program.getProgram(), data, services, getChangedSourceFiles(program));
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}

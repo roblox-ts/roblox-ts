@@ -165,10 +165,11 @@ export class RojoResolver {
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
 		if (!this.fs) return;
-		if (fs.pathExistsSync(rojoConfigFilePath)) {
+		const realPath = fs.realpathSync(rojoConfigFilePath);
+		if (fs.pathExistsSync(realPath)) {
 			let configJson: unknown;
 			try {
-				configJson = JSON.parse(fs.readFileSync(rojoConfigFilePath).toString());
+				configJson = JSON.parse(fs.readFileSync(realPath).toString());
 			} catch (e) {}
 			if (isValidRojoConfig(configJson)) {
 				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
@@ -199,11 +200,12 @@ export class RojoResolver {
 	}
 
 	private parsePath(itemPath: string) {
+		const realPath = fs.realpathSync(itemPath);
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
-			const isDirectory = this.fs && fs.pathExistsSync(itemPath) && fs.statSync(itemPath).isDirectory();
-			if (isDirectory && fs.readdirSync(itemPath).includes(ROJO_DEFAULT_NAME)) {
+			const isDirectory = this.fs && fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
+			if (isDirectory && fs.readdirSync(realPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
 				this.partitions.unshift({
@@ -219,7 +221,8 @@ export class RojoResolver {
 	}
 
 	private searchDirectory(directory: string, item?: string) {
-		const children = fs.readdirSync(directory);
+		const realPath = fs.realpathSync(directory);
+		const children = fs.readdirSync(realPath);
 
 		if (children.includes(ROJO_DEFAULT_NAME)) {
 			this.parseConfig(path.join(directory, ROJO_DEFAULT_NAME));
@@ -231,7 +234,8 @@ export class RojoResolver {
 		// *.project.json
 		for (const child of children) {
 			const childPath = path.join(directory, child);
-			if (fs.statSync(childPath).isFile() && child !== ROJO_DEFAULT_NAME && ROJO_FILE_REGEX.test(child)) {
+			const childRealPath = fs.realpathSync(childPath);
+			if (fs.statSync(childRealPath).isFile() && child !== ROJO_DEFAULT_NAME && ROJO_FILE_REGEX.test(child)) {
 				this.parseConfig(childPath);
 			}
 		}
@@ -239,7 +243,8 @@ export class RojoResolver {
 		// folders
 		for (const child of children) {
 			const childPath = path.join(directory, child);
-			if (fs.statSync(childPath).isDirectory()) {
+			const childRealPath = fs.realpathSync(childPath);
+			if (fs.statSync(childRealPath).isDirectory()) {
 				this.searchDirectory(childPath, child);
 			}
 		}

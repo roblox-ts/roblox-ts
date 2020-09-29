@@ -133,6 +133,7 @@ export class VirtualProject {
 			multiTransformState,
 			this.compilerOptions,
 			this.rojoResolver,
+			new Map(),
 			runtimeLibRbxPath,
 			nodeModulesRbxPath,
 			this.typeChecker,

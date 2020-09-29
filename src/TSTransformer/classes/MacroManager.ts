@@ -1,4 +1,5 @@
 import ts from "byots";
+import fs from "fs-extra";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
@@ -72,7 +73,7 @@ export class MacroManager {
 		// iterate through each file in the types include directory
 		for (const fileName of INCLUDE_FILES) {
 			const filePath = path.join(typesPath, fileName);
-			const sourceFile = program.getSourceFile(filePath);
+			const sourceFile = program.getSourceFile(fs.realpathSync(filePath));
 			if (!sourceFile) {
 				throw new ProjectError(`MacroManager Could not find source file for ${filePath}`);
 			}
