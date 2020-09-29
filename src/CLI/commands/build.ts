@@ -80,6 +80,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
 				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
+				describe: "override project type",
 			})
 			.option("includePath", {
 				alias: "i",
