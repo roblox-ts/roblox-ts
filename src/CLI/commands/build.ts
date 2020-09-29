@@ -62,7 +62,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				describe: "enable watch mode",
 			})
 			.option("usePolling", {
-				alias: "w",
+				implies: "watch",
 				boolean: true,
 				default: false,
 				describe: "use polling for watch mode",
