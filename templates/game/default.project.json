@@ -29,6 +29,12 @@
 				}
 			}
 		},
+		"Workspace": {
+			"$className": "Workspace",
+			"$properties": {
+				"FilteringEnabled": true
+			}
+		},				
 		"HttpService": {
 			"$className": "HttpService",
 			"$properties": {
