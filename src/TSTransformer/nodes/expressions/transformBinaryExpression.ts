@@ -32,6 +32,7 @@ function transformLuaTupleDestructure(
 	accessType: ts.Type,
 ) {
 	let index = 0;
+	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
 	const statements = state.capturePrereqs(() => {
 		for (let element of bindingLiteral.elements) {
@@ -58,6 +59,7 @@ function transformLuaTupleDestructure(
 					}
 				} else if (ts.isArrayLiteralExpression(element)) {
 					const id = luau.tempId();
+					luau.list.push(variables, id);
 					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
@@ -65,6 +67,7 @@ function transformLuaTupleDestructure(
 					transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 				} else if (ts.isObjectLiteralExpression(element)) {
 					const id = luau.tempId();
+					luau.list.push(variables, id);
 					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
@@ -77,6 +80,14 @@ function transformLuaTupleDestructure(
 			index++;
 		}
 	});
+	if (!luau.list.isEmpty(variables)) {
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: variables,
+				right: undefined,
+			}),
+		);
+	}
 	state.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writes,
