@@ -1,5 +1,6 @@
 import luau from "LuauAST";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
+import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
@@ -56,5 +57,9 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		]);
 
 		return luau.binary(luau.binary(successId, "and", successExp), "or", failureExp);
+	},
+
+	identity: (state, node) => {
+		return transformExpression(state, node.arguments[0]);
 	},
 };
