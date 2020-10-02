@@ -25,7 +25,7 @@ function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean
 		}
 
 		// defined type
-		if (!!(type.flags & ts.TypeFlags.Object) && type.getProperties().length === 0) {
+		if (isObjectType(type) && type.getProperties().length === 0) {
 			return true;
 		}
 
