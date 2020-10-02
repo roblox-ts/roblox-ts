@@ -14,7 +14,7 @@ export function renderStatements(state: RenderState, statements: luau.List<luau.
 	let listNode = statements.head;
 	let hasFinalStatent = false;
 	while (listNode !== undefined) {
-		assert(!hasFinalStatent || luau.isComment(listNode.value), "Cannot render statement after break or return!!");
+		assert(!hasFinalStatent || luau.isComment(listNode.value), "Cannot render statement after break or return!");
 		hasFinalStatent = hasFinalStatent || luau.isFinalStatement(listNode.value);
 
 		state.pushListNode(listNode);
