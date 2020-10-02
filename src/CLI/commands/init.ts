@@ -199,6 +199,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					"editor.defaultFormatter": "dbaeumer.vscode-eslint",
 					"editor.formatOnSave": true,
 				},
+				"[typescriptreact]": {
+					"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+					"editor.formatOnSave": true,
+				},
 				"eslint.run": "onType",
 				"eslint.format.enable": true,
 				"typescript.tsdk": "node_modules/typescript/lib",
