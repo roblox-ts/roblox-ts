@@ -6,7 +6,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
-import { getAncestor, isAncestorOf, skipUpwards } from "TSTransformer/util/traversal";
+import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
@@ -136,7 +136,11 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		}
 	}
 
-	if (!ts.isCallExpression(skipUpwards(node).parent) && state.services.macroManager.getCallMacro(symbol)) {
+	const parent = skipUpwards(node).parent;
+	if (
+		(!ts.isCallExpression(parent) || skipDownwards(parent.expression) != node) &&
+		state.services.macroManager.getCallMacro(symbol)
+	) {
 		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
 		return luau.emptyId();
 	}
