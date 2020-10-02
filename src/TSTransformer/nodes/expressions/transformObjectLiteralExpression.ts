@@ -6,7 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isPossiblyType, isPossiblyUndefined } from "TSTransformer/util/types";
+import { isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
@@ -35,8 +35,8 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	const type = state.getType(property.expression);
 
-	const possiblyUndefined = isPossiblyUndefined(type);
-	const isPossiblyNonObject = isPossiblyType(type, t => !(t.flags & ts.TypeFlags.Object));
+	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
+	const isPossiblyNonObject = isPossiblyType(type, t => !isObjectType(t));
 	if (possiblyUndefined || isPossiblyNonObject) {
 		spreadExp = state.pushToVarIfComplex(spreadExp);
 	}

@@ -11,7 +11,7 @@ import {
 } from "TSTransformer/util/jsx/constants";
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isPossiblyUndefined } from "TSTransformer/util/types";
+import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 function transformJsxInitializer(
 	state: TransformState,
@@ -33,7 +33,7 @@ function createJsxAttributeLoop(
 	expression: luau.Expression,
 	type: ts.Type,
 ) {
-	const possiblyUndefined = isPossiblyUndefined(type);
+	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
 	if (possiblyUndefined) {
 		expression = state.pushToVarIfComplex(expression);
 	}

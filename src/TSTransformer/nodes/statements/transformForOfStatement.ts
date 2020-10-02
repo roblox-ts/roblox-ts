@@ -11,6 +11,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { getStatements } from "TSTransformer/util/getStatements";
 import {
 	isArrayType,
+	isDefinitelyType,
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
@@ -161,19 +162,19 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, id
 });
 
 function getLoopBuilder(state: TransformState, type: ts.Type): LoopBuilder {
-	if (isArrayType(state, type)) {
+	if (isDefinitelyType(type, t => isArrayType(state, t))) {
 		return buildArrayLoop;
-	} else if (isSetType(state, type)) {
+	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
 		return buildSetLoop;
-	} else if (isMapType(state, type)) {
+	} else if (isDefinitelyType(type, t => isMapType(state, t))) {
 		return buildMapLoop;
-	} else if (isStringType(type)) {
+	} else if (isDefinitelyType(type, t => isStringType(t))) {
 		return buildStringLoop;
-	} else if (isIterableFunctionLuaTupleType(state, type)) {
+	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
 		return buildIterableFunctionLuaTupleLoop;
-	} else if (isIterableFunctionType(state, type)) {
+	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
 		return buildIterableFunctionLoop;
-	} else if (isGeneratorType(state, type)) {
+	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
 		return buildGeneratorLoop;
 	} else {
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);

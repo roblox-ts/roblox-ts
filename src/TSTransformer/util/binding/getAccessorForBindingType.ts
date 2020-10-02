@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
 	isArrayType,
+	isDefinitelyType,
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
@@ -171,19 +172,23 @@ export function getAccessorForBindingType(
 	node: ts.Node,
 	type: ts.Type | ReadonlyArray<ts.Type>,
 ): BindingAccessor {
-	if (ts.isArray(type) || isArrayType(state, type)) {
+	if (ts.isArray(type) || isDefinitelyType(type, t => isArrayType(state, t))) {
 		return arrayAccessor;
-	} else if (isStringType(type)) {
+	} else if (isDefinitelyType(type, t => isStringType(t))) {
 		return stringAccessor;
-	} else if (isSetType(state, type)) {
+	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
 		return setAccessor;
-	} else if (isMapType(state, type)) {
+	} else if (isDefinitelyType(type, t => isMapType(state, t))) {
 		return mapAccessor;
-	} else if (isIterableFunctionLuaTupleType(state, type)) {
+	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
 		return iterableFunctionLuaTupleAccessor;
-	} else if (isIterableFunctionType(state, type)) {
+	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
 		return iterableFunctionAccessor;
-	} else if (isGeneratorType(state, type) || isObjectType(type) || ts.isThis(node)) {
+	} else if (
+		isDefinitelyType(type, t => isGeneratorType(state, t)) ||
+		isDefinitelyType(type, t => isObjectType(t)) ||
+		ts.isThis(node)
+	) {
 		return iterAccessor;
 	}
 	assert(false, `Destructuring not supported for type: ${state.typeChecker.typeToString(type)}`);

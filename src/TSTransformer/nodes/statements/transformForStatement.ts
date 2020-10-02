@@ -9,7 +9,7 @@ import { transformVariableDeclaration } from "TSTransformer/nodes/statements/tra
 import { transformWhileStatementInner } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { isNumberType } from "TSTransformer/util/types";
+import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function getIncrementorValue(state: TransformState, symbol: ts.Symbol, incrementor: ts.Expression) {
@@ -50,7 +50,10 @@ function getOptimizedForStatement(
 	const varDecInit = varDec.initializer;
 	if (
 		!varDecInit ||
-		!(ts.isNumericLiteral(varDecInit) || (isNumberType(state.getType(varDecInit)) && ts.isIdentifier(varDecInit)))
+		!(
+			ts.isNumericLiteral(varDecInit) ||
+			(isDefinitelyType(state.getType(varDecInit), t => isNumberType(t)) && ts.isIdentifier(varDecInit))
+		)
 	) {
 		return undefined;
 	}

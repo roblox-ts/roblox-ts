@@ -3,7 +3,7 @@ import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { isPossiblyFalse, isPossiblyUndefined } from "TSTransformer/util/types";
+import { isFalseType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const condition = transformExpression(state, node.condition);
@@ -11,8 +11,8 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));
 	const type = state.getType(node.whenTrue);
 	if (
-		!isPossiblyFalse(state, type) &&
-		!isPossiblyUndefined(type) &&
+		!isPossiblyType(type, t => isFalseType(state, t)) &&
+		!isPossiblyType(type, t => isUndefinedType(t)) &&
 		luau.list.isEmpty(whenTruePrereqs) &&
 		luau.list.isEmpty(whenFalsePrereqs)
 	) {

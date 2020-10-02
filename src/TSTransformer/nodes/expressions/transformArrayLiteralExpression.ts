@@ -5,7 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
-import { isArrayType, isStringType } from "TSTransformer/util/types";
+import { isArrayType, isDefinitelyType, isStringType } from "TSTransformer/util/types";
 
 type OptimizedSpreadBuilder = (
 	state: TransformState,
@@ -63,9 +63,9 @@ const optimizedStringSpreadBuilder: OptimizedSpreadBuilder = (state, expression,
 };
 
 function getOptimizedSpreadBuilder(state: TransformState, type: ts.Type): OptimizedSpreadBuilder | undefined {
-	if (isArrayType(state, type)) {
+	if (isDefinitelyType(type, t => isArrayType(state, t))) {
 		return optimizedArraySpreadBuilder;
-	} else if (isStringType(type)) {
+	} else if (isDefinitelyType(type, t => isStringType(t))) {
 		return optimizedStringSpreadBuilder;
 	} else {
 		return undefined;

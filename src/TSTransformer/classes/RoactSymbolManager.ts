@@ -1,6 +1,5 @@
 import ts from "byots";
 import { assert } from "Shared/util/assert";
-import { isType } from "TSTransformer/util/types";
 
 export const ROACT_SYMBOL_NAMES = {
 	Component: "Component",
@@ -89,10 +88,5 @@ export class RoactSymbolManager {
 
 	public getIntrinsicElementClassNameFromSymbol(symbol: ts.Symbol) {
 		return this.jsxIntrinsicNameMap.get(symbol);
-	}
-
-	public isElementType(type: ts.Type) {
-		const symbol = this.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element);
-		return isType(type, t => t.symbol === symbol);
 	}
 }

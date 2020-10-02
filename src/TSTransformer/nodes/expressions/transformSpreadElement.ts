@@ -4,7 +4,7 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { isArrayType } from "TSTransformer/util/types";
+import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
@@ -15,7 +15,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
 	}
 
-	assert(isArrayType(state, state.getType(node.expression)));
+	assert(isDefinitelyType(state.getType(node.expression), t => isArrayType(state, t)));
 
 	return luau.create(luau.SyntaxKind.CallExpression, {
 		expression: luau.globals.unpack,

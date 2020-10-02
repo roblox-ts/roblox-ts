@@ -21,7 +21,7 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
@@ -299,8 +299,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
 		if (
-			(!isStringType(leftType) && !isNumberType(leftType)) ||
-			(!isStringType(rightType) && !isNumberType(rightType))
+			(!isDefinitelyType(leftType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t))) ||
+			(!isDefinitelyType(rightType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t)))
 		) {
 			state.addDiagnostic(diagnostics.noNonNumberStringRelationOperator(node));
 		}

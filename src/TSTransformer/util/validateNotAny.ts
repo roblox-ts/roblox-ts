@@ -2,7 +2,7 @@ import ts from "byots";
 import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { getTypeArguments, isAnyType, isArrayType } from "TSTransformer/util/types";
+import { isAnyType, isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 
 export function validateNotAnyType(state: TransformState, node: ts.Node) {
 	if (ts.isSpreadElement(node)) {
@@ -11,15 +11,15 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 
 	let type = state.getType(node);
 
-	if (isArrayType(state, type)) {
+	if (isDefinitelyType(type, t => isArrayType(state, t))) {
 		// Array<T> -> T
-		const typeArguments = getTypeArguments(state, type);
-		if (typeArguments.length > 0) {
-			type = typeArguments[0];
+		const indexType = state.typeChecker.getIndexTypeOfType(type, ts.IndexKind.Number);
+		if (indexType) {
+			type = indexType;
 		}
 	}
 
-	if (isAnyType(type)) {
+	if (isDefinitelyType(type, t => isAnyType(t))) {
 		state.addDiagnostic(diagnostics.noAny(node));
 	}
 }

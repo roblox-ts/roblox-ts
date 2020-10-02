@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer";
 import {
 	getTypeArguments,
 	isArrayType,
+	isDefinitelyType,
 	isGeneratorType,
 	isLuaTupleType,
 	isMapType,
@@ -24,7 +25,7 @@ export function getSubType(
 		} else if (isLuaTupleType(state, type)) {
 			assert(type.aliasTypeArguments);
 			return getSubType(state, type.aliasTypeArguments[0], index);
-		} else if (isArrayType(state, type)) {
+		} else if (isDefinitelyType(type, t => isArrayType(state, t))) {
 			if (state.typeChecker.isTupleType(type)) {
 				return getSubType(state, getTypeArguments(state, type), index);
 			} else {
@@ -32,16 +33,16 @@ export function getSubType(
 				assert(numIndexType);
 				return numIndexType;
 			}
-		} else if (isStringType(type)) {
+		} else if (isDefinitelyType(type, t => isStringType(t))) {
 			// T -> T
 			return type;
-		} else if (isSetType(state, type)) {
+		} else if (isDefinitelyType(type, t => isSetType(state, t))) {
 			// Set<T> -> T
 			return getTypeArguments(state, type)[0];
-		} else if (isMapType(state, type)) {
+		} else if (isDefinitelyType(type, t => isMapType(state, t))) {
 			// Map<K, V> -> [K, V]
 			return getTypeArguments(state, type);
-		} else if (isGeneratorType(state, type)) {
+		} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
 			// Generator<T> -> T
 			return getTypeArguments(state, type)[0];
 		}

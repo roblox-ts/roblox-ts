@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
+import { offset } from "TSTransformer/util/offset";
 import {
 	assignToMixedTablePointer,
 	disableMapInline,
@@ -12,8 +13,7 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
-import { isArrayType, isMapType } from "TSTransformer/util/types";
-import { offset } from "TSTransformer/util/offset";
+import { isArrayType, isDefinitelyType, isMapType, isRoactElementType } from "TSTransformer/util/types";
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(
@@ -182,7 +182,7 @@ export function transformJsxChildren(
 ) {
 	const lengthId = luau.tempId();
 	let lengthInitialized = false;
-	let amtChildrenSinceUpdate = 0;
+	let amtSinceUpdate = 0;
 
 	function updateLengthId() {
 		const right = luau.unary("#", childrenPtr.value);
@@ -203,7 +203,7 @@ export function transformJsxChildren(
 			);
 			lengthInitialized = true;
 		}
-		amtChildrenSinceUpdate = 0;
+		amtSinceUpdate = 0;
 	}
 
 	function disableInline() {
@@ -244,17 +244,14 @@ export function transformJsxChildren(
 				}
 
 				if (child.dotDotDotToken) {
-					// spread children
+					// spread children must be Array<Roact.Element>
 					disableInline();
 					assert(luau.isAnyIdentifier(childrenPtr.value));
 					state.prereqList(prereqs);
-					state.prereq(
-						createJsxAddAmbiguousChildren(childrenPtr.value, amtChildrenSinceUpdate, lengthId, expression),
-					);
+					state.prereq(createJsxAddNumericChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
-
-					if (state.services.roactSymbolManager && state.services.roactSymbolManager.isElementType(type)) {
+					if (isDefinitelyType(type, t => isRoactElementType(state, t))) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {
@@ -262,38 +259,28 @@ export function transformJsxChildren(
 								createJsxAddNumericChild(
 									childrenPtr.value,
 									lengthId,
-									luau.number(amtChildrenSinceUpdate + 1),
+									luau.number(amtSinceUpdate + 1),
 									expression,
 								),
 							);
 						}
-						amtChildrenSinceUpdate++;
+						amtSinceUpdate++;
 					} else {
 						disableInline();
 						assert(luau.isAnyIdentifier(childrenPtr.value));
-						if (isArrayType(state, type)) {
+						if (isDefinitelyType(type, t => isArrayType(state, t))) {
 							state.prereq(
-								createJsxAddNumericChildren(
-									childrenPtr.value,
-									amtChildrenSinceUpdate,
-									lengthId,
-									expression,
-								),
+								createJsxAddNumericChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
 							);
-						} else if (isMapType(state, type)) {
+						} else if (isDefinitelyType(type, t => isMapType(state, t))) {
 							state.prereq(
-								createJsxAddAmbiguousChildren(
-									childrenPtr.value,
-									amtChildrenSinceUpdate,
-									lengthId,
-									expression,
-								),
+								createJsxAddAmbiguousChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
 							);
 						} else {
 							state.prereq(
 								createJsxAddAmbiguousChild(
 									childrenPtr.value,
-									amtChildrenSinceUpdate,
+									amtSinceUpdate,
 									lengthId,
 									state.pushToVarIfNonId(expression),
 								),
@@ -328,12 +315,12 @@ export function transformJsxChildren(
 						createJsxAddNumericChild(
 							childrenPtr.value,
 							lengthId,
-							luau.number(amtChildrenSinceUpdate + 1),
+							luau.number(amtSinceUpdate + 1),
 							expression,
 						),
 					);
 				}
-				amtChildrenSinceUpdate++;
+				amtSinceUpdate++;
 			}
 		}
 	}

@@ -2,9 +2,8 @@ import ts from "byots";
 import { diagnostics } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
-import { walkTypes } from "TSTransformer/util/types";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { skipUpwards } from "TSTransformer/util/traversal";
+import { walkTypes } from "TSTransformer/util/types";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];
