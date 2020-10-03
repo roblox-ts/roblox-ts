@@ -120,7 +120,7 @@ export function transformPropertyCallExpressionInner(
 			const prereqs = state.capturePrereqs(
 				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
 			);
-			if (!luau.list.isEmpty(prereqs)) {
+			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 				expression = state.pushToVar(expression);
 			}
 			state.prereqList(prereqs);
@@ -130,7 +130,7 @@ export function transformPropertyCallExpressionInner(
 
 	let args!: luau.List<luau.Expression>;
 	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
-	if (!luau.list.isEmpty(prereqs)) {
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
 	state.prereqList(prereqs);
@@ -184,7 +184,7 @@ export function transformElementCallExpressionInner(
 			const prereqs = state.capturePrereqs(
 				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
 			);
-			if (!luau.list.isEmpty(prereqs)) {
+			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 				expression = state.pushToVar(expression);
 			}
 			state.prereqList(prereqs);
@@ -196,7 +196,7 @@ export function transformElementCallExpressionInner(
 	const prereqs = state.capturePrereqs(
 		() => (args = luau.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]))),
 	);
-	if (!luau.list.isEmpty(prereqs)) {
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
 	state.prereqList(prereqs);
