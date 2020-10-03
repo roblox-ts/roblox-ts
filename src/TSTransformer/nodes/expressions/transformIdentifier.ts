@@ -40,7 +40,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 	const declaration = symbol.valueDeclaration ?? getDeclarationFromImport(symbol);
 
 	// parameters cannot be hoisted
-	if (!declaration || ts.isParameter(declaration) || ts.isShorthandPropertyAssignment(declaration)) {
+	if (!declaration || getAncestor(declaration, ts.isParameter) || ts.isShorthandPropertyAssignment(declaration)) {
 		return;
 	}
 
