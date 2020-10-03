@@ -45,14 +45,3 @@ function isSourceFileOrModuleDeclaration(node: ts.Node): node is ts.SourceFile |
 export function getModuleAncestor(node: ts.Node) {
 	return getAncestor(node, isSourceFileOrModuleDeclaration)!;
 }
-
-export function findFirstChild<T extends ts.Node>(
-	children: ReadonlyArray<ts.Node>,
-	check: (value: ts.Node) => value is T,
-): T | undefined {
-	for (const child of children) {
-		if (check(child)) {
-			return child;
-		}
-	}
-}

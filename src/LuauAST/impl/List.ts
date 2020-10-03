@@ -17,8 +17,9 @@ export type List<T extends luau.Node> = {
 	readonly: boolean;
 };
 
-// list creation functions
 export namespace list {
+	// list creation functions
+
 	export function makeNode<T extends luau.Node>(value: T): luau.ListNode<T> {
 		return { value };
 	}
@@ -61,18 +62,16 @@ export namespace list {
 		}
 		return newList;
 	}
-}
 
-// type guard
-export namespace list {
+	// type guard
+
 	export function isList(value: unknown): value is luau.List<luau.Node> {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		return typeof value === "object" && (value as any)[LIST_MARKER] === true;
 	}
-}
 
-// list utility functions
-export namespace list {
+	// list utility functions
+
 	export function clone<T extends luau.Node>(list: luau.List<T>): luau.List<T> {
 		const newList = luau.list.make<T>();
 		luau.list.forEach(list, element => {
@@ -243,32 +242,5 @@ export namespace list {
 			node = node.next;
 		}
 		return size;
-	}
-}
-
-// node utility functions
-export namespace list {
-	export function remove<T extends luau.Node>(node: luau.ListNode<T>) {
-		const prevNode = node.prev;
-		const nextNode = node.next;
-		node.prev = undefined;
-		node.next = undefined;
-		if (prevNode) {
-			prevNode.next = nextNode;
-		}
-		if (nextNode) {
-			nextNode.prev = prevNode;
-		}
-	}
-
-	export function insertAfter<T extends luau.Node>(node: luau.ListNode<T>, value: NoInfer<T>) {
-		const newNode = luau.list.makeNode(value);
-		const origNext = node.next;
-		node.next = newNode;
-		newNode.prev = node;
-		if (origNext) {
-			origNext.prev = newNode;
-			newNode.next = origNext;
-		}
 	}
 }
