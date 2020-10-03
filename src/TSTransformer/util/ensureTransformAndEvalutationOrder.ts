@@ -15,6 +15,6 @@ export function ensureTransformAndEvalutationOrder(
 	) => luau.Expression = transformExpression,
 ): Array<luau.Expression> {
 	return ensureTransformOrder(state, expressions, transformer).map(arg =>
-		expressionMightMutate(arg) ? state.pushToVar(arg) : arg,
+		expressionMightMutate(state, arg) ? state.pushToVar(arg) : arg,
 	);
 }

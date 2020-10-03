@@ -9,6 +9,7 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformAndEvalutationOrder } from "TSTransformer/util/ensureTransformAndEvalutationOrder";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -63,23 +64,6 @@ function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, ex
 	return exp;
 }
 
-function isMutable(state: TransformState, expression: ts.Expression) {
-	if (
-		ts.isCallExpression(expression) ||
-		ts.isPropertyAccessExpression(expression) ||
-		ts.isElementAccessExpression(expression)
-	) {
-		return true;
-	}
-	if (ts.isIdentifier(expression)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(expression);
-		if (symbol && isDefinedAsLet(state, symbol)) {
-			return true;
-		}
-	}
-	return false;
-}
-
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -96,7 +80,7 @@ export function transformCallExpressionInner(
 			const prereqs = state.capturePrereqs(
 				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
 			);
-			if (!luau.list.isEmpty(prereqs) && isMutable(state, node.expression)) {
+			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 				expression = state.pushToVar(expression);
 			}
 			state.prereqList(prereqs);
@@ -106,7 +90,7 @@ export function transformCallExpressionInner(
 
 	let args!: luau.List<luau.Expression>;
 	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
-	if (!luau.list.isEmpty(prereqs) && isMutable(state, node.expression)) {
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
 	state.prereqList(prereqs);
