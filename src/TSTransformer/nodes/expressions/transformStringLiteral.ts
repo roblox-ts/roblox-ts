@@ -1,5 +1,4 @@
 import ts from "byots";
-import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 
