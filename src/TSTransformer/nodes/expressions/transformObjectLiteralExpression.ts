@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
@@ -63,14 +64,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	if (isPossiblyNonObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.binary(
-				luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.type,
-					args: luau.list.make(spreadExp),
-				}),
-				"==",
-				luau.strings.table,
-			),
+			condition: createTypeCheck(spreadExp, luau.strings.table),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});

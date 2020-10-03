@@ -16,7 +16,7 @@ export function isDefinitelyType(type: ts.Type, cb: (type: ts.Type) => boolean) 
 }
 
 function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
-	if (type.isUnion() || type.isIntersection()) {
+	if (type.isUnionOrIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callback));
 	} else {
 		// type variable without constraint, any, or unknown
@@ -39,6 +39,37 @@ export function isPossiblyType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 
 export function isAnyType(type: ts.Type) {
 	return !!(type.flags & ts.TypeFlags.Any);
+}
+
+export function isBooleanType(type: ts.Type) {
+	return !!(type.flags & (ts.TypeFlags.Boolean | ts.TypeFlags.BooleanLiteral));
+}
+
+export function isBooleanLiteralType(state: TransformState, type: ts.Type, value: boolean) {
+	if (!!(type.flags & ts.TypeFlags.BooleanLiteral)) {
+		const valueType = value ? state.typeChecker.getTrueType() : state.typeChecker.getFalseType();
+		return type === valueType;
+	}
+	return isBooleanType(type);
+}
+
+export function isNumberType(type: ts.Type) {
+	return !!(type.flags & (ts.TypeFlags.Number | ts.TypeFlags.NumberLike | ts.TypeFlags.NumberLiteral));
+}
+
+export function isNumberLiteralType(type: ts.Type, value: number) {
+	if (type.isNumberLiteral()) {
+		return type.value === value;
+	}
+	return isNumberType(type);
+}
+
+export function isNaNType(type: ts.Type) {
+	return isNumberType(type) && !type.isNumberLiteral();
+}
+
+export function isStringType(type: ts.Type) {
+	return !!(type.flags & (ts.TypeFlags.String | ts.TypeFlags.StringLike | ts.TypeFlags.StringLiteral));
 }
 
 export function isArrayType(state: TransformState, type: ts.Type) {
@@ -66,26 +97,6 @@ export function isMapType(state: TransformState, type: ts.Type) {
 	);
 }
 
-export function isLuaTupleType(state: TransformState, type: ts.Type) {
-	return type.aliasSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
-}
-
-export function isNumberType(type: ts.Type) {
-	return (
-		!!(type.flags & ts.TypeFlags.Number) ||
-		!!(type.flags & ts.TypeFlags.NumberLike) ||
-		!!(type.flags & ts.TypeFlags.NumberLiteral)
-	);
-}
-
-export function isStringType(type: ts.Type) {
-	return (
-		!!(type.flags & ts.TypeFlags.String) ||
-		!!(type.flags & ts.TypeFlags.StringLike) ||
-		!!(type.flags & ts.TypeFlags.StringLiteral)
-	);
-}
-
 export function isGeneratorType(state: TransformState, type: ts.Type) {
 	return type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Generator);
 }
@@ -107,6 +118,10 @@ export function isIterableFunctionType(state: TransformState, type: ts.Type) {
 	return false;
 }
 
+export function isLuaTupleType(state: TransformState, type: ts.Type) {
+	return type.aliasSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
+}
+
 export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.Type) {
 	if (isIterableFunctionType(state, type)) {
 		const firstTypeArg: ts.Type | undefined = getTypeArguments(state, type)[0];
@@ -119,26 +134,8 @@ export function isObjectType(type: ts.Type) {
 	return !!(type.flags & ts.TypeFlags.Object);
 }
 
-export function isFalseType(state: TransformState, type: ts.Type) {
-	if (!!(type.flags & ts.TypeFlags.BooleanLiteral)) {
-		return type === state.typeChecker.getFalseType();
-	}
-	return !!(type.flags & ts.TypeFlags.Boolean);
-}
-
 export function isUndefinedType(type: ts.Type) {
 	return !!(type.flags & (ts.TypeFlags.Undefined | ts.TypeFlags.Void));
-}
-
-export function isZeroType(type: ts.Type) {
-	if (type.isNumberLiteral()) {
-		return type.value === 0;
-	}
-	return isNumberType(type);
-}
-
-export function isNaNType(type: ts.Type) {
-	return isNumberType(type) && !type.isNumberLiteral();
 }
 
 export function isEmptyStringType(type: ts.Type) {
@@ -156,7 +153,7 @@ export function isRoactElementType(state: TransformState, type: ts.Type) {
 // type utilities
 
 export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
-	if (type.isUnion() || type.isIntersection()) {
+	if (type.isUnionOrIntersection()) {
 		for (const t of type.types) {
 			walkTypes(t, callback);
 		}
@@ -189,7 +186,7 @@ export function getFirstConstructSymbol(state: TransformState, expression: ts.Ex
 }
 
 export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
-	if (type.isUnion() || type.isIntersection()) {
+	if (type.isUnionOrIntersection()) {
 		for (const t of type.types) {
 			if (t.symbol && !state.typeChecker.isUndefinedSymbol(t.symbol)) {
 				return t.symbol;

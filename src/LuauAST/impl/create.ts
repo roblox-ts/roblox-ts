@@ -150,3 +150,7 @@ export function binary(left: luau.Expression, operator: luau.BinaryOperator, rig
 export function unary(operator: luau.UnaryOperator, expression: luau.Expression) {
 	return luau.create(luau.SyntaxKind.UnaryExpression, { operator, expression });
 }
+
+export function property(expression: luau.IndexableExpression, name: string) {
+	return luau.create(luau.SyntaxKind.PropertyAccessExpression, { expression, name });
+}

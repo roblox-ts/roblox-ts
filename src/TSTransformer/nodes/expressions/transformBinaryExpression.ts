@@ -18,6 +18,7 @@ import {
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
+import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -116,14 +117,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-				left: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.type,
-					args: luau.list.make(left),
-				}),
-				operator: "==",
-				right: luau.string("table"),
-			}),
+			condition: createTypeCheck(left, luau.strings.table),
 			statements: luau.list.make<luau.Statement>(
 				// objId = getmetatable(obj)
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
