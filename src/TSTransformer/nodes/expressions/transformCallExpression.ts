@@ -7,8 +7,10 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformAndEvalutationOrder } from "TSTransformer/util/ensureTransformAndEvalutationOrder";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
@@ -61,6 +63,23 @@ function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, ex
 	return exp;
 }
 
+function isMutable(state: TransformState, expression: ts.Expression) {
+	if (
+		ts.isCallExpression(expression) ||
+		ts.isPropertyAccessExpression(expression) ||
+		ts.isElementAccessExpression(expression)
+	) {
+		return true;
+	}
+	if (ts.isIdentifier(expression)) {
+		const symbol = state.typeChecker.getSymbolAtLocation(expression);
+		if (symbol && isDefinedAsLet(state, symbol)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -73,11 +92,25 @@ export function transformCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
+			let args!: Array<luau.Expression>;
+			const prereqs = state.capturePrereqs(
+				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
+			);
+			if (!luau.list.isEmpty(prereqs) && isMutable(state, node.expression)) {
+				expression = state.pushToVar(expression);
+			}
+			state.prereqList(prereqs);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
 		}
 	}
 
-	const args = luau.list.make(...ensureTransformOrder(state, nodeArguments));
+	let args!: luau.List<luau.Expression>;
+	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
+	if (!luau.list.isEmpty(prereqs) && isMutable(state, node.expression)) {
+		expression = state.pushToVar(expression);
+	}
+	state.prereqList(prereqs);
+
 	const exp = luau.create(luau.SyntaxKind.CallExpression, {
 		expression: convertToIndexableExpression(expression),
 		args,
@@ -99,11 +132,25 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
+			let args!: Array<luau.Expression>;
+			const prereqs = state.capturePrereqs(
+				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
+			);
+			if (!luau.list.isEmpty(prereqs)) {
+				expression = state.pushToVar(expression);
+			}
+			state.prereqList(prereqs);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
 		}
 	}
 
-	const args = luau.list.make(...ensureTransformOrder(state, nodeArguments));
+	let args!: luau.List<luau.Expression>;
+	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
+	if (!luau.list.isEmpty(prereqs)) {
+		expression = state.pushToVar(expression);
+	}
+	state.prereqList(prereqs);
+
 	let exp: luau.Expression;
 	if (isMethod(state, node.expression)) {
 		if (isValidLuauIdentifier(name)) {
@@ -149,11 +196,27 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression));
+			let args!: Array<luau.Expression>;
+			const prereqs = state.capturePrereqs(
+				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
+			);
+			if (!luau.list.isEmpty(prereqs)) {
+				expression = state.pushToVar(expression);
+			}
+			state.prereqList(prereqs);
+			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
 		}
 	}
 
-	const args = luau.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
+	let args!: luau.List<luau.Expression>;
+	const prereqs = state.capturePrereqs(
+		() => (args = luau.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]))),
+	);
+	if (!luau.list.isEmpty(prereqs)) {
+		expression = state.pushToVar(expression);
+	}
+	state.prereqList(prereqs);
+
 	const argumentExp = luau.list.shift(args)!;
 
 	if (isMethod(state, node.expression)) {
