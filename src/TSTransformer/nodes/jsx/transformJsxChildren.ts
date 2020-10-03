@@ -26,14 +26,14 @@ import {
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(
-	childrenPtrValue: luau.AnyIdentifier,
+	id: luau.AnyIdentifier,
 	lengthId: luau.Expression,
 	key: luau.Expression,
 	value: luau.Expression,
 ) {
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: childrenPtrValue,
+			expression: id,
 			index: luau.binary(lengthId, "+", key),
 		}),
 		operator: "=",
@@ -43,13 +43,13 @@ function createJsxAddNumericChild(
 
 /** `children[keyId] = valueId` */
 function createJsxAddKeyChild(
-	childrenPtrValue: luau.AnyIdentifier,
+	id: luau.AnyIdentifier,
 	keyId: luau.TemporaryIdentifier,
 	valueId: luau.TemporaryIdentifier,
 ) {
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: childrenPtrValue,
+			expression: id,
 			index: keyId,
 		}),
 		operator: "=",
@@ -145,7 +145,7 @@ function createJsxAddChild(
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 	type: ts.Type,
-): luau.Statement | undefined {
+): luau.Statement {
 	const isPossiblyUndefinedOrFalse = isPossiblyType(
 		type,
 		t => isUndefinedType(t) || isBooleanLiteralType(state, t, false),
@@ -166,7 +166,7 @@ function createJsxAddChild(
 		expression = state.pushToVarIfNonId(expression);
 	}
 
-	let statement: luau.Statement | undefined;
+	let statement!: luau.Statement;
 
 	if (isPossiblyElement) {
 		statement = createJsxAddNumericChild(id, lengthId, luau.number(amtSinceUpdate + 1), expression);
@@ -199,25 +199,28 @@ function createJsxAddChild(
 		}
 	}
 
-	if ((isPossiblyUndefinedOrFalse || isPossiblyTrue) && (isPossiblyElement || isPossiblyArray || isPossiblyMap)) {
-		let condition: luau.Expression;
-		if (isPossiblyTrue) {
-			condition = createTypeCheck(expression, luau.strings.table);
+	if (isPossiblyUndefinedOrFalse || isPossiblyTrue) {
+		if (isPossiblyElement || isPossiblyArray || isPossiblyMap) {
+			let condition: luau.Expression;
+			if (isPossiblyTrue) {
+				condition = createTypeCheck(expression, luau.strings.table);
+			} else {
+				condition = expression;
+			}
+			statement = luau.create(luau.SyntaxKind.IfStatement, {
+				condition,
+				statements: luau.list.make(statement!),
+				elseBody: luau.list.make(),
+			});
 		} else {
-			condition = expression;
+			statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.emptyId(),
+				right: expression,
+			});
 		}
-		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition,
-			statements: luau.list.make(statement!),
-			elseBody: luau.list.make(),
-		});
-	} else {
-		statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: luau.emptyId(),
-			right: expression,
-		});
 	}
 
+	assert(statement);
 	return statement;
 }
 
@@ -315,17 +318,9 @@ export function transformJsxChildren(
 					} else {
 						disableInline();
 						assert(luau.isAnyIdentifier(childrenPtr.value));
-						const childStatement = createJsxAddChild(
-							state,
-							childrenPtr.value,
-							amtSinceUpdate,
-							lengthId,
-							expression,
-							type,
+						state.prereq(
+							createJsxAddChild(state, childrenPtr.value, amtSinceUpdate, lengthId, expression, type),
 						);
-						if (childStatement) {
-							state.prereq(childStatement);
-						}
 					}
 				}
 				if (!luau.isMixedTable(childrenPtr.value) && i < lastUsefulElementIndex) {
