@@ -265,7 +265,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isStringType(valueType) ? wrapToString(value) : value,
+				operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t)) ? wrapToString(value) : value,
 			);
 		} else {
 			return createCompoundAssignmentExpression(

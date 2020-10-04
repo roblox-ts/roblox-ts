@@ -3,7 +3,7 @@ import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapToString } from "TSTransformer/util/wrapToString";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
@@ -46,8 +46,8 @@ function createBinaryAdd(
 	right: luau.Expression,
 	rightType: ts.Type,
 ) {
-	const leftIsString = isStringType(leftType);
-	const rightIsString = isStringType(rightType);
+	const leftIsString = isDefinitelyType(leftType, t => isStringType(t));
+	const rightIsString = isDefinitelyType(rightType, t => isStringType(t));
 	if (leftIsString || rightIsString) {
 		return luau.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
 	} else {

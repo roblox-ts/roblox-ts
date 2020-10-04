@@ -2,7 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 
 const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// compound assignment
@@ -27,7 +27,9 @@ export function getSimpleAssignmentOperator(
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return isStringType(leftType) || isStringType(rightType) ? "..=" : "+=";
+		return isDefinitelyType(leftType, t => isStringType(t)) || isDefinitelyType(rightType, t => isStringType(t))
+			? "..="
+			: "+=";
 	}
 
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);

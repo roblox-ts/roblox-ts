@@ -466,7 +466,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		// table.concat only works on string and number types, so call tostring() otherwise
-		if (indexType && isPossiblyType(indexType, type => !isStringType(type) && !isNumberType(type))) {
+		if (indexType && isPossiblyType(indexType, t => !isStringType(t) && !isNumberType(t))) {
 			const id = state.pushToVar(luau.map());
 			const keyId = luau.tempId();
 			const valueId = luau.tempId();

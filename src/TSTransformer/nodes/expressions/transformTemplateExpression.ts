@@ -5,7 +5,7 @@ import { TransformState } from "TSTransformer";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
-import { isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral
@@ -26,7 +26,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 	for (let i = 0; i < node.templateSpans.length; i++) {
 		const templateSpan = node.templateSpans[i];
 		let exp = orderedExpressions[i];
-		if (!isStringType(state.getType(templateSpan.expression))) {
+		if (!isDefinitelyType(state.getType(templateSpan.expression), t => isStringType(t))) {
 			exp = luau.create(luau.SyntaxKind.CallExpression, {
 				expression: luau.globals.tostring,
 				args: luau.list.make(exp),
