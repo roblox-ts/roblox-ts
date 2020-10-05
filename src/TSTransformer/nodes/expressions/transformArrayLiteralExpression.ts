@@ -3,18 +3,28 @@ import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
-import { isArrayType, isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import {
+	isArrayType,
+	isDefinitelyType,
+	isGeneratorType,
+	isIterableFunctionLuaTupleType,
+	isIterableFunctionType,
+	isMapType,
+	isSetType,
+	isStringType,
+} from "TSTransformer/util/types";
 
-type OptimizedSpreadBuilder = (
+type OptimizeSpreadBuilder = (
 	state: TransformState,
 	expression: luau.Expression,
 	arrayId: luau.AnyIdentifier,
 	lengthId: luau.AnyIdentifier,
 ) => luau.Statement;
 
-const optimizedArraySpreadBuilder: OptimizedSpreadBuilder = (state, expression, arrayId, lengthId) => {
+const optimizeArraySpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
 	const keyId = luau.tempId();
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
@@ -36,7 +46,7 @@ const optimizedArraySpreadBuilder: OptimizedSpreadBuilder = (state, expression, 
 	});
 };
 
-const optimizedStringSpreadBuilder: OptimizedSpreadBuilder = (state, expression, arrayId, lengthId) => {
+const optimizeStringSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(valueId),
@@ -62,14 +72,169 @@ const optimizedStringSpreadBuilder: OptimizedSpreadBuilder = (state, expression,
 	});
 };
 
-function getOptimizedSpreadBuilder(state: TransformState, type: ts.Type): OptimizedSpreadBuilder | undefined {
+const optimizeSetSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
+		}),
+		statements: luau.list.make(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: valueId,
+			}),
+		),
+	});
+};
+
+const optimizeMapSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	const pairId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make<luau.AnyIdentifier>(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
+		}),
+		statements: luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: pairId,
+				right: luau.array([keyId, valueId]),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: pairId,
+			}),
+		),
+	});
+};
+
+const optimizeIterableFunctionSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make<luau.AnyIdentifier>(valueId),
+		expression,
+		statements: luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: valueId,
+			}),
+		),
+	});
+};
+
+const optimizeIterableFunctionLuaTupleSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const iterFuncId = state.pushToVar(expression);
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.WhileStatement, {
+		condition: luau.bool(true),
+		statements: luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: valueId,
+				right: luau.array([
+					luau.create(luau.SyntaxKind.CallExpression, {
+						expression: iterFuncId,
+						args: luau.list.make(),
+					}),
+				]),
+			}),
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+				elseBody: luau.list.make(),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: valueId,
+			}),
+		),
+	});
+};
+
+const optimizeGeneratorSpread: OptimizeSpreadBuilder = (state, expression, arrayId, lengthId) => {
+	const iterId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make<luau.AnyIdentifier>(iterId),
+		expression: luau.property(convertToIndexableExpression(expression), "next"),
+		statements: luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.property(iterId, "done"),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+				elseBody: luau.list.make(),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(1),
+			}),
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+					expression: arrayId,
+					index: lengthId,
+				}),
+				operator: "=",
+				right: luau.property(iterId, "value"),
+			}),
+		),
+	});
+};
+
+function getOptimizeSpreadBuilder(state: TransformState, type: ts.Type): OptimizeSpreadBuilder {
 	if (isDefinitelyType(type, t => isArrayType(state, t))) {
-		return optimizedArraySpreadBuilder;
+		return optimizeArraySpread;
 	} else if (isDefinitelyType(type, t => isStringType(t))) {
-		return optimizedStringSpreadBuilder;
-	} else {
-		return undefined;
+		return optimizeStringSpread;
+	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
+		return optimizeSetSpread;
+	} else if (isDefinitelyType(type, t => isMapType(state, t))) {
+		return optimizeMapSpread;
+	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
+		return optimizeIterableFunctionLuaTupleSpread;
+	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
+		return optimizeIterableFunctionSpread;
+	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
+		return optimizeGeneratorSpread;
 	}
+	assert(false, "Not implemented");
 }
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
@@ -116,13 +281,9 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			assert(luau.isAnyIdentifier(ptr.value));
 
 			const type = state.getType(element.expression);
-			const optimizedSpreadBuilder = getOptimizedSpreadBuilder(state, type);
-			if (optimizedSpreadBuilder) {
-				const spreadExp = transformExpression(state, element.expression);
-				state.prereq(optimizedSpreadBuilder(state, spreadExp, ptr.value, lengthId));
-			} else {
-				assert(false, "Not implemented");
-			}
+			const optimizeSpreadBuilder = getOptimizeSpreadBuilder(state, type);
+			const spreadExp = transformExpression(state, element.expression);
+			state.prereq(optimizeSpreadBuilder(state, spreadExp, ptr.value, lengthId));
 
 			if (i < node.elements.length - 1) {
 				updateLengthId();
