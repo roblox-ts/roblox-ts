@@ -1306,21 +1306,18 @@ const OBJECT_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression, args) => luau.binary(luau.call(luau.globals.next, [args[0]]), "==", luau.nil()),
 
 	keys: (state, node, expression, args) => {
-		expression = args[0];
 		const keyId = luau.tempId();
-		return createKeyValuesEntriesMethod(state, node, expression, [keyId], keyId);
+		return createKeyValuesEntriesMethod(state, node, args[0], [keyId], keyId);
 	},
 
 	values: (state, node, expression, args) => {
-		expression = args[0];
 		const valueId = luau.tempId();
-		return createKeyValuesEntriesMethod(state, node, expression, [luau.emptyId(), valueId], valueId);
+		return createKeyValuesEntriesMethod(state, node, args[0], [luau.emptyId(), valueId], valueId);
 	},
 
 	entries: (state, node, expression, args) => {
-		expression = args[0];
 		const ids = [luau.tempId(), luau.tempId()];
-		return createKeyValuesEntriesMethod(state, node, expression, ids, luau.array(ids));
+		return createKeyValuesEntriesMethod(state, node, args[0], ids, luau.array(ids));
 	},
 
 	copy: makeCopyMethod(luau.globals.pairs, (state, node, expression, args) => args[0]),
