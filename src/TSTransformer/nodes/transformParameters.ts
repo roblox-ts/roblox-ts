@@ -1,5 +1,7 @@
 import ts from "byots";
+import { assert } from "console";
 import luau from "LuauAST";
+import { diagnostics } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
@@ -7,6 +9,43 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+
+function optimizeArraySpreadParameter(
+	state: TransformState,
+	parameters: luau.List<luau.AnyIdentifier>,
+	bindingPattern: ts.ArrayBindingPattern,
+) {
+	for (const element of bindingPattern.elements) {
+		if (ts.isOmittedExpression(element)) {
+			luau.list.push(parameters, luau.emptyId());
+		} else {
+			if (element.dotDotDotToken) {
+				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
+				return;
+			}
+			const name = element.name;
+			if (ts.isIdentifier(name)) {
+				const paramId = transformIdentifierDefined(state, name);
+				validateIdentifier(state, name);
+				luau.list.push(parameters, paramId);
+				if (element.initializer) {
+					state.prereq(transformInitializer(state, paramId, element.initializer));
+				}
+			} else {
+				const paramId = luau.tempId();
+				luau.list.push(parameters, paramId);
+				if (element.initializer) {
+					state.prereq(transformInitializer(state, paramId, element.initializer));
+				}
+				if (ts.isArrayBindingPattern(name)) {
+					transformArrayBindingPattern(state, name, paramId);
+				} else {
+					transformObjectBindingPattern(state, name, paramId);
+				}
+			}
+		}
+	}
+}
 
 export function transformParameters(state: TransformState, node: ts.SignatureDeclarationBase) {
 	const parameters = luau.list.make<luau.AnyIdentifier>();
@@ -19,6 +58,14 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 
 	for (const parameter of node.parameters) {
 		if (ts.isThisIdentifier(parameter.name)) {
+			continue;
+		}
+
+		if (parameter.dotDotDotToken && ts.isArrayBindingPattern(parameter.name)) {
+			const prereqs = state.capturePrereqs(() =>
+				optimizeArraySpreadParameter(state, parameters, parameter.name as ts.ArrayBindingPattern),
+			);
+			luau.list.pushList(statements, prereqs);
 			continue;
 		}
 
