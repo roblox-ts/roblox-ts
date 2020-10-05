@@ -4,7 +4,6 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
-import { wrapToString } from "TSTransformer/util/wrapToString";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
@@ -49,7 +48,11 @@ function createBinaryAdd(
 	const leftIsString = isDefinitelyType(leftType, t => isStringType(t));
 	const rightIsString = isDefinitelyType(rightType, t => isStringType(t));
 	if (leftIsString || rightIsString) {
-		return luau.binary(leftIsString ? left : wrapToString(left), "..", rightIsString ? right : wrapToString(right));
+		return luau.binary(
+			leftIsString ? left : luau.call(luau.globals.tostring, [left]),
+			"..",
+			rightIsString ? right : luau.call(luau.globals.tostring, [right]),
+		);
 	} else {
 		return luau.binary(left, "+", right);
 	}

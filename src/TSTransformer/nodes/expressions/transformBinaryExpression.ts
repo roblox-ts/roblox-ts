@@ -24,7 +24,6 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-import { wrapToString } from "TSTransformer/util/wrapToString";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
@@ -259,7 +258,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t)) ? wrapToString(value) : value,
+				operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t))
+					? luau.call(luau.globals.tostring, [value])
+					: value,
 			);
 		} else {
 			return createCompoundAssignmentExpression(

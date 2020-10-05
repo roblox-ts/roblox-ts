@@ -8,7 +8,6 @@ import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
-import { wrapToString } from "TSTransformer/util/wrapToString";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
@@ -57,7 +56,7 @@ export function transformExpressionStatementInner(
 						operator,
 						right:
 							operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t))
-								? wrapToString(value)
+								? luau.call(luau.globals.tostring, [value])
 								: value,
 					}),
 				);

@@ -154,3 +154,10 @@ export function unary(operator: luau.UnaryOperator, expression: luau.Expression)
 export function property(expression: luau.IndexableExpression, name: string) {
 	return luau.create(luau.SyntaxKind.PropertyAccessExpression, { expression, name });
 }
+
+export function call(expression: luau.IndexableExpression, args: Array<luau.Expression> = []) {
+	return luau.create(luau.SyntaxKind.CallExpression, {
+		expression,
+		args: luau.list.make(...args),
+	});
+}
