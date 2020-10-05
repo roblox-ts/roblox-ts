@@ -10,6 +10,9 @@ import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
+/**
+ * Optimizes parameters in the form `...[a, b, c]: [A, B, C]` to be just `(a, b, c)`
+ */
 function optimizeArraySpreadParameter(
 	state: TransformState,
 	parameters: luau.List<luau.AnyIdentifier>,
