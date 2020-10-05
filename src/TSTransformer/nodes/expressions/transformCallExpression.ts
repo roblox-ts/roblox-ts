@@ -3,15 +3,14 @@ import luau from "LuauAST";
 import { diagnostics } from "Shared/diagnostics";
 import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
+import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { ensureTransformAndEvalutationOrder } from "TSTransformer/util/ensureTransformAndEvalutationOrder";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
@@ -64,6 +63,53 @@ function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, ex
 	return exp;
 }
 
+function runCallMacro(
+	macro: CallMacro | PropertyCallMacro,
+	state: TransformState,
+	node: ts.CallExpression,
+	expression: luau.Expression,
+	nodeArguments: ReadonlyArray<ts.Expression>,
+): luau.Expression {
+	let args!: Array<luau.Expression>;
+	const prereqs = state.capturePrereqs(() => {
+		args = ensureTransformOrder(state, nodeArguments);
+		const lastArg = nodeArguments[nodeArguments.length - 1];
+		if (lastArg && ts.isSpreadElement(lastArg)) {
+			const signatures = state.typeChecker.getSignaturesOfType(
+				state.getType(node.expression),
+				ts.SignatureKind.Call,
+			);
+			const minArgumentCount = signatures[0].minArgumentCount;
+			const spread = args.pop();
+			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
+			for (let i = args.length; i < minArgumentCount; i++) {
+				const tempId = luau.tempId();
+				args.push(tempId);
+				luau.list.push(tempIds, tempId);
+			}
+			state.prereq(
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: tempIds,
+					right: spread,
+				}),
+			);
+		}
+
+		for (let i = 0; i < args.length; i++) {
+			if (expressionMightMutate(state, args[i])) {
+				args[i] = state.pushToVar(args[i]);
+			}
+		}
+	});
+
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
+		expression = state.pushToVar(expression);
+	}
+	state.prereqList(prereqs);
+
+	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, args));
+}
+
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -76,15 +122,7 @@ export function transformCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
-			let args!: Array<luau.Expression>;
-			const prereqs = state.capturePrereqs(
-				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
-			);
-			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-				expression = state.pushToVar(expression);
-			}
-			state.prereqList(prereqs);
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
+			return runCallMacro(macro, state, node, expression, nodeArguments);
 		}
 	}
 
@@ -116,15 +154,7 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			let args!: Array<luau.Expression>;
-			const prereqs = state.capturePrereqs(
-				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
-			);
-			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-				expression = state.pushToVar(expression);
-			}
-			state.prereqList(prereqs);
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
+			return runCallMacro(macro, state, node, expression, nodeArguments);
 		}
 	}
 
@@ -180,15 +210,7 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			let args!: Array<luau.Expression>;
-			const prereqs = state.capturePrereqs(
-				() => (args = ensureTransformAndEvalutationOrder(state, nodeArguments)),
-			);
-			if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-				expression = state.pushToVar(expression);
-			}
-			state.prereqList(prereqs);
-			return wrapReturnIfLuaTuple(state, node, macro(state, node, expression, args));
+			return runCallMacro(macro, state, node, expression, nodeArguments);
 		}
 	}
 
