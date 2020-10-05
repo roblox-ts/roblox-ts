@@ -4,6 +4,7 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { offset } from "TSTransformer/util/offset";
 import {
@@ -13,18 +14,26 @@ import {
 	MapPointer,
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
-import { isArrayType, isDefinitelyType, isMapType, isRoactElementType } from "TSTransformer/util/types";
+import {
+	isArrayType,
+	isBooleanLiteralType,
+	isDefinitelyType,
+	isMapType,
+	isPossiblyType,
+	isRoactElementType,
+	isUndefinedType,
+} from "TSTransformer/util/types";
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(
-	childrenPtrValue: luau.AnyIdentifier,
+	id: luau.AnyIdentifier,
 	lengthId: luau.Expression,
 	key: luau.Expression,
 	value: luau.Expression,
 ) {
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: childrenPtrValue,
+			expression: id,
 			index: luau.binary(lengthId, "+", key),
 		}),
 		operator: "=",
@@ -34,13 +43,13 @@ function createJsxAddNumericChild(
 
 /** `children[keyId] = valueId` */
 function createJsxAddKeyChild(
-	childrenPtrValue: luau.AnyIdentifier,
+	id: luau.AnyIdentifier,
 	keyId: luau.TemporaryIdentifier,
 	valueId: luau.TemporaryIdentifier,
 ) {
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: childrenPtrValue,
+			expression: id,
 			index: keyId,
 		}),
 		operator: "=",
@@ -48,29 +57,9 @@ function createJsxAddKeyChild(
 	});
 }
 
-function createJsxAddNumericChildren(
-	childrenPtrValue: luau.AnyIdentifier,
-	amtChildrenSinceUpdate: number,
-	lengthId: luau.AnyIdentifier,
-	expression: luau.Expression,
-) {
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
-	return luau.create(luau.SyntaxKind.ForStatement, {
-		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
-		statements: luau.list.make(
-			createJsxAddNumericChild(childrenPtrValue, offset(lengthId, amtChildrenSinceUpdate), keyId, valueId),
-		),
-	});
-}
-
 function createJsxAddAmbiguousChildren(
-	childrenPtrValue: luau.AnyIdentifier,
-	amtChildrenSinceUpdate: number,
+	id: luau.AnyIdentifier,
+	amtSinceUpdate: number,
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 ) {
@@ -82,96 +71,157 @@ function createJsxAddAmbiguousChildren(
 			expression: luau.globals.pairs,
 			args: luau.list.make(expression),
 		}),
-		statements: luau.list.make<luau.Statement>(
+		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.IfStatement, {
-				// type(keyId) == "string"
-				condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-					left: luau.create(luau.SyntaxKind.CallExpression, {
-						expression: luau.globals.type,
-						args: luau.list.make(keyId),
-					}),
-					operator: "==",
-					right: luau.strings.number,
-				}),
+				condition: createTypeCheck(keyId, luau.strings.number),
 				statements: luau.list.make(
-					createJsxAddNumericChild(
-						childrenPtrValue,
-						offset(lengthId, amtChildrenSinceUpdate),
-						keyId,
-						valueId,
-					),
+					createJsxAddNumericChild(id, offset(lengthId, amtSinceUpdate), keyId, valueId),
 				),
-				elseBody: luau.list.make(createJsxAddKeyChild(childrenPtrValue, keyId, valueId)),
+				elseBody: luau.list.make(createJsxAddKeyChild(id, keyId, valueId)),
 			}),
 		),
 	});
 }
 
-function createJsxAddAmbiguousChild(
-	childrenPtrValue: luau.AnyIdentifier,
-	amtChildrenSinceUpdate: number,
+function createJsxAddArrayChildren(
+	id: luau.AnyIdentifier,
+	amtSinceUpdate: number,
 	lengthId: luau.AnyIdentifier,
-	expression: luau.IndexableExpression,
+	expression: luau.Expression,
 ) {
-	return luau.create(luau.SyntaxKind.IfStatement, {
-		condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-			left: luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.type,
-				args: luau.list.make(expression),
-			}),
-			operator: "==",
-			right: luau.strings.table,
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.ipairs,
+			args: luau.list.make(expression),
 		}),
-		statements: luau.list.make(
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-					left: luau.create(luau.SyntaxKind.BinaryExpression, {
-						left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-							expression,
-							name: "elements",
-						}),
-						operator: "~=",
-						right: luau.nil(),
-					}),
-
-					operator: "or",
-
-					right: luau.create(luau.SyntaxKind.BinaryExpression, {
-						left: luau.create(luau.SyntaxKind.BinaryExpression, {
-							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression,
-								name: "props",
-							}),
-							operator: "~=",
-							right: luau.nil(),
-						}),
-
-						operator: "and",
-						right: luau.create(luau.SyntaxKind.BinaryExpression, {
-							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression,
-								name: "component",
-							}),
-							operator: "~=",
-							right: luau.nil(),
-						}),
-					}),
-				}),
-				statements: luau.list.make(
-					createJsxAddNumericChild(
-						childrenPtrValue,
-						lengthId,
-						luau.number(amtChildrenSinceUpdate + 1),
-						expression,
-					),
-				),
-				elseBody: luau.list.make(
-					createJsxAddAmbiguousChildren(childrenPtrValue, amtChildrenSinceUpdate, lengthId, expression),
-				),
-			}),
-		),
-		elseBody: luau.list.make(),
+		statements: luau.list.make(createJsxAddNumericChild(id, offset(lengthId, amtSinceUpdate), keyId, valueId)),
 	});
+}
+
+function createJsxAddMapChildren(id: luau.AnyIdentifier, expression: luau.Expression) {
+	const keyId = luau.tempId();
+	const valueId = luau.tempId();
+	return luau.create(luau.SyntaxKind.ForStatement, {
+		ids: luau.list.make(keyId, valueId),
+		expression: luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.pairs,
+			args: luau.list.make(expression),
+		}),
+		statements: luau.list.make(createJsxAddKeyChild(id, keyId, valueId)),
+	});
+}
+
+// ideally, this would be done automatically..
+function countCreateJsxAddChildExpressionUses(
+	isPossiblyUndefinedOrFalse: boolean,
+	isPossiblyTrue: boolean,
+	isPossiblyElement: boolean,
+	isPossiblyArray: boolean,
+	isPossiblyMap: boolean,
+) {
+	let expUses = 0;
+	if (isPossiblyElement) {
+		expUses += 1;
+	}
+	if (isPossiblyArray || isPossiblyMap) {
+		expUses += 1;
+		if (isPossiblyElement) {
+			expUses += 3;
+		}
+	}
+	if ((isPossiblyUndefinedOrFalse || isPossiblyTrue) && (isPossiblyElement || isPossiblyArray || isPossiblyMap)) {
+		expUses += 1;
+	}
+	return expUses;
+}
+
+function createJsxAddChild(
+	state: TransformState,
+	id: luau.AnyIdentifier,
+	amtSinceUpdate: number,
+	lengthId: luau.AnyIdentifier,
+	expression: luau.Expression,
+	type: ts.Type,
+): luau.Statement {
+	const isPossiblyUndefinedOrFalse = isPossiblyType(
+		type,
+		t => isUndefinedType(t) || isBooleanLiteralType(state, t, false),
+	);
+	const isPossiblyTrue = isPossiblyType(type, t => isBooleanLiteralType(state, t, true));
+	const isPossiblyElement = isPossiblyType(type, t => isRoactElementType(state, t));
+	const isPossiblyArray = isPossiblyType(type, t => isArrayType(state, t));
+	const isPossiblyMap = isPossiblyType(type, t => isMapType(state, t));
+
+	const expUses = countCreateJsxAddChildExpressionUses(
+		isPossiblyUndefinedOrFalse,
+		isPossiblyTrue,
+		isPossiblyElement,
+		isPossiblyArray,
+		isPossiblyMap,
+	);
+	if (expUses > 1) {
+		expression = state.pushToVarIfNonId(expression);
+	}
+
+	let statement!: luau.Statement;
+
+	if (isPossiblyElement) {
+		statement = createJsxAddNumericChild(id, lengthId, luau.number(amtSinceUpdate + 1), expression);
+	}
+
+	if (isPossiblyArray || isPossiblyMap) {
+		let loop: luau.ForStatement;
+		if (isPossiblyArray && isPossiblyMap) {
+			loop = createJsxAddAmbiguousChildren(id, amtSinceUpdate, lengthId, expression);
+		} else if (isPossiblyArray) {
+			loop = createJsxAddArrayChildren(id, amtSinceUpdate, lengthId, expression);
+		} else {
+			loop = createJsxAddMapChildren(id, expression);
+		}
+
+		if (isPossiblyElement) {
+			assert(luau.isAnyIdentifier(expression));
+			const isFragmentCheck = luau.binary(luau.property(expression, "elements"), "~=", luau.nil());
+			const hasPropsCheck = luau.binary(luau.property(expression, "props"), "~=", luau.nil());
+			const hasComponentCheck = luau.binary(luau.property(expression, "component"), "~=", luau.nil());
+			const isElementCheck = luau.binary(hasPropsCheck, "and", hasComponentCheck);
+			const isElementLikeCheck = luau.binary(isFragmentCheck, "or", isElementCheck);
+			statement = luau.create(luau.SyntaxKind.IfStatement, {
+				condition: isElementLikeCheck,
+				statements: luau.list.make(statement!),
+				elseBody: luau.list.make(loop),
+			});
+		} else {
+			statement = loop;
+		}
+	}
+
+	if (isPossiblyUndefinedOrFalse || isPossiblyTrue) {
+		if (isPossiblyElement || isPossiblyArray || isPossiblyMap) {
+			let condition: luau.Expression;
+			if (isPossiblyTrue) {
+				condition = createTypeCheck(expression, luau.strings.table);
+			} else {
+				condition = expression;
+			}
+			statement = luau.create(luau.SyntaxKind.IfStatement, {
+				condition,
+				statements: luau.list.make(statement!),
+				elseBody: luau.list.make(),
+			});
+		} else {
+			statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: luau.emptyId(),
+				right: expression,
+			});
+		}
+	}
+
+	assert(statement);
+	return statement;
 }
 
 export function transformJsxChildren(
@@ -244,11 +294,11 @@ export function transformJsxChildren(
 				}
 
 				if (child.dotDotDotToken) {
-					// spread children must be Array<Roact.Element>
 					disableInline();
 					assert(luau.isAnyIdentifier(childrenPtr.value));
 					state.prereqList(prereqs);
-					state.prereq(createJsxAddNumericChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
+					// spread children must be Array<Roact.Element>
+					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
 					if (isDefinitelyType(type, t => isRoactElementType(state, t))) {
@@ -268,24 +318,9 @@ export function transformJsxChildren(
 					} else {
 						disableInline();
 						assert(luau.isAnyIdentifier(childrenPtr.value));
-						if (isDefinitelyType(type, t => isArrayType(state, t))) {
-							state.prereq(
-								createJsxAddNumericChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
-							);
-						} else if (isDefinitelyType(type, t => isMapType(state, t))) {
-							state.prereq(
-								createJsxAddAmbiguousChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
-							);
-						} else {
-							state.prereq(
-								createJsxAddAmbiguousChild(
-									childrenPtr.value,
-									amtSinceUpdate,
-									lengthId,
-									state.pushToVarIfNonId(expression),
-								),
-							);
-						}
+						state.prereq(
+							createJsxAddChild(state, childrenPtr.value, amtSinceUpdate, lengthId, expression, type),
+						);
 					}
 				}
 				if (!luau.isMixedTable(childrenPtr.value) && i < lastUsefulElementIndex) {

@@ -301,11 +301,9 @@ export class TransformState {
 	 * Uses `state.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
 	 * @param expression the expression to push
 	 */
-	public pushToVarIfNonId<T extends luau.Expression>(
-		expression: T,
-	): Extract<T, luau.SimpleTypes> | luau.TemporaryIdentifier {
+	public pushToVarIfNonId<T extends luau.Expression>(expression: T): luau.AnyIdentifier {
 		if (luau.isAnyIdentifier(expression)) {
-			return expression as Extract<T, luau.SimpleTypes>;
+			return expression;
 		}
 		return this.pushToVar(expression);
 	}
