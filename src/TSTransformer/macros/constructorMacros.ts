@@ -6,10 +6,10 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
-	return luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.setmetatable,
-		args: luau.list.make<luau.Expression>(macro(state, node), luau.map([[luau.strings.__mode, luau.strings.k]])),
-	});
+	return luau.call(luau.globals.setmetatable, [
+		macro(state, node),
+		luau.map([[luau.strings.__mode, luau.strings.k]]),
+	]);
 }
 
 function isFlatMap(expression: luau.Expression): expression is luau.Array<luau.Array> {
@@ -22,10 +22,7 @@ function isFlatMap(expression: luau.Expression): expression is luau.Array<luau.A
 const ArrayConstructor: ConstructorMacro = (state, node) => {
 	if (node.arguments && node.arguments.length > 0) {
 		const args = ensureTransformOrder(state, node.arguments);
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.table.create,
-			args: luau.list.make(...args),
-		});
+		return luau.call(luau.globals.table.create, args);
 	}
 	return luau.array();
 };
@@ -44,10 +41,7 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
-				expression: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.ipairs,
-					args: luau.list.make(transformExpression(state, arg)),
-				}),
+				expression: luau.call(luau.globals.ipairs, [transformExpression(state, arg)]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -84,10 +78,7 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
-				expression: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.ipairs,
-					args: luau.list.make(transformed),
-				}),
+				expression: luau.call(luau.globals.ipairs, [transformed]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

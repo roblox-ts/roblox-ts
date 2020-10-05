@@ -5,30 +5,20 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 const PRIMITIVE_LUAU_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
-	typeOf: (state, node, expression, args) => {
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.typeof,
-			args: luau.list.make(...args),
-		});
-	},
+	typeOf: (state, node, expression, args) => luau.call(luau.globals.typeof, args),
 
 	typeIs: (state, node, expression, args) => {
 		const [value, typeStr] = args;
-		const typeFunc = luau.isStringLiteral(typeStr) && PRIMITIVE_LUAU_TYPES.has(typeStr.value) ? "type" : "typeof";
-		const left = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.id(typeFunc),
-			args: luau.list.make(value),
-		});
-		return luau.binary(left, "==", typeStr);
+		const typeFunc =
+			luau.isStringLiteral(typeStr) && PRIMITIVE_LUAU_TYPES.has(typeStr.value)
+				? luau.globals.type
+				: luau.globals.typeof;
+		return luau.binary(luau.call(typeFunc, [value]), "==", typeStr);
 	},
 
 	classIs: (state, node, expression, args) => {
 		const [value, typeStr] = args;
-		const left = luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: convertToIndexableExpression(value),
-			name: "ClassName",
-		});
-		return luau.binary(left, "==", typeStr);
+		return luau.binary(luau.property(convertToIndexableExpression(value), "ClassName"), "==", typeStr);
 	},
 
 	opcall: (state, node, expression, args) => {
@@ -37,10 +27,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.list.make(successId, valueOrErrorId),
-				right: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.pcall,
-					args: luau.list.make(...args),
-				}),
+				right: luau.call(luau.globals.pcall, args),
 			}),
 		);
 

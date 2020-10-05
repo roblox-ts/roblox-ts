@@ -115,10 +115,7 @@ function handleExports(
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: luau.globals.exports,
-						name: exportKey,
-					}),
+					left: luau.property(luau.globals.exports, exportKey),
 					operator: "=",
 					right: exportId,
 				}),

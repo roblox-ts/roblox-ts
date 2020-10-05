@@ -36,21 +36,13 @@ const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitt
 const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	let id: luau.AnyIdentifier;
 	if (idStack.length === 0) {
-		id = state.pushToVar(
-			luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.string.gmatch,
-				args: luau.list.make<luau.Expression>(parentId, luau.globals.utf8.charpattern),
-			}),
-		);
+		id = state.pushToVar(luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]));
 		idStack.push(id);
 	} else {
 		id = idStack[0];
 	}
 
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: id,
-		args: luau.list.make(),
-	});
+	const callExp = luau.call(id);
 
 	if (isOmitted) {
 		state.prereq(
@@ -65,15 +57,12 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 };
 
 const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const args = luau.list.make<luau.Expression>(parentId);
+	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
-		luau.list.push(args, lastId);
+		args.push(lastId);
 	}
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.next,
-		args,
-	});
+	const callExp = luau.call(luau.globals.next, args);
 	if (isOmitted) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
@@ -89,10 +78,10 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 };
 
 const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const args = luau.list.make<luau.Expression>(parentId);
+	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {
-		luau.list.push(args, lastId);
+		args.push(lastId);
 	}
 	const keyId = luau.tempId();
 	const valueId = luau.tempId();
@@ -100,10 +89,7 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	state.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: ids,
-			right: luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.next,
-				args,
-			}),
+			right: luau.call(luau.globals.next, args),
 		}),
 	);
 	idStack.push(keyId);
@@ -111,10 +97,7 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 };
 
 const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: parentId,
-		args: luau.list.make(),
-	});
+	const callExp = luau.call(parentId);
 	if (isOmitted) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
@@ -128,10 +111,7 @@ const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, inde
 };
 
 const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: parentId,
-		args: luau.list.make(),
-	});
+	const callExp = luau.call(parentId);
 	if (isOmitted) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
@@ -145,25 +125,12 @@ const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idSta
 };
 
 const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
-	const callExp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: parentId,
-			name: "next",
-		}),
-		args: luau.list.make(),
-	});
+	const callExp = luau.call(luau.property(parentId, "next"));
 	if (isOmitted) {
-		state.prereq(
-			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: callExp,
-			}),
-		);
+		state.prereq(luau.create(luau.SyntaxKind.CallStatement, { expression: callExp }));
 		return luau.emptyId();
 	} else {
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: callExp,
-			name: "value",
-		});
+		return luau.property(callExp, "value");
 	}
 };
 

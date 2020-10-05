@@ -121,10 +121,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 				// objId = getmetatable(obj)
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: objId,
-					right: luau.create(luau.SyntaxKind.CallExpression, {
-						expression: luau.globals.getmetatable,
-						args: luau.list.make(left),
-					}),
+					right: luau.call(luau.globals.getmetatable, [left]),
 				}),
 				luau.create(luau.SyntaxKind.WhileStatement, {
 					// objId ~= nil
@@ -155,10 +152,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 								// local metatableId = getmetatable(objId)
 								luau.create(luau.SyntaxKind.VariableDeclaration, {
 									left: metatableId,
-									right: luau.create(luau.SyntaxKind.CallExpression, {
-										expression: luau.globals.getmetatable,
-										args: luau.list.make(objId),
-									}),
+									right: luau.call(luau.globals.getmetatable, [objId]),
 								}),
 								// if metatableId then
 								luau.create(luau.SyntaxKind.IfStatement, {
@@ -168,10 +162,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 										luau.create(luau.SyntaxKind.Assignment, {
 											left: objId,
 											operator: "=",
-											right: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-												expression: metatableId,
-												name: "__index",
-											}),
+											right: luau.property(metatableId, "__index"),
 										}),
 									),
 									elseBody: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),

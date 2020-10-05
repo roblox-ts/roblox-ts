@@ -21,15 +21,6 @@ import {
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
-const wrapFactory = (global: luau.IndexableExpression) => (expression: luau.Expression) =>
-	luau.create(luau.SyntaxKind.CallExpression, {
-		expression: global,
-		args: luau.list.make(expression),
-	});
-
-const wrapIpairs = wrapFactory(luau.globals.ipairs);
-const wrapPairs = wrapFactory(luau.globals.pairs);
-
 type LoopBuilder = (
 	state: TransformState,
 	statements: luau.List<luau.Statement>,
@@ -58,12 +49,12 @@ function makeForLoopBuilder(
 const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 	luau.list.push(ids, luau.emptyId());
 	luau.list.push(ids, transformBindingName(state, name, initializers));
-	return wrapIpairs(exp);
+	return luau.call(luau.globals.ipairs, [exp]);
 });
 
 const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 	luau.list.push(ids, transformBindingName(state, name, initializers));
-	return wrapPairs(exp);
+	return luau.call(luau.globals.pairs, [exp]);
 });
 
 function transformInLineArrayBindingPattern(
@@ -88,7 +79,7 @@ function transformInLineArrayBindingPattern(
 const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 	if (ts.isArrayBindingPattern(name)) {
 		transformInLineArrayBindingPattern(state, name, ids, initializers);
-		return wrapPairs(exp);
+		return luau.call(luau.globals.pairs, [exp]);
 	}
 
 	const keyId = luau.tempId();
@@ -103,15 +94,12 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, ini
 		}),
 	);
 
-	return wrapPairs(exp);
+	return luau.call(luau.globals.pairs, [exp]);
 });
 
 const buildStringLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 	luau.list.push(ids, transformBindingName(state, name, initializers));
-	return luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.string.gmatch,
-		args: luau.list.make(exp, luau.globals.utf8.charpattern),
-	});
+	return luau.call(luau.globals.string.gmatch, [exp, luau.globals.utf8.charpattern]);
 });
 
 const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
@@ -135,10 +123,7 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, id
 	luau.list.push(
 		initializers,
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: loopId,
-				name: "done",
-			}),
+			condition: luau.property(loopId, "done"),
 			statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 			elseBody: luau.list.make(),
 		}),
@@ -148,17 +133,11 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, id
 		initializers,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: transformBindingName(state, name, initializers),
-			right: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: loopId,
-				name: "value",
-			}),
+			right: luau.property(loopId, "value"),
 		}),
 	);
 
-	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-		expression: convertToIndexableExpression(exp),
-		name: "next",
-	});
+	return luau.property(convertToIndexableExpression(exp), "next");
 });
 
 function getLoopBuilder(state: TransformState, type: ts.Type): LoopBuilder {

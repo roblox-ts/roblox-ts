@@ -26,9 +26,6 @@ export function propertyAccessExpressionChain(
 	if (index < 0) {
 		return convertToIndexableExpression(expression);
 	} else {
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: propertyAccessExpressionChain(expression, names, index - 1),
-			name: names[index],
-		});
+		return luau.property(propertyAccessExpressionChain(expression, names, index - 1), names[index]);
 	}
 }

@@ -12,10 +12,7 @@ export const objectAccessor = (
 	name: ts.Node,
 ): luau.Expression => {
 	if (ts.isIdentifier(name)) {
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: parentId,
-			name: name.text,
-		});
+		return luau.property(parentId, name.text);
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,

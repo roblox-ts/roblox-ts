@@ -26,10 +26,7 @@ const addArray: AddIterableToArrayBuilder = (state, expression, arrayId, lengthI
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.ipairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.ipairs, [expression]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -47,10 +44,7 @@ const addString: AddIterableToArrayBuilder = (state, expression, arrayId, length
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.string.gmatch,
-			args: luau.list.make(expression, luau.globals.utf8.charpattern),
-		}),
+		expression: luau.call(luau.globals.string.gmatch, [expression, luau.globals.utf8.charpattern]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: lengthId,
@@ -73,10 +67,7 @@ const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId)
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.pairs, [expression]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: lengthId,
@@ -101,10 +92,7 @@ const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId)
 	const pairId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make<luau.AnyIdentifier>(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.pairs, [expression]),
 		statements: luau.list.make<luau.Statement>(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: pairId,
@@ -158,12 +146,7 @@ const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (state, expressio
 		statements: luau.list.make<luau.Statement>(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: valueId,
-				right: luau.array([
-					luau.create(luau.SyntaxKind.CallExpression, {
-						expression: iterFuncId,
-						args: luau.list.make(),
-					}),
-				]),
+				right: luau.array([luau.call(iterFuncId)]),
 			}),
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),

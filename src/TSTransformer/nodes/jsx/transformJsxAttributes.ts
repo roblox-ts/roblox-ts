@@ -42,10 +42,7 @@ function createJsxAttributeLoop(
 	const valueId = luau.tempId();
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.pairs, [expression]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -100,10 +97,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.pairs,
-					args: luau.list.make(init),
-				}),
+				expression: luau.call(luau.globals.pairs, [init]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

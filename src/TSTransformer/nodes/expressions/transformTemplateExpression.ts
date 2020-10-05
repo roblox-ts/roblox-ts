@@ -27,10 +27,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		const templateSpan = node.templateSpans[i];
 		let exp = orderedExpressions[i];
 		if (!isDefinitelyType(state.getType(templateSpan.expression), t => isStringType(t))) {
-			exp = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.tostring,
-				args: luau.list.make(exp),
-			});
+			exp = luau.call(luau.globals.tostring, [exp]);
 		}
 		expressions.push(exp);
 

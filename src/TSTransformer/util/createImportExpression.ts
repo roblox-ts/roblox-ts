@@ -11,12 +11,12 @@ import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChai
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
-	const pathExpressions = luau.list.make<luau.Expression>();
+	const pathExpressions = new Array<luau.Expression>();
 	const serviceName = moduleRbxPath[0];
 	assert(serviceName);
-	luau.list.push(pathExpressions, createGetService(serviceName));
+	pathExpressions.push(createGetService(serviceName));
 	for (let i = 1; i < moduleRbxPath.length; i++) {
-		luau.list.push(pathExpressions, luau.string(moduleRbxPath[i]));
+		pathExpressions.push(luau.string(moduleRbxPath[i]));
 	}
 	return pathExpressions;
 }
@@ -32,13 +32,13 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 		i++;
 	}
 
-	const pathExpressions = luau.list.make<luau.Expression>(propertyAccessExpressionChain(luau.globals.script, path));
+	const pathExpressions: Array<luau.Expression> = [propertyAccessExpressionChain(luau.globals.script, path)];
 
 	// create descending path pieces
 	for (; i < relativePath.length; i++) {
 		const pathPart = relativePath[i];
 		assert(typeof pathPart === "string");
-		luau.list.push(pathExpressions, luau.string(pathPart));
+		pathExpressions.push(luau.string(pathPart));
 	}
 
 	return pathExpressions;
@@ -62,10 +62,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	assert(relativeToNodeModulesRbxPath[1] !== RbxPathParent);
 
 	return propertyAccessExpressionChain(
-		luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("getModule"),
-			args: luau.list.make<luau.Expression>(luau.globals.script, luau.string(moduleName)),
-		}),
+		luau.call(state.TS("getModule"), [luau.globals.script, luau.string(moduleName)]),
 		relativeToNodeModulesRbxPath.slice(1) as Array<string>,
 	);
 }
@@ -81,12 +78,12 @@ export function createImportExpression(
 		return luau.emptyId();
 	}
 
-	const importPathExpressions = luau.list.make<luau.Expression>();
-	luau.list.push(importPathExpressions, luau.globals.script);
+	const importPathExpressions = new Array<luau.Expression>();
+	importPathExpressions.push(luau.globals.script);
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
-		luau.list.push(importPathExpressions, getNodeModulesImport(state, moduleSpecifier, virtualPath));
+		importPathExpressions.push(getNodeModulesImport(state, moduleSpecifier, virtualPath));
 	} else {
 		const moduleOutPath = state.services.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
@@ -111,20 +108,17 @@ export function createImportExpression(
 		if (state.projectType === ProjectType.Game) {
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
-				luau.list.pushList(importPathExpressions, getAbsoluteImport(moduleRbxPath));
+				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
 			} else if (fileRelation === FileRelation.InToIn) {
-				luau.list.pushList(importPathExpressions, getRelativeImport(sourceRbxPath, moduleRbxPath));
+				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
 			} else {
 				state.addDiagnostic(diagnostics.noIsolatedImport(moduleSpecifier));
 				return luau.emptyId();
 			}
 		} else {
-			luau.list.pushList(importPathExpressions, getRelativeImport(sourceRbxPath, moduleRbxPath));
+			importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
 		}
 	}
 
-	return luau.create(luau.SyntaxKind.CallExpression, {
-		expression: state.TS("import"),
-		args: importPathExpressions,
-	});
+	return luau.call(state.TS("import"), importPathExpressions);
 }

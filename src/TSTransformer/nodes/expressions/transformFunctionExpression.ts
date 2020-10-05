@@ -40,10 +40,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	});
 
 	if (isAsync) {
-		expression = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("async"),
-			args: luau.list.make(expression),
-		});
+		expression = luau.call(state.TS("async"), [expression]);
 	}
 
 	return expression;

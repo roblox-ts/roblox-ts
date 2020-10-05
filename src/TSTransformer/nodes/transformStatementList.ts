@@ -59,10 +59,7 @@ export function transformStatementList(
 					luau.list.push(
 						result,
 						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression: containerId,
-								name: exportName,
-							}),
+							left: luau.property(containerId, exportName),
 							operator: "=",
 							right: luau.id(exportName),
 						}),

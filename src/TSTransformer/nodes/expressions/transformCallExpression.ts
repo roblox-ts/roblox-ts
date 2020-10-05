@@ -126,17 +126,14 @@ export function transformCallExpressionInner(
 		}
 	}
 
-	let args!: luau.List<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
+	let args!: Array<luau.Expression>;
+	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
 	state.prereqList(prereqs);
 
-	const exp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: convertToIndexableExpression(expression),
-		args,
-	});
+	const exp = luau.call(convertToIndexableExpression(expression), args);
 
 	return wrapReturnIfLuaTuple(state, node, exp);
 }
@@ -158,8 +155,8 @@ export function transformPropertyCallExpressionInner(
 		}
 	}
 
-	let args!: luau.List<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = luau.list.make(...ensureTransformOrder(state, nodeArguments))));
+	let args!: Array<luau.Expression>;
+	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
@@ -171,27 +168,15 @@ export function transformPropertyCallExpressionInner(
 			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 				name,
 				expression: convertToIndexableExpression(expression),
-				args,
+				args: luau.list.make(...args),
 			});
 		} else {
 			expression = state.pushToVarIfComplex(expression);
-			luau.list.unshift(args, expression);
-			exp = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					expression: convertToIndexableExpression(expression),
-					name,
-				}),
-				args,
-			});
+			args.unshift(expression);
+			exp = luau.call(luau.property(convertToIndexableExpression(expression), name), args);
 		}
 	} else {
-		exp = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: convertToIndexableExpression(expression),
-				name,
-			}),
-			args,
-		});
+		exp = luau.call(luau.property(convertToIndexableExpression(expression), name), args);
 	}
 
 	return wrapReturnIfLuaTuple(state, node, exp);
@@ -214,29 +199,29 @@ export function transformElementCallExpressionInner(
 		}
 	}
 
-	let args!: luau.List<luau.Expression>;
+	let args!: Array<luau.Expression>;
 	const prereqs = state.capturePrereqs(
-		() => (args = luau.list.make(...ensureTransformOrder(state, [argumentExpression, ...nodeArguments]))),
+		() => (args = ensureTransformOrder(state, [argumentExpression, ...nodeArguments])),
 	);
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression);
 	}
 	state.prereqList(prereqs);
 
-	const argumentExp = luau.list.shift(args)!;
+	const argumentExp = args.shift()!;
 
 	if (isMethod(state, node.expression)) {
 		expression = state.pushToVarIfComplex(expression);
-		luau.list.unshift(args, expression);
+		args.unshift(expression);
 	}
 
-	const exp = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+	const exp = luau.call(
+		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(expression),
 			index: addOneIfArrayType(state, state.getType(node.expression.expression), argumentExp),
 		}),
 		args,
-	});
+	);
 
 	return wrapReturnIfLuaTuple(state, node, exp);
 }
@@ -249,33 +234,27 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 			if (insideRoactComponent) {
 				state.addDiagnostic(diagnostics.noSuperPropertyCallRoactComponent(node));
 			}
-			return luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					expression: luau.globals.super,
-					name: "constructor",
-				}),
-				args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
-			});
+			return luau.call(luau.property(luau.globals.super, "constructor"), [
+				luau.globals.self,
+				...ensureTransformOrder(state, node.arguments),
+			]);
 		} else if (ts.isSuperProperty(node.expression)) {
 			if (insideRoactComponent) {
 				state.addDiagnostic(diagnostics.noSuperConstructorRoactComponent(node));
 			}
 			if (ts.isPropertyAccessExpression(node.expression)) {
-				return luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: luau.globals.super,
-						name: node.expression.name.text,
-					}),
-					args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
-				});
+				return luau.call(luau.property(luau.globals.super, node.expression.name.text), [
+					luau.globals.self,
+					...ensureTransformOrder(state, node.arguments),
+				]);
 			} else {
-				return luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				return luau.call(
+					luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: luau.globals.super,
 						index: transformExpression(state, node.expression.argumentExpression),
 					}),
-					args: luau.list.make(luau.globals.self, ...ensureTransformOrder(state, node.arguments)),
-				});
+					[luau.globals.self, ...ensureTransformOrder(state, node.arguments)],
+				);
 			}
 		}
 	}

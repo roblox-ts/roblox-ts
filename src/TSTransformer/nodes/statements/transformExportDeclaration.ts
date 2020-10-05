@@ -68,15 +68,9 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 					luau.list.push(
 						statements,
 						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression: moduleId,
-								name: element.name.text,
-							}),
+							left: luau.property(moduleId, element.name.text),
 							operator: "=",
-							right: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression: importExp,
-								name: element.name.text,
-							}),
+							right: luau.property(importExp, element.name.text),
 						}),
 					);
 				}
@@ -86,10 +80,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: moduleId,
-						name: exportClause.name.text,
-					}),
+					left: luau.property(moduleId, exportClause.name.text),
 					operator: "=",
 					right: importExp,
 				}),
@@ -103,10 +94,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			statements,
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.pairs,
-					args: luau.list.make(importExp),
-				}),
+				expression: luau.call(luau.globals.pairs, [importExp]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

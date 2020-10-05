@@ -45,16 +45,13 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 	}
 
 	if (isAsync) {
-		const right = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("async"),
-			args: luau.list.make(
-				luau.create(luau.SyntaxKind.FunctionExpression, {
-					hasDotDotDot,
-					parameters,
-					statements,
-				}),
-			),
-		});
+		const right = luau.call(state.TS("async"), [
+			luau.create(luau.SyntaxKind.FunctionExpression, {
+				hasDotDotDot,
+				parameters,
+				statements,
+			}),
+		]);
 		if (localize) {
 			return luau.list.make(
 				luau.create(luau.SyntaxKind.VariableDeclaration, {

@@ -22,10 +22,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		if (ts.isPrivateIdentifier(node.name)) {
 			state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
 		}
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: convertToIndexableExpression(transformExpression(state, node.expression)),
-			name: node.name.text,
-		});
+		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else {
 		return transformExpression(state, node);
 	}

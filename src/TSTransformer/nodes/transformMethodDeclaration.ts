@@ -48,10 +48,7 @@ export function transformMethodDeclaration(
 		} else {
 			return luau.list.make(
 				luau.create(luau.SyntaxKind.FunctionDeclaration, {
-					name: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: ptr.value,
-						name: name.value,
-					}),
+					name: luau.property(ptr.value, name.value),
 					localize: false,
 					statements,
 					parameters,
@@ -68,10 +65,7 @@ export function transformMethodDeclaration(
 	});
 
 	if (isAsync) {
-		expression = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("async"),
-			args: luau.list.make(expression),
-		});
+		expression = luau.call(state.TS("async"), [expression]);
 	}
 
 	// we have to use `class[name] = function()`

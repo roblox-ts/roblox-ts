@@ -167,10 +167,10 @@ function createBoilerplate(
 			);
 		}
 
-		const metatable = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.setmetatable,
-			args: luau.list.make(luau.map(), luau.create(luau.SyntaxKind.Map, { fields: metatableFields })),
-		});
+		const metatable = luau.call(luau.globals.setmetatable, [
+			luau.map(),
+			luau.create(luau.SyntaxKind.Map, { fields: metatableFields }),
+		]);
 
 		if (isClassExpression && node.name) {
 			luau.list.push(
@@ -195,10 +195,7 @@ function createBoilerplate(
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					name: "__index",
-					expression: className,
-				}),
+				left: luau.property(className, "__index"),
 				operator: "=",
 				right: className,
 			}),
@@ -214,10 +211,7 @@ function createBoilerplate(
 			statementsInner,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.globals.self,
-				right: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.setmetatable,
-					args: luau.list.make<luau.Expression>(luau.map(), className),
-				}),
+				right: luau.call(luau.globals.setmetatable, [luau.map(), className]),
 			}),
 		);
 
@@ -246,10 +240,7 @@ function createBoilerplate(
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.FunctionDeclaration, {
-				name: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					expression: className,
-					name: "new",
-				}),
+				name: luau.property(className, "new"),
 				parameters: luau.list.make(),
 				hasDotDotDot: true,
 				statements: statementsInner,

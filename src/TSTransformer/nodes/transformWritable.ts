@@ -19,12 +19,10 @@ export function transformWritableExpression(
 	}
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: readAfterWrite
-				? state.pushToVarIfComplex(expression)
-				: convertToIndexableExpression(expression),
-			name: node.name.text,
-		});
+		return luau.property(
+			readAfterWrite ? state.pushToVarIfComplex(expression) : convertToIndexableExpression(expression),
+			node.name.text,
+		);
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
 		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);

@@ -43,10 +43,7 @@ export function transformPropertyAccessExpressionInner(
 	if (ts.isDeleteExpression(parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					expression: convertToIndexableExpression(expression),
-					name,
-				}),
+				left: luau.property(convertToIndexableExpression(expression), name),
 				operator: "=",
 				right: luau.nil(),
 			}),
@@ -54,10 +51,7 @@ export function transformPropertyAccessExpressionInner(
 		return luau.nil();
 	}
 
-	return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-		expression: convertToIndexableExpression(expression),
-		name,
-	});
+	return luau.property(convertToIndexableExpression(expression), name);
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {

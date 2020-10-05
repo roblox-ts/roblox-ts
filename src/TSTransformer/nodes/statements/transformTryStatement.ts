@@ -34,10 +34,9 @@ function transformIntoTryCall(
 	returnsId: luau.TemporaryIdentifier,
 	tryUses: TryUses,
 ) {
-	const tryCallArgs = luau.list.make<luau.Expression>();
+	const tryCallArgs = new Array<luau.Expression>();
 
-	luau.list.push(
-		tryCallArgs,
+	tryCallArgs.push(
 		luau.create(luau.SyntaxKind.FunctionExpression, {
 			parameters: luau.list.make(),
 			hasDotDotDot: false,
@@ -46,14 +45,13 @@ function transformIntoTryCall(
 	);
 
 	if (node.catchClause) {
-		luau.list.push(tryCallArgs, transformCatchClause(state, node.catchClause));
+		tryCallArgs.push(transformCatchClause(state, node.catchClause));
 	} else if (node.finallyBlock) {
-		luau.list.push(tryCallArgs, luau.nil());
+		tryCallArgs.push(luau.nil());
 	}
 
 	if (node.finallyBlock) {
-		luau.list.push(
-			tryCallArgs,
+		tryCallArgs.push(
 			luau.create(luau.SyntaxKind.FunctionExpression, {
 				parameters: luau.list.make(),
 				hasDotDotDot: false,
@@ -64,19 +62,13 @@ function transformIntoTryCall(
 
 	if (!tryUses.usesReturn && !tryUses.usesBreak && !tryUses.usesContinue) {
 		return luau.create(luau.SyntaxKind.CallStatement, {
-			expression: luau.create(luau.SyntaxKind.CallExpression, {
-				expression: state.TS("try"),
-				args: tryCallArgs,
-			}),
+			expression: luau.call(state.TS("try"), tryCallArgs),
 		});
 	}
 
 	return luau.create(luau.SyntaxKind.VariableDeclaration, {
 		left: luau.list.make(exitTypeId, returnsId),
-		right: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("try"),
-			args: tryCallArgs,
-		}),
+		right: luau.call(state.TS("try"), tryCallArgs),
 	});
 }
 
@@ -154,10 +146,7 @@ function transformFlowControl(
 				condition: createFlowControlCondition(state, exitTypeId, "TRY_RETURN"),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.ReturnStatement, {
-						expression: luau.create(luau.SyntaxKind.CallExpression, {
-							expression: luau.globals.unpack,
-							args: luau.list.make<luau.Expression>(returnsId),
-						}),
+						expression: luau.call(luau.globals.unpack, [returnsId]),
 					}),
 				),
 			});

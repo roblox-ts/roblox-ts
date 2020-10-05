@@ -67,10 +67,7 @@ function createJsxAddAmbiguousChildren(
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.pairs, [expression]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: createTypeCheck(keyId, luau.strings.number),
@@ -93,10 +90,7 @@ function createJsxAddArrayChildren(
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.ipairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.ipairs, [expression]),
 		statements: luau.list.make(createJsxAddNumericChild(id, offset(lengthId, amtSinceUpdate), keyId, valueId)),
 	});
 }
@@ -106,10 +100,7 @@ function createJsxAddMapChildren(id: luau.AnyIdentifier, expression: luau.Expres
 	const valueId = luau.tempId();
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(expression),
-		}),
+		expression: luau.call(luau.globals.pairs, [expression]),
 		statements: luau.list.make(createJsxAddKeyChild(id, keyId, valueId)),
 	});
 }

@@ -227,10 +227,7 @@ function transformOptionalChainInner(
 
 			if (item.callOptional) {
 				if (item.kind === OptionalChainItemKind.PropertyCall) {
-					expression = luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: convertToIndexableExpression(expression),
-						name: item.name,
-					});
+					expression = luau.property(convertToIndexableExpression(expression), item.name);
 				} else {
 					expression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(expression),
@@ -256,14 +253,11 @@ function transformOptionalChainInner(
 						}
 					}
 
-					const args = luau.list.make(...ensureTransformOrder(state, item.args));
+					const args = ensureTransformOrder(state, item.args);
 					if (isMethodCall) {
-						luau.list.unshift(args, selfParam!);
+						args.unshift(selfParam!);
 					}
-					newExpression = luau.create(luau.SyntaxKind.CallExpression, {
-						expression: tempId!,
-						args,
-					});
+					newExpression = luau.call(tempId!, args);
 				} else {
 					newExpression = transformChainItem(state, tempId!, item);
 				}

@@ -190,10 +190,7 @@ export class TransformState {
 	public usesRuntimeLib = false;
 	public TS(name: string) {
 		this.usesRuntimeLib = true;
-		return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression: RUNTIME_LIB_ID,
-			name,
-		});
+		return luau.property(RUNTIME_LIB_ID, name);
 	}
 
 	/**
@@ -219,10 +216,7 @@ export class TransformState {
 				}
 
 				// nest the chain of `WaitForChild`s inside a require call
-				expression = luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.require,
-					args: luau.list.make(expression),
-				});
+				expression = luau.call(luau.globals.require, [expression]);
 
 				// create a variable declaration for this call
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
@@ -242,17 +236,14 @@ export class TransformState {
 
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
 					left: RUNTIME_LIB_ID,
-					right: luau.create(luau.SyntaxKind.CallExpression, {
-						expression: luau.globals.require,
-						args: luau.list.make(
-							propertyAccessExpressionChain(
-								luau.globals.script,
-								RojoResolver.relative(rbxPath, this.runtimeLibRbxPath).map(v =>
-									v === RbxPathParent ? PARENT_FIELD : v,
-								),
+					right: luau.call(luau.globals.require, [
+						propertyAccessExpressionChain(
+							luau.globals.script,
+							RojoResolver.relative(rbxPath, this.runtimeLibRbxPath).map(v =>
+								v === RbxPathParent ? PARENT_FIELD : v,
 							),
 						),
-					}),
+					]),
 				});
 			}
 		} else {
@@ -360,10 +351,7 @@ export class TransformState {
 		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
 		const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
 		if (alias) {
-			return luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: this.getModuleIdFromSymbol(moduleSymbol),
-				name: alias,
-			});
+			return luau.property(this.getModuleIdFromSymbol(moduleSymbol), alias);
 		}
 	}
 

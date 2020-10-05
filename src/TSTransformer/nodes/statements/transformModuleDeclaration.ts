@@ -101,10 +101,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 		luau.list.push(
 			doStatements,
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-					expression: containerId,
-					name: body.name.text,
-				}),
+				left: luau.property(containerId, body.name.text),
 				operator: "=",
 				right: transformIdentifierDefined(state, body.name),
 			}),

@@ -80,23 +80,14 @@ export function createBinaryFromOperator(
 	// bitwise
 	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
 	if (bit32Name !== undefined) {
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-				expression: luau.globals.bit32,
-				name: bit32Name,
-			}),
-			args: luau.list.make(left, right),
-		});
+		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
 	}
 
 	if (
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
 	) {
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: state.TS("bit_lrsh"),
-			args: luau.list.make(left, right),
-		});
+		return luau.call(state.TS("bit_lrsh"), [left, right]);
 	}
 
 	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);

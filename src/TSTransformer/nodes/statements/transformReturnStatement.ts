@@ -20,10 +20,7 @@ export function transformReturnStatementInner(state: TransformState, returnExp: 
 		if (luau.isArray(expression)) {
 			expression = expression.members;
 		} else {
-			expression = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: luau.globals.unpack,
-				args: luau.list.make(expression),
-			});
+			expression = luau.call(luau.globals.unpack, [expression]);
 		}
 	}
 

@@ -44,10 +44,10 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: id,
 				operator: "=",
-				right: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.globals.setmetatable,
-					args: luau.list.make(luau.map(), luau.map([[luau.strings.__index, inverseId]])),
-				}),
+				right: luau.call(luau.globals.setmetatable, [
+					luau.map(),
+					luau.map([[luau.strings.__index, inverseId]]),
+				]),
 			}),
 		);
 
@@ -70,10 +70,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: id,
-						name: nameStr,
-					}),
+					left: luau.property(id, nameStr),
 					operator: "=",
 					right: valueExp,
 				}),

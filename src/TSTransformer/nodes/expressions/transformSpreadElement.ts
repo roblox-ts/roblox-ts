@@ -20,18 +20,12 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	const type = state.getType(node.expression);
 	if (isDefinitelyType(type, t => isArrayType(state, t))) {
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.unpack,
-			args: luau.list.make(expression),
-		});
+		return luau.call(luau.globals.unpack, [expression]);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, type);
 		const arrayId = state.pushToVar(luau.array());
 		const lengthId = state.pushToVar(luau.number(0));
 		state.prereq(addIterableToArrayBuilder(state, expression, arrayId, lengthId));
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.unpack,
-			args: luau.list.make(arrayId),
-		});
+		return luau.call(luau.globals.unpack, [arrayId]);
 	}
 }

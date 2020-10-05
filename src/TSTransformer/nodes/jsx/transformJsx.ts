@@ -28,23 +28,23 @@ export function transformJsx(
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
-	const args = luau.list.make<luau.Expression>();
+	const args = new Array<luau.Expression>();
 	if (!isFragment) {
-		luau.list.push(args, tagNameExp);
+		args.push(tagNameExp);
 	}
 	const pushAttributes = luau.isAnyIdentifier(attributesPtr.value) || !luau.list.isEmpty(attributesPtr.value.fields);
 	const pushChildren = luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields);
 	if (!isFragment && (pushAttributes || pushChildren)) {
-		luau.list.push(args, attributesPtr.value);
+		args.push(attributesPtr.value);
 	}
 	if (pushChildren) {
-		luau.list.push(args, childrenPtr.value);
+		args.push(childrenPtr.value);
 	}
 
-	let result: luau.Expression = luau.create(luau.SyntaxKind.CallExpression, {
-		expression: isFragment ? createRoactIndex("createFragment") : createRoactIndex("createElement"),
+	let result: luau.Expression = luau.call(
+		isFragment ? createRoactIndex("createFragment") : createRoactIndex("createElement"),
 		args,
-	});
+	);
 
 	// if this is a top-level element, handle Key here
 	// otherwise, handle in transformJsxChildren
@@ -53,10 +53,7 @@ export function transformJsx(
 		if (keyInitializer) {
 			const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
 			state.prereqList(keyPrereqs);
-			result = luau.create(luau.SyntaxKind.CallExpression, {
-				expression: createRoactIndex("createFragment"),
-				args: luau.list.make(luau.map([[key, result]])),
-			});
+			result = luau.call(createRoactIndex("createFragment"), [luau.map([[key, result]])]);
 		}
 	}
 

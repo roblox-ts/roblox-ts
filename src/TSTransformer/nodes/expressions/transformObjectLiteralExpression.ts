@@ -46,10 +46,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	const valueId = luau.tempId();
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.create(luau.SyntaxKind.CallExpression, {
-			expression: luau.globals.pairs,
-			args: luau.list.make(spreadExp),
-		}),
+		expression: luau.call(luau.globals.pairs, [spreadExp]),
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

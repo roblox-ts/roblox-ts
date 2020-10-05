@@ -19,14 +19,6 @@ export function transformNewExpression(state: TransformState, node: ts.NewExpres
 	}
 
 	const expression = convertToIndexableExpression(transformExpression(state, node.expression));
-	const args = node.arguments
-		? luau.list.make(...ensureTransformOrder(state, node.arguments))
-		: luau.list.make<luau.Expression>();
-	return luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-			expression,
-			name: "new",
-		}),
-		args,
-	});
+	const args = node.arguments ? ensureTransformOrder(state, node.arguments) : [];
+	return luau.call(luau.property(expression, "new"), args);
 }

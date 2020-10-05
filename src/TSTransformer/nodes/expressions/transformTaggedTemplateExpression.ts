@@ -9,36 +9,19 @@ export function transformTaggedTemplateExpression(state: TransformState, node: t
 	const tagExp = transformExpression(state, node.tag);
 
 	if (ts.isTemplateExpression(node.template)) {
-		const strings = luau.list.make<luau.Expression>();
-		luau.list.push(strings, luau.string(node.template.head.text));
+		const strings = new Array<luau.Expression>();
+		strings.push(luau.string(node.template.head.text));
 		for (const templateSpan of node.template.templateSpans) {
-			luau.list.push(strings, luau.string(templateSpan.literal.text));
+			strings.push(luau.string(templateSpan.literal.text));
 		}
 
-		const expressions = luau.list.make(
-			...ensureTransformOrder(
-				state,
-				node.template.templateSpans.map(templateSpan => templateSpan.expression),
-			),
+		const expressions = ensureTransformOrder(
+			state,
+			node.template.templateSpans.map(templateSpan => templateSpan.expression),
 		);
 
-		const args = luau.list.make<luau.Expression>();
-		luau.list.push(
-			args,
-			luau.create(luau.SyntaxKind.Array, {
-				members: strings,
-			}),
-		);
-		luau.list.pushList(args, expressions);
-
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: convertToIndexableExpression(tagExp),
-			args,
-		});
+		return luau.call(convertToIndexableExpression(tagExp), [luau.array(strings), ...expressions]);
 	} else {
-		return luau.create(luau.SyntaxKind.CallExpression, {
-			expression: convertToIndexableExpression(tagExp),
-			args: luau.list.make(luau.array([luau.string(node.template.text)])),
-		});
+		return luau.call(convertToIndexableExpression(tagExp), [luau.array([luau.string(node.template.text)])]);
 	}
 }

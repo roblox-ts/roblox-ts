@@ -65,14 +65,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				} else {
 					luau.list.pushList(
 						statements,
-						transformVariable(
-							state,
-							importClause.name,
-							luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-								expression: importExp.get(),
-								name: "default",
-							}),
-						)[1],
+						transformVariable(state, importClause.name, luau.property(importExp.get(), "default"))[1],
 					);
 				}
 			}
@@ -94,10 +87,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 							transformVariable(
 								state,
 								element.name,
-								luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-									expression: importExp.get(),
-									name: (element.propertyName ?? element.name).text,
-								}),
+								luau.property(importExp.get(), (element.propertyName ?? element.name).text),
 							)[1],
 						);
 					}

@@ -44,16 +44,10 @@ export function transformClassConstructor(
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.create(luau.SyntaxKind.CallExpression, {
-					expression: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: luau.globals.super,
-						name: "constructor",
-					}),
-					args: luau.list.make<luau.Expression>(
-						luau.globals.self,
-						luau.create(luau.SyntaxKind.VarArgsLiteral, {}),
-					),
-				}),
+				expression: luau.call(luau.property(luau.globals.super, "constructor"), [
+					luau.globals.self,
+					luau.create(luau.SyntaxKind.VarArgsLiteral, {}),
+				]),
 			}),
 		);
 	}
@@ -78,10 +72,7 @@ export function transformClassConstructor(
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.PropertyAccessExpression, {
-						expression: luau.globals.self,
-						name: paramId.name,
-					}),
+					left: luau.property(luau.globals.self, paramId.name),
 					operator: "=",
 					right: paramId,
 				}),
