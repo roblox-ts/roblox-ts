@@ -247,7 +247,7 @@ function makeEveryOrSomeMethod(
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
 		expression: luau.Expression,
-	) => luau.List<luau.Expression>,
+	) => Array<luau.Expression>,
 	initialState: boolean,
 ): PropertyCallMacro {
 	return (state, node, expression, args) => {
@@ -259,10 +259,7 @@ function makeEveryOrSomeMethod(
 		const keyId = luau.tempId();
 		const valueId = luau.tempId();
 
-		const callCallback = luau.create(luau.SyntaxKind.CallExpression, {
-			expression: callbackId,
-			args: callbackArgsListMaker(keyId, valueId, expression),
-		});
+		const callCallback = luau.call(callbackId, callbackArgsListMaker(keyId, valueId, expression));
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
@@ -294,7 +291,7 @@ function makeEveryMethod(
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
 		expression: luau.Expression,
-	) => luau.List<luau.Expression>,
+	) => Array<luau.Expression>,
 ): PropertyCallMacro {
 	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, true);
 }
@@ -305,7 +302,7 @@ function makeSomeMethod(
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
 		expression: luau.Expression,
-	) => luau.List<luau.Expression>,
+	) => Array<luau.Expression>,
 ): PropertyCallMacro {
 	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false);
 }
@@ -608,9 +605,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return result;
 	},
 
-	every: makeEveryMethod(luau.globals.ipairs, (keyId, valueId, expression) =>
-		luau.list.make(valueId, offset(keyId, -1), expression),
-	),
+	every: makeEveryMethod(luau.globals.ipairs, (keyId, valueId, expression) => [
+		valueId,
+		offset(keyId, -1),
+		expression,
+	]),
 
 	entries: (state, node, expression) => {
 		const keyId = luau.tempId();
@@ -637,9 +636,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return valuesId;
 	},
 
-	some: makeSomeMethod(luau.globals.ipairs, (keyId, valueId, expression) =>
-		luau.list.make(valueId, offset(keyId, -1), expression),
-	),
+	some: makeSomeMethod(luau.globals.ipairs, (keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
 	forEach: (state, node, expression, args) => {
 		expression = state.pushToVarIfComplex(expression);
