@@ -1,21 +1,19 @@
 import luau from "LuauAST";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 
 const PRIMITIVE_LUAU_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
-	typeOf: (state, node) => {
+	typeOf: (state, node, expression, args) => {
 		return luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.globals.typeof,
-			args: luau.list.make(...ensureTransformOrder(state, node.arguments)),
+			args: luau.list.make(...args),
 		});
 	},
 
-	typeIs: (state, node) => {
-		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
+	typeIs: (state, node, expression, args) => {
+		const [value, typeStr] = args;
 		const typeFunc = luau.isStringLiteral(typeStr) && PRIMITIVE_LUAU_TYPES.has(typeStr.value) ? "type" : "typeof";
 		const left = luau.create(luau.SyntaxKind.CallExpression, {
 			expression: luau.id(typeFunc),
@@ -24,8 +22,8 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.binary(left, "==", typeStr);
 	},
 
-	classIs: (state, node) => {
-		const [value, typeStr] = ensureTransformOrder(state, node.arguments);
+	classIs: (state, node, expression, args) => {
+		const [value, typeStr] = args;
 		const left = luau.create(luau.SyntaxKind.PropertyAccessExpression, {
 			expression: convertToIndexableExpression(value),
 			name: "ClassName",
@@ -33,7 +31,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.binary(left, "==", typeStr);
 	},
 
-	opcall: (state, node) => {
+	opcall: (state, node, expression, args) => {
 		const successId = luau.tempId();
 		const valueOrErrorId = luau.tempId();
 		state.prereq(
@@ -41,7 +39,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 				left: luau.list.make(successId, valueOrErrorId),
 				right: luau.create(luau.SyntaxKind.CallExpression, {
 					expression: luau.globals.pcall,
-					args: luau.list.make(...ensureTransformOrder(state, node.arguments)),
+					args: luau.list.make(...args),
 				}),
 			}),
 		);
@@ -59,7 +57,5 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.binary(luau.binary(successId, "and", successExp), "or", failureExp);
 	},
 
-	identity: (state, node) => {
-		return transformExpression(state, node.arguments[0]);
-	},
+	identity: (state, node, expression, args) => args[0],
 };
