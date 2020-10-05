@@ -4,6 +4,7 @@ import { diagnostics } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
@@ -15,10 +16,22 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
 	}
 
-	assert(isDefinitelyType(state.getType(node.expression), t => isArrayType(state, t)));
+	const expression = transformExpression(state, node.expression);
 
-	return luau.create(luau.SyntaxKind.CallExpression, {
-		expression: luau.globals.unpack,
-		args: luau.list.make(transformExpression(state, node.expression)),
-	});
+	const type = state.getType(node.expression);
+	if (isDefinitelyType(type, t => isArrayType(state, t))) {
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.unpack,
+			args: luau.list.make(expression),
+		});
+	} else {
+		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, type);
+		const arrayId = state.pushToVar(luau.array());
+		const lengthId = state.pushToVar(luau.number(0));
+		state.prereq(addIterableToArrayBuilder(state, expression, arrayId, lengthId));
+		return luau.create(luau.SyntaxKind.CallExpression, {
+			expression: luau.globals.unpack,
+			args: luau.list.make(arrayId),
+		});
+	}
 }
