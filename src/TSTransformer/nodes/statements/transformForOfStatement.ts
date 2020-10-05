@@ -107,14 +107,44 @@ const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, name, 
 	return exp;
 });
 
-const buildIterableFunctionLuaTupleLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
-	if (!ts.isArrayBindingPattern(name)) {
-		state.addDiagnostic(diagnostics.noLuaTupleIterationWithoutDestructure(name));
-		return luau.emptyId();
+const buildIterableFunctionLuaTupleLoop: LoopBuilder = (state, statements, name, exp) => {
+	if (ts.isArrayBindingPattern(name)) {
+		const builder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
+			assert(ts.isArrayBindingPattern(name));
+			transformInLineArrayBindingPattern(state, name, ids, initializers);
+			return exp;
+		});
+		return builder(state, statements, name, exp);
 	}
-	transformInLineArrayBindingPattern(state, name, ids, initializers);
-	return exp;
-});
+
+	const iterFuncId = state.pushToVar(exp);
+	const loopStatements = luau.list.make<luau.Statement>();
+	const valueId = transformBindingName(state, name, loopStatements);
+
+	luau.list.push(
+		loopStatements,
+		luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: valueId,
+			right: luau.array([luau.call(iterFuncId)]),
+		}),
+	);
+
+	luau.list.push(
+		loopStatements,
+		luau.create(luau.SyntaxKind.IfStatement, {
+			condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+			statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+			elseBody: luau.list.make(),
+		}),
+	);
+
+	luau.list.pushList(loopStatements, statements);
+
+	return luau.create(luau.SyntaxKind.WhileStatement, {
+		condition: luau.bool(true),
+		statements: loopStatements,
+	});
+};
 
 const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 	const loopId = luau.tempId();

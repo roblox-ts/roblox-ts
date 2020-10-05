@@ -92,7 +92,6 @@ export const diagnostics = {
 	noInstanceMethodCollisions: diagnostic("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: diagnostic("Instance methods cannot use the same name as static methods!"),
 	noUnaryPlus: diagnostic("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
-	noLuaTupleIterationWithoutDestructure: diagnostic("IterableFunction<LuaTuple<T>> must be destructured in-line!"),
 	noAwaitForOf: diagnostic("`await` is not supported in for-of loops!"),
 	noAsyncGeneratorFunctions: diagnostic("Async generator functions are not supported!"),
 
