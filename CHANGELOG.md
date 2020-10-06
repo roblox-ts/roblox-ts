@@ -1,8 +1,31 @@
 ## 1.0.0-beta.1
 
-- Fixed bug with playground imports
-- Fixed symlinks inside node_modules, allowing pnpm and local packages
 - Added `--usePolling` to indicate that watch mode should use polling instead of fs events
+- Fixed symlinks inside node_modules, allowing pnpm and local packages
+- Fixed bug with playground imports
+- Fixed LuaTuple array destructuring bug (#1117)
+- Updated template default.project.json to have sensible default service properties
+- Added support for `declare function identity<T>(value: T): T;`, useful for ensuring an expression is a given type!
+- Referencing call macros without calling them will now error `print(typeOf)`
+- Fixed switch statement rendering bug (#1123)
+- Fixed init mode's .vscode formatting settings to include `[typescriptreact]`
+- Fixed destructure spread parameters resulting in bad hoisting (#1127)
+- Improved JSX emit (#1114)
+- Fixed bug where property access expressions were not evalutated in the correct order (#1126)
+- Added support for using call spread operator in property call macros (#1112)
+	- i.e. `map.set(...x)`
+- Optimized function array spread parameters (#1128)
+- Added support for all array spread expression types (#1108)
+- Added support for all call spread expression types (#1107)
+- Added support for ForOf loops with `IterableFunction<LuaTuple<T>>` without destructure
+	- i.e. `for (const x of "abc".gmatch("%w")) {}`
+- Fixed getChangedSourceFiles.ts crash (#1134)
+- Added support for `--logTruthyChanges` flag (#1135)
+- Added support for warning diagnostics (#1136)
+- Added errors for incorrectly using unions with macros (#1113)
+- Added support for emitting `table.create()` instead of `{}` where table size is known (#1119)
+- Fixed package resolution bug for symlinked packages
+- Fixed watch mode Windows-style path bug
 
 ## 1.0.0-beta.0
 
