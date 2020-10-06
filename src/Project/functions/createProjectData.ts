@@ -45,8 +45,9 @@ export function createProjectData(
 		for (const pkgName of fs.readdirSync(nodeModulesPath)) {
 			const pkgPath = path.join(nodeModulesPath, pkgName);
 			const pkgJsonPath = path.join(pkgPath, "package.json");
-			if (fs.existsSync(pkgJsonPath)) {
-				const pkgJson = fs.readJSONSync(pkgJsonPath) as { main?: string; typings?: string; types?: string };
+			const pkgJsonRealPath = fs.realpathSync(pkgJsonPath);
+			if (fs.existsSync(pkgJsonRealPath)) {
+				const pkgJson = fs.readJSONSync(pkgJsonRealPath) as { main?: string; typings?: string; types?: string };
 				// both "types" and "typings" are valid
 				const typesPath = pkgJson.types ?? pkgJson.typings ?? "index.d.ts";
 				if (pkgJson.main) {
