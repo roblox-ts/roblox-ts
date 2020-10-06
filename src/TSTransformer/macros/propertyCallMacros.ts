@@ -978,7 +978,11 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return luau.unary("#", expression);
+		if (isUsedAsStatement(node)) {
+			return luau.nil();
+		} else {
+			return luau.unary("#", expression);
+		}
 	},
 
 	insert: (state, node, expression, args) => {
