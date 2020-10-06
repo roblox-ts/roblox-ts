@@ -312,8 +312,9 @@ function argumentsWithDefaults(
 	args: Array<luau.Expression>,
 	defaults: Array<luau.Expression>,
 ): Array<luau.Expression> {
-	for (let i = 0; i < defaults.length; i++) {
-		args[i] = state.pushToVar(args[i] ?? luau.nil());
+	// potentially nil arguments
+	for (let i = 0; i < args.length; i++) {
+		args[i] = state.pushToVar(args[i]);
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: luau.binary(args[i], "==", luau.nil()),
@@ -328,6 +329,12 @@ function argumentsWithDefaults(
 			}),
 		);
 	}
+
+	// not specified
+	for (let j = args.length; j < defaults.length; j++) {
+		args[j] = defaults[j];
+	}
+
 	return args;
 }
 
@@ -393,7 +400,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		// table.concat only works on string and number types, so call tostring() otherwise
 		if (indexType && isPossiblyType(indexType, t => !isStringType(t) && !isNumberType(t))) {
-			const id = state.pushToVar(luau.map());
+			expression = state.pushToVarIfComplex(expression);
+			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]));
 			const keyId = luau.tempId();
 			const valueId = luau.tempId();
 			state.prereq(
@@ -661,8 +669,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 	map: (state, node, expression, args) => {
 		expression = state.pushToVarIfComplex(expression);
-
-		const newValueId = state.pushToVar(luau.array());
+		const newValueId = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]));
 		const callbackId = state.pushToVarIfComplex(args[0]);
 		const keyId = luau.tempId();
 		const valueId = luau.tempId();
