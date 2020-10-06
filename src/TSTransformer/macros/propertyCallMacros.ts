@@ -312,8 +312,9 @@ function argumentsWithDefaults(
 	args: Array<luau.Expression>,
 	defaults: Array<luau.Expression>,
 ): Array<luau.Expression> {
-	for (let i = 0; i < defaults.length; i++) {
-		args[i] = state.pushToVar(args[i] ?? luau.nil());
+	// potentially nil arguments
+	for (let i = 0; i < args.length; i++) {
+		args[i] = state.pushToVar(args[i]);
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: luau.binary(args[i], "==", luau.nil()),
@@ -328,6 +329,12 @@ function argumentsWithDefaults(
 			}),
 		);
 	}
+
+	// not specified
+	for (let j = args.length; j < defaults.length; j++) {
+		args[j] = defaults[j];
+	}
+
 	return args;
 }
 
