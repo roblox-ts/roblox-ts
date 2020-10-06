@@ -22,10 +22,10 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	if (isDefinitelyType(type, t => isArrayType(state, t))) {
 		return luau.call(luau.globals.unpack, [expression]);
 	} else {
-		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, type);
+		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);
 		const arrayId = state.pushToVar(luau.array());
 		const lengthId = state.pushToVar(luau.number(0));
-		state.prereq(addIterableToArrayBuilder(state, expression, arrayId, lengthId));
+		state.prereqList(addIterableToArrayBuilder(state, expression, arrayId, lengthId));
 		return luau.call(luau.globals.unpack, [arrayId]);
 	}
 }

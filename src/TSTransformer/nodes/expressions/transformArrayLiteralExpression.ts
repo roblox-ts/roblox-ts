@@ -51,9 +51,9 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			assert(luau.isAnyIdentifier(ptr.value));
 
 			const type = state.getType(element.expression);
-			const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, type);
+			const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, element.expression, type);
 			const spreadExp = transformExpression(state, element.expression);
-			state.prereq(addIterableToArrayBuilder(state, spreadExp, ptr.value, lengthId));
+			state.prereqList(addIterableToArrayBuilder(state, spreadExp, ptr.value, lengthId));
 
 			if (i < node.elements.length - 1) {
 				updateLengthId();

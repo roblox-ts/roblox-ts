@@ -26,7 +26,7 @@ type LoopBuilder = (
 	statements: luau.List<luau.Statement>,
 	name: ts.BindingName,
 	exp: luau.Expression,
-) => luau.Statement;
+) => luau.List<luau.Statement>;
 
 function makeForLoopBuilder(
 	callback: (
@@ -42,7 +42,7 @@ function makeForLoopBuilder(
 		const initializers = luau.list.make<luau.Statement>();
 		const expression = callback(state, name, exp, ids, initializers);
 		luau.list.unshiftList(statements, initializers);
-		return luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements });
+		return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
 	};
 }
 
@@ -140,10 +140,12 @@ const buildIterableFunctionLuaTupleLoop: LoopBuilder = (state, statements, name,
 
 	luau.list.pushList(loopStatements, statements);
 
-	return luau.create(luau.SyntaxKind.WhileStatement, {
-		condition: luau.bool(true),
-		statements: loopStatements,
-	});
+	return luau.list.make(
+		luau.create(luau.SyntaxKind.WhileStatement, {
+			condition: luau.bool(true),
+			statements: loopStatements,
+		}),
+	);
 };
 
 const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
@@ -170,7 +172,7 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, id
 	return luau.property(convertToIndexableExpression(exp), "next");
 });
 
-function getLoopBuilder(state: TransformState, type: ts.Type): LoopBuilder {
+function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): LoopBuilder {
 	if (isDefinitelyType(type, t => isArrayType(state, t))) {
 		return buildArrayLoop;
 	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
@@ -186,6 +188,10 @@ function getLoopBuilder(state: TransformState, type: ts.Type): LoopBuilder {
 	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
 		return buildGeneratorLoop;
 	} else {
+		if (type.isUnion()) {
+			state.addDiagnostic(errors.noMacroUnion(node));
+			return () => luau.list.make();
+		}
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
 }
@@ -210,8 +216,8 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	const expType = state.getType(node.expression);
 	const statements = transformStatementList(state, getStatements(node.statement));
 
-	const loopBuilder = getLoopBuilder(state, expType);
-	luau.list.push(result, loopBuilder(state, statements, name, exp));
+	const loopBuilder = getLoopBuilder(state, node.expression, expType);
+	luau.list.pushList(result, loopBuilder(state, statements, name, exp));
 
 	return result;
 }

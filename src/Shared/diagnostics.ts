@@ -121,6 +121,7 @@ export const errors = {
 	noObjectWithoutMethod: error("Cannot access `Object` without calling a function on it!"),
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
 	noMacroExtends: error("Cannot extend from a macro class!"),
+	noMacroUnion: error("Macro cannot be applied to a union type!"),
 
 	// import/export
 	noNonModule: error(
