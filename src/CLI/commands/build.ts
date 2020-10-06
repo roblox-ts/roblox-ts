@@ -77,6 +77,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "do not copy include files",
 			})
+			.option("logTruthyChanges", {
+				boolean: true,
+				default: false,
+				describe: "logs changes to truthiness evaluation from Lua truthiness rules",
+			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
 				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,

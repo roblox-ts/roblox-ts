@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
@@ -101,7 +101,7 @@ function transformLuaTupleDestructure(
 					luau.list.push(ids, luau.emptyId());
 				} else {
 					if (element.dotDotDotToken) {
-						state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
+						state.addDiagnostic(errors.noSpreadDestructuring(element));
 						return;
 					}
 					if (ts.isIdentifier(element.name)) {
@@ -166,7 +166,7 @@ export function transformVariableStatement(
 	node: ts.VariableStatement,
 ): luau.List<luau.Statement> {
 	if (isVarDeclaration(node.declarationList)) {
-		state.addDiagnostic(diagnostics.noVar(node.declarationList));
+		state.addDiagnostic(errors.noVar(node.declarationList));
 	}
 
 	const statements = luau.list.make<luau.Statement>();

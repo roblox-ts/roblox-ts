@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -15,7 +15,7 @@ export function transformWritableExpression(
 	readAfterWrite: boolean,
 ): luau.WritableExpression {
 	if (ts.isPrototypeAccess(node)) {
-		state.addDiagnostic(diagnostics.noPrototype(node));
+		state.addDiagnostic(errors.noPrototype(node));
 	}
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);

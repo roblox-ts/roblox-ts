@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -267,7 +267,7 @@ export function transformJsxChildren(
 		const child = children[i];
 		if (ts.isJsxText(child)) {
 			if (!child.containsOnlyTriviaWhiteSpaces) {
-				state.addDiagnostic(diagnostics.noJsxText(child));
+				state.addDiagnostic(errors.noJsxText(child));
 			}
 			continue;
 		}

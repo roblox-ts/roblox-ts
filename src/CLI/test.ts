@@ -16,11 +16,12 @@ describe("should compile tests project", () => {
 		path.join(PACKAGE_ROOT, "tests", "tsconfig.json"),
 		{},
 		{
+			logTruthyChanges: false,
+			noInclude: false,
 			project: "",
+			usePolling: false,
 			verbose: false,
 			watch: false,
-			usePolling: false,
-			noInclude: false,
 		},
 	);
 	const program = createProjectProgram(data);

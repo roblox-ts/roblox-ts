@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import {
 	transformCallExpressionInner,
@@ -248,7 +248,7 @@ function transformOptionalChainInner(
 					if (symbol) {
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
-							state.addDiagnostic(diagnostics.noOptionalMacroCall(item.node));
+							state.addDiagnostic(errors.noOptionalMacroCall(item.node));
 							return luau.emptyId();
 						}
 					}

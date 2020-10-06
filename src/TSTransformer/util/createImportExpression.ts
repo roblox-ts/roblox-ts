@@ -3,7 +3,7 @@ import luau from "LuauAST";
 import path from "path";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { createGetService } from "TSTransformer/util/createGetService";
@@ -51,7 +51,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	);
 	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 	if (!moduleRbxPath) {
-		state.addDiagnostic(diagnostics.noRojoData(moduleSpecifier));
+		state.addDiagnostic(errors.noRojoData(moduleSpecifier));
 		return luau.emptyId();
 	}
 
@@ -74,7 +74,7 @@ export function createImportExpression(
 ): luau.CallExpression | luau.EmptyIdentifier {
 	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
 	if (!moduleFile) {
-		state.addDiagnostic(diagnostics.noModuleSpecifierFile(moduleSpecifier));
+		state.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
 		return luau.emptyId();
 	}
 
@@ -88,20 +88,20 @@ export function createImportExpression(
 		const moduleOutPath = state.services.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
-			state.addDiagnostic(diagnostics.noRojoData(moduleSpecifier));
+			state.addDiagnostic(errors.noRojoData(moduleSpecifier));
 			return luau.emptyId();
 		}
 
 		const moduleRbxType = state.rojoResolver.getRbxTypeFromFilePath(moduleOutPath);
 		if (moduleRbxType === RbxType.Script || moduleRbxType === RbxType.LocalScript) {
-			state.addDiagnostic(diagnostics.noNonModuleImport(moduleSpecifier));
+			state.addDiagnostic(errors.noNonModuleImport(moduleSpecifier));
 			return luau.emptyId();
 		}
 
 		const sourceOutPath = state.services.pathTranslator.getOutputPath(sourceFile.fileName);
 		const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 		if (!sourceRbxPath) {
-			state.addDiagnostic(diagnostics.noRojoData(sourceFile));
+			state.addDiagnostic(errors.noRojoData(sourceFile));
 			return luau.emptyId();
 		}
 
@@ -112,7 +112,7 @@ export function createImportExpression(
 			} else if (fileRelation === FileRelation.InToIn) {
 				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
 			} else {
-				state.addDiagnostic(diagnostics.noIsolatedImport(moduleSpecifier));
+				state.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
 				return luau.emptyId();
 			}
 		} else {

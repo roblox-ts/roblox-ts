@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
@@ -122,7 +122,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleInstantiations(symbol)) {
-		state.addDiagnostic(diagnostics.noNamespaceMerging(node));
+		state.addDiagnostic(errors.noNamespaceMerging(node));
 		return luau.list.make<luau.Statement>();
 	}
 

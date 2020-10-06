@@ -1,7 +1,7 @@
 import ts from "byots";
 import { assert } from "console";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
@@ -23,7 +23,7 @@ function optimizeArraySpreadParameter(
 			luau.list.push(parameters, luau.emptyId());
 		} else {
 			if (element.dotDotDotToken) {
-				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
+				state.addDiagnostic(errors.noSpreadDestructuring(element));
 				return;
 			}
 			const name = element.name;

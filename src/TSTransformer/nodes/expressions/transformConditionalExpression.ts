@@ -17,7 +17,11 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		luau.list.isEmpty(whenFalsePrereqs)
 	) {
 		return luau.binary(
-			luau.binary(createTruthinessChecks(state, condition, state.getType(node.condition)), "and", whenTrue),
+			luau.binary(
+				createTruthinessChecks(state, condition, node.condition, state.getType(node.condition)),
+				"and",
+				whenTrue,
+			),
 			"or",
 			whenFalse,
 		);

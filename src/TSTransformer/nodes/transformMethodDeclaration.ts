@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
@@ -21,7 +21,7 @@ export function transformMethodDeclaration(
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
-		state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
+		state.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		return luau.list.make<luau.Statement>();
 	}
 

@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -20,7 +20,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 
 	if (ts.isPropertyAccessExpression(node)) {
 		if (ts.isPrivateIdentifier(node.name)) {
-			state.addDiagnostic(diagnostics.noPrivateIdentifier(node.name));
+			state.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else {

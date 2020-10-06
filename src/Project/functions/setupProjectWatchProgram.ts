@@ -13,6 +13,7 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { ProjectServices } from "Project/types";
 import { getRootDirs } from "Project/util/getRootDirs";
+import { hasErrors } from "Project/util/hasErrors";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
@@ -50,11 +51,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const diagnostic of emitResult.diagnostics) {
 			diagnosticReporter(diagnostic);
 		}
-		reportText(
-			`Found ${emitResult.diagnostics.length} error${
-				emitResult.diagnostics.length === 1 ? "" : "s"
-			}. Watching for file changes.`,
-		);
+		const amtErrors = emitResult.diagnostics.filter(v => v.category === ts.DiagnosticCategory.Error).length;
+		reportText(`Found ${amtErrors} error${amtErrors === 1 ? "" : "s"}. Watching for file changes.`);
 	}
 
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
@@ -83,7 +81,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		copyFiles(services, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
 		const emitResult = compileFiles(program.getProgram(), data, services, sourceFiles);
-		if (emitResult.diagnostics.length === 0) {
+		if (!hasErrors(emitResult.diagnostics)) {
 			initialCompileCompleted = true;
 		}
 		return emitResult;

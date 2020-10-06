@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -50,7 +50,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		);
 		return writable;
 	} else if (node.operator === ts.SyntaxKind.PlusToken) {
-		state.addDiagnostic(diagnostics.noUnaryPlus(node));
+		state.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		return luau.unary("-", transformExpression(state, node.operand));
@@ -58,6 +58,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		const checks = createTruthinessChecks(
 			state,
 			transformExpression(state, node.operand),
+			node.operand,
 			state.getType(node.operand),
 		);
 		return luau.unary("not", checks);

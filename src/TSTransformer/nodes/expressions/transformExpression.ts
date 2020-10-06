@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { DiagnosticFactory, diagnostics } from "Shared/diagnostics";
+import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
@@ -47,11 +47,11 @@ type ExpressionTransformer = (state: TransformState, node: any) => luau.Expressi
 
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
-	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(diagnostics.noBigInt)],
-	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(diagnostics.noNullLiteral)],
-	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(diagnostics.noPrivateIdentifier)],
-	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(diagnostics.noRegex)],
-	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(diagnostics.noTypeOfExpression)],
+	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(errors.noBigInt)],
+	[ts.SyntaxKind.NullKeyword, DIAGNOSTIC(errors.noNullLiteral)],
+	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(errors.noPrivateIdentifier)],
+	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(errors.noRegex)],
+	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(errors.noTypeOfExpression)],
 
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],

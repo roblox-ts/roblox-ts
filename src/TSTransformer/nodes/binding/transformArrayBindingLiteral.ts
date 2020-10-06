@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
@@ -23,7 +23,7 @@ export function transformArrayBindingLiteral(
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {
-			state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
+			state.addDiagnostic(errors.noSpreadDestructuring(element));
 			return;
 		} else {
 			let initializer: ts.Expression | undefined;

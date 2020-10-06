@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
@@ -24,18 +24,18 @@ export function transformElementAccessExpressionInner(
 	const symbol = getFirstDefinedSymbol(state, state.getType(node));
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
-			state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+			state.addDiagnostic(errors.noMacroWithoutCall(node));
 			return luau.emptyId();
 		}
 	}
 
 	if (isMethod(state, node)) {
-		state.addDiagnostic(diagnostics.noIndexWithoutCall(node));
+		state.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
 
 	if (ts.isPrototypeAccess(node)) {
-		state.addDiagnostic(diagnostics.noPrototype(node));
+		state.addDiagnostic(errors.noPrototype(node));
 	}
 
 	const constantValue = state.typeChecker.getConstantValue(node);

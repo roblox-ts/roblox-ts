@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { isLuauMetamethod } from "Shared/util/isLuauMetamethod";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -143,7 +143,7 @@ function createBoilerplate(
 		if (extendsNode) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
-				state.addDiagnostic(diagnostics.noRoactInheritance(node));
+				state.addDiagnostic(errors.noRoactInheritance(node));
 			}
 
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
@@ -330,7 +330,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	if (extendsMacroClass(state, node)) {
-		state.addDiagnostic(diagnostics.noMacroExtends(node));
+		state.addDiagnostic(errors.noMacroExtends(node));
 	}
 
 	// OOP boilerplate + class functions
@@ -364,7 +364,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 			staticProperties.push(member);
 		} else if (ts.isAccessor(member)) {
-			state.addDiagnostic(diagnostics.noGetterSetter(member));
+			state.addDiagnostic(errors.noGetterSetter(member));
 		} else {
 			assert(false, `Class member type not implemented: ${getKindName(member.kind)}`);
 		}
@@ -375,17 +375,17 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	for (const method of methods) {
 		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
-			state.addDiagnostic(diagnostics.noClassMetamethods(method.name));
+			state.addDiagnostic(errors.noClassMetamethods(method.name));
 		}
 
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
 			if (!!(method.modifierFlagsCache & ts.ModifierFlags.Static)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
-					state.addDiagnostic(diagnostics.noInstanceMethodCollisions(method));
+					state.addDiagnostic(errors.noInstanceMethodCollisions(method));
 				}
 			} else {
 				if (classType.getProperty(method.name.text) !== undefined) {
-					state.addDiagnostic(diagnostics.noStaticMethodCollisions(method));
+					state.addDiagnostic(errors.noStaticMethodCollisions(method));
 				}
 			}
 		}

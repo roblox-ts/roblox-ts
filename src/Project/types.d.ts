@@ -10,11 +10,12 @@ export interface ProjectOptions {
 
 /** Optional flags that add alternate behavior to project. */
 export interface ProjectFlags {
+	logTruthyChanges: boolean;
 	noInclude: boolean;
 	project: string;
+	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
-	usePolling: boolean;
 }
 
 export interface ProjectServices {
@@ -27,6 +28,7 @@ export interface ProjectServices {
 export interface ProjectData {
 	includePath: string;
 	isPackage: boolean;
+	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	nodeModulesPathMapping: Map<string, string>;
 	noInclude: boolean;

@@ -10,7 +10,7 @@ export function transformWhileStatementInner(state: TransformState, condition: t
 	const statements = transformStatementList(state, getStatements(statement));
 
 	const [conditionExp, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(state, transformExpression(state, condition), state.getType(condition)),
+		createTruthinessChecks(state, transformExpression(state, condition), condition, state.getType(condition)),
 	);
 
 	if (luau.list.isEmpty(conditionPrereqs)) {

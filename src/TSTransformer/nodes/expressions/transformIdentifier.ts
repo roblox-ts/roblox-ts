@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
@@ -114,9 +114,9 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
 		return luau.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
-		state.addDiagnostic(diagnostics.noArguments(node));
+		state.addDiagnostic(errors.noArguments(node));
 	} else if (symbol === state.services.globalSymbols.globalThis) {
-		state.addDiagnostic(diagnostics.noGlobalThis(node));
+		state.addDiagnostic(errors.noGlobalThis(node));
 	}
 
 	const macro = state.services.macroManager.getIdentifierMacro(symbol);
@@ -125,14 +125,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	}
 
 	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object) && !isValidObjectUse(node)) {
-		state.addDiagnostic(diagnostics.noObjectWithoutMethod(node));
+		state.addDiagnostic(errors.noObjectWithoutMethod(node));
 	}
 
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
 		if (constructorMacro) {
-			state.addDiagnostic(diagnostics.noConstructorMacroWithoutNew(node));
+			state.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
 		}
 	}
 
@@ -141,7 +141,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		(!ts.isCallExpression(parent) || skipDownwards(parent.expression) != node) &&
 		state.services.macroManager.getCallMacro(symbol)
 	) {
-		state.addDiagnostic(diagnostics.noMacroWithoutCall(node));
+		state.addDiagnostic(errors.noMacroWithoutCall(node));
 		return luau.emptyId();
 	}
 

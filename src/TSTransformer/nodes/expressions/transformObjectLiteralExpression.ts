@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
@@ -82,7 +82,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {
-				state.addDiagnostic(diagnostics.noPrivateIdentifier(property.name));
+				state.addDiagnostic(errors.noPrivateIdentifier(property.name));
 				continue;
 			}
 			transformPropertyAssignment(state, ptr, property.name, property.initializer);
@@ -94,7 +94,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 			state.prereqList(transformMethodDeclaration(state, property, ptr));
 		} else {
 			// must be ts.AccessorDeclaration, which is banned
-			state.addDiagnostic(diagnostics.noGetterSetter(property));
+			state.addDiagnostic(errors.noGetterSetter(property));
 		}
 	}
 	return ptr.value;

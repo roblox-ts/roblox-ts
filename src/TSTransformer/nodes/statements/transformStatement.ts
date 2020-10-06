@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { DiagnosticFactory, diagnostics } from "Shared/diagnostics";
+import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
@@ -47,9 +47,9 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 	[ts.SyntaxKind.EmptyStatement, NO_EMIT],
 
 	// banned statements
-	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(diagnostics.noForInStatement)],
-	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(diagnostics.noLabeledStatement)],
-	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(diagnostics.noDebuggerStatement)],
+	[ts.SyntaxKind.ForInStatement, DIAGNOSTIC(errors.noForInStatement)],
+	[ts.SyntaxKind.LabeledStatement, DIAGNOSTIC(errors.noLabeledStatement)],
+	[ts.SyntaxKind.DebuggerStatement, DIAGNOSTIC(errors.noDebuggerStatement)],
 
 	// regular transforms
 	[ts.SyntaxKind.Block, transformBlock],

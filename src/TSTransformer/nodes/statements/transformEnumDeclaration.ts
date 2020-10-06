@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -30,7 +30,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleDefinitions(symbol)) {
-		state.addDiagnostic(diagnostics.noEnumMerging(node));
+		state.addDiagnostic(errors.noEnumMerging(node));
 		return luau.list.make<luau.Statement>();
 	}
 

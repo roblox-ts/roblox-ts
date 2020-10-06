@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
+import { warnings } from "Shared/diagnostics";
 
 export function willCreateTruthinessChecks(type: ts.Type) {
 	return (
@@ -12,7 +13,12 @@ export function willCreateTruthinessChecks(type: ts.Type) {
 	);
 }
 
-export function createTruthinessChecks(state: TransformState, exp: luau.Expression, type: ts.Type) {
+export function createTruthinessChecks(
+	state: TransformState,
+	exp: luau.Expression,
+	node: ts.Expression,
+	type: ts.Type,
+) {
 	const isAssignableToZero = isPossiblyType(type, t => isNumberLiteralType(t, 0));
 	const isAssignableToNaN = isPossiblyType(type, t => isNaNType(t));
 	const isAssignableToEmptyString = isPossiblyType(type, t => isEmptyStringType(t));
@@ -37,6 +43,14 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 	}
 
 	checks.push(exp);
+
+	if (state.data.logTruthyChanges && (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString)) {
+		const checkStrs = new Array<string>();
+		if (isAssignableToZero) checkStrs.push("0");
+		if (isAssignableToZero || isAssignableToNaN) checkStrs.push("NaN");
+		if (isAssignableToEmptyString) checkStrs.push('""');
+		state.addDiagnostic(warnings.truthyChange(checkStrs.join(", "))(node));
+	}
 
 	return binaryExpressionChain(checks, "and");
 }

@@ -11,6 +11,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 	const condition = createTruthinessChecks(
 		state,
 		transformExpression(state, node.expression),
+		node.expression,
 		state.getType(node.expression),
 	);
 

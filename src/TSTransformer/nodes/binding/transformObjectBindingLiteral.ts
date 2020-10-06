@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
@@ -33,7 +33,7 @@ export function transformObjectBindingLiteral(
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
 		} else if (ts.isSpreadAssignment(property)) {
-			state.addDiagnostic(diagnostics.noSpreadDestructuring(property));
+			state.addDiagnostic(errors.noSpreadDestructuring(property));
 			return;
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;

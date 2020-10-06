@@ -8,6 +8,6 @@ export class DiagnosticError extends LoggableError {
 	}
 
 	public toString() {
-		return formatDiagnostics(this.diagnostics).replace(/TS roblox\-ts/g, "roblox-ts");
+		return formatDiagnostics(this.diagnostics);
 	}
 }

@@ -228,11 +228,12 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		"Building..",
 		() =>
 			build.handler({
+				logTruthyChanges: false,
+				noInclude: false,
 				project: ".",
+				usePolling: false,
 				verbose: false,
 				watch: false,
-				usePolling: false,
-				noInclude: false,
 				$0: argv.$0,
 				_: argv._,
 			}) as never,

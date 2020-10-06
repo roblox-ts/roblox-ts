@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -39,7 +39,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	if (node.asteriskToken) {
 		if (isAsync) {
-			state.addDiagnostic(diagnostics.noAsyncGeneratorFunctions(node));
+			state.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
 		statements = wrapStatementsAsGenerator(state, statements);
 	}

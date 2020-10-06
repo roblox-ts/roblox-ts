@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
@@ -39,7 +39,7 @@ function transformLuaTupleDestructure(
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.emptyId());
 			} else if (ts.isSpreadElement(element)) {
-				state.addDiagnostic(diagnostics.noSpreadDestructuring(element));
+				state.addDiagnostic(errors.noSpreadDestructuring(element));
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {
@@ -187,13 +187,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
-		state.addDiagnostic(diagnostics.noEqualsEquals(node));
+		state.addDiagnostic(errors.noEqualsEquals(node));
 		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
-		state.addDiagnostic(diagnostics.noExclamationEquals(node));
+		state.addDiagnostic(errors.noExclamationEquals(node));
 		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.addDiagnostic(diagnostics.noComma(node));
+		state.addDiagnostic(errors.noComma(node));
 		return luau.emptyId();
 	}
 
@@ -219,7 +219,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			if (luau.isCall(rightExp) && isLuaTupleType(state, accessType)) {
 				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
 				if (!isUsedAsStatement(node)) {
-					state.addDiagnostic(diagnostics.noDestructureAssignmentExpression(node));
+					state.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
 				return luau.emptyId();
 			}
@@ -288,7 +288,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			(!isDefinitelyType(leftType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t))) ||
 			(!isDefinitelyType(rightType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t)))
 		) {
-			state.addDiagnostic(diagnostics.noNonNumberStringRelationOperator(node));
+			state.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}
 	}
 

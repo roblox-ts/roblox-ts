@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -13,7 +13,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 
 	assert(!ts.isArrayLiteralExpression(node.parent) && node.parent.arguments);
 	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
-		state.addDiagnostic(diagnostics.noPrecedingSpreadElement(node));
+		state.addDiagnostic(errors.noPrecedingSpreadElement(node));
 	}
 
 	const expression = transformExpression(state, node.expression);

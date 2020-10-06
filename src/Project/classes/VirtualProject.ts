@@ -4,6 +4,7 @@ import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFi
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { ProjectData, ProjectServices } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
+import { hasErrors } from "Project/util/hasErrors";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoResolver, RbxPath } from "Shared/classes/RojoResolver";
 import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
@@ -39,6 +40,7 @@ export class VirtualProject {
 		this.data = {
 			includePath: "",
 			isPackage: false,
+			logTruthyChanges: false,
 			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE),
 			nodeModulesPathMapping: new Map(),
 			noInclude: false,
@@ -117,9 +119,10 @@ export class VirtualProject {
 		assert(sourceFile);
 
 		const diagnostics = new Array<ts.Diagnostic>();
-		if (diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile)) > 0) throw new DiagnosticError(diagnostics);
-		if (diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile)) > 0)
-			throw new DiagnosticError(diagnostics);
+		diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
+		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
+		diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile));
+		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const multiTransformState = new MultiTransformState();
 
@@ -143,7 +146,7 @@ export class VirtualProject {
 
 		const luaAST = transformSourceFile(transformState, sourceFile);
 		diagnostics.push(...transformState.diagnostics);
-		if (diagnostics.length > 0) throw new DiagnosticError(diagnostics);
+		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const luaSource = renderAST(luaAST);
 		return luaSource;

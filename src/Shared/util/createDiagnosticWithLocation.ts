@@ -1,8 +1,13 @@
 import ts from "byots";
 
-export function createDiagnosticWithLocation(id: number, message: string, node: ts.Node): ts.DiagnosticWithLocation {
+export function createDiagnosticWithLocation(
+	id: number,
+	message: string,
+	category: ts.DiagnosticCategory,
+	node: ts.Node,
+): ts.DiagnosticWithLocation {
 	return {
-		category: ts.DiagnosticCategory.Error,
+		category,
 		code: (" roblox-ts" as unknown) as number,
 		file: node.getSourceFile(),
 		messageText: message,

@@ -59,7 +59,7 @@ function transformLogicalAndAssignmentExpression(
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTruthinessChecks(state, writable, writableType),
+			condition: createTruthinessChecks(state, writable, left, writableType),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),
@@ -100,7 +100,7 @@ function transformLogicalOrAssignmentExpression(
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.unary("not", createTruthinessChecks(state, writable, writableType)),
+			condition: luau.unary("not", createTruthinessChecks(state, writable, left, writableType)),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),

@@ -1,6 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
@@ -194,7 +194,7 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	assert(ts.isVariableDeclarationList(node.initializer) && node.initializer.declarations.length === 1);
 
 	if (node.awaitModifier) {
-		state.addDiagnostic(diagnostics.noAwaitForOf(node));
+		state.addDiagnostic(errors.noAwaitForOf(node));
 	}
 
 	const name = node.initializer.declarations[0].name;

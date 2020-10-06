@@ -6,6 +6,7 @@ import { transformPaths } from "Project/transformers/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/transformTypeReferenceDirectives";
 import { ProjectData, ProjectServices } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
+import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
@@ -98,8 +99,10 @@ export function compileFiles(
 		const sourceFile = sourceFiles[i];
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
-			if (diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile)) > 0) return;
-			if (diagnostics.push(...ts.getPreEmitDiagnostics(program, sourceFile)) > 0) return;
+			diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
+			if (hasErrors(diagnostics)) return;
+			diagnostics.push(...ts.getPreEmitDiagnostics(program, sourceFile));
+			if (hasErrors(diagnostics)) return;
 
 			const transformState = new TransformState(
 				data,
@@ -116,7 +119,8 @@ export function compileFiles(
 			);
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
-			if (diagnostics.push(...transformState.diagnostics) > 0) return;
+			diagnostics.push(...transformState.diagnostics);
+			if (hasErrors(diagnostics)) return;
 
 			const source = renderAST(luauAST);
 
@@ -124,7 +128,7 @@ export function compileFiles(
 		});
 	}
 
-	if (diagnostics.length > 0) return { emitSkipped: false, diagnostics };
+	if (hasErrors(diagnostics)) return { emitSkipped: false, diagnostics };
 
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
@@ -140,7 +144,7 @@ export function compileFiles(
 		});
 	}
 
-	if (diagnostics.length === 0) {
+	if (!hasErrors(diagnostics)) {
 		program.emitBuildInfo();
 	}
 

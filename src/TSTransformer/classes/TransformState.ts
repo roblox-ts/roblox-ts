@@ -4,7 +4,7 @@ import { render, RenderState, renderStatements } from "LuauRenderer";
 import path from "path";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { diagnostics } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
@@ -227,7 +227,7 @@ export class TransformState {
 				const sourceOutPath = this.services.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
-					this.addDiagnostic(diagnostics.noRojoData(sourceFile));
+					this.addDiagnostic(errors.noRojoData(sourceFile));
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: RUNTIME_LIB_ID,
 						right: luau.nil(),
