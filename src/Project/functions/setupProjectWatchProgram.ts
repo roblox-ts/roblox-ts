@@ -19,6 +19,10 @@ import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 
+function fixSlashes(fsPath: string) {
+	return fsPath.replace(/\\/g, "/");
+}
+
 export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean) {
 	const { fileNames, options } = getParsedCommandLine(data);
 	const fileNamesSet = new Set(fileNames);
@@ -158,17 +162,17 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	function collectAddEvent(fsPath: string) {
-		filesToAdd.add(fsPath);
+		filesToAdd.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
 
 	function collectChangeEvent(fsPath: string) {
-		filesToChange.add(fsPath);
+		filesToChange.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
 
 	function collectDeleteEvent(fsPath: string) {
-		filesToDelete.add(fsPath);
+		filesToDelete.add(fixSlashes(fsPath));
 		openEventCollection();
 	}
 
