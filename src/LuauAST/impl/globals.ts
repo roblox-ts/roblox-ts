@@ -43,6 +43,7 @@ export const globals = {
 		concat: luau.property(TABLE_ID, "concat"),
 		create: luau.property(TABLE_ID, "create"),
 		remove: luau.property(TABLE_ID, "remove"),
+		move: luau.property(TABLE_ID, "move"),
 		find: luau.property(TABLE_ID, "find"),
 		sort: luau.property(TABLE_ID, "sort"),
 		insert: luau.property(TABLE_ID, "insert"),

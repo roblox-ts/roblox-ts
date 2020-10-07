@@ -436,6 +436,17 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		return luau.call(luau.globals.table.concat, [expression, args[0]]);
 	},
 
+	move: (state, node, expression, args) => {
+		expression = state.pushToVarIfComplex(expression);
+		return luau.call(luau.globals.table.move, [
+			expression,
+			offset(args[0], 1),
+			offset(args[1], 1),
+			offset(args[2], 1),
+			args[3] ?? expression,
+		]);
+	},
+
 	slice: (state, node, expression, args) => {
 		expression = state.pushToVarIfComplex(expression);
 
