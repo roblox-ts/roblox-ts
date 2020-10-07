@@ -15,6 +15,8 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));
 }
 
+const TYPES_NOTICE = "\nYou may need to update your @rbxts/types!";
+
 const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
 
 export const SYMBOL_NAMES = {
@@ -43,7 +45,15 @@ export const SYMBOL_NAMES = {
 	TemplateStringsArray: "TemplateStringsArray",
 } as const;
 
-const MACRO_ONLY_CLASSES = new Set<string>(["ReadonlyArray", "Array", "ReadonlyMap", "Map", "ReadonlySet", "Set"]);
+const MACRO_ONLY_CLASSES = new Set<string>([
+	"ReadonlyArray",
+	"Array",
+	"ReadonlyMap",
+	"Map",
+	"ReadonlySet",
+	"Set",
+	"String",
+]);
 
 /**
  * Manages the macros of the ts.
@@ -75,7 +85,7 @@ export class MacroManager {
 			const filePath = path.join(typesPath, fileName);
 			const sourceFile = program.getSourceFile(fs.realpathSync(filePath));
 			if (!sourceFile) {
-				throw new ProjectError(`MacroManager Could not find source file for ${filePath}`);
+				throw new ProjectError(`MacroManager Could not find source file for ${filePath}` + TYPES_NOTICE);
 			}
 
 			// iterate through each statement of the type definition source file
@@ -161,7 +171,7 @@ export class MacroManager {
 				continue;
 			}
 
-			throw new ProjectError(`MacroManager could not find symbol for ${symbolName}`);
+			throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 		}
 
 		// iterate through each of the simple identifier macros like `PKG_VERSION`
@@ -169,7 +179,7 @@ export class MacroManager {
 			// get the symbols of all the identifier macros
 			const identifierSymbols = identifiers.get(identifierName);
 			if (!identifierSymbols) {
-				throw new ProjectError(`MacroManager could not find identifier for ${identifierName}`);
+				throw new ProjectError(`MacroManager could not find identifier for ${identifierName}` + TYPES_NOTICE);
 			}
 			// map each of the symbols to the macro
 			for (const symbol of identifierSymbols) {
@@ -182,7 +192,7 @@ export class MacroManager {
 			// get the symbols of all the function macros
 			const functionSymbols = functions.get(funcName);
 			if (!functionSymbols) {
-				throw new ProjectError(`MacroManager could not find function for ${funcName}`);
+				throw new ProjectError(`MacroManager could not find function for ${funcName}` + TYPES_NOTICE);
 			}
 			// map each of the symbols to the macro
 			for (const symbol of functionSymbols) {
@@ -195,7 +205,7 @@ export class MacroManager {
 			// get information about the interface that is being constructed
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
-				throw new ProjectError(`MacroManager could not find interface for ${className}`);
+				throw new ProjectError(`MacroManager could not find interface for ${className}` + TYPES_NOTICE);
 			}
 			// map each of the symbols to the macro
 			for (const symbol of interfaceInfo.constructors) {
@@ -208,14 +218,16 @@ export class MacroManager {
 			// get the information about the interface being called
 			const interfaceInfo = interfaces.get(className);
 			if (!interfaceInfo) {
-				throw new ProjectError(`MacroManager could not find interface for ${className}`);
+				throw new ProjectError(`MacroManager could not find interface for ${className}` + TYPES_NOTICE);
 			}
 			// iterate through each of the property call macros (methods) in the interface
 			for (const [methodName, macro] of Object.entries(methods)) {
 				// get the symbols of all the property calls
 				const methodSymbols = interfaceInfo.methods.get(methodName);
 				if (!methodSymbols) {
-					throw new ProjectError(`MacroManager could not find method for ${className}.${methodName}`);
+					throw new ProjectError(
+						`MacroManager could not find method for ${className}.${methodName}` + TYPES_NOTICE,
+					);
 				}
 				// map each of the symbols to the macro
 				for (const methodSymbol of methodSymbols) {

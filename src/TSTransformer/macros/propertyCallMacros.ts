@@ -213,15 +213,24 @@ const findStringOccurenceMacro: PropertyCallMacro = (state, node, expression, ar
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size,
-	trim: stringMatchCallback("^%s*(.-)%s*$"),
-	trimStart: stringMatchCallback("^%s*(.-)$"),
-	trimEnd: stringMatchCallback("^(.-)%s*$"),
-	split: makeStringCallback(luau.globals.string.split),
-	slice: makeStringCallback(luau.globals.string.sub, [1, 0]),
-	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
+
 	byte: makeStringCallback(luau.globals.string.byte, [1, 0]),
 	format: makeStringCallback(luau.globals.string.format),
 	gmatch: makeStringCallback(luau.globals.string.gmatch),
+	gsub: makeStringCallback(luau.globals.string.gsub),
+	lower: makeStringCallback(luau.globals.string.lower),
+	match: makeStringCallback(luau.globals.string.match),
+	rep: makeStringCallback(luau.globals.string.rep),
+	reverse: makeStringCallback(luau.globals.string.reverse),
+	slice: makeStringCallback(luau.globals.string.sub, [1, 0]),
+	split: makeStringCallback(luau.globals.string.split),
+	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
+	upper: makeStringCallback(luau.globals.string.upper),
+
+	trim: stringMatchCallback("^%s*(.-)%s*$"),
+	trimStart: stringMatchCallback("^%s*(.-)$"),
+	trimEnd: stringMatchCallback("^(.-)%s*$"),
+
 	find: (state, node, expression, args) =>
 		luau.call(state.TS("string_find_wrap"), [findMacro(state, node, expression, args)]),
 	includes: (state, node, expression, args) =>

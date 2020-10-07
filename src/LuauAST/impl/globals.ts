@@ -30,10 +30,13 @@ export const globals = {
 		format: luau.property(STRING_ID, "format"),
 		gmatch: luau.property(STRING_ID, "gmatch"),
 		gsub: luau.property(STRING_ID, "gsub"),
+		lower: luau.property(STRING_ID, "lower"),
 		match: luau.property(STRING_ID, "match"),
 		rep: luau.property(STRING_ID, "rep"),
+		reverse: luau.property(STRING_ID, "reverse"),
 		split: luau.property(STRING_ID, "split"),
 		sub: luau.property(STRING_ID, "sub"),
+		upper: luau.property(STRING_ID, "upper"),
 	},
 	super: luau.id("super"),
 	table: {
