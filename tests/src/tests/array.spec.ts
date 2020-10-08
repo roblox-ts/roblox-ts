@@ -129,6 +129,17 @@ export = () => {
 		expect([1, "a", true].join(", ")).to.equal("1, a, true");
 	});
 
+	it("should support move", () => {
+		const a = [1, 2, 3];
+		let b = [0];
+		a.move(1, 2, 0);
+		expect(a.join(", ")).to.equal("2, 3, 3");
+		a.move(0, 2, 1, b);
+		expect(b.join(", ")).to.equal("0, 2, 3, 3");
+		b.move(0, 1, 2);
+		expect(b.join(", ")).to.equal("0, 2, 0, 2");
+	})
+
 	it("should support reverse", () => {
 		const a = [1, 2, 3];
 		const b = a.reverse();
