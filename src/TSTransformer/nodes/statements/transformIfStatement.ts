@@ -22,10 +22,8 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 		elseBody = luau.list.make<luau.Statement>();
 	} else if (ts.isIfStatement(node.elseStatement)) {
 		elseBody = transformIfStatementInner(state, node.elseStatement);
-	} else if (ts.isBlock(node.elseStatement)) {
-		elseBody = transformStatementList(state, node.elseStatement.statements);
 	} else {
-		elseBody = transformStatement(state, node.elseStatement);
+		elseBody = transformStatementList(state, getStatements(node.elseStatement));
 	}
 
 	return luau.create(luau.SyntaxKind.IfStatement, {
