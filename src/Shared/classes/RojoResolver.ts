@@ -138,9 +138,8 @@ export class RojoResolver {
 		return candidates[0];
 	}
 
-	public static fromPath(rojoConfigFilePath: string, useFileSystem = true) {
+	public static fromPath(rojoConfigFilePath: string) {
 		const resolver = new RojoResolver();
-		resolver.fs = useFileSystem;
 		resolver.parseConfig(path.resolve(rojoConfigFilePath), true);
 		return resolver;
 	}
@@ -150,9 +149,8 @@ export class RojoResolver {
 	 * Forces all imports to be relative.
 	 */
 	private fs = true;
-	public static synthetic(projectDir: string, useFileSystem = true) {
+	public static synthetic(projectDir: string) {
 		const resolver = new RojoResolver();
-		resolver.fs = useFileSystem;
 		resolver.parseTree(projectDir, "", { $path: projectDir } as RojoTree, true);
 		return resolver;
 	}
@@ -164,7 +162,6 @@ export class RojoResolver {
 	public isGame = false;
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
-		if (!this.fs) return;
 		const realPath = fs.realpathSync(rojoConfigFilePath);
 		if (fs.pathExistsSync(realPath)) {
 			let configJson: unknown;
@@ -204,7 +201,7 @@ export class RojoResolver {
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {
-			const isDirectory = this.fs && fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
+			const isDirectory = fs.pathExistsSync(realPath) && fs.statSync(realPath).isDirectory();
 			if (isDirectory && fs.readdirSync(realPath).includes(ROJO_DEFAULT_NAME)) {
 				this.parseConfig(path.join(itemPath, ROJO_DEFAULT_NAME), true);
 			} else {
