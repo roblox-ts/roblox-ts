@@ -1,3 +1,11 @@
+## 1.0.0-beta.2
+
+- Fix Array.unshift return bug
+- Fix missing string methods not being recognized as errors at compile time
+- Add support for ReadonlyArray.move (#1138)
+- Fix bug with single statement else blocks
+- Fix playground filesystem issues
+
 ## 1.0.0-beta.1
 
 - Added `--usePolling` to indicate that watch mode should use polling instead of fs events
