@@ -186,6 +186,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 						printWidth: 120,
 						tabWidth: 4,
 						useTabs: true,
+						endOfLine: "auto",
 					},
 				];
 			}
