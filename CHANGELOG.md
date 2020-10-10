@@ -1,3 +1,11 @@
+## 1.0.0-beta.3
+
+- **BREAKING CHANGES**
+	- `@rbxts/types` has been broken up into two packages: `@rbxts/types` and `@rbxts/compiler-types`.
+		- `@rbxts/compiler-types` is versioned based on the compatible compiler version. You should ensure your versions match up. i.e. compiler `1.0.0-beta.3` should use `@rbxts/compiler-types` `1.0.0-beta.3.x`
+		- **Version `1.0.410` and later will no longer work with previous 1.0.0 betas!**
+		- You should update to the latest beta or revert to the legacy compiler if necessary.
+
 ## 1.0.0-beta.2
 
 - Fix Array.unshift return bug
