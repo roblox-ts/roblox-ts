@@ -129,6 +129,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 		} catch (e) {
 			if (e instanceof LoggableError) {
 				e.log();
+				debugger;
 				process.exit(1);
 			} else {
 				throw e;

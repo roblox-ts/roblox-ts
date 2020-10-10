@@ -34,6 +34,7 @@ yargs
 			// eslint-disable-next-line no-console
 			if (e) console.log(e);
 		}
+		debugger;
 		process.exit(1);
 	})
 	.parse();
