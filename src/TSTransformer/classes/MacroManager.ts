@@ -1,9 +1,6 @@
 import ts from "byots";
-import fs from "fs-extra";
-import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
-import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
@@ -16,8 +13,6 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 }
 
 const TYPES_NOTICE = "\nYou may need to update your @rbxts/types!";
-
-const INCLUDE_FILES = ["es.d.ts", "lua.d.ts", "macro_math.d.ts", "roblox.d.ts"];
 
 export const SYMBOL_NAMES = {
 	ArrayConstructor: "ArrayConstructor",
@@ -55,6 +50,33 @@ const MACRO_ONLY_CLASSES = new Set<string>([
 	"String",
 ]);
 
+function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check: (value: ts.Node) => value is T): T {
+	for (const declaration of symbol.declarations) {
+		if (check(declaration)) {
+			return declaration;
+		}
+	}
+	throw new ProjectError("");
+}
+
+function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
+	const symbol = typeChecker.resolveName(name, undefined, meaning, false);
+	if (symbol) {
+		return symbol;
+	}
+	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
+}
+
+function getConstructorSymbol(node: ts.InterfaceDeclaration) {
+	for (const member of node.members) {
+		if (ts.isConstructSignatureDeclaration(member)) {
+			assert(member.symbol);
+			return member.symbol;
+		}
+	}
+	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
+}
+
 /**
  * Manages the macros of the ts.
  */
@@ -66,173 +88,56 @@ export class MacroManager {
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
 	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
-		// initialize maps
-		const typeAliases = new Map<string, Set<ts.Symbol>>();
-		const identifiers = new Map<string, Set<ts.Symbol>>();
-		const functions = new Map<string, Set<ts.Symbol>>();
-		const interfaces = new Map<
-			string,
-			{
-				symbols: Set<ts.Symbol>;
-				constructors: Set<ts.Symbol>;
-				methods: Map<string, Set<ts.Symbol>>;
-			}
-		>();
+		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
+			this.identifierMacros.set(symbol, macro);
+		}
 
-		const typesPath = path.join(nodeModulesPath, "types", "include");
-		// iterate through each file in the types include directory
-		for (const fileName of INCLUDE_FILES) {
-			const filePath = path.join(typesPath, fileName);
-			const sourceFile = program.getSourceFile(fs.realpathSync(filePath));
-			if (!sourceFile) {
-				throw new ProjectError(`MacroManager Could not find source file for ${filePath}` + TYPES_NOTICE);
-			}
+		for (const [name, macro] of Object.entries(CALL_MACROS)) {
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Function);
+			this.callMacros.set(symbol, macro);
+		}
 
-			// iterate through each statement of the type definition source file
-			for (const statement of sourceFile.statements) {
-				// set up mappings for declarations
-				if (ts.isTypeAliasDeclaration(statement)) {
-					const typeAliasSymbols = getOrSetDefault(
-						typeAliases,
-						statement.name.text,
-						() => new Set<ts.Symbol>(),
-					);
-					const symbol = statement.symbol;
-					assert(symbol);
-					typeAliasSymbols.add(symbol);
-				} else if (ts.isVariableStatement(statement)) {
-					for (const declaration of statement.declarationList.declarations) {
-						if (ts.isIdentifier(declaration.name)) {
-							const identifierName = declaration.name.text;
-							const identifierSymbols = getOrSetDefault(
-								identifiers,
-								identifierName,
-								() => new Set<ts.Symbol>(),
-							);
-							assert(declaration.symbol);
-							identifierSymbols.add(declaration.symbol);
-						}
-					}
-				} else if (ts.isFunctionDeclaration(statement)) {
-					assert(statement.name);
-					const functionSymbols = getOrSetDefault(functions, statement.name.text, () => new Set<ts.Symbol>());
-					const symbol = getType(typeChecker, statement).symbol;
-					assert(symbol);
-					functionSymbols.add(symbol);
-				} else if (ts.isInterfaceDeclaration(statement)) {
-					const interfaceInfo = getOrSetDefault(interfaces, statement.name.text, () => ({
-						symbols: new Set<ts.Symbol>(),
-						constructors: new Set<ts.Symbol>(),
-						methods: new Map<string, Set<ts.Symbol>>(),
-					}));
+		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
+			const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+			const constructSymbol = getConstructorSymbol(interfaceDec);
+			this.constructorMacros.set(constructSymbol, macro);
+		}
 
-					const symbol = getType(typeChecker, statement).symbol;
-					assert(symbol);
-					interfaceInfo.symbols.add(symbol);
-					assert(interfaceInfo.symbols.size === 1);
+		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
+			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
 
-					for (const member of statement.members) {
-						if (ts.isMethodSignature(member)) {
-							if (ts.isIdentifier(member.name)) {
-								const methodName = member.name.text;
-								const methodSymbols = getOrSetDefault(
-									interfaceInfo.methods,
-									methodName,
-									() => new Set<ts.Symbol>(),
-								);
-								const symbol = getType(typeChecker, member).symbol;
-								assert(symbol);
-								methodSymbols.add(symbol);
-							}
-						} else if (ts.isConstructSignatureDeclaration(member)) {
-							assert(member.symbol);
-							interfaceInfo.constructors.add(member.symbol);
+			const methodMap = new Map<string, ts.Symbol>();
+			for (const declaration of symbol.declarations) {
+				if (ts.isInterfaceDeclaration(declaration)) {
+					for (const member of declaration.members) {
+						if (ts.isMethodSignature(member) && ts.isIdentifier(member.name)) {
+							const symbol = getType(typeChecker, member).symbol;
+							assert(symbol);
+							methodMap.set(member.name.text, symbol);
 						}
 					}
 				}
 			}
-		}
 
-		// iterate through each of the macro groups
-		for (const symbolName of Object.values(SYMBOL_NAMES)) {
-			// verify that interface has a mapping somewhere
-			// set up a mapping to the symbol
-			const interfaceInfo = interfaces.get(symbolName);
-			if (interfaceInfo) {
-				const [symbol] = interfaceInfo.symbols;
-				this.symbols.set(symbolName, symbol);
-				continue;
-			}
-
-			const typeAliasSymbols = typeAliases.get(symbolName);
-			if (typeAliasSymbols) {
-				const [symbol] = typeAliasSymbols;
-				this.symbols.set(symbolName, symbol);
-				continue;
-			}
-
-			throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
-		}
-
-		// iterate through each of the simple identifier macros like `PKG_VERSION`
-		for (const [identifierName, macro] of Object.entries(IDENTIFIER_MACROS)) {
-			// get the symbols of all the identifier macros
-			const identifierSymbols = identifiers.get(identifierName);
-			if (!identifierSymbols) {
-				throw new ProjectError(`MacroManager could not find identifier for ${identifierName}` + TYPES_NOTICE);
-			}
-			// map each of the symbols to the macro
-			for (const symbol of identifierSymbols) {
-				this.identifierMacros.set(symbol, macro);
-			}
-		}
-
-		// iterate through each of the call macros like `opcall()`
-		for (const [funcName, macro] of Object.entries(CALL_MACROS)) {
-			// get the symbols of all the function macros
-			const functionSymbols = functions.get(funcName);
-			if (!functionSymbols) {
-				throw new ProjectError(`MacroManager could not find function for ${funcName}` + TYPES_NOTICE);
-			}
-			// map each of the symbols to the macro
-			for (const symbol of functionSymbols) {
-				this.callMacros.set(symbol, macro);
-			}
-		}
-
-		// iterate through each of the constructor macros like `SetConstructor`
-		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
-			// get information about the interface that is being constructed
-			const interfaceInfo = interfaces.get(className);
-			if (!interfaceInfo) {
-				throw new ProjectError(`MacroManager could not find interface for ${className}` + TYPES_NOTICE);
-			}
-			// map each of the symbols to the macro
-			for (const symbol of interfaceInfo.constructors) {
-				this.constructorMacros.set(symbol, macro);
-			}
-		}
-
-		// iterate through each of the property call maros like `Object: { clone: () => {}}`
-		for (const [className, methods] of Object.entries(PROPERTY_CALL_MACROS)) {
-			// get the information about the interface being called
-			const interfaceInfo = interfaces.get(className);
-			if (!interfaceInfo) {
-				throw new ProjectError(`MacroManager could not find interface for ${className}` + TYPES_NOTICE);
-			}
-			// iterate through each of the property call macros (methods) in the interface
 			for (const [methodName, macro] of Object.entries(methods)) {
-				// get the symbols of all the property calls
-				const methodSymbols = interfaceInfo.methods.get(methodName);
-				if (!methodSymbols) {
+				const methodSymbol = methodMap.get(methodName);
+				if (!methodSymbol) {
 					throw new ProjectError(
 						`MacroManager could not find method for ${className}.${methodName}` + TYPES_NOTICE,
 					);
 				}
-				// map each of the symbols to the macro
-				for (const methodSymbol of methodSymbols) {
-					this.propertyCallMacros.set(methodSymbol, macro);
-				}
+				this.propertyCallMacros.set(methodSymbol, macro);
+			}
+		}
+
+		for (const symbolName of Object.values(SYMBOL_NAMES)) {
+			const symbol = typeChecker.resolveName(symbolName, undefined, ts.SymbolFlags.All, false);
+			if (symbol) {
+				this.symbols.set(symbolName, symbol);
+			} else {
+				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
 			}
 		}
 	}
