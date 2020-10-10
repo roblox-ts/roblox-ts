@@ -1,12 +1,30 @@
 import ts from "byots";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
 
+function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
+	for (const baseType of type.getBaseTypes() ?? []) {
+		result.push(baseType);
+		if (baseType.isClassOrInterface()) {
+			getRecursiveBaseTypesInner(result, baseType);
+		}
+	}
+}
+
+function getRecursiveBaseTypes(type: ts.InterfaceType) {
+	const result = new Array<ts.Type>();
+	getRecursiveBaseTypesInner(result, type);
+	return result;
+}
+
 function isDefinitelyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean): boolean {
 	if (type.isUnion()) {
 		return type.types.every(t => isDefinitelyTypeInner(t, callback));
 	} else if (type.isIntersection()) {
 		return type.types.some(t => isDefinitelyTypeInner(t, callback));
 	} else {
+		if (type.isClassOrInterface() && getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(t, callback))) {
+			return true;
+		}
 		return callback(type);
 	}
 }
@@ -19,6 +37,10 @@ function isPossiblyTypeInner(type: ts.Type, callback: (type: ts.Type) => boolean
 	if (type.isUnionOrIntersection()) {
 		return type.types.some(t => isPossiblyTypeInner(t, callback));
 	} else {
+		if (type.isClassOrInterface() && getRecursiveBaseTypes(type).some(t => isPossiblyTypeInner(t, callback))) {
+			return true;
+		}
+
 		// type variable without constraint, any, or unknown
 		if (!!(type.flags & (ts.TypeFlags.TypeVariable | ts.TypeFlags.AnyOrUnknown))) {
 			return true;
