@@ -7,7 +7,7 @@ export function assert(value: unknown, message?: string): asserts value {
 	if (!value) {
 		debugger;
 		throw new Error(
-			`Assertion Failed! ${message}` +
+			`Assertion Failed! ${message ?? ""}` +
 				"\nThis is a compiler bug! Please submit a bug report here:" +
 				"\nhttps://github.com/roblox-ts/roblox-ts/issues",
 		);
