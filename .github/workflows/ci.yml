@@ -32,6 +32,13 @@ jobs:
       - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.1.0
 
+      - name: Verify ROBLOSECURITY
+        run: |
+          If([string]::IsNullOrEmpty("${{ secrets.ROBLOSECURITY }}")) {
+            echo "ROBLOSECURITY secret has not been set! Please refer to CONTRIBUTING.md";
+            exit 1;
+          }
+
       - name: Install Python dependencies
         run: pip install wget psutil
 
