@@ -7,5 +7,5 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 export function transformDeleteExpression(state: TransformState, node: ts.DeleteExpression) {
 	// we just want the prereqs
 	transformExpression(state, node.expression);
-	return isUsedAsStatement(node) ? luau.nil() : luau.bool(true);
+	return luau.nil();
 }
