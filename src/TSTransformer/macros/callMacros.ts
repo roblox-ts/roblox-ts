@@ -44,5 +44,5 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.binary(luau.binary(successId, "and", successExp), "or", failureExp);
 	},
 
-	identity: (state, node, expression, args) => args[0],
+	identity: (state, node, expression, args) => luau.binary(args[0], "+", luau.number(1)),
 };
