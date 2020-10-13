@@ -70,15 +70,21 @@ export function compileFiles(
 		? RojoResolver.fromPath(data.rojoConfigPath)
 		: RojoResolver.synthetic(data.projectPath);
 
+	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
+
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
 	const projectType = data.projectOptions.type ?? inferProjectType(data, rojoResolver);
+
+	if (projectType !== ProjectType.Package && data.rojoConfigPath === undefined) {
+		return emitResultFailure("Non-package projects must have a Rojo project file!");
+	}
 
 	let runtimeLibRbxPath: RbxPath | undefined;
 	if (projectType !== ProjectType.Package) {
 		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
 		if (!runtimeLibRbxPath) {
-			return emitResultFailure("Rojo config contained no data for include folder!");
+			return emitResultFailure("Rojo project contained no data for include folder!");
 		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
 			return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
 		} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
@@ -86,9 +92,9 @@ export function compileFiles(
 		}
 	}
 
-	const nodeModulesRbxPath = fs.pathExistsSync(data.nodeModulesPath)
-		? rojoResolver.getRbxPathFromFilePath(data.nodeModulesPath)
-		: undefined;
+	if (!rojoResolver.getRbxPathFromFilePath(data.nodeModulesPath)) {
+		return emitResultFailure("Rojo project contained no data for node_modules folder!");
+	}
 
 	LogService.writeLineIfVerbose(`Compiling as ${projectType}..`);
 
@@ -110,9 +116,9 @@ export function compileFiles(
 				multiTransformState,
 				compilerOptions,
 				rojoResolver,
+				pkgRojoResolver,
 				reverseSymlinkMap,
 				runtimeLibRbxPath,
-				nodeModulesRbxPath,
 				typeChecker,
 				projectType,
 				sourceFile,

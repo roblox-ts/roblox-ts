@@ -49,21 +49,18 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		state.data.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
-	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	if (!moduleRbxPath) {
+	const relativeRbxPath = state.pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
+	if (!relativeRbxPath) {
 		state.addDiagnostic(errors.noRojoData(moduleSpecifier));
 		return luau.emptyId();
 	}
 
-	assert(state.nodeModulesRbxPath);
-	const relativeToNodeModulesRbxPath = RojoResolver.relative(state.nodeModulesRbxPath, moduleRbxPath);
-	const moduleName = relativeToNodeModulesRbxPath[0];
+	const moduleName = relativeRbxPath[0];
 	assert(moduleName && typeof moduleName === "string");
-	assert(relativeToNodeModulesRbxPath[1] !== RbxPathParent);
 
 	return propertyAccessExpressionChain(
 		luau.call(state.TS("getModule"), [luau.globals.script, luau.string(moduleName)]),
-		relativeToNodeModulesRbxPath.slice(1) as Array<string>,
+		relativeRbxPath.slice(1),
 	);
 }
 

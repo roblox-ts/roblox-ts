@@ -148,10 +148,9 @@ export class RojoResolver {
 	 * Create a synthetic RojoResolver for ProjectType.Package.
 	 * Forces all imports to be relative.
 	 */
-	private fs = true;
-	public static synthetic(projectDir: string) {
+	public static synthetic(basePath: string) {
 		const resolver = new RojoResolver();
-		resolver.parseTree(projectDir, "", { $path: projectDir } as RojoTree, true);
+		resolver.parseTree(basePath, "", { $path: basePath } as RojoTree, true);
 		return resolver;
 	}
 

@@ -31,6 +31,7 @@ export class VirtualProject {
 
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly rojoResolver: RojoResolver;
+	private readonly pkgRojoResolver: RojoResolver;
 	private readonly compilerHost: ts.CompilerHost;
 
 	private program: ts.Program | undefined;
@@ -83,6 +84,7 @@ export class VirtualProject {
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoResolver = RojoResolver.synthetic(PROJECT_DIR);
+		this.pkgRojoResolver = RojoResolver.synthetic(this.data.nodeModulesPath);
 	}
 
 	private createServices(): ProjectServices {
@@ -127,7 +129,6 @@ export class VirtualProject {
 		const multiTransformState = new MultiTransformState();
 
 		const runtimeLibRbxPath = undefined;
-		const nodeModulesRbxPath: RbxPath = [NODE_MODULES, RBXTS_SCOPE];
 		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
@@ -136,9 +137,9 @@ export class VirtualProject {
 			multiTransformState,
 			this.compilerOptions,
 			this.rojoResolver,
+			this.pkgRojoResolver,
 			new Map(),
 			runtimeLibRbxPath,
-			nodeModulesRbxPath,
 			this.typeChecker,
 			projectType,
 			sourceFile,

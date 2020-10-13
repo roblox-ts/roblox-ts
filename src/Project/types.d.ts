@@ -4,7 +4,7 @@ import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
 
 export interface ProjectOptions {
 	includePath: string;
-	rojo: string;
+	rojo: string | undefined;
 	type: ProjectType | undefined;
 }
 

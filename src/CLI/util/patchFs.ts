@@ -1,5 +1,7 @@
 import fs from "fs-extra";
 
+// hack to fix playground without removing fs calls
+
 const NOOP = () => {};
 const ASYNC_NOOP = async () => {};
 

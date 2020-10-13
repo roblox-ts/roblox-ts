@@ -94,7 +94,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			})
 			.option("rojo", {
 				string: true,
-				describe: "manually select Rojo configuration file",
+				describe: "manually select Rojo project file",
 			}),
 
 	handler: async argv => {

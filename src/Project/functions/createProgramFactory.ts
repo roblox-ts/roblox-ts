@@ -9,7 +9,7 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	const host = ts.createIncrementalCompilerHost(compilerOptions);
 
 	let rojoHash = "";
-	if (data.rojoConfigPath) {
+	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
 		assert(host.createHash);
 		rojoHash = "-" + host.createHash(fs.readFileSync(data.rojoConfigPath).toString());
 	}

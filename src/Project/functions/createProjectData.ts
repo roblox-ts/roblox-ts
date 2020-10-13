@@ -8,7 +8,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
-	rojo: "",
+	rojo: undefined,
 	type: undefined,
 };
 
@@ -57,9 +57,14 @@ export function createProjectData(
 		}
 	}
 
-	const rojoConfigPath = projectOptions.rojo
-		? path.resolve(projectOptions.rojo)
-		: RojoResolver.findRojoConfigFilePath(projectPath);
+	let rojoConfigPath: string | undefined;
+	if (projectOptions.rojo !== undefined) {
+		if (projectOptions.rojo !== "") {
+			rojoConfigPath = path.resolve(projectOptions.rojo);
+		}
+	} else {
+		rojoConfigPath = RojoResolver.findRojoConfigFilePath(projectPath);
+	}
 
 	return {
 		tsConfigPath,
