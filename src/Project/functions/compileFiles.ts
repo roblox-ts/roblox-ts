@@ -140,7 +140,9 @@ export function compileFiles(
 		benchmarkIfVerbose("writing compiled files", () => {
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = services.pathTranslator.getOutputPath(sourceFile.fileName);
-				fs.outputFileSync(outPath, source);
+				if (!fs.pathExistsSync(outPath) || fs.readFileSync(outPath).toString() !== source) {
+					fs.outputFileSync(outPath, source);
+				}
 				if (compilerOptions.declaration) {
 					program.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
