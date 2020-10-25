@@ -150,9 +150,7 @@ export function compileFiles(
 		});
 	}
 
-	if (!hasErrors(diagnostics)) {
-		program.emitBuildInfo();
-	}
+	program.emitBuildInfo();
 
 	return { emitSkipped: false, diagnostics };
 }
