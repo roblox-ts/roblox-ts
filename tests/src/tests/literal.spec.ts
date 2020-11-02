@@ -2,7 +2,7 @@
 
 export = () => {
 	it("should understand number literals", () => {
-		expect(1).to.equal(1);
+		expect(1).to.equal(2);
 		expect(6).to.equal(6);
 		expect(0xf00d).to.equal(61453);
 		expect(0b1010).to.equal(10);
