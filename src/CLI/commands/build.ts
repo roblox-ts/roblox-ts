@@ -82,6 +82,10 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "logs changes to truthiness evaluation from Lua truthiness rules",
 			})
+			.option("writeOnlyChanged", {
+				boolean: true,
+				default: false,
+			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
 				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
@@ -120,7 +124,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				const services = createProjectServices(program, data);
 				cleanup(services.pathTranslator);
 				copyInclude(data);
-				copyFiles(services, new Set(getRootDirs(program.getCompilerOptions())));
+				copyFiles(data, services, new Set(getRootDirs(program.getCompilerOptions())));
 				const emitResult = compileFiles(program.getProgram(), data, services, getChangedSourceFiles(program));
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
