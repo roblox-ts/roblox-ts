@@ -157,6 +157,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 
 	const replacementId = state.forStatementSymbolToIdMap.get(symbol);
 	if (replacementId) {
+		// check if identifier is part of for statement, but not in the body
 		const forStatement = getAncestor(node, ts.isForStatement);
 		if (forStatement && !isAncestorOf(forStatement.statement, node)) {
 			return replacementId;
