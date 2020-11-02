@@ -23,6 +23,7 @@ jobs:
         run: npm run eslint
   unit-tests:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v1
@@ -31,9 +32,6 @@ jobs:
 
       - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.1.0
-
-      - name: Install Python dependencies
-        run: pip install wget psutil
 
       - name: Install Roblox Studio
         run: |
