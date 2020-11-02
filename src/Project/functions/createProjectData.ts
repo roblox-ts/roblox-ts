@@ -66,6 +66,8 @@ export function createProjectData(
 		rojoConfigPath = RojoResolver.findRojoConfigFilePath(projectPath);
 	}
 
+	const writeOnlyChanged = flags.writeOnlyChanged;
+
 	return {
 		tsConfigPath,
 		includePath,
@@ -78,5 +80,6 @@ export function createProjectData(
 		projectOptions,
 		projectPath,
 		rojoConfigPath,
+		writeOnlyChanged,
 	};
 }
