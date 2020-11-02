@@ -140,7 +140,11 @@ export function compileFiles(
 		benchmarkIfVerbose("writing compiled files", () => {
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = services.pathTranslator.getOutputPath(sourceFile.fileName);
-				if (!fs.pathExistsSync(outPath) || fs.readFileSync(outPath).toString() !== source) {
+				if (
+					!data.writeOnlyChanged ||
+					!fs.pathExistsSync(outPath) ||
+					fs.readFileSync(outPath).toString() !== source
+				) {
 					fs.outputFileSync(outPath, source);
 				}
 				if (compilerOptions.declaration) {

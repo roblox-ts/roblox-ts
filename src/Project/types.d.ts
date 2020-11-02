@@ -16,6 +16,7 @@ export interface ProjectFlags {
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
+	writeOnlyChanged: boolean;
 }
 
 export interface ProjectServices {
@@ -37,4 +38,5 @@ export interface ProjectData {
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
+	writeOnlyChanged: boolean;
 }

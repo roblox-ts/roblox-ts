@@ -82,7 +82,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && services);
 		cleanup(services.pathTranslator);
 		copyInclude(data);
-		copyFiles(services, new Set(getRootDirs(options)));
+		copyFiles(data, services, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
 		const emitResult = compileFiles(program.getProgram(), data, services, sourceFiles);
 		if (!hasErrors(emitResult.diagnostics)) {
@@ -131,7 +131,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			tryRemoveOutput(services.pathTranslator, services.pathTranslator.getOutputPath(fsPath));
 		}
 		for (const fsPath of filesToCopy) {
-			copyItem(services, fsPath);
+			copyItem(data, services, fsPath);
 		}
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
 		const emitResult = compileFiles(program.getProgram(), data, services, sourceFiles);
