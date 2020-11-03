@@ -43,10 +43,8 @@ export enum SyntaxKind {
 
 	// fields
 	MapField,
-}
 
-// used to detect what category a given kind falls into
-export enum SyntaxKind {
+	// used to detect what category a given kind falls into
 	FirstIndexableExpression = Identifier,
 	LastIndexableExpression = ParenthesizedExpression,
 	FirstExpression = Identifier,
