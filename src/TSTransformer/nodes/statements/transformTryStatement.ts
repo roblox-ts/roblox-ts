@@ -1,5 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { assert } from "Shared/util/assert";
 import { TransformState, TryUses } from "TSTransformer";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -46,7 +47,8 @@ function transformIntoTryCall(
 
 	if (node.catchClause) {
 		tryCallArgs.push(transformCatchClause(state, node.catchClause));
-	} else if (node.finallyBlock) {
+	} else {
+		assert(node.finallyBlock);
 		tryCallArgs.push(luau.nil());
 	}
 
@@ -83,23 +85,23 @@ function createFlowControlCondition(
 type FlowControlCase = { condition?: luau.Expression; statements: luau.List<luau.Statement> };
 
 function collapseFlowControlCases(exitTypeId: luau.TemporaryIdentifier, cases: Array<FlowControlCase>) {
-	if (cases.length === 0) {
-		return luau.list.make<luau.Statement>();
-	} else {
-		let nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: exitTypeId,
-			statements: cases[cases.length - 1].statements,
-			elseBody: luau.list.make(),
+	assert(cases.length > 0);
+
+	let nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
+		condition: exitTypeId,
+		statements: cases[cases.length - 1].statements,
+		elseBody: luau.list.make(),
+	});
+
+	for (let i = cases.length - 2; i >= 0; i--) {
+		nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
+			condition: cases[i].condition || exitTypeId,
+			statements: cases[i].statements,
+			elseBody: nextStatements,
 		});
-		for (let i = cases.length - 2; i >= 0; i--) {
-			nextStatements = luau.create(luau.SyntaxKind.IfStatement, {
-				condition: cases[i].condition || exitTypeId,
-				statements: cases[i].statements,
-				elseBody: nextStatements,
-			});
-		}
-		return luau.list.make(nextStatements);
 	}
+
+	return luau.list.make(nextStatements);
 }
 
 function transformFlowControl(

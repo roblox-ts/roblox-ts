@@ -8,6 +8,19 @@ import { transformWhileStatementInner } from "TSTransformer/nodes/statements/tra
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getStatements } from "TSTransformer/util/getStatements";
 
+function addIncrementorToIfStatement(node: luau.IfStatement, incrementor: luau.List<luau.Statement>) {
+	if (node.statements.head) {
+		addIncrementor(node.statements, node.statements.head, incrementor);
+	}
+	if (luau.list.isList(node.elseBody)) {
+		if (node.elseBody.head) {
+			addIncrementor(node.elseBody, node.elseBody.head, incrementor);
+		}
+	} else {
+		addIncrementorToIfStatement(node.elseBody, incrementor);
+	}
+}
+
 function addIncrementor(
 	list: luau.List<luau.Statement>,
 	node: luau.ListNode<luau.Statement>,
@@ -30,8 +43,12 @@ function addIncrementor(
 		incrementorClone.tail!.next = node;
 	}
 
-	if ((luau.isIfStatement(statement) || luau.isDoStatement(statement)) && statement.statements.head) {
-		addIncrementor(statement.statements, statement.statements.head, incrementor);
+	if (luau.isDoStatement(statement)) {
+		if (statement.statements.head) {
+			addIncrementor(statement.statements, statement.statements.head, incrementor);
+		}
+	} else if (luau.isIfStatement(statement)) {
+		addIncrementorToIfStatement(statement, incrementor);
 	}
 
 	if (node.next) {
