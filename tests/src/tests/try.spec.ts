@@ -19,7 +19,7 @@ export = () => {
 			}
 			return exception;
 		}
-		expect(foo()).to.equal("bar");
+		expect(foo()).to.be.a("string");
 	});
 
 	it("should support try/catch with throwing objects", () => {
@@ -43,7 +43,7 @@ export = () => {
 				return e;
 			}
 		}
-		expect(foo()).to.equal("foo");
+		expect(foo()).to.be.a("string");
 	});
 
 	it("should support try/catch with break", () => {
