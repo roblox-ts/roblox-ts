@@ -95,4 +95,54 @@ export = () => {
 		expect(values[1]).to.equal("B");
 		expect(values[2]).to.equal("C");
 	});
+
+	it("should support try with finally", () => {
+		const values = new Array<string>();
+		try {
+			values.push("A");
+		} finally {
+			values.push("C");
+		}
+		expect(values[0]).to.equal("A");
+		expect(values[1]).to.equal("C");
+	});
+
+	it("should support nested try/catch with return", () => {
+		function foo(): unknown {
+			try {
+				try {
+					return "foo";
+				} catch (e) {}
+			} catch (e) {}
+		}
+		expect(foo()).to.be.a("string");
+	});
+
+	it("should support nested try/catch with break", () => {
+		let x = 0;
+		for (let i = 0; i < 2; i++) {
+			x++;
+			try {
+				try {
+					break;
+				} catch (e) {}
+			} catch (e) {}
+		}
+		expect(x).to.equal(1);
+	});
+
+	it("should support nested try/catch with continue", () => {
+		let x = 0;
+		for (let i = 0; i < 2; i++) {
+			if (i % 2 === 0) {
+				try {
+					try {
+						continue;
+					} catch (e) {}
+				} catch (e) {}
+			}
+			x++;
+		}
+		expect(x).to.equal(1);
+	});
 };
