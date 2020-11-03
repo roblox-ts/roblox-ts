@@ -180,14 +180,6 @@ export namespace list {
 		}
 	}
 
-	export function forEachRev<T extends luau.Node>(list: luau.List<T>, callback: (value: NoInfer<T>) => void) {
-		let node = list.tail;
-		while (node) {
-			callback(node.value);
-			node = node.prev;
-		}
-	}
-
 	export function mapToArray<T extends luau.Node, U>(
 		list: luau.List<T>,
 		callback: (value: NoInfer<T>) => U,
@@ -201,15 +193,6 @@ export namespace list {
 		const result = new Array<T>();
 		luau.list.forEach(list, value => result.push(value));
 		return result;
-	}
-
-	export function toString<T extends luau.Node>(list: luau.List<T>, toStr: (value: NoInfer<T>) => string) {
-		const strs = mapToArray(list, value => toStr(value));
-		if (strs.length > 0) {
-			return `[ ${strs.join(", ")} ]`;
-		} else {
-			return "[]";
-		}
 	}
 
 	export function every<T extends luau.Node>(list: luau.List<T>, callback: (value: NoInfer<T>) => boolean) {
