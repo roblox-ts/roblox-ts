@@ -164,17 +164,19 @@ export = () => {
 		expect(foo()).to.equal(2);
 	});
 
-	it("should support loops inside of try/catch with break", () => {
+	it("should support loops between nested try/catch with break", () => {
 		function foo() {
 			let x = 0;
 			try {
 				for (let i = 0; i < 10; i++) {
-					if (i === 5) {
-						return x;
-					} else if (i % 2 === 0) {
-						continue;
-					}
-					x++;
+					try {
+						if (i === 5) {
+							return x;
+						} else if (i % 2 === 0) {
+							continue;
+						}
+						x++;
+					} catch {}
 				}
 			} catch {}
 		}
