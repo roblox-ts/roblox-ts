@@ -256,4 +256,14 @@ export = () => {
 		const { saferNum } = obj;
 		expect(saferNum(5)).to.equal(5);
 	});
+
+	it("should optimize array spread paramters", () => {
+		function foo(...[a, b, c]: [number, string, boolean]) {
+			return [a, b, c];
+		}
+		const result = foo(123, "abc", true);
+		expect(result[0]).to.equal(123);
+		expect(result[1]).to.equal("abc");
+		expect(result[2]).to.equal(true);
+	});
 };
