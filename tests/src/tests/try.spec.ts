@@ -145,4 +145,22 @@ export = () => {
 		}
 		expect(x).to.equal(1);
 	});
+
+	it("should support try/catch with multiple flow control cases", () => {
+		function foo() {
+			let x = 0;
+			for (let i = 0; i < 10; i++) {
+				try {
+					if (i === 5) {
+						return x;
+					} else if (i % 2 === 0) {
+						continue;
+					}
+					x++;
+				} catch {}
+			}
+		}
+
+		expect(foo()).to.equal(2);
+	});
 };
