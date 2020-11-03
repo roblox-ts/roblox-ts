@@ -46,9 +46,6 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Rojo and run-in-roblox
-        run: foreman install
-
       - name: Compile and run tests
         run: npm test
 
