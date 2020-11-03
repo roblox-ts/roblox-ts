@@ -301,6 +301,17 @@ export = () => {
 		expect(sum).to.equal(7);
 	});
 
+	it("should support continue with numeric loops", () => {
+		let x = 0;
+		for (let i = 0; i < 10; i++) {
+			if (i % 2 === 0) {
+				continue;
+			}
+			x++;
+		}
+		expect(x).to.equal(5);
+	});
+
 	it("should support do-while loops", () => {
 		let x = 0;
 		do {
