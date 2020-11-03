@@ -24,7 +24,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		luau.list.push(statements, returnStatement);
 	}
 
-	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
 
 	if (node.asteriskToken) {
 		if (isAsync) {

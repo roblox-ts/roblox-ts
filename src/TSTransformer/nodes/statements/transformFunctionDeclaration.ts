@@ -14,7 +14,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		return luau.list.make<luau.Statement>();
 	}
 
-	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
+	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
 
 	assert(node.name || isExportDefault);
 
@@ -35,7 +35,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		localize = state.isHoisted.get(symbol) !== true;
 	}
 
-	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
 
 	if (node.asteriskToken) {
 		if (isAsync) {

@@ -51,7 +51,7 @@ const MACRO_ONLY_CLASSES = new Set<string>([
 ]);
 
 function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check: (value: ts.Node) => value is T): T {
-	for (const declaration of symbol.declarations) {
+	for (const declaration of symbol.declarations ?? []) {
 		if (check(declaration)) {
 			return declaration;
 		}
@@ -109,7 +109,7 @@ export class MacroManager {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
 
 			const methodMap = new Map<string, ts.Symbol>();
-			for (const declaration of symbol.declarations) {
+			for (const declaration of symbol.declarations ?? []) {
 				if (ts.isInterfaceDeclaration(declaration)) {
 					for (const member of declaration.members) {
 						if (ts.isMethodSignature(member) && ts.isIdentifier(member.name)) {

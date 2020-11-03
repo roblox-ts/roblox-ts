@@ -63,11 +63,6 @@ export const errors = {
 	noDebuggerStatement: error("`debugger` is not supported!"),
 
 	// banned expressions
-	noDeleteExpression: error(
-		"The `delete` operator is not supported!",
-		suggestion("Set the property to `undefined` instead."),
-		issue(547),
-	),
 	noNullLiteral: error("`null` is not supported!", suggestion("Use `undefined` instead.")),
 	noPrivateIdentifier: error("Private identifiers are not supported!"),
 	noTypeOfExpression: error(
@@ -93,7 +88,6 @@ export const errors = {
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),
 	noExportAssignmentLet: error("Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
-	noExportLetAlias: error("Exports defined with `let` cannot use aliases!"),
 	noGlobalThis: error("`globalThis` is not supported!"),
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),

@@ -196,7 +196,7 @@ export class RojoResolver {
 	}
 
 	private parsePath(itemPath: string) {
-		const realPath = fs.realpathSync(itemPath);
+		const realPath = fs.pathExistsSync(itemPath) ? fs.realpathSync(itemPath) : itemPath;
 		if (path.extname(itemPath) === LUA_EXT) {
 			this.filePathToRbxPathMap.set(itemPath, [...this.rbxPath]);
 		} else {

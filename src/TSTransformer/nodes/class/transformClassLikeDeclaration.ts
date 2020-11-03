@@ -96,7 +96,7 @@ function createBoilerplate(
 	className: luau.Identifier | luau.TemporaryIdentifier,
 	isClassExpression: boolean,
 ) {
-	const isAbstract = !!(node.modifierFlagsCache & ts.ModifierFlags.Abstract);
+	const isAbstract = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Abstract);
 	const statements = luau.list.make<luau.Statement>();
 
 	/* boilerplate:
@@ -285,7 +285,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const isClassExpression = ts.isClassExpression(node);
 	const statements = luau.list.make<luau.Statement>();
 
-	const isExportDefault = !!(node.modifierFlagsCache & ts.ModifierFlags.ExportDefault);
+	const isExportDefault = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.ExportDefault);
 
 	if (node.name) {
 		validateIdentifier(state, node.name);
@@ -379,7 +379,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
-			if (!!(method.modifierFlagsCache & ts.ModifierFlags.Static)) {
+			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
 					state.addDiagnostic(errors.noInstanceMethodCollisions(method));
 				}
