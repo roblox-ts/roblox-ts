@@ -30,7 +30,7 @@ export function transformMethodDeclaration(
 
 	const name = transformObjectKey(state, node.name);
 
-	const isAsync = !!(node.modifierFlagsCache & ts.ModifierFlags.Async);
+	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
 
 	// can we use `function class:name() end`?
 	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && isValidLuauIdentifier(name.value)) {

@@ -13,7 +13,27 @@
 		},
 		"ServerScriptService": {
 			"$className": "ServerScriptService",
-			"$path": "out"
+			"main": {
+				"$path": "out/main.server.lua"
+			},
+			"tests": {
+				"$path": "out/tests"
+			},
+			"diagnostics": {
+				"$path": "out/diagnostics"
+			},
+			"helpers": {
+				"$className": "Folder",
+				"util": {
+					"$path": "out/helpers/util"
+				}
+			}
+		},
+		"StarterGui": {
+			"$path": "StarterGui",
+			"isolated": {
+				"$path": "out/helpers/rojo/isolated.lua"
+			}
 		}
 	}
 }

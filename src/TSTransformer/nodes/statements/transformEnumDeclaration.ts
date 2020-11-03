@@ -9,14 +9,14 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 	let amtValueDefinitions = 0;
-	const declarations = symbol.getDeclarations();
-	if (declarations) {
-		for (const declaration of declarations) {
-			if (ts.isEnumDeclaration(declaration) && !!(declaration.modifierFlagsCache & ts.ModifierFlags.Const)) {
-				amtValueDefinitions++;
-				if (amtValueDefinitions > 1) {
-					return true;
-				}
+	for (const declaration of symbol.getDeclarations() ?? []) {
+		if (
+			ts.isEnumDeclaration(declaration) &&
+			!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const)
+		) {
+			amtValueDefinitions++;
+			if (amtValueDefinitions > 1) {
+				return true;
 			}
 		}
 	}
@@ -24,7 +24,7 @@ function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
-	if (!!(node.modifierFlagsCache & ts.ModifierFlags.Const)) {
+	if (!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const)) {
 		return luau.list.make<luau.Statement>();
 	}
 

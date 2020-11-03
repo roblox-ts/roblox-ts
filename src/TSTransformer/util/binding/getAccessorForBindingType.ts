@@ -1,5 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
@@ -139,6 +140,11 @@ export function getAccessorForBindingType(
 	node: ts.Node,
 	type: ts.Type | ReadonlyArray<ts.Type>,
 ): BindingAccessor {
+	if (!ts.isArray(type) && type.isUnion()) {
+		state.addDiagnostic(errors.noMacroUnion(node));
+		return () => luau.emptyId();
+	}
+
 	if (ts.isArray(type) || isDefinitelyType(type, t => isArrayType(state, t))) {
 		return arrayAccessor;
 	} else if (isDefinitelyType(type, t => isStringType(t))) {

@@ -24,7 +24,7 @@ function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {
 
 // for some reason, symbol.valueDeclaration doesn't point to imports?
 function getDeclarationFromImport(symbol: ts.Symbol) {
-	for (const declaration of symbol.declarations) {
+	for (const declaration of symbol.declarations ?? []) {
 		const importDec = getAncestor(declaration, ts.isImportDeclaration);
 		if (importDec) {
 			return declaration;
@@ -80,7 +80,7 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 		// non-async function declarations, class declarations, and variable statements can self refer
 		if (
 			(ts.isFunctionDeclaration(declarationStatement) &&
-				!(declarationStatement.modifierFlagsCache & ts.ModifierFlags.Async)) ||
+				!ts.getSelectedSyntacticModifierFlags(declarationStatement, ts.ModifierFlags.Async)) ||
 			ts.isClassDeclaration(declarationStatement) ||
 			(ts.isVariableStatement(declarationStatement) && getAncestor(node, ts.isStatement) === declarationStatement)
 		) {
