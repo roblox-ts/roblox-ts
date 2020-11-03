@@ -30,7 +30,7 @@
 			}
 		},
 		"StarterGui": {
-			"$path": "StarterGui",
+			"$className": "StarterGui",
 			"isolated": {
 				"$path": "out/helpers/rojo/isolated.lua"
 			}
