@@ -12,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2.3.4
         with:
           submodules: recursive
 
       - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.1.0
+        uses: bahmutov/npm-install@v1.4.5
 
       - name: Run ESLint
         run: npm run eslint
@@ -26,12 +26,12 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v1
+        uses: actions/checkout@v2.3.4
         with:
           submodules: recursive
 
       - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.1.0
+        uses: bahmutov/npm-install@v1.4.5
 
       - name: Install Roblox Studio
         run: |
