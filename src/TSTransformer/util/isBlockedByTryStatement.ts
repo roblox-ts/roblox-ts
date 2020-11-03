@@ -5,7 +5,7 @@ export function isReturnBlockedByTryStatement(node: ts.Node) {
 		node,
 		ancestor => ts.isTryStatement(ancestor) || ts.isFunctionLikeDeclaration(ancestor),
 	);
-	return ancestor && ts.isTryStatement(ancestor);
+	return ancestor !== undefined && ts.isTryStatement(ancestor);
 }
 
 export function isBreakBlockedByTryStatement(node: ts.Node) {
@@ -14,5 +14,5 @@ export function isBreakBlockedByTryStatement(node: ts.Node) {
 		ancestor =>
 			ts.isTryStatement(ancestor) || ts.isIterationStatement(ancestor, false) || ts.isSwitchStatement(ancestor),
 	);
-	return ancestor && ts.isTryStatement(ancestor);
+	return ancestor !== undefined && ts.isTryStatement(ancestor);
 }
