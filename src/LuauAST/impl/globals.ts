@@ -1,5 +1,3 @@
-/* istanbul ignore file */
-
 import * as luau from "LuauAST/bundle";
 
 const COROUTINE_ID = luau.id("coroutine");

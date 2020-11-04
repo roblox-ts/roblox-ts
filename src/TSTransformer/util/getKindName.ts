@@ -1,5 +1,3 @@
-/* istanbul ignore file */
-
 import ts from "byots";
 
 export function getKindName(kind: ts.SyntaxKind) {
