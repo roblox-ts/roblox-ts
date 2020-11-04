@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getFlags<T extends number>(flags: T, from: any) {
 	const results = new Array<string>();

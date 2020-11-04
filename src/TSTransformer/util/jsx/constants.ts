@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 export const KEY_ATTRIBUTE_NAME = "Key";
 export const REF_ATTRIBUTE_NAME = "Ref";
 export const CHANGE_ATTRIBUTE_NAME = "Change";

@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";

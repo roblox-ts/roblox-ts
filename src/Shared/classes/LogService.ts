@@ -1,3 +1,5 @@
+/* istanbul ignore file */
+
 export class LogService {
 	public static verbose = false;
 	private static partial = false;
