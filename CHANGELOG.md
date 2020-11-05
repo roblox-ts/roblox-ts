@@ -1,3 +1,12 @@
+## 1.0.0-beta.4
+- Improved Rojo support for packages
+- Fixed block comment compiling bug (#1147)
+- Added --writeOnlyChanged (temporary flag to fix Rojo issues on MacOS)
+- Added unit tests for diagnostics
+- Fixed numeric loops not retaining loop variable value (#1145)
+- Fixed empty `LuaTuple<T>` destructure assignment causing invalid Luau emit (#1151)
+- Fixed JSON module always importing as a "default import" (#1148)
+
 ## 1.0.0-beta.3
 
 - **BREAKING CHANGES**
