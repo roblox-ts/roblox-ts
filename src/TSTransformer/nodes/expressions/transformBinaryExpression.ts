@@ -88,13 +88,30 @@ function transformLuaTupleDestructure(
 			}),
 		);
 	}
-	state.prereq(
-		luau.create(luau.SyntaxKind.Assignment, {
-			left: writes,
-			operator: "=",
-			right: value,
-		}),
-	);
+	if (luau.list.isEmpty(writes)) {
+		if (luau.isCall(value)) {
+			state.prereq(
+				luau.create(luau.SyntaxKind.CallStatement, {
+					expression: value,
+				}),
+			);
+		} else {
+			state.prereq(
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: luau.list.make(luau.emptyId()),
+					right: value,
+				}),
+			);
+		}
+	} else {
+		state.prereq(
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: writes,
+				operator: "=",
+				right: value,
+			}),
+		);
+	}
 	state.prereqList(statements);
 }
 

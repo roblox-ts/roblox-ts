@@ -685,4 +685,16 @@ export = () => {
 		expect(b).to.equal("b");
 		expect(c).to.equal("c");
 	});
+
+	it("should support empty destructure", () => {
+		let x = 0;
+		const [] = pcall(() => x = 123);
+		expect(x).to.equal(123);
+	});
+
+	it("should support empty destructure assignment", () => {
+		let x = 0;
+		[] = pcall(() => x = 123);
+		expect(x).to.equal(123);
+	});
 };

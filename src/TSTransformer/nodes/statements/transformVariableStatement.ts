@@ -135,6 +135,9 @@ function transformLuaTupleDestructure(
 				}
 			}
 		});
+		if (luau.list.isEmpty(ids)) {
+			luau.list.push(ids, luau.emptyId());
+		}
 		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		state.prereqList(statements);
 	});
