@@ -36,7 +36,14 @@
 		],
 		"exclude": [
 			"src/CLI",
-			"src/Project"
+			"src/Project",
+			"src/LuauAST/impl/globals.ts",
+			"src/LuauAST/impl/strings.ts",
+			"src/Shared/classes/LogService.ts",
+			"src/Shared/classes/RojoResolver.ts",
+			"src/TSTransformer/util/getFlags.ts",
+			"src/TSTransformer/util/getKindName.ts",
+			"src/TSTransformer/util/jsx/constants.ts"
 		]
 	},
 	"author": "",

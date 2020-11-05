@@ -73,7 +73,16 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 			}
 		}
 
-		const left = transformIdentifierDefined(state, identifier);
+		let left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+
+		const forStatement = getAncestor(identifier, ts.isVariableDeclarationList)?.parent;
+		if (forStatement && ts.isForStatement(forStatement)) {
+			const tempId = luau.tempId();
+			getOrSetDefault(state.forStatementToSymbolsMap, forStatement, () => []).push(symbol);
+			state.forStatementSymbolToIdMap.set(symbol, tempId);
+			left = tempId;
+		}
+
 		checkVariableHoist(state, identifier, symbol);
 		if (state.isHoisted.get(symbol) === true) {
 			// no need to do `x = nil` if the variable is already created
@@ -161,17 +170,25 @@ function isVarDeclaration(node: ts.VariableDeclarationList) {
 	return !(node.flags & ts.NodeFlags.Const) && !(node.flags & ts.NodeFlags.Let);
 }
 
+export function transformVariableDeclarationList(
+	state: TransformState,
+	node: ts.VariableDeclarationList,
+): luau.List<luau.Statement> {
+	if (isVarDeclaration(node)) {
+		state.addDiagnostic(errors.noVar(node));
+	}
+
+	const statements = luau.list.make<luau.Statement>();
+	for (const declaration of node.declarations) {
+		luau.list.pushList(statements, transformVariableDeclaration(state, declaration));
+	}
+
+	return statements;
+}
+
 export function transformVariableStatement(
 	state: TransformState,
 	node: ts.VariableStatement,
 ): luau.List<luau.Statement> {
-	if (isVarDeclaration(node.declarationList)) {
-		state.addDiagnostic(errors.noVar(node.declarationList));
-	}
-
-	const statements = luau.list.make<luau.Statement>();
-	for (const declaration of node.declarationList.declarations) {
-		luau.list.pushList(statements, transformVariableDeclaration(state, declaration));
-	}
-	return statements;
+	return transformVariableDeclarationList(state, node.declarationList);
 }

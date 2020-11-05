@@ -369,4 +369,7 @@ export class TransformState {
 		}
 		return original;
 	}
+
+	public forStatementToSymbolsMap = new Map<ts.ForStatement, Array<ts.Symbol>>();
+	public forStatementSymbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
 }

@@ -155,5 +155,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 
 	checkIdentifierHoist(state, node, symbol);
 
+	const replacementId = state.forStatementSymbolToIdMap.get(symbol);
+	if (replacementId) {
+		// check if identifier is part of for statement, but not in the body
+		const forStatement = getAncestor(node, ts.isForStatement);
+		if (forStatement && !isAncestorOf(forStatement.statement, node)) {
+			return replacementId;
+		}
+	}
+
 	return transformIdentifierDefined(state, node);
 }
