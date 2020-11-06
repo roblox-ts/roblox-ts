@@ -41,6 +41,7 @@ export class VirtualProject {
 		this.data = {
 			includePath: "",
 			isPackage: false,
+			logStringChanges: false,
 			logTruthyChanges: false,
 			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE),
 			nodeModulesPathMapping: new Map(),

@@ -33,7 +33,9 @@ export function createProjectData(
 		pkgVersion = pkgJson.version;
 	} catch (e) {}
 
+	const logStringChanges = flags.logStringChanges;
 	const logTruthyChanges = flags.logTruthyChanges;
+	const noInclude = flags.noInclude;
 
 	// intentionally use || here for empty string case
 	const includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
@@ -72,8 +74,9 @@ export function createProjectData(
 		tsConfigPath,
 		includePath,
 		isPackage,
+		logStringChanges,
 		logTruthyChanges,
-		noInclude: flags.noInclude,
+		noInclude,
 		nodeModulesPath,
 		nodeModulesPathMapping,
 		pkgVersion,

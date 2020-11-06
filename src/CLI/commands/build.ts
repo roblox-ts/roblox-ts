@@ -77,6 +77,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				describe: "do not copy include files",
 			})
+			.option("logStringChanges", {
+				boolean: true,
+				default: false,
+				describe: "logs changes to legacy string argument offsets",
+			})
 			.option("logTruthyChanges", {
 				boolean: true,
 				default: false,

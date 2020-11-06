@@ -7,6 +7,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
+import { warnings } from "Shared/diagnostics";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => luau.binary(expression, operator, args[0]);
@@ -29,18 +30,14 @@ function makeMathSet(...operators: Array<luau.BinaryOperator>) {
 	return result;
 }
 
-function offsetArguments(args: Array<luau.Expression>, argOffsets: Array<number>) {
-	const minLength = Math.min(args.length, argOffsets.length);
-	for (let i = 0; i < minLength; i++) {
-		const offsetValue = argOffsets[i];
-		if (offsetValue !== 0) {
-			const arg = args[i];
-			if (luau.isNumberLiteral(arg)) {
-				args[i] = luau.number(Number(arg.value) + offsetValue);
-			} else {
-				args[i] = offset(arg, offsetValue);
-			}
-		}
+function offsetArguments(
+	state: TransformState,
+	node: ts.Expression,
+	args: Array<luau.Expression>,
+	argOffsets: Array<number>,
+) {
+	if (state.data.logStringChanges) {
+		state.addDiagnostic(warnings.stringOffsetChange(JSON.stringify(argOffsets))(node));
 	}
 	return args;
 }
@@ -50,16 +47,15 @@ function makeStringCallback(
 	argOffsets: Array<number> = [],
 ): PropertyCallMacro {
 	return (state, node, expression, args) => {
-		return luau.call(strCallback, [expression, ...offsetArguments(args, argOffsets)]);
+		return luau.call(strCallback, [expression, ...offsetArguments(state, node, args, argOffsets)]);
 	};
 }
-
-const findMacro = makeStringCallback(luau.globals.string.find, [0, 1]);
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size: (state, node, expression) => luau.unary("#", expression),
 
 	byte: makeStringCallback(luau.globals.string.byte, [1, 0]),
+	find: makeStringCallback(luau.globals.string.find, [0, 1]),
 	format: makeStringCallback(luau.globals.string.format),
 	gmatch: makeStringCallback(luau.globals.string.gmatch),
 	gsub: makeStringCallback(luau.globals.string.gsub),
@@ -70,9 +66,6 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	split: makeStringCallback(luau.globals.string.split),
 	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
 	upper: makeStringCallback(luau.globals.string.upper),
-
-	find: (state, node, expression, args) =>
-		luau.call(state.TS("string_find_wrap"), [findMacro(state, node, expression, args)]),
 };
 
 function makeEveryOrSomeMethod(
