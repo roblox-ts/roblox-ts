@@ -11,7 +11,7 @@
 		- `string.byte` (first argument no longer incremented)
 		- `string.find` (second argument no longer incremented)
 		- `string.sub` (first two arguments no longer incremented)
-	- Removed legacy compiler API
+	- [Removed legacy compiler API](https://github.com/roblox-ts/api/projects/1)
 
 ## 1.0.0-beta.4
 
