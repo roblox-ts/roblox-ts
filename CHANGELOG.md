@@ -1,3 +1,12 @@
+## 1.0.0-beta.5
+- Updated internal Promise implementation to [roblox-lua-promise v3.0.1](https://eryn.io/roblox-lua-promise/)
+	- **BREAKING CHANGES**
+		- Removed static `Promise.spawn` (use `Promise.defer` instead)
+		- Removed `Promise.isRejected` (use `Promise.getStatus` + `Promise.Status` instead)
+		- Removed `Promise.isResolved` (use `Promise.getStatus` + `Promise.Status` instead)
+		- Removed `Promise.isPending` (use `Promise.getStatus` + `Promise.Status` instead)
+		- Removed `Promise.isCancelled` (use `Promise.getStatus` + `Promise.Status` instead)
+
 ## 1.0.0-beta.4
 - Improved Rojo support for packages
 - Fixed block comment compiling bug (#1147)
