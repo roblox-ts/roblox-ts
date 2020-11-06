@@ -105,20 +105,6 @@ export = () => {
 		expect(a[0]).never.to.be.ok();
 	});
 
-	it("should support concat", () => {
-		const a = [1, 2, 3];
-		const b = [4, 5, 6];
-		const c = a.concat(b);
-		expect(c).never.to.equal(a);
-		expect(c).never.to.equal(b);
-		expect(c[0]).to.equal(1);
-		expect(c[1]).to.equal(2);
-		expect(c[2]).to.equal(3);
-		expect(c[3]).to.equal(4);
-		expect(c[4]).to.equal(5);
-		expect(c[5]).to.equal(6);
-	});
-
 	it("should support join", () => {
 		const a = [1, 2, 3];
 		const b = [true, false, true];
@@ -140,15 +126,6 @@ export = () => {
 		expect(b.join(", ")).to.equal("0, 2, 0, 2");
 	})
 
-	it("should support reverse", () => {
-		const a = [1, 2, 3];
-		const b = a.reverse();
-		expect(b).never.to.equal(a);
-		expect(b[0]).to.equal(3);
-		expect(b[1]).to.equal(2);
-		expect(b[2]).to.equal(1);
-	});
-
 	it("should support shift", () => {
 		const a = [1, 2, 3];
 		const b = a.shift();
@@ -156,41 +133,6 @@ export = () => {
 		expect(a.size()).to.equal(2);
 		expect(a[0]).to.equal(2);
 		expect(a[1]).to.equal(3);
-	});
-
-	it("should support slice", () => {
-		const a = [1, 2, 3];
-
-		const b = a.slice();
-		expect(b).never.to.equal(a);
-		expect(b.size()).to.equal(3);
-		expect(b[0]).to.equal(1);
-		expect(b[1]).to.equal(2);
-		expect(b[2]).to.equal(3);
-
-		const c = a.slice(0, 1);
-		expect(c).never.to.equal(a);
-		expect(c.size()).to.equal(1);
-		expect(c[0]).to.equal(1);
-
-		const d = a.slice(-2);
-		expect(d).never.to.equal(a);
-		expect(d.size()).to.equal(2);
-		expect(d[0]).to.equal(2);
-		expect(d[1]).to.equal(3);
-
-		const e = a.slice();
-		expect(e).never.to.equal(a);
-		expect(e.size()).to.equal(3);
-		expect(e[0]).to.equal(1);
-		expect(e[1]).to.equal(2);
-		expect(e[2]).to.equal(3);
-
-		const f = a.slice(0, -1);
-		expect(f).never.to.equal(a);
-		expect(f.size()).to.equal(2);
-		expect(f[0]).to.equal(1);
-		expect(f[1]).to.equal(2);
 	});
 
 	it("should support sort", () => {
@@ -231,12 +173,6 @@ export = () => {
 		const a = [7, 1, 8, 1, 9];
 		expect(a.indexOf(1)).to.equal(1);
 		expect(a.indexOf(2)).to.equal(-1);
-	});
-
-	it("should support lastIndexOf", () => {
-		const a = [7, 1, 8, 1, 9];
-		expect(a.lastIndexOf(1)).to.equal(3);
-		expect(a.lastIndexOf(2)).to.equal(-1);
 	});
 
 	it("should support every", () => {
@@ -294,7 +230,7 @@ export = () => {
 
 	it("should support reduce", () => {
 		function reducer(accum: Array<number>, value: Array<number>) {
-			return accum.concat(value);
+			return [...accum, ...value];
 		}
 		const a = [
 			[0, 1],
@@ -309,35 +245,11 @@ export = () => {
 		expect(a[5]).to.equal(5);
 	});
 
-	it("should support reduceRight", () => {
-		function reducer(accum: Array<number>, value: Array<number>) {
-			return accum.concat(value);
-		}
-		const a = [
-			[0, 1],
-			[2, 3],
-			[4, 5],
-		].reduceRight(reducer);
-		expect(a[0]).to.equal(4);
-		expect(a[1]).to.equal(5);
-		expect(a[2]).to.equal(2);
-		expect(a[3]).to.equal(3);
-		expect(a[4]).to.equal(0);
-		expect(a[5]).to.equal(1);
-	});
-
 	it("should support reducing empty arrays only with a initialValue parameter", () => {
 		expect(() => new Array<string>().reduce((previous, current, index, arr) => previous + current)).to.throw();
 		expect(
 			new Array<string>().reduce((previous, current, index, arr) => {
 				throw "This should never run! [1]";
-			}, "a"),
-		).to.equal("a");
-
-		expect(() => new Array<string>().reduceRight((previous, current, index, arr) => previous + current)).to.throw();
-		expect(
-			new Array<string>().reduceRight((previous, current, index, arr) => {
-				throw "This should never run! [2]";
 			}, "a"),
 		).to.equal("a");
 	});
@@ -350,19 +262,8 @@ export = () => {
 			),
 		).to.equal(16);
 		expect(
-			[..."😂😄😃😊😉😍"].reduceRight(
-				(previous: undefined | number, current, index, arr) => index + (previous || index),
-				undefined,
-			),
-		).to.equal(20);
-		expect(
 			[].reduce(() => {
 				throw "Should not call the reducer function on an empty array! [1]";
-			}, undefined),
-		).to.equal(undefined);
-		expect(
-			[].reduceRight(() => {
-				throw "Should not call the reducer function on an empty array! [2]";
 			}, undefined),
 		).to.equal(undefined);
 	});
@@ -373,20 +274,11 @@ export = () => {
 				throw "Should not call the reducer function on a single-element array with no initialValue! [1]";
 			}),
 		).to.equal(4);
-		expect(
-			[5].reduceRight(() => {
-				throw "Should not call the reducer function on a single-element array with no initialValue! [2]";
-			}),
-		).to.equal(5);
 	});
 
 	it("should support reducing forwards or backwards", () => {
 		expect([..."abcdef"].reduce((previous, current) => previous + current)).to.equal("abcdef");
 		expect([..."abcdef"].reduce((previous, current) => previous + current, " ")).to.equal(" " + "abcdef");
-		expect([..."abcdef"].reduceRight((previous, current) => previous + current)).to.equal("abcdef".reverse());
-		expect([..."abcdef"].reduceRight((previous, current) => previous + current, " ")).to.equal(
-			" " + "abcdef".reverse(),
-		);
 	});
 
 	it("should support Array.find", () => {
@@ -436,32 +328,6 @@ export = () => {
 		foo(...[1, 2, 3]);
 	});
 
-	it("should support Array.findIndex", () => {
-		const array1 = [5, 12, 8, 130, 44];
-		expect(array1.findIndex(element => element > 13)).to.equal(3);
-
-		function isPrime(element: number) {
-			let start = 2;
-			while (start <= math.sqrt(element)) {
-				if (element % start < 1) {
-					return false;
-				} else {
-					start++;
-				}
-			}
-			return element > 1;
-		}
-
-		expect([4, 6, 8, 12].findIndex(isPrime)).to.equal(-1); // -1, not found
-		expect([4, 6, 7, 12].findIndex(isPrime)).to.equal(2); // 2 (array[2] is 7)
-
-		const fruits = ["apple", "banana", "cantaloupe", "blueberries", "grapefruit"];
-
-		const index = fruits.findIndex(fruit => fruit === "blueberries");
-		expect(index).to.equal(3);
-		expect(fruits[index]).to.equal("blueberries");
-	});
-
 	it("should support Array.sort", () => {
 		const months = ["March", "Jan", "Feb", "Dec"].sort();
 		expect(months[0]).to.equal("Dec");
@@ -498,29 +364,6 @@ export = () => {
 		expect(arr.size()).to.equal(7);
 		expect(arr[4]).to.equal(7);
 		expect(arr[6]).to.equal(6);
-	});
-
-	it("should support Array.entries", () => {
-		function arrayEntries<T>(arr: Array<T>) {
-			let i = 0;
-			const results = new Array<[number, T]>();
-			for (const v of arr) {
-				results.push([i++, v]);
-			}
-			return results;
-		}
-
-		function compare<T>(results: Array<[number, T]>, array2: Array<[number, T]>) {
-			let x = 0;
-			for (const [i, v] of array2) {
-				const { [x++]: pair } = results;
-				expect(pair[0]).to.equal(i);
-				expect(pair[1]).to.equal(v);
-			}
-		}
-
-		const arr = [..."Hello, world!"];
-		compare(arrayEntries(arr), arr.entries());
 	});
 
 	it("should support spreading non-apparent types", () => {

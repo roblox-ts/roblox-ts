@@ -194,18 +194,6 @@ export = () => {
 		expect(hitC).to.equal(1);
 	});
 
-	it("should support values", () => {
-		const set = new Set<string>()
-			.add("a")
-			.add("b")
-			.add("c");
-		const a = set.values();
-		expect(a.some(v => v === "a")).to.equal(true);
-		expect(a.some(v => v === "b")).to.equal(true);
-		expect(a.some(v => v === "c")).to.equal(true);
-		expect(a.some(v => v === "d")).to.equal(false);
-	});
-
 	it("should support size", () => {
 		const set = new Set<string>()
 			.add("a")

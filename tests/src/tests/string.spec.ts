@@ -2,18 +2,12 @@
 
 export = () => {
 	it("should support string methods", () => {
-		expect("Hello, world".sub(0, 0)).to.equal("H");
+		expect("Hello, world".sub(1, 1)).to.equal("H");
 	});
 
 	it("should support string methods on identifiers", () => {
 		const str = "Hello, world";
-		expect(str.sub(0, 0)).to.equal("H");
-	});
-
-	it("should support string.slice", () => {
-		const str = "Hello, world";
-		expect(str.slice(0, 1)).to.equal("H");
-		expect("Hello, world".slice(0, 1)).to.equal("H");
+		expect(str.sub(1, 1)).to.equal("H");
 	});
 
 	it("should support string.split", () => {
@@ -63,16 +57,16 @@ export = () => {
 	});
 
 	it("should support string.find", () => {
-		const data = "Hello".find("H", 0, true);
+		const data = "Hello".find("H", 1, true);
 		if (data[0]) {
-			expect(data[0]).to.equal(0);
-			expect(data[1]).to.equal(0);
+			expect(data[0]).to.equal(1);
+			expect(data[1]).to.equal(1);
 		}
 
-		const data2 = "Hello".find("e", 1, true);
+		const data2 = "Hello".find("e", 2, true);
 		if (data2[0]) {
-			expect(data2[0]).to.equal(1);
-			expect(data2[1]).to.equal(1);
+			expect(data2[0]).to.equal(2);
+			expect(data2[1]).to.equal(2);
 		}
 	});
 
@@ -81,15 +75,15 @@ export = () => {
 	});
 
 	it("should support variable string indices", () => {
-		let i = 0;
-		let j = 2;
+		let i = 1;
+		let j = 3;
 		expect("foobar".sub(i, j)).to.equal("foo");
 	});
 
 	it("should support proper destructuring and iterating", () => {
 		function compare(results: Array<string>, array2: Array<string>) {
-			for (const [i, v] of array2.entries()) {
-				expect(results[i]).to.equal(v);
+			for (let i = 0; i < array2.size(); i++) {
+				expect(results[i]).to.equal(array2[i]);
 			}
 		}
 

@@ -17,14 +17,18 @@ export = () => {
 			"-": (a, b) => a.sub(b),
 		};
 
+		function trim(s: string) {
+			return s.match("^%s*(.-)%s*$")[0] as string;
+		}
+
 		function m(strings: TemplateStringsArray, ...operands: Array<Vector3>): Vector3 {
-			const operators = strings.map(v => v.trim());
+			const operators = strings.map(trim);
 
 			let value = operands.shift()!;
 			operators.shift();
 
 			for (let i = 0; i < operands.size(); i++) {
-				const operator = operators[i].trim();
+				const operator = trim(operators[i]);
 				if (operator in OPERATIONS) {
 					const operation = OPERATIONS[operator];
 					value = operation(value, operands[i]);

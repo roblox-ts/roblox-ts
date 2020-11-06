@@ -133,13 +133,6 @@ export = () => {
 		expect(false ? false : true).to.equal(true);
 	});
 
-	it("should support string methods", () => {
-		const foo = " foo ";
-		expect(foo.trim()).to.equal("foo");
-		expect(foo.trimStart()).to.equal("foo ");
-		expect(foo.trimEnd()).to.equal(" foo");
-	});
-
 	it("should allow postfix operators on properties", () => {
 		const obj = { x: 0 };
 		expect(obj.x).to.equal(0);
