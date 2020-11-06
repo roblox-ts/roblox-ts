@@ -7,10 +7,12 @@
 		- Removed `Promise.isResolved` (use `Promise.getStatus` + `Promise.Status` instead)
 		- Removed `Promise.isPending` (use `Promise.getStatus` + `Promise.Status` instead)
 		- Removed `Promise.isCancelled` (use `Promise.getStatus` + `Promise.Status` instead)
-	- String macros no longer increment inputs and outputs. The following methods were changed:
-		- `string.byte` (first argument is no longer incremented)
-		- `string.find` (second argument is no longer incremented)
-		- `string.sub` (first two arguments are no longer incremented)
+	- String macros no longer increment inputs and outputs
+		- Added `--logStringChanges` to help catch these issues
+		- The following methods were changed:
+			- `string.byte` (first argument is no longer incremented)
+			- `string.find` (second argument is no longer incremented)
+			- `string.sub` (first two arguments are no longer incremented)
 	- [Removed legacy compiler API](https://github.com/roblox-ts/api/projects/1)
 
 ## 1.0.0-beta.4
