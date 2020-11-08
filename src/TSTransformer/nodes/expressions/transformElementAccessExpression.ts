@@ -7,6 +7,7 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
@@ -29,7 +30,8 @@ export function transformElementAccessExpressionInner(
 		}
 	}
 
-	if (isMethod(state, node)) {
+	const parent = skipUpwards(node).parent;
+	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
 		state.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
@@ -66,7 +68,6 @@ export function transformElementAccessExpressionInner(
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 	}
 
-	const parent = skipUpwards(node).parent;
 	if (ts.isDeleteExpression(parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {

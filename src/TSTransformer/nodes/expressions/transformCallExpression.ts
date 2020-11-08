@@ -140,8 +140,9 @@ export function transformCallExpressionInner(
 
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
-	node: ts.CallExpression & { expression: ts.PropertyAccessExpression },
-	expression: luau.Expression,
+	node: ts.CallExpression,
+	expression: ts.PropertyAccessExpression,
+	baseExpression: luau.Expression,
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -151,32 +152,32 @@ export function transformPropertyCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return runCallMacro(macro, state, node, expression, nodeArguments);
+			return runCallMacro(macro, state, node, baseExpression, nodeArguments);
 		}
 	}
 
 	let args!: Array<luau.Expression>;
 	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression);
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
 	let exp: luau.Expression;
-	if (isMethod(state, node.expression)) {
+	if (isMethod(state, expression)) {
 		if (isValidLuauIdentifier(name)) {
 			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 				name,
-				expression: convertToIndexableExpression(expression),
+				expression: convertToIndexableExpression(baseExpression),
 				args: luau.list.make(...args),
 			});
 		} else {
-			expression = state.pushToVarIfComplex(expression);
-			args.unshift(expression);
-			exp = luau.call(luau.property(convertToIndexableExpression(expression), name), args);
+			baseExpression = state.pushToVarIfComplex(baseExpression);
+			args.unshift(baseExpression);
+			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
 	} else {
-		exp = luau.call(luau.property(convertToIndexableExpression(expression), name), args);
+		exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 	}
 
 	return wrapReturnIfLuaTuple(state, node, exp);
@@ -184,8 +185,9 @@ export function transformPropertyCallExpressionInner(
 
 export function transformElementCallExpressionInner(
 	state: TransformState,
-	node: ts.CallExpression & { expression: ts.ElementAccessExpression },
-	expression: luau.Expression,
+	node: ts.CallExpression,
+	expression: ts.ElementAccessExpression,
+	baseExpression: luau.Expression,
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
@@ -195,7 +197,7 @@ export function transformElementCallExpressionInner(
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
-			return runCallMacro(macro, state, node, expression, nodeArguments);
+			return runCallMacro(macro, state, node, baseExpression, nodeArguments);
 		}
 	}
 
@@ -203,22 +205,22 @@ export function transformElementCallExpressionInner(
 	const prereqs = state.capturePrereqs(
 		() => (args = ensureTransformOrder(state, [argumentExpression, ...nodeArguments])),
 	);
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression);
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
 	const argumentExp = args.shift()!;
 
-	if (isMethod(state, node.expression)) {
-		expression = state.pushToVarIfComplex(expression);
-		args.unshift(expression);
+	if (isMethod(state, expression)) {
+		baseExpression = state.pushToVarIfComplex(baseExpression);
+		args.unshift(baseExpression);
 	}
 
 	const exp = luau.call(
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-			expression: convertToIndexableExpression(expression),
-			index: addOneIfArrayType(state, state.getType(node.expression.expression), argumentExp),
+			expression: convertToIndexableExpression(baseExpression),
+			index: addOneIfArrayType(state, state.getType(expression.expression), argumentExp),
 		}),
 		args,
 	);

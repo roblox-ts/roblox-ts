@@ -14,6 +14,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 
 enum OptionalChainItemKind {
@@ -44,23 +45,17 @@ interface CallItem extends OptionalChainItem<OptionalChainItemKind.Call, ts.Call
 	args: ReadonlyArray<ts.Expression>;
 }
 
-interface PropertyCallItem
-	extends OptionalChainItem<
-		OptionalChainItemKind.PropertyCall,
-		ts.CallExpression & { expression: ts.PropertyAccessExpression }
-	> {
+interface PropertyCallItem extends OptionalChainItem<OptionalChainItemKind.PropertyCall, ts.CallExpression> {
+	expression: ts.PropertyAccessExpression;
 	name: string;
 	callOptional: boolean;
 	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
 }
 
-interface ElementCallItem
-	extends OptionalChainItem<
-		OptionalChainItemKind.ElementCall,
-		ts.CallExpression & { expression: ts.ElementAccessExpression }
-	> {
-	expression: ts.Expression;
+interface ElementCallItem extends OptionalChainItem<OptionalChainItemKind.ElementCall, ts.CallExpression> {
+	expression: ts.ElementAccessExpression;
+	argumentExpression: ts.Expression;
 	callOptional: boolean;
 	callType: ts.Type;
 	args: ReadonlyArray<ts.Expression>;
@@ -96,26 +91,36 @@ function createCallItem(state: TransformState, node: ts.CallExpression): CallIte
 	};
 }
 
-function createPropertyCallItem(state: TransformState, node: PropertyCallItem["node"]): PropertyCallItem {
+function createPropertyCallItem(
+	state: TransformState,
+	node: PropertyCallItem["node"],
+	expression: PropertyCallItem["expression"],
+): PropertyCallItem {
 	return {
 		node,
+		expression,
 		kind: OptionalChainItemKind.PropertyCall,
-		optional: node.expression.questionDotToken !== undefined,
+		optional: expression.questionDotToken !== undefined,
 		type: state.getType(node.expression),
-		name: node.expression.name.text,
+		name: expression.name.text,
 		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
 	};
 }
 
-function createElementCallItem(state: TransformState, node: ElementCallItem["node"]): ElementCallItem {
+function createElementCallItem(
+	state: TransformState,
+	node: ElementCallItem["node"],
+	expression: ElementCallItem["expression"],
+): ElementCallItem {
 	return {
 		node,
+		expression,
 		kind: OptionalChainItemKind.ElementCall,
-		optional: node.expression.questionDotToken !== undefined,
-		type: state.getType(node.expression),
-		expression: node.expression.argumentExpression,
+		optional: expression.questionDotToken !== undefined,
+		type: state.getType(expression),
+		argumentExpression: expression.argumentExpression,
 		callType: state.getType(node),
 		callOptional: node.questionDotToken !== undefined,
 		args: node.arguments,
@@ -135,12 +140,12 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 			expression = expression.expression;
 		} else if (ts.isCallExpression(expression)) {
 			// this is a bit of a mess..
-			const subExp = expression.expression;
+			const subExp = skipDownwards(expression.expression);
 			if (ts.isPropertyAccessExpression(subExp)) {
-				chain.unshift(createPropertyCallItem(state, expression as PropertyCallItem["node"]));
+				chain.unshift(createPropertyCallItem(state, expression, subExp));
 				expression = subExp.expression;
 			} else if (ts.isElementAccessExpression(subExp)) {
-				chain.unshift(createElementCallItem(state, expression as ElementCallItem["node"]));
+				chain.unshift(createElementCallItem(state, expression, subExp));
 				expression = subExp.expression;
 			} else {
 				chain.unshift(createCallItem(state, expression));
@@ -153,17 +158,31 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 	return { chain, expression };
 }
 
-function transformChainItem(state: TransformState, expression: luau.Expression, item: ChainItem) {
+function transformChainItem(state: TransformState, baseExpression: luau.Expression, item: ChainItem) {
 	if (item.kind === OptionalChainItemKind.PropertyAccess) {
-		return transformPropertyAccessExpressionInner(state, item.node, expression, item.name);
+		return transformPropertyAccessExpressionInner(state, item.node, baseExpression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
-		return transformElementAccessExpressionInner(state, item.node, expression, item.expression);
+		return transformElementAccessExpressionInner(state, item.node, baseExpression, item.expression);
 	} else if (item.kind === OptionalChainItemKind.Call) {
-		return transformCallExpressionInner(state, item.node, expression, item.args);
+		return transformCallExpressionInner(state, item.node, baseExpression, item.args);
 	} else if (item.kind === OptionalChainItemKind.PropertyCall) {
-		return transformPropertyCallExpressionInner(state, item.node, expression, item.name, item.args);
+		return transformPropertyCallExpressionInner(
+			state,
+			item.node,
+			item.expression,
+			baseExpression,
+			item.name,
+			item.args,
+		);
 	} else {
-		return transformElementCallExpressionInner(state, item.node, expression, item.expression, item.args);
+		return transformElementCallExpressionInner(
+			state,
+			item.node,
+			item.expression,
+			baseExpression,
+			item.argumentExpression,
+			item.args,
+		);
 	}
 }
 
@@ -203,35 +222,35 @@ function isCompoundCall(item: ChainItem): item is PropertyCallItem | ElementCall
 function transformOptionalChainInner(
 	state: TransformState,
 	chain: Array<ChainItem>,
-	expression: luau.Expression,
+	baseExpression: luau.Expression,
 	tempId: luau.TemporaryIdentifier | undefined = undefined,
 	index = 0,
 ): luau.Expression {
-	if (index >= chain.length) return expression;
+	if (index >= chain.length) return baseExpression;
 	const item = chain[index];
 	if (item.optional || (isCompoundCall(item) && item.callOptional)) {
 		let isMethodCall = false;
 		let selfParam: luau.TemporaryIdentifier | undefined;
 
 		if (isCompoundCall(item)) {
-			isMethodCall = isMethod(state, item.node.expression);
+			isMethodCall = isMethod(state, item.expression);
 			if (item.callOptional && isMethodCall) {
-				selfParam = state.pushToVar(expression);
-				expression = selfParam;
+				selfParam = state.pushToVar(baseExpression);
+				baseExpression = selfParam;
 			}
 
 			if (item.optional) {
-				tempId = createOrSetTempId(state, tempId, expression);
-				expression = tempId;
+				tempId = createOrSetTempId(state, tempId, baseExpression);
+				baseExpression = tempId;
 			}
 
 			if (item.callOptional) {
 				if (item.kind === OptionalChainItemKind.PropertyCall) {
-					expression = luau.property(convertToIndexableExpression(expression), item.name);
+					baseExpression = luau.property(convertToIndexableExpression(baseExpression), item.name);
 				} else {
-					expression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: transformExpression(state, item.expression),
+					baseExpression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: convertToIndexableExpression(baseExpression),
+						index: transformExpression(state, item.argumentExpression),
 					});
 				}
 			}
@@ -239,7 +258,7 @@ function transformOptionalChainInner(
 
 		// capture so we can wrap later if necessary
 		const [result, prereqStatements] = state.capture(() => {
-			tempId = createOrSetTempId(state, tempId, expression);
+			tempId = createOrSetTempId(state, tempId, baseExpression);
 
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
@@ -303,7 +322,7 @@ function transformOptionalChainInner(
 		return transformOptionalChainInner(
 			state,
 			chain,
-			transformChainItem(state, expression, item),
+			transformChainItem(state, baseExpression, item),
 			tempId,
 			index + 1,
 		);

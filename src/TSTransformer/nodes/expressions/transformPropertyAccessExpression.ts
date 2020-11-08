@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
+import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -25,7 +26,8 @@ export function transformPropertyAccessExpressionInner(
 		}
 	}
 
-	if (isMethod(state, node)) {
+	const parent = skipUpwards(node).parent;
+	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
 		state.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
@@ -39,7 +41,6 @@ export function transformPropertyAccessExpressionInner(
 		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
 	}
 
-	const parent = skipUpwards(node).parent;
 	if (ts.isDeleteExpression(parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
