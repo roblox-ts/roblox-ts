@@ -36,6 +36,17 @@ function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 	return false;
 }
 
+function getValueDeclarationStatement(symbol: ts.Symbol) {
+	for (const declaration of symbol.getDeclarations() ?? []) {
+		const statement = getAncestor(declaration, ts.isStatement);
+		if (statement) {
+			if (ts.isFunctionDeclaration(statement) && !statement.body) continue;
+			if (statement.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
+			return statement;
+		}
+	}
+}
+
 function transformNamespace(state: TransformState, name: ts.Identifier, body: ts.NamespaceBody) {
 	const symbol = state.typeChecker.getSymbolAtLocation(name);
 	assert(symbol);
@@ -83,9 +94,10 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 			for (const exportSymbol of moduleExports) {
 				const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
 				if (isSymbolOfValue(originalSymbol) && !isDefinedAsLet(state, originalSymbol)) {
-					const statement = getAncestor(exportSymbol.valueDeclaration, ts.isStatement);
-					assert(statement);
-					getOrSetDefault(exportsMap, statement, () => []).push(exportSymbol.name);
+					const valueDeclarationStatement = getValueDeclarationStatement(exportSymbol);
+					if (valueDeclarationStatement) {
+						getOrSetDefault(exportsMap, valueDeclarationStatement, () => []).push(exportSymbol.name);
+					}
 				}
 			}
 		}
