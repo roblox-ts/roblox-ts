@@ -24,8 +24,6 @@ export const SYMBOL_NAMES = {
 	ReadonlySetConstructor: "ReadonlySetConstructor",
 
 	Array: "Array",
-	DoubleDecrementedIterableFunction: "DoubleDecrementedIterableFunction",
-	FirstDecrementedIterableFunction: "FirstDecrementedIterableFunction",
 	IterableFunction: "IterableFunction",
 	Generator: "Generator",
 	LuaTuple: "LuaTuple",
