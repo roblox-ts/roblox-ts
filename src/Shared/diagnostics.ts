@@ -55,10 +55,7 @@ export const errors = {
 	noClassMetamethods: error(`Metamethods cannot be used in class definitions!`),
 
 	// banned statements
-	noForInStatement: error(
-		"for-in loop statements are not supported!",
-		suggestion("Use for-of with `Object.keys()` instead."),
-	),
+	noForInStatement: error("for-in loop statements are not supported!"),
 	noLabeledStatement: error("labels are not supported!"),
 	noDebuggerStatement: error("`debugger` is not supported!"),
 
