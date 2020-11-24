@@ -30,7 +30,7 @@ export function transformWritableExpression(
 			expression: readAfterWrite
 				? state.pushToVarIfComplex(expression)
 				: convertToIndexableExpression(expression),
-			index: readAfterWrite ? state.pushToVarIfComplex(indexExp) : convertToIndexableExpression(indexExp),
+			index: readAfterWrite ? state.pushToVarIfComplex(indexExp) : indexExp,
 		});
 	} else {
 		const transformed = transformExpression(state, skipDownwards(node));
