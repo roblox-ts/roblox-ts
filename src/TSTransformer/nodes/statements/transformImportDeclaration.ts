@@ -30,18 +30,6 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	return uses;
 }
 
-function isExportAssignmentModule(moduleFile: ts.SourceFile) {
-	if (ts.isJsonSourceFile(moduleFile)) {
-		return true;
-	}
-
-	if (moduleFile.statements.some(v => ts.isExportAssignment(v) && v.isExportEquals)) {
-		return true;
-	}
-
-	return false;
-}
-
 export function transformImportDeclaration(state: TransformState, node: ts.ImportDeclaration) {
 	// no emit for type only
 	const importClause = node.importClause;
@@ -72,13 +60,13 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (importClause.name) {
 			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
-				if (moduleFile && isExportAssignmentModule(moduleFile)) {
-					luau.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
-				} else {
+				if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && !v.isExportEquals)) {
 					luau.list.pushList(
 						statements,
 						transformVariable(state, importClause.name, luau.property(importExp.get(), "default"))[1],
 					);
+				} else {
+					luau.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
 				}
 			}
 		}
