@@ -57,8 +57,11 @@
 		- `String.trim`
 		- `String.trimEnd`
 		- `String.trimStart`
-	- You can use [@rbxts/object-utils](https://www.npmjs.com/package/@rbxts/object-utils) to replace `Object.*` functions
-	- If there's demand, we can add other packages to replace some of these old APIs.
+		- You can use [@rbxts/object-utils](https://www.npmjs.com/package/@rbxts/object-utils) to replace `Object.*` functions
+		- If there's demand, we can add other packages to replace some of these old APIs.
+	- Improved method index without call detection (#1146)
+	- Fixed functions with overload signatures inside namespaces compile incorrectly (#1162)
+	- Fixed bugs relating to default imports
 
 ## 1.0.0-beta.4
 
