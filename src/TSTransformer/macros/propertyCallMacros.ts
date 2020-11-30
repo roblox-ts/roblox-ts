@@ -169,10 +169,6 @@ const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 	size: (state, node, expression) => luau.unary("#", expression),
 };
 
-function makeFindMethod(): PropertyCallMacro {
-	return;
-}
-
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0)),
 
