@@ -169,6 +169,10 @@ const ARRAY_LIKE_METHODS: MacroList<PropertyCallMacro> = {
 	size: (state, node, expression) => luau.unary("#", expression),
 };
 
+function makeFindMethod(): PropertyCallMacro {
+	return;
+}
+
 const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) => luau.binary(luau.unary("#", expression), "==", luau.number(0)),
 
@@ -577,6 +581,42 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 								left: returnId,
 								operator: "=",
 								right: valueId,
+							}),
+							luau.create(luau.SyntaxKind.BreakStatement, {}),
+						),
+						elseBody: luau.list.make(),
+					}),
+				),
+			}),
+		);
+
+		return returnId;
+	},
+
+	findIndex: (state, node, expression, args) => {
+		expression = state.pushToVarIfComplex(expression);
+
+		const callbackId = state.pushToVarIfComplex(args[0]);
+		const loopId = luau.tempId();
+		const valueId = luau.tempId();
+		const returnId = state.pushToVar(luau.number(-1));
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.ForStatement, {
+				expression: luau.call(luau.globals.ipairs, [expression]),
+				ids: luau.list.make(loopId, valueId),
+				statements: luau.list.make<luau.Statement>(
+					luau.create(luau.SyntaxKind.IfStatement, {
+						condition: luau.create(luau.SyntaxKind.BinaryExpression, {
+							left: luau.call(callbackId, [valueId, offset(loopId, -1), expression]),
+							operator: "==",
+							right: luau.bool(true),
+						}),
+						statements: luau.list.make<luau.Statement>(
+							luau.create(luau.SyntaxKind.Assignment, {
+								left: returnId,
+								operator: "=",
+								right: offset(loopId, -1),
 							}),
 							luau.create(luau.SyntaxKind.BreakStatement, {}),
 						),
