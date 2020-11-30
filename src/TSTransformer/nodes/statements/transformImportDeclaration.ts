@@ -60,7 +60,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		if (importClause.name) {
 			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
-				if (moduleFile && moduleFile.statements.some(v => ts.isExportAssignment(v) && !v.isExportEquals)) {
+				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
+				if (moduleSymbol && state.getModuleExports(moduleSymbol).some(v => v.name === "default")) {
 					luau.list.pushList(
 						statements,
 						transformVariable(state, importClause.name, luau.property(importExp.get(), "default"))[1],
