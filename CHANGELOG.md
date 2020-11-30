@@ -1,3 +1,7 @@
+## 1.0.0-beta.6
+
+- Added back `ReadonlyArray.findIndex`
+
 ## 1.0.0-beta.5
 
 - **BREAKING CHANGES**
