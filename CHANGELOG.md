@@ -13,7 +13,52 @@
 			- `string.byte` (first argument is no longer incremented)
 			- `string.find` (second argument is no longer incremented)
 			- `string.sub` (first two arguments are no longer incremented)
-	- [Removed legacy compiler API](https://github.com/roblox-ts/api/projects/1)
+	- Removed the following API:
+		- `Array.copyWithin`
+		- `Array.splice`
+		- `ObjectConstructor.assign`
+		- `ObjectConstructor.copy`
+		- `ObjectConstructor.deepCopy`
+		- `ObjectConstructor.deepEquals`
+		- `ObjectConstructor.entries`
+		- `ObjectConstructor.fromEntries`
+		- `ObjectConstructor.isEmpty`
+		- `ObjectConstructor.keys`
+		- `ObjectConstructor.values`
+		- `ReadonlyArray.concat`
+		- `ReadonlyArray.copy`
+		- `ReadonlyArray.deepCopy`
+		- `ReadonlyArray.deepEquals`
+		- `ReadonlyArray.entries`
+		- `ReadonlyArray.findIndex`
+		- `ReadonlyArray.lastIndexOf`
+		- `ReadonlyArray.reduceRight`
+		- `ReadonlyArray.reverse`
+		- `ReadonlyArray.slice`
+		- `ReadonlyArray.toString`
+		- `ReadonlyMap.entries`
+		- `ReadonlyMap.keys`
+		- `ReadonlyMap.toString`
+		- `ReadonlyMap.values`
+		- `ReadonlySet.difference`
+		- `ReadonlySet.intersect`
+		- `ReadonlySet.isDisjointWith`
+		- `ReadonlySet.isSubsetOf`
+		- `ReadonlySet.toString`
+		- `ReadonlySet.union`
+		- `ReadonlySet.values`
+		- `String.endsWith`
+		- `String.includes`
+		- `String.indexOf`
+		- `String.padEnd`
+		- `String.padStart`
+		- `String.slice`
+		- `String.startsWith`
+		- `String.trim`
+		- `String.trimEnd`
+		- `String.trimStart`
+	- You can use [@rbxts/object-utils](https://www.npmjs.com/package/@rbxts/object-utils) to replace `Object.*` functions
+	- If there's demand, we can add other packages to replace some of these old APIs.
 
 ## 1.0.0-beta.4
 
