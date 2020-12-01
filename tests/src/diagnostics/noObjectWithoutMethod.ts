@@ -1,3 +1,0 @@
-export {};
-
-print(Object);
