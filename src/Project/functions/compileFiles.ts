@@ -2,14 +2,18 @@ import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
-import { transformPaths } from "Project/transformers/transformPaths";
-import { transformTypeReferenceDirectives } from "Project/transformers/transformTypeReferenceDirectives";
-import { ProjectData, ProjectServices } from "Project/types";
+import { createProjectProgram } from "Project/functions/createProjectProgram";
+import { createTransformedCompilerHost } from "Project/transformers/createTransformedCompilerHost";
+import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
+import { transformPaths } from "Project/transformers/builtin/transformPaths";
+import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
+import { ProjectData, ProjectServices, TransformerPluginConfig } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
+import { ProjectError } from "Shared/errors/ProjectError";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -96,13 +100,52 @@ export function compileFiles(
 		return emitResultFailure("Rojo project contained no data for node_modules folder!");
 	}
 
-	LogService.writeLineIfVerbose(`Compiling as ${projectType}..`);
+	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
 	const diagnostics = new Array<ts.Diagnostic>();
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
+
+	let proxyProgram = program;
+
+	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
+		benchmarkIfVerbose(`running transformers..`, () => {
+			const configFile = ts.readConfigFile(data.tsConfigPath, ts.sys.readFile);
+			if (configFile.error) {
+				throw new ProjectError(configFile.error.messageText.toString());
+			}
+
+			const pluginConfigs = new Array<TransformerPluginConfig>();
+			const plugins = configFile.config.compilerOptions.plugins;
+			if (plugins && Array.isArray(plugins)) {
+				for (const pluginConfig of plugins) {
+					if (pluginConfig.transform && typeof pluginConfig.transform === "string") {
+						pluginConfigs.push(pluginConfig);
+					}
+				}
+			}
+
+			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
+			const transformers = flattenIntoTransformers(transformerList);
+			if (transformers.length > 0) {
+				const transformResult = ts.transformNodes(
+					undefined,
+					undefined,
+					ts.factory,
+					compilerOptions,
+					sourceFiles,
+					transformers,
+					false,
+				);
+
+				const host = createTransformedCompilerHost(program.getCompilerOptions(), sourceFiles, transformResult);
+				proxyProgram = createProjectProgram(data, host).getProgram();
+			}
+		});
+	}
+
 	for (let i = 0; i < sourceFiles.length; i++) {
-		const sourceFile = sourceFiles[i];
+		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName)!;
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
