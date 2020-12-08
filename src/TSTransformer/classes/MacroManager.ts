@@ -159,15 +159,13 @@ export class MacroManager {
 	}
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
-		if (symbol.parent) {
-			const macro = this.propertyCallMacros.get(symbol);
-			if (!macro) {
-				const parentClass = this.symbols.get(symbol.parent.name);
-				if (parentClass && MACRO_ONLY_CLASSES.has(parentClass.name)) {
-					assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented!`);
-				}
+		const macro = this.propertyCallMacros.get(symbol);
+		if (!macro && symbol.parent) {
+			const parentClass = this.symbols.get(symbol.parent.name);
+			if (parentClass === symbol.parent && MACRO_ONLY_CLASSES.has(parentClass.name)) {
+				assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented!`);
 			}
-			return macro;
 		}
+		return macro;
 	}
 }
