@@ -68,6 +68,7 @@ export const errors = {
 	),
 	noRegex: error("Regular expressions are not supported!"),
 	noBigInt: error("BigInt literals are not supported!"),
+	noImportExpression: error("Import expressions are not supported!"),
 
 	// banned features
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
