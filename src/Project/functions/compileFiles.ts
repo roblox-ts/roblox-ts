@@ -14,6 +14,7 @@ import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
+import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -131,7 +132,8 @@ export function compileFiles(
 	}
 
 	for (let i = 0; i < sourceFiles.length; i++) {
-		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName)!;
+		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
+		assert(sourceFile);
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
