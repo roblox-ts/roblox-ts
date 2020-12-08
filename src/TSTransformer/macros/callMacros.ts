@@ -1,10 +1,16 @@
 import luau from "LuauAST";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
 const PRIMITIVE_LUAU_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
+	assert: (state, node, expression, args) => {
+		args[0] = createTruthinessChecks(state, args[0], node.arguments[0], state.getType(node.arguments[0]));
+		return luau.call(luau.globals.assert, args);
+	},
+
 	typeOf: (state, node, expression, args) => luau.call(luau.globals.typeof, args),
 
 	typeIs: (state, node, expression, args) => {

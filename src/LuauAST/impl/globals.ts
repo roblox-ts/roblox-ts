@@ -8,6 +8,7 @@ const UTF8_ID = luau.id("utf8");
 
 export const globals = {
 	_G: luau.id("_G"),
+	assert: luau.id("assert"),
 	bit32: luau.id("bit32"),
 	coroutine: {
 		yield: luau.property(COROUTINE_ID, "yield"),
