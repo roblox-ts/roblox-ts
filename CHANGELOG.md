@@ -1,3 +1,12 @@
+## 1.0.0-beta.7
+
+- Added support for TypeScript Transformer plugins :tada: (#1169)
+	- Thanks to fireboltofdeath for implementing this! :pray:
+- Added error message for conditional imports (#1168)
+- Fixed packages installed while watch mode is running may create broken imports (#1165)
+- Added macro for assert, it now uses JS truthiness (`""`, `0`, and `NaN` will now fail assertions)
+- Upgraded roblox-lua-promise to v3.1.0
+
 ## 1.0.0-beta.6
 
 - Added back `ReadonlyArray.findIndex`
