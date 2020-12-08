@@ -1,12 +1,14 @@
 import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
+import path from "path";
 import { createProjectServices, ProjectData } from "Project";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
+import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
@@ -18,6 +20,15 @@ import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
+
+const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
+	awaitWriteFinish: {
+		pollInterval: 10,
+		stabilityThreshold: 50,
+	},
+	ignoreInitial: true,
+	disableGlobbing: true,
+};
 
 function fixSlashes(fsPath: string) {
 	return fsPath.replace(/\\/g, "/");
@@ -176,21 +187,23 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		openEventCollection();
 	}
 
+	const chokidarOptions: chokidar.WatchOptions = { ...CHOKIDAR_OPTIONS, usePolling };
+
 	chokidar
-		.watch(getRootDirs(options), {
-			awaitWriteFinish: {
-				pollInterval: 10,
-				stabilityThreshold: 50,
-			},
-			ignoreInitial: true,
-			disableGlobbing: true,
-			usePolling,
-		})
+		.watch(getRootDirs(options), chokidarOptions)
 		.on("add", collectAddEvent)
 		.on("addDir", collectAddEvent)
 		.on("change", collectChangeEvent)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent);
+
+	function recreateNodeModulesPathMapping() {
+		data.nodeModulesPathMapping = createNodeModulesPathMapping(data.nodeModulesPath);
+	}
+
+	chokidar
+		.watch(path.join(data.projectPath, "package-lock.json"), chokidarOptions)
+		.on("all", recreateNodeModulesPathMapping);
 
 	reportText("Starting compilation in watch mode...");
 	reportEmitResult(runInitialCompile());
