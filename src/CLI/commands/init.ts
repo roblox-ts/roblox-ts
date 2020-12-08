@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
-import { PACKAGE_ROOT } from "Shared/constants";
+import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
 
@@ -142,7 +142,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		// npm install -D
-		const devDependencies = ["@rbxts/types"];
+		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@${COMPILER_VERSION}`];
 		if (eslint) {
 			devDependencies.push(
 				"eslint",
