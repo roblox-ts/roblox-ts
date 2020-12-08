@@ -3,17 +3,17 @@ import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
-import { createTransformedCompilerHost } from "Project/transformers/createTransformedCompilerHost";
-import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
-import { ProjectData, ProjectServices, TransformerPluginConfig } from "Project/types";
+import { createTransformedCompilerHost } from "Project/transformers/createTransformedCompilerHost";
+import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
+import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
+import { ProjectData, ProjectServices } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
-import { ProjectError } from "Shared/errors/ProjectError";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -110,21 +110,7 @@ export function compileFiles(
 
 	if (compilerOptions.plugins && compilerOptions.plugins.length > 0) {
 		benchmarkIfVerbose(`running transformers..`, () => {
-			const configFile = ts.readConfigFile(data.tsConfigPath, ts.sys.readFile);
-			if (configFile.error) {
-				throw new ProjectError(configFile.error.messageText.toString());
-			}
-
-			const pluginConfigs = new Array<TransformerPluginConfig>();
-			const plugins = configFile.config.compilerOptions.plugins;
-			if (plugins && Array.isArray(plugins)) {
-				for (const pluginConfig of plugins) {
-					if (pluginConfig.transform && typeof pluginConfig.transform === "string") {
-						pluginConfigs.push(pluginConfig);
-					}
-				}
-			}
-
+			const pluginConfigs = getPluginConfigs(data.tsConfigPath);
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
