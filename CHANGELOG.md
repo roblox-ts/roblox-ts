@@ -1,3 +1,7 @@
+## 1.0.0-beta.8
+
+- Fix init command failing to install `@rbxts/compiler-types`
+
 ## 1.0.0-beta.7
 
 - Added support for TypeScript Transformer plugins :tada: (#1169)
