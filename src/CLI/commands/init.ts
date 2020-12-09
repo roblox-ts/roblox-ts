@@ -142,7 +142,8 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		// npm install -D
-		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@${COMPILER_VERSION}`];
+		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@">=${COMPILER_VERSION}"`];
+
 		if (eslint) {
 			devDependencies.push(
 				"eslint",
