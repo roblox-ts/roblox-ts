@@ -31,18 +31,24 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 
 function isExportSymbolFromImport(state: TransformState, exportSymbol: ts.Symbol) {
 	const exportDeclarations = exportSymbol.getDeclarations();
-	if (exportDeclarations && exportDeclarations.length > 0 && ts.isExportSpecifier(exportDeclarations[0])) {
-		const importSymbol = state.typeChecker.getExportSpecifierLocalTargetSymbol(
-			exportDeclarations[0] as ts.ExportSpecifier,
-		);
-		if (importSymbol) {
-			const importDeclarations = importSymbol.getDeclarations();
-			if (
-				importDeclarations &&
-				importDeclarations.length > 0 &&
-				getAncestor(importDeclarations[0], ts.isImportDeclaration) !== undefined
-			) {
-				return true;
+	if (exportDeclarations && exportDeclarations.length > 0) {
+		let exportSpecifier: ts.Identifier | ts.ExportSpecifier | undefined;
+
+		const [firstDec] = exportDeclarations;
+		if (ts.isExportAssignment(firstDec) && ts.isIdentifier(firstDec.expression)) {
+			// only identifiers can come from imports
+			exportSpecifier = firstDec.expression;
+		} else if (ts.isExportSpecifier(firstDec)) {
+			exportSpecifier = firstDec;
+		}
+
+		if (exportSpecifier) {
+			const importSymbol = state.typeChecker.getExportSpecifierLocalTargetSymbol(exportSpecifier);
+			if (importSymbol) {
+				const importDeclarations = importSymbol.getDeclarations();
+				if (importDeclarations && importDeclarations.length > 0) {
+					return getAncestor(importDeclarations[0], ts.isImportDeclaration) !== undefined;
+				}
 			}
 		}
 	}
@@ -61,6 +67,8 @@ function handleExports(
 	symbol: ts.Symbol,
 	statements: luau.List<luau.Statement>,
 ) {
+	const moduleExports = state.getModuleExports(symbol);
+
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
@@ -69,10 +77,10 @@ function handleExports(
 				continue;
 			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (
-				isExportSymbolFromImport(state, exportSymbol) ||
-				(isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration.getSourceFile() === sourceFile)
-			) {
+			const a = isExportSymbolFromImport(state, exportSymbol);
+			const b = isSymbolOfValue(originalSymbol);
+			const c = originalSymbol.valueDeclaration.getSourceFile() === sourceFile;
+			if (a || (b && c)) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
