@@ -72,7 +72,7 @@ const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId)
 	const valueId = luau.tempId();
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
+			ids: luau.list.make<luau.AnyIdentifier>(valueId),
 			expression: luau.call(luau.globals.pairs, [expression]),
 			statements: luau.list.make(
 				luau.create(luau.SyntaxKind.Assignment, {
