@@ -67,8 +67,6 @@ function handleExports(
 	symbol: ts.Symbol,
 	statements: luau.List<luau.Statement>,
 ) {
-	const moduleExports = state.getModuleExports(symbol);
-
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
@@ -77,10 +75,10 @@ function handleExports(
 				continue;
 			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			const a = isExportSymbolFromImport(state, exportSymbol);
-			const b = isSymbolOfValue(originalSymbol);
-			const c = originalSymbol.valueDeclaration.getSourceFile() === sourceFile;
-			if (a || (b && c)) {
+			if (
+				isExportSymbolFromImport(state, exportSymbol) ||
+				(isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration?.getSourceFile() === sourceFile)
+			) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
