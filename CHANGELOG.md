@@ -1,3 +1,9 @@
+## 1.0.0-beta.9
+
+- Fixed bug with transformers + pre-emit checks
+- Only reparse transformed SourceFiles (#1177)
+- Fixed `Set<T>` spread bug
+
 ## 1.0.0-beta.8
 
 - Fix init command failing to install `@rbxts/compiler-types`
