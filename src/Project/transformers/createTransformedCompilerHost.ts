@@ -26,6 +26,10 @@ export function createTransformedCompilerHost(
 
 	const origGetSourceFile = host.getSourceFile.bind(host);
 	host.getSourceFile = (fileName, languageVersion, onError, shouldCreate) => {
+		const map = sourceFileMap.get(fileName);
+		if (map && map.original === map.transformed) {
+			return map.original;
+		}
 		const original = origGetSourceFile(fileName, languageVersion, onError, shouldCreate);
 		if (original) {
 			original.version = sourceFileMap.get(fileName)?.original.version ?? "0.0.0";
