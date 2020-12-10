@@ -138,7 +138,7 @@ export function compileFiles(
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
 			if (hasErrors(diagnostics)) return;
-			diagnostics.push(...ts.getPreEmitDiagnostics(program, sourceFile));
+			diagnostics.push(...ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
 			if (hasErrors(diagnostics)) return;
 
 			const transformState = new TransformState(
