@@ -73,7 +73,7 @@ export function compileFiles(
 
 	const rojoResolver = data.rojoConfigPath
 		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(data.projectPath);
+		: RojoResolver.synthetic(compilerOptions.outDir!);
 
 	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
 

@@ -85,7 +85,7 @@ export class VirtualProject {
 		this.compilerHost.useCaseSensitiveFileNames = () => true;
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
-		this.rojoResolver = RojoResolver.synthetic(PROJECT_DIR);
+		this.rojoResolver = RojoResolver.synthetic(OUT_DIR);
 		this.pkgRojoResolver = RojoResolver.synthetic(this.data.nodeModulesPath);
 	}
 
