@@ -71,6 +71,9 @@ function TS.getModule(object, moduleName)
 
 	repeat
 		local modules = object:FindFirstChild("node_modules")
+		if modules and modules ~= globalModules then
+			modules = modules:FindFirstChild("@rbxts")
+		end
 		if modules then
 			local module = modules:FindFirstChild(moduleName)
 			if module then
