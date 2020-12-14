@@ -3,6 +3,8 @@
 - Fixed bug with transformers + pre-emit checks
 - Only reparse transformed SourceFiles (#1177)
 - Fixed `Set<T>` spread bug
+- `rbxtsc init` now uses special npm tags for `@rbxts/compiler-types` to grab the right version
+- Synthetic RojoResolver is now based off of `outDir` instead of the project path (node_modules are done with a separate RojoResolver)
 
 ## 1.0.0-beta.8
 
