@@ -97,7 +97,7 @@ export function compileFiles(
 		}
 	}
 
-	if (!rojoResolver.getRbxPathFromFilePath(data.nodeModulesPath)) {
+	if (projectType !== ProjectType.Package && !rojoResolver.getRbxPathFromFilePath(data.nodeModulesPath)) {
 		return emitResultFailure("Rojo project contained no data for node_modules folder!");
 	}
 
