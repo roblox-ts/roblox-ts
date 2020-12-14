@@ -1,3 +1,7 @@
+## 1.0.0-beta.10
+
+- Fixed "bad node_modules" Rojo config error for compiling packages
+
 ## 1.0.0-beta.9
 
 - Fixed bug with transformers + pre-emit checks
