@@ -12,7 +12,7 @@ export = () => {
 			const element = <frame {...props} />;
 
 			expect(
-				(element as { props: { BackgroundColor3: Color3 } }).props
+				(element as unknown as { props: { BackgroundColor3: Color3 } }).props
 					.BackgroundColor3
 			).to.equal(props.BackgroundColor3);
 		});
