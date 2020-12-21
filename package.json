@@ -17,7 +17,7 @@
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
 		"devlink": "cd devlink && npm link",
 		"test": "npm run build && npm run test-setup && npm run test-compile && npm run test-rojo && npm run test-run",
-		"test-setup": "cd tests && npm install @rbxts/types@latest",
+		"test-setup": "cd tests && npm install @rbxts/types@latest @rbxts/compiler-types@latest",
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
 		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
