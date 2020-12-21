@@ -161,13 +161,15 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, id
 		}),
 	);
 
+	const bindingList = luau.list.make<luau.Statement>();
 	luau.list.push(
 		initializers,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: transformBindingName(state, name, initializers),
+			left: transformBindingName(state, name, bindingList),
 			right: luau.property(loopId, "value"),
 		}),
 	);
+	luau.list.pushList(initializers, bindingList);
 
 	return luau.property(convertToIndexableExpression(exp), "next");
 });
