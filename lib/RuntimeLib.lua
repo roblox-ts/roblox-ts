@@ -194,25 +194,20 @@ function TS.async(callback)
 	end
 end
 
-local function package(...)
-	return select("#", ...), {...}
-end
-
 function TS.await(promise)
 	if not Promise.is(promise) then
 		return promise
 	end
 
-	local size, result = package(promise:await())
-	local ok = table.remove(result, 1)
-	if ok then
-		if size > 2 then
+	local success, result = promise:await()
+	if success ~= nil then
+		if success then
 			return result
 		else
-			return result[1]
+			error(result, 2)
 		end
 	else
-		error(ok == nil and "The awaited Promise was cancelled" or (size > 2 and result[1] or result), 2)
+		error("The awaited Promise was cancelled", 2)
 	end
 end
 
@@ -1006,6 +1001,10 @@ function TS.iterableCache(iter)
 		results[count] = _0.value
 	end
 	return results
+end
+
+local function package(...)
+	return select("#", ...), {...}
 end
 
 function TS.iterableFunctionCache(iter)
