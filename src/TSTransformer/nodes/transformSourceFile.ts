@@ -71,14 +71,11 @@ function handleExports(
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
-			if (exportSymbol.name === "prototype") {
+			if (!!(exportSymbol.flags & ts.SymbolFlags.Prototype)) {
 				continue;
 			}
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (
-				isExportSymbolFromImport(state, exportSymbol) ||
-				(isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration?.getSourceFile() === sourceFile)
-			) {
+			if (isSymbolOfValue(originalSymbol)) {
 				if (isDefinedAsLet(state, originalSymbol)) {
 					mustPushExports = true;
 					continue;
@@ -100,7 +97,7 @@ function handleExports(
 	if (state.hasExportEquals) {
 		// local exports variable is created in transformExportAssignment
 		const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
-		if (!ts.isExportAssignment(finalStatement) || !finalStatement.isExportEquals) {
+		if (!(ts.isExportAssignment(finalStatement) && finalStatement.isExportEquals)) {
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.ReturnStatement, {
