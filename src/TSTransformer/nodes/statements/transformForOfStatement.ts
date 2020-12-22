@@ -86,13 +86,16 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, ini
 	const valueId = luau.tempId();
 	luau.list.push(ids, keyId);
 	luau.list.push(ids, valueId);
-	luau.list.unshift(
+
+	const bindingList = luau.list.make<luau.Statement>();
+	luau.list.push(
 		initializers,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: transformBindingName(state, name, initializers),
+			left: transformBindingName(state, name, bindingList),
 			right: luau.array([keyId, valueId]),
 		}),
 	);
+	luau.list.pushList(initializers, bindingList);
 
 	return luau.call(luau.globals.pairs, [exp]);
 });
