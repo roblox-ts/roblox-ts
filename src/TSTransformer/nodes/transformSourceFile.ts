@@ -63,6 +63,8 @@ function handleExports(
 			if (isExportSymbolFromExportFrom(exportSymbol)) continue;
 
 			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
+
+			// only export values
 			if (!isSymbolOfValue(originalSymbol)) continue;
 
 			// handle this in transformIdentifier
