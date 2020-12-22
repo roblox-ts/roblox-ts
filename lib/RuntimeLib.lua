@@ -199,13 +199,11 @@ function TS.await(promise)
 		return promise
 	end
 
-	local success, result = promise:await()
-	if success ~= nil then
-		if success then
-			return result
-		else
-			error(result, 2)
-		end
+	local status, value = promise:awaitStatus()
+	if status == Promise.Status.Resolved then
+		return value
+	elseif status == Promise.Status.Rejected then
+		error(value, 2)
 	else
 		error("The awaited Promise was cancelled", 2)
 	end
