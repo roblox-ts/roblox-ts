@@ -70,7 +70,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: luau.property(moduleId, element.name.text),
 							operator: "=",
-							right: luau.property(importExp, element.name.text),
+							right: luau.property(importExp, (element.propertyName ?? element.name).text),
 						}),
 					);
 				}
