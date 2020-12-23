@@ -1,5 +1,5 @@
 import ts from "byots";
-import { exec } from "child_process";
+import { exec, ExecException } from "child_process";
 import build from "CLI/commands/build";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
@@ -33,8 +33,10 @@ function cmd(cmdStr: string) {
 			if (error) {
 				reject(error);
 			}
-			resolve(stdout ? stdout : stderr);
+			resolve(stdout);
 		});
+	}).catch((error: ExecException) => {
+		throw new CLIError(`Command "${error.cmd}" exited with code ${error.code}\n\n${error.message}`);
 	});
 }
 
@@ -120,11 +122,6 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	// git init
 	await benchmark("Initializing..", async () => {
-		if (git) {
-			await cmd("git init");
-			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
-		}
-
 		if (mode === InitMode.Package) {
 			await cmd("npm init -y --scope @rbxts");
 			const pkgJson = await fs.readJson(paths.packageJson);
@@ -139,6 +136,11 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 		} else {
 			await cmd("npm init -y");
+		}
+
+		if (git) {
+			await cmd("git init");
+			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
 		}
 
 		// npm install -D
