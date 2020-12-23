@@ -1,3 +1,13 @@
+## 1.0.0-beta.11
+
+- Fixed unit tests :tada:
+- Fixed bug with Promise await rejection errors returning arrays instead of single values
+- Fixed destructuring occurs out of order in custom iterator code (#1189)
+- Compiler will no longer delete `.git` directories in `outDir` (useful for diffing emit!)
+- Simplified logic for creating the returned export table at the bottom of files, which fixed a few bugs
+- Updated compiler dependencies (+ TypeScript 4.1.3)
+- `rbxtsc init` will now output erorr messages for failed commands (#1188)
+
 ## 1.0.0-beta.10
 
 - Fixed "bad node_modules" Rojo config error for compiling packages
