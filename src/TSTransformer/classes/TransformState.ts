@@ -187,6 +187,13 @@ export class TransformState {
 		return getOrSetDefault(this.getTypeCache, node, () => this.typeChecker.getTypeAtLocation(skipUpwards(node)));
 	}
 
+	public getOriginalSymbol(node: ts.Node) {
+		const symbol = this.typeChecker.getSymbolAtLocation(node);
+		if (symbol) {
+			return ts.skipAlias(symbol, this.typeChecker);
+		}
+	}
+
 	public usesRuntimeLib = false;
 	public TS(name: string) {
 		this.usesRuntimeLib = true;

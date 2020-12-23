@@ -5,12 +5,14 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
+import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;
 
 	if (importClause.name) {
-		if (state.resolver.isReferencedAliasDeclaration(importClause)) {
+		const symbol = state.getOriginalSymbol(importClause.name);
+		if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 			uses++;
 		}
 	}
@@ -20,7 +22,8 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 			uses++;
 		} else {
 			for (const element of importClause.namedBindings.elements) {
-				if (state.resolver.isReferencedAliasDeclaration(element)) {
+				const symbol = state.getOriginalSymbol(element.name);
+				if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 					uses++;
 				}
 			}
@@ -58,7 +61,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 		// default import logic
 		if (importClause.name) {
-			if (state.resolver.isReferencedAliasDeclaration(importClause)) {
+			const symbol = state.getOriginalSymbol(importClause.name);
+			if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
 				if (moduleSymbol && state.getModuleExports(moduleSymbol).some(v => v.name === "default")) {
@@ -82,7 +86,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			} else {
 				// named elements import logic
 				for (const element of importClause.namedBindings.elements) {
-					if (state.resolver.isReferencedAliasDeclaration(element)) {
+					const symbol = state.getOriginalSymbol(element.name);
+					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 						luau.list.pushList(
 							statements,
 							transformVariable(

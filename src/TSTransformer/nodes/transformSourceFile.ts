@@ -8,7 +8,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
-import { getAncestor } from "TSTransformer/util/traversal";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -29,26 +28,12 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 	}
 }
 
-function isExportSymbolFromImport(state: TransformState, exportSymbol: ts.Symbol) {
-	const exportDeclarations = exportSymbol.getDeclarations();
-	if (exportDeclarations && exportDeclarations.length > 0) {
-		let exportSpecifier: ts.Identifier | ts.ExportSpecifier | undefined;
-
-		const [firstDec] = exportDeclarations;
-		if (ts.isExportAssignment(firstDec) && ts.isIdentifier(firstDec.expression)) {
-			// only identifiers can come from imports
-			exportSpecifier = firstDec.expression;
-		} else if (ts.isExportSpecifier(firstDec)) {
-			exportSpecifier = firstDec;
-		}
-
-		if (exportSpecifier) {
-			const importSymbol = state.typeChecker.getExportSpecifierLocalTargetSymbol(exportSpecifier);
-			if (importSymbol) {
-				const importDeclarations = importSymbol.getDeclarations();
-				if (importDeclarations && importDeclarations.length > 0) {
-					return getAncestor(importDeclarations[0], ts.isImportDeclaration) !== undefined;
-				}
+function isExportSymbolFromExportFrom(exportSymbol: ts.Symbol) {
+	for (const exportSpecifier of exportSymbol.declarations) {
+		if (ts.isExportSpecifier(exportSpecifier)) {
+			const exportDec = exportSpecifier.parent.parent;
+			if (ts.isExportDeclaration(exportDec) && exportDec.moduleSpecifier) {
+				return true;
 			}
 		}
 	}
@@ -71,36 +56,31 @@ function handleExports(
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
-			if (exportSymbol.name === "prototype") {
+			// ignore prototype exports
+			if (!!(exportSymbol.flags & ts.SymbolFlags.Prototype)) continue;
+
+			// export { default as x } from "./module";
+			if (isExportSymbolFromExportFrom(exportSymbol)) continue;
+
+			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
+
+			// only export values
+			if (!isSymbolOfValue(originalSymbol)) continue;
+
+			// handle this in transformIdentifier
+			if (isDefinedAsLet(state, originalSymbol)) {
+				mustPushExports = true;
 				continue;
 			}
-			const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-			if (
-				isExportSymbolFromImport(state, exportSymbol) ||
-				(isSymbolOfValue(originalSymbol) && originalSymbol.valueDeclaration?.getSourceFile() === sourceFile)
-			) {
-				if (isDefinedAsLet(state, originalSymbol)) {
-					mustPushExports = true;
-					continue;
-				}
-				if (exportSymbol.name === "default") {
-					const declaration = exportSymbol.getDeclarations()?.[0];
-					if (declaration) {
-						const ancestor = getAncestor(declaration, ts.isExportDeclaration);
-						if (ancestor && ancestor.moduleSpecifier !== undefined) {
-							continue;
-						}
-					}
-				}
-				exportPairs.push(getExportPair(state, exportSymbol));
-			}
+
+			exportPairs.push(getExportPair(state, exportSymbol));
 		}
 	}
 
 	if (state.hasExportEquals) {
 		// local exports variable is created in transformExportAssignment
 		const finalStatement = sourceFile.statements[sourceFile.statements.length - 1];
-		if (!ts.isExportAssignment(finalStatement) || !finalStatement.isExportEquals) {
+		if (!(ts.isExportAssignment(finalStatement) && finalStatement.isExportEquals)) {
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.ReturnStatement, {
