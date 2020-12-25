@@ -51,8 +51,8 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
  */
 export const errors = {
 	// reserved identifiers
-	noReservedIdentifier: error(`Reserved Lua keywords cannot be used as identifiers!`),
-	noClassMetamethods: error(`Metamethods cannot be used in class definitions!`),
+	noReservedIdentifier: error("A reserved Luau keyword or `_N` cannot be used as an identifier!"),
+	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
 
 	// banned statements
 	noForInStatement: error("for-in loop statements are not supported!"),
