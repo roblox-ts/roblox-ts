@@ -11,15 +11,9 @@
 <div>&nbsp;</div>
 <div align="center">⚠️ <b>Disclaimer: roblox-ts should only be used for experimental projects until v1.0.0</b> ⚠️</div>
 
-## Why?
+## Introduction
 
-As Roblox games become increasingly complex and larger in scope, efficiently writing safe code becomes challenging with Luau. In addition, Luau is difficult to make tooling for.
-
-**roblox-ts** is designed to solve these problems by compiling TypeScript code directly into Luau, tuned for use in Roblox specifically.
-
-## How?
-
-**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree and emit functionally similar structures in Luau so that the code behaves the same (without the type information).
+**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree and emit functionally similar structures in Luau so that the code behaves the same.
 
 ## Quick start & Documentation
 
