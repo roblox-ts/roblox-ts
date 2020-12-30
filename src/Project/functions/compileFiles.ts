@@ -67,7 +67,6 @@ export function compileFiles(
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
-	const typeChecker = program.getDiagnosticsProducingTypeChecker();
 
 	const multiTransformState = new MultiTransformState();
 
@@ -125,11 +124,13 @@ export function compileFiles(
 					false,
 				);
 
-				const host = createTransformedCompilerHost(program.getCompilerOptions(), sourceFiles, transformResult);
+				const host = createTransformedCompilerHost(compilerOptions, sourceFiles, transformResult);
 				proxyProgram = createProjectProgram(data, host).getProgram();
 			}
 		});
 	}
+
+	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
