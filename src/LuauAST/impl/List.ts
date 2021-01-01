@@ -1,5 +1,5 @@
 import * as luau from "LuauAST/bundle";
-import { NoInfer } from "Shared/types";
+import { NoInfer } from "Shared/typeUtilities";
 import { assert } from "Shared/util/assert";
 
 const LIST_MARKER = Symbol("List");

@@ -8,6 +8,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
+import { ProjectData, ProjectServices } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
@@ -47,8 +48,8 @@ export class TransformState {
 	public readonly resolver: ts.EmitResolver;
 
 	constructor(
-		public readonly data: import("Project/types").ProjectData,
-		public readonly services: import("Project/types").ProjectServices,
+		public readonly data: ProjectData,
+		public readonly services: ProjectServices,
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
