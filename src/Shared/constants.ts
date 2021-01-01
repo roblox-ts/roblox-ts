@@ -5,7 +5,7 @@ export const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
 
 // intentionally not using PACKAGE_ROOT because playground has webpack issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
-export const COMPILER_VERSION = require("../../package.json").version;
+export const COMPILER_VERSION: string = require("../../package.json").version;
 
 export const NODE_MODULES = "node_modules";
 export const RBXTS_SCOPE = "@rbxts";
