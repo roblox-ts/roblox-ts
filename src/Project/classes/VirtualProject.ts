@@ -154,4 +154,8 @@ export class VirtualProject {
 		const luaSource = renderAST(luaAST);
 		return luaSource;
 	}
+
+	public setMapping(typings: string, main: string) {
+		this.data.nodeModulesPathMapping.set(typings, main);
+	}
 }
