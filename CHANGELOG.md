@@ -1,3 +1,8 @@
+## 1.0.0-beta.13
+
+- Added dynamic import expression support (#1203) `import("./module").then(({ x }) => print(x));`
+- Fixed bug with transformers + macros introduced in beta.12 (#1204)
+
 ## 1.0.0-beta.12
 
 - Added checks against variables named `_N` (where `N` is a number) and `TS`. These are used internally by the compiler
