@@ -51,7 +51,15 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
  */
 export const errors = {
 	// reserved identifiers
-	noReservedIdentifier: error("A reserved Luau keyword or `_N` cannot be used as an identifier!"),
+	noInvalidIdentifier: error(
+		"Invalid Luau identifier!",
+		"Luau identifiers must start with a letter and only contain letters, numbers, and underscores.",
+		"Reserved Luau keywords cannot be used as identifiers.",
+	),
+	noReservedIdentifier: error(
+		"Luau identifier is reserved!",
+		"roblox-ts reserves 'TS' and '_N' identifiers for internal usage.",
+	),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
 
 	// banned statements
