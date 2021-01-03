@@ -160,9 +160,7 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 }
 
 function transformChainItem(state: TransformState, baseExpression: luau.Expression, item: ChainItem) {
-	if (ts.isImportCall(item.node)) {
-		return transformImportExpression(state, item.node);
-	} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
+	if (item.kind === OptionalChainItemKind.PropertyAccess) {
 		return transformPropertyAccessExpressionInner(state, item.node, baseExpression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
 		return transformElementAccessExpressionInner(state, item.node, baseExpression, item.expression);
