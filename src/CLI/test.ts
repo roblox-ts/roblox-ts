@@ -3,16 +3,16 @@ import path from "path";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
+import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
-import { createProjectServices } from "Project/functions/createProjectServices";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { getRootDirs } from "Project/util/getRootDirs";
 import { PACKAGE_ROOT, TSX_EXT, TS_EXT } from "Shared/constants";
 import { errors, getDiagnosticId } from "Shared/diagnostics";
 import { isPathDescendantOf } from "Shared/fsUtil";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
+import { getRootDirs } from "Shared/util/getRootDirs";
 
 const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
 
@@ -32,12 +32,12 @@ describe("should compile tests project", () => {
 		},
 	);
 	const program = createProjectProgram(data);
-	const services = createProjectServices(program, data);
+	const pathTranslator = createPathTranslator(program);
 
 	it("should copy include files", () => copyInclude(data));
 
 	it("should copy non-compiled files", () =>
-		copyFiles(data, services, new Set(getRootDirs(program.getCompilerOptions()))));
+		copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions()))));
 
 	const diagnosticsFolder = path.join(PACKAGE_ROOT, "tests", "src", "diagnostics");
 
@@ -53,7 +53,7 @@ describe("should compile tests project", () => {
 			assert(diagnosticName);
 			const expectedId = errors[diagnosticName as keyof typeof errors].id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, services, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (
 					emitResult.diagnostics.length > 0 &&
 					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
@@ -67,7 +67,7 @@ describe("should compile tests project", () => {
 			});
 		} else {
 			it(`should compile ${fileName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, services, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (emitResult.diagnostics.length > 0) {
 					done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
 				} else {

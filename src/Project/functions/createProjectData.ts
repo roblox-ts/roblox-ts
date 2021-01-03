@@ -2,10 +2,10 @@ import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
-import { ProjectData, ProjectFlags, ProjectOptions } from "Project/types";
 import { RojoResolver } from "Shared/classes/RojoResolver";
 import { NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
+import { ProjectData, ProjectFlags, ProjectOptions } from "Shared/types";
 
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",

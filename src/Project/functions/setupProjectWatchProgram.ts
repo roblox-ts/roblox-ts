@@ -2,24 +2,25 @@ import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import path from "path";
-import { createProjectServices, ProjectData } from "Project";
+import { ProjectData } from "Project";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { ProjectServices } from "Project/types";
-import { getRootDirs } from "Project/util/getRootDirs";
 import { hasErrors } from "Project/util/hasErrors";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
+import { getRootDirs } from "Shared/util/getRootDirs";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {
@@ -71,12 +72,12 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	}
 
 	let program: ts.EmitAndSemanticDiagnosticsBuilderProgram | undefined;
-	let services: ProjectServices | undefined;
+	let pathTranslator: PathTranslator | undefined;
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
 		try {
 			program = createProgram([...fileNamesSet], options);
-			services = createProjectServices(program, data);
+			pathTranslator = createPathTranslator(program);
 		} catch (e) {
 			if (e instanceof DiagnosticError) {
 				for (const diagnostic of e.diagnostics) {
@@ -90,12 +91,12 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 	function runInitialCompile() {
 		refreshProgram();
-		assert(program && services);
-		cleanup(services.pathTranslator);
+		assert(program && pathTranslator);
+		cleanup(pathTranslator);
 		copyInclude(data);
-		copyFiles(data, services, new Set(getRootDirs(options)));
+		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
-		const emitResult = compileFiles(program.getProgram(), data, services, sourceFiles);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
 		if (!hasErrors(emitResult.diagnostics)) {
 			initialCompileCompleted = true;
 		}
@@ -137,15 +138,15 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		}
 
 		refreshProgram();
-		assert(program && services);
+		assert(program && pathTranslator);
 		for (const fsPath of filesToClean) {
-			tryRemoveOutput(services.pathTranslator, services.pathTranslator.getOutputPath(fsPath));
+			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
 		}
 		for (const fsPath of filesToCopy) {
-			copyItem(data, services, fsPath);
+			copyItem(data, pathTranslator, fsPath);
 		}
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, services, sourceFiles);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
 		return emitResult;
 	}
 
