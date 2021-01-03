@@ -8,16 +8,18 @@ import { transformTypeReferenceDirectives } from "Project/transformers/builtin/t
 import { createTransformedCompilerHost } from "Project/transformers/createTransformedCompilerHost";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
-import { ProjectData, ProjectServices } from "Project/types";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType } from "Shared/constants";
+import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
+import { createTransformServices } from "TSTransformer/util/createTransformServices";
 
 function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): ProjectType {
 	if (data.isPackage) {
@@ -63,7 +65,7 @@ function getReverseSymlinkMap(program: ts.Program) {
 export function compileFiles(
 	program: ts.Program,
 	data: ProjectData,
-	services: ProjectServices,
+	pathTranslator: PathTranslator,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
@@ -131,6 +133,7 @@ export function compileFiles(
 	}
 
 	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
+	const services = createTransformServices(proxyProgram, typeChecker, data);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
@@ -145,6 +148,7 @@ export function compileFiles(
 			const transformState = new TransformState(
 				data,
 				services,
+				pathTranslator,
 				multiTransformState,
 				compilerOptions,
 				rojoResolver,
@@ -171,7 +175,7 @@ export function compileFiles(
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
 			for (const { sourceFile, source } of fileWriteQueue) {
-				const outPath = services.pathTranslator.getOutputPath(sourceFile.fileName);
+				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
 					!data.writeOnlyChanged ||
 					!fs.pathExistsSync(outPath) ||
