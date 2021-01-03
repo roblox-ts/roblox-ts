@@ -6,16 +6,16 @@ import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
+import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
-import { createProjectServices } from "Project/functions/createProjectServices";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
-import { ProjectFlags, ProjectOptions } from "Project/types";
-import { getRootDirs } from "Project/util/getRootDirs";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
+import { ProjectFlags, ProjectOptions } from "Shared/types";
+import { getRootDirs } from "Shared/util/getRootDirs";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
@@ -126,11 +126,16 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				setupProjectWatchProgram(data, argv.usePolling);
 			} else {
 				const program = createProjectProgram(data);
-				const services = createProjectServices(program, data);
-				cleanup(services.pathTranslator);
+				const pathTranslator = createPathTranslator(program);
+				cleanup(pathTranslator);
 				copyInclude(data);
-				copyFiles(data, services, new Set(getRootDirs(program.getCompilerOptions())));
-				const emitResult = compileFiles(program.getProgram(), data, services, getChangedSourceFiles(program));
+				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
+				const emitResult = compileFiles(
+					program.getProgram(),
+					data,
+					pathTranslator,
+					getChangedSourceFiles(program),
+				);
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}

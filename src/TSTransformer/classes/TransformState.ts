@@ -2,13 +2,15 @@ import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
 import path from "path";
+import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
+import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
-import { ProjectData, ProjectServices } from "TSTransformer/types";
+import { TransformServices } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
@@ -49,7 +51,8 @@ export class TransformState {
 
 	constructor(
 		public readonly data: ProjectData,
-		public readonly services: ProjectServices,
+		public readonly services: TransformServices,
+		public readonly pathTranslator: PathTranslator,
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
@@ -232,7 +235,7 @@ export class TransformState {
 					right: expression,
 				});
 			} else {
-				const sourceOutPath = this.services.pathTranslator.getOutputPath(sourceFile.fileName);
+				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					this.addDiagnostic(errors.noRojoData(sourceFile));

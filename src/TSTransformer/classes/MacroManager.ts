@@ -85,7 +85,7 @@ export class MacroManager {
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
-	constructor(program: ts.Program, typeChecker: ts.TypeChecker, nodeModulesPath: string) {
+	constructor(typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
