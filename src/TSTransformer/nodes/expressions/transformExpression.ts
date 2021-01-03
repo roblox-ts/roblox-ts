@@ -46,6 +46,7 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
 
 const NO_TRANSFORM = () => luau.emptyId();
+
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
 	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(errors.noBigInt)],
