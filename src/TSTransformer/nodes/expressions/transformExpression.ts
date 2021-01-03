@@ -45,6 +45,7 @@ const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node:
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
 
+const NO_TRANSFORM = () => luau.emptyId();
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
 	[ts.SyntaxKind.BigIntLiteral, DIAGNOSTIC(errors.noBigInt)],
@@ -52,9 +53,9 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PrivateIdentifier, DIAGNOSTIC(errors.noPrivateIdentifier)],
 	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(errors.noRegex)],
 	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(errors.noTypeOfExpression)],
-	[ts.SyntaxKind.ImportKeyword, DIAGNOSTIC(errors.noImportExpression)],
 
 	// regular transforms
+	[ts.SyntaxKind.ImportKeyword, NO_TRANSFORM],
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
 	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 	[ts.SyntaxKind.AsExpression, transformAsExpression],

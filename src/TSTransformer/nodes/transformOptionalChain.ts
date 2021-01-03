@@ -9,6 +9,7 @@ import {
 } from "TSTransformer/nodes/expressions/transformCallExpression";
 import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -159,7 +160,9 @@ export function flattenOptionalChain(state: TransformState, expression: ts.Expre
 }
 
 function transformChainItem(state: TransformState, baseExpression: luau.Expression, item: ChainItem) {
-	if (item.kind === OptionalChainItemKind.PropertyAccess) {
+	if (ts.isImportCall(item.node)) {
+		return transformImportExpression(state, item.node);
+	} else if (item.kind === OptionalChainItemKind.PropertyAccess) {
 		return transformPropertyAccessExpressionInner(state, item.node, baseExpression, item.name);
 	} else if (item.kind === OptionalChainItemKind.ElementAccess) {
 		return transformElementAccessExpressionInner(state, item.node, baseExpression, item.expression);
