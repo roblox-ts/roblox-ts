@@ -1,3 +1,10 @@
+## 1.0.0-beta.12
+
+- Added against variables named `_N` (where `N` is a number) and `TS`. These are used internally by the compiler
+	- In the future, we'll add a system that works around this
+- Fixed a performance issue for compiling transformers where type checking work was duplicated
+- Exposed new VirtualProject APIs for improved playground support
+
 ## 1.0.0-beta.11
 
 - Fixed unit tests :tada:
