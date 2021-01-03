@@ -76,7 +76,6 @@ export const errors = {
 	),
 	noRegex: error("Regular expressions are not supported!"),
 	noBigInt: error("BigInt literals are not supported!"),
-	noImportExpression: error("Import expressions are not supported!"),
 
 	// banned features
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
@@ -104,6 +103,7 @@ export const errors = {
 	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noAwaitForOf: error("`await` is not supported in for-of loops!"),
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
+	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 
 	// macro methods
 	noOptionalMacroCall: error("Macro methods can not be optionally called!"),

@@ -5,6 +5,7 @@ import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -116,6 +117,10 @@ export function transformCallExpressionInner(
 	expression: luau.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	if (ts.isImportCall(node)) {
+		return transformImportExpression(state, node);
+	}
+
 	validateNotAnyType(state, node.expression);
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
