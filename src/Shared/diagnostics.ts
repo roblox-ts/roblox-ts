@@ -76,9 +76,9 @@ export const errors = {
 	),
 	noRegex: error("Regular expressions are not supported!"),
 	noBigInt: error("BigInt literals are not supported!"),
-	noImportExpression: error("Import expressions are not supported!"),
 
 	// banned features
+	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
 	noVar: error("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: error("Getters and Setters are not supported!", issue(457)),
