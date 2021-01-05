@@ -11,6 +11,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
+import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
@@ -139,12 +140,15 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				for (const diagnostic of emitResult.diagnostics) {
 					diagnosticReporter(diagnostic);
 				}
+				if (hasErrors(emitResult.diagnostics)) {
+					process.exitCode = 1;
+				}
 			}
 		} catch (e) {
+			process.exitCode = 1;
 			if (e instanceof LoggableError) {
 				e.log();
 				debugger;
-				process.exit(1);
 			} else {
 				throw e;
 			}

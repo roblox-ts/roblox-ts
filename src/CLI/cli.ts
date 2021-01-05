@@ -26,6 +26,7 @@ yargs
 
 	// execute
 	.fail((str, e: unknown) => {
+		process.exitCode = 1;
 		if (e instanceof CLIError) {
 			e.log();
 		} else {
@@ -35,6 +36,5 @@ yargs
 			if (e) console.log(e);
 		}
 		debugger;
-		process.exit(1);
 	})
 	.parse();
