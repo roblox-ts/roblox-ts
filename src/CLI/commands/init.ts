@@ -11,7 +11,7 @@ import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
 
 interface InitOptions {
-	yes: boolean;
+	yes?: boolean;
 	git?: boolean;
 	eslint?: boolean;
 	prettier?: boolean;
@@ -84,41 +84,45 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				initial: 0,
 			})
 		).template;
+
+		// ctrl+c
+		if (mode === undefined) {
+			return;
+		}
 	}
 
 	const {
-		git = argv.git ?? false,
-		eslint = argv.eslint ?? false,
-		prettier = argv.prettier ?? false,
-		vscode = argv.vscode ?? false,
-	}: { git?: boolean; eslint?: boolean; prettier?: boolean; vscode?: boolean } = argv.yes
-		? { git: true, eslint: true, prettier: true, vscode: true }
-		: await prompts([
-				{
-					type: () => argv.git === undefined && "confirm",
-					name: "git",
-					message: "Configure Git",
-					initial: true,
-				},
-				{
-					type: () => argv.eslint === undefined && "confirm",
-					name: "eslint",
-					message: "Configure ESLint",
-					initial: true,
-				},
-				{
-					type: (_, values) => values.eslint && argv.prettier === undefined && "confirm",
-					name: "prettier",
-					message: "Configure Prettier",
-					initial: true,
-				},
-				{
-					type: (_, values) => values.eslint && argv.vscode === undefined && "confirm",
-					name: "vscode",
-					message: "Configure VSCode Project Settings",
-					initial: true,
-				},
-		  ]);
+		git = argv.git ?? argv.yes ?? false,
+		eslint = argv.eslint ?? argv.yes ?? false,
+		prettier = argv.prettier ?? argv.yes ?? false,
+		vscode = argv.vscode ?? argv.yes ?? false,
+	}: { git: boolean; eslint: boolean; prettier: boolean; vscode: boolean } = await prompts([
+		{
+			type: () => argv.git === undefined && argv.yes === undefined && "confirm",
+			name: "git",
+			message: "Configure Git",
+			initial: true,
+		},
+		{
+			type: () => argv.eslint === undefined && argv.yes === undefined && "confirm",
+			name: "eslint",
+			message: "Configure ESLint",
+			initial: true,
+		},
+		{
+			type: (_, values) =>
+				(argv.eslint || values.eslint) && argv.prettier === undefined && argv.yes === undefined && "confirm",
+			name: "prettier",
+			message: "Configure Prettier",
+			initial: true,
+		},
+		{
+			type: () => argv.vscode === undefined && argv.yes === undefined && "confirm",
+			name: "vscode",
+			message: "Configure VSCode Project Settings",
+			initial: true,
+		},
+	]);
 
 	// git init
 	await benchmark("Initializing..", async () => {
@@ -197,27 +201,31 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		if (vscode) {
-			const settings = {
-				"[typescript]": {
-					"editor.defaultFormatter": "dbaeumer.vscode-eslint",
-					"editor.formatOnSave": true,
-				},
-				"[typescriptreact]": {
-					"editor.defaultFormatter": "dbaeumer.vscode-eslint",
-					"editor.formatOnSave": true,
-				},
-				"eslint.run": "onType",
-				"eslint.format.enable": true,
-				"typescript.tsdk": "node_modules/typescript/lib",
-			};
-			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
-
 			const extensions = {
-				recommendations: ["dbaeumer.vscode-eslint"],
+				recommendations: ["roblox-ts.vscode-roblox-ts"],
 			};
+
+			if (eslint) {
+				const settings = {
+					"[typescript]": {
+						"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+						"editor.formatOnSave": true,
+					},
+					"[typescriptreact]": {
+						"editor.defaultFormatter": "dbaeumer.vscode-eslint",
+						"editor.formatOnSave": true,
+					},
+					"eslint.run": "onType",
+					"eslint.format.enable": true,
+					"typescript.tsdk": "node_modules/typescript/lib",
+				};
+				await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
+
+				extensions.recommendations.push("dbaeumer.vscode-eslint");
+			}
+
 			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
 		}
-
 		const templateTsConfig = path.join(
 			TEMPLATE_DIR,
 			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
@@ -262,7 +270,6 @@ export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
 			.option("yes", {
 				alias: "y",
 				boolean: true,
-				default: false,
 				describe: "recommended options",
 			})
 			.option("git", {
