@@ -7,7 +7,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { isObjectType, isPossiblyType, isUndefinedType, getFirstDefinedSymbol } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
@@ -31,6 +31,10 @@ function transformPropertyAssignment(
 }
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
+	const symbol = getFirstDefinedSymbol(state, state.getType(property.expression));
+	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
+		state.addDiagnostic(errors.noMacroObjectSpread(property));
+	}
 	disableMapInline(state, ptr);
 	let spreadExp = transformExpression(state, property.expression);
 
@@ -44,6 +48,14 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	const keyId = luau.tempId();
 	const valueId = luau.tempId();
+	/*
+	let iterator: luau.Identifier;
+	if (isDefinitelyType(type, t => isArrayType(state, t))) {
+		iterator = luau.globals.ipairs;
+	} else {
+		iterator = luau.globals.pairs;
+	}
+	*/
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [spreadExp]),
