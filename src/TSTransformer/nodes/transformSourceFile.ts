@@ -40,6 +40,28 @@ function isExportSymbolFromExportFrom(exportSymbol: ts.Symbol) {
 	return false;
 }
 
+function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFile): Set<ts.Symbol> {
+	const ignoredSymbols = new Set<ts.Symbol>();
+	for (const statement of sourceFile.statements) {
+		if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
+			if (!statement.exportClause) {
+				// export * from "./module";
+				const moduleSymbol = state.getOriginalSymbol(statement.moduleSpecifier);
+				if (moduleSymbol) {
+					state.getModuleExports(moduleSymbol).forEach(v => ignoredSymbols.add(v));
+				}
+			} else if (ts.isNamespaceExport(statement.exportClause)) {
+				// export * as id from "./module";
+				const idSymbol = state.getOriginalSymbol(statement.exportClause.name);
+				if (idSymbol) {
+					ignoredSymbols.add(idSymbol);
+				}
+			}
+		}
+	}
+	return ignoredSymbols;
+}
+
 /**
  * Adds export information to the end of the tree.
  * @param state The current transform state.
@@ -52,10 +74,14 @@ function handleExports(
 	symbol: ts.Symbol,
 	statements: luau.List<luau.Statement>,
 ) {
+	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
+
 	let mustPushExports = state.hasExportFrom;
 	const exportPairs = new Array<[string, luau.Identifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
+			if (ignoredExportSymbols.has(exportSymbol)) continue;
+
 			// ignore prototype exports
 			if (!!(exportSymbol.flags & ts.SymbolFlags.Prototype)) continue;
 
