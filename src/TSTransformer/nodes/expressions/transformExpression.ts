@@ -21,6 +21,7 @@ import { transformNewExpression } from "TSTransformer/nodes/expressions/transfor
 import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
 import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
+import { transformOmittedExpression } from "TSTransformer/nodes/expressions/transformOmittedExpression";
 import { transformParenthesizedExpression } from "TSTransformer/nodes/expressions/transformParenthesizedExpression";
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
@@ -75,6 +76,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
+	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],
 	[ts.SyntaxKind.ParenthesizedExpression, transformParenthesizedExpression],
 	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
