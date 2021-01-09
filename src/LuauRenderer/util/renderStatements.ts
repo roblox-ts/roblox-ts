@@ -12,10 +12,10 @@ import { assert } from "Shared/util/assert";
 export function renderStatements(state: RenderState, statements: luau.List<luau.Statement>) {
 	let result = "";
 	let listNode = statements.head;
-	let hasFinalStatent = false;
+	let hasFinalStatement = false;
 	while (listNode !== undefined) {
-		assert(!hasFinalStatent || luau.isComment(listNode.value), "Cannot render statement after break or return!");
-		hasFinalStatent = hasFinalStatent || luau.isFinalStatement(listNode.value);
+		assert(!hasFinalStatement || luau.isComment(listNode.value), "Cannot render statement after break or return!");
+		hasFinalStatement ||= luau.isFinalStatement(listNode.value);
 
 		state.pushListNode(listNode);
 		result += render(state, listNode.value);
