@@ -7,7 +7,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isObjectType, isPossiblyType, isUndefinedType, getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
