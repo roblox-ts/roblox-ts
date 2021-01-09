@@ -48,14 +48,6 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	const keyId = luau.tempId();
 	const valueId = luau.tempId();
-	/*
-	let iterator: luau.Identifier;
-	if (isDefinitelyType(type, t => isArrayType(state, t))) {
-		iterator = luau.globals.ipairs;
-	} else {
-		iterator = luau.globals.pairs;
-	}
-	*/
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [spreadExp]),
