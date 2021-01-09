@@ -116,7 +116,7 @@ export const errors = {
 	noMacroUnion: error("Macro cannot be applied to a union type!"),
 	noMacroObjectSpread: error(
 		"Macro classes cannot be used in an object spread!",
-		suggestion("Did you mean to use an array spread? `{ ...[] }` / `[ ...[] ]`"),
+		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
 
 	// import/export
