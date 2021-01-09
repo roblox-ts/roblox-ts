@@ -146,6 +146,10 @@ export class MacroManager {
 		return symbol;
 	}
 
+	public isMacroOnlyClass(symbol: ts.Symbol) {
+		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+	}
+
 	public getIdentifierMacro(symbol: ts.Symbol) {
 		return this.identifierMacros.get(symbol);
 	}
@@ -160,11 +164,13 @@ export class MacroManager {
 
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
-		if (!macro && symbol.parent) {
-			const parentClass = this.symbols.get(symbol.parent.name);
-			if (parentClass === symbol.parent && MACRO_ONLY_CLASSES.has(parentClass.name)) {
-				assert(false, `Macro ${parentClass.name}.${symbol.name}() is not implemented!`);
-			}
+		if (
+			!macro &&
+			symbol.parent &&
+			this.symbols.get(symbol.parent.name) === symbol.parent &&
+			this.isMacroOnlyClass(symbol.parent)
+		) {
+			assert(false, `Macro ${symbol.parent.name}.${symbol.name}() is not implemented!`);
 		}
 		return macro;
 	}

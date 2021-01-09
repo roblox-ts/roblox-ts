@@ -122,6 +122,10 @@ export const errors = {
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
 	noMacroExtends: error("Cannot extend from a macro class!"),
 	noMacroUnion: error("Macro cannot be applied to a union type!"),
+	noMacroObjectSpread: error(
+		"Macro classes cannot be used in an object spread!",
+		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
+	),
 
 	// import/export
 	noNonModule: error(
