@@ -106,7 +106,11 @@ export const isSimplePrimitive = makeGuard(
 
 export const isTable = makeGuard(luau.SyntaxKind.Array, luau.SyntaxKind.Set, luau.SyntaxKind.Map);
 
-export const isFinalStatement = makeGuard(luau.SyntaxKind.BreakStatement, luau.SyntaxKind.ReturnStatement);
+export const isFinalStatement = makeGuard(
+	luau.SyntaxKind.BreakStatement,
+	luau.SyntaxKind.ReturnStatement,
+	luau.SyntaxKind.ContinueStatement,
+);
 
 export const isCall = makeGuard(luau.SyntaxKind.CallExpression, luau.SyntaxKind.MethodCallExpression);
 
