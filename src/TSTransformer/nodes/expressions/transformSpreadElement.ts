@@ -11,7 +11,7 @@ import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);
 
-	// array literal is caught and handled separately
+	// array literal is caught and handled separately in transformArrayLiteralExpression.ts
 	assert(!ts.isArrayLiteralExpression(node.parent) && node.parent.arguments);
 	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
 		state.addDiagnostic(errors.noPrecedingSpreadElement(node));
