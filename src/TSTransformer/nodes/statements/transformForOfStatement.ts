@@ -10,6 +10,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { getStatements } from "TSTransformer/util/getStatements";
 import {
+	getTypeArguments,
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
@@ -110,7 +111,7 @@ const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, name, 
 	return exp;
 });
 
-const buildIterableFunctionLuaTupleLoop: LoopBuilder = (state, statements, name, exp) => {
+const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder = type => (state, statements, name, exp) => {
 	if (ts.isArrayBindingPattern(name)) {
 		const builder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
 			assert(ts.isArrayBindingPattern(name));
@@ -120,35 +121,39 @@ const buildIterableFunctionLuaTupleLoop: LoopBuilder = (state, statements, name,
 		return builder(state, statements, name, exp);
 	}
 
-	const iterFuncId = state.pushToVar(exp);
-	const loopStatements = luau.list.make<luau.Statement>();
-	const valueId = transformBindingName(state, name, loopStatements);
+	const iteratorReturnIds: Array<luau.TemporaryIdentifier> = [];
 
-	luau.list.push(
-		loopStatements,
-		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: valueId,
-			right: luau.array([luau.call(iterFuncId)]),
-		}),
-	);
+	const tupleId = transformBindingName(state, name, statements);
 
-	luau.list.push(
-		loopStatements,
-		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
-			statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
-			elseBody: luau.list.make(),
-		}),
-	);
+	const luaTupleType = getTypeArguments(state, type)[0];
+	assert(luaTupleType.aliasTypeArguments && luaTupleType.aliasTypeArguments.length > 0, "No luaTuple type arguments");
+	const tupleArgType = luaTupleType.aliasTypeArguments[0];
 
-	luau.list.pushList(loopStatements, statements);
+	if (state.typeChecker.isTupleType(tupleArgType)) {
+		const tupleReturnAmount = getTypeArguments(state, tupleArgType).length;
+		for (let i = 0; i < tupleReturnAmount; i++) {
+			iteratorReturnIds.push(luau.tempId());
+		}
+	} else {
+		iteratorReturnIds.push(luau.tempId());
+	}
 
-	return luau.list.make(
-		luau.create(luau.SyntaxKind.WhileStatement, {
-			condition: luau.bool(true),
-			statements: loopStatements,
-		}),
-	);
+	const builder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
+		for (const id of iteratorReturnIds) {
+			luau.list.push(ids, id);
+		}
+
+		luau.list.push(
+			initializers,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tupleId,
+				right: luau.array(iteratorReturnIds),
+			}),
+		);
+		return exp;
+	});
+
+	return builder(state, statements, name, exp);
 };
 
 const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
@@ -187,7 +192,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	} else if (isDefinitelyType(type, t => isStringType(t))) {
 		return buildStringLoop;
 	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
-		return buildIterableFunctionLuaTupleLoop;
+		return buildIterableFunctionLuaTupleLoop(type);
 	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
 		return buildIterableFunctionLoop;
 	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {

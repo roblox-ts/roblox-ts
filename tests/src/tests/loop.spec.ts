@@ -366,4 +366,33 @@ export = () => {
 			expect(d).to.equal("o");
 		}
 	});
+
+	it("should support indexing tuple as array", () => {
+		const table = {
+			a:1,
+			b:2,
+			c:3,
+		}
+
+		for (const tuple of pairs(table)) {
+			expect(tuple[1]).to.equal(table[tuple[0]]);
+		}
+	});
+
+	it("should support iterator function with single return when indexing tuple as array", () => {
+		const shortIterator: IterableFunction<LuaTuple<string[]>> = (() => {}) as never;
+
+		for (const tuple of shortIterator) {
+			expect(tuple.size()).to.equal(1);
+			break;
+		}
+	})
+
+	it("should support iterator function with multiple returns when indexing tuple as array", () => {
+		const longiterator: IterableFunction<LuaTuple<[string, LuaTuple<[Part, Attachment]>, Player, Model, GamePassService, boolean]>> = (() => {}) as never;
+		for (const tuple of longiterator) {
+			expect(tuple.size()).to.equal(6);
+			break;
+		}
+	})
 };
