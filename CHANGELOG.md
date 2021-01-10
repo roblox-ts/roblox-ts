@@ -1,3 +1,12 @@
+## 1.0.0-beta.14
+
+- Compiler now exits with exit code 1 if there are any error diagnostics (This was a bug from the new diagnostic system)
+- Added new roblox-ts VSCode extension to `.vscode/extensions.json` file
+- Improved `rbxtsc init` support for config flags + `-y`
+- Banned macro classes being used in object spreads (Dionysusnu #1206)
+- Added support for array literals with omitted expressions (Dionysusnu #1207)
+- Fixed bug with for-statements ending with `continue` (Dionysusnu #1208)
+
 ## 1.0.0-beta.13
 
 - Added dynamic import expression support (#1203) `import("./module").then(({ x }) => print(x));`
