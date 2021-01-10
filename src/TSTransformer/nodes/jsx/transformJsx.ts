@@ -10,6 +10,18 @@ import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
 
+export function transformJsxFragmentShorthand(state: TransformState, children: ReadonlyArray<ts.JsxChild>) {
+	const childrenPtr = createMixedTablePointer();
+	transformJsxChildren(state, children, createMapPointer(), childrenPtr);
+
+	const args = new Array<luau.Expression>();
+	if (luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields)) {
+		args.push(childrenPtr.value);
+	}
+
+	return luau.call(createRoactIndex("createFragment"), args);
+}
+
 export function transformJsx(
 	state: TransformState,
 	node: ts.JsxElement | ts.JsxSelfClosingElement,
