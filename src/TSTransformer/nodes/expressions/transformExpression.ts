@@ -38,15 +38,15 @@ import { transformVoidExpression } from "TSTransformer/nodes/expressions/transfo
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
 
-const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
+const NO_EMIT = () => luau.emptyId();
+
+const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Expression) => {
 	state.addDiagnostic(factory(node));
-	return luau.emptyId();
+	return NO_EMIT();
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ExpressionTransformer = (state: TransformState, node: any) => luau.Expression;
-
-const NO_TRANSFORM = () => luau.emptyId();
 
 const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// banned expressions
@@ -56,8 +56,10 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.RegularExpressionLiteral, DIAGNOSTIC(errors.noRegex)],
 	[ts.SyntaxKind.TypeOfExpression, DIAGNOSTIC(errors.noTypeOfExpression)],
 
+	// skip transforms
+	[ts.SyntaxKind.ImportKeyword, NO_EMIT],
+
 	// regular transforms
-	[ts.SyntaxKind.ImportKeyword, NO_TRANSFORM],
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
 	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
 	[ts.SyntaxKind.AsExpression, transformAsExpression],
