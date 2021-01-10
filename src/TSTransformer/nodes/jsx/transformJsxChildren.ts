@@ -182,7 +182,7 @@ function createJsxAddChild(
 			const isElementLikeCheck = luau.binary(isFragmentCheck, "or", isElementCheck);
 			statement = luau.create(luau.SyntaxKind.IfStatement, {
 				condition: isElementLikeCheck,
-				statements: luau.list.make(statement!),
+				statements: luau.list.make(statement),
 				elseBody: luau.list.make(loop),
 			});
 		} else {
