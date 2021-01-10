@@ -30,6 +30,7 @@ import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressio
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
 import { transformTypeAssertion } from "TSTransformer/nodes/expressions/transformTypeAssertion";
+import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -74,6 +75,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
 	[ts.SyntaxKind.JsxElement, transformJsxElement],
+	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
