@@ -380,7 +380,7 @@ export = () => {
 	});
 
 	it("should support iterator function with single return when indexing tuple as array", () => {
-		const shortIterator: IterableFunction<LuaTuple<boolean>> = (() => [true] as LuaTuple<[boolean]>) as never;
+		const shortIterator: IterableFunction<LuaTuple<[boolean]>> = (() => [true] as LuaTuple<[boolean]>) as never;
 
 		for (const tuple of shortIterator) {
 			expect(tuple.size()).to.equal(1);
