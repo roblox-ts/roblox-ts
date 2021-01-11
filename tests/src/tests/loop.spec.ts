@@ -366,4 +366,34 @@ export = () => {
 			expect(d).to.equal("o");
 		}
 	});
+
+	it("should support indexing tuple as array", () => {
+		const table = {
+			a:1,
+			b:2,
+			c:3,
+		}
+
+		for (const tuple of pairs(table)) {
+			expect(tuple[1]).to.equal(table[tuple[0]]);
+		}
+	});
+
+	it("should support iterator function with single return when indexing tuple as array", () => {
+		const shortIterator: IterableFunction<LuaTuple<[boolean]>> = (() => [true] as LuaTuple<[boolean]>) as never;
+
+		for (const tuple of shortIterator) {
+			expect(tuple.size()).to.equal(1);
+			break;
+		}
+	})
+
+	it("should support iterator function with multiple returns when indexing tuple as array", () => {
+		const longIterator: IterableFunction<LuaTuple<[boolean, boolean, boolean, boolean, boolean, boolean]>> =
+		(() => [true, true, true, true, true, true] as LuaTuple<[boolean, boolean, boolean, boolean, boolean, boolean]>) as never;
+		for (const tuple of longIterator) {
+			expect(tuple.size()).to.equal(6);
+			break;
+		}
+	})
 };
