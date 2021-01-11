@@ -380,7 +380,7 @@ export = () => {
 	});
 
 	it("should support iterator function with single return when indexing tuple as array", () => {
-		const shortIterator: IterableFunction<LuaTuple<string[]>> = (() => {}) as never;
+		const shortIterator: IterableFunction<LuaTuple<string[]>> = (() => true) as never;
 
 		for (const tuple of shortIterator) {
 			expect(tuple.size()).to.equal(1);
@@ -389,7 +389,8 @@ export = () => {
 	})
 
 	it("should support iterator function with multiple returns when indexing tuple as array", () => {
-		const longiterator: IterableFunction<LuaTuple<[string, LuaTuple<[Part, Attachment]>, Player, Model, GamePassService, boolean]>> = (() => {}) as never;
+		const longiterator: IterableFunction<LuaTuple<[string, LuaTuple<[Part, Attachment]>, Player, Model, GamePassService, boolean]>> =
+		(() => [true, true, true, true, true, true] as unknown as LuaTuple<[string, LuaTuple<[Part, Attachment]>, Player, Model, GamePassService, boolean]>) as never;
 		for (const tuple of longiterator) {
 			expect(tuple.size()).to.equal(6);
 			break;
