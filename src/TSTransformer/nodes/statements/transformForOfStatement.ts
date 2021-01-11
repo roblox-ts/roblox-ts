@@ -135,7 +135,35 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder = type =
 			iteratorReturnIds.push(luau.tempId());
 		}
 	} else {
-		iteratorReturnIds.push(luau.tempId());
+		const iterFuncId = state.pushToVar(exp);
+		const loopStatements = luau.list.make<luau.Statement>();
+		const valueId = transformBindingName(state, name, loopStatements);
+
+		luau.list.push(
+			loopStatements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: valueId,
+				right: luau.array([luau.call(iterFuncId)]),
+			}),
+		);
+
+		luau.list.push(
+			loopStatements,
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: luau.binary(luau.unary("#", valueId), "==", luau.number(0)),
+				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+				elseBody: luau.list.make(),
+			}),
+		);
+
+		luau.list.pushList(loopStatements, statements);
+
+		return luau.list.make(
+			luau.create(luau.SyntaxKind.WhileStatement, {
+				condition: luau.bool(true),
+				statements: loopStatements,
+			}),
+		);
 	}
 
 	const builder = makeForLoopBuilder((state, name, exp, ids, initializers) => {
