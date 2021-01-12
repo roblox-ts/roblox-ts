@@ -49,7 +49,7 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"ajv": "^6.12.6",
+		"ajv": "^7.0.3",
 		"byots": "^4.1.0-dev.20201102.16.32",
 		"chokidar": "^3.4.3",
 		"fs-extra": "^9.0.1",
