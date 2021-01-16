@@ -16,6 +16,7 @@ import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 
 enum OptionalChainItemKind {
 	PropertyAccess,
@@ -276,7 +277,7 @@ function transformOptionalChainInner(
 					if (isMethodCall) {
 						args.unshift(selfParam!);
 					}
-					newExpression = luau.call(tempId!, args);
+					newExpression = wrapReturnIfLuaTuple(state, item.node, luau.call(tempId!, args));
 				} else {
 					newExpression = transformChainItem(state, tempId!, item);
 				}
