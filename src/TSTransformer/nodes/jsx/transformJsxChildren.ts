@@ -15,10 +15,12 @@ import {
 	MixedTablePointer,
 } from "TSTransformer/util/pointer";
 import {
+	getTypeArguments,
 	isArrayType,
 	isBooleanLiteralType,
 	isDefinitelyType,
 	isMapType,
+	isNumberType,
 	isPossiblyType,
 	isRoactElementType,
 	isUndefinedType,
@@ -143,8 +145,23 @@ function createJsxAddChild(
 	);
 	const isPossiblyTrue = isPossiblyType(type, t => isBooleanLiteralType(state, t, true));
 	const isPossiblyElement = isPossiblyType(type, t => isRoactElementType(state, t));
-	const isPossiblyArray = isPossiblyType(type, t => isArrayType(state, t));
-	const isPossiblyMap = isPossiblyType(type, t => isMapType(state, t));
+
+	// if map keys are possibly number, we need to add number keys to the end like arrays
+	let areMapKeysNonNumber = false;
+	const isPossiblyMap = isPossiblyType(type, t => {
+		if (isMapType(state, t)) {
+			if (!areMapKeysNonNumber) {
+				const typeArguments = getTypeArguments(state, t);
+				if (isDefinitelyType(typeArguments[0], t => !isNumberType(t))) {
+					areMapKeysNonNumber = true;
+				}
+			}
+			return true;
+		}
+		return false;
+	});
+
+	const isPossiblyArray = !areMapKeysNonNumber || isPossiblyType(type, t => isArrayType(state, t));
 
 	const expUses = countCreateJsxAddChildExpressionUses(
 		isPossiblyUndefinedOrFalse,
