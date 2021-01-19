@@ -20,7 +20,7 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
-	ts.version = COMPILER_VERSION + rojoHash;
+	ts.version = COMPILER_VERSION + data.pkgVersion + rojoHash;
 
 	return host;
 }
