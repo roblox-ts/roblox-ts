@@ -12,9 +12,9 @@
 - Compiler now exits with exit code 1 if there are any error diagnostics (This was a bug from the new diagnostic system)
 - Added new roblox-ts VSCode extension to `.vscode/extensions.json` file
 - Improved `rbxtsc init` support for config flags + `-y`
-- Banned macro classes being used in object spreads (Dionysusnu #1206)
-- Added support for array literals with omitted expressions (Dionysusnu #1207)
-- Fixed bug with for-statements ending with `continue` (Dionysusnu #1208)
+- Banned macro classes being used in object spreads (#1206)
+- Added support for array literals with omitted expressions (#1207)
+- Fixed bug with for-statements ending with `continue` (#1208)
 
 ## 1.0.0-beta.13
 
@@ -36,7 +36,7 @@
 - Compiler will no longer delete `.git` directories in `outDir` (useful for diffing emit!)
 - Simplified logic for creating the returned export table at the bottom of files, which fixed a few bugs
 - Updated compiler dependencies (+ TypeScript 4.1.3)
-- `rbxtsc init` will now output erorr messages for failed commands (#1188)
+- `rbxtsc init` will now output error messages for failed commands (#1188)
 
 ## 1.0.0-beta.10
 
