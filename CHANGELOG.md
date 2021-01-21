@@ -1,3 +1,12 @@
+## 1.0.0-beta.15
+
+- Added support for JSX Fragment Shorthand Expressions `<><frame/></>`
+- Fixed iterating over an IterableFunction without destructuring (#1215)
+- Fixed `array | undefined` index not being incremented (#1226)
+- Fixed wrap return if LuaTuple in optional call (#1227)
+- Fixed JSX map expressions replacing children bug
+- Add project package.json version into hashing for incremental mode
+
 ## 1.0.0-beta.14
 
 - Compiler now exits with exit code 1 if there are any error diagnostics (This was a bug from the new diagnostic system)
