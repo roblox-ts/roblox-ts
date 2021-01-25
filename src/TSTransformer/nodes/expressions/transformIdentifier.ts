@@ -4,6 +4,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
@@ -114,9 +115,9 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
 		return luau.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
-		state.addDiagnostic(errors.noArguments(node));
+		DiagnosticService.addDiagnostic(errors.noArguments(node));
 	} else if (symbol === state.services.globalSymbols.globalThis) {
-		state.addDiagnostic(errors.noGlobalThis(node));
+		DiagnosticService.addDiagnostic(errors.noGlobalThis(node));
 	}
 
 	const macro = state.services.macroManager.getIdentifierMacro(symbol);
@@ -125,14 +126,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	}
 
 	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object) && !isValidObjectUse(node)) {
-		state.addDiagnostic(errors.noObjectWithoutMethod(node));
+		DiagnosticService.addDiagnostic(errors.noObjectWithoutMethod(node));
 	}
 
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
 		if (constructorMacro) {
-			state.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
+			DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
 		}
 	}
 
@@ -141,7 +142,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		(!ts.isCallExpression(parent) || skipDownwards(parent.expression) != node) &&
 		state.services.macroManager.getCallMacro(symbol)
 	) {
-		state.addDiagnostic(errors.noMacroWithoutCall(node));
+		DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
 		return luau.emptyId();
 	}
 

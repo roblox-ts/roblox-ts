@@ -3,6 +3,7 @@ import { assert } from "console";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -23,7 +24,7 @@ function optimizeArraySpreadParameter(
 			luau.list.push(parameters, luau.emptyId());
 		} else {
 			if (element.dotDotDotToken) {
-				state.addDiagnostic(errors.noSpreadDestructuring(element));
+				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 				return;
 			}
 			const name = element.name;

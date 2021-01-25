@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformReturnStatementInner } from "TSTransformer/nodes/statements/transformReturnStatement";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -9,7 +10,7 @@ import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGe
 
 export function transformFunctionExpression(state: TransformState, node: ts.FunctionExpression | ts.ArrowFunction) {
 	if (node.name) {
-		state.addDiagnostic(errors.noFunctionExpressionName(node.name));
+		DiagnosticService.addDiagnostic(errors.noFunctionExpressionName(node.name));
 	}
 
 	// eslint-disable-next-line prefer-const
@@ -28,7 +29,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 
 	if (node.asteriskToken) {
 		if (isAsync) {
-			state.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
+			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
 		statements = wrapStatementsAsGenerator(state, statements);
 	}

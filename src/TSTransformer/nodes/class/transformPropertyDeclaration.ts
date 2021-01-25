@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { Pointer } from "TSTransformer/util/pointer";
@@ -16,7 +17,7 @@ export function transformPropertyDeclaration(
 	}
 
 	if (ts.isPrivateIdentifier(node.name)) {
-		state.addDiagnostic(errors.noPrivateIdentifier(node));
+		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
 		return luau.list.make<luau.Statement>();
 	}
 

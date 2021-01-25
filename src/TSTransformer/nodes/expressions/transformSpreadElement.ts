@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
@@ -14,7 +15,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	// array literal is caught and handled separately in transformArrayLiteralExpression.ts
 	assert(!ts.isArrayLiteralExpression(node.parent) && node.parent.arguments);
 	if (node.parent.arguments[node.parent.arguments.length - 1] !== node) {
-		state.addDiagnostic(errors.noPrecedingSpreadElement(node));
+		DiagnosticService.addDiagnostic(errors.noPrecedingSpreadElement(node));
 	}
 
 	const expression = transformExpression(state, node.expression);

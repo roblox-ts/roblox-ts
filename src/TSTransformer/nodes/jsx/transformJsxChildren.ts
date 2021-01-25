@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
@@ -284,7 +285,7 @@ export function transformJsxChildren(
 		const child = children[i];
 		if (ts.isJsxText(child)) {
 			if (!child.containsOnlyTriviaWhiteSpaces) {
-				state.addDiagnostic(errors.noJsxText(child));
+				DiagnosticService.addDiagnostic(errors.noJsxText(child));
 			}
 			continue;
 		}

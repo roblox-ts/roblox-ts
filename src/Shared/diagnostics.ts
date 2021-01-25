@@ -1,6 +1,7 @@
 import ts from "byots";
 import kleur from "kleur";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
+import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
 export type DiagnosticFactory = {
 	(node: ts.Node): ts.DiagnosticWithLocation;
@@ -33,12 +34,20 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>)
 	return result;
 }
 
+function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string>) {
+	return createTextDiagnostic(messages.join("\n"), category);
+}
+
 function error(...messages: Array<string>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
 }
 
 function warning(...messages: Array<string>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
+}
+
+function warningText(...messages: Array<string>) {
+	return diagnosticText(ts.DiagnosticCategory.Warning, ...messages);
 }
 
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
@@ -153,4 +162,9 @@ export const errors = {
 export const warnings = {
 	truthyChange: (checksStr: string) => warning(`value will be checked against ${checksStr}`),
 	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
+	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
+		warningText(
+			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
+			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
+		),
 };

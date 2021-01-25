@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -21,19 +22,19 @@ export function transformPropertyAccessExpressionInner(
 	const symbol = getFirstDefinedSymbol(state, state.getType(node));
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
-			state.addDiagnostic(errors.noMacroWithoutCall(node));
+			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
 			return luau.emptyId();
 		}
 	}
 
 	const parent = skipUpwards(node).parent;
 	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
-		state.addDiagnostic(errors.noIndexWithoutCall(node));
+		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
 
 	if (ts.isPrototypeAccess(node)) {
-		state.addDiagnostic(errors.noPrototype(node));
+		DiagnosticService.addDiagnostic(errors.noPrototype(node));
 	}
 
 	const constantValue = state.typeChecker.getConstantValue(node);
@@ -57,7 +58,7 @@ export function transformPropertyAccessExpressionInner(
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
 	if (ts.isSuperProperty(node)) {
-		state.addDiagnostic(errors.noSuperProperty(node));
+		DiagnosticService.addDiagnostic(errors.noSuperProperty(node));
 		return luau.emptyId();
 	}
 

@@ -1,13 +1,14 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
-import { warnings } from "Shared/diagnostics";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => luau.binary(expression, operator, args[0]);
@@ -37,7 +38,7 @@ function offsetArguments(
 	argOffsets: Array<number>,
 ) {
 	if (state.data.logStringChanges) {
-		state.addDiagnostic(warnings.stringOffsetChange(JSON.stringify(argOffsets))(node));
+		DiagnosticService.addDiagnostic(warnings.stringOffsetChange(JSON.stringify(argOffsets))(node));
 	}
 	return args;
 }

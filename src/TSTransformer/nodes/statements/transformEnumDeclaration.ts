@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -30,7 +31,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleDefinitions(symbol)) {
-		state.addDiagnostic(errors.noEnumMerging(node));
+		DiagnosticService.addDiagnostic(errors.noEnumMerging(node));
 		return luau.list.make<luau.Statement>();
 	}
 

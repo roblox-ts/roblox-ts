@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformImportExpression } from "TSTransformer/nodes/expressions/transformImportExpression";
@@ -193,7 +194,7 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 		const insideRoactComponent = classLikeAncestor && extendsRoactComponent(state, classLikeAncestor);
 		if (ts.isSuperCall(node)) {
 			if (insideRoactComponent) {
-				state.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
+				DiagnosticService.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
 			}
 			return luau.call(luau.property(luau.globals.super, "constructor"), [
 				luau.globals.self,
@@ -201,7 +202,7 @@ export function transformCallExpression(state: TransformState, node: ts.CallExpr
 			]);
 		} else if (ts.isSuperProperty(node.expression)) {
 			if (insideRoactComponent) {
-				state.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
+				DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
 			}
 			if (ts.isPropertyAccessExpression(node.expression)) {
 				return luau.call(luau.property(luau.globals.super, node.expression.name.text), [

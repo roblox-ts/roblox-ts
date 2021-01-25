@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -23,7 +24,7 @@ export function transformArrayBindingLiteral(
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {
-			state.addDiagnostic(errors.noSpreadDestructuring(element));
+			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 			return;
 		} else {
 			let initializer: ts.Expression | undefined;

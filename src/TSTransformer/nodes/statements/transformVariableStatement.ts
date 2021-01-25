@@ -4,6 +4,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -110,7 +111,7 @@ function transformLuaTupleDestructure(
 					luau.list.push(ids, luau.emptyId());
 				} else {
 					if (element.dotDotDotToken) {
-						state.addDiagnostic(errors.noSpreadDestructuring(element));
+						DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 						return;
 					}
 					if (ts.isIdentifier(element.name)) {
@@ -178,7 +179,7 @@ export function transformVariableDeclarationList(
 	node: ts.VariableDeclarationList,
 ): luau.List<luau.Statement> {
 	if (isVarDeclaration(node)) {
-		state.addDiagnostic(errors.noVar(node));
+		DiagnosticService.addDiagnostic(errors.noVar(node));
 	}
 
 	const statements = luau.list.make<luau.Statement>();

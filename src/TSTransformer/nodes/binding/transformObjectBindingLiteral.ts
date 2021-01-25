@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -33,7 +34,7 @@ export function transformObjectBindingLiteral(
 				state.prereq(transformInitializer(state, id, property.objectAssignmentInitializer));
 			}
 		} else if (ts.isSpreadAssignment(property)) {
-			state.addDiagnostic(errors.noSpreadDestructuring(property));
+			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(property));
 			return;
 		} else if (ts.isPropertyAssignment(property)) {
 			const name = property.name;

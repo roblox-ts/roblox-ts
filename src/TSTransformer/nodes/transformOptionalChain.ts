@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
 	transformCallExpressionInner,
 	transformElementCallExpressionInner,
@@ -268,7 +269,7 @@ function transformOptionalChainInner(
 					if (symbol) {
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
-							state.addDiagnostic(errors.noOptionalMacroCall(item.node));
+							DiagnosticService.addDiagnostic(errors.noOptionalMacroCall(item.node));
 							return luau.emptyId();
 						}
 					}

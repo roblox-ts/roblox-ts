@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformBreakStatement } from "TSTransformer/nodes/statements/transformBreakStatement";
 import { transformClassDeclaration } from "TSTransformer/nodes/statements/transformClassDeclaration";
@@ -30,7 +31,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 const NO_EMIT = () => luau.list.make<luau.Statement>();
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Statement) => {
-	state.addDiagnostic(factory(node));
+	DiagnosticService.addDiagnostic(factory(node));
 	return NO_EMIT();
 };
 

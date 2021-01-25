@@ -1,6 +1,7 @@
 import ts from "byots";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isAnyType, isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 
@@ -20,6 +21,6 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 	}
 
 	if (isDefinitelyType(type, t => isAnyType(t))) {
-		state.addDiagnostic(errors.noAny(node));
+		DiagnosticService.addDiagnostic(errors.noAny(node));
 	}
 }

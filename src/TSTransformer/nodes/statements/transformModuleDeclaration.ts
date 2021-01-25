@@ -4,6 +4,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
@@ -134,7 +135,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleInstantiations(symbol)) {
-		state.addDiagnostic(errors.noNamespaceMerging(node));
+		DiagnosticService.addDiagnostic(errors.noNamespaceMerging(node));
 		return luau.list.make<luau.Statement>();
 	}
 

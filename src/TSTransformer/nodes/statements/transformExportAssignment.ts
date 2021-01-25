@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -44,7 +45,7 @@ function transformExportDefault(state: TransformState, node: ts.ExportAssignment
 export function transformExportAssignment(state: TransformState, node: ts.ExportAssignment) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
 	if (symbol && isDefinedAsLet(state, symbol)) {
-		state.addDiagnostic(errors.noExportAssignmentLet(node));
+		DiagnosticService.addDiagnostic(errors.noExportAssignmentLet(node));
 	}
 
 	if (symbol && !isSymbolOfValue(ts.skipAlias(symbol, state.typeChecker))) {

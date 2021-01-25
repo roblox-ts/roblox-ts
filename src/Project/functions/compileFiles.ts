@@ -2,6 +2,7 @@ import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
+import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
@@ -18,7 +19,9 @@ import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
+import { getRootDirs } from "Shared/util/getRootDirs";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 
 function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): ProjectType {
@@ -72,9 +75,13 @@ export function compileFiles(
 
 	const multiTransformState = new MultiTransformState();
 
+	const outDir = compilerOptions.outDir!;
+
 	const rojoResolver = data.rojoConfigPath
 		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(compilerOptions.outDir!);
+		: RojoResolver.synthetic(outDir);
+
+	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
 	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
 
@@ -161,7 +168,7 @@ export function compileFiles(
 			);
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
-			diagnostics.push(...transformState.diagnostics);
+			diagnostics.push(...DiagnosticService.flush());
 			if (hasErrors(diagnostics)) return;
 
 			const source = renderAST(luauAST);

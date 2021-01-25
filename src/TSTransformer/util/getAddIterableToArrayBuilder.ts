@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import {
 	isArrayType,
@@ -235,7 +236,7 @@ export function getAddIterableToArrayBuilder(
 	}
 
 	if (type.isUnion()) {
-		state.addDiagnostic(errors.noMacroUnion(node));
+		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
 	}
 

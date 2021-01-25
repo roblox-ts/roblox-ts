@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 
@@ -8,7 +9,7 @@ export function transformImportExpression(state: TransformState, node: ts.CallEx
 	const moduleSpecifier = node.arguments[0];
 
 	if (!moduleSpecifier || !ts.isStringLiteral(moduleSpecifier)) {
-		state.addDiagnostic(errors.noNonStringModuleSpecifier(node));
+		DiagnosticService.addDiagnostic(errors.noNonStringModuleSpecifier(node));
 		return luau.emptyId();
 	}
 

@@ -4,6 +4,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -21,7 +22,7 @@ export function transformMethodDeclaration(
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
-		state.addDiagnostic(errors.noPrivateIdentifier(node.name));
+		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		return luau.list.make<luau.Statement>();
 	}
 

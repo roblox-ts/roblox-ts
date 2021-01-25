@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -39,7 +40,7 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 
 	if (node.asteriskToken) {
 		if (isAsync) {
-			state.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
+			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
 		statements = wrapStatementsAsGenerator(state, statements);
 	}

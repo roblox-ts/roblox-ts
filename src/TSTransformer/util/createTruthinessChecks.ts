@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import { warnings } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 
 export function willCreateTruthinessChecks(type: ts.Type) {
 	return (
@@ -49,7 +50,7 @@ export function createTruthinessChecks(
 		if (isAssignableToZero) checkStrs.push("0");
 		if (isAssignableToZero || isAssignableToNaN) checkStrs.push("NaN");
 		if (isAssignableToEmptyString) checkStrs.push('""');
-		state.addDiagnostic(warnings.truthyChange(checkStrs.join(", "))(node));
+		DiagnosticService.addDiagnostic(warnings.truthyChange(checkStrs.join(", "))(node));
 	}
 
 	return binaryExpressionChain(checks, "and");

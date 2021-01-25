@@ -9,10 +9,10 @@ import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { PACKAGE_ROOT, TSX_EXT, TS_EXT } from "Shared/constants";
 import { errors, getDiagnosticId } from "Shared/diagnostics";
-import { isPathDescendantOf } from "Shared/fsUtil";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 
 const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
 

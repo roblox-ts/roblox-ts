@@ -2,6 +2,7 @@ import ts from "byots";
 import { errors } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
 
@@ -79,7 +80,7 @@ function isMethodInner(
 	}
 
 	if (hasMethodDefinition && hasCallbackDefinition) {
-		state.addDiagnostic(errors.noMixedTypeCall(node));
+		DiagnosticService.addDiagnostic(errors.noMixedTypeCall(node));
 	}
 
 	return hasMethodDefinition;

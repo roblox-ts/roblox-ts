@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -39,7 +40,7 @@ function transformLuaTupleDestructure(
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.emptyId());
 			} else if (ts.isSpreadElement(element)) {
-				state.addDiagnostic(errors.noSpreadDestructuring(element));
+				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 			} else {
 				let initializer: ts.Expression | undefined;
 				if (ts.isBinaryExpression(element)) {
@@ -204,13 +205,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
-		state.addDiagnostic(errors.noEqualsEquals(node));
+		DiagnosticService.addDiagnostic(errors.noEqualsEquals(node));
 		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
-		state.addDiagnostic(errors.noExclamationEquals(node));
+		DiagnosticService.addDiagnostic(errors.noExclamationEquals(node));
 		return luau.emptyId();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.addDiagnostic(errors.noComma(node));
+		DiagnosticService.addDiagnostic(errors.noComma(node));
 		return luau.emptyId();
 	}
 
@@ -236,7 +237,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			if (luau.isCall(rightExp) && isLuaTupleType(state, accessType)) {
 				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
 				if (!isUsedAsStatement(node)) {
-					state.addDiagnostic(errors.noDestructureAssignmentExpression(node));
+					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
 				return luau.emptyId();
 			}
@@ -305,7 +306,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			(!isDefinitelyType(leftType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t))) ||
 			(!isDefinitelyType(rightType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t)))
 		) {
-			state.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
+			DiagnosticService.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}
 	}
 

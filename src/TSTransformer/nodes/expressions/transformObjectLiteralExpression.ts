@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
@@ -33,7 +34,7 @@ function transformPropertyAssignment(
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
 	const symbol = getFirstDefinedSymbol(state, state.getType(property.expression));
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
-		state.addDiagnostic(errors.noMacroObjectSpread(property));
+		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(property));
 	}
 	disableMapInline(state, ptr);
 	let spreadExp = transformExpression(state, property.expression);
@@ -86,7 +87,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {
-				state.addDiagnostic(errors.noPrivateIdentifier(property.name));
+				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(property.name));
 				continue;
 			}
 			transformPropertyAssignment(state, ptr, property.name, property.initializer);
@@ -98,7 +99,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 			state.prereqList(transformMethodDeclaration(state, property, ptr));
 		} else {
 			// must be ts.AccessorDeclaration, which is banned
-			state.addDiagnostic(errors.noGetterSetter(property));
+			DiagnosticService.addDiagnostic(errors.noGetterSetter(property));
 		}
 	}
 	return ptr.value;

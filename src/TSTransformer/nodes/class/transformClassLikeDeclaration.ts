@@ -4,6 +4,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { isLuauMetamethod } from "Shared/util/isLuauMetamethod";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -143,7 +144,7 @@ function createBoilerplate(
 		if (extendsNode) {
 			const extendsDec = getExtendsDeclaration(state, extendsNode.expression);
 			if (extendsDec && extendsRoactComponent(state, extendsDec)) {
-				state.addDiagnostic(errors.noRoactInheritance(node));
+				DiagnosticService.addDiagnostic(errors.noRoactInheritance(node));
 			}
 
 			const [extendsExp, extendsExpPrereqs] = state.capture(() =>
@@ -330,7 +331,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	if (extendsMacroClass(state, node)) {
-		state.addDiagnostic(errors.noMacroExtends(node));
+		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
 	// OOP boilerplate + class functions
@@ -364,7 +365,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 			staticProperties.push(member);
 		} else if (ts.isAccessor(member)) {
-			state.addDiagnostic(errors.noGetterSetter(member));
+			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
 		} else {
 			assert(false, `Class member type not implemented: ${getKindName(member.kind)}`);
 		}
@@ -375,17 +376,17 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	for (const method of methods) {
 		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
-			state.addDiagnostic(errors.noClassMetamethods(method.name));
+			DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
 		}
 
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
 			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
-					state.addDiagnostic(errors.noInstanceMethodCollisions(method));
+					DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(method));
 				}
 			} else {
 				if (classType.getProperty(method.name.text) !== undefined) {
-					state.addDiagnostic(errors.noStaticMethodCollisions(method));
+					DiagnosticService.addDiagnostic(errors.noStaticMethodCollisions(method));
 				}
 			}
 		}

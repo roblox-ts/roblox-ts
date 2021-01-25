@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
@@ -25,19 +26,19 @@ export function transformElementAccessExpressionInner(
 	const symbol = getFirstDefinedSymbol(state, state.getType(node));
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
-			state.addDiagnostic(errors.noMacroWithoutCall(node));
+			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
 			return luau.emptyId();
 		}
 	}
 
 	const parent = skipUpwards(node).parent;
 	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
-		state.addDiagnostic(errors.noIndexWithoutCall(node));
+		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
 
 	if (ts.isPrototypeAccess(node)) {
-		state.addDiagnostic(errors.noPrototype(node));
+		DiagnosticService.addDiagnostic(errors.noPrototype(node));
 	}
 
 	const constantValue = state.typeChecker.getConstantValue(node);

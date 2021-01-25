@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -227,7 +228,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		return buildGeneratorLoop;
 	} else {
 		if (type.isUnion()) {
-			state.addDiagnostic(errors.noMacroUnion(node));
+			DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 			return () => luau.list.make();
 		}
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
@@ -238,7 +239,7 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	assert(ts.isVariableDeclarationList(node.initializer) && node.initializer.declarations.length === 1);
 
 	if (node.awaitModifier) {
-		state.addDiagnostic(errors.noAwaitForOf(node));
+		DiagnosticService.addDiagnostic(errors.noAwaitForOf(node));
 	}
 
 	const name = node.initializer.declarations[0].name;

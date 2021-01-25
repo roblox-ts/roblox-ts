@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
 import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
@@ -16,6 +17,7 @@ import { transformElementAccessExpression } from "TSTransformer/nodes/expression
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
+import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
 import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
@@ -30,7 +32,6 @@ import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressio
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
 import { transformTypeAssertion } from "TSTransformer/nodes/expressions/transformTypeAssertion";
-import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -42,7 +43,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 const NO_EMIT = () => luau.emptyId();
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Expression) => {
-	state.addDiagnostic(factory(node));
+	DiagnosticService.addDiagnostic(factory(node));
 	return NO_EMIT();
 };
 

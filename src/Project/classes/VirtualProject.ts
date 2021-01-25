@@ -11,6 +11,7 @@ import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
 
 const PROJECT_DIR = PATH_SEP;
@@ -125,7 +126,7 @@ export class VirtualProject {
 		);
 
 		const luaAST = transformSourceFile(transformState, sourceFile);
-		diagnostics.push(...transformState.diagnostics);
+		diagnostics.push(...DiagnosticService.flush());
 		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const luaSource = renderAST(luaAST);

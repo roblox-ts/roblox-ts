@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
@@ -86,7 +87,7 @@ export function transformClassConstructor(
 
 			const name = member.name;
 			if (ts.isPrivateIdentifier(name)) {
-				state.addDiagnostic(errors.noPrivateIdentifier(node));
+				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node));
 				continue;
 			}
 

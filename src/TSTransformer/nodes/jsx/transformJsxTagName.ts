@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
@@ -20,7 +21,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 
 	if (ts.isPropertyAccessExpression(node)) {
 		if (ts.isPrivateIdentifier(node.name)) {
-			state.addDiagnostic(errors.noPrivateIdentifier(node.name));
+			DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else {

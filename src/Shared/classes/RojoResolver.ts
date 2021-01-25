@@ -11,8 +11,8 @@ import {
 	PACKAGE_ROOT,
 	SERVER_SUBEXT,
 } from "Shared/constants";
-import { isPathDescendantOf } from "Shared/fsUtil";
 import { arrayStartsWith } from "Shared/util/arrayStartsWith";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { warn } from "Shared/warn";
 
 interface RojoTreeProperty {
@@ -339,5 +339,9 @@ export class RojoResolver {
 		}
 
 		return result;
+	}
+
+	public getPartitions(): ReadonlyArray<PartitionInfo> {
+		return this.partitions;
 	}
 }

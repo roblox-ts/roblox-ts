@@ -10,6 +10,7 @@ import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
@@ -31,13 +32,8 @@ export type TryUses = {
  */
 export class TransformState {
 	private readonly sourceFileText: string;
-	public readonly diagnostics = new Array<ts.Diagnostic>();
 	public hasExportEquals = false;
 	public hasExportFrom = false;
-
-	public addDiagnostic(diagnostic: ts.Diagnostic) {
-		this.diagnostics.push(diagnostic);
-	}
 
 	public debugRender(node: luau.Node) {
 		return render(new RenderState(), node);
@@ -238,7 +234,7 @@ export class TransformState {
 				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
-					this.addDiagnostic(errors.noRojoData(sourceFile));
+					DiagnosticService.addDiagnostic(errors.noRojoData(sourceFile));
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: RUNTIME_LIB_ID,
 						right: luau.nil(),

@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
@@ -50,7 +51,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		);
 		return writable;
 	} else if (node.operator === ts.SyntaxKind.PlusToken) {
-		state.addDiagnostic(errors.noUnaryPlus(node));
+		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
 		return luau.unary("-", transformExpression(state, node.operand));

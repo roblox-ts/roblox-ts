@@ -3,6 +3,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -15,7 +16,7 @@ export function transformWritableExpression(
 	readAfterWrite: boolean,
 ): luau.WritableExpression {
 	if (ts.isPrototypeAccess(node)) {
-		state.addDiagnostic(errors.noPrototype(node));
+		DiagnosticService.addDiagnostic(errors.noPrototype(node));
 	}
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);

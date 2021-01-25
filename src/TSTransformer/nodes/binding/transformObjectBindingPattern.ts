@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -18,7 +19,7 @@ export function transformObjectBindingPattern(
 
 	for (const element of bindingPattern.elements) {
 		if (element.dotDotDotToken) {
-			state.addDiagnostic(errors.noSpreadDestructuring(element));
+			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 			return;
 		}
 		const name = element.name;
