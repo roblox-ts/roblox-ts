@@ -10,6 +10,7 @@ import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
+import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
 
 export function transformMethodDeclaration(
 	state: TransformState,
@@ -26,12 +27,20 @@ export function transformMethodDeclaration(
 		return luau.list.make<luau.Statement>();
 	}
 
-	const { statements, parameters, hasDotDotDot } = transformParameters(state, node);
+	// eslint-disable-next-line prefer-const
+	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	const name = transformObjectKey(state, node.name);
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
+
+	if (node.asteriskToken) {
+		if (isAsync) {
+			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
+		}
+		statements = wrapStatementsAsGenerator(state, statements);
+	}
 
 	// can we use `function class:name() end`?
 	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && isValidLuauIdentifier(name.value)) {
