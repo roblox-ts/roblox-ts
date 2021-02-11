@@ -67,13 +67,6 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 		}
 	}
 
-	const whileStatement = node.condition
-		? transformWhileStatementInner(state, node.condition, node.statement)
-		: luau.create(luau.SyntaxKind.WhileStatement, {
-				condition: luau.bool(true),
-				statements: transformStatementList(state, getStatements(node.statement)),
-		  });
-
 	const loopInitializers = luau.list.make<luau.Statement>();
 	const incrementor = luau.list.make<luau.Statement>();
 
@@ -97,7 +90,7 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 		);
 	}
 
-	luau.list.unshiftList(whileStatement.statements, loopInitializers);
+	const whileStatement = transformWhileStatementInner(state, node.condition, node.statement, loopInitializers);
 
 	if (node.incrementor) {
 		luau.list.pushList(incrementor, transformExpressionStatementInner(state, node.incrementor));

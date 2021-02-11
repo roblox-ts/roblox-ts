@@ -6,20 +6,31 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
 
-export function transformWhileStatementInner(state: TransformState, condition: ts.Expression, statement: ts.Statement) {
+export function transformWhileStatementInner(
+	state: TransformState,
+	condition: ts.Expression | undefined,
+	statement: ts.Statement,
+	initializers: luau.List<luau.Statement> | undefined = undefined,
+) {
 	const statements = transformStatementList(state, getStatements(statement));
 
-	const [conditionExp, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(state, transformExpression(state, condition), condition, state.getType(condition)),
-	);
+	const whileStatements = luau.list.make<luau.Statement>();
 
-	if (luau.list.isEmpty(conditionPrereqs)) {
-		return luau.create(luau.SyntaxKind.WhileStatement, {
-			condition: conditionExp,
-			statements,
-		});
-	} else {
-		const whileStatements = luau.list.make<luau.Statement>();
+	// eslint-disable-next-line prefer-const
+	let [conditionExp, conditionPrereqs] = state.capture(() => {
+		if (condition) {
+			return createTruthinessChecks(
+				state,
+				transformExpression(state, condition),
+				condition,
+				state.getType(condition),
+			);
+		} else {
+			return luau.bool(true);
+		}
+	});
+
+	if (!luau.list.isEmpty(conditionPrereqs)) {
 		luau.list.pushList(whileStatements, conditionPrereqs);
 		luau.list.push(
 			whileStatements,
@@ -29,13 +40,19 @@ export function transformWhileStatementInner(state: TransformState, condition: t
 				elseBody: luau.list.make(),
 			}),
 		);
-		luau.list.pushList(whileStatements, statements);
-
-		return luau.create(luau.SyntaxKind.WhileStatement, {
-			condition: luau.bool(true),
-			statements: whileStatements,
-		});
+		conditionExp = luau.bool(true);
 	}
+
+	if (initializers) {
+		luau.list.pushList(whileStatements, initializers);
+	}
+
+	luau.list.pushList(whileStatements, statements);
+
+	return luau.create(luau.SyntaxKind.WhileStatement, {
+		condition: conditionExp,
+		statements: whileStatements,
+	});
 }
 
 export function transformWhileStatement(state: TransformState, node: ts.WhileStatement) {
