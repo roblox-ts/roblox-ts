@@ -41,13 +41,14 @@ export const globals = {
 	},
 	super: luau.id("super"),
 	table: {
+		clear: luau.property(TABLE_ID, "clear"),
 		concat: luau.property(TABLE_ID, "concat"),
 		create: luau.property(TABLE_ID, "create"),
-		remove: luau.property(TABLE_ID, "remove"),
-		move: luau.property(TABLE_ID, "move"),
 		find: luau.property(TABLE_ID, "find"),
-		sort: luau.property(TABLE_ID, "sort"),
 		insert: luau.property(TABLE_ID, "insert"),
+		move: luau.property(TABLE_ID, "move"),
+		remove: luau.property(TABLE_ID, "remove"),
+		sort: luau.property(TABLE_ID, "sort"),
 	},
 	utf8: {
 		charpattern: luau.property(UTF8_ID, "charpattern"),
