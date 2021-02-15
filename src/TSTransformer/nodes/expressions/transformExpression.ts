@@ -28,6 +28,7 @@ import { transformParenthesizedExpression } from "TSTransformer/nodes/expression
 import { transformPropertyAccessExpression } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
 import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { transformStringLiteral } from "TSTransformer/nodes/expressions/transformStringLiteral";
+import { transformSuperKeyword } from "TSTransformer/nodes/expressions/transformSuperKeyword";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
@@ -90,6 +91,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
 	[ts.SyntaxKind.SpreadElement, transformSpreadElement],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
+	[ts.SyntaxKind.SuperKeyword, transformSuperKeyword],
 	[ts.SyntaxKind.TaggedTemplateExpression, transformTaggedTemplateExpression],
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
@@ -97,12 +99,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertion],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
-	[ts.SyntaxKind.SuperKeyword, transformSuperKeyword],
 ]);
-
-function transformSuperKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.SuperKeyword>) {
-	return luau.id("super");
-}
 
 export function transformExpression(state: TransformState, node: ts.Expression): luau.Expression {
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
