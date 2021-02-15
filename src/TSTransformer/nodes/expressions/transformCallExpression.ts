@@ -68,7 +68,10 @@ function runCallMacro(
 
 function isInsideRoactComponent(state: TransformState, node: ts.Node) {
 	const classLikeAncestor = getAncestor(node, ts.isClassLike);
-	return classLikeAncestor && extendsRoactComponent(state, classLikeAncestor);
+	if (classLikeAncestor) {
+		return extendsRoactComponent(state, classLikeAncestor);
+	}
+	return false;
 }
 
 function transformSuperCall(state: TransformState, node: ts.SuperCall) {
