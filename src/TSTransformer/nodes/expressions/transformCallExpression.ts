@@ -90,7 +90,7 @@ export function transformCallExpressionInner(
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
 		}
-		return luau.call(luau.property(luau.globals.super, "constructor"), [
+		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
 		]);
@@ -126,11 +126,11 @@ export function transformPropertyCallExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	if (ts.isSuperProperty(node.expression)) {
+	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
 		}
-		return luau.call(luau.property(luau.globals.super, expression.name.text), [
+		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
 		]);
@@ -181,13 +181,13 @@ export function transformElementCallExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	if (ts.isSuperProperty(node.expression)) {
+	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
 		}
 		return luau.call(
 			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-				expression: luau.globals.super,
+				expression: convertToIndexableExpression(baseExpression),
 				index: transformExpression(state, expression.argumentExpression),
 			}),
 			[luau.globals.self, ...ensureTransformOrder(state, node.arguments)],
