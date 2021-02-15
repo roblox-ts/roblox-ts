@@ -232,11 +232,13 @@ function transformOptionalChainInner(
 	const item = chain[index];
 	if (item.optional || (isCompoundCall(item) && item.callOptional)) {
 		let isMethodCall = false;
+		let isSuperCall = false;
 		let selfParam: luau.TemporaryIdentifier | undefined;
 
 		if (isCompoundCall(item)) {
 			isMethodCall = isMethod(state, item.expression);
-			if (item.callOptional && isMethodCall) {
+			isSuperCall = ts.isSuperProperty(item.expression);
+			if (item.callOptional && isMethodCall && !isSuperCall) {
 				selfParam = state.pushToVar(baseExpression);
 				baseExpression = selfParam;
 			}
@@ -276,7 +278,11 @@ function transformOptionalChainInner(
 
 					const args = ensureTransformOrder(state, item.args);
 					if (isMethodCall) {
-						args.unshift(selfParam!);
+						if (isSuperCall) {
+							args.unshift(luau.globals.self);
+						} else {
+							args.unshift(selfParam!);
+						}
 					}
 					newExpression = wrapReturnIfLuaTuple(state, item.node, luau.call(tempId!, args));
 				} else {
