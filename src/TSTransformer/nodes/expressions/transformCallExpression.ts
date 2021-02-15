@@ -74,16 +74,6 @@ function isInsideRoactComponent(state: TransformState, node: ts.Node) {
 	return false;
 }
 
-function transformSuperCall(state: TransformState, node: ts.SuperCall) {
-	if (isInsideRoactComponent(state, node)) {
-		DiagnosticService.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
-	}
-	return luau.call(luau.property(luau.globals.super, "constructor"), [
-		luau.globals.self,
-		...ensureTransformOrder(state, node.arguments),
-	]);
-}
-
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -97,7 +87,13 @@ export function transformCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
-		return transformSuperCall(state, node);
+		if (isInsideRoactComponent(state, node)) {
+			DiagnosticService.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
+		}
+		return luau.call(luau.property(luau.globals.super, "constructor"), [
+			luau.globals.self,
+			...ensureTransformOrder(state, node.arguments),
+		]);
 	}
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
@@ -120,26 +116,6 @@ export function transformCallExpressionInner(
 	return wrapReturnIfLuaTuple(state, node, exp);
 }
 
-function transformSuperPropertyCall(state: TransformState, node: ts.CallExpression, expression: ts.SuperProperty) {
-	if (isInsideRoactComponent(state, node)) {
-		DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
-	}
-	if (ts.isPropertyAccessExpression(expression)) {
-		return luau.call(luau.property(luau.globals.super, expression.name.text), [
-			luau.globals.self,
-			...ensureTransformOrder(state, node.arguments),
-		]);
-	} else {
-		return luau.call(
-			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-				expression: luau.globals.super,
-				index: transformExpression(state, expression.argumentExpression),
-			}),
-			[luau.globals.self, ...ensureTransformOrder(state, node.arguments)],
-		);
-	}
-}
-
 export function transformPropertyCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -151,7 +127,13 @@ export function transformPropertyCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(node.expression)) {
-		return transformSuperPropertyCall(state, node, node.expression);
+		if (isInsideRoactComponent(state, node)) {
+			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
+		}
+		return luau.call(luau.property(luau.globals.super, expression.name.text), [
+			luau.globals.self,
+			...ensureTransformOrder(state, node.arguments),
+		]);
 	}
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
@@ -200,7 +182,16 @@ export function transformElementCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(node.expression)) {
-		return transformSuperPropertyCall(state, node, node.expression);
+		if (isInsideRoactComponent(state, node)) {
+			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
+		}
+		return luau.call(
+			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				expression: luau.globals.super,
+				index: transformExpression(state, expression.argumentExpression),
+			}),
+			[luau.globals.self, ...ensureTransformOrder(state, node.arguments)],
+		);
 	}
 
 	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
