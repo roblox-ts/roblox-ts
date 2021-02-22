@@ -3,12 +3,14 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
+	isIterableType,
 	isMapType,
 	isObjectType,
 	isSetType,
@@ -152,6 +154,9 @@ export function getAccessorForBindingType(
 		return iterableFunctionLuaTupleAccessor;
 	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
 		return iterableFunctionAccessor;
+	} else if (isDefinitelyType(type, t => isIterableType(state, t))) {
+		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
+		return () => luau.emptyId();
 	} else if (
 		isDefinitelyType(type, t => isGeneratorType(state, t)) ||
 		isDefinitelyType(type, t => isObjectType(t)) ||
