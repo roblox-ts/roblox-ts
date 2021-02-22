@@ -152,6 +152,10 @@ export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.T
 	return false;
 }
 
+export function isIterableType(state: TransformState, type: ts.Type) {
+	return type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Iterable);
+}
+
 export function isObjectType(type: ts.Type) {
 	return !!(type.flags & ts.TypeFlags.Object);
 }

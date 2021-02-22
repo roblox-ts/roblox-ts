@@ -17,6 +17,7 @@ import {
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
+	isIterableType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -226,11 +227,13 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		return buildIterableFunctionLoop;
 	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
 		return buildGeneratorLoop;
+	} else if (isDefinitelyType(type, t => isIterableType(state, t))) {
+		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
+		return () => luau.list.make();
+	} else if (type.isUnion()) {
+		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
+		return () => luau.list.make();
 	} else {
-		if (type.isUnion()) {
-			DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
-			return () => luau.list.make();
-		}
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
 }

@@ -36,6 +36,8 @@ export const SYMBOL_NAMES = {
 	Set: "Set",
 	String: "String",
 	TemplateStringsArray: "TemplateStringsArray",
+
+	Iterable: "Iterable",
 } as const;
 
 const MACRO_ONLY_CLASSES = new Set<string>([

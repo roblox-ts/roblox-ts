@@ -11,6 +11,7 @@ import {
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
+	isIterableType,
 	isMapType,
 	isSetType,
 	isStringType,
@@ -233,12 +234,13 @@ export function getAddIterableToArrayBuilder(
 		return addIterableFunction;
 	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
 		return addGenerator;
-	}
-
-	if (type.isUnion()) {
+	} else if (isDefinitelyType(type, t => isIterableType(state, t))) {
+		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
+		return () => luau.list.make();
+	} else if (type.isUnion()) {
 		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
+	} else {
+		assert(false, `Iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
-
-	assert(false, `Iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 }
