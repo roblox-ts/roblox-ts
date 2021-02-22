@@ -65,8 +65,15 @@ export function bool(value: boolean) {
  * Creates a new `number` literal node.
  * @param value The number to make
  */
-export function number(value: number) {
-	return luau.create(luau.SyntaxKind.NumberLiteral, { value: String(value) });
+export function number(value: number): luau.Expression {
+	if (value >= 0) {
+		return luau.create(luau.SyntaxKind.NumberLiteral, { value: String(value) });
+	} else {
+		return luau.create(luau.SyntaxKind.UnaryExpression, {
+			operator: "-",
+			expression: luau.number(Math.abs(value)),
+		});
+	}
 }
 
 /**

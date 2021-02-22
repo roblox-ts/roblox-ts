@@ -719,45 +719,45 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	remove: (state, node, expression, args) => luau.call(luau.globals.table.remove, [expression, offset(args[0], 1)]),
 
 	unorderedRemove: (state, node, expression, args) => {
-		const arg = args[0];
+		const indexExp = state.pushToVarIfComplex(offset(args[0], 1));
 
 		expression = state.pushToVarIfComplex(expression);
 
 		const lengthId = state.pushToVar(luau.unary("#", expression));
 
 		const valueIsUsed = !isUsedAsStatement(node);
-		let valueId: luau.TemporaryIdentifier;
-		if (valueIsUsed) {
-			valueId = state.pushToVar(
-				luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: convertToIndexableExpression(expression),
-					index: offset(arg, 1),
-				}),
-			);
-		}
-
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: convertToIndexableExpression(expression),
-					index: offset(arg, 1),
-				}),
-				operator: "=",
-				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: convertToIndexableExpression(expression),
-					index: lengthId,
-				}),
+		const valueId = state.pushToVar(
+			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(expression),
+				index: indexExp,
 			}),
 		);
 
 		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: convertToIndexableExpression(expression),
-					index: lengthId,
-				}),
-				operator: "=",
-				right: luau.nil(),
+			luau.create(luau.SyntaxKind.IfStatement, {
+				condition: valueId,
+				statements: luau.list.make(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: indexExp,
+						}),
+						operator: "=",
+						right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: lengthId,
+						}),
+					}),
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: convertToIndexableExpression(expression),
+							index: lengthId,
+						}),
+						operator: "=",
+						right: luau.nil(),
+					}),
+				),
+				elseBody: luau.list.make(),
 			}),
 		);
 
