@@ -8,6 +8,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
@@ -54,6 +55,9 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
+		if (!isDefinitelyType(state.getType(node.operand), t => isNumberType(t))) {
+			DiagnosticService.addDiagnostic(errors.noNonNumberUnaryMinus(node));
+		}
 		return luau.unary("-", transformExpression(state, node.operand));
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
 		const checks = createTruthinessChecks(
