@@ -1,3 +1,15 @@
+## 1.0.0-beta.17
+
+- Fixed error message text for when `@rbxts/compiler-types` is out of date
+- Added a diagnostic error for (#1149)
+- Fixed using a JSX fragment as a child (#1285)
+- Updated `rbxtsc init` to use `"files"` in package.json for packages
+- Added a default `"globIgnorePaths"` setting to default.project.json files for `rbxtsc init`
+- Fixed JSX fragment support in the playground environment
+- Disallowed usage of unary `-` on non-number types (#1288)
+- `Array.unorderedRemove` now checks to see if the input is within the array's range.
+- Added a diagnostic for iterating over `Iterable<T>` directly (#1202)
+
 ## 1.0.0-beta.16
 
 - Compiler will now warn if any input files will result in an output collision (#1254)
