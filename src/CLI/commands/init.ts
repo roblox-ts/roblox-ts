@@ -183,7 +183,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 			if (prettier) {
 				eslintConfig.plugins.push("prettier");
-				eslintConfig.extends.push("prettier/@typescript-eslint", "plugin:prettier/recommended");
+				eslintConfig.extends.push("plugin:prettier/recommended");
 				eslintConfig.rules["prettier/prettier"] = [
 					"warn",
 					{
