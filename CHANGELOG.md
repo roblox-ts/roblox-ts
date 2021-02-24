@@ -1,3 +1,11 @@
+## 1.0.0-beta.16
+
+- Compiler will now warn if any input files will result in an output collision (#1254)
+- Fixed generator methods not properly compiling (#1243)
+- Fixed numeric for loops not creating internal variable after condition check with prerequisite statements (#1250)
+- Fixed bugs relating to calling "super" methods (#1266)
+- Added `Array<T>.clear()`
+
 ## 1.0.0-beta.15
 
 - Added support for JSX Fragment Shorthand Expressions `<><frame/></>`
