@@ -780,6 +780,15 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		return valueIsUsed ? expression : luau.nil();
 	},
+
+	clear: (state, node, expression) => {
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.clear, [expression]),
+			}),
+		);
+		return luau.nil();
+	},
 };
 
 const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
@@ -849,22 +858,9 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	clear: (state, node, expression) => {
-		expression = state.pushToVarIfComplex(expression);
-		const keyId = luau.tempId();
 		state.prereq(
-			luau.create(luau.SyntaxKind.ForStatement, {
-				ids: luau.list.make(keyId),
-				expression: luau.call(luau.globals.pairs, [expression]),
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: convertToIndexableExpression(expression),
-							index: keyId,
-						}),
-						operator: "=",
-						right: luau.nil(),
-					}),
-				),
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.table.clear, [expression]),
 			}),
 		);
 		return luau.nil();
