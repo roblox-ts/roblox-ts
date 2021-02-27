@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -31,11 +32,18 @@ function runCallMacro(
 		args = ensureTransformOrder(state, nodeArguments);
 		const lastArg = nodeArguments[nodeArguments.length - 1];
 		if (lastArg && ts.isSpreadElement(lastArg)) {
-			const signatures = state.typeChecker.getSignaturesOfType(
+			const signature = state.typeChecker.getSignaturesOfType(
 				state.getType(node.expression),
 				ts.SignatureKind.Call,
-			);
-			const minArgumentCount = signatures[0].minArgumentCount;
+			)[0];
+
+			const lastParameter = signature.parameters[signature.parameters.length - 1].valueDeclaration;
+			if (lastParameter && ts.isParameter(lastParameter) && lastParameter.dotDotDotToken) {
+				DiagnosticService.addDiagnostic(errors.noVarArgsMacroSpread(lastArg));
+				return;
+			}
+
+			const minArgumentCount = signature.minArgumentCount;
 			const spread = args.pop();
 			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
 			for (let i = args.length; i < minArgumentCount; i++) {
