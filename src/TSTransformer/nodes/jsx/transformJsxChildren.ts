@@ -290,9 +290,6 @@ export function transformJsxChildren(
 			continue;
 		}
 
-		// not available when jsxFactory is set
-		assert(!ts.isJsxFragment(child));
-
 		if (ts.isJsxExpression(child)) {
 			const innerExp = child.expression;
 			if (innerExp) {
@@ -343,7 +340,7 @@ export function transformJsxChildren(
 			}
 			state.prereqList(prereqs);
 
-			const keyInitializer = getKeyAttributeInitializer(child);
+			const keyInitializer = !ts.isJsxFragment(child) && getKeyAttributeInitializer(child);
 			if (keyInitializer) {
 				const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
 				if (!luau.list.isEmpty(keyPrereqs)) {
