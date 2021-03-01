@@ -1,5 +1,10 @@
 {
 	"name": "roblox-ts-tests",
+	"globIgnorePaths": [
+		"**/package.json",
+		"**/tsconfig.json",
+		"**/LICENSE.txt"
+	],
 	"tree": {
 		"$className": "DataModel",
 		"ReplicatedStorage": {

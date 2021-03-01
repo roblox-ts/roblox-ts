@@ -1,5 +1,10 @@
 {
 	"name": "roblox-ts-game",
+	"globIgnorePaths": [
+		"**/package.json",
+		"**/tsconfig.json",
+		"**/LICENSE.txt"
+	],
 	"tree": {
 		"$className": "DataModel",
 		"ServerScriptService": {
@@ -34,7 +39,7 @@
 			"$properties": {
 				"FilteringEnabled": true
 			}
-		},				
+		},
 		"HttpService": {
 			"$className": "HttpService",
 			"$properties": {
