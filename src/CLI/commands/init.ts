@@ -129,14 +129,15 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		if (mode === InitMode.Package) {
 			await cmd("npm init -y --scope @rbxts");
 			const pkgJson = await fs.readJson(paths.packageJson);
+			pkgJson.main = "out/init.lua";
+			pkgJson.types = "out/index.d.ts";
+			pkgJson.files = ["out"];
 			pkgJson.publishConfig = {
 				access: "public",
 			};
 			pkgJson.scripts = {
 				prepublishOnly: "rbxtsc",
 			};
-			pkgJson.main = "out/init.lua";
-			pkgJson.types = "out/index.d.ts";
 			await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 		} else {
 			await cmd("npm init -y");
