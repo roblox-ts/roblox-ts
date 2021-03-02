@@ -55,6 +55,7 @@ export class VirtualProject {
 			noLib: true,
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
+			module: ts.ModuleKind.CommonJS,
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
 			typeRoots: [this.data.nodeModulesPath],
 			resolveJsonModule: true,
