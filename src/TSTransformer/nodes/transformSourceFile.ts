@@ -8,6 +8,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+import { getAncestor } from "TSTransformer/util/traversal";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.Identifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
@@ -96,6 +97,11 @@ function handleExports(
 			// handle this in transformIdentifier
 			if (isDefinedAsLet(state, originalSymbol)) {
 				mustPushExports = true;
+				continue;
+			}
+
+			const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
+			if (statement?.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
 				continue;
 			}
 
