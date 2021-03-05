@@ -124,20 +124,7 @@ export function isGeneratorType(state: TransformState, type: ts.Type) {
 }
 
 export function isIterableFunctionType(state: TransformState, type: ts.Type) {
-	if (type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction)) {
-		return true;
-	}
-
-	// temporary?
-	if (
-		type.symbol &&
-		(type.symbol.name === "FirstDecrementedIterableFunction" ||
-			type.symbol.name === "DoubleDecrementedIterableFunction")
-	) {
-		return true;
-	}
-
-	return false;
+	return type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.IterableFunction);
 }
 
 export function isLuaTupleType(state: TransformState, type: ts.Type) {
