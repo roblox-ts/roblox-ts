@@ -24,8 +24,8 @@ https://discord.gg/f6Rn6RY
 
 ## Games that use roblox-ts
 
-<a href="https://www.roblox.com/games/4872321990/Islands"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png"></a>
-<a href="https://www.roblox.com/games/5414779423/Science-Simulator"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png"></a>
-<a href="https://www.roblox.com/games/2184151436/Dungeon-Life"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png"></a>
-<a href="https://www.roblox.com/games/3759927663/Zombie-Strike"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png"></a>
-<a href="https://www.roblox.com/games/841531820/Deep-Space-Tycoon"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png"></a>
+<a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png"></a>
+<a href="https://www.roblox.com/games/5414779423"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png"></a>
+<a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png"></a>
+<a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png"></a>
+<a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png"></a>
