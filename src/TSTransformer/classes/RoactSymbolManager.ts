@@ -14,7 +14,7 @@ export const ROACT_SYMBOL_NAMES = {
 
 export class RoactSymbolManager {
 	private readonly symbols = new Map<string, ts.Symbol>();
-	public readonly jsxIntrinsicNameMap = new Map<ts.Symbol, string>();
+	private readonly jsxIntrinsicNameMap = new Map<ts.Symbol, string>();
 
 	private constructor(typeChecker: ts.TypeChecker, roactIndexSourceFile: ts.SourceFile) {
 		const roactNamespace = roactIndexSourceFile.locals?.get(ts.escapeLeadingUnderscores("Roact"))?.valueDeclaration;
