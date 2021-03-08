@@ -2,8 +2,7 @@
 	"name": "roblox-ts-plugin",
 	"globIgnorePaths": [
 		"**/package.json",
-		"**/tsconfig.json",
-		"**/LICENSE.txt"
+		"**/tsconfig.json"
 	],
 	"tree": {
 		"$path": "out",

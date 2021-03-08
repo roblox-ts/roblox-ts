@@ -2,8 +2,7 @@
 	"name": "roblox-ts-model",
 	"globIgnorePaths": [
 		"**/package.json",
-		"**/tsconfig.json",
-		"**/LICENSE.txt"
+		"**/tsconfig.json"
 	],
 	"tree": {
 		"$path": "out",
