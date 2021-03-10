@@ -2,6 +2,7 @@ import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { PathTranslator } from "Shared/classes/PathTranslator";
+import { DTS_EXT } from "Shared/constants";
 
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {
 	fs.copySync(item, pathTranslator.getOutputPath(item), {
@@ -14,6 +15,11 @@ export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item
 			) {
 				return false;
 			}
+
+			if (src.endsWith(DTS_EXT)) {
+				return pathTranslator.declaration;
+			}
+
 			return !isCompilableFile(src);
 		},
 		dereference: true,

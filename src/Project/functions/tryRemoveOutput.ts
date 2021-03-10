@@ -1,8 +1,13 @@
 import fs from "fs-extra";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
+import { DTS_EXT } from "Shared/constants";
 
 function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) {
+	if (filePath.endsWith(DTS_EXT) && !pathTranslator.declaration) {
+		return true;
+	}
+
 	for (const path of pathTranslator.getInputPaths(filePath)) {
 		if (fs.pathExistsSync(path)) {
 			return false;
