@@ -218,44 +218,11 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	},
 
 	includes: (state, node, expression, args) => {
-		expression = state.pushToVarIfComplex(expression);
-
-		const startIndex = offset(args.length > 1 ? args[1] : luau.number(0), 1);
-
-		const resultId = state.pushToVar(luau.bool(false));
-
-		const iteratorId = luau.tempId();
-		state.prereq(
-			luau.create(luau.SyntaxKind.NumericForStatement, {
-				id: iteratorId,
-				start: startIndex,
-				end: luau.unary("#", expression),
-				step: undefined,
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.IfStatement, {
-						condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: convertToIndexableExpression(expression),
-								index: iteratorId,
-							}),
-							operator: "==",
-							right: args[0],
-						}),
-						statements: luau.list.make<luau.Statement>(
-							luau.create(luau.SyntaxKind.Assignment, {
-								left: resultId,
-								operator: "=",
-								right: luau.bool(true),
-							}),
-							luau.create(luau.SyntaxKind.BreakStatement, {}),
-						),
-						elseBody: luau.list.make(),
-					}),
-				),
-			}),
-		);
-
-		return resultId;
+		const callArgs = [expression, args[0]];
+		if (args[1]) {
+			callArgs.push(offset(args[1], 1));
+		}
+		return luau.binary(luau.call(luau.globals.table.find, callArgs), "~=", luau.nil());
 	},
 
 	indexOf: (state, node, expression, args) => {
