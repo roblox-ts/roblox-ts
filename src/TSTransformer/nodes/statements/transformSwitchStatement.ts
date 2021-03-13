@@ -15,6 +15,8 @@ function transformCaseClauseExpression(
 	// eslint-disable-next-line prefer-const
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
+	expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+
 	let condition: luau.Expression = luau.binary(switchExpression, "==", expression);
 
 	if (canFallThroughTo) {

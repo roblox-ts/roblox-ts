@@ -118,4 +118,23 @@ export = () => {
 		expect(bar(3)).to.equal(-2);
 		expect(bar(4)).to.equal(0);
 	});
+
+	it("should support switch statements with a boolean value", () => {
+		function foo(n: number) {
+			switch (true) {
+				case n >= 10:
+					return 10;
+				case n >= 5:
+					return 5;
+				case n >= 0:
+					return 0;
+			}
+		}
+
+		expect(foo(10)).to.equal(10);
+		expect(foo(7)).to.equal(5);
+		expect(foo(5)).to.equal(5);
+		expect(foo(3)).to.equal(0);
+		expect(foo(0)).to.equal(0);
+	});
 };
