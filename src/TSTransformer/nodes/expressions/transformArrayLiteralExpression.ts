@@ -9,9 +9,7 @@ import { createArrayPointer, disableArrayInline } from "TSTransformer/util/point
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {
-		return luau.create(luau.SyntaxKind.Array, {
-			members: luau.list.make(...ensureTransformOrder(state, node.elements)),
-		});
+		return luau.array(ensureTransformOrder(state, node.elements));
 	}
 
 	const ptr = createArrayPointer();
