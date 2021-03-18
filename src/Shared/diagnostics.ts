@@ -116,7 +116,7 @@ export const errors = {
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal!"),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
 	noTsComments: error(
-		"Usage of `@ts-ignore`, `@ts-nocheck` and `@ts-expect-error` is not supported! Roblox-ts needs type info to compile correctly.",
+		"Usage of `@ts-ignore`, `@ts-nocheck` and `@ts-expect-error` is not supported! roblox-ts needs type info to compile correctly.",
 	),
 
 	// macro methods
