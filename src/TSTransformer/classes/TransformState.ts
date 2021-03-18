@@ -17,11 +17,6 @@ import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChai
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 
 /**
- * The regex to check for a @ts-ignore comment
- */
-const TS_IGNORE_REGEX = /^\s*@ts-ignore/;
-
-/**
  * The ID of the Runtime library.
  */
 const RUNTIME_LIB_ID = luau.id("TS");
@@ -142,17 +137,16 @@ export class TransformState {
 	public getLeadingComments(node: ts.Node) {
 		const commentRanges = ts.getLeadingCommentRanges(this.sourceFileText, node.pos) ?? [];
 		return luau.list.make(
-			...commentRanges.map(commentRange => {
-				const sourceText = this.sourceFileText.substring(commentRange.pos + 2, commentRange.end);
-				if (TS_IGNORE_REGEX.test(sourceText)) {
-					DiagnosticService.addDiagnostic(errors.noTSIgnore(node));
-				}
-				return luau.comment(
-					commentRange.kind === ts.SyntaxKind.MultiLineCommentTrivia
-						? sourceText.substring(0, sourceText.length - 2)
-						: sourceText,
-				);
-			}),
+			...commentRanges.map(commentRange =>
+				luau.comment(
+					this.sourceFileText.substring(
+						commentRange.pos + 2,
+						commentRange.kind === ts.SyntaxKind.MultiLineCommentTrivia
+							? commentRange.end - 2
+							: commentRange.end,
+					),
+				),
+			),
 		);
 	}
 

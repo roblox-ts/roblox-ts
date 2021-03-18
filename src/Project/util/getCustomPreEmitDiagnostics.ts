@@ -1,8 +1,9 @@
 import ts from "byots";
 import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
+import { fileContainsTSIgnore } from "TSTransformer/preEmitDiagnostics/fileContainsTSIgnore";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
-const PRE_EMIT_DIAGNOSTICS: Array<PreEmitChecker> = [fileIsModule];
+const PRE_EMIT_DIAGNOSTICS: Array<PreEmitChecker> = [fileIsModule, fileContainsTSIgnore];
 
 export function getCustomPreEmitDiagnostics(sourceFile: ts.SourceFile) {
 	const diagnostics = new Array<ts.Diagnostic>();

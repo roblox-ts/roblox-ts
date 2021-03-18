@@ -115,7 +115,9 @@ export const errors = {
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal!"),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
-	noTSIgnore: error("Using `//@ts-ignore` is not supported! Roblox-ts needs type info to compile correctly."),
+	noTsComments: error(
+		"Usage of `@ts-ignore`, `@ts-nocheck` and `@ts-expect-error` is not supported! Roblox-ts needs type info to compile correctly.",
+	),
 
 	// macro methods
 	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
