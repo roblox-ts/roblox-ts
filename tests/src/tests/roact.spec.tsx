@@ -377,11 +377,10 @@ export = () => {
 		const TestProps = {
 			Active: false,
 			BackgroundColor3: Color3.fromRGB(220, 0, 0)
-		};
+		} as { BackgroundColor3: Color3 };
 
 		const element = (
 			<frame
-				// @ts-ignore
 				Active
 				{...TestProps}
 				BackgroundColor3={new Color3(0, 0, 0)}
@@ -401,9 +400,7 @@ export = () => {
 		const f = <frame Event={Events} />;
 		const props = f.props as ExplicitProps<Frame>;
 
-		// eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-		// @ts-ignore because this is valid, but I can't infer the type for this
-		expect(props[Roact.Event.MouseEnter] as unknown).to.equal(
+		expect(props[Roact.Event.MouseEnter as unknown as "MouseEnter"]).to.equal(
 			Events.MouseEnter
 		);
 	});

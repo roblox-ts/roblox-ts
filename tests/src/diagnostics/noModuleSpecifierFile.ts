@@ -1,3 +1,2 @@
-// @ts-expect-error
-import { x } from "packageThatDoesNotExist";
+import { x } from "../helpers/util/fakePackage";
 print(x);

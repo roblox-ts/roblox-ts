@@ -51,7 +51,9 @@ describe("should compile tests project", () => {
 			}
 			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1];
 			assert(diagnosticName);
-			const expectedId = errors[diagnosticName as keyof typeof errors].id;
+			const error = errors[diagnosticName as keyof typeof errors];
+			assert(error, `${fileName} is not a valid diagnostic!`);
+			const expectedId = error.id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (

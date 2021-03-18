@@ -173,25 +173,27 @@ export = () => {
 		}
 
 		{
-			const k = { o: 1, b: 2 };
+			const k = { o: 1, b: 3 } as {b: number};
 			const o = {
-				// @ts-ignore
 				o: 3,
 				...k,
-				b: k.o++,
 			};
-
 			expect(o.o).to.equal(1);
-			expect(o.b).to.equal(1);
+
+			const a = { o: 1, d: 3 };
+			const b = {
+				...a,
+				d: a.o++,
+			};
+			expect(b.o).to.equal(1);
+			expect(b.d).to.equal(2);
 		}
 
 		{
-			const k = { o: 1, b: 2 };
+			const k = { o: 1, b: 2, c: 3 } as { c: number };
 			const o = {
-				// @ts-ignore
 				o: 3,
-				// @ts-ignore
-				b: k.o++,
+				b: k.c++,
 				...k,
 			};
 

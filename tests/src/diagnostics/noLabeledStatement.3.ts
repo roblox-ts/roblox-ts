@@ -1,6 +1,5 @@
 export {};
 
-for (const x of [1, 2, 3]) {
-	// @ts-ignore
+label: for (const x of [1, 2, 3]) {
 	continue label;
 }
