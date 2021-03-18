@@ -113,8 +113,9 @@ export const errors = {
 	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),
 	noAwaitForOf: error("`await` is not supported in for-of loops!"),
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
-	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
+	noNonStringModuleSpecifier: error("Module specifiers must be a string literal!"),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
+	noTSIgnore: error("Using `//@ts-ignore` is not supported! Roblox-ts needs type info to compile correctly."),
 
 	// macro methods
 	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
