@@ -53,7 +53,7 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 				}
 			} else if (ts.isNamespaceExport(statement.exportClause)) {
 				// export * as id from "./module";
-				const idSymbol = state.getOriginalSymbol(statement.exportClause.name);
+				const idSymbol = state.typeChecker.getSymbolAtLocation(statement.exportClause.name);
 				if (idSymbol) {
 					ignoredSymbols.add(idSymbol);
 				}
