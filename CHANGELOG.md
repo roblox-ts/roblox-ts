@@ -1,7 +1,7 @@
 ## 1.1.0
 
 - Reorganized `@rbxts/roact` types and improved compiler support for detecting the types
-	- `@rbxts/roact@>=1.3.0-ts.13` requires `roblox-ts@>=1.0.0`
+	- `@rbxts/roact@>=1.3.0-ts.13` requires `roblox-ts@>=1.1.0`
 - `Array.includes()` now compiles to a `table.find()` call (#1299)
 - `.d.ts` files are no longer copied to `out` directory if tsconfig.json "declaration" setting is not enabled
 - Fixed switch statement bug with missing parentheses (#1304)
