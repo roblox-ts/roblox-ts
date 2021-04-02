@@ -368,14 +368,14 @@ export = () => {
 	});
 
 	it("should support indexing tuple as array", () => {
-		const table = {
+		const obj = {
 			a:1,
 			b:2,
 			c:3,
 		}
 
-		for (const tuple of pairs(table)) {
-			expect(tuple[1]).to.equal(table[tuple[0]]);
+		for (const tuple of pairs(obj)) {
+			expect(tuple[1]).to.equal(obj[tuple[0]]);
 		}
 	});
 
