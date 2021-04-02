@@ -11,7 +11,13 @@ import { offset } from "TSTransformer/util/offset";
 import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
-	return (state, node, expression, args) => luau.binary(expression, operator, args[0]);
+	return (state, node, expression, args) => {
+		let rhs = args[0];
+		if (!luau.isSimple(rhs)) {
+			rhs = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression: rhs });
+		}
+		return luau.binary(expression, operator, rhs);
+	};
 }
 
 const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div">([
