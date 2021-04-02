@@ -21,6 +21,6 @@ const LUAU_METAMETHODS = new Set([
 ]);
 
 /** Returns true if the given string is a valid Luau metamethod */
-export function isLuauMetamethod(id: string) {
+export function isMetamethod(id: string) {
 	return LUAU_METAMETHODS.has(id);
 }

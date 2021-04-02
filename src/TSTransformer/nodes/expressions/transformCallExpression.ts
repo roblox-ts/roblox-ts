@@ -1,8 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
-import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -161,7 +159,7 @@ export function transformPropertyCallExpressionInner(
 
 	let exp: luau.Expression;
 	if (isMethod(state, expression)) {
-		if (isValidLuauIdentifier(name)) {
+		if (luau.isValidIdentifier(name)) {
 			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 				name,
 				expression: convertToIndexableExpression(baseExpression),

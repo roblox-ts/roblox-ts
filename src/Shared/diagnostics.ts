@@ -65,10 +65,7 @@ export const errors = {
 		"Luau identifiers must start with a letter and only contain letters, numbers, and underscores.",
 		"Reserved Luau keywords cannot be used as identifiers.",
 	),
-	noReservedIdentifier: error(
-		"Luau identifier is reserved!",
-		"roblox-ts reserves 'TS' and '_N' identifiers for internal usage.",
-	),
+	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
 
 	// banned statements

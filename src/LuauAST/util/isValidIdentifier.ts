@@ -25,6 +25,6 @@ const LUAU_RESERVED_KEYWORDS = new Set([
 const LUAU_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 /** Returns true if the given string is a valid Luau identifier, and does not conflict with a temporary identifier */
-export function isValidLuauIdentifier(id: string) {
+export function isValidIdentifier(id: string) {
 	return !LUAU_RESERVED_KEYWORDS.has(id) && LUAU_IDENTIFIER_REGEX.test(id);
 }

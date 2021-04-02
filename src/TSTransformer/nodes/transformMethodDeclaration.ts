@@ -2,7 +2,6 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { isValidLuauIdentifier } from "Shared/util/isValidLuauIdentifier";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
@@ -43,7 +42,7 @@ export function transformMethodDeclaration(
 	}
 
 	// can we use `function class:name() end`?
-	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && isValidLuauIdentifier(name.value)) {
+	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && luau.isValidIdentifier(name.value)) {
 		if (isMethod(state, node)) {
 			luau.list.shift(parameters); // remove `self`
 			return luau.list.make(

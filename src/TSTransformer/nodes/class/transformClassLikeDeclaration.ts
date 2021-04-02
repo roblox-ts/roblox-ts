@@ -2,7 +2,6 @@ import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { isLuauMetamethod } from "Shared/util/isLuauMetamethod";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
@@ -375,7 +374,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
 
 	for (const method of methods) {
-		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && isLuauMetamethod(method.name.text)) {
+		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && luau.isMetamethod(method.name.text)) {
 			DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
 		}
 
