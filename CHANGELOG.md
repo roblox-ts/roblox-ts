@@ -1,3 +1,15 @@
+## 1.1.0
+
+- Reorganized `@rbxts/roact` types and improved compiler support for detecting the types
+	- `@rbxts/roact@>=1.3.0-ts.13` requires `roblox-ts@>=1.0.0`
+- `Array.includes()` now compiles to a `table.find()` call (#1299)
+- `.d.ts` files are no longer copied to `out` directory if tsconfig.json "declaration" setting is not enabled
+- Fixed switch statement bug with missing parentheses (#1304)
+- Fixed `export * as N` bug (#1320)
+- Fixed expressions with prereqs / macros in "else if" conditions not compiling correctly (#1314)
+- Globals used by the compiler (`type()`, `typeof()`, `table`, etc.) will now error if shadowed by a variable or parameter name
+- Fixed macro math order of operations bugs
+
 ## 1.0.0
 
 - Updated to TypeScript 4.2.3
