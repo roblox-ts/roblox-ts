@@ -55,6 +55,13 @@ export class RoactSymbolManager {
 				}
 			}
 		}
+
+		// playground fallback
+		const roactIndexSourceFilePath = path.join(data.nodeModulesPath, "roact", "src", "index.d.ts");
+		const roactIndexSourceFile = program.getSourceFile(roactIndexSourceFilePath);
+		if (roactIndexSourceFile) {
+			return new RoactSymbolManager(typeChecker, roactIndexSourceFile);
+		}
 	}
 
 	public getSymbolOrThrow(symbolName: string): ts.Symbol {
