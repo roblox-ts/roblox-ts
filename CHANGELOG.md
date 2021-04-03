@@ -1,3 +1,7 @@
+## 1.1.1
+
+- Fixed crash when using `@rbxts/roact` in the playground
+
 ## 1.1.0
 
 - Reorganized `@rbxts/roact` types and improved compiler support for detecting the types
