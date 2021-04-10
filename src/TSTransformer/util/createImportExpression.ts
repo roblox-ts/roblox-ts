@@ -50,7 +50,15 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		state.data.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
-	const relativeRbxPath = state.pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
+
+	let relativeRbxPath;
+	for (const resolver of state.pkgRojoResolvers) {
+		relativeRbxPath = resolver.getRbxPathFromFilePath(moduleOutPath);
+		if (relativeRbxPath) {
+			break;
+		}
+	}
+
 	if (!relativeRbxPath) {
 		DiagnosticService.addDiagnostic(errors.noRojoData(moduleSpecifier));
 		return luau.emptyId();

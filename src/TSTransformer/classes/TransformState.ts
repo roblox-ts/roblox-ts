@@ -52,7 +52,7 @@ export class TransformState {
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
-		public readonly pkgRojoResolver: RojoResolver,
+		public readonly pkgRojoResolvers: Array<RojoResolver>,
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
