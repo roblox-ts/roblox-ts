@@ -90,6 +90,16 @@ function TS.getModule(object, moduleName)
 		object = object.Parent
 	until object == nil or object == globalModules
 
+	for index, child in ipairs(globalModules:GetChildren()) do 
+		if string.find(child.Name, "^@") == nil then 
+			continue 
+		end
+		local found = child:FindFirstChild(moduleName)
+		if found then
+			return found
+		end
+	end
+	
 	return globalModules:FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
 end
 
