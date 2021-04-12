@@ -47,7 +47,7 @@ const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 		devInstall: "npm install --silent -D",
 	},
 	[PackageManager.Yarn]: {
-		initScoped: "yarn init -y --scope @rbxts", // TODO: find a working solution
+		initScoped: "yarn init -y",
 		init: "yarn init -y",
 		devInstall: "yarn add --silent -D",
 	},
@@ -178,6 +178,12 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		if (mode === InitMode.Package) {
 			await cmd(selectedPackageManager.initScoped);
 			const pkgJson = await fs.readJson(paths.packageJson);
+
+			if (packageManager === PackageManager.Yarn) {
+				// yarn doesn't have a --scope parameter for init
+				pkgJson.name = `@rbxts/${pkgJson.name}`;
+			}
+
 			pkgJson.main = "out/init.lua";
 			pkgJson.types = "out/index.d.ts";
 			pkgJson.files = ["out"];
