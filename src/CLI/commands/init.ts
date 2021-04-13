@@ -164,7 +164,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			type: () => argv.packageManager === undefined && argv.yes === undefined && "select",
 			name: "packageManager",
 			message: "Use alternate package manager",
-			choices: [...Object.entries(PackageManager)].map(([managerDisplay, managerCommand]) => ({
+			choices: Object.entries(PackageManager).map(([managerDisplay, managerCommand]) => ({
 				title: managerDisplay,
 				value: managerCommand,
 			})),
