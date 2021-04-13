@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
-import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
+import { COMPILER_VERSION, PACKAGE_ROOT, RBXTS_SCOPE } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
 
@@ -181,7 +181,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 			if (packageManager === PackageManager.Yarn) {
 				// yarn doesn't have a --scope parameter for init
-				pkgJson.name = `@rbxts/${pkgJson.name}`;
+				pkgJson.name = `${RBXTS_SCOPE}/${pkgJson.name}`;
 			}
 
 			pkgJson.main = "out/init.lua";
