@@ -42,7 +42,7 @@ interface PackageManagerCommands {
 
 const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 	[PackageManager.NPM]: {
-		initScoped: "npm init -y --scope @rbxts",
+		initScoped: `npm init -y --scope ${RBXTS_SCOPE}`,
 		init: "npm init -y",
 		devInstall: "npm install --silent -D",
 	},
@@ -52,7 +52,7 @@ const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 		devInstall: "yarn add --silent -D",
 	},
 	[PackageManager.PNPM]: {
-		initScoped: "pnpm init -y --scope @rbxts",
+		initScoped: `pnpm init -y --scope ${RBXTS_SCOPE}`,
 		init: "pnpm init -y",
 		devInstall: "pnpm install --silent -D",
 	},
