@@ -234,7 +234,9 @@ export class TransformState {
 				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
-					DiagnosticService.addDiagnostic(errors.noRojoData(sourceFile));
+					DiagnosticService.addDiagnostic(
+						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
+					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: RUNTIME_LIB_ID,
 						right: luau.nil(),
