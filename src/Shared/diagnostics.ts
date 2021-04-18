@@ -49,10 +49,10 @@ function diagnosticWithContext<T>(
 		}
 
 		if (contextFormatter) {
-			messages.concat(contextFormatter(context));
+			messages = messages.concat(contextFormatter(context));
 		}
 
-		return createDiagnosticWithLocation(result.id, messages.filter(x => x.length > 0).join("\n"), category, node);
+		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
 	};
 	result.id = id++;
 	return result;
