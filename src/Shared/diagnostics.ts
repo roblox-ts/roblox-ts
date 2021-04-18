@@ -49,7 +49,7 @@ function diagnosticWithContext<T>(
 		}
 
 		if (contextFormatter) {
-			messages = messages.concat(contextFormatter(context));
+			messages.push(...contextFormatter(context));
 		}
 
 		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
