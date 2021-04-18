@@ -3,10 +3,12 @@ import kleur from "kleur";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
-export type DiagnosticFactory = {
-	(node: ts.Node): ts.DiagnosticWithLocation;
+export type DiagnosticFactory<T = void> = {
+	(node: ts.Node, context: T): ts.DiagnosticWithLocation;
 	id: number;
 };
+
+type DiagnosticContextFormatter<T> = (ctx: T) => Array<string>;
 
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
@@ -19,15 +21,37 @@ function issue(id: number) {
 }
 
 let id = 0;
+
 /**
  * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
  * @param messages The list of messages to include in the error report.
  */
-function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>) {
-	const result = (node: ts.Node) => {
+function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>): DiagnosticFactory {
+	return diagnosticWithContext<void>(category, undefined, ...messages);
+}
+
+/**
+ * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
+ * The context is additonal data from the location where the diagnostic occurred that is used to generate dynamic
+ * messages.
+ * @param contextFormatter An optional function to format the context parameter for this diagnostic. The returned
+ * formatted messages are displayed last in the diagnostic report.
+ * @param messages The list of messages to include in the diagnostic report.
+ */
+function diagnosticWithContext<T>(
+	category: ts.DiagnosticCategory,
+	contextFormatter?: DiagnosticContextFormatter<T>,
+	...messages: Array<string>
+): DiagnosticFactory<T> {
+	const result = (node: ts.Node, context: T) => {
 		if (category === ts.DiagnosticCategory.Error) {
 			debugger;
 		}
+
+		if (contextFormatter) {
+			messages.push(...contextFormatter(context));
+		}
+
 		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
 	};
 	result.id = id++;
@@ -40,6 +64,13 @@ function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<stri
 
 function error(...messages: Array<string>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
+}
+
+function errorWithContext<T>(
+	contextFormatter: DiagnosticContextFormatter<T>,
+	...messages: Array<string>
+): DiagnosticFactory<T> {
+	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
 }
 
 function warning(...messages: Array<string>): DiagnosticFactory {
@@ -143,7 +174,9 @@ export const errors = {
 		issue(1043),
 	),
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
-	noRojoData: error("Could not find Rojo data"),
+	noRojoData: errorWithContext((path: string) => [
+		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
+	]),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
 
