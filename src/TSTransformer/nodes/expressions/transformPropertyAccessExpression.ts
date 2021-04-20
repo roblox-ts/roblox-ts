@@ -18,7 +18,7 @@ export function transformPropertyAccessExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	const symbol = state.getNonOptionalType(node).symbol;
+	const symbol = state.typeChecker.getNonOptionalType(state.getType(node)).symbol;
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
 			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));

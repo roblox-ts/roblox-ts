@@ -32,7 +32,7 @@ function transformPropertyAssignment(
 }
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
-	const symbol = state.getNonOptionalType(property.expression).symbol;
+	const symbol = state.typeChecker.getNonOptionalType(state.getType(property.expression)).symbol;
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(property));
 	}
