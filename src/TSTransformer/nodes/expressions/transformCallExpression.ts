@@ -14,7 +14,6 @@ import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate"
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 
@@ -102,7 +101,7 @@ export function transformCallExpressionInner(
 		]);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const symbol = state.getNonOptionalType(node.expression).symbol;
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
@@ -142,7 +141,7 @@ export function transformPropertyCallExpressionInner(
 		]);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const symbol = state.getNonOptionalType(node.expression).symbol;
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
@@ -200,7 +199,7 @@ export function transformElementCallExpressionInner(
 		);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const symbol = state.getNonOptionalType(node.expression).symbol;
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
@@ -227,7 +226,7 @@ export function transformElementCallExpressionInner(
 	const exp = luau.call(
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(baseExpression),
-			index: addOneIfArrayType(state, state.getType(expression.expression), argumentExp),
+			index: addOneIfArrayType(state, state.getNonOptionalType(expression.expression), argumentExp),
 		}),
 		args,
 	);

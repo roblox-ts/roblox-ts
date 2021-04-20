@@ -187,6 +187,10 @@ export class TransformState {
 		return getOrSetDefault(this.getTypeCache, node, () => this.typeChecker.getTypeAtLocation(skipUpwards(node)));
 	}
 
+	public getNonOptionalType(node: ts.Node) {
+		return this.typeChecker.getNonOptionalType(this.getType(node));
+	}
+
 	public getOriginalSymbol(node: ts.Node) {
 		const symbol = this.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {

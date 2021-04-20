@@ -198,18 +198,6 @@ export function getFirstConstructSymbol(state: TransformState, expression: ts.Ex
 	}
 }
 
-export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
-	if (type.isUnionOrIntersection()) {
-		for (const t of type.types) {
-			if (t.symbol && !state.typeChecker.isUndefinedSymbol(t.symbol)) {
-				return t.symbol;
-			}
-		}
-	} else {
-		return type.symbol;
-	}
-}
-
 export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
 }
