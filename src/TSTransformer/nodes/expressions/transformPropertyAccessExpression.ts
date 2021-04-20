@@ -8,7 +8,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformPropertyAccessExpressionInner(
@@ -19,7 +18,7 @@ export function transformPropertyAccessExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node));
+	const symbol = state.typeChecker.getNonOptionalType(state.getType(node)).symbol;
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
 			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
