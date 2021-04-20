@@ -88,9 +88,9 @@ export function isMethod(
 
 	walkTypes(state.getType(node), t => {
 		if (t.symbol) {
-			result =
-				result ||
-				getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () => isMethodInner(state, node, t));
+			result ||= getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () =>
+				isMethodInner(state, node, t),
+			);
 		}
 	});
 
