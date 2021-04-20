@@ -11,7 +11,7 @@ import { isMethod } from "TSTransformer/util/isMethod";
 import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 
 export function transformElementAccessExpressionInner(
@@ -23,7 +23,8 @@ export function transformElementAccessExpressionInner(
 	validateNotAnyType(state, node.expression);
 	validateNotAnyType(state, node.argumentExpression);
 
-	const symbol = state.typeChecker.getNonOptionalType(state.getType(node)).symbol;
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
 			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
@@ -48,7 +49,6 @@ export function transformElementAccessExpressionInner(
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
 	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
 		if (isLuaTupleType(state, expType)) {

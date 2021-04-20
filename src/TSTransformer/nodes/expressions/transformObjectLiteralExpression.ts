@@ -8,7 +8,7 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
 	state: TransformState,
@@ -32,7 +32,8 @@ function transformPropertyAssignment(
 }
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
-	const symbol = state.typeChecker.getNonOptionalType(state.getType(property.expression)).symbol;
+	const expType = state.typeChecker.getNonOptionalType(state.getType(property.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(property));
 	}

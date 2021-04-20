@@ -86,6 +86,38 @@ function isMethodInner(
 	return hasMethodDefinition;
 }
 
+function isMethodInner2(
+	state: TransformState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
+	type: ts.Type,
+) {
+	let hasMethodDefinition = false;
+	let hasCallbackDefinition = false;
+
+	for (const callSignature of state.getType(node).getCallSignatures()) {
+		const thisValueDeclaration = callSignature.thisParameter?.valueDeclaration;
+		if (thisValueDeclaration) {
+			if (!(state.getType(thisValueDeclaration).flags & ts.TypeFlags.Void)) {
+				hasMethodDefinition = true;
+			} else {
+				hasCallbackDefinition = true;
+			}
+		} else if (callSignature.declaration) {
+			if (isMethodDeclaration(state, callSignature.declaration)) {
+				hasMethodDefinition = true;
+			} else {
+				hasCallbackDefinition = true;
+			}
+		}
+	}
+
+	if (hasMethodDefinition && hasCallbackDefinition) {
+		DiagnosticService.addDiagnostic(errors.noMixedTypeCall(node));
+	}
+
+	return hasMethodDefinition;
+}
+
 export function isMethod(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,

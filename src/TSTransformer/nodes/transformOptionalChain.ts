@@ -16,6 +16,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 
 enum OptionalChainItemKind {
@@ -266,7 +267,8 @@ function transformOptionalChainInner(
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
-					const symbol = state.typeChecker.getNonOptionalType(state.getType(item.node.expression)).symbol;
+					const expType = state.typeChecker.getNonOptionalType(state.getType(item.node.expression));
+					const symbol = getFirstDefinedSymbol(state, expType);
 					if (symbol) {
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {

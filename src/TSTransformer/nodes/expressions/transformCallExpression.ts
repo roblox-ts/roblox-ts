@@ -14,6 +14,7 @@ import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate"
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 
@@ -101,7 +102,8 @@ export function transformCallExpressionInner(
 		]);
 	}
 
-	const symbol = state.typeChecker.getNonOptionalType(state.getType(node.expression)).symbol;
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
@@ -141,7 +143,8 @@ export function transformPropertyCallExpressionInner(
 		]);
 	}
 
-	const symbol = state.typeChecker.getNonOptionalType(state.getType(node.expression)).symbol;
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
@@ -199,7 +202,8 @@ export function transformElementCallExpressionInner(
 		);
 	}
 
-	const symbol = state.typeChecker.getNonOptionalType(state.getType(node.expression)).symbol;
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
