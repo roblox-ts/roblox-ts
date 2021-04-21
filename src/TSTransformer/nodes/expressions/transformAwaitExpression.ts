@@ -5,5 +5,5 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { skipDownwards } from "TSTransformer/util/traversal";
 
 export function transformAwaitExpression(state: TransformState, node: ts.AwaitExpression) {
-	return luau.call(state.TS("await"), [transformExpression(state, skipDownwards(node.expression))]);
+	return luau.call(state.TS(node, "await"), [transformExpression(state, skipDownwards(node.expression))]);
 }

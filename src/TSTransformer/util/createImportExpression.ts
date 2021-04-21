@@ -62,7 +62,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	assert(moduleName && typeof moduleName === "string");
 
 	return propertyAccessExpressionChain(
-		luau.call(state.TS("getModule"), [luau.globals.script, luau.string(moduleName)]),
+		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [luau.globals.script, luau.string(moduleName)]),
 		relativeRbxPath.slice(1),
 	);
 }
@@ -124,5 +124,5 @@ export function createImportExpression(
 		}
 	}
 
-	return luau.call(state.TS("import"), importPathExpressions);
+	return luau.call(state.TS(moduleSpecifier.parent, "import"), importPathExpressions);
 }

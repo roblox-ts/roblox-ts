@@ -16,7 +16,7 @@ export function transformImportExpression(state: TransformState, node: ts.CallEx
 	const importExpression = createImportExpression(state, node.getSourceFile(), moduleSpecifier);
 	const resolveId = luau.id("resolve");
 
-	return luau.call(luau.property(state.TS("Promise"), "new"), [
+	return luau.call(luau.property(state.TS(node, "Promise"), "new"), [
 		luau.create(luau.SyntaxKind.FunctionExpression, {
 			hasDotDotDot: false,
 			parameters: luau.list.make(resolveId),

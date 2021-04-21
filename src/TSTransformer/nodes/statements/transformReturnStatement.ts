@@ -29,7 +29,7 @@ export function transformReturnStatementInner(state: TransformState, returnExp: 
 
 		return luau.create(luau.SyntaxKind.ReturnStatement, {
 			expression: luau.list.make<luau.Expression>(
-				state.TS("TRY_RETURN"),
+				state.TS(returnExp, "TRY_RETURN"),
 				luau.create(luau.SyntaxKind.Array, {
 					members: luau.list.isList(expression) ? expression : luau.list.make(expression),
 				}),
@@ -46,7 +46,7 @@ export function transformReturnStatement(state: TransformState, node: ts.ReturnS
 			state.markTryUses("usesReturn");
 			return luau.list.make(
 				luau.create(luau.SyntaxKind.ReturnStatement, {
-					expression: luau.list.make<luau.Expression>(state.TS("TRY_RETURN"), luau.array()),
+					expression: luau.list.make<luau.Expression>(state.TS(node, "TRY_RETURN"), luau.array()),
 				}),
 			);
 		}

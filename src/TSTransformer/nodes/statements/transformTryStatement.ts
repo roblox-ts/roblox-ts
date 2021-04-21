@@ -64,22 +64,23 @@ function transformIntoTryCall(
 
 	if (!tryUses.usesReturn && !tryUses.usesBreak && !tryUses.usesContinue) {
 		return luau.create(luau.SyntaxKind.CallStatement, {
-			expression: luau.call(state.TS("try"), tryCallArgs),
+			expression: luau.call(state.TS(node, "try"), tryCallArgs),
 		});
 	}
 
 	return luau.create(luau.SyntaxKind.VariableDeclaration, {
 		left: luau.list.make(exitTypeId, returnsId),
-		right: luau.call(state.TS("try"), tryCallArgs),
+		right: luau.call(state.TS(node, "try"), tryCallArgs),
 	});
 }
 
 function createFlowControlCondition(
 	state: TransformState,
+	node: ts.Node,
 	exitTypeId: luau.TemporaryIdentifier,
 	flowControlConstant: string,
 ) {
-	return luau.binary(exitTypeId, "==", state.TS(flowControlConstant));
+	return luau.binary(exitTypeId, "==", state.TS(node, flowControlConstant));
 }
 
 type FlowControlCase = { condition?: luau.Expression; statements: luau.List<luau.Statement> };
@@ -133,7 +134,7 @@ function transformFlowControl(
 	if (tryUses.usesReturn) {
 		if (returnBlocked) {
 			flowControlCases.push({
-				condition: createFlowControlCondition(state, exitTypeId, "TRY_RETURN"),
+				condition: createFlowControlCondition(state, node, exitTypeId, "TRY_RETURN"),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.ReturnStatement, {
 						expression: luau.list.make(exitTypeId, returnsId),
@@ -145,7 +146,7 @@ function transformFlowControl(
 			}
 		} else {
 			flowControlCases.push({
-				condition: createFlowControlCondition(state, exitTypeId, "TRY_RETURN"),
+				condition: createFlowControlCondition(state, node, exitTypeId, "TRY_RETURN"),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.ReturnStatement, {
 						expression: luau.call(luau.globals.unpack, [returnsId]),
@@ -167,13 +168,13 @@ function transformFlowControl(
 		} else {
 			if (tryUses.usesBreak) {
 				flowControlCases.push({
-					condition: createFlowControlCondition(state, exitTypeId, "TRY_BREAK"),
+					condition: createFlowControlCondition(state, node, exitTypeId, "TRY_BREAK"),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
 				});
 			}
 			if (tryUses.usesContinue) {
 				flowControlCases.push({
-					condition: createFlowControlCondition(state, exitTypeId, "TRY_CONTINUE"),
+					condition: createFlowControlCondition(state, node, exitTypeId, "TRY_CONTINUE"),
 					statements: luau.list.make(luau.create(luau.SyntaxKind.ContinueStatement, {})),
 				});
 			}

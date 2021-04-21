@@ -16,7 +16,7 @@ export function transformContinueStatement(state: TransformState, node: ts.Conti
 
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: state.TS("TRY_CONTINUE"),
+				expression: state.TS(node, "TRY_CONTINUE"),
 			}),
 		);
 	}

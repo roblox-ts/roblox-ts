@@ -60,6 +60,7 @@ function createBinaryAdd(
 
 export function createBinaryFromOperator(
 	state: TransformState,
+	node: ts.Node,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.SyntaxKind,
@@ -87,7 +88,7 @@ export function createBinaryFromOperator(
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
 	) {
-		return luau.call(state.TS("bit_lrsh"), [left, right]);
+		return luau.call(state.TS(node, "bit_lrsh"), [left, right]);
 	}
 
 	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);
