@@ -1,5 +1,6 @@
 import ts from "byots";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 
 function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
 	for (const baseType of type.getBaseTypes() ?? []) {
@@ -128,7 +129,10 @@ export function isIterableFunctionType(state: TransformState, type: ts.Type) {
 }
 
 export function isLuaTupleType(state: TransformState, type: ts.Type) {
-	return type.aliasSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.LuaTuple);
+	return (
+		type.getProperty(NOMINAL_LUA_TUPLE_NAME) ===
+		state.services.macroManager.getSymbolOrThrow(NOMINAL_LUA_TUPLE_NAME)
+	);
 }
 
 export function isIterableFunctionLuaTupleType(state: TransformState, type: ts.Type) {
