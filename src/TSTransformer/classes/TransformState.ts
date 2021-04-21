@@ -168,10 +168,6 @@ export class TransformState {
 		return [node, prereqs];
 	}
 
-	/**
-	 *
-	 * @param callback
-	 */
 	public noPrereqs(callback: () => luau.Expression) {
 		let expression!: luau.Expression;
 		const statements = this.capturePrereqs(() => (expression = callback()));
