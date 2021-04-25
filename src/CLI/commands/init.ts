@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import kleur from "kleur";
 import path from "path";
 import prompts from "prompts";
-import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
+import { COMPILER_VERSION, PACKAGE_ROOT, RBXTS_SCOPE } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
 import yargs from "yargs";
 
@@ -124,25 +124,26 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		},
 	]);
 
-	// git init
 	await benchmark("Initializing..", async () => {
+		await cmd("npm init -y");
+		const pkgJson = await fs.readJson(paths.packageJson);
+		pkgJson.scripts = {
+			build: "rbxtsc",
+			watch: "rbxtsc -w",
+		};
 		if (mode === InitMode.Package) {
-			await cmd("npm init -y --scope @rbxts");
-			const pkgJson = await fs.readJson(paths.packageJson);
+			pkgJson.name = RBXTS_SCOPE + "/" + pkgJson.name;
 			pkgJson.main = "out/init.lua";
 			pkgJson.types = "out/index.d.ts";
 			pkgJson.files = ["out"];
 			pkgJson.publishConfig = {
 				access: "public",
 			};
-			pkgJson.scripts = {
-				prepublishOnly: "rbxtsc",
-			};
-			await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
-		} else {
-			await cmd("npm init -y");
+			pkgJson.scripts.prepublishOnly = "npm run build";
 		}
+		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 
+		// git init
 		if (git) {
 			await cmd("git init");
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
