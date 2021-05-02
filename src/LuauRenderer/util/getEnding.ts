@@ -64,7 +64,7 @@ function startsWithParenthesis(node: luau.Statement) {
 	return false;
 }
 
-function getNextNonComment(state: RenderState, node: luau.Statement) {
+function getNextNonComment(state: RenderState) {
 	let listNode = state.peekListNode()?.next;
 	while (listNode && luau.isComment(listNode.value)) {
 		listNode = listNode.next;
@@ -83,7 +83,7 @@ function getNextNonComment(state: RenderState, node: luau.Statement) {
  * - Assignment
  */
 export function getEnding(state: RenderState, node: luau.Statement) {
-	const nextStatement = getNextNonComment(state, node);
+	const nextStatement = getNextNonComment(state);
 	if (nextStatement !== undefined && endsWithIndexableExpression(node) && startsWithParenthesis(nextStatement)) {
 		return ";";
 	} else {
