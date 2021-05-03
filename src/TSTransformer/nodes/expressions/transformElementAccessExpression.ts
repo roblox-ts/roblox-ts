@@ -23,7 +23,8 @@ export function transformElementAccessExpressionInner(
 	validateNotAnyType(state, node.expression);
 	validateNotAnyType(state, node.argumentExpression);
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node));
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
 			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
@@ -48,7 +49,6 @@ export function transformElementAccessExpressionInner(
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
-	const expType = state.getType(node.expression);
 	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
 		if (isLuaTupleType(state, expType)) {

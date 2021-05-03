@@ -38,7 +38,7 @@ export function transformMethodDeclaration(
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements);
 	}
 
 	// can we use `function class:name() end`?
@@ -74,7 +74,7 @@ export function transformMethodDeclaration(
 	});
 
 	if (isAsync) {
-		expression = luau.call(state.TS("async"), [expression]);
+		expression = luau.call(state.TS(node, "async"), [expression]);
 	}
 
 	// we have to use `class[name] = function()`

@@ -64,6 +64,7 @@ export function transformExpressionStatementInner(
 				return luau.list.make(
 					createCompoundAssignmentStatement(
 						state,
+						expression,
 						writable,
 						writableType,
 						readable,

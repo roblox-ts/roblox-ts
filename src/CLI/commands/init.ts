@@ -35,24 +35,20 @@ enum PackageManager {
 }
 
 interface PackageManagerCommands {
-	initScoped: string;
 	init: string;
 	devInstall: string;
 }
 
 const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 	[PackageManager.NPM]: {
-		initScoped: `npm init -y --scope ${RBXTS_SCOPE}`,
 		init: "npm init -y",
 		devInstall: "npm install --silent -D",
 	},
 	[PackageManager.Yarn]: {
-		initScoped: "yarn init -y",
 		init: "yarn init -y",
 		devInstall: "yarn add --silent -D",
 	},
 	[PackageManager.PNPM]: {
-		initScoped: `pnpm init -y --scope ${RBXTS_SCOPE}`,
 		init: "pnpm init -y",
 		devInstall: "pnpm install --silent -D",
 	},
@@ -171,33 +167,27 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		},
 	]);
 
-	// git init
 	await benchmark("Initializing..", async () => {
 		const selectedPackageManager = packageManagerCommands[packageManager];
-
+		await cmd(selectedPackageManager.init);
+		const pkgJson = await fs.readJson(paths.packageJson);
+		pkgJson.scripts = {
+			build: "rbxtsc",
+			watch: "rbxtsc -w",
+		};
 		if (mode === InitMode.Package) {
-			await cmd(selectedPackageManager.initScoped);
-			const pkgJson = await fs.readJson(paths.packageJson);
-
-			if (packageManager === PackageManager.Yarn) {
-				// yarn doesn't have a --scope parameter for init
-				pkgJson.name = `${RBXTS_SCOPE}/${pkgJson.name}`;
-			}
-
+			pkgJson.name = RBXTS_SCOPE + "/" + pkgJson.name;
 			pkgJson.main = "out/init.lua";
 			pkgJson.types = "out/index.d.ts";
 			pkgJson.files = ["out"];
 			pkgJson.publishConfig = {
 				access: "public",
 			};
-			pkgJson.scripts = {
-				prepublishOnly: "rbxtsc",
-			};
-			await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
-		} else {
-			await cmd(selectedPackageManager.init);
+			pkgJson.scripts.prepublishOnly = "npm run build";
 		}
+		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 
+		// git init
 		if (git) {
 			await cmd("git init");
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");

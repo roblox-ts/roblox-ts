@@ -13,9 +13,15 @@ import { getAncestor } from "TSTransformer/util/traversal";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
+	if (declaration.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
+		return false;
+	}
+
 	if (ts.isModuleDeclaration(declaration) && ts.isInstantiatedModule(declaration, false)) {
 		return true;
 	} else if (ts.isFunctionDeclaration(declaration) && declaration.body) {
+		return true;
+	} else if (ts.isClassDeclaration(declaration)) {
 		return true;
 	}
 	return false;

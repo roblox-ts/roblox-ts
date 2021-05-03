@@ -16,7 +16,7 @@ export function transformBreakStatement(state: TransformState, node: ts.BreakSta
 
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: state.TS("TRY_BREAK"),
+				expression: state.TS(node, "TRY_BREAK"),
 			}),
 		);
 	}

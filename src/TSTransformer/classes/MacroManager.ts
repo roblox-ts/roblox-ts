@@ -40,6 +40,8 @@ export const SYMBOL_NAMES = {
 	Iterable: "Iterable",
 } as const;
 
+export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";
+
 const MACRO_ONLY_CLASSES = new Set<string>([
 	"ReadonlyArray",
 	"Array",
@@ -138,6 +140,18 @@ export class MacroManager {
 				this.symbols.set(symbolName, symbol);
 			} else {
 				throw new ProjectError(`MacroManager could not find symbol for ${symbolName}` + TYPES_NOTICE);
+			}
+		}
+
+		const luaTupleTypeDec = this.symbols
+			.get(SYMBOL_NAMES.LuaTuple)
+			?.declarations.find(v => ts.isTypeAliasDeclaration(v));
+		if (luaTupleTypeDec) {
+			const nominalLuaTupleSymbol = typeChecker
+				.getTypeAtLocation(luaTupleTypeDec)
+				.getProperty(NOMINAL_LUA_TUPLE_NAME);
+			if (nominalLuaTupleSymbol) {
+				this.symbols.set(NOMINAL_LUA_TUPLE_NAME, nominalLuaTupleSymbol);
 			}
 		}
 	}

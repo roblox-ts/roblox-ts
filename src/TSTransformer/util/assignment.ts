@@ -53,6 +53,7 @@ export function createAssignmentExpression(
 
 export function createCompoundAssignmentStatement(
 	state: TransformState,
+	node: ts.Node,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -63,12 +64,13 @@ export function createCompoundAssignmentStatement(
 	return luau.create(luau.SyntaxKind.Assignment, {
 		left: writable,
 		operator: "=",
-		right: createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
+		right: createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
 	});
 }
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
+	node: ts.Node,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -80,6 +82,6 @@ export function createCompoundAssignmentExpression(
 		state,
 		writable,
 		"=",
-		createBinaryFromOperator(state, readable, writableType, operator, value, valueType),
+		createBinaryFromOperator(state, node, readable, writableType, operator, value, valueType),
 	);
 }

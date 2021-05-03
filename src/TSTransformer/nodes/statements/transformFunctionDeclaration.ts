@@ -42,11 +42,11 @@ export function transformFunctionDeclaration(state: TransformState, node: ts.Fun
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements);
 	}
 
 	if (isAsync) {
-		const right = luau.call(state.TS("async"), [
+		const right = luau.call(state.TS(node, "async"), [
 			luau.create(luau.SyntaxKind.FunctionExpression, {
 				hasDotDotDot,
 				parameters,

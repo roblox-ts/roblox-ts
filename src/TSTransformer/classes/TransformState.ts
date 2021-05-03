@@ -5,7 +5,7 @@ import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { errors } from "Shared/diagnostics";
+import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
@@ -44,6 +44,7 @@ export class TransformState {
 	}
 
 	public readonly resolver: ts.EmitResolver;
+	private isInReplicatedFirst: boolean;
 
 	constructor(
 		public readonly data: ProjectData,
@@ -61,6 +62,10 @@ export class TransformState {
 	) {
 		this.sourceFileText = sourceFile.getFullText();
 		this.resolver = typeChecker.getEmitResolver(sourceFile);
+
+		const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
+		const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
 	}
 
 	public readonly tryUsesStack = new Array<TryUses>();
@@ -168,10 +173,6 @@ export class TransformState {
 		return [node, prereqs];
 	}
 
-	/**
-	 *
-	 * @param callback
-	 */
 	public noPrereqs(callback: () => luau.Expression) {
 		let expression!: luau.Expression;
 		const statements = this.capturePrereqs(() => (expression = callback()));
@@ -195,8 +196,13 @@ export class TransformState {
 	}
 
 	public usesRuntimeLib = false;
-	public TS(name: string) {
+	public TS(node: ts.Node, name: string) {
 		this.usesRuntimeLib = true;
+
+		if (this.projectType === ProjectType.Game && this.isInReplicatedFirst) {
+			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
+		}
+
 		return luau.property(RUNTIME_LIB_ID, name);
 	}
 
@@ -234,7 +240,9 @@ export class TransformState {
 				const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
-					DiagnosticService.addDiagnostic(errors.noRojoData(sourceFile));
+					DiagnosticService.addDiagnostic(
+						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
+					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: RUNTIME_LIB_ID,
 						right: luau.nil(),

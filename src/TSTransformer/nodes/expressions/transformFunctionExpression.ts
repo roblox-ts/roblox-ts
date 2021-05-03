@@ -31,7 +31,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		if (isAsync) {
 			DiagnosticService.addDiagnostic(errors.noAsyncGeneratorFunctions(node));
 		}
-		statements = wrapStatementsAsGenerator(state, statements);
+		statements = wrapStatementsAsGenerator(state, node, statements);
 	}
 
 	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {
@@ -41,7 +41,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	});
 
 	if (isAsync) {
-		expression = luau.call(state.TS("async"), [expression]);
+		expression = luau.call(state.TS(node, "async"), [expression]);
 	}
 
 	return expression;

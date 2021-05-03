@@ -102,7 +102,8 @@ export function transformCallExpressionInner(
 		]);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
 		if (macro) {
@@ -142,7 +143,8 @@ export function transformPropertyCallExpressionInner(
 		]);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
@@ -200,7 +202,8 @@ export function transformElementCallExpressionInner(
 		);
 	}
 
-	const symbol = getFirstDefinedSymbol(state, state.getType(node.expression));
+	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 		if (macro) {
@@ -227,7 +230,11 @@ export function transformElementCallExpressionInner(
 	const exp = luau.call(
 		luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: convertToIndexableExpression(baseExpression),
-			index: addOneIfArrayType(state, state.getType(expression.expression), argumentExp),
+			index: addOneIfArrayType(
+				state,
+				state.typeChecker.getNonOptionalType(state.getType(expression.expression)),
+				argumentExp,
+			),
 		}),
 		args,
 	);

@@ -52,29 +52,23 @@ function isMethodInner(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
 	type: ts.Type,
-): boolean {
+) {
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
-	const declarations = type.symbol.getDeclarations();
-	if (declarations) {
-		for (const declaration of declarations) {
-			if (ts.isTypeLiteralNode(declaration)) {
-				for (const callSignature of type.getCallSignatures()) {
-					if (callSignature.declaration) {
-						if (isMethodDeclaration(state, callSignature.declaration)) {
-							hasMethodDefinition = true;
-						} else {
-							hasCallbackDefinition = true;
-						}
-					}
-				}
+	for (const callSignature of type.getCallSignatures()) {
+		const thisValueDeclaration = callSignature.thisParameter?.valueDeclaration;
+		if (thisValueDeclaration) {
+			if (!(state.getType(thisValueDeclaration).flags & ts.TypeFlags.Void)) {
+				hasMethodDefinition = true;
 			} else {
-				if (isMethodDeclaration(state, declaration)) {
-					hasMethodDefinition = true;
-				} else {
-					hasCallbackDefinition = true;
-				}
+				hasCallbackDefinition = true;
+			}
+		} else if (callSignature.declaration) {
+			if (isMethodDeclaration(state, callSignature.declaration)) {
+				hasMethodDefinition = true;
+			} else {
+				hasCallbackDefinition = true;
 			}
 		}
 	}
@@ -94,9 +88,9 @@ export function isMethod(
 
 	walkTypes(state.getType(node), t => {
 		if (t.symbol) {
-			result =
-				result ||
-				getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () => isMethodInner(state, node, t));
+			result ||= getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () =>
+				isMethodInner(state, node, t),
+			);
 		}
 	});
 
