@@ -37,20 +37,24 @@ enum PackageManager {
 interface PackageManagerCommands {
 	init: string;
 	devInstall: string;
+	build: string;
 }
 
 const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 	[PackageManager.NPM]: {
 		init: "npm init -y",
 		devInstall: "npm install --silent -D",
+		build: "npm run build",
 	},
 	[PackageManager.Yarn]: {
 		init: "yarn init -y",
 		devInstall: "yarn add --silent -D",
+		build: "yarn run build",
 	},
 	[PackageManager.PNPM]: {
 		init: "pnpm init -y",
 		devInstall: "pnpm install --silent -D",
+		build: "pnpm run build",
 	},
 };
 
@@ -183,7 +187,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			pkgJson.publishConfig = {
 				access: "public",
 			};
-			pkgJson.scripts.prepublishOnly = "npm run build";
+			pkgJson.scripts.prepublishOnly = selectedPackageManager.build;
 		}
 		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 
