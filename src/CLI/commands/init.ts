@@ -4,6 +4,7 @@ import build from "CLI/commands/build";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import kleur from "kleur";
+import { lookpath } from "lookpath";
 import path from "path";
 import prompts from "prompts";
 import { COMPILER_VERSION, PACKAGE_ROOT, RBXTS_SCOPE } from "Shared/constants";
@@ -122,6 +123,17 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 	}
 
+	// Detect if there is additional package managers
+	// We don't need to prompt the user to use additional package managers if none are installed
+
+	const packageManagerExistance: Record<PackageManager, boolean> = {
+		[PackageManager.NPM]: true, // NPM is installed by default, skip checking to save time
+		[PackageManager.PNPM]: (await lookpath("pnpm")) ? true : false,
+		[PackageManager.Yarn]: (await lookpath("yarn")) ? true : false,
+	};
+
+	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
+
 	const {
 		git = argv.git ?? argv.yes ?? false,
 		eslint = argv.eslint ?? argv.yes ?? false,
@@ -161,13 +173,16 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			initial: true,
 		},
 		{
-			type: () => argv.packageManager === undefined && argv.yes === undefined && "select",
+			type: () =>
+				argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
 			name: "packageManager",
-			message: "Use alternate package manager",
-			choices: Object.entries(PackageManager).map(([managerDisplay, managerCommand]) => ({
-				title: managerDisplay,
-				value: managerCommand,
-			})),
+			message: "Multiple package managers detected. Select package manager:",
+			choices: Object.entries(PackageManager)
+				.filter(([, packageManager]) => packageManagerExistance[packageManager])
+				.map(([managerDisplayName, managerEnum]) => ({
+					title: managerDisplayName,
+					value: managerEnum,
+				})),
 		},
 	]);
 
