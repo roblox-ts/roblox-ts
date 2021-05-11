@@ -61,7 +61,9 @@ export interface Identifier extends luau.Expression<luau.SyntaxKind.Identifier> 
 
 export interface EmptyIdentifier extends luau.Expression<luau.SyntaxKind.EmptyIdentifier> {}
 
-export interface TemporaryIdentifier extends luau.Expression<luau.SyntaxKind.TemporaryIdentifier> {}
+export interface TemporaryIdentifier extends luau.Expression<luau.SyntaxKind.TemporaryIdentifier> {
+	name?: string;
+}
 
 export interface ComputedIndexExpression extends luau.Expression<luau.SyntaxKind.ComputedIndexExpression> {
 	expression: luau.IndexableExpression;

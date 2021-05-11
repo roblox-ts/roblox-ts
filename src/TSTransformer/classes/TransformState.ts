@@ -279,8 +279,8 @@ export class TransformState {
 	 * Can also be used to initialise a new tempId without a value
 	 * @param expression
 	 */
-	public pushToVar(expression: luau.Expression | undefined) {
-		const temp = luau.tempId();
+	public pushToVar(expression: luau.Expression | undefined, name?: string) {
+		const temp = luau.tempId(name);
 		this.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: temp,
@@ -296,22 +296,23 @@ export class TransformState {
 	 */
 	public pushToVarIfComplex<T extends luau.Expression>(
 		expression: T,
+		name?: string,
 	): Extract<T, luau.SimpleTypes> | luau.TemporaryIdentifier {
 		if (luau.isSimple(expression)) {
 			return expression as Extract<T, luau.SimpleTypes>;
 		}
-		return this.pushToVar(expression);
+		return this.pushToVar(expression, name);
 	}
 
 	/**
 	 * Uses `state.pushToVar(expression)` unless `luau.isAnyIdentifier(expression)`
 	 * @param expression the expression to push
 	 */
-	public pushToVarIfNonId<T extends luau.Expression>(expression: T): luau.AnyIdentifier {
+	public pushToVarIfNonId<T extends luau.Expression>(expression: T, name?: string): luau.AnyIdentifier {
 		if (luau.isAnyIdentifier(expression)) {
 			return expression;
 		}
-		return this.pushToVar(expression);
+		return this.pushToVar(expression, name);
 	}
 
 	public getModuleExports(moduleSymbol: ts.Symbol) {

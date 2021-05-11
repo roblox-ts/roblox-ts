@@ -31,8 +31,8 @@ export function create<T extends keyof luau.NodeByKind>(
 /**
  * Creates a new temporary identifier for a node.
  */
-export function tempId() {
-	return luau.create(luau.SyntaxKind.TemporaryIdentifier, {});
+export function tempId(name?: string) {
+	return luau.create(luau.SyntaxKind.TemporaryIdentifier, { name });
 }
 
 /**
