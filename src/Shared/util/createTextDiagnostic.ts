@@ -6,7 +6,7 @@ export function createTextDiagnostic(
 ): ts.Diagnostic {
 	return {
 		category,
-		code: (" roblox-ts" as unknown) as number,
+		code: " roblox-ts" as unknown as number,
 		file: undefined,
 		messageText,
 		start: undefined,
