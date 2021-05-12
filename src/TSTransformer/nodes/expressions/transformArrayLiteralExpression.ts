@@ -13,7 +13,7 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 	}
 
 	const ptr = createArrayPointer();
-	const lengthId = luau.tempId();
+	const lengthId = luau.tempId("len");
 	let lengthInitialized = false;
 	let amtElementsSinceUpdate = 0;
 

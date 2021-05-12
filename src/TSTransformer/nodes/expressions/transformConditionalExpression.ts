@@ -27,7 +27,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 		);
 	}
 
-	const tempId = luau.tempId();
+	const tempId = luau.tempId("result");
 	state.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
 			left: tempId,

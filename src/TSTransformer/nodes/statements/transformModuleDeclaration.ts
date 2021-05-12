@@ -65,7 +65,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 	const statements = luau.list.make<luau.Statement>();
 	const doStatements = luau.list.make<luau.Statement>();
 
-	const containerId = luau.tempId();
+	const containerId = luau.tempId("container");
 	state.setModuleIdBySymbol(symbol, containerId);
 
 	if (state.isHoisted.get(symbol)) {

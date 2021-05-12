@@ -15,7 +15,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 	validateNotAnyType(state, node.operand);
 
 	const writable = transformWritableExpression(state, node.operand, true);
-	const origValue = luau.tempId();
+	const origValue = luau.tempId("original");
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {

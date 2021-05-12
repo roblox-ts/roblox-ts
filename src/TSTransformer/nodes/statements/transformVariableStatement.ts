@@ -78,7 +78,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 
 		const forStatement = getAncestor(identifier, ts.isVariableDeclarationList)?.parent;
 		if (forStatement && ts.isForStatement(forStatement)) {
-			const tempId = luau.tempId();
+			const tempId = luau.tempId(left.name);
 			getOrSetDefault(state.forStatementToSymbolsMap, forStatement, () => []).push(symbol);
 			state.forStatementSymbolToIdMap.set(symbol, tempId);
 			left = tempId;
@@ -122,7 +122,7 @@ function transformLuaTupleDestructure(
 							state.prereq(transformInitializer(state, id, element.initializer));
 						}
 					} else {
-						const id = luau.tempId();
+						const id = luau.tempId("bind");
 						luau.list.push(ids, id);
 						if (element.initializer) {
 							state.prereq(transformInitializer(state, id, element.initializer));

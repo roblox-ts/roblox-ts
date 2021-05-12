@@ -48,8 +48,8 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		spreadExp = state.pushToVarIfComplex(spreadExp);
 	}
 
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [spreadExp]),

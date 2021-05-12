@@ -36,7 +36,7 @@ function optimizeArraySpreadParameter(
 					state.prereq(transformInitializer(state, paramId, element.initializer));
 				}
 			} else {
-				const paramId = luau.tempId();
+				const paramId = luau.tempId("param");
 				luau.list.push(parameters, paramId);
 				if (element.initializer) {
 					state.prereq(transformInitializer(state, paramId, element.initializer));
@@ -78,7 +78,7 @@ export function transformParameters(state: TransformState, node: ts.SignatureDec
 			paramId = transformIdentifierDefined(state, parameter.name);
 			validateIdentifier(state, parameter.name);
 		} else {
-			paramId = luau.tempId();
+			paramId = luau.tempId("param");
 		}
 
 		if (parameter.dotDotDotToken) {

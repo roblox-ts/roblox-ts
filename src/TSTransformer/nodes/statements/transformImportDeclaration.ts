@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { Lazy } from "Shared/classes/Lazy";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
@@ -40,6 +41,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	const statements = luau.list.make<luau.Statement>();
 
+	assert(ts.isStringLiteral(node.moduleSpecifier));
 	const importExp = new Lazy<luau.CallExpression | luau.AnyIdentifier>(() =>
 		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 	);
@@ -48,7 +50,8 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		// detect if we need to push to a new var or not
 		const uses = countImportExpUses(state, importClause);
 		if (uses > 1) {
-			const id = luau.tempId();
+			const moduleName = node.moduleSpecifier.text.split("/");
+			const id = luau.tempId(moduleName[moduleName.length - 1]);
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.VariableDeclaration, {

@@ -186,8 +186,8 @@ function transformFlowControl(
 
 export function transformTryStatement(state: TransformState, node: ts.TryStatement) {
 	const statements = luau.list.make<luau.Statement>();
-	const exitTypeId = luau.tempId();
-	const returnsId = luau.tempId();
+	const exitTypeId = luau.tempId("exitType");
+	const returnsId = luau.tempId("returns");
 
 	const tryUses = state.pushTryUsesStack();
 	luau.list.push(statements, transformIntoTryCall(state, node, exitTypeId, returnsId, tryUses));

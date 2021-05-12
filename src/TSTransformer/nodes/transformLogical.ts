@@ -139,7 +139,7 @@ function buildInlineConditionExpression(
 		return chain[0].expression;
 	}
 
-	const conditionId = luau.tempId();
+	const conditionId = luau.tempId("condition");
 	buildLogicalChainPrereqs(state, chain, conditionId, buildCondition);
 	return conditionId;
 }
@@ -160,7 +160,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		  - cannot inline
 		*/
 		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
-		const conditionId = luau.tempId();
+		const conditionId = luau.tempId("condition");
 		buildLogicalChainPrereqs(state, chain, conditionId, conditionId => luau.binary(conditionId, "==", luau.nil()));
 		return conditionId;
 	}
