@@ -1,4 +1,4 @@
-name: CI
+name: Build and test
 
 on:
   pull_request:
@@ -7,32 +7,21 @@ on:
       - master
 
 jobs:
-  build-and-lint:
+  build-and-test:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
         with:
-          submodules: recursive
+          node-version: 12
 
-      - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
-
-      - name: Run ESLint
-        run: npm run eslint
-  unit-tests:
-    runs-on: windows-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
-        with:
-          submodules: recursive
-
-      - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
-
+      - name: Install Node.js dependencies
+        run: npm ci
+        
       - name: Install Roblox Studio
         uses: OrbitalOwen/roblox-win-installer-action@1.1
         continue-on-error: true
