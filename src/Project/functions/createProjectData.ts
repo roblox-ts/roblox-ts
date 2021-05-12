@@ -21,7 +21,7 @@ export function createProjectData(
 	const projectOptions = Object.assign({}, DEFAULT_PROJECT_OPTIONS, opts);
 	const projectPath = path.dirname(tsConfigPath);
 
-	const pkgJsonPath = ts.findPackageJson(projectPath, (ts.sys as unknown) as ts.LanguageServiceHost);
+	const pkgJsonPath = ts.findPackageJson(projectPath, ts.sys as unknown as ts.LanguageServiceHost);
 	if (!pkgJsonPath) {
 		throw new ProjectError("Unable to find package.json");
 	}

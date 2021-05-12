@@ -8,7 +8,7 @@ export function createDiagnosticWithLocation(
 ): ts.DiagnosticWithLocation {
 	return {
 		category,
-		code: (" roblox-ts" as unknown) as number,
+		code: " roblox-ts" as unknown as number,
 		file: node.getSourceFile(),
 		messageText: message,
 		start: node.getStart(),
