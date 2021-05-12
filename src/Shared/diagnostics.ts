@@ -26,8 +26,8 @@ let id = 0;
  * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
  * @param messages The list of messages to include in the error report.
  */
-function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>): DiagnosticFactory {
-	return diagnosticWithContext<void>(category, undefined, ...messages);
+function diagnostic(category: ts.DiagnosticCategory, code: number, ...messages: Array<string>): DiagnosticFactory {
+	return diagnosticWithContext<void>(category, code, undefined, ...messages);
 }
 
 /**
@@ -40,6 +40,7 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>)
  */
 function diagnosticWithContext<T>(
 	category: ts.DiagnosticCategory,
+	code: number,
 	contextFormatter?: DiagnosticContextFormatter<T>,
 	...messages: Array<string>
 ): DiagnosticFactory<T> {
@@ -52,33 +53,34 @@ function diagnosticWithContext<T>(
 			messages.push(...contextFormatter(context));
 		}
 
-		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
+		return createDiagnosticWithLocation(result.id, code, messages.join("\n"), category, node);
 	};
 	result.id = id++;
 	return result;
 }
 
-function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string>) {
-	return createTextDiagnostic(messages.join("\n"), category);
+function diagnosticText(category: ts.DiagnosticCategory, code: number, ...messages: Array<string>) {
+	return createTextDiagnostic(code, messages.join("\n"), category);
 }
 
-function error(...messages: Array<string>): DiagnosticFactory {
-	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
+function error(code: number, ...messages: Array<string>): DiagnosticFactory {
+	return diagnostic(ts.DiagnosticCategory.Error, code, ...messages);
 }
 
 function errorWithContext<T>(
+	code: number,
 	contextFormatter: DiagnosticContextFormatter<T>,
 	...messages: Array<string>
 ): DiagnosticFactory<T> {
-	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
+	return diagnosticWithContext(ts.DiagnosticCategory.Error, code, contextFormatter, ...messages);
 }
 
-function warning(...messages: Array<string>): DiagnosticFactory {
-	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
+function warning(code: number, ...messages: Array<string>): DiagnosticFactory {
+	return diagnostic(ts.DiagnosticCategory.Warning, code, ...messages);
 }
 
-function warningText(...messages: Array<string>) {
-	return diagnosticText(ts.DiagnosticCategory.Warning, ...messages);
+function warningText(code: number, ...messages: Array<string>) {
+	return diagnosticText(ts.DiagnosticCategory.Warning, code, ...messages);
 }
 
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
@@ -86,121 +88,155 @@ export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
 	return (diagnostic as any).id;
 }
 
+/*
+	Diagnostic Ranges
+	1-29: reserved identifiers
+	30-59: banned statements
+	60-99: banned expressions
+	100-199: banned features
+	200-299: macros
+	300-399: import-export
+	400-499: JSX
+
+	600-699: Error classes (ProjectError, CLIError)
+	600: ProjectError
+	601: CLIError
+	602: compileFiles error
+
+	700-799: warnings
+*/
 /**
  * Defines diagnostic error messages
  */
 export const errors = {
 	// reserved identifiers
 	noInvalidIdentifier: error(
+		1,
 		"Invalid Luau identifier!",
 		"Luau identifiers must start with a letter and only contain letters, numbers, and underscores.",
 		"Reserved Luau keywords cannot be used as identifiers.",
 	),
-	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
-	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
+	noReservedIdentifier: error(2, "Cannot use identifier reserved for compiler internal usage."),
+	noClassMetamethods: error(3, "Metamethods cannot be used in class definitions!"),
 
 	// banned statements
-	noForInStatement: error("for-in loop statements are not supported!"),
-	noLabeledStatement: error("labels are not supported!"),
-	noDebuggerStatement: error("`debugger` is not supported!"),
+	noForInStatement: error(30, "for-in loop statements are not supported!"),
+	noLabeledStatement: error(31, "labels are not supported!"),
+	noDebuggerStatement: error(32, "`debugger` is not supported!"),
 
 	// banned expressions
-	noNullLiteral: error("`null` is not supported!", suggestion("Use `undefined` instead.")),
-	noPrivateIdentifier: error("Private identifiers are not supported!"),
+	noNullLiteral: error(60, "`null` is not supported!", suggestion("Use `undefined` instead.")),
+	noPrivateIdentifier: error(61, "Private identifiers are not supported!"),
 	noTypeOfExpression: error(
+		62,
 		"`typeof` operator is not supported!",
 		suggestion("Use `typeIs(value, type)` or `typeOf(value)` instead."),
 	),
-	noRegex: error("Regular expressions are not supported!"),
-	noBigInt: error("BigInt literals are not supported!"),
+	noRegex: error(63, "Regular expressions are not supported!"),
+	noBigInt: error(64, "BigInt literals are not supported!"),
 
 	// banned features
-	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
-	noVar: error("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
-	noGetterSetter: error("Getters and Setters are not supported!", issue(457)),
-	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
-	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
-	noComma: error("operator `,` is not supported!"),
-	noEnumMerging: error("Enum merging is not supported!"),
-	noNamespaceMerging: error("Namespace merging is not supported!"),
-	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
-	noFunctionExpressionName: error("Function expression names are not supported!"),
-	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
+	noAny: error(100, "Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
+	noVar: error(101, "`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
+	noGetterSetter: error(102, "Getters and Setters are not supported!", issue(457)),
+	noEqualsEquals: error(103, "operator `==` is not supported!", suggestion("Use `===` instead.")),
+	noExclamationEquals: error(104, "operator `!=` is not supported!", suggestion("Use `!==` instead.")),
+	noComma: error(105, "operator `,` is not supported!"),
+	noEnumMerging: error(106, "Enum merging is not supported!"),
+	noNamespaceMerging: error(107, "Namespace merging is not supported!"),
+	noSpreadDestructuring: error(108, "Operator `...` is not supported for destructuring!"),
+	noFunctionExpressionName: error(109, "Function expression names are not supported!"),
+	noPrecedingSpreadElement: error(110, "Spread element must come last in a list of arguments!"),
 	noDestructureAssignmentExpression: error(
+		111,
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),
-	noExportAssignmentLet: error("Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
-	noGlobalThis: error("`globalThis` is not supported!"),
-	noArguments: error("`arguments` is not supported!"),
-	noPrototype: error("`prototype` is not supported!"),
-	noSuperProperty: error("super properties are not supported!"),
-	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
-	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
-	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
-	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
-	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),
-	noAwaitForOf: error("`await` is not supported in for-of loops!"),
-	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
-	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
-	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
+	noExportAssignmentLet: error(112, "Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
+	noGlobalThis: error(113, "`globalThis` is not supported!"),
+	noArguments: error(114, "`arguments` is not supported!"),
+	noPrototype: error(115, "`prototype` is not supported!"),
+	noSuperProperty: error(116, "`super` properties are not supported!"),
+	noNonNumberStringRelationOperator: error(117, "Relation operators can only be used on number or string types!"),
+	noInstanceMethodCollisions: error(118, "Static methods cannot use the same name as instance methods!"),
+	noStaticMethodCollisions: error(119, "Instance methods cannot use the same name as static methods!"),
+	noUnaryPlus: error(120, "Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
+	noNonNumberUnaryMinus: error(121, "Unary `-` is only supported for number types!"),
+	noAwaitForOf: error(122, "`await` is not supported in for-of loops!"),
+	noAsyncGeneratorFunctions: error(123, "Async generator functions are not supported!"),
+	noNonStringModuleSpecifier: error(124, "Module specifiers must be a string literal."),
+	noIterableIteration: error(125, "Iterating on Iterable<T> is not supported! You must use a more specific type."),
 
 	// macro methods
-	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
+	noOptionalMacroCall: error(200, "Macro methods can not be optionally called!"),
 	noMixedTypeCall: error(
+		201,
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),
 	noIndexWithoutCall: error(
+		202,
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
 	noMacroWithoutCall: error(
+		203,
 		"Cannot index a macro without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
-	noObjectWithoutMethod: error("Cannot access `Object` without calling a function on it!"),
-	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
-	noMacroExtends: error("Cannot extend from a macro class!"),
-	noMacroUnion: error("Macro cannot be applied to a union type!"),
+	noObjectWithoutMethod: error(204, "Cannot access `Object` without calling a function on it!"),
+	noConstructorMacroWithoutNew: error(205, "Cannot index a constructor macro without using the `new` operator!"),
+	noMacroExtends: error(206, "Cannot extend from a macro class!"),
+	noMacroUnion: error(207, "Macro cannot be applied to a union type!"),
 	noMacroObjectSpread: error(
+		208,
 		"Macro classes cannot be used in an object spread!",
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
-	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noVarArgsMacroSpread: error(
+		209,
+		"Macros which use variadric arguments do not support spread expressions!",
+		issue(1149),
+	),
 
 	// import/export
 	noNonModule: error(
+		300,
 		"File does not have an import or export statement!",
 		suggestion("Add `export {};` as the first line."),
 		issue(1043),
 	),
-	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
-	noRojoData: errorWithContext((path: string) => [
+	noModuleSpecifierFile: error(301, "Could not find file for import. Did you forget to `npm install`?"),
+	noRojoData: errorWithContext(302, (path: string) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
 	]),
-	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
-	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
+	noNonModuleImport: error(303, "Cannot import a non-ModuleScript!"),
+	noIsolatedImport: error(304, "Attempted to import a file inside of an isolated container from outside!"),
 
 	// roact jsx
 	noRoactInheritance: error(
+		305,
 		"Composition is preferred over inheritance with Roact components.",
 		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
 	),
-	noSuperPropertyCallRoactComponent: error("`super` is not supported inside Roact components!"),
+	noSuperPropertyCallRoactComponent: error(306, "`super` is not supported inside Roact components!"),
 	noSuperConstructorRoactComponent: error(
+		307,
 		"`super(props)` must be the first statement of the constructor in a Roact component!",
 	),
-	noJsxText: error("JSX text is not supported!"),
+	// Never actually thrown, already a TypeError
+	noJsxText: error(308, "JSX text is not supported!"),
 };
 
 export const warnings = {
-	truthyChange: (checksStr: string) => warning(`value will be checked against ${checksStr}`),
-	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
+	truthyChange: (checksStr: string) => warning(700, `value will be checked against ${checksStr}`),
+	stringOffsetChange: (text: string) => warning(701, `String macros no longer offset inputs: ${text}`),
 	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
 		warningText(
+			702,
 			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
 			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
 		),
 	runtimeLibUsedInReplicatedFirst: warning(
+		703,
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
 };

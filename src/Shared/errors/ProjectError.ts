@@ -3,6 +3,6 @@ import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 
 export class ProjectError extends DiagnosticError {
 	constructor(message: string) {
-		super([createTextDiagnostic(message)]);
+		super([createTextDiagnostic(600, message)]);
 	}
 }
