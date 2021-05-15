@@ -9,7 +9,7 @@ export function createDiagnosticWithLocation(
 ): ts.DiagnosticWithLocation {
 	return {
 		category,
-		code,
+		code: ` roblox-ts ${code}` as never,
 		file: node.getSourceFile(),
 		messageText: message,
 		start: node.getStart(),
