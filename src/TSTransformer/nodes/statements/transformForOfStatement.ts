@@ -238,7 +238,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	}
 }
 
-export function transformForOfStatement(state: TransformState, node: ts.ForOfStatement) {
+export function transformForOfStatement(state: TransformState, node: ts.ForOfStatement): luau.List<luau.Statement> {
 	if (!ts.isVariableDeclarationList(node.initializer) || node.initializer.declarations.length !== 1) {
 		DiagnosticService.addDiagnostic(errors.noComplexForOf(node.initializer));
 		return luau.list.make();
