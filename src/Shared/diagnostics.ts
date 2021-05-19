@@ -140,6 +140,7 @@ export const errors = {
 	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),
 	noAwaitForOf: error("`await` is not supported in for-of loops!"),
+	noComplexForOf: error("for-of loops do not support complex variable lists!", issue(1253)),
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
