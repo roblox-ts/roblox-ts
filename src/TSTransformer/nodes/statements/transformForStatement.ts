@@ -93,7 +93,12 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	const whileStatement = transformWhileStatementInner(state, node.condition, node.statement, loopInitializers);
 
 	if (node.incrementor) {
-		luau.list.pushList(incrementor, transformExpressionStatementInner(state, node.incrementor));
+		let statements!: luau.List<luau.Statement>;
+		const prereqs = state.capturePrereqs(() => {
+			statements = transformExpressionStatementInner(state, node.incrementor!);
+		});
+		luau.list.pushList(incrementor, prereqs);
+		luau.list.pushList(incrementor, statements);
 	}
 
 	if (whileStatement.statements.head) {
