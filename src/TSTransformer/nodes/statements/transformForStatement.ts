@@ -70,33 +70,32 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	const loopInitializers = luau.list.make<luau.Statement>();
 	const incrementor = luau.list.make<luau.Statement>();
 
-	for (const symbol of state.forStatementToSymbolsMap.get(node) ?? []) {
-		const id = luau.id(symbol.name);
-		const tempId = state.forStatementSymbolToIdMap.get(symbol)!;
-		luau.list.push(
-			loopInitializers,
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: id,
-				right: tempId,
-			}),
-		);
-		luau.list.push(
-			incrementor,
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: tempId,
-				operator: "=",
-				right: id,
-			}),
-		);
+	if (!ts.isEmptyStatement(node.statement)) {
+		for (const symbol of state.forStatementToSymbolsMap.get(node) ?? []) {
+			const id = luau.id(symbol.name);
+			const tempId = state.forStatementSymbolToIdMap.get(symbol)!;
+			luau.list.push(
+				loopInitializers,
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: id,
+					right: tempId,
+				}),
+			);
+			luau.list.push(
+				incrementor,
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: tempId,
+					operator: "=",
+					right: id,
+				}),
+			);
+		}
 	}
 
 	const whileStatement = transformWhileStatementInner(state, node.condition, node.statement, loopInitializers);
 
 	if (node.incrementor) {
-		let statements!: luau.List<luau.Statement>;
-		const prereqs = state.capturePrereqs(() => {
-			statements = transformExpressionStatementInner(state, node.incrementor!);
-		});
+		const [statements, prereqs] = state.capture(() => transformExpressionStatementInner(state, node.incrementor!));
 		luau.list.pushList(incrementor, prereqs);
 		luau.list.pushList(incrementor, statements);
 	}
