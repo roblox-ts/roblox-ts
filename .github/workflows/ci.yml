@@ -41,8 +41,7 @@ jobs:
       - name: Create Tunnel
         run: Start-Process ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
 
-      - name: Sleep for a minute
-        run: ping 127.0.0.1 -n 60 > nul
+      - name: sleep 60
 
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
@@ -76,5 +75,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sleep forever
-        run: ping 127.0.0.1 -n 99999 > nul
+      - run: sleep 99999
