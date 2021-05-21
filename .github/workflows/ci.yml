@@ -25,6 +25,11 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+        with:
+          submodules: recursive
+
       - name: Download
         run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
       - name: Extract
@@ -41,10 +46,7 @@ jobs:
       - name: Create Tunnel
         run: Start-Process ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
 
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
-        with:
-          submodules: recursive
+
 
       - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.4.5
