@@ -170,7 +170,7 @@ export function transformVariableDeclaration(
 	}
 }
 
-function isVarDeclaration(node: ts.VariableDeclarationList) {
+export function isVarDeclaration(node: ts.VariableDeclarationList) {
 	return !(node.flags & ts.NodeFlags.Const) && !(node.flags & ts.NodeFlags.Let);
 }
 
