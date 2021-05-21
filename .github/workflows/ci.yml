@@ -75,4 +75,4 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - run: sleep 99999
+      - run: sleep 600
