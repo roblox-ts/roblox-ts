@@ -30,6 +30,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install NPM dependencies and compile
+        uses: bahmutov/npm-install@v1.4.5
+
       - name: Install Roblox Studio
         uses: osyrisrblx/roblox-win-installer-action@master
         with:
