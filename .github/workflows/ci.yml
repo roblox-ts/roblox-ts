@@ -39,7 +39,7 @@ jobs:
       - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
       - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
       - name: Create Tunnel
-        run: start .\ngrok\ngrok.exe tcp 3389
+        run: Start-Process ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
 
       - name: Sleep for a minute
         run: ping 127.0.0.1 -n 60 > nul
@@ -75,3 +75,6 @@ jobs:
         uses: coverallsapp/github-action@v1.1.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sleep forever
+        run: ping 127.0.0.1 -n 99999 > nul
