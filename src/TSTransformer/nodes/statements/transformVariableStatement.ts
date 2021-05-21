@@ -76,11 +76,25 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 
 		let left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
 
+		const finalizers = luau.list.make<luau.Statement>();
 		const forStatement = getAncestor(identifier, ts.isVariableDeclarationList)?.parent;
 		if (forStatement && ts.isForStatement(forStatement)) {
 			const tempId = luau.tempId();
 			getOrSetDefault(state.forStatementToSymbolsMap, forStatement, () => []).push(symbol);
-			state.forStatementSymbolToIdMap.set(symbol, tempId);
+			const copyId = luau.tempId();
+			luau.list.push(
+				finalizers,
+				luau.create(luau.SyntaxKind.VariableDeclaration, {
+					left: copyId,
+					right: tempId,
+				}),
+			);
+			state.forStatementSymbolToIdMap.set(symbol, copyId);
+			getOrSetDefault(state.forStatementInitializerSaveInfoMap, forStatement, () => []).push({
+				copyId,
+				originalId: tempId,
+				symbol,
+			});
 			left = tempId;
 		}
 
@@ -93,6 +107,8 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		} else {
 			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }));
 		}
+
+		state.prereqList(finalizers);
 
 		return left;
 	});
