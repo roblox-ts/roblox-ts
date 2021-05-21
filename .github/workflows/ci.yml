@@ -46,8 +46,6 @@ jobs:
       - name: Create Tunnel
         run: Start-Process ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
 
-
-
       - name: Install NPM dependencies and compile
         uses: bahmutov/npm-install@v1.4.5
 
