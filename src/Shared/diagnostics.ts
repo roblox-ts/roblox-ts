@@ -117,7 +117,8 @@ export const errors = {
 		"Reserved Luau keywords cannot be used as identifiers.",
 	),
 	noReservedIdentifier: error(2, "Cannot use identifier reserved for compiler internal usage."),
-	noClassMetamethods: error(3, "Metamethods cannot be used in class definitions!"),
+	noReservedClassFields: error(3, "Cannot use class field reserved for compiler internal usage."),
+	noClassMetamethods: error(4, "Metamethods cannot be used in class definitions!"),
 
 	// banned statements
 	noForInStatement: error(30, "for-in loop statements are not supported!"),
@@ -162,9 +163,10 @@ export const errors = {
 	noUnaryPlus: error(120, "Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noNonNumberUnaryMinus: error(121, "Unary `-` is only supported for number types!"),
 	noAwaitForOf: error(122, "`await` is not supported in for-of loops!"),
-	noAsyncGeneratorFunctions: error(123, "Async generator functions are not supported!"),
-	noNonStringModuleSpecifier: error(124, "Module specifiers must be a string literal."),
-	noIterableIteration: error(125, "Iterating on Iterable<T> is not supported! You must use a more specific type."),
+	noComplexForOf: error(123, "for-of loops do not support complex variable lists!", issue(1253)),
+	noAsyncGeneratorFunctions: error(124, "Async generator functions are not supported!"),
+	noNonStringModuleSpecifier: error(125, "Module specifiers must be a string literal."),
+	noIterableIteration: error(126, "Iterating on Iterable<T> is not supported! You must use a more specific type."),
 
 	// macro methods
 	noOptionalMacroCall: error(200, "Macro methods can not be optionally called!"),

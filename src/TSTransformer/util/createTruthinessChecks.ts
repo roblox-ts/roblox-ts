@@ -1,10 +1,10 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { warnings } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isEmptyStringType, isNaNType, isNumberLiteralType, isPossiblyType } from "TSTransformer/util/types";
-import { warnings } from "Shared/diagnostics";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 
 export function willCreateTruthinessChecks(type: ts.Type) {
 	return (

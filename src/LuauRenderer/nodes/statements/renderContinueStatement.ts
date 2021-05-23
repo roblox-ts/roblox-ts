@@ -1,6 +1,5 @@
-import luau from "LuauAST";
 import { RenderState } from "LuauRenderer";
 
-export function renderContinueStatement(state: RenderState, node: luau.ContinueStatement) {
+export function renderContinueStatement(state: RenderState) {
 	return state.line(`continue`);
 }

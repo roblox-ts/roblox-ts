@@ -10,7 +10,8 @@
 	"plugins": [
 		"@typescript-eslint",
 		"@typescript-eslint/eslint-plugin",
-		"prettier"
+		"prettier",
+		"simple-import-sort"
 	],
 	"extends": [
 		"plugin:@typescript-eslint/recommended",
@@ -46,7 +47,7 @@
 			"error",
 			{ "ignoreVoid": true }
 		],
-		"@typescript-eslint/no-unused-vars": "off",
+		"@typescript-eslint/no-unused-vars": "warn",
 		"@typescript-eslint/explicit-function-return-type": "off",
 		"@typescript-eslint/interface-name-prefix": "off",
 		"@typescript-eslint/no-empty-function": "off",
@@ -59,6 +60,8 @@
 		"@typescript-eslint/no-unused-expressions": "warn",
 		"prefer-const": "warn",
 		"no-undef-init": "error",
-		"no-console": "error"
+		"no-console": "error",
+		"simple-import-sort/imports": "warn",
+		"simple-import-sort/exports": "warn"
 	}
 }

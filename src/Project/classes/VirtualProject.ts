@@ -1,6 +1,6 @@
 import ts from "byots";
 import { renderAST } from "LuauRenderer";
-import { pathJoin, PATH_SEP, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
+import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { hasErrors } from "Project/util/hasErrors";

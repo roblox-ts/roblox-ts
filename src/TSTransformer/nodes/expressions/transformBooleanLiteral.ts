@@ -1,11 +1,9 @@
-import ts from "byots";
 import luau from "LuauAST";
-import { TransformState } from "TSTransformer";
 
-export function transformTrueKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.TrueKeyword>) {
+export function transformTrueKeyword() {
 	return luau.create(luau.SyntaxKind.TrueLiteral, {});
 }
 
-export function transformFalseKeyword(state: TransformState, node: ts.Token<ts.SyntaxKind.FalseKeyword>) {
+export function transformFalseKeyword() {
 	return luau.create(luau.SyntaxKind.FalseLiteral, {});
 }

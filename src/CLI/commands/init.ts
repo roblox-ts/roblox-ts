@@ -4,6 +4,7 @@ import build from "CLI/commands/build";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import kleur from "kleur";
+import { lookpath } from "lookpath";
 import path from "path";
 import prompts from "prompts";
 import { COMPILER_VERSION, PACKAGE_ROOT, RBXTS_SCOPE } from "Shared/constants";
@@ -16,6 +17,7 @@ interface InitOptions {
 	eslint?: boolean;
 	prettier?: boolean;
 	vscode?: boolean;
+	packageManager?: PackageManager;
 }
 
 enum InitMode {
@@ -27,9 +29,39 @@ enum InitMode {
 	Package = "package",
 }
 
+enum PackageManager {
+	NPM = "npm",
+	Yarn = "yarn",
+	PNPM = "pnpm",
+}
+
+interface PackageManagerCommands {
+	init: string;
+	devInstall: string;
+	build: string;
+}
+
+const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
+	[PackageManager.NPM]: {
+		init: "npm init -y",
+		devInstall: "npm install --silent -D",
+		build: "npm run build",
+	},
+	[PackageManager.Yarn]: {
+		init: "yarn init -y",
+		devInstall: "yarn add --silent -D",
+		build: "yarn run build",
+	},
+	[PackageManager.PNPM]: {
+		init: "pnpm init -y",
+		devInstall: "pnpm install --silent -D",
+		build: "pnpm run build",
+	},
+};
+
 function cmd(cmdStr: string) {
 	return new Promise<string>((resolve, reject) => {
-		exec(cmdStr, (error, stdout, stderr) => {
+		exec(cmdStr, (error, stdout) => {
 			if (error) {
 				reject(error);
 			}
@@ -91,12 +123,30 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 	}
 
+	// Detect if there is additional package managers
+	// We don't need to prompt the user to use additional package managers if none are installed
+
+	const packageManagerExistance: Record<PackageManager, boolean> = {
+		[PackageManager.NPM]: true, // NPM is installed by default, skip checking to save time
+		[PackageManager.PNPM]: (await lookpath("pnpm")) ? true : false,
+		[PackageManager.Yarn]: (await lookpath("yarn")) ? true : false,
+	};
+
+	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
+
 	const {
 		git = argv.git ?? argv.yes ?? false,
 		eslint = argv.eslint ?? argv.yes ?? false,
 		prettier = argv.prettier ?? argv.yes ?? false,
 		vscode = argv.vscode ?? argv.yes ?? false,
-	}: { git: boolean; eslint: boolean; prettier: boolean; vscode: boolean } = await prompts([
+		packageManager = argv.packageManager ?? PackageManager.NPM,
+	}: {
+		git: boolean;
+		eslint: boolean;
+		prettier: boolean;
+		vscode: boolean;
+		packageManager: PackageManager;
+	} = await prompts([
 		{
 			type: () => argv.git === undefined && argv.yes === undefined && "confirm",
 			name: "git",
@@ -122,10 +172,23 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			message: "Configure VSCode Project Settings",
 			initial: true,
 		},
+		{
+			type: () =>
+				argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
+			name: "packageManager",
+			message: "Multiple package managers detected. Select package manager:",
+			choices: Object.entries(PackageManager)
+				.filter(([, packageManager]) => packageManagerExistance[packageManager])
+				.map(([managerDisplayName, managerEnum]) => ({
+					title: managerDisplayName,
+					value: managerEnum,
+				})),
+		},
 	]);
 
 	await benchmark("Initializing..", async () => {
-		await cmd("npm init -y");
+		const selectedPackageManager = packageManagerCommands[packageManager];
+		await cmd(selectedPackageManager.init);
 		const pkgJson = await fs.readJson(paths.packageJson);
 		pkgJson.scripts = {
 			build: "rbxtsc",
@@ -139,7 +202,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			pkgJson.publishConfig = {
 				access: "public",
 			};
-			pkgJson.scripts.prepublishOnly = "npm run build";
+			pkgJson.scripts.prepublishOnly = selectedPackageManager.build;
 		}
 		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
 
@@ -165,7 +228,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			}
 		}
 
-		await cmd(`npm install --silent -D ${devDependencies.join(" ")}`);
+		await cmd(`${selectedPackageManager.devInstall} ${devDependencies.join(" ")}`);
 
 		// create .eslintrc.json
 		if (eslint) {
@@ -289,6 +352,10 @@ export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
 			.option("vscode", {
 				boolean: true,
 				describe: "Configure VSCode Project Settings",
+			})
+			.option("packageManager", {
+				choices: Object.values(PackageManager),
+				describe: "Choose an alternative package manager",
 			})
 			.command([InitMode.Game, InitMode.Place], GAME_DESCRIPTION, {}, argv => init(argv as never, InitMode.Game))
 			.command(InitMode.Model, MODEL_DESCRIPTION, {}, argv => init(argv as never, InitMode.Model))

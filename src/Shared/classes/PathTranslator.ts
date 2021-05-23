@@ -1,5 +1,5 @@
 import path from "path";
-import { D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TSX_EXT, TS_EXT } from "Shared/constants";
+import { D_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {

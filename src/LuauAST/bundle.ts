@@ -11,6 +11,7 @@ export * from "LuauAST/impl/typeGuards";
 
 // util
 export * from "LuauAST/util/isMetamethod";
+export * from "LuauAST/util/isReservedClassField";
 export * from "LuauAST/util/isReservedIdentifier";
 export * from "LuauAST/util/isValidIdentifier";
 export * from "LuauAST/util/isValidNumberLiteral";

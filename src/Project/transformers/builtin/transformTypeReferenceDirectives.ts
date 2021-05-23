@@ -3,7 +3,7 @@ import ts from "byots";
 const SCOPE = "@rbxts/";
 const PACKAGE = "types";
 
-export function transformTypeReferenceDirectives(context: ts.TransformationContext) {
+export function transformTypeReferenceDirectives() {
 	return (sourceFile: ts.SourceFile | ts.Bundle) => {
 		if (ts.isSourceFile(sourceFile)) {
 			for (const typeReferenceDirective of sourceFile.typeReferenceDirectives) {
