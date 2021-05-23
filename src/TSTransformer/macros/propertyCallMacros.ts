@@ -1,8 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
