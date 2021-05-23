@@ -59,7 +59,7 @@ function transformLuaTupleDestructure(
 						state.prereq(transformInitializer(state, id, initializer));
 					}
 				} else if (ts.isArrayLiteralExpression(element)) {
-					const id = luau.tempId("bind");
+					const id = luau.tempId("binding");
 					luau.list.push(variables, id);
 					luau.list.push(writes, id);
 					if (initializer) {
@@ -67,7 +67,7 @@ function transformLuaTupleDestructure(
 					}
 					transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 				} else if (ts.isObjectLiteralExpression(element)) {
-					const id = luau.tempId("bind");
+					const id = luau.tempId("binding");
 					luau.list.push(variables, id);
 					luau.list.push(writes, id);
 					if (initializer) {

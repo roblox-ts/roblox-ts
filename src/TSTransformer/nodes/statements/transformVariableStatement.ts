@@ -138,7 +138,7 @@ function transformLuaTupleDestructure(
 							state.prereq(transformInitializer(state, id, element.initializer));
 						}
 					} else {
-						const id = luau.tempId("bind");
+						const id = luau.tempId("binding");
 						luau.list.push(ids, id);
 						if (element.initializer) {
 							state.prereq(transformInitializer(state, id, element.initializer));
