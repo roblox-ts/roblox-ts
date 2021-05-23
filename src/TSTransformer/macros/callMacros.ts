@@ -3,7 +3,17 @@ import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
-const PRIMITIVE_LUAU_TYPES = new Set(["nil", "boolean", "string", "number", "table", "userdata", "function", "thread"]);
+const PRIMITIVE_LUAU_TYPES = new Set([
+	"nil",
+	"boolean",
+	"string",
+	"number",
+	"table",
+	"userdata",
+	"function",
+	"thread",
+	"vector",
+]);
 
 export const CALL_MACROS: MacroList<CallMacro> = {
 	assert: (state, node, expression, args) => {

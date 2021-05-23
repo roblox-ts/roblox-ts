@@ -167,10 +167,14 @@ export class TransformState {
 	/**
 	 * Returns the node and prerequisite statements created by `callback`.
 	 */
-	public capture<T extends luau.Node>(callback: () => T): [node: T, prereqs: luau.List<luau.Statement>] {
-		let node!: T;
-		const prereqs = this.capturePrereqs(() => (node = callback()));
-		return [node, prereqs];
+	public capture<T extends luau.Node>(callback: () => T): [node: T, prereqs: luau.List<luau.Statement>];
+	public capture<T extends luau.List<luau.Node>>(callback: () => T): [list: T, prereqs: luau.List<luau.Statement>];
+	public capture<T extends luau.Node | luau.List<luau.Node>>(
+		callback: () => T,
+	): [value: T, prereqs: luau.List<luau.Statement>] {
+		let value!: T;
+		const prereqs = this.capturePrereqs(() => (value = callback()));
+		return [value, prereqs];
 	}
 
 	public noPrereqs(callback: () => luau.Expression) {
@@ -388,4 +392,12 @@ export class TransformState {
 
 	public forStatementToSymbolsMap = new Map<ts.ForStatement, Array<ts.Symbol>>();
 	public forStatementSymbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
+	public forStatementInitializerSaveInfoMap = new Map<
+		ts.ForStatement,
+		Array<{
+			symbol: ts.Symbol;
+			copyId: luau.TemporaryIdentifier;
+			originalId: luau.TemporaryIdentifier;
+		}>
+	>();
 }

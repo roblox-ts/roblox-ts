@@ -20,4 +20,6 @@ fs.readJSONSync ??= NOOP;
 fs.realpathSync ??= ((path: fs.PathLike) => path) as typeof fs.realpathSync;
 fs.removeSync ??= NOOP;
 fs.stat ??= () => ({} as Promise<fs.Stats>);
-fs.statSync ??= () => ({} as fs.Stats & fs.BigIntStats);
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+fs.statSync ??= () => ({});

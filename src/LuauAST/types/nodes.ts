@@ -7,7 +7,7 @@ export interface Node<T extends luau.SyntaxKind = luau.SyntaxKind> {
 }
 
 export interface IndexableExpression<
-	T extends keyof luau.IndexableExpressionByKind = keyof luau.IndexableExpressionByKind
+	T extends keyof luau.IndexableExpressionByKind = keyof luau.IndexableExpressionByKind,
 > extends luau.Node<T> {}
 
 export interface Expression<T extends keyof luau.ExpressionByKind = keyof luau.ExpressionByKind> extends luau.Node<T> {}

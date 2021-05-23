@@ -13,7 +13,7 @@ export function create<T extends keyof luau.NodeByKind>(
 	},
 ): luau.NodeByKind[T] {
 	// super hack!
-	const node = (Object.assign({ kind }, fields) as unknown) as luau.NodeByKind[T];
+	const node = Object.assign({ kind }, fields) as unknown as luau.NodeByKind[T];
 
 	// if value is node, value.Parent = node
 	// if value is list, luau.list.forEach(value, subValue => subValue.Parent = node)

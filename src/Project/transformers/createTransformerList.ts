@@ -37,7 +37,7 @@ type PluginFactory =
 	| RawPattern;
 
 function getTransformerFromFactory(factory: PluginFactory, config: TransformerPluginConfig, program: ts.Program) {
-	const { after, afterDeclarations, transform, type, ...manualConfig } = config;
+	const { after, afterDeclarations, type, ...manualConfig } = config;
 	let transformer: TransformerPlugin;
 	switch (type) {
 		case undefined:

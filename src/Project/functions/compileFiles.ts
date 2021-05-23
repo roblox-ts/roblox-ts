@@ -133,11 +133,15 @@ export function compileFiles(
 					false,
 				);
 
+				if (transformResult.diagnostics) diagnostics.push(...transformResult.diagnostics);
+
 				const host = createTransformedCompilerHost(compilerOptions, sourceFiles, transformResult);
 				proxyProgram = createProjectProgram(data, host).getProgram();
 			}
 		});
 	}
+
+	if (hasErrors(diagnostics)) return { emitSkipped: true, diagnostics };
 
 	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
 	const services = createTransformServices(proxyProgram, typeChecker, data);

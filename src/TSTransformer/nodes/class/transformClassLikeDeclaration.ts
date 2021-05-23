@@ -346,6 +346,16 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		transformClassConstructor(state, node, { value: internalName }, getConstructor(node)),
 	);
 
+	for (const member of node.members) {
+		if (
+			(ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member)) &&
+			(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) &&
+			luau.isReservedClassField(member.name.text)
+		) {
+			DiagnosticService.addDiagnostic(errors.noReservedClassFields(member.name));
+		}
+	}
+
 	const methods = new Array<ts.MethodDeclaration>();
 	const staticProperties = new Array<ts.PropertyDeclaration>();
 	for (const member of node.members) {
@@ -374,11 +384,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
 
 	for (const method of methods) {
-		if ((ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) && luau.isMetamethod(method.name.text)) {
-			DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
-		}
-
 		if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
+			if (luau.isMetamethod(method.name.text)) {
+				DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
+			}
+
 			if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
 				if (instanceType.getProperty(method.name.text) !== undefined) {
 					DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(method));
