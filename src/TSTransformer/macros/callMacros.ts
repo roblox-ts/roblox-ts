@@ -39,7 +39,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 
 	opcall: (state, node, expression, args) => {
 		const successId = luau.tempId("success");
-		const valueOrErrorId = luau.tempId("result");
+		const valueOrErrorId = luau.tempId("valueOrError");
 		state.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: luau.list.make(successId, valueOrErrorId),
