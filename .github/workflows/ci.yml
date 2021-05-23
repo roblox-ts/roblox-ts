@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  build-and-lint:
+  lint:
     if: contains(github.event.commits[0].message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
@@ -17,7 +17,7 @@ jobs:
           submodules: recursive
 
       - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
+        uses: bahmutov/npm-install@v1.7.4
 
       - name: Run ESLint
         run: npm run eslint
@@ -30,9 +30,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
-
       - name: Install Roblox Studio
         uses: osyrisrblx/roblox-win-installer-action@master
         with:
@@ -43,6 +40,9 @@ jobs:
         uses: rojo-rbx/setup-foreman@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install NPM dependencies and compile
+        uses: bahmutov/npm-install@v1.7.4
 
       - name: Compile and run tests
         run: npm test
