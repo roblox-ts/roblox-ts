@@ -1,8 +1,6 @@
 import ts from "byots";
 import luau from "LuauAST";
-import { warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -37,32 +35,17 @@ function makeMathSet(...operators: Array<luau.BinaryOperator>) {
 	return result;
 }
 
-function offsetArguments(
-	state: TransformState,
-	node: ts.Expression,
-	args: Array<luau.Expression>,
-	argOffsets: Array<number>,
-) {
-	if (state.data.logStringChanges) {
-		DiagnosticService.addDiagnostic(warnings.stringOffsetChange(JSON.stringify(argOffsets))(node));
-	}
-	return args;
-}
-
-function makeStringCallback(
-	strCallback: luau.PropertyAccessExpression,
-	argOffsets: Array<number> = [],
-): PropertyCallMacro {
+function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
 	return (state, node, expression, args) => {
-		return luau.call(strCallback, [expression, ...offsetArguments(state, node, args, argOffsets)]);
+		return luau.call(strCallback, [expression, ...args]);
 	};
 }
 
 const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	size: (state, node, expression) => luau.unary("#", expression),
 
-	byte: makeStringCallback(luau.globals.string.byte, [1, 0]),
-	find: makeStringCallback(luau.globals.string.find, [0, 1]),
+	byte: makeStringCallback(luau.globals.string.byte),
+	find: makeStringCallback(luau.globals.string.find),
 	format: makeStringCallback(luau.globals.string.format),
 	gmatch: makeStringCallback(luau.globals.string.gmatch),
 	gsub: makeStringCallback(luau.globals.string.gsub),
@@ -71,7 +54,7 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 	rep: makeStringCallback(luau.globals.string.rep),
 	reverse: makeStringCallback(luau.globals.string.reverse),
 	split: makeStringCallback(luau.globals.string.split),
-	sub: makeStringCallback(luau.globals.string.sub, [1, 1]),
+	sub: makeStringCallback(luau.globals.string.sub),
 	upper: makeStringCallback(luau.globals.string.upper),
 };
 

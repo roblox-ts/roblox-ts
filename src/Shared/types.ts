@@ -8,7 +8,6 @@ export interface ProjectOptions {
 
 /** Optional flags that add alternate behavior to project. */
 export interface ProjectFlags {
-	logStringChanges: boolean;
 	logTruthyChanges: boolean;
 	noInclude: boolean;
 	project: string;
@@ -21,7 +20,6 @@ export interface ProjectFlags {
 export interface ProjectData {
 	includePath: string;
 	isPackage: boolean;
-	logStringChanges: boolean;
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	nodeModulesPathMapping: Map<string, string>;
