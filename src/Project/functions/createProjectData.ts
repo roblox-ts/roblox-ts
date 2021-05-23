@@ -34,7 +34,6 @@ export function createProjectData(
 		pkgVersion = pkgJson.version;
 	} catch (e) {}
 
-	const logStringChanges = flags.logStringChanges;
 	const logTruthyChanges = flags.logTruthyChanges;
 	const noInclude = flags.noInclude;
 
@@ -59,7 +58,6 @@ export function createProjectData(
 		tsConfigPath,
 		includePath,
 		isPackage,
-		logStringChanges,
 		logTruthyChanges,
 		noInclude,
 		nodeModulesPath,
