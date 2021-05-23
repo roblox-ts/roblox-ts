@@ -8,6 +8,7 @@ on:
 
 jobs:
   lint:
+    name: Linter
     if: contains(github.event.commits[0].message, '[skip ci]') == false
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +23,7 @@ jobs:
       - name: Run ESLint
         run: npm run eslint
   unit-tests:
+    name: Unit Tests
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
