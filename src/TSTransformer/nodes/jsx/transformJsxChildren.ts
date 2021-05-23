@@ -239,7 +239,7 @@ export function transformJsxChildren(
 	attributesPtr: MapPointer,
 	childrenPtr: MixedTablePointer,
 ) {
-	const lengthId = luau.tempId("len");
+	const lengthId = luau.tempId("length");
 	let lengthInitialized = false;
 	let amtSinceUpdate = 0;
 
