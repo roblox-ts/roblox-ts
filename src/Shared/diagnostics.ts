@@ -145,6 +145,7 @@ export const errors = {
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
+	noForOfLuaTupleAssignment: error("for-of assignment with LuaTuple<T> is not supported!"),
 
 	// macro methods
 	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
