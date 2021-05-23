@@ -850,8 +850,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				// Second ID included for clarity. Value is always `true`
-				ids: luau.list.make(valueId, luau.tempId("true")),
+				ids: luau.list.make(valueId),
 				expression: luau.call(luau.globals.pairs, [expression]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
