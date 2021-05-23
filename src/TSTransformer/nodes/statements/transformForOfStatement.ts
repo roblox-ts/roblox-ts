@@ -132,8 +132,8 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder = type =
 	const tupleArgType = luaTupleType.aliasTypeArguments[0];
 
 	if (state.typeChecker.isTupleType(tupleArgType)) {
-		const tupleReturns = getTypeArguments(state, tupleArgType);
-		for (const tupleElement of tupleReturns) {
+		const typeArguments = getTypeArguments(state, tupleArgType);
+		for (let i = 0; i < typeArguments.length; i++) {
 			// TODO: Name TempIds after tuple elements if labeled
 			iteratorReturnIds.push(luau.tempId("element"));
 		}
