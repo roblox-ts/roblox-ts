@@ -25,7 +25,6 @@ export function transformArrayBindingLiteral(
 			accessor(state, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {
 			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
-			return;
 		} else {
 			let initializer: ts.Expression | undefined;
 			if (ts.isBinaryExpression(element)) {

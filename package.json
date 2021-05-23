@@ -11,7 +11,7 @@
 		"rbxtsc": "out/CLI/cli.js"
 	},
 	"scripts": {
-		"prepare": "npm run build",
+		"prepublishOnly": "npm run build",
 		"build": "ttsc -b",
 		"build-watch": "ttsc -b -w",
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
