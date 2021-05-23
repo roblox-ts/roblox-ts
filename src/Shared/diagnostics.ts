@@ -97,6 +97,7 @@ export const errors = {
 		"Reserved Luau keywords cannot be used as identifiers.",
 	),
 	noReservedIdentifier: error("Cannot use identifier reserved for compiler internal usage."),
+	noReservedClassFields: error("Cannot use class field reserved for compiler internal usage."),
 	noClassMetamethods: error("Metamethods cannot be used in class definitions!"),
 
 	// banned statements
