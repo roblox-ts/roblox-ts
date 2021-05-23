@@ -7,7 +7,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { PACKAGE_ROOT, TSX_EXT, TS_EXT } from "Shared/constants";
+import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";

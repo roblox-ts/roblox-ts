@@ -1,5 +1,4 @@
 import ts from "byots";
-import { assert } from "console";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";

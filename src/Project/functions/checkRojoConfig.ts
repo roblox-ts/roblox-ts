@@ -1,4 +1,3 @@
-import assert from "assert";
 import path from "path";
 import { ProjectData } from "Project";
 import { PathTranslator } from "Shared/classes/PathTranslator";

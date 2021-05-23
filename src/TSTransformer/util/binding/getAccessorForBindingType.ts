@@ -29,7 +29,7 @@ function peek<T>(array: Array<T>): T | undefined {
 	return array[array.length - 1];
 }
 
-const arrayAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const arrayAccessor: BindingAccessor = (state, parentId, index) => {
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: parentId,
 		index: luau.number(index + 1),
@@ -80,7 +80,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 	}
 };
 
-const mapAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
+const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
 	const args = [parentId];
 	const lastId = peek(idStack);
 	if (lastId) {

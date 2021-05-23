@@ -29,7 +29,7 @@ enum InitMode {
 
 function cmd(cmdStr: string) {
 	return new Promise<string>((resolve, reject) => {
-		exec(cmdStr, (error, stdout, stderr) => {
+		exec(cmdStr, (error, stdout) => {
 			if (error) {
 				reject(error);
 			}
