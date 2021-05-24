@@ -7,31 +7,25 @@ on:
       - master
 
 jobs:
-  build-and-lint:
-    if: contains(github.event.commits[0].message, '[skip ci]') == false
+  lint:
+    name: ESLint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
-        with:
-          submodules: recursive
 
       - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
+        uses: bahmutov/npm-install@v1.7.4
 
       - name: Run ESLint
         run: npm run eslint
   unit-tests:
+    name: Unit Tests
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
-        with:
-          submodules: recursive
-
-      - name: Install NPM dependencies and compile
-        uses: bahmutov/npm-install@v1.4.5
 
       - name: Install Roblox Studio
         uses: osyrisrblx/roblox-win-installer-action@master
@@ -40,9 +34,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Foreman
-        uses: rojo-rbx/setup-foreman@v1
+        uses: rojo-rbx/setup-foreman@v1.0.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install NPM dependencies and compile
+        uses: bahmutov/npm-install@v1.7.4
 
       - name: Compile and run tests
         run: npm test

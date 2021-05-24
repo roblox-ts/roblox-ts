@@ -4,7 +4,7 @@ import { CLIError } from "CLI/errors/CLIError";
 import { COMPILER_VERSION, PACKAGE_ROOT } from "Shared/constants";
 import yargs from "yargs";
 
-yargs
+void yargs
 	// help
 	.usage("roblox-ts - A TypeScript-to-Luau Compiler for Roblox")
 	.help("help")
