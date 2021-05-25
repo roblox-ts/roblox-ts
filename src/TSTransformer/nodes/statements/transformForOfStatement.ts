@@ -254,8 +254,8 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 		return luau.call(luau.globals.pairs, [exp]);
 	}
 
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	luau.list.push(ids, keyId);
 	luau.list.push(ids, valueId);
 
@@ -317,9 +317,10 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
 
 		if (state.typeChecker.isTupleType(tupleArgType)) {
-			const tupleReturnAmount = getTypeArguments(state, tupleArgType).length;
-			for (let i = 0; i < tupleReturnAmount; i++) {
-				iteratorReturnIds.push(luau.tempId());
+			const typeArguments = getTypeArguments(state, tupleArgType);
+			for (let i = 0; i < typeArguments.length; i++) {
+				// TODO: Name TempIds after tuple elements if labeled
+				iteratorReturnIds.push(luau.tempId("element"));
 			}
 		} else {
 			const iterFuncId = state.pushToVar(exp);
@@ -375,7 +376,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 	};
 
 const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
-	const loopId = luau.tempId();
+	const loopId = luau.tempId("result");
 	luau.list.push(ids, loopId);
 
 	luau.list.push(

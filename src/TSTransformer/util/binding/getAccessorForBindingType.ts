@@ -86,8 +86,8 @@ const mapAccessor: BindingAccessor = (state, parentId, index, idStack) => {
 	if (lastId) {
 		args.push(lastId);
 	}
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	const ids = luau.list.make(keyId, valueId);
 	state.prereq(
 		luau.create(luau.SyntaxKind.VariableDeclaration, {

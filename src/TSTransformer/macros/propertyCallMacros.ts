@@ -73,8 +73,8 @@ function makeEveryOrSomeMethod(
 		const resultId = state.pushToVar(luau.bool(initialState));
 		const callbackId = state.pushToVarIfComplex(args[0]);
 
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 
 		const callCallback = luau.call(callbackId, callbackArgsListMaker(keyId, valueId, expression));
 		state.prereq(
@@ -173,8 +173,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		if (indexType && isPossiblyType(indexType, t => !isStringType(t) && !isNumberType(t))) {
 			expression = state.pushToVarIfComplex(expression);
 			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]));
-			const keyId = luau.tempId();
-			const valueId = luau.tempId();
+			const keyId = luau.tempId("k");
+			const valueId = luau.tempId("v");
 			state.prereq(
 				luau.create(luau.SyntaxKind.ForStatement, {
 					ids: luau.list.make(keyId, valueId),
@@ -243,8 +243,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
@@ -264,8 +264,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 		const newValueId = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]));
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
@@ -292,9 +292,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const newValueId = state.pushToVar(luau.array());
 		const callbackId = state.pushToVarIfComplex(args[0]);
 		const lengthId = state.pushToVar(luau.number(0));
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
-		const resultId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
+		const resultId = luau.tempId("result");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
@@ -334,7 +334,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const lengthId = state.pushToVar(luau.number(0));
-		const indexId1 = luau.tempId();
+		const indexId1 = luau.tempId("i");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(indexId1),
@@ -357,8 +357,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		const resultId = state.pushToVar(luau.array());
 		const resultLengthId = state.pushToVar(luau.number(0));
-		const indexId2 = luau.tempId();
-		const valueId = luau.tempId();
+		const indexId2 = luau.tempId("i");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.NumericForStatement, {
 				id: indexId2,
@@ -406,8 +406,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const newValueId = state.pushToVar(luau.array());
 		const callbackId = state.pushToVarIfComplex(args[0]);
 		const lengthId = state.pushToVar(luau.number(0));
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
@@ -482,7 +482,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		}
 		const callbackId = state.pushToVar(args[0]);
 
-		const iteratorId = luau.tempId();
+		const iteratorId = luau.tempId("i");
 		state.prereq(
 			luau.create(luau.SyntaxKind.NumericForStatement, {
 				id: iteratorId,
@@ -514,8 +514,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const loopId = luau.tempId();
-		const valueId = luau.tempId();
+		const loopId = luau.tempId("i");
+		const valueId = luau.tempId("v");
 		const returnId = state.pushToVar(luau.nil());
 
 		state.prereq(
@@ -550,8 +550,8 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const loopId = luau.tempId();
-		const valueId = luau.tempId();
+		const loopId = luau.tempId("i");
+		const valueId = luau.tempId("v");
 		const returnId = state.pushToVar(luau.number(-1));
 
 		state.prereq(
@@ -830,7 +830,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const valueId = luau.tempId();
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(valueId),
@@ -876,8 +876,8 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression);
 
 		const callbackId = state.pushToVarIfComplex(args[0]);
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),

@@ -66,8 +66,8 @@ function createJsxAddAmbiguousChildren(
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 ) {
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [expression]),
@@ -89,8 +89,8 @@ function createJsxAddArrayChildren(
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
 ) {
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.ipairs, [expression]),
@@ -99,8 +99,8 @@ function createJsxAddArrayChildren(
 }
 
 function createJsxAddMapChildren(id: luau.AnyIdentifier, expression: luau.Expression) {
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [expression]),
@@ -239,7 +239,7 @@ export function transformJsxChildren(
 	attributesPtr: MapPointer,
 	childrenPtr: MixedTablePointer,
 ) {
-	const lengthId = luau.tempId();
+	const lengthId = luau.tempId("length");
 	let lengthInitialized = false;
 	let amtSinceUpdate = 0;
 

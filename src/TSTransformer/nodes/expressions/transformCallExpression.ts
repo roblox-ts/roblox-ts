@@ -45,7 +45,7 @@ function runCallMacro(
 			const spread = args.pop();
 			const tempIds = luau.list.make<luau.TemporaryIdentifier>();
 			for (let i = args.length; i < minArgumentCount; i++) {
-				const tempId = luau.tempId();
+				const tempId = luau.tempId(`spread${i}`);
 				args.push(tempId);
 				luau.list.push(tempIds, tempId);
 			}

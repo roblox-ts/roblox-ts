@@ -38,8 +38,8 @@ function createJsxAttributeLoop(
 		expression = state.pushToVarIfComplex(expression);
 	}
 
-	const keyId = luau.tempId();
-	const valueId = luau.tempId();
+	const keyId = luau.tempId("k");
+	const valueId = luau.tempId("v");
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
 		expression: luau.call(luau.globals.pairs, [expression]),
@@ -92,8 +92,8 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 		disableMapInline(state, attributesPtr);
 
 		const init = transformExpression(state, expression);
-		const keyId = luau.tempId();
-		const valueId = luau.tempId();
+		const keyId = luau.tempId("k");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),

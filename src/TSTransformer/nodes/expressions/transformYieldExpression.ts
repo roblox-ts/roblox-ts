@@ -11,7 +11,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 
 	const expression = transformExpression(state, node.expression);
 	if (node.asteriskToken) {
-		const loopId = luau.tempId();
+		const loopId = luau.tempId("result");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(loopId),

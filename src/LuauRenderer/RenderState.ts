@@ -50,7 +50,11 @@ export class RenderState {
 	 * @param node The identifier of the node
 	 */
 	public getTempName(node: luau.TemporaryIdentifier) {
-		return getOrSetDefault(this.seenTempNodes, node, () => `_${this.scopeStack[this.scopeStack.length - 1]++}`);
+		return getOrSetDefault(this.seenTempNodes, node, () =>
+			node.name
+				? `_${node.name}_${this.scopeStack[this.scopeStack.length - 1]++}`
+				: `_${this.scopeStack[this.scopeStack.length - 1]++}`,
+		);
 	}
 
 	/**

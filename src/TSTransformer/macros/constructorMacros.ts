@@ -36,8 +36,8 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 	if (ts.isArrayLiteralExpression(arg) && !arg.elements.some(ts.isSpreadElement)) {
 		return luau.set(ensureTransformOrder(state, arg.elements));
 	} else {
-		const id = state.pushToVar(luau.set());
-		const valueId = luau.tempId();
+		const id = state.pushToVar(luau.set(), "set");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
@@ -73,8 +73,8 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 		});
 		return luau.map(elements);
 	} else {
-		const id = state.pushToVar(luau.set());
-		const valueId = luau.tempId();
+		const id = state.pushToVar(luau.map(), "map");
+		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),

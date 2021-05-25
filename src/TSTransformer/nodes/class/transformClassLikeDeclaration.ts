@@ -303,18 +303,18 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	let returnVar: luau.Identifier | luau.TemporaryIdentifier;
 	if (shouldUseInternalName) {
-		returnVar = luau.tempId();
+		returnVar = luau.tempId("class");
 	} else if (node.name) {
 		returnVar = transformIdentifierDefined(state, node.name);
 	} else if (isExportDefault) {
 		returnVar = luau.id("default");
 	} else {
-		returnVar = luau.tempId();
+		returnVar = luau.tempId("class");
 	}
 
 	let internalName: luau.Identifier | luau.TemporaryIdentifier;
 	if (shouldUseInternalName) {
-		internalName = node.name ? transformIdentifierDefined(state, node.name) : luau.tempId();
+		internalName = node.name ? transformIdentifierDefined(state, node.name) : luau.tempId("class");
 	} else {
 		internalName = returnVar;
 	}
