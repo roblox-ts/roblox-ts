@@ -90,9 +90,9 @@ export enum FileRelation {
 }
 
 export enum NetworkType {
-	Unknown,
-	Client,
-	Server,
+	Unknown = "shared",
+	Client = "client",
+	Server = "server",
 }
 
 function stripRojoExts(filePath: string) {
@@ -159,6 +159,7 @@ export class RojoResolver {
 	private filePathToRbxPathMap = new Map<string, RbxPath>();
 	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 	public isGame = false;
+	public networkTypes: Set<NetworkType> = new Set();
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
 		const realPath = fs.realpathSync(rojoConfigFilePath);
@@ -186,6 +187,18 @@ export class RojoResolver {
 
 		if (tree.$className === "DataModel") {
 			this.isGame = true;
+
+			for (const [, { $className }] of Object.entries(tree).filter(
+				([k, v]) => !k.startsWith("$") && v.$className,
+			)) {
+				if (SERVER_CONTAINERS.some(a => a[0] === $className)) {
+					this.networkTypes.add(NetworkType.Server);
+				} else if (CLIENT_CONTAINERS.some(a => a[0] === $className)) {
+					this.networkTypes.add(NetworkType.Client);
+				} else {
+					this.networkTypes.add(NetworkType.Unknown);
+				}
+			}
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {

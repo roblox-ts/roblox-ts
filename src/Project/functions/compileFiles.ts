@@ -81,6 +81,7 @@ export function compileFiles(
 		? RojoResolver.fromPath(data.rojoConfigPath)
 		: RojoResolver.synthetic(outDir);
 
+	// warn if reference to src folder in rojo project
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
 	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
@@ -98,7 +99,15 @@ export function compileFiles(
 		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
 		if (!runtimeLibRbxPath) {
 			return emitResultFailure("Rojo project contained no data for include folder!");
-		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
+		} else if (
+			rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown &&
+			// 1 use type means only server OR only client
+			// then check that runtimeLib is in that same network type
+			!(
+				rojoResolver.networkTypes.size === 1 &&
+				rojoResolver.getNetworkType(runtimeLibRbxPath) === rojoResolver.networkTypes.values().next().value
+			)
+		) {
 			return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
 		} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
 			return emitResultFailure("Runtime library cannot be in an isolated container!");
