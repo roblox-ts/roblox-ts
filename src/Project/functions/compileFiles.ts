@@ -3,10 +3,9 @@ import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
-import { createProjectProgram } from "Project/functions/createProjectProgram";
+import { createTransformerWatcher } from "Project/functions/createTransformerWatcher";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
-import { createTransformedCompilerHost } from "Project/transformers/createTransformedCompilerHost";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
@@ -123,6 +122,10 @@ export function compileFiles(
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
+				if (!data.transformerWatcher) {
+					data.transformerWatcher = createTransformerWatcher(program);
+				}
+				const { service, updateFile } = data.transformerWatcher!;
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -135,8 +138,13 @@ export function compileFiles(
 
 				if (transformResult.diagnostics) diagnostics.push(...transformResult.diagnostics);
 
-				const host = createTransformedCompilerHost(compilerOptions, sourceFiles, transformResult);
-				proxyProgram = createProjectProgram(data, host).getProgram();
+				for (const sourceFile of transformResult.transformed) {
+					if (ts.isSourceFile(sourceFile)) {
+						updateFile(sourceFile.fileName, ts.createPrinter().printFile(sourceFile));
+					}
+				}
+
+				proxyProgram = service.getProgram()!;
 			}
 		});
 	}

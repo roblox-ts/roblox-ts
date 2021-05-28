@@ -46,6 +46,7 @@ export class VirtualProject {
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
 			writeOnlyChanged: false,
+			watch: false,
 		};
 
 		this.compilerOptions = {

@@ -53,6 +53,7 @@ export function createProjectData(
 	}
 
 	const writeOnlyChanged = flags.writeOnlyChanged;
+	const watch = flags.watch;
 
 	return {
 		tsConfigPath,
@@ -67,5 +68,6 @@ export function createProjectData(
 		projectPath,
 		rojoConfigPath,
 		writeOnlyChanged,
+		watch,
 	};
 }

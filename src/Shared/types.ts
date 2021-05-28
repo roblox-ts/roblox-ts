@@ -1,3 +1,4 @@
+import ts from "byots";
 import { ProjectType } from "Shared/constants";
 
 export interface ProjectOptions {
@@ -30,6 +31,13 @@ export interface ProjectData {
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
+	watch: boolean;
+	transformerWatcher?: TransformerWatcher;
+}
+
+export interface TransformerWatcher {
+	service: ts.LanguageService;
+	updateFile: (fileName: string, text: string) => void;
 }
 
 export interface TransformerPluginConfig {
