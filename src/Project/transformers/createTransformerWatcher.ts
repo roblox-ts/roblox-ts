@@ -12,14 +12,14 @@ function createServiceHost(program: ts.Program) {
 	const overridedText = new Map<string, string>();
 
 	function updateFile(fileName: string, text: string) {
-		overridedText.set(fileName, text);
+		overridedText.set(fileName, text.length ? text : "\0");
 
 		const currentVersion = files.get(fileName) ?? 0;
 		files.set(fileName, currentVersion + 1);
 	}
 
 	const serviceHost: ts.LanguageServiceHost = {
-		getScriptFileNames: () => rootFileNames,
+		getScriptFileNames: () => [...files.keys()],
 		getCurrentDirectory: () => process.cwd(),
 		getCompilationSettings: () => program.getCompilerOptions(),
 		getDefaultLibFileName: options => ts.getDefaultLibFilePath(options),
