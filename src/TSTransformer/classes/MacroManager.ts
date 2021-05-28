@@ -24,8 +24,8 @@ export const SYMBOL_NAMES = {
 	ReadonlySetConstructor: "ReadonlySetConstructor",
 
 	Array: "Array",
-	IterableFunction: "IterableFunction",
 	Generator: "Generator",
+	IterableFunction: "IterableFunction",
 	LuaTuple: "LuaTuple",
 	Map: "Map",
 	Object: "Object",
@@ -36,6 +36,8 @@ export const SYMBOL_NAMES = {
 	Set: "Set",
 	String: "String",
 	TemplateStringsArray: "TemplateStringsArray",
+	WeakMap: "WeakMap",
+	WeakSet: "WeakSet",
 
 	Iterable: "Iterable",
 } as const;

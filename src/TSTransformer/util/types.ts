@@ -114,15 +114,17 @@ export function isArrayType(state: TransformState, type: ts.Type) {
 
 export function isSetType(state: TransformState, type: ts.Type) {
 	return (
+		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Set) ||
 		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySet) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Set)
+		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSet)
 	);
 }
 
 export function isMapType(state: TransformState, type: ts.Type) {
 	return (
+		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Map) ||
 		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMap) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Map)
+		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMap)
 	);
 }
 
