@@ -12,7 +12,7 @@ function createServiceHost(program: ts.Program) {
 	const overriddenText = new Map<string, string>();
 
 	function updateFile(fileName: string, text: string) {
-		overriddenText.set(fileName, text.length ? text : "\0");
+		overriddenText.set(fileName, text);
 
 		const currentVersion = files.get(fileName) ?? 0;
 		files.set(fileName, currentVersion + 1);
@@ -39,14 +39,14 @@ function createServiceHost(program: ts.Program) {
 
 	function getScriptSnapshot(fileName: string) {
 		const content = readFile(fileName);
-		if (!content) return;
+		if (content === undefined) return;
 
 		return ts.ScriptSnapshot.fromString(content);
 	}
 
 	function readFile(fileName: string, encoding?: string) {
 		const content = overriddenText.get(fileName);
-		if (content) return content;
+		if (content !== undefined) return content;
 
 		return ts.sys.readFile(fileName, encoding);
 	}
