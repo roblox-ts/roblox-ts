@@ -9,10 +9,10 @@ function createServiceHost(program: ts.Program) {
 		files.set(fileName, 0);
 	});
 
-	const overridedText = new Map<string, string>();
+	const overriddenText = new Map<string, string>();
 
 	function updateFile(fileName: string, text: string) {
-		overridedText.set(fileName, text.length ? text : "\0");
+		overriddenText.set(fileName, text.length ? text : "\0");
 
 		const currentVersion = files.get(fileName) ?? 0;
 		files.set(fileName, currentVersion + 1);
@@ -45,7 +45,7 @@ function createServiceHost(program: ts.Program) {
 	}
 
 	function readFile(fileName: string, encoding?: string) {
-		const content = overridedText.get(fileName);
+		const content = overriddenText.get(fileName);
 		if (content) return content;
 
 		return ts.sys.readFile(fileName, encoding);
