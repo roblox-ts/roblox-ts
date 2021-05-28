@@ -19,7 +19,7 @@ function createServiceHost(program: ts.Program) {
 	}
 
 	const serviceHost: ts.LanguageServiceHost = {
-		getScriptFileNames: () => [...files.keys()],
+		getScriptFileNames: () => [...files.keys()].filter(ts.sys.fileExists),
 		getCurrentDirectory: () => process.cwd(),
 		getCompilationSettings: () => program.getCompilerOptions(),
 		getDefaultLibFileName: options => ts.getDefaultLibFilePath(options),
