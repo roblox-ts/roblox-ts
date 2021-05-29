@@ -34,5 +34,12 @@ export function createProgramFactory(
 		compilerOptions: ts.CompilerOptions | undefined = options,
 		host = createCompilerHost(data, options),
 		oldProgram = ts.readBuilderProgram(options, createReadBuildProgramHost()),
-	) => ts.createEmitAndSemanticDiagnosticsBuilderProgram(rootNames, compilerOptions, host, oldProgram);
+	) => {
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		if ((globalThis as any).RBXTSC_DEV) {
+			compilerOptions.incremental = false;
+			compilerOptions.tsBuildInfoFile = undefined;
+		}
+		return ts.createEmitAndSemanticDiagnosticsBuilderProgram(rootNames, compilerOptions, host, oldProgram);
+	};
 }
