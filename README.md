@@ -25,6 +25,7 @@ https://discord.gg/f6Rn6RY
 ## Games that use roblox-ts
 
 <a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png"></a>
+<a href="https://www.roblox.com/games/6872265039"><img width=32.9% src="https://i.imgur.com/S2x5isG.png"></a>
 <a href="https://www.roblox.com/games/5414779423"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png"></a>
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png"></a>
 <a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png"></a>
