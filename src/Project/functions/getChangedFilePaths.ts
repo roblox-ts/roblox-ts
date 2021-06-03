@@ -25,7 +25,7 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 
 	const search = (filePath: string) => {
 		changedFilesSet.add(filePath);
-		reversedReferencedMap.get(filePath)?.forEach(refFilePath => {
+		reversedReferencedMap.get(filePath.toLowerCase())?.forEach(refFilePath => {
 			if (!changedFilesSet.has(refFilePath)) {
 				changedFilesSet.add(refFilePath);
 				if (compilerOptions.assumeChangesOnlyAffectDirectDependencies !== true) {
