@@ -5,6 +5,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 
 const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
+	module: ts.ModuleKind.CommonJS,
 	moduleResolution: ts.ModuleResolutionKind.NodeJs,
 	noLib: true,
 	strict: true,
@@ -40,6 +41,10 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 
 	if (opts.target !== ENFORCED_OPTIONS.target) {
 		// errors.push(`${y(`"target"`)} must be ${y(`"ESNext"`)}`);
+	}
+
+	if (opts.module !== ENFORCED_OPTIONS.module) {
+		errors.push(`${y(`"module"`)} must be ${y(`commonjs`)}`);
 	}
 
 	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {
