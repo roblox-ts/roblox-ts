@@ -81,6 +81,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		packageJson: path.join(cwd, "package.json"),
 		packageLockJson: path.join(cwd, "package-lock.json"),
 		projectJson: path.join(cwd, "default.project.json"),
+		serveProjectJson: mode === InitMode.Plugin && path.join(cwd, "serve.project.json"),
 		src: path.join(cwd, "src"),
 		tsconfig: path.join(cwd, "tsconfig.json"),
 		gitignore: path.join(cwd, ".gitignore"),
@@ -91,7 +92,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	const existingPaths = new Array<string>();
 	for (const filePath of Object.values(paths)) {
-		if (await fs.pathExists(filePath)) {
+		if (filePath && (await fs.pathExists(filePath))) {
 			const stat = await fs.stat(filePath);
 			if (stat.isFile() || (await fs.readdir(filePath)).length > 0) {
 				existingPaths.push(path.relative(cwd, filePath));

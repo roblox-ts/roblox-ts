@@ -1,0 +1,16 @@
+{
+	"name": "roblox-ts-plugin-serve",
+	"globIgnorePaths": [
+		"**/package.json",
+		"**/tsconfig.json"
+	],
+	"tree": {
+		"$className": "DataModel",
+		"ServerScriptService": {
+			"$className": "ServerScriptService",
+			"Plugin": {
+				"$path": "./default.project.json"
+			}
+		}
+	}
+}
