@@ -73,7 +73,7 @@
 		"eslint-config-prettier": "^8.0.0",
 		"eslint-plugin-prettier": "^3.3.0",
 		"eslint-plugin-simple-import-sort": "^7.0.0",
-		"mocha": "^8.2.1",
+		"mocha": "^9.0.0",
 		"nyc": "^15.1.0",
 		"prettier": "^2.2.1",
 		"ttypescript": "^1.5.12",
