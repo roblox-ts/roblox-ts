@@ -21,6 +21,10 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 	}
 
 	if (isDefinitelyType(type, t => isAnyType(t))) {
-		DiagnosticService.addDiagnostic(errors.noAny(node));
+		const symbol = state.getOriginalSymbol(node);
+		if (symbol && !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
+			state.multiTransformState.isReportedByNoAnyCache.add(symbol);
+			DiagnosticService.addDiagnostic(errors.noAny(node));
+		}
 	}
 }
