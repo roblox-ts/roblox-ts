@@ -25,22 +25,16 @@ type AddIterableToArrayBuilder = (
 ) => luau.List<luau.Statement>;
 
 const addArray: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
-	const keyId = luau.tempId("i");
-	const valueId = luau.tempId("v");
+	const inputArray = state.pushToVarIfNonId(expression);
 	return luau.list.make(
-		luau.create(luau.SyntaxKind.ForStatement, {
-			ids: luau.list.make(keyId, valueId),
-			expression: luau.call(luau.globals.ipairs, [expression]),
-			statements: luau.list.make(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: arrayId,
-						index: luau.binary(lengthId, "+", keyId),
-					}),
-					operator: "=",
-					right: valueId,
-				}),
-			),
+		luau.create(luau.SyntaxKind.CallStatement, {
+			expression: luau.call(luau.globals.table.move, [
+				inputArray,
+				luau.number(1),
+				luau.unary("#", inputArray),
+				luau.binary(lengthId, "+", luau.number(1)),
+				arrayId,
+			]),
 		}),
 	);
 };
