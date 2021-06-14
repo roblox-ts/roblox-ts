@@ -15,8 +15,9 @@ jobs:
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1.7.4
 
-      - name: Compile
-        run: npm run build
-
-      - name: Pack
-        run: npm pack
+      - name: Publish
+        run: |
+          echo $(cat package.json | jq ".version |= . + \"-dev.$GITHUB_SHA\"") > package.json
+          npm publish --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
