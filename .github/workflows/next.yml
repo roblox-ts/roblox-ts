@@ -1,4 +1,4 @@
-name: Pack
+name: Publish @next
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - master
 
 jobs:
-  pack:
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
