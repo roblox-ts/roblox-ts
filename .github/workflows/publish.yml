@@ -23,8 +23,7 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
           echo $(cat package.json | jq ".version |= . + \"-dev.$(git rev-parse --short HEAD)\"") > package.json
-          npm adduser
-          npm login
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
           npm publish --tag next
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
