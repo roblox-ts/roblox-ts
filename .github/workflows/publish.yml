@@ -1,0 +1,29 @@
+name: Publish
+
+on:
+  schedule:
+    - cron: '0 7 * * *'
+
+jobs:
+  publish:
+    if: github.repository == 'roblox-ts/roblox-ts' && github.ref == 'refs/heads/master'
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+
+      - name: Install NPM dependencies
+        uses: bahmutov/npm-install@v1.7.4
+
+      - name: Publish
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "noreply@github.com"
+          git checkout origin/master tests/package.json
+          git checkout origin/master tests/package-lock.json
+          npm version prerelease --preid="dev-$(git log --format="%H" -n 1 | head -c 7)" # hack!
+          npm publish --tag next
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
