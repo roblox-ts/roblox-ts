@@ -4,7 +4,7 @@ import { renderParameters } from "LuauRenderer/util/renderParameters";
 import { renderStatements } from "LuauRenderer/util/renderStatements";
 
 export function renderFunctionExpression(state: RenderState, node: luau.FunctionExpression) {
-	if (!node.statements.head) {
+	if (luau.list.isEmpty(node.statements)) {
 		return `function(${renderParameters(state, node)}) end`;
 	}
 

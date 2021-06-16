@@ -964,7 +964,7 @@ function footer(text: string) {
 }
 
 function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: luau.Expression) {
-	if (statements.head !== undefined) {
+	if (luau.list.isNonEmpty(statements)) {
 		const firstStatement = statements.head.value;
 		if (luau.isVariableDeclaration(firstStatement)) {
 			if (!luau.list.isList(firstStatement.left) && luau.isTemporaryIdentifier(firstStatement.left)) {

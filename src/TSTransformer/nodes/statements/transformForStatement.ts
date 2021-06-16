@@ -14,51 +14,51 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
 
-function addIncrementorToIfStatement(node: luau.IfStatement, incrementor: luau.List<luau.Statement>) {
-	if (node.statements.head) {
-		addIncrementor(node.statements, node.statements.head, incrementor);
+function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
+	if (luau.list.isNonEmpty(node.statements)) {
+		addFinalizers(node.statements, node.statements.head, finalizers);
 	}
 	if (luau.list.isList(node.elseBody)) {
-		if (node.elseBody.head) {
-			addIncrementor(node.elseBody, node.elseBody.head, incrementor);
+		if (luau.list.isNonEmpty(node.elseBody)) {
+			addFinalizers(node.elseBody, node.elseBody.head, finalizers);
 		}
 	} else {
-		addIncrementorToIfStatement(node.elseBody, incrementor);
+		addFinalizersToIfStatement(node.elseBody, finalizers);
 	}
 }
 
-function addIncrementor(
+function addFinalizers(
 	list: luau.List<luau.Statement>,
 	node: luau.ListNode<luau.Statement>,
-	incrementor: luau.List<luau.Statement>,
+	finalizers: luau.List<luau.Statement>,
 ) {
 	assert(!luau.list.isEmpty(list));
 
 	const statement = node.value;
 	if (luau.isContinueStatement(statement)) {
-		const incrementorClone = luau.list.clone(incrementor);
+		const finalizersClone = luau.list.clone(finalizers);
 
 		if (node.prev) {
-			node.prev.next = incrementorClone.head;
+			node.prev.next = finalizersClone.head;
 		} else if (node === list.head) {
-			list.head = incrementorClone.head;
+			list.head = finalizersClone.head;
 		}
 
-		node.prev = incrementorClone.tail;
+		node.prev = finalizersClone.tail;
 
-		incrementorClone.tail!.next = node;
+		finalizersClone.tail!.next = node;
 	}
 
 	if (luau.isDoStatement(statement)) {
-		if (statement.statements.head) {
-			addIncrementor(statement.statements, statement.statements.head, incrementor);
+		if (luau.list.isNonEmpty(statement.statements)) {
+			addFinalizers(statement.statements, statement.statements.head, finalizers);
 		}
 	} else if (luau.isIfStatement(statement)) {
-		addIncrementorToIfStatement(statement, incrementor);
+		addFinalizersToIfStatement(statement, finalizers);
 	}
 
 	if (node.next) {
-		addIncrementor(list, node.next, incrementor);
+		addFinalizers(list, node.next, finalizers);
 	}
 }
 
@@ -182,8 +182,8 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 
 	luau.list.pushList(whileStatements, transformStatementList(state, getStatements(statement)));
 
-	if (whileStatements.head) {
-		addIncrementor(whileStatements, whileStatements.head, saveWriteStatements);
+	if (luau.list.isNonEmpty(whileStatements) && luau.list.isNonEmpty(saveWriteStatements)) {
+		addFinalizers(whileStatements, whileStatements.head, saveWriteStatements);
 	}
 
 	if (!whileStatements.tail || !luau.isFinalStatement(whileStatements.tail.value)) {

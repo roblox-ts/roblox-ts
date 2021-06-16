@@ -172,6 +172,10 @@ export namespace list {
 		return list.head === undefined;
 	}
 
+	export function isNonEmpty<T extends luau.Node>(list: luau.List<T>): list is Required<luau.List<T>> {
+		return list.head !== undefined;
+	}
+
 	export function forEach<T extends luau.Node>(list: luau.List<T>, callback: (value: NoInfer<T>) => void) {
 		let node = list.head;
 		while (node) {

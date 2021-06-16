@@ -2,7 +2,7 @@ import luau from "LuauAST";
 import { render, RenderState } from "LuauRenderer";
 
 export function renderSet(state: RenderState, node: luau.Set) {
-	if (!node.members.head) {
+	if (luau.list.isEmpty(node.members)) {
 		return "{}";
 	}
 

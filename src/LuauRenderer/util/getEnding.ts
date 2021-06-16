@@ -54,7 +54,7 @@ function startsWithParenthesis(node: luau.Statement) {
 	} else if (luau.isAssignment(node)) {
 		if (luau.list.isList(node.left)) {
 			// `(a).b, c = d`
-			assert(node.left.head);
+			assert(luau.list.isNonEmpty(node.left));
 			return startsWithParenthesisInner(node.left.head.value);
 		} else {
 			// `(a).b = c`

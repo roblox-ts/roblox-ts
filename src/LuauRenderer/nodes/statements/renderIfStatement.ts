@@ -18,7 +18,7 @@ export function renderIfStatement(state: RenderState, node: luau.IfStatement) {
 		currentElseBody = currentElseBody.elseBody;
 	}
 
-	if (currentElseBody && currentElseBody.head) {
+	if (currentElseBody && luau.list.isNonEmpty(currentElseBody)) {
 		result += state.line(`else`);
 		const statements = currentElseBody;
 		result += state.scope(() => renderStatements(state, statements));
