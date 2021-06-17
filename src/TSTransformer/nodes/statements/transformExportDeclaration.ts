@@ -2,6 +2,7 @@ import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 
@@ -46,7 +47,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
 	} else if (uses > 1) {
 		const moduleName = node.moduleSpecifier.text.split("/");
-		importExp = luau.tempId(moduleName[moduleName.length - 1]);
+		importExp = luau.tempId(cleanModuleName(moduleName[moduleName.length - 1]));
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
