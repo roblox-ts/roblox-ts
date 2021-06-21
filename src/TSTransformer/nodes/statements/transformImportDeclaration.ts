@@ -4,6 +4,7 @@ import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
+import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
@@ -51,7 +52,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		const uses = countImportExpUses(state, importClause);
 		if (uses > 1) {
 			const moduleName = node.moduleSpecifier.text.split("/");
-			const id = luau.tempId(moduleName[moduleName.length - 1]);
+			const id = luau.tempId(cleanModuleName(moduleName[moduleName.length - 1]));
 			luau.list.push(
 				statements,
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
