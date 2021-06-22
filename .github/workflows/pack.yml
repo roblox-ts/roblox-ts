@@ -23,5 +23,4 @@ jobs:
 
       - uses: actions/upload-artifact@v2
         with:
-          name: build.tgz
           path: roblox-ts-*.tgz
