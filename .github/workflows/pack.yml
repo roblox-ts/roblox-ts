@@ -20,7 +20,3 @@ jobs:
 
       - name: Pack
         run: npm pack
-
-      - uses: actions/upload-artifact@v2
-        with:
-          path: roblox-ts-*.tgz
