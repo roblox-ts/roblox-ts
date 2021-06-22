@@ -7,6 +7,7 @@ on:
 
 jobs:
   pack:
+    needs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,7 +20,7 @@ jobs:
         run: npm run build
 
       - name: Pack
-        run: npm run pack
+        run: npm pack
 
       - uses: actions/upload-artifact@v2
         with:
