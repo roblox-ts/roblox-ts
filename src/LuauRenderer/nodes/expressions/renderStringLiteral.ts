@@ -14,6 +14,10 @@ function needsBracketSpacing(node: luau.StringLiteral) {
 		return true;
 	}
 
+	if (luau.isSet(parent)) {
+		return true;
+	}
+
 	return false;
 }
 
