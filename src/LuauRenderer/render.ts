@@ -11,10 +11,11 @@ import { renderTemporaryIdentifier } from "LuauRenderer/nodes/expressions/indexa
 import { renderArray } from "LuauRenderer/nodes/expressions/renderArray";
 import { renderBinaryExpression } from "LuauRenderer/nodes/expressions/renderBinaryExpression";
 import { renderFunctionExpression } from "LuauRenderer/nodes/expressions/renderFunctionExpression";
-import { renderNumberLiteral, renderStringLiteral } from "LuauRenderer/nodes/expressions/renderLiteral";
 import { renderMap } from "LuauRenderer/nodes/expressions/renderMap";
 import { renderMixedTable } from "LuauRenderer/nodes/expressions/renderMixedTable";
+import { renderNumberLiteral } from "LuauRenderer/nodes/expressions/renderNumberLiteral";
 import { renderSet } from "LuauRenderer/nodes/expressions/renderSet";
+import { renderStringLiteral } from "LuauRenderer/nodes/expressions/renderStringLiteral";
 import { renderUnaryExpression } from "LuauRenderer/nodes/expressions/renderUnaryExpression";
 import { renderMapField } from "LuauRenderer/nodes/fields/renderMapField";
 import { renderAssignment } from "LuauRenderer/nodes/statements/renderAssignment";
