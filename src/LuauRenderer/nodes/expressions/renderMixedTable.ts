@@ -8,8 +8,7 @@ export function renderMixedTable(state: RenderState, node: luau.MixedTable) {
 
 	let result = "{\n";
 	state.block(() => {
-		// temp fix for https://github.com/microsoft/TypeScript/issues/42932
-		luau.list.forEach(node.fields, field => (result += state.line(`${render(state, field as luau.Node)},`)));
+		luau.list.forEach(node.fields, field => (result += state.line(`${render(state, field)},`)));
 	});
 	result += state.indented("}");
 	return result;
