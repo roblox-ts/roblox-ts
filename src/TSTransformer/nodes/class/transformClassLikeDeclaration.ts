@@ -215,23 +215,19 @@ function createBoilerplate(
 			}),
 		);
 
-		//	self:constructor(...);
-		luau.list.push(
-			statementsInner,
-			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.create(luau.SyntaxKind.MethodCallExpression, {
-					expression: luau.globals.self,
-					name: "constructor",
-					args: luau.list.make(luau.create(luau.SyntaxKind.VarArgsLiteral, {})),
-				}),
-			}),
-		);
-
-		//	return self;
+		//	return self:constructor(...) or self;
 		luau.list.push(
 			statementsInner,
 			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: luau.globals.self,
+				expression: luau.binary(
+					luau.create(luau.SyntaxKind.MethodCallExpression, {
+						expression: luau.globals.self,
+						name: "constructor",
+						args: luau.list.make(luau.create(luau.SyntaxKind.VarArgsLiteral, {})),
+					}),
+					"or",
+					luau.globals.self,
+				),
 			}),
 		);
 
