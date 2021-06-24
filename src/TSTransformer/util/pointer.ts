@@ -5,9 +5,9 @@ export interface Pointer<T> {
 	value: T;
 }
 
-export type MapPointer = Pointer<luau.Map | luau.TemporaryIdentifier>;
-export type ArrayPointer = Pointer<luau.Array | luau.TemporaryIdentifier>;
-export type MixedTablePointer = Pointer<luau.MixedTable | luau.TemporaryIdentifier>;
+export type MapPointer = Pointer<luau.Map | luau.AnyIdentifier>;
+export type ArrayPointer = Pointer<luau.Array | luau.AnyIdentifier>;
+export type MixedTablePointer = Pointer<luau.MixedTable | luau.AnyIdentifier>;
 
 export function createMapPointer(): MapPointer {
 	return { value: luau.map() };
@@ -27,6 +27,10 @@ export function assignToMapPointer(
 	left: luau.Expression,
 	right: luau.Expression,
 ) {
+	if (luau.isComplexStringLiteral(left)) {
+		disableMapInline(state, ptr);
+		left = state.pushToVar(left);
+	}
 	if (luau.isMap(ptr.value)) {
 		luau.list.push(
 			ptr.value.fields,
