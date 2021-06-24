@@ -4,7 +4,9 @@ import { getSafeBracketEquals } from "LuauRenderer/util/getSafeBracketEquals";
 
 function needsBracketSpacing(node: luau.StringLiteral) {
 	const parent = node.parent;
-	if (!parent) return false;
+	if (!parent) {
+		return false;
+	}
 
 	if (luau.isMapField(parent) && node === parent.index) {
 		return true;
