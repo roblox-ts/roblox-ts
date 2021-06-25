@@ -19,7 +19,6 @@ import {
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
