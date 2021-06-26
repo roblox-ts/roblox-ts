@@ -8,54 +8,6 @@ local TS = {}
 -- runtime classes
 TS.Promise = Promise
 
-local Symbol
-do
-	Symbol = {}
-	Symbol.__index = Symbol
-	setmetatable(
-		Symbol,
-		{
-			__call = function(_, description)
-				local self = setmetatable({}, Symbol)
-				self.description = "Symbol(" .. (description or "") .. ")"
-				return self
-			end,
-		}
-	)
-
-	local symbolRegistry = setmetatable(
-		{},
-		{
-			__index = function(self, k)
-				self[k] = Symbol(k)
-				return self[k]
-			end,
-		}
-	)
-
-	function Symbol:toString()
-		return self.description
-	end
-
-	Symbol.__tostring = Symbol.toString
-
-	-- Symbol.for
-	function Symbol.getFor(key)
-		return symbolRegistry[key]
-	end
-
-	function Symbol.keyFor(goalSymbol)
-		for key, symbol in pairs(symbolRegistry) do
-			if symbol == goalSymbol then
-				return key
-			end
-		end
-	end
-end
-
-TS.Symbol = Symbol
-TS.Symbol_iterator = Symbol("Symbol.iterator")
-
 local function isPlugin(object)
 	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
@@ -161,12 +113,6 @@ function TS.import(caller, module, ...)
 	return data
 end
 
-function TS.exportNamespace(module, ancestor)
-	for key, value in pairs(module) do
-		ancestor[key] = value
-	end
-end
-
 -- general utility functions
 function TS.instanceof(obj, class)
 	-- custom Class.instanceof() check
@@ -222,14 +168,6 @@ function TS.await(promise)
 		error(value, 2)
 	else
 		error("The awaited Promise was cancelled", 2)
-	end
-end
-
-function TS.add(a, b)
-	if type(a) == "string" or type(b) == "string" then
-		return a .. b
-	else
-		return a + b
 	end
 end
 
@@ -293,7 +231,67 @@ end
 
 -- LEGACY RUNTIME FUNCTIONS
 
-local HttpService = game:GetService("HttpService")
+local Symbol
+do
+	Symbol = {}
+	Symbol.__index = Symbol
+	setmetatable(
+		Symbol,
+		{
+			__call = function(_, description)
+				local self = setmetatable({}, Symbol)
+				self.description = "Symbol(" .. (description or "") .. ")"
+				return self
+			end,
+		}
+	)
+
+	local symbolRegistry = setmetatable(
+		{},
+		{
+			__index = function(self, k)
+				self[k] = Symbol(k)
+				return self[k]
+			end,
+		}
+	)
+
+	function Symbol:toString()
+		return self.description
+	end
+
+	Symbol.__tostring = Symbol.toString
+
+	-- Symbol.for
+	function Symbol.getFor(key)
+		return symbolRegistry[key]
+	end
+
+	function Symbol.keyFor(goalSymbol)
+		for key, symbol in pairs(symbolRegistry) do
+			if symbol == goalSymbol then
+				return key
+			end
+		end
+	end
+end
+
+TS.Symbol = Symbol
+TS.Symbol_iterator = Symbol("Symbol.iterator")
+
+function TS.add(a, b)
+	if type(a) == "string" or type(b) == "string" then
+		return a .. b
+	else
+		return a + b
+	end
+end
+
+function TS.exportNamespace(module, ancestor)
+	for key, value in pairs(module) do
+		ancestor[key] = value
+	end
+end
 
 -- utility functions
 local function copy(object)
@@ -395,6 +393,8 @@ TS.Object_copy = copy
 TS.Object_deepCopy = deepCopy
 
 TS.Object_deepEquals = deepEquals
+
+local HttpService = game:GetService("HttpService")
 
 local function toString(data)
 	return HttpService:JSONEncode(data)
