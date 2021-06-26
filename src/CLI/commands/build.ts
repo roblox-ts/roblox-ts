@@ -86,6 +86,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			.option("writeOnlyChanged", {
 				boolean: true,
 				default: false,
+				hidden: true,
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
