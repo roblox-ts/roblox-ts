@@ -92,17 +92,27 @@ export class PathTranslator {
 			pathInfo.exts.pop();
 			const originalFileName = pathInfo.fileName;
 
+			// init.*.ts
+			pathInfo.exts.push(TS_EXT);
+			possiblePaths.push(makeRelative(pathInfo));
+			pathInfo.exts.pop();
+
+			// init.*.tsx
+			pathInfo.exts.push(TSX_EXT);
+			possiblePaths.push(makeRelative(pathInfo));
+			pathInfo.exts.pop();
+
 			// init -> index
 			if (pathInfo.fileName === INIT_NAME) {
 				pathInfo.fileName = INDEX_NAME;
 			}
 
-			// .ts
+			// index.*.ts
 			pathInfo.exts.push(TS_EXT);
 			possiblePaths.push(makeRelative(pathInfo));
 			pathInfo.exts.pop();
 
-			// .tsx
+			// index.*.tsx
 			pathInfo.exts.push(TSX_EXT);
 			possiblePaths.push(makeRelative(pathInfo));
 			pathInfo.exts.pop();
