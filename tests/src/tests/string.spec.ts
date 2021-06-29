@@ -129,4 +129,13 @@ export = () => {
 			ing`]).to.equal("bar");
 		expect(obj[key]).to.equal("bar");
 	});
+
+	// issue #1467
+	it("should support strings with \", ', and ending with ]", () => {
+		const str1 = `A string with a " and ' ending in a ]`;
+		expect(str1.size()).to.equal(37);
+
+		const str2 = `A string with a " and ' ending in a ]] ]=`;
+		expect(str2.size()).to.equal(41);
+	});
 };
