@@ -1,25 +1,26 @@
+// X = reserved by TypeScript
 const LUAU_RESERVED_KEYWORDS = new Set([
 	"and",
-	"break",
-	"do",
-	"else",
+	"break", // X
+	"do", // X
+	"else", // X
 	"elseif",
 	"end",
-	"false",
-	"for",
-	"function",
-	"if",
-	"in",
+	"false", // X
+	"for", // X
+	"function", // X
+	"if", // X
+	"in", // X
 	"local",
 	"nil",
 	"not",
 	"or",
 	"repeat",
-	"return",
+	"return", // X
 	"then",
-	"true",
+	"true", // X
 	"until",
-	"while",
+	"while", // X
 ]);
 
 const LUAU_IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/;
