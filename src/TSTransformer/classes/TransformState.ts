@@ -11,16 +11,10 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { TransformServices } from "TSTransformer/types";
+import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
-
-export type TryUses = {
-	usesReturn: boolean;
-	usesBreak: boolean;
-	usesContinue: boolean;
-};
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.
