@@ -14,9 +14,6 @@
 		"outDir": "out",
 
 		"baseUrl": "src",
-		"paths": {
-			"*": ["*"]
-		},
 		"plugins": [
 			{ "transform": "typescript-transform-paths" },
 			{
