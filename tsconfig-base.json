@@ -14,10 +14,17 @@
 		"outDir": "out",
 
 		"baseUrl": "src",
+		"paths": {
+			"*": ["*"]
+		},
 		"plugins": [
-			{ "transform": "typescript-transform-paths" },
 			{
 				"transform": "typescript-transform-paths",
+				"exclude": ["**/node_modules/**"]
+			},
+			{
+				"transform": "typescript-transform-paths",
+				"exclude": ["**/node_modules/**"],
 				"afterDeclarations": true
 			}
 		]
