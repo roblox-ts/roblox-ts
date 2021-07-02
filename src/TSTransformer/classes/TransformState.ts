@@ -16,11 +16,6 @@ import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 
-/**
- * The ID of the Runtime library.
- */
-const RUNTIME_LIB_ID = luau.id("TS");
-
 export type TryUses = {
 	usesReturn: boolean;
 	usesBreak: boolean;
@@ -207,7 +202,7 @@ export class TransformState {
 			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
 		}
 
-		return luau.property(RUNTIME_LIB_ID, name);
+		return luau.property(luau.globals.TS, name);
 	}
 
 	/**
@@ -237,7 +232,7 @@ export class TransformState {
 
 				// create a variable declaration for this call
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: RUNTIME_LIB_ID,
+					left: luau.globals.TS,
 					right: expression,
 				});
 			} else {
@@ -248,13 +243,13 @@ export class TransformState {
 						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
-						left: RUNTIME_LIB_ID,
+						left: luau.globals.TS,
 						right: luau.nil(),
 					});
 				}
 
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: RUNTIME_LIB_ID,
+					left: luau.globals.TS,
 					right: luau.call(luau.globals.require, [
 						propertyAccessExpressionChain(
 							luau.globals.script,
@@ -269,7 +264,7 @@ export class TransformState {
 			// we pass RuntimeLib access to packages via `_G[script] = TS`
 			// access it here via `local TS = _G[script]`
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: RUNTIME_LIB_ID,
+				left: luau.globals.TS,
 				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: luau.globals._G,
 					index: luau.globals.script,

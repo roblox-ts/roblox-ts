@@ -7,6 +7,7 @@ const TABLE_ID = luau.id("table");
 const UTF8_ID = luau.id("utf8");
 
 export const globals = {
+	TS: luau.id("TS"),
 	_G: luau.id("_G"),
 	assert: luau.id("assert"),
 	bit32: luau.id("bit32"),
