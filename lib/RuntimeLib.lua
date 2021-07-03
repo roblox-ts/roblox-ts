@@ -61,7 +61,12 @@ local function isPlugin(object)
 end
 
 -- module resolution
-function TS.getModule(object, moduleName, scope)
+function TS.getModule(object, scope, moduleName)
+	if moduleName == nil then
+		moduleName = scope
+		scope = "@rbxts"
+	end
+
 	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
 		warn("roblox-ts packages should not be used from ReplicatedFirst!")
 	end
