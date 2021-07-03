@@ -8,7 +8,7 @@ export function createNodeModulesPathMapping(nodeModulesPath: string) {
 		// go through each org
 		for (const scope of fs.readdirSync(nodeModulesPath, { withFileTypes: true })) {
 			const scopePath = path.join(nodeModulesPath, scope.name);
-			if (scope.isDirectory()) {
+			if (scope.isDirectory() && scope.name.startsWith("@")) {
 				// map module paths
 				for (const pkgName of fs.readdirSync(scopePath)) {
 					const pkgPath = path.join(scopePath, pkgName);
