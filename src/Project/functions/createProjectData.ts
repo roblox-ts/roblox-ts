@@ -3,10 +3,11 @@ import fs from "fs-extra";
 import path from "path";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { RojoResolver } from "Shared/classes/RojoResolver";
-import { NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
+import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectData, ProjectFlags, ProjectOptions } from "Shared/types";
 
+const PACKAGE_REGEX = /^@[a-z0-9-]*\//;
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: undefined,
@@ -30,7 +31,7 @@ export function createProjectData(
 	let pkgVersion = "";
 	try {
 		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
-		isPackage = (pkgJson.name ?? "").startsWith(RBXTS_SCOPE + "/");
+		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
 		pkgVersion = pkgJson.version;
 	} catch (e) {}
 
@@ -40,7 +41,7 @@ export function createProjectData(
 	// intentionally use || here for empty string case
 	const includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
 
-	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES, RBXTS_SCOPE);
+	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(nodeModulesPath);
 
 	let rojoConfigPath: string | undefined;

@@ -1,6 +1,7 @@
 import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
+import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
@@ -43,7 +44,7 @@ export class RoactSymbolManager {
 		program: ts.Program,
 		typeChecker: ts.TypeChecker,
 	): RoactSymbolManager | undefined {
-		const pkgPath = path.join(data.nodeModulesPath, "roact");
+		const pkgPath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact");
 		const pkgJsonPath = realPathExistsSync(path.join(pkgPath, "package.json"));
 		if (pkgJsonPath !== undefined) {
 			const pkgJson = fs.readJsonSync(pkgJsonPath) as { typings?: string; types?: string };
@@ -57,7 +58,7 @@ export class RoactSymbolManager {
 		}
 
 		// playground fallback
-		const roactIndexSourceFilePath = path.join(data.nodeModulesPath, "roact", "src", "index.d.ts");
+		const roactIndexSourceFilePath = path.join(data.nodeModulesPath, RBXTS_SCOPE, "roact", "src", "index.d.ts");
 		const roactIndexSourceFile = program.getSourceFile(roactIndexSourceFilePath);
 		if (roactIndexSourceFile) {
 			return new RoactSymbolManager(typeChecker, roactIndexSourceFile);

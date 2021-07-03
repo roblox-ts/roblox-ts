@@ -45,25 +45,55 @@ function getRelativeImport(sourceRbxPath: RbxPath, moduleRbxPath: RbxPath) {
 	return pathExpressions;
 }
 
+function validateModule(state: TransformState, scope: string) {
+	const scopedModules = path.join(state.data.nodeModulesPath, scope);
+	if (state.compilerOptions.typeRoots) {
+		for (const typeRoot of state.compilerOptions.typeRoots) {
+			if (path.normalize(scopedModules) === path.normalize(typeRoot)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
 		state.data.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
+	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 	const relativeRbxPath = state.pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	if (!relativeRbxPath) {
+	if (!relativeRbxPath || (!state.data.isPackage && !gameRbxPath)) {
 		DiagnosticService.addDiagnostic(
 			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
 		);
 		return luau.emptyId();
 	}
 
-	const moduleName = relativeRbxPath[0];
+	const moduleScope = relativeRbxPath[0];
+	assert(moduleScope && typeof moduleScope === "string");
+
+	if (!moduleScope.startsWith("@")) {
+		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
+		return luau.emptyId();
+	}
+
+	const moduleName = relativeRbxPath[1];
 	assert(moduleName && typeof moduleName === "string");
 
+	if (!validateModule(state, moduleScope)) {
+		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
+		return luau.emptyId();
+	}
+
 	return propertyAccessExpressionChain(
-		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [luau.globals.script, luau.string(moduleName)]),
-		relativeRbxPath.slice(1),
+		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
+			luau.globals.script,
+			luau.string(moduleName),
+			luau.string(moduleScope),
+		]),
+		relativeRbxPath.slice(2),
 	);
 }
 

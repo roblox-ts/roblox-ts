@@ -13,7 +13,7 @@ import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
-import { ProjectType } from "Shared/constants";
+import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -104,8 +104,11 @@ export function compileFiles(
 		}
 	}
 
-	if (projectType !== ProjectType.Package && !rojoResolver.getRbxPathFromFilePath(data.nodeModulesPath)) {
-		return emitResultFailure("Rojo project contained no data for node_modules folder!");
+	if (
+		projectType !== ProjectType.Package &&
+		!rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE))
+	) {
+		return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
 	}
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
