@@ -6,12 +6,12 @@ export function createNodeModulesPathMapping(nodeModulesPath: string) {
 	const nodeModulesPathMapping = new Map<string, string>();
 	if (fs.pathExistsSync(nodeModulesPath)) {
 		// go through each org
-		for (const org of fs.readdirSync(nodeModulesPath, { withFileTypes: true })) {
-			const orgPath = path.join(nodeModulesPath, org.name);
-			if (org.isDirectory()) {
+		for (const scope of fs.readdirSync(nodeModulesPath, { withFileTypes: true })) {
+			const scopePath = path.join(nodeModulesPath, scope.name);
+			if (scope.isDirectory()) {
 				// map module paths
-				for (const pkgName of fs.readdirSync(orgPath)) {
-					const pkgPath = path.join(orgPath, pkgName);
+				for (const pkgName of fs.readdirSync(scopePath)) {
+					const pkgPath = path.join(scopePath, pkgName);
 					const pkgJsonPath = realPathExistsSync(path.join(pkgPath, "package.json"));
 					if (pkgJsonPath !== undefined) {
 						const pkgJson = fs.readJsonSync(pkgJsonPath) as {
