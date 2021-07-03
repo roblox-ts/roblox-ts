@@ -177,6 +177,8 @@ export const errors = {
 		issue(1043),
 	),
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
+	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
+	noUnscopedModule: error("You cannot use modules directly under node_modules."),
 	noRojoData: errorWithContext((path: string) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
 	]),

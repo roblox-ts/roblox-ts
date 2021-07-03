@@ -1,6 +1,7 @@
 import ts from "byots";
 import kleur from "kleur";
 import path from "path";
+import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 
 const ENFORCED_OPTIONS = {
@@ -55,8 +56,9 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"allowSyntheticDefaultImports"`)} must be ${y(`true`)}`);
 	}
 
-	if (opts.typeRoots === undefined || !validateTypeRoots(nodeModulesPath, opts.typeRoots)) {
-		errors.push(`${y(`"typeRoots"`)} must contain ${y(nodeModulesPath)}`);
+	const rbxtsModules = path.join(nodeModulesPath, RBXTS_SCOPE);
+	if (opts.typeRoots === undefined || !validateTypeRoots(rbxtsModules, opts.typeRoots)) {
+		errors.push(`${y(`"typeRoots"`)} must contain ${y(rbxtsModules)}`);
 	}
 
 	// configurable compiler options

@@ -61,7 +61,12 @@ local function isPlugin(object)
 end
 
 -- module resolution
-function TS.getModule(object, moduleName)
+function TS.getModule(object, scope, moduleName)
+	if moduleName == nil then
+		moduleName = scope
+		scope = "@rbxts"
+	end
+
 	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
 		warn("roblox-ts packages should not be used from ReplicatedFirst!")
 	end
@@ -90,7 +95,8 @@ function TS.getModule(object, moduleName)
 		object = object.Parent
 	until object == nil or object == globalModules
 
-	return globalModules:FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
+	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts");
+	return (scopedModules or globalModules):FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
