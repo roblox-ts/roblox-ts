@@ -83,7 +83,7 @@ export function compileFiles(
 
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
-	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
+	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
 
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
@@ -176,7 +176,7 @@ export function compileFiles(
 				multiTransformState,
 				compilerOptions,
 				rojoResolver,
-				pkgRojoResolver,
+				pkgRojoResolvers,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,
 				runtimeLibRbxPath,

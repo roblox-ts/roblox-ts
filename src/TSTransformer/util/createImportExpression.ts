@@ -57,13 +57,22 @@ function validateModule(state: TransformState, scope: string) {
 	return false;
 }
 
+function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<RojoResolver>) {
+	for (const pkgRojoResolver of pkgRojoResolvers) {
+		const relativeRbxPath = pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (relativeRbxPath) {
+			return relativeRbxPath;
+		}
+	}
+}
+
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
 		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
 	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	const relativeRbxPath = state.pkgRojoResolver.getRbxPathFromFilePath(moduleOutPath);
+	const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
 	if (!relativeRbxPath || (!state.data.isPackage && !gameRbxPath)) {
 		DiagnosticService.addDiagnostic(
 			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
@@ -71,7 +80,8 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		return luau.emptyId();
 	}
 
-	const moduleScope = relativeRbxPath[0];
+	const relativeFilePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
+	const moduleScope = relativeFilePath.split(path.sep)[0];
 	assert(moduleScope && typeof moduleScope === "string");
 
 	if (!moduleScope.startsWith("@")) {
@@ -79,7 +89,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		return luau.emptyId();
 	}
 
-	const moduleName = relativeRbxPath[1];
+	const moduleName = relativeRbxPath[0];
 	assert(moduleName && typeof moduleName === "string");
 
 	if (!validateModule(state, moduleScope)) {
@@ -93,7 +103,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 			luau.string(moduleScope),
 			luau.string(moduleName),
 		]),
-		relativeRbxPath.slice(2),
+		relativeRbxPath.slice(1),
 	);
 }
 
