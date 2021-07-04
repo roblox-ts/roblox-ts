@@ -54,6 +54,7 @@ export class TransformState {
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
 		public readonly pkgRojoResolver: RojoResolver,
+		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,

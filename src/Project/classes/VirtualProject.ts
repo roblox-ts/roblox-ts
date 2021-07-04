@@ -31,6 +31,7 @@ export class VirtualProject {
 
 	private program: ts.Program | undefined;
 	private typeChecker: ts.TypeChecker | undefined;
+	private nodeModulesPathMapping = new Map<string, string>();
 
 	constructor() {
 		this.data = {
@@ -38,7 +39,6 @@ export class VirtualProject {
 			isPackage: false,
 			logTruthyChanges: false,
 			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE),
-			nodeModulesPathMapping: new Map(),
 			noInclude: false,
 			pkgVersion: "",
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
@@ -120,6 +120,7 @@ export class VirtualProject {
 			this.compilerOptions,
 			this.rojoResolver,
 			this.pkgRojoResolver,
+			this.nodeModulesPathMapping,
 			new Map(),
 			runtimeLibRbxPath,
 			this.typeChecker,
@@ -136,6 +137,6 @@ export class VirtualProject {
 	}
 
 	public setMapping(typings: string, main: string) {
-		this.data.nodeModulesPathMapping.set(typings, main);
+		this.nodeModulesPathMapping.set(typings, main);
 	}
 }

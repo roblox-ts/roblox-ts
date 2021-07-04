@@ -3,6 +3,7 @@ import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
+import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -83,6 +84,7 @@ export function compileFiles(
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
 	const pkgRojoResolver = RojoResolver.synthetic(data.nodeModulesPath);
+	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
 
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
@@ -175,6 +177,7 @@ export function compileFiles(
 				compilerOptions,
 				rojoResolver,
 				pkgRojoResolver,
+				nodeModulesPathMapping,
 				reverseSymlinkMap,
 				runtimeLibRbxPath,
 				typeChecker,

@@ -59,7 +59,7 @@ function validateModule(state: TransformState, scope: string) {
 
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
-		state.data.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
+		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
 	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
