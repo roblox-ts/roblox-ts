@@ -9,6 +9,7 @@
 		"moduleResolution": "Node",
 		"noLib": true,
 		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
 		"strict": true,
 		"target": "ESNext",
 		"typeRoots": ["node_modules/@rbxts"],
