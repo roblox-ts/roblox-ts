@@ -212,8 +212,9 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			try {
 				await cmd("git init");
 			} catch (error) {
+				if (!(error instanceof CLIError)) throw error;
 				throw new CLIError(
-					`${error}\nDo you not have Git installed? Git CLI is required to use Git functionality. If you do not wish to use Git, answer no to "Configure Git".`,
+					`${error.diagnostics[0].messageText}\nDo you not have Git installed? Git CLI is required to use Git functionality. If you do not wish to use Git, answer no to "Configure Git".`,
 				);
 			}
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
