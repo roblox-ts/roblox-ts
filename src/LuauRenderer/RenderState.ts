@@ -11,8 +11,7 @@ const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;
  */
 export class RenderState {
 	private indent = "";
-	private scopeStack: Array<number> = [0];
-	private seenTempNodes = new Map<luau.TemporaryIdentifier, string>();
+	public seenTempNodes = new Map<number, string>();
 	private readonly listNodesStack = new Array<luau.ListNode<luau.Statement>>();
 
 	/**
@@ -29,32 +28,16 @@ export class RenderState {
 		this.indent = this.indent.substr(INDENT_CHARACTER_LENGTH);
 	}
 
-	/**
-	 * Pushes a new scope to scope stack.
-	 */
-	public pushScope() {
-		const top = this.scopeStack[this.scopeStack.length - 1];
-		assert(top !== undefined);
-		this.scopeStack.push(top);
-	}
-
-	/**
-	 * Pops the top of the scope stack.
-	 */
-	public popScope() {
-		this.scopeStack.pop();
-	}
+	private tempIdFallback = 0;
 
 	/**
 	 * Returns an unique identifier that is unused in the current scope.
 	 * @param node The identifier of the node
 	 */
 	public getTempName(node: luau.TemporaryIdentifier) {
-		return getOrSetDefault(this.seenTempNodes, node, () =>
-			node.name
-				? `_${node.name}_${this.scopeStack[this.scopeStack.length - 1]++}`
-				: `_${this.scopeStack[this.scopeStack.length - 1]++}`,
-		);
+		const name = getOrSetDefault(this.seenTempNodes, node.id, () => `_${this.tempIdFallback++}`);
+		assert(name);
+		return name;
 	}
 
 	/**
@@ -117,17 +100,6 @@ export class RenderState {
 		this.pushIndent();
 		const result = callback();
 		this.popIndent();
-		return result;
-	}
-
-	/**
-	 * Returns a rendered scope.
-	 * @param callback The function used to render the scopes body.
-	 */
-	public scope<T>(callback: () => T) {
-		this.pushScope();
-		const result = this.block(callback);
-		this.popScope();
 		return result;
 	}
 }

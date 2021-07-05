@@ -33,7 +33,7 @@ export function transformObjectBindingPattern(
 			}
 		} else {
 			const value = objectAccessor(state, parentId, accessType, prop ?? name);
-			const id = state.pushToVar(value);
+			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}

@@ -10,7 +10,7 @@ export function renderFunctionExpression(state: RenderState, node: luau.Function
 
 	let result = "";
 	result += state.newline(`function(${renderParameters(state, node)})`);
-	result += state.scope(() => renderStatements(state, node.statements));
+	result += state.block(() => renderStatements(state, node.statements));
 	result += state.indented(`end`);
 	return result;
 }

@@ -59,13 +59,13 @@ function runCallMacro(
 
 		for (let i = 0; i < args.length; i++) {
 			if (expressionMightMutate(state, args[i])) {
-				args[i] = state.pushToVar(args[i]);
+				args[i] = state.pushToVar(args[i], `arg_${i}`);
 			}
 		}
 	});
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression);
+		expression = state.pushToVar(expression, "exp");
 	}
 	state.prereqList(prereqs);
 
@@ -114,7 +114,7 @@ export function transformCallExpressionInner(
 	let args!: Array<luau.Expression>;
 	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression);
+		expression = state.pushToVar(expression, "exp");
 	}
 	state.prereqList(prereqs);
 
@@ -155,7 +155,7 @@ export function transformPropertyCallExpressionInner(
 	let args!: Array<luau.Expression>;
 	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression);
+		baseExpression = state.pushToVar(baseExpression, "fn");
 	}
 	state.prereqList(prereqs);
 
@@ -168,7 +168,7 @@ export function transformPropertyCallExpressionInner(
 				args: luau.list.make(...args),
 			});
 		} else {
-			baseExpression = state.pushToVarIfComplex(baseExpression);
+			baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
 			args.unshift(baseExpression);
 			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
@@ -216,14 +216,14 @@ export function transformElementCallExpressionInner(
 		() => (args = ensureTransformOrder(state, [argumentExpression, ...nodeArguments])),
 	);
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression);
+		baseExpression = state.pushToVar(baseExpression, "fn");
 	}
 	state.prereqList(prereqs);
 
 	const argumentExp = args.shift()!;
 
 	if (isMethod(state, expression)) {
-		baseExpression = state.pushToVarIfComplex(baseExpression);
+		baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
 		args.unshift(baseExpression);
 	}
 

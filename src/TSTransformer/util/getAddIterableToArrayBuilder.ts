@@ -25,7 +25,7 @@ type AddIterableToArrayBuilder = (
 ) => luau.List<luau.Statement>;
 
 const addArray: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
-	const inputArray = state.pushToVarIfNonId(expression);
+	const inputArray = state.pushToVarIfNonId(expression, "array");
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.CallStatement, {
 			expression: luau.call(luau.globals.table.move, [
@@ -141,7 +141,7 @@ const addIterableFunction: AddIterableToArrayBuilder = (state, expression, array
 };
 
 const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
-	const iterFuncId = state.pushToVar(expression);
+	const iterFuncId = state.pushToVar(expression, "iterFunc");
 	const valueId = luau.tempId("results");
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.WhileStatement, {

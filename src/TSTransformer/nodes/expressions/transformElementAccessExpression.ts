@@ -55,7 +55,7 @@ export function transformElementAccessExpressionInner(
 			expression = luau.array([expression]);
 		}
 
-		expression = state.pushToVar(expression);
+		expression = state.pushToVar(expression, "exp");
 		state.prereqList(prereqs);
 	}
 

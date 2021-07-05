@@ -35,7 +35,7 @@ function createJsxAttributeLoop(
 ) {
 	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
 	if (possiblyUndefined) {
-		expression = state.pushToVarIfComplex(expression);
+		expression = state.pushToVarIfComplex(expression, "exp");
 	}
 
 	const keyId = luau.tempId("k");

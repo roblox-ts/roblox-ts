@@ -1,9 +1,10 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
-import { TransformState, TryUses } from "TSTransformer";
+import { TransformState } from "TSTransformer";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { TryUses } from "TSTransformer/types";
 import {
 	isBreakBlockedByTryStatement,
 	isReturnBlockedByTryStatement,

@@ -82,7 +82,7 @@ export function disableMapInline(
 	ptr: MapPointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isMap(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value);
+		ptr.value = state.pushToVar(ptr.value, "ptr");
 	}
 }
 
@@ -91,7 +91,7 @@ export function disableArrayInline(
 	ptr: ArrayPointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isArray(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value);
+		ptr.value = state.pushToVar(ptr.value, "ptr");
 	}
 }
 
@@ -100,6 +100,6 @@ export function disableMixedTableInline(
 	ptr: MixedTablePointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isMixedTable(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value);
+		ptr.value = state.pushToVar(ptr.value, "ptr");
 	}
 }

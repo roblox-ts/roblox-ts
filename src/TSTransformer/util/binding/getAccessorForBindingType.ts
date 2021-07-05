@@ -39,7 +39,10 @@ const arrayAccessor: BindingAccessor = (state, parentId, index) => {
 const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted) => {
 	let id: luau.AnyIdentifier;
 	if (idStack.length === 0) {
-		id = state.pushToVar(luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]));
+		id = state.pushToVar(
+			luau.call(luau.globals.string.gmatch, [parentId, luau.globals.utf8.charpattern]),
+			"matcher",
+		);
 		idStack.push(id);
 	} else {
 		id = idStack[0];
@@ -74,7 +77,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 		);
 		return luau.emptyId();
 	} else {
-		const id = state.pushToVar(callExp);
+		const id = state.pushToVar(callExp, "value");
 		idStack.push(id);
 		return id;
 	}

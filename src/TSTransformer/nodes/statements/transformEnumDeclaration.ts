@@ -40,7 +40,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	const id = transformIdentifierDefined(state, node.name);
 
 	const statements = state.capturePrereqs(() => {
-		const inverseId = state.pushToVar(luau.map());
+		const inverseId = state.pushToVar(luau.map(), "inverse");
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: id,
@@ -66,7 +66,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				valueExp = luau.number(value);
 			} else {
 				assert(member.initializer);
-				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer));
+				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer), "value");
 			}
 
 			state.prereq(

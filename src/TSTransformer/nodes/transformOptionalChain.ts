@@ -194,7 +194,7 @@ function createOrSetTempId(
 	expression: luau.Expression,
 ) {
 	if (tempId === undefined) {
-		tempId = state.pushToVar(expression);
+		tempId = state.pushToVar(expression, "result");
 	} else {
 		if (tempId !== expression) {
 			state.prereq(
@@ -239,7 +239,7 @@ function transformOptionalChainInner(
 			isMethodCall = isMethod(state, item.expression);
 			isSuperCall = ts.isSuperProperty(item.expression);
 			if (item.callOptional && isMethodCall && !isSuperCall) {
-				selfParam = state.pushToVar(baseExpression);
+				selfParam = state.pushToVar(baseExpression, "self");
 				baseExpression = selfParam;
 			}
 

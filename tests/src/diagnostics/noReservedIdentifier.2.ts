@@ -1,3 +1,3 @@
 export {};
 
-const _0 = 1;
+const game = 1;

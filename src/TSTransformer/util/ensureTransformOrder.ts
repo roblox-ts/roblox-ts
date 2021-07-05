@@ -41,7 +41,7 @@ export function ensureTransformOrder(
 			!luau.isTemporaryIdentifier(expression) &&
 			!isConstVar
 		) {
-			expression = state.pushToVar(expression);
+			expression = state.pushToVar(expression, "exp");
 		}
 		result.push(expression);
 	}

@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
+import { solveTempIds } from "LuauRenderer/solveTempIds";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
@@ -11,21 +12,10 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { MultiTransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { TransformServices } from "TSTransformer/types";
+import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
-
-/**
- * The ID of the Runtime library.
- */
-const RUNTIME_LIB_ID = luau.id("TS");
-
-export type TryUses = {
-	usesReturn: boolean;
-	usesBreak: boolean;
-	usesContinue: boolean;
-};
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.
@@ -36,11 +26,15 @@ export class TransformState {
 	public hasExportFrom = false;
 
 	public debugRender(node: luau.Node) {
-		return render(new RenderState(), node);
+		const state = new RenderState();
+		solveTempIds(state, node);
+		return render(state, node);
 	}
 
 	public debugRenderList(list: luau.List<luau.Statement>) {
-		return renderStatements(new RenderState(), list);
+		const state = new RenderState();
+		solveTempIds(state, list);
+		return renderStatements(state, list);
 	}
 
 	public readonly resolver: ts.EmitResolver;
@@ -208,7 +202,7 @@ export class TransformState {
 			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
 		}
 
-		return luau.property(RUNTIME_LIB_ID, name);
+		return luau.property(luau.globals.TS, name);
 	}
 
 	/**
@@ -238,7 +232,7 @@ export class TransformState {
 
 				// create a variable declaration for this call
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: RUNTIME_LIB_ID,
+					left: luau.globals.TS,
 					right: expression,
 				});
 			} else {
@@ -249,13 +243,13 @@ export class TransformState {
 						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
-						left: RUNTIME_LIB_ID,
+						left: luau.globals.TS,
 						right: luau.nil(),
 					});
 				}
 
 				return luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: RUNTIME_LIB_ID,
+					left: luau.globals.TS,
 					right: luau.call(luau.globals.require, [
 						propertyAccessExpressionChain(
 							luau.globals.script,
@@ -270,7 +264,7 @@ export class TransformState {
 			// we pass RuntimeLib access to packages via `_G[script] = TS`
 			// access it here via `local TS = _G[script]`
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: RUNTIME_LIB_ID,
+				left: luau.globals.TS,
 				right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: luau.globals._G,
 					index: luau.globals.script,

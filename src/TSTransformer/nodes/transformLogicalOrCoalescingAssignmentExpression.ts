@@ -44,7 +44,7 @@ function transformLogicalAndAssignmentExpression(
 	const writable = transformWritableExpression(state, left, true);
 	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
 
-	const conditionId = state.pushToVar(writable);
+	const conditionId = state.pushToVar(writable, "condition");
 
 	const ifStatements = luau.list.make<luau.Statement>();
 	luau.list.pushList(ifStatements, valuePreqreqs);
@@ -85,7 +85,7 @@ function transformLogicalOrAssignmentExpression(
 	const writable = transformWritableExpression(state, left, true);
 	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
 
-	const conditionId = state.pushToVar(writable);
+	const conditionId = state.pushToVar(writable, "condition");
 
 	const ifStatements = luau.list.make<luau.Statement>();
 	luau.list.pushList(ifStatements, valuePreqreqs);

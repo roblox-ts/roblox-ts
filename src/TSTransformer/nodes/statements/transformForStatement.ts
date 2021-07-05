@@ -38,6 +38,9 @@ function addFinalizers(
 	if (luau.isContinueStatement(statement)) {
 		const finalizersClone = luau.list.clone(finalizers);
 
+		// fix node parents
+		luau.list.forEach(finalizersClone, node => (node.parent = statement.parent));
+
 		if (node.prev) {
 			node.prev.next = finalizersClone.head;
 		} else if (node === list.head) {
@@ -67,7 +70,7 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 
 	const result = luau.list.make<luau.Statement>();
 
-	const shouldIncrement = luau.tempId();
+	const shouldIncrement = luau.tempId("shouldIncrement");
 	luau.list.push(
 		result,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {

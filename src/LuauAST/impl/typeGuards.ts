@@ -121,3 +121,21 @@ export const isWritableExpression: (node: luau.Node) => node is luau.WritableExp
 	luau.SyntaxKind.PropertyAccessExpression,
 	luau.SyntaxKind.ComputedIndexExpression,
 );
+
+export const isFunctionLike = makeGuard(
+	luau.SyntaxKind.FunctionDeclaration,
+	luau.SyntaxKind.FunctionExpression,
+	luau.SyntaxKind.MethodDeclaration,
+);
+
+export const hasStatements = makeGuard(
+	luau.SyntaxKind.ForStatement,
+	luau.SyntaxKind.NumericForStatement,
+	luau.SyntaxKind.FunctionExpression,
+	luau.SyntaxKind.DoStatement,
+	luau.SyntaxKind.FunctionDeclaration,
+	luau.SyntaxKind.IfStatement,
+	luau.SyntaxKind.MethodDeclaration,
+	luau.SyntaxKind.RepeatStatement,
+	luau.SyntaxKind.WhileStatement,
+);

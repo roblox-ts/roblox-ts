@@ -24,6 +24,13 @@ export function getParsedCommandLine(data: ProjectData) {
 	} else if (parsedCommandLine.errors.length > 0) {
 		throw new DiagnosticError(parsedCommandLine.errors);
 	}
+
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	if ((globalThis as any).RBXTSC_DEV) {
+		parsedCommandLine.options.incremental = false;
+		parsedCommandLine.options.tsBuildInfoFile = undefined;
+	}
+
 	validateCompilerOptions(parsedCommandLine.options, data.nodeModulesPath);
 	return parsedCommandLine;
 }

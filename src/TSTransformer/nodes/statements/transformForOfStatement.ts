@@ -68,7 +68,7 @@ function transformForInitializerExpressionDirect(
 ) {
 	if (ts.isArrayLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
-			const parentId = state.pushToVar(value);
+			const parentId = state.pushToVar(value, "binding");
 			transformArrayBindingLiteral(state, initializer, parentId, getForInitializerAccessType(state, initializer));
 			return parentId;
 		});
@@ -76,7 +76,7 @@ function transformForInitializerExpressionDirect(
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
-			const parentId = state.pushToVar(value);
+			const parentId = state.pushToVar(value, "binding");
 			transformObjectBindingLiteral(
 				state,
 				initializer,
@@ -108,7 +108,7 @@ function transformForInitializer(
 	if (ts.isVariableDeclarationList(initializer)) {
 		return transformBindingName(state, initializer.declarations[0].name, initializers);
 	} else if (ts.isArrayLiteralExpression(initializer)) {
-		const parentId = luau.tempId();
+		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
 			state.capturePrereqs(() =>
@@ -122,7 +122,7 @@ function transformForInitializer(
 		);
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
-		const parentId = luau.tempId();
+		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
 			state.capturePrereqs(() =>
@@ -136,7 +136,7 @@ function transformForInitializer(
 		);
 		return parentId;
 	} else {
-		const valueId = luau.tempId();
+		const valueId = luau.tempId("v");
 		const expression = transformWritableExpression(state, initializer, false);
 		luau.list.push(
 			initializers,
@@ -203,7 +203,7 @@ function transformInLineArrayBindingLiteral(
 						element = skipDownwards(element.left);
 					}
 
-					const valueId = luau.tempId();
+					const valueId = luau.tempId("binding");
 					if (
 						ts.isIdentifier(element) ||
 						ts.isElementAccessExpression(element) ||
@@ -323,7 +323,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 				iteratorReturnIds.push(luau.tempId("element"));
 			}
 		} else {
-			const iterFuncId = state.pushToVar(exp);
+			const iterFuncId = state.pushToVar(exp, "iterFunc");
 			const loopStatements = luau.list.make<luau.Statement>();
 
 			const valueId = transformForInitializer(state, initializer, loopStatements);
