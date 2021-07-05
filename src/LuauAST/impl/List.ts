@@ -75,7 +75,7 @@ export namespace list {
 	export function clone<T extends luau.Node>(list: luau.List<T>): luau.List<T> {
 		const newList = luau.list.make<T>();
 		luau.list.forEach(list, element => {
-			luau.list.push(newList, element);
+			luau.list.push(newList, { ...element });
 		});
 		return newList;
 	}

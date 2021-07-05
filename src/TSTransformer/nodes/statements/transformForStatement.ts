@@ -38,6 +38,9 @@ function addFinalizers(
 	if (luau.isContinueStatement(statement)) {
 		const finalizersClone = luau.list.clone(finalizers);
 
+		// fix node parents
+		luau.list.forEach(finalizersClone, node => (node.parent = statement.parent));
+
 		if (node.prev) {
 			node.prev.next = finalizersClone.head;
 		} else if (node === list.head) {
