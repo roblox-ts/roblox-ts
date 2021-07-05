@@ -63,7 +63,7 @@
 	"devDependencies": {
 		"@types/fs-extra": "^9.0.5",
 		"@types/mocha": "^8.2.0",
-		"@types/node": "^15.0.1",
+		"@types/node": "^16.0.0",
 		"@types/prompts": "^2.0.9",
 		"@types/resolve": "^1.17.1",
 		"@types/yargs": "^17.0.0",
