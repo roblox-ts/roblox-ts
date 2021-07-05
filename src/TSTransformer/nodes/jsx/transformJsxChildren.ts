@@ -284,7 +284,7 @@ export function transformJsxChildren(
 	for (let i = 0; i < children.length; i++) {
 		const child = children[i];
 		if (ts.isJsxText(child)) {
-			if (!child.containsOnlyTriviaWhiteSpaces) {
+			if (!child.containsOnlyTriviaWhiteSpaces && child.text.match(/\S/)) {
 				DiagnosticService.addDiagnostic(errors.noJsxText(child));
 			}
 			continue;
