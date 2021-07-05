@@ -1,7 +1,6 @@
 import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
-import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { RojoResolver } from "Shared/classes/RojoResolver";
 import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
@@ -42,7 +41,6 @@ export function createProjectData(
 	const includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
 
 	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES);
-	const nodeModulesPathMapping = createNodeModulesPathMapping(nodeModulesPath);
 
 	let rojoConfigPath: string | undefined;
 	if (projectOptions.rojo !== undefined) {
@@ -63,7 +61,6 @@ export function createProjectData(
 		logTruthyChanges,
 		noInclude,
 		nodeModulesPath,
-		nodeModulesPathMapping,
 		pkgVersion,
 		projectOptions,
 		projectPath,

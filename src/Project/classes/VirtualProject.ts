@@ -26,19 +26,19 @@ export class VirtualProject {
 
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly rojoResolver: RojoResolver;
-	private readonly pkgRojoResolver: RojoResolver;
+	private readonly pkgRojoResolvers: Array<RojoResolver>;
 	private readonly compilerHost: ts.CompilerHost;
 
 	private program: ts.Program | undefined;
 	private typeChecker: ts.TypeChecker | undefined;
+	private nodeModulesPathMapping = new Map<string, string>();
 
 	constructor() {
 		this.data = {
 			includePath: "",
 			isPackage: false,
 			logTruthyChanges: false,
-			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES, RBXTS_SCOPE),
-			nodeModulesPathMapping: new Map(),
+			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES),
 			noInclude: false,
 			pkgVersion: "",
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
@@ -57,7 +57,7 @@ export class VirtualProject {
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
-			typeRoots: [this.data.nodeModulesPath],
+			typeRoots: [pathJoin(this.data.nodeModulesPath, RBXTS_SCOPE)],
 			resolveJsonModule: true,
 			rootDir: ROOT_DIR,
 			outDir: OUT_DIR,
@@ -83,7 +83,7 @@ export class VirtualProject {
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
 		this.rojoResolver = RojoResolver.synthetic(OUT_DIR);
-		this.pkgRojoResolver = RojoResolver.synthetic(this.data.nodeModulesPath);
+		this.pkgRojoResolvers = this.compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	}
 
 	public compileSource(source: string) {
@@ -119,7 +119,8 @@ export class VirtualProject {
 			multiTransformState,
 			this.compilerOptions,
 			this.rojoResolver,
-			this.pkgRojoResolver,
+			this.pkgRojoResolvers,
+			this.nodeModulesPathMapping,
 			new Map(),
 			runtimeLibRbxPath,
 			this.typeChecker,
@@ -136,6 +137,6 @@ export class VirtualProject {
 	}
 
 	public setMapping(typings: string, main: string) {
-		this.data.nodeModulesPathMapping.set(typings, main);
+		this.nodeModulesPathMapping.set(typings, main);
 	}
 }

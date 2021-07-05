@@ -1,14 +1,12 @@
 import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
-import path from "path";
 import { ProjectData } from "Project";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
-import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
@@ -197,14 +195,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("change", collectChangeEvent)
 		.on("unlink", collectDeleteEvent)
 		.on("unlinkDir", collectDeleteEvent);
-
-	function recreateNodeModulesPathMapping() {
-		data.nodeModulesPathMapping = createNodeModulesPathMapping(data.nodeModulesPath);
-	}
-
-	chokidar
-		.watch(path.join(data.projectPath, "package-lock.json"), chokidarOptions)
-		.on("all", recreateNodeModulesPathMapping);
 
 	reportText("Starting compilation in watch mode...");
 	reportEmitResult(runInitialCompile());

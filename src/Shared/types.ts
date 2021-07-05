@@ -23,7 +23,6 @@ export interface ProjectData {
 	isPackage: boolean;
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
-	nodeModulesPathMapping: Map<string, string>;
 	noInclude: boolean;
 	pkgVersion: string;
 	projectOptions: ProjectOptions;
