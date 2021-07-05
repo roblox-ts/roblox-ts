@@ -131,7 +131,7 @@ function argumentsWithDefaults(
 ): Array<luau.Expression> {
 	// potentially nil arguments
 	for (let i = 0; i < args.length; i++) {
-		args[i] = state.pushToVar(args[i], `arg_${i}`);
+		args[i] = state.pushToVar(args[i], `arg${i}`);
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: luau.binary(args[i], "==", luau.nil()),
@@ -595,7 +595,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		expression = state.pushToVarIfComplex(expression, "exp");
 
-		args = args.map((arg, i) => state.pushToVarIfComplex(arg, `arg_${i}`));
+		args = args.map((arg, i) => state.pushToVarIfComplex(arg, `arg${i}`));
 		const valueIsUsed = !isUsedAsStatement(node);
 		const uses = (valueIsUsed ? 1 : 0) + args.length;
 

@@ -81,7 +81,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		if (forStatement && ts.isForStatement(forStatement)) {
 			const tempId = luau.tempId(left.name);
 			getOrSetDefault(state.forStatementToSymbolsMap, forStatement, () => []).push(symbol);
-			const copyId = luau.tempId(`${left.name}_copy`);
+			const copyId = luau.tempId(`${left.name}Copy`);
 			luau.list.push(
 				finalizers,
 				luau.create(luau.SyntaxKind.VariableDeclaration, {

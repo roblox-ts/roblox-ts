@@ -59,7 +59,7 @@ function runCallMacro(
 
 		for (let i = 0; i < args.length; i++) {
 			if (expressionMightMutate(state, args[i])) {
-				args[i] = state.pushToVar(args[i], `arg_${i}`);
+				args[i] = state.pushToVar(args[i], `arg${i}`);
 			}
 		}
 	});
