@@ -3,8 +3,6 @@ import { render, RenderState } from "LuauRenderer";
 import { renderStatements } from "LuauRenderer/util/renderStatements";
 
 export function renderNumericForStatement(state: RenderState, node: luau.NumericForStatement) {
-	state.pushScope();
-
 	const idStr = render(state, node.id);
 	const startStr = render(state, node.start);
 	const endStr = render(state, node.end);
@@ -19,6 +17,5 @@ export function renderNumericForStatement(state: RenderState, node: luau.Numeric
 	result += state.block(() => renderStatements(state, node.statements));
 	result += state.line(`end`);
 
-	state.popScope();
 	return result;
 }

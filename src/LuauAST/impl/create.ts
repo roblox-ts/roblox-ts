@@ -15,24 +15,38 @@ export function create<T extends keyof luau.NodeByKind>(
 	// super hack!
 	const node = Object.assign({ kind }, fields) as unknown as luau.NodeByKind[T];
 
-	// if value is node, value.Parent = node
-	// if value is list, luau.list.forEach(value, subValue => subValue.Parent = node)
-	for (const value of Object.values(fields)) {
+	for (const [key, value] of Object.entries(fields)) {
 		if (luau.isNode(value)) {
-			value.parent = node;
+			if (value.parent) {
+				const clone: luau.Node = { ...value };
+				clone.parent = node;
+				node[key as never] = clone as never;
+			} else {
+				value.parent = node;
+			}
 		} else if (luau.list.isList(value)) {
-			luau.list.forEach(value, subValue => (subValue.parent = node));
+			luau.list.forEachListNode(value, listNode => {
+				if (listNode.value.parent) {
+					const clone: luau.Node = { ...listNode.value };
+					clone.parent = node;
+					listNode.value = clone;
+				} else {
+					listNode.value.parent = node;
+				}
+			});
 		}
 	}
 
 	return node;
 }
 
+let lastTempId = 0;
+
 /**
  * Creates a new temporary identifier for a node.
  */
 export function tempId(name?: string) {
-	return luau.create(luau.SyntaxKind.TemporaryIdentifier, { name });
+	return luau.create(luau.SyntaxKind.TemporaryIdentifier, { name, id: lastTempId++ });
 }
 
 /**

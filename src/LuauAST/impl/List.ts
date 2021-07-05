@@ -184,6 +184,17 @@ export namespace list {
 		}
 	}
 
+	export function forEachListNode<T extends luau.Node>(
+		list: luau.List<T>,
+		callback: (value: luau.ListNode<T>) => void,
+	) {
+		let node = list.head;
+		while (node) {
+			callback(node);
+			node = node.next;
+		}
+	}
+
 	export function mapToArray<T extends luau.Node, U>(
 		list: luau.List<T>,
 		callback: (value: NoInfer<T>) => U,
