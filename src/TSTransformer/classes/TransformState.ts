@@ -1,6 +1,7 @@
 import ts from "byots";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
+import { solveTempIds } from "LuauRenderer/solveTempIds";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
@@ -25,11 +26,15 @@ export class TransformState {
 	public hasExportFrom = false;
 
 	public debugRender(node: luau.Node) {
-		return render(new RenderState(), node);
+		const state = new RenderState();
+		solveTempIds(state, node);
+		return render(state, node);
 	}
 
 	public debugRenderList(list: luau.List<luau.Statement>) {
-		return renderStatements(new RenderState(), list);
+		const state = new RenderState();
+		solveTempIds(state, list);
+		return renderStatements(state, list);
 	}
 
 	public readonly resolver: ts.EmitResolver;

@@ -1,6 +1,7 @@
 import luau from "LuauAST";
 import { getEnding } from "LuauRenderer/util/getEnding";
 import { assert } from "Shared/util/assert";
+import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 
 const INDENT_CHARACTER = "\t";
 const INDENT_CHARACTER_LENGTH = INDENT_CHARACTER.length;
@@ -27,12 +28,14 @@ export class RenderState {
 		this.indent = this.indent.substr(INDENT_CHARACTER_LENGTH);
 	}
 
+	private tempIdFallback = 0;
+
 	/**
 	 * Returns an unique identifier that is unused in the current scope.
 	 * @param node The identifier of the node
 	 */
 	public getTempName(node: luau.TemporaryIdentifier) {
-		const name = this.seenTempNodes.get(node.id);
+		const name = getOrSetDefault(this.seenTempNodes, node.id, () => `_${this.tempIdFallback++}`);
 		assert(name);
 		return name;
 	}

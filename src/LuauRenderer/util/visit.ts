@@ -140,6 +140,10 @@ function visitList(list: luau.List<luau.Node>, visitor: Visitor) {
 	luau.list.forEach(list, v => visitNode(v, visitor));
 }
 
-export function visit(ast: luau.List<luau.Statement>, visitor: Visitor) {
-	visitList(ast, visitor);
+export function visit(ast: luau.List<luau.Node> | luau.Node, visitor: Visitor) {
+	if (luau.list.isList(ast)) {
+		visitList(ast, visitor);
+	} else {
+		visitNode(ast, visitor);
+	}
 }

@@ -1,13 +1,15 @@
 import luau from "LuauAST";
+import { getKindName } from "LuauAST/bundle";
 import { RenderState } from "LuauRenderer";
+import { render } from "LuauRenderer/render";
 import { visit } from "LuauRenderer/util/visit";
 import { assert } from "Shared/util/assert";
 
-function isScopeEdge(node: luau.Node, edge: "head" | "tail"): boolean {
-	if (luau.isForStatement(node)) return true;
-	if (luau.isNumericForStatement(node)) return true;
-	if (luau.isFunctionLike(node)) return true;
+function isFullyScopedNode(node: luau.Node): boolean {
+	return luau.isForStatement(node) || luau.isNumericForStatement(node) || luau.isFunctionLike(node);
+}
 
+function isScopeEdge(node: luau.Node, edge: "head" | "tail"): boolean {
 	if (node.parent) {
 		// is the first statement in a block that creates scope
 		if (luau.hasStatements(node.parent)) {
@@ -38,7 +40,7 @@ interface Scope {
 	lastTry: Map<string, number>;
 }
 
-export function solveTempIds(state: RenderState, ast: luau.List<luau.Statement>) {
+export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | luau.Node) {
 	const tempIdsToProcess = new Array<luau.TemporaryIdentifier>();
 	const nodesToScopes = new Map<luau.Node, Scope>();
 
@@ -69,11 +71,12 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Statement>)
 		peekScopeStack().ids.add(name);
 	}
 
+	let indent = "";
+
 	visit(ast, {
 		before: node => {
-			if (isScopeStart(node)) {
-				pushScopeStack();
-			}
+			if (isFullyScopedNode(node)) pushScopeStack();
+			if (isScopeStart(node)) pushScopeStack();
 
 			if (luau.isTemporaryIdentifier(node)) {
 				nodesToScopes.set(node, peekScopeStack());
@@ -95,11 +98,20 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Statement>)
 					}
 				});
 			}
+
+			const microState = new RenderState();
+			const text = render(microState, node)
+				.replace(/[\t\n]+/g, " ")
+				.trim();
+
+			console.log(indent, scopeStack.length, getKindName(node.kind), text);
+			indent += "\t";
 		},
 		after: node => {
-			if (isScopeEnd(node)) {
-				popScopeStack();
-			}
+			if (isFullyScopedNode(node)) popScopeStack();
+			if (isScopeEnd(node)) popScopeStack();
+
+			indent = indent.substr(1);
 		},
 	});
 
