@@ -23,7 +23,7 @@ function transformPropertyAssignment(
 	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
 		state.prereqList(leftPrereqs);
-		left = state.pushToVar(left);
+		left = state.pushToVar(left, "left");
 	}
 
 	state.prereqList(rightPrereqs);
@@ -45,7 +45,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
 	const isPossiblyNonObject = isPossiblyType(type, t => !isObjectType(t));
 	if (possiblyUndefined || isPossiblyNonObject) {
-		spreadExp = state.pushToVarIfComplex(spreadExp);
+		spreadExp = state.pushToVarIfComplex(spreadExp, "spread");
 	}
 
 	const keyId = luau.tempId("k");

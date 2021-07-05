@@ -34,7 +34,7 @@ export function transformJsxTagName(state: TransformState, tagName: ts.JsxTagNam
 	let tagNameExp = expression;
 	if (!luau.list.isEmpty(prereqs)) {
 		state.prereqList(prereqs);
-		tagNameExp = state.pushToVarIfComplex(tagNameExp);
+		tagNameExp = state.pushToVarIfComplex(tagNameExp, "tagName");
 	}
 	return tagNameExp;
 }

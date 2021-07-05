@@ -125,10 +125,10 @@ function createBinaryIn(left: luau.Expression, right: luau.Expression) {
 }
 
 function createBinaryInstanceOf(state: TransformState, left: luau.Expression, right: luau.Expression) {
-	left = state.pushToVarIfComplex(left);
-	right = state.pushToVarIfComplex(right);
+	left = state.pushToVarIfComplex(left, "left");
+	right = state.pushToVarIfComplex(right, "right");
 
-	const returnId = state.pushToVar(luau.bool(false));
+	const resultId = state.pushToVar(luau.bool(false), "result");
 	const objId = luau.tempId("obj");
 	const metatableId = luau.tempId("metatable");
 
@@ -160,7 +160,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 								// returnId = true
 								// break
 								luau.create(luau.SyntaxKind.Assignment, {
-									left: returnId,
+									left: resultId,
 									operator: "=",
 									right: luau.bool(true),
 								}),
@@ -194,7 +194,7 @@ function createBinaryInstanceOf(state: TransformState, left: luau.Expression, ri
 		}),
 	);
 
-	return returnId;
+	return resultId;
 }
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
@@ -242,11 +242,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				return luau.emptyId();
 			}
 
-			const parentId = state.pushToVar(rightExp);
+			const parentId = state.pushToVar(rightExp, "binding");
 			transformArrayBindingLiteral(state, node.left, parentId, accessType);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
-			const parentId = state.pushToVar(transformExpression(state, node.right));
+			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");
 			const accessType = state.getType(node.right);
 			transformObjectBindingLiteral(state, node.left, parentId, accessType);
 			return parentId;

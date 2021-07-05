@@ -21,7 +21,7 @@ export function transformWritableExpression(
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
 		return luau.property(
-			readAfterWrite ? state.pushToVarIfComplex(expression) : convertToIndexableExpression(expression),
+			readAfterWrite ? state.pushToVarIfComplex(expression, "exp") : convertToIndexableExpression(expression),
 			node.name.text,
 		);
 	} else if (ts.isElementAccessExpression(node)) {
@@ -29,9 +29,9 @@ export function transformWritableExpression(
 		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite
-				? state.pushToVarIfComplex(expression)
+				? state.pushToVarIfComplex(expression, "exp")
 				: convertToIndexableExpression(expression),
-			index: readAfterWrite ? state.pushToVarIfComplex(indexExp) : indexExp,
+			index: readAfterWrite ? state.pushToVarIfComplex(indexExp, "index") : indexExp,
 		});
 	} else {
 		const transformed = transformExpression(state, skipDownwards(node));
@@ -51,7 +51,7 @@ export function transformWritableAssignment(
 	const [value, prereqs] = state.capture(() => transformExpression(state, valueNode));
 
 	// if !readBeforeWrite, readable won't be used anyways
-	const readable = !readBeforeWrite || luau.list.isEmpty(prereqs) ? writable : state.pushToVar(writable);
+	const readable = !readBeforeWrite || luau.list.isEmpty(prereqs) ? writable : state.pushToVar(writable, "readable");
 	state.prereqList(prereqs);
 
 	return { writable, readable, value };

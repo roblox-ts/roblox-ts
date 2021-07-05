@@ -50,13 +50,13 @@ export function transformArrayBindingLiteral(
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 			} else if (ts.isArrayLiteralExpression(element)) {
-				const id = state.pushToVar(value);
+				const id = state.pushToVar(value, "binding");
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 				transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
 			} else if (ts.isObjectLiteralExpression(element)) {
-				const id = state.pushToVar(value);
+				const id = state.pushToVar(value, "binding");
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}

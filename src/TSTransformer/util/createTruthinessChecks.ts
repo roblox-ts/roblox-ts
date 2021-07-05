@@ -25,7 +25,7 @@ export function createTruthinessChecks(
 	const isAssignableToEmptyString = isPossiblyType(type, t => isEmptyStringType(t));
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
-		exp = state.pushToVarIfComplex(exp);
+		exp = state.pushToVarIfComplex(exp, "value");
 	}
 
 	const checks = new Array<luau.Expression>();

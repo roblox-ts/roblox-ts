@@ -70,7 +70,7 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 
 	const result = luau.list.make<luau.Statement>();
 
-	const shouldIncrement = luau.tempId();
+	const shouldIncrement = luau.tempId("shouldIncrement");
 	luau.list.push(
 		result,
 		luau.create(luau.SyntaxKind.VariableDeclaration, {
