@@ -71,8 +71,6 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 		peekScopeStack().ids.add(name);
 	}
 
-	let indent = "";
-
 	visit(ast, {
 		before: node => {
 			if (isFullyScopedNode(node)) pushScopeStack();
@@ -98,20 +96,10 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 					}
 				});
 			}
-
-			const microState = new RenderState();
-			const text = render(microState, node)
-				.replace(/[\t\n]+/g, " ")
-				.trim();
-
-			console.log(indent, scopeStack.length, getKindName(node.kind), text);
-			indent += "\t";
 		},
 		after: node => {
 			if (isFullyScopedNode(node)) popScopeStack();
 			if (isScopeEnd(node)) popScopeStack();
-
-			indent = indent.substr(1);
 		},
 	});
 
