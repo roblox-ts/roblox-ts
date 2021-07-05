@@ -72,6 +72,10 @@ function cmd(cmdStr: string) {
 	});
 }
 
+function getNonDevCompilerVersion() {
+	return COMPILER_VERSION.match(/^(.+)-dev.+$/)?.[1] ?? COMPILER_VERSION;
+}
+
 const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
@@ -221,7 +225,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		// npm install -D
-		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@compiler-${COMPILER_VERSION}`];
+		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`];
 
 		if (eslint) {
 			devDependencies.push(
