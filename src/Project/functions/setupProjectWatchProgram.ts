@@ -139,6 +139,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
+			if (options.declaration) {
+				tryRemoveOutput(pathTranslator, pathTranslator.getOutputDeclarationPath(fsPath));
+			}
 		}
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
