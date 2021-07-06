@@ -329,9 +329,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
+	const isRoact = extendsRoactComponent(state, node);
+
 	// OOP boilerplate + class functions
 	const statementsInner = luau.list.make<luau.Statement>();
-	if (extendsRoactComponent(state, node)) {
+	if (isRoact) {
 		luau.list.pushList(statementsInner, createRoactBoilerplate(state, node, internalName, isClassExpression));
 	} else {
 		luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
@@ -346,7 +348,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		if (
 			(ts.isPropertyDeclaration(member) || ts.isMethodDeclaration(member)) &&
 			(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) &&
-			luau.isReservedClassField(member.name.text)
+			(luau.isReservedClassField(member.name.text) ||
+				(isRoact && luau.isReservedRoactClassField(member.name.text)))
 		) {
 			DiagnosticService.addDiagnostic(errors.noReservedClassFields(member.name));
 		}
