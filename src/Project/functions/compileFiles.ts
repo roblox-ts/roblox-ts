@@ -41,8 +41,8 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 	};
 }
 
-const getCanonicalFileName: ts.GetCanonicalFileName = v => v;
 function getReverseSymlinkMap(program: ts.Program) {
+	const getCanonicalFileName = ts.createGetCanonicalFileName(program.useCaseSensitiveFileNames?.() ?? true);
 	const symlinkCache = ts.discoverProbableSymlinks(
 		program.getSourceFiles(),
 		getCanonicalFileName,
