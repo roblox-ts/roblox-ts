@@ -12,9 +12,7 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 	const compilerOptions = program.getCompilerOptions();
 	const buildState = program.getState();
 
-	const getCanonicalFileName = ts.createGetCanonicalFileName(
-		program.getProgram().useCaseSensitiveFileNames?.() ?? true,
-	);
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
 	// buildState.referencedMap is sourceFile -> files that this file imports
 	// but we need sourceFile -> files that import this file

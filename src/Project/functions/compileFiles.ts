@@ -42,7 +42,7 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 }
 
 function getReverseSymlinkMap(program: ts.Program) {
-	const getCanonicalFileName = ts.createGetCanonicalFileName(program.useCaseSensitiveFileNames?.() ?? true);
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 	const symlinkCache = ts.discoverProbableSymlinks(
 		program.getSourceFiles(),
 		getCanonicalFileName,
