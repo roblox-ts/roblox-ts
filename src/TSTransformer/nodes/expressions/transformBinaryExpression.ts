@@ -19,7 +19,6 @@ import {
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -116,87 +115,6 @@ function transformLuaTupleDestructure(
 	state.prereqList(statements);
 }
 
-function createBinaryIn(left: luau.Expression, right: luau.Expression) {
-	const leftExp = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-		expression: convertToIndexableExpression(right),
-		index: left,
-	});
-	return luau.binary(leftExp, "~=", luau.nil());
-}
-
-function createBinaryInstanceOf(state: TransformState, left: luau.Expression, right: luau.Expression) {
-	left = state.pushToVarIfComplex(left, "left");
-	right = state.pushToVarIfComplex(right, "right");
-
-	const resultId = state.pushToVar(luau.bool(false), "result");
-	const objId = luau.tempId("obj");
-	const metatableId = luau.tempId("metatable");
-
-	state.prereq(
-		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTypeCheck(left, luau.strings.table),
-			statements: luau.list.make<luau.Statement>(
-				// objId = getmetatable(obj)
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: objId,
-					right: luau.call(luau.globals.getmetatable, [left]),
-				}),
-				luau.create(luau.SyntaxKind.WhileStatement, {
-					// objId ~= nil
-					condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-						left: objId,
-						operator: "~=",
-						right: luau.nil(),
-					}),
-					statements: luau.list.make<luau.Statement>(
-						luau.create(luau.SyntaxKind.IfStatement, {
-							// objId == class
-							condition: luau.create(luau.SyntaxKind.BinaryExpression, {
-								left: objId,
-								operator: "==",
-								right,
-							}),
-							statements: luau.list.make<luau.Statement>(
-								// returnId = true
-								// break
-								luau.create(luau.SyntaxKind.Assignment, {
-									left: resultId,
-									operator: "=",
-									right: luau.bool(true),
-								}),
-								luau.create(luau.SyntaxKind.BreakStatement, {}),
-							),
-							elseBody: luau.list.make<luau.Statement>(
-								// local metatableId = getmetatable(objId)
-								luau.create(luau.SyntaxKind.VariableDeclaration, {
-									left: metatableId,
-									right: luau.call(luau.globals.getmetatable, [objId]),
-								}),
-								// if metatableId then
-								luau.create(luau.SyntaxKind.IfStatement, {
-									condition: metatableId,
-									statements: luau.list.make(
-										// objId = metatableId.__index
-										luau.create(luau.SyntaxKind.Assignment, {
-											left: objId,
-											operator: "=",
-											right: luau.property(metatableId, "__index"),
-										}),
-									),
-									elseBody: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
-								}),
-							),
-						}),
-					),
-				}),
-			),
-			elseBody: luau.list.make(),
-		}),
-	);
-
-	return resultId;
-}
-
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
 
@@ -288,9 +206,16 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	const [left, right] = ensureTransformOrder(state, [node.left, node.right]);
 
 	if (operatorKind === ts.SyntaxKind.InKeyword) {
-		return createBinaryIn(left, right);
+		return luau.binary(
+			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+				expression: convertToIndexableExpression(right),
+				index: left,
+			}),
+			"~=",
+			luau.nil(),
+		);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
-		return createBinaryInstanceOf(state, left, right);
+		return luau.call(state.TS(node, "instanceof"), [left, right]);
 	}
 
 	const leftType = state.getType(node.left);
