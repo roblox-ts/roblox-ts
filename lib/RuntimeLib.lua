@@ -228,21 +228,6 @@ end
 
 -- LEGACY RUNTIME FUNCTIONS --
 
--- @rbxts/projectile
-function TS.array_concat(...)
-	local result = {}
-	local len = 0
-	for i = 1, select("#", ...) do
-		local list2 = select(i, ...)
-		local len2 = #list2
-		for j = 1, len2 do
-			result[len + j] = list2[j]
-		end
-		len = len + len2
-	end
-	return result
-end
-
 -- @rbxts/algorite
 -- @rbxts/debouncelib
 -- @rbxts/firestore
@@ -333,35 +318,6 @@ function TS.map_values(object)
 		result[#result + 1] = value
 	end
 	return result
-end
-
--- @rbxts/baseplate
-function TS.Object_assign(toObj, ...)
-	for i = 1, select("#", ...) do
-		local arg = select(i, ...)
-		if type(arg) == "table" then
-			for key, value in pairs(arg) do
-				toObj[key] = value
-			end
-		end
-	end
-	return toObj
-end
-
--- @rbxts/datastore-light
-function TS.opcall(func, ...)
-	local success, valueOrErr = pcall(func, ...)
-	if success then
-		return {
-			success = true,
-			value = valueOrErr,
-		}
-	else
-		return {
-			success = false,
-			error = valueOrErr,
-		}
-	end
 end
 
 -- @rbxts/roact-studio-components
