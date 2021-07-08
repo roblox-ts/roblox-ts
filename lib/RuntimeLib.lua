@@ -243,16 +243,6 @@ function TS.array_concat(...)
 	return result
 end
 
--- @rbxts/jack-utils
-function TS.array_find(list, callback)
-	for i = 1, #list do
-		local v = list[i]
-		if callback(v, i - 1, list) == true then
-			return v
-		end
-	end
-end
-
 -- @rbxts/algorite
 -- @rbxts/debouncelib
 -- @rbxts/firestore
@@ -386,15 +376,6 @@ function TS.Roact_combine(...)
 				result[key] = value
 			end
 		end
-	end
-	return result
-end
-
--- @rbxts/hook
-function TS.set_values(object)
-	local result = {}
-	for key in pairs(object) do
-		result[#result + 1] = key
 	end
 	return result
 end
