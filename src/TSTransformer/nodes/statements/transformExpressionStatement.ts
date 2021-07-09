@@ -83,7 +83,9 @@ export function transformExpressionStatementInner(
 	}
 
 	const transformed = transformExpression(state, expression);
-	if (luau.isCall(transformed)) {
+	if (luau.isEmptyIdentifier(transformed) || luau.isTemporaryIdentifier(transformed)) {
+		return luau.list.make();
+	} else if (luau.isCall(transformed)) {
 		return luau.list.make(luau.create(luau.SyntaxKind.CallStatement, { expression: transformed }));
 	} else {
 		return luau.list.make(
