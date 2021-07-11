@@ -30,7 +30,9 @@ export function skipUpwards(node: ts.Node) {
 	return node;
 }
 
-export function getAncestor<T extends ts.Node>(node: ts.Node, check: (value: ts.Node) => value is T): T | undefined {
+export function getAncestor<T extends ts.Node>(node: ts.Node, check: (value: ts.Node) => value is T): T | undefined;
+export function getAncestor(node: ts.Node, check: (value: ts.Node) => boolean): ts.Node | undefined;
+export function getAncestor(node: ts.Node, check: (value: ts.Node) => boolean): ts.Node | undefined {
 	let current: ts.Node | undefined = node;
 	while (current && !check(current)) {
 		current = current.parent;
