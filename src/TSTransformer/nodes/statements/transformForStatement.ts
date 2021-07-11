@@ -69,6 +69,7 @@ function addFinalizers(
 }
 
 function canSkipClone(state: TransformState, initializer: ts.VariableDeclarationList, id: ts.Identifier): boolean {
+	// is symbol used in initializer (besides its definition)
 	return !ts.FindAllReferences.Core.isSymbolReferencedInFile(id, state.typeChecker, id.getSourceFile(), initializer);
 }
 
@@ -104,8 +105,8 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	const finalizerStatements = luau.list.make<luau.Statement>();
 
 	const variables = initializer && ts.isVariableDeclarationList(initializer) ? getDeclaredVariables(initializer) : [];
-	const skipClone = new Set<ts.Symbol>();
 	const hasWriteOrAsyncRead = new Set<ts.Symbol>();
+	const skipClone = new Set<ts.Symbol>();
 
 	if (initializer && ts.isVariableDeclarationList(initializer)) {
 		for (const id of variables) {
@@ -260,17 +261,19 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	luau.list.pushList(whileStatements, conditionPrereqs);
 
 	if (!luau.list.isEmpty(whileStatements)) {
-		// if not [conditionExp] then
-		//	break
-		// end
-		luau.list.push(
-			whileStatements,
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: luau.unary("not", conditionExp),
-				statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
-				elseBody: luau.list.make(),
-			}),
-		);
+		if (condition) {
+			// if not [conditionExp] then
+			//	break
+			// end
+			luau.list.push(
+				whileStatements,
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.unary("not", conditionExp),
+					statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
 		conditionExp = luau.bool(true);
 	}
 
