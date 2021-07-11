@@ -10,7 +10,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 
-function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.Identifier] {
+function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];
 	if (declaration && ts.isExportSpecifier(declaration)) {
 		return [declaration.name.text, transformIdentifierDefined(state, declaration.propertyName ?? declaration.name)];
@@ -78,7 +78,7 @@ function handleExports(
 	const ignoredExportSymbols = getIgnoredExportSymbols(state, sourceFile);
 
 	let mustPushExports = state.hasExportFrom;
-	const exportPairs = new Array<[string, luau.Identifier]>();
+	const exportPairs = new Array<[string, luau.AnyIdentifier]>();
 	if (!state.hasExportEquals) {
 		for (const exportSymbol of state.getModuleExports(symbol)) {
 			if (ignoredExportSymbols.has(exportSymbol)) continue;

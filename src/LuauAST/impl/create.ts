@@ -45,7 +45,7 @@ let lastTempId = 0;
 /**
  * Creates a new temporary identifier for a node.
  */
-export function tempId(name?: string) {
+export function tempId(name = "") {
 	return luau.create(luau.SyntaxKind.TemporaryIdentifier, { name, id: lastTempId++ });
 }
 

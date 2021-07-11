@@ -11,6 +11,16 @@ import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransfo
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
+	const symbol = ts.isShorthandPropertyAssignment(node.parent)
+		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
+		: state.typeChecker.getSymbolAtLocation(node);
+	assert(symbol);
+
+	const replacementId = state.symbolToIdMap.get(symbol);
+	if (replacementId) {
+		return replacementId;
+	}
+
 	return luau.create(luau.SyntaxKind.Identifier, {
 		name: node.text,
 	});
@@ -155,15 +165,6 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	}
 
 	checkIdentifierHoist(state, node, symbol);
-
-	const replacementId = state.forStatementSymbolToIdMap.get(symbol);
-	if (replacementId) {
-		// check if identifier is part of for statement, but not in the body
-		const forStatement = getAncestor(node, ts.isForStatement);
-		if (forStatement && forStatement.initializer && isAncestorOf(forStatement.initializer, node)) {
-			return replacementId;
-		}
-	}
 
 	return transformIdentifierDefined(state, node);
 }
