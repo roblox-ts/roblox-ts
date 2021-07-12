@@ -16,6 +16,7 @@ import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 
 function runCallMacro(
@@ -58,14 +59,19 @@ function runCallMacro(
 		}
 
 		for (let i = 0; i < args.length; i++) {
-			if (expressionMightMutate(state, args[i])) {
-				args[i] = state.pushToVar(args[i], `arg${i}`);
+			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
+				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]));
 			}
 		}
 	});
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression, "exp");
+	let nodeExpression = node.expression;
+	if (ts.isPropertyAccessExpression(nodeExpression) || ts.isElementAccessExpression(nodeExpression)) {
+		nodeExpression = nodeExpression.expression;
+	}
+
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, nodeExpression)) {
+		expression = state.pushToVar(expression, valueToIdStr(expression));
 	}
 	state.prereqList(prereqs);
 
