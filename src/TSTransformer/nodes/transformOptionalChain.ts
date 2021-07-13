@@ -192,9 +192,15 @@ function createOrSetTempId(
 	state: TransformState,
 	tempId: luau.TemporaryIdentifier | undefined,
 	expression: luau.Expression,
+	node: ts.Node,
 ) {
 	if (tempId === undefined) {
-		tempId = state.pushToVar(expression, "result");
+		tempId = state.pushToVar(
+			expression,
+			node.parent && ts.isVariableDeclaration(node.parent) && ts.isIdentifier(node.parent.name)
+				? node.parent.name.text
+				: "result",
+		);
 	} else {
 		if (tempId !== expression) {
 			state.prereq(
@@ -244,7 +250,7 @@ function transformOptionalChainInner(
 			}
 
 			if (item.optional) {
-				tempId = createOrSetTempId(state, tempId, baseExpression);
+				tempId = createOrSetTempId(state, tempId, baseExpression, chain[chain.length - 1].node);
 				baseExpression = tempId;
 			}
 
@@ -262,7 +268,7 @@ function transformOptionalChainInner(
 
 		// capture so we can wrap later if necessary
 		const [result, prereqStatements] = state.capture(() => {
-			tempId = createOrSetTempId(state, tempId, baseExpression);
+			tempId = createOrSetTempId(state, tempId, baseExpression, chain[chain.length - 1].node);
 
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;

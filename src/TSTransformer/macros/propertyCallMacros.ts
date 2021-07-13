@@ -7,6 +7,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
@@ -131,7 +132,7 @@ function argumentsWithDefaults(
 ): Array<luau.Expression> {
 	// potentially nil arguments
 	for (let i = 0; i < args.length; i++) {
-		args[i] = state.pushToVar(args[i], `arg${i}`);
+		args[i] = state.pushToVar(args[i], valueToIdStr(args[i]));
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: luau.binary(args[i], "==", luau.nil()),
@@ -593,9 +594,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			return luau.unary("#", expression);
 		}
 
-		expression = state.pushToVarIfComplex(expression, "exp");
+		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression));
 
-		args = args.map((arg, i) => state.pushToVarIfComplex(arg, `arg${i}`));
+		args = args.map(arg => state.pushToVarIfComplex(arg, valueToIdStr(arg)));
 		const valueIsUsed = !isUsedAsStatement(node);
 		const uses = (valueIsUsed ? 1 : 0) + args.length;
 
