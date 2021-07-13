@@ -1,3 +1,41 @@
+## 1.2.0
+- Add contextual info to the 'noRojoData' diagnostic (#1354)
+- Fixed LuaTuples don't compile correctly with optional chaining (#1338)
+- Added compiler warnings for using the RuntimeLib from ReplicatedFirst
+- Improved `LuaTuple<T>` detection (#1356)
+- Added support for tsconfig.json `"extends"` with transformer plugins (#1357)
+- Added default "build" and "watch" scripts to `rbxtsc init` package.json files
+- Added check against merging functions and namespaces, fixed bug where `declare` declarations were incorrectly seen as "merging".
+- Improved detection of `defined` type.
+- Added support for diagnostics emitted from transformer plugins (#1387)
+- Added support for `typeIs(v, "vector")`
+- Added diagnostic for use of reserved fields `"new"` and `"__index"` in class declarations
+- Reworked ForStatement emit to handle complex cases better (#1315)
+- Added package manager selection to `rbxtsc init` (#1346)
+- Removed `--logStringChanges` flag
+- Added support for variable assignments in for..of loops (#1253)
+- Added support for "named" temporary identifiers (used internally by the compiler) to make the emit more readable (#1382)
+- Fixed crash on iteration over `WeakSet<T>` and `WeakMap<K, V>` (#1417)
+- Improved performance for transformer plugins (#1416)
+- `rbxtsc-dev` now force disables incremental mode for compiler development (#1420)
+- Fixed watch mode dependency bugs without incremental mode (#1424)
+- Added `serve.project.json` to `rbxtsc init plugin` template (#1419)
+- Array spread now uses `table.move()` (#1437)
+- noAny diagnostic will now only be reported once per symbol (#1435)
+- Fixed Luau emit bug with multiline strings used as table keys (#1453)
+- Added support for `return` in class constructors (#1455)
+- Fixed Luau emit bug with strings containing `'`, `"`, and ending in `]` (#1467)
+- Added support for alternative npm scopes other than `@rbxts` :tada: (#1474)
+- Added a friendly notice for when `git init` fails in `rbxtsc init` initialization step (#1477)
+- Fixed `init.lua` files being incorrectly deleted in watch mode
+- Cleaned out old and unused `RuntimeLib.lua` functions
+- Added `"forceConsistentCasingInFileNames": true,` to `rbxtsc init` tsconfig.json files
+- Fixed `rbxtsc init` under `@next` builds (#1479)
+- Fixed `.d.ts` files not being deleted in watch mode (#1445)
+- Added diagnostic for `init` being reserved in Roact.Component classes (#1454)
+- `instanceof` emit now uses RuntimeLib function `TS.instanceof()` (#1491)
+- Fixed bug where `"include"` folder was copied for package projects
+
 ## 1.1.1
 
 - Fixed crash when using `@rbxts/roact` in the playground
