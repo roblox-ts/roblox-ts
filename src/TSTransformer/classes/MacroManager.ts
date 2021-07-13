@@ -147,7 +147,7 @@ export class MacroManager {
 
 		const luaTupleTypeDec = this.symbols
 			.get(SYMBOL_NAMES.LuaTuple)
-			?.declarations.find(v => ts.isTypeAliasDeclaration(v));
+			?.declarations?.find(v => ts.isTypeAliasDeclaration(v));
 		if (luaTupleTypeDec) {
 			const nominalLuaTupleSymbol = typeChecker
 				.getTypeAtLocation(luaTupleTypeDec)

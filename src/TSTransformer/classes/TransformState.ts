@@ -363,10 +363,12 @@ export class TransformState {
 	}
 
 	public getModuleIdPropertyAccess(idSymbol: ts.Symbol) {
-		const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
-		const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
-		if (alias) {
-			return luau.property(this.getModuleIdFromSymbol(moduleSymbol), alias);
+		if (idSymbol.valueDeclaration) {
+			const moduleSymbol = this.getModuleSymbolFromNode(idSymbol.valueDeclaration);
+			const alias = this.getModuleExportsAliasMap(moduleSymbol).get(idSymbol);
+			if (alias) {
+				return luau.property(this.getModuleIdFromSymbol(moduleSymbol), alias);
+			}
 		}
 	}
 

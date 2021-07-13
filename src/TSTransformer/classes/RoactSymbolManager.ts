@@ -31,7 +31,7 @@ export class RoactSymbolManager {
 
 		// JSX intrinsic elements
 		for (const symbol of typeChecker.getJsxIntrinsicTagNamesAt(roactIndexSourceFile)) {
-			assert(ts.isPropertySignature(symbol.valueDeclaration));
+			assert(symbol.valueDeclaration && ts.isPropertySignature(symbol.valueDeclaration));
 			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
 			const className = symbol.valueDeclaration.type.typeArguments?.[0].getText();
 			assert(className);

@@ -30,11 +30,13 @@ function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: s
 }
 
 function isExportSymbolFromExportFrom(exportSymbol: ts.Symbol) {
-	for (const exportSpecifier of exportSymbol.declarations) {
-		if (ts.isExportSpecifier(exportSpecifier)) {
-			const exportDec = exportSpecifier.parent.parent;
-			if (ts.isExportDeclaration(exportDec) && exportDec.moduleSpecifier) {
-				return true;
+	if (exportSymbol.declarations) {
+		for (const exportSpecifier of exportSymbol.declarations) {
+			if (ts.isExportSpecifier(exportSpecifier)) {
+				const exportDec = exportSpecifier.parent.parent;
+				if (ts.isExportDeclaration(exportDec) && exportDec.moduleSpecifier) {
+					return true;
+				}
 			}
 		}
 	}
@@ -100,9 +102,11 @@ function handleExports(
 				continue;
 			}
 
-			const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
-			if (statement?.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
-				continue;
+			if (originalSymbol.valueDeclaration) {
+				const statement = getAncestor(originalSymbol.valueDeclaration, ts.isStatement);
+				if (statement?.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
+					continue;
+				}
 			}
 
 			exportPairs.push(getExportPair(state, exportSymbol));
