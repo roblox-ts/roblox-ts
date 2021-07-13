@@ -60,7 +60,7 @@ function runCallMacro(
 
 		for (let i = 0; i < args.length; i++) {
 			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
-				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]));
+				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
 			}
 		}
 	});
@@ -71,7 +71,7 @@ function runCallMacro(
 	}
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, nodeExpression)) {
-		expression = state.pushToVar(expression, valueToIdStr(expression));
+		expression = state.pushToVar(expression, valueToIdStr(expression) || "exp");
 	}
 	state.prereqList(prereqs);
 
