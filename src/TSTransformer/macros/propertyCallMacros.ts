@@ -596,7 +596,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression));
 
-		args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg)));
+		args = args.map(arg => state.pushToVarIfComplex(arg, valueToIdStr(arg)));
 		const valueIsUsed = !isUsedAsStatement(node);
 		const uses = (valueIsUsed ? 1 : 0) + args.length;
 
