@@ -228,15 +228,6 @@ end
 
 -- LEGACY RUNTIME FUNCTIONS --
 
--- @rbxts/algorite
--- @rbxts/debouncelib
--- @rbxts/firestore
-function TS.array_forEach(list, callback)
-	for i = 1, #list do
-		callback(list[i], i - 1, list)
-	end
-end
-
 -- @rbxts/basic-utilities
 function TS.array_reverse(list)
 	local result = {}
@@ -269,7 +260,6 @@ function TS.map_entries(object)
 end
 
 -- @rbxts/basic-utilities
--- @rbxts/firestore
 function TS.map_forEach(map, callback)
 	for key, value in pairs(map) do
 		callback(value, key, map)
@@ -334,23 +324,6 @@ function TS.Roact_combine(...)
 		end
 	end
 	return result
-end
-
--- @rbxts/algorite
-function TS.string_endsWith(str1, str2, pos)
-	local n1 = #str1
-	local n2 = #str2
-
-	if pos == nil then
-		pos = n1
-	elseif pos ~= pos then
-		pos = 0
-	else
-		pos = math.clamp(pos, 0, n1)
-	end
-
-	local start = pos - n2 + 1
-	return start > 0 and string.sub(str1, start, pos) == str2
 end
 
 return TS
