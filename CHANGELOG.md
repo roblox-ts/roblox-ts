@@ -1,4 +1,4 @@
-## 1.2.0
+## 1.2.1
 - Add contextual info to the 'noRojoData' diagnostic (#1354)
 - Fixed LuaTuples don't compile correctly with optional chaining (#1338)
 - Added compiler warnings for using the RuntimeLib from ReplicatedFirst
