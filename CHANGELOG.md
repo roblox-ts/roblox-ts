@@ -1,3 +1,6 @@
+## 1.2.2
+- Fixed a bug with temporary identifiers shadowing each other incorrectly.
+
 ## 1.2.1
 - Add contextual info to the 'noRojoData' diagnostic (#1354)
 - Fixed LuaTuples don't compile correctly with optional chaining (#1338)
