@@ -39,6 +39,14 @@ interface Scope {
 	parent?: Scope;
 }
 
+function createScope(parent?: Scope): Scope {
+	return {
+		ids: new Set(),
+		lastTry: new Map(),
+		parent,
+	};
+}
+
 function scopeHasId(scope: Scope, id: string): boolean {
 	if (scope.ids.has(id)) {
 		return true;
@@ -60,14 +68,6 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 	const tempIdsToProcess = new Array<luau.TemporaryIdentifier>();
 	const nodesToScopes = new Map<luau.Node, Scope>();
 
-	function createScope(parent?: Scope): Scope {
-		return {
-			ids: new Set(),
-			lastTry: new Map(),
-			parent,
-		};
-	}
-
 	const scopeStack = [createScope()];
 
 	function pushScopeStack() {
@@ -85,7 +85,7 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 	}
 
 	function registerId(name: string) {
-		peekScopeStack().ids.add(name);
+		scopeAddId(peekScopeStack(), name);
 	}
 
 	visit(ast, {
