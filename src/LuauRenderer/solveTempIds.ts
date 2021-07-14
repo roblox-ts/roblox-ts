@@ -57,13 +57,6 @@ function scopeHasId(scope: Scope, id: string): boolean {
 	return false;
 }
 
-function scopeAddId(scope: Scope, id: string) {
-	scope.ids.add(id);
-	if (scope.parent) {
-		scopeAddId(scope.parent, id);
-	}
-}
-
 export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | luau.Node) {
 	const tempIdsToProcess = new Array<luau.TemporaryIdentifier>();
 	const nodesToScopes = new Map<luau.Node, Scope>();
@@ -85,7 +78,7 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 	}
 
 	function registerId(name: string) {
-		scopeAddId(peekScopeStack(), name);
+		peekScopeStack().ids.add(name);
 	}
 
 	visit(ast, {
@@ -131,7 +124,7 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 				input = `${original}_${i++}`;
 			}
 			scope.lastTry.set(input, i);
-			scopeAddId(scope, input);
+			scope.ids.add(input);
 
 			state.seenTempNodes.set(tempId.id, input);
 		}
