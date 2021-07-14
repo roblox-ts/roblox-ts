@@ -36,6 +36,24 @@ const isScopeEnd = (node: luau.Node) => isScopeEdge(node, "tail");
 interface Scope {
 	ids: Set<string>;
 	lastTry: Map<string, number>;
+	parent?: Scope;
+}
+
+function scopeHasId(scope: Scope, id: string): boolean {
+	if (scope.ids.has(id)) {
+		return true;
+	}
+	if (scope.parent) {
+		return scopeHasId(scope.parent, id);
+	}
+	return false;
+}
+
+function scopeAddId(scope: Scope, id: string) {
+	scope.ids.add(id);
+	if (scope.parent) {
+		scopeAddId(scope.parent, id);
+	}
 }
 
 export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | luau.Node) {
@@ -44,8 +62,9 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 
 	function createScope(parent?: Scope): Scope {
 		return {
-			ids: new Set(parent?.ids),
+			ids: new Set(),
 			lastTry: new Map(),
+			parent,
 		};
 	}
 
@@ -108,11 +127,12 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 			let input = tempId.name ? `_${tempId.name}` : `_0`;
 			const original = tempId.name ? input : "";
 			let i = scope.lastTry.get(input) ?? 1;
-			while (scope.ids.has(input)) {
+			while (scopeHasId(scope, input)) {
 				input = `${original}_${i++}`;
 			}
 			scope.lastTry.set(input, i);
-			scope.ids.add(input);
+			scopeAddId(scope, input);
+
 			state.seenTempNodes.set(tempId.id, input);
 		}
 	}
