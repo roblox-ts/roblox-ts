@@ -18,6 +18,9 @@ const PROJECT_DIR = PATH_SEP;
 const ROOT_DIR = pathJoin(PROJECT_DIR, "src");
 const OUT_DIR = pathJoin(PROJECT_DIR, "out");
 const PLAYGROUND_PATH = pathJoin(ROOT_DIR, "playground.tsx");
+const NODE_MODULES_PATH = pathJoin(PROJECT_DIR, NODE_MODULES);
+const RBXTS_SCOPE_PATH = pathJoin(NODE_MODULES_PATH, RBXTS_SCOPE);
+const INCLUDE_PATH = pathJoin(PROJECT_DIR, "include");
 
 export class VirtualProject {
 	private readonly data: ProjectData;
@@ -38,7 +41,7 @@ export class VirtualProject {
 			includePath: "",
 			isPackage: false,
 			logTruthyChanges: false,
-			nodeModulesPath: pathJoin(PROJECT_DIR, NODE_MODULES),
+			nodeModulesPath: NODE_MODULES_PATH,
 			noInclude: false,
 			pkgVersion: "",
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
@@ -57,7 +60,7 @@ export class VirtualProject {
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
-			typeRoots: [pathJoin(this.data.nodeModulesPath, RBXTS_SCOPE)],
+			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,
 			rootDir: ROOT_DIR,
 			outDir: OUT_DIR,
@@ -82,7 +85,15 @@ export class VirtualProject {
 		this.compilerHost.useCaseSensitiveFileNames = () => true;
 		this.compilerHost.getCurrentDirectory = () => PATH_SEP;
 
-		this.rojoResolver = RojoResolver.synthetic(OUT_DIR);
+		this.rojoResolver = RojoResolver.fromTree(PROJECT_DIR, {
+			$path: OUT_DIR,
+			include: {
+				$path: INCLUDE_PATH,
+				node_modules: {
+					$path: RBXTS_SCOPE_PATH,
+				},
+			},
+		} as never);
 		this.pkgRojoResolvers = this.compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	}
 

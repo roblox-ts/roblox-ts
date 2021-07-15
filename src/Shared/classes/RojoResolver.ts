@@ -28,9 +28,11 @@ interface RojoTreeMetadata {
 	$isolated?: boolean;
 }
 
-type RojoTree = RojoTreeMembers & RojoTreeMetadata;
+type RojoTree = RojoTreeMetadata & RojoTreeMembers;
 
 interface RojoTreeMembers {
+	// TODO: Use this when TypeScript 4.4 is released:
+	// [property: `$${string}`]: unknown;
 	[name: string]: RojoTree;
 }
 
@@ -151,6 +153,12 @@ export class RojoResolver {
 	public static synthetic(basePath: string) {
 		const resolver = new RojoResolver();
 		resolver.parseTree(basePath, "", { $path: basePath } as RojoTree, true);
+		return resolver;
+	}
+
+	public static fromTree(basePath: string, tree: RojoTree) {
+		const resolver = new RojoResolver();
+		resolver.parseTree(basePath, "", tree, true);
 		return resolver;
 	}
 
