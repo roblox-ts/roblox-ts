@@ -294,7 +294,7 @@ export = () => {
 		expect(d).to.equal(1);
 	});
 
-	it("should allow spread", () => {
+	it("should allow spread 1", () => {
 		const a = [1, 2, 3];
 		const b = [...a, 4, 5, 6];
 		expect(b[0]).to.equal(1);
@@ -304,9 +304,56 @@ export = () => {
 		expect(b[4]).to.equal(5);
 		expect(b[5]).to.equal(6);
 		expect(b.size()).to.equal(6);
+	});
+
+	it("should allow spread 2", () => {
 		const c = [...[1], ...[2]];
 		expect(c[0]).to.equal(1);
 		expect(c[1]).to.equal(2);
+	});
+
+	it("should allow spread 3", () => {
+		const oldArr = [2]
+		let counter = 0
+		const newArr = [++counter, ...oldArr]
+		expect(newArr[0]).to.equal(1);
+		expect(newArr[1]).to.equal(2);
+	});
+
+	it("should allow spread 4", () => {
+		let counter = 0
+		const newArr = [++counter, ..."abc"];
+		expect(newArr[0]).to.equal(1);
+		expect(newArr[1]).to.equal("a");
+		expect(newArr[2]).to.equal("b");
+		expect(newArr[3]).to.equal("c");
+	});
+
+	it("should allow spread 5", () => {
+		let counter = 0
+		const newArr = [++counter, ...new Set([2])];
+		expect(newArr[0]).to.equal(1);
+		expect(newArr[1]).to.equal(2);
+	});
+
+	it("should allow spread 6", () => {
+		let counter = 0
+		const newArr = [["a", ++counter], ...new Map([["b", 2]])];
+		expect(newArr[0][0]).to.equal("a");
+		expect(newArr[0][1]).to.equal(1);
+		expect(newArr[1][0]).to.equal("b");
+		expect(newArr[1][1]).to.equal(2);
+	});
+
+	it("should allow spread 7", () => {
+		function* foo() {
+			yield 2;
+		}
+
+		let counter = 0
+		const newArr = [++counter, ...foo()];
+		expect(newArr[0]).to.equal(1);
+		expect(newArr[1]).to.equal(2);
 	});
 
 	it("should copy on spread", () => {

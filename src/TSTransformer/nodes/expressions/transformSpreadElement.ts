@@ -27,7 +27,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);
 		const arrayId = state.pushToVar(luau.array(), "array");
 		const lengthId = state.pushToVar(luau.number(0), "length");
-		state.prereqList(addIterableToArrayBuilder(state, expression, arrayId, lengthId));
+		state.prereqList(addIterableToArrayBuilder(state, expression, arrayId, lengthId, 0, false));
 		return luau.call(luau.globals.unpack, [arrayId]);
 	}
 }

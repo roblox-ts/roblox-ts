@@ -51,11 +51,17 @@ export function transformArrayLiteralExpression(state: TransformState, node: ts.
 			const type = state.getType(element.expression);
 			const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, element.expression, type);
 			const spreadExp = transformExpression(state, element.expression);
-			state.prereqList(addIterableToArrayBuilder(state, spreadExp, ptr.value, lengthId));
-
-			if (i < node.elements.length - 1) {
-				updateLengthId();
-			}
+			const shouldUpdateLengthId = i < node.elements.length - 1;
+			state.prereqList(
+				addIterableToArrayBuilder(
+					state,
+					spreadExp,
+					ptr.value,
+					lengthId,
+					amtElementsSinceUpdate,
+					shouldUpdateLengthId,
+				),
+			);
 		} else {
 			const [expression, prereqs] = state.capture(() => transformExpression(state, element));
 			if (luau.isArray(ptr.value) && !luau.list.isEmpty(prereqs)) {

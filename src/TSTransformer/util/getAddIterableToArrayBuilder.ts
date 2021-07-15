@@ -16,32 +16,77 @@ import {
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 
 type AddIterableToArrayBuilder = (
 	state: TransformState,
 	expression: luau.Expression,
 	arrayId: luau.AnyIdentifier,
 	lengthId: luau.AnyIdentifier,
+	amtElementsSinceUpdate: number,
+	shouldUpdateLengthId: boolean,
 ) => luau.List<luau.Statement>;
 
-const addArray: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addArray: AddIterableToArrayBuilder = (
+	state,
+	expression,
+	arrayId,
+	lengthId,
+	amtElementsSinceUpdate,
+	shouldUpdateLengthId,
+) => {
+	const result = luau.list.make<luau.Statement>();
+
 	const inputArray = state.pushToVarIfNonId(expression, "array");
-	return luau.list.make(
+	let inputLength: luau.Expression = luau.unary("#", inputArray);
+	if (shouldUpdateLengthId) {
+		inputLength = state.pushToVar(inputLength, valueToIdStr(inputArray) + "Length");
+	}
+
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.CallStatement, {
 			expression: luau.call(luau.globals.table.move, [
 				inputArray,
 				luau.number(1),
-				luau.unary("#", inputArray),
-				luau.binary(lengthId, "+", luau.number(1)),
+				inputLength,
+				luau.binary(lengthId, "+", luau.number(amtElementsSinceUpdate + 1)),
 				arrayId,
 			]),
 		}),
 	);
+
+	if (shouldUpdateLengthId) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: inputLength,
+			}),
+		);
+	}
+
+	return result;
 };
 
-const addString: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addString: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const valueId = luau.tempId("char");
-	return luau.list.make(
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make(valueId),
 			expression: luau.call(luau.globals.string.gmatch, [expression, luau.globals.utf8.charpattern]),
@@ -62,11 +107,28 @@ const addString: AddIterableToArrayBuilder = (state, expression, arrayId, length
 			),
 		}),
 	);
+
+	return result;
 };
 
-const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const valueId = luau.tempId("v");
-	return luau.list.make(
+
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make(valueId),
 			expression: luau.call(luau.globals.pairs, [expression]),
@@ -87,12 +149,28 @@ const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId)
 			),
 		}),
 	);
+
+	return result;
 };
 
-const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const keyId = luau.tempId("k");
 	const valueId = luau.tempId("v");
-	return luau.list.make(
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make(keyId, valueId),
 			expression: luau.call(luau.globals.pairs, [expression]),
@@ -113,11 +191,34 @@ const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId)
 			),
 		}),
 	);
+
+	return result;
 };
 
-const addIterableFunction: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addIterableFunction: AddIterableToArrayBuilder = (
+	state,
+	expression,
+	arrayId,
+	lengthId,
+	amtElementsSinceUpdate,
+) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const valueId = luau.tempId("result");
-	return luau.list.make(
+
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make<luau.AnyIdentifier>(valueId),
 			expression,
@@ -138,12 +239,34 @@ const addIterableFunction: AddIterableToArrayBuilder = (state, expression, array
 			),
 		}),
 	);
+
+	return result;
 };
 
-const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (
+	state,
+	expression,
+	arrayId,
+	lengthId,
+	amtElementsSinceUpdate,
+) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const iterFuncId = state.pushToVar(expression, "iterFunc");
 	const valueId = luau.tempId("results");
-	return luau.list.make(
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.WhileStatement, {
 			condition: luau.bool(true),
 			statements: luau.list.make<luau.Statement>(
@@ -172,11 +295,27 @@ const addIterableFunctionLuaTuple: AddIterableToArrayBuilder = (state, expressio
 			),
 		}),
 	);
+
+	return result;
 };
 
-const addGenerator: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId) => {
+const addGenerator: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId, amtElementsSinceUpdate) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
 	const iterId = luau.tempId("result");
-	return luau.list.make(
+	luau.list.push(
+		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make<luau.AnyIdentifier>(iterId),
 			expression: luau.property(convertToIndexableExpression(expression), "next"),
@@ -202,6 +341,8 @@ const addGenerator: AddIterableToArrayBuilder = (state, expression, arrayId, len
 			),
 		}),
 	);
+
+	return result;
 };
 
 export function getAddIterableToArrayBuilder(
