@@ -1,3 +1,7 @@
+## 1.2.3
+- Fixed a bug with array spread expressions like `[a, ...b]`
+- Fixed playground environment crash
+
 ## 1.2.2
 - Fixed a bug with temporary identifiers shadowing each other incorrectly.
 
