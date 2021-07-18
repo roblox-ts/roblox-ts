@@ -104,20 +104,20 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			}),
 
 	handler: async argv => {
-		const tsConfigPath = findTsConfigPath(argv.project);
-
-		// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
-		const projectOptions: Partial<ProjectOptions> = Object.assign(
-			{},
-			getTsConfigProjectOptions(tsConfigPath),
-			argv as ProjectFlags,
-		);
-
-		LogService.verbose = argv.verbose === true;
-
-		const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
-
 		try {
+			const tsConfigPath = findTsConfigPath(argv.project);
+
+			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
+			const projectOptions: Partial<ProjectOptions> = Object.assign(
+				{},
+				getTsConfigProjectOptions(tsConfigPath),
+				argv as ProjectFlags,
+			);
+
+			LogService.verbose = argv.verbose === true;
+
+			const diagnosticReporter = ts.createDiagnosticReporter(ts.sys, true);
+
 			const data = createProjectData(tsConfigPath, projectOptions, argv);
 			if (argv.watch) {
 				setupProjectWatchProgram(data, argv.usePolling);
