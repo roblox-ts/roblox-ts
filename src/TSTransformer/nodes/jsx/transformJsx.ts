@@ -11,8 +11,8 @@ import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttribu
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
 
 export function transformJsxFragmentShorthand(state: TransformState, children: ReadonlyArray<ts.JsxChild>) {
-	const childrenPtr = createMixedTablePointer();
-	transformJsxChildren(state, children, createMapPointer(), childrenPtr);
+	const childrenPtr = createMixedTablePointer("children");
+	transformJsxChildren(state, children, createMapPointer("attributes"), childrenPtr);
 
 	const args = new Array<luau.Expression>();
 	if (luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields)) {
@@ -35,8 +35,8 @@ export function transformJsx(
 			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
 	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.emptyId();
-	const attributesPtr = createMapPointer();
-	const childrenPtr = createMixedTablePointer();
+	const attributesPtr = createMapPointer("attributes");
+	const childrenPtr = createMixedTablePointer("children");
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 

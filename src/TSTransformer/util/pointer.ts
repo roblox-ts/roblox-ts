@@ -2,6 +2,7 @@ import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 
 export interface Pointer<T> {
+	name: string;
 	value: T;
 }
 
@@ -9,16 +10,16 @@ export type MapPointer = Pointer<luau.Map | luau.TemporaryIdentifier>;
 export type ArrayPointer = Pointer<luau.Array | luau.TemporaryIdentifier>;
 export type MixedTablePointer = Pointer<luau.MixedTable | luau.TemporaryIdentifier>;
 
-export function createMapPointer(): MapPointer {
-	return { value: luau.map() };
+export function createMapPointer(name: string): MapPointer {
+	return { name, value: luau.map() };
 }
 
-export function createArrayPointer(): ArrayPointer {
-	return { value: luau.array() };
+export function createArrayPointer(name: string): ArrayPointer {
+	return { name, value: luau.array() };
 }
 
-export function createMixedTablePointer(): MixedTablePointer {
-	return { value: luau.mixedTable() };
+export function createMixedTablePointer(name: string): MixedTablePointer {
+	return { name, value: luau.mixedTable() };
 }
 
 export function assignToMapPointer(
@@ -82,7 +83,7 @@ export function disableMapInline(
 	ptr: MapPointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isMap(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value, "ptr");
+		ptr.value = state.pushToVar(ptr.value, ptr.name);
 	}
 }
 
@@ -91,7 +92,7 @@ export function disableArrayInline(
 	ptr: ArrayPointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isArray(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value, "ptr");
+		ptr.value = state.pushToVar(ptr.value, ptr.name);
 	}
 }
 
@@ -100,6 +101,6 @@ export function disableMixedTableInline(
 	ptr: MixedTablePointer,
 ): asserts ptr is Pointer<luau.TemporaryIdentifier> {
 	if (luau.isMixedTable(ptr.value)) {
-		ptr.value = state.pushToVar(ptr.value, "ptr");
+		ptr.value = state.pushToVar(ptr.value, ptr.name);
 	}
 }
