@@ -11,12 +11,11 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { Pointer } from "TSTransformer/util/pointer";
 
 export function transformClassConstructor(
 	state: TransformState,
 	node: ts.ClassLikeDeclaration,
-	ptr: Pointer<luau.AnyIdentifier>,
+	name: luau.AnyIdentifier,
 	originNode?: ts.ConstructorDeclaration & { body: ts.Block },
 ) {
 	const statements = luau.list.make<luau.Statement>();
@@ -128,7 +127,7 @@ export function transformClassConstructor(
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {
-			expression: ptr.value,
+			expression: name,
 			name: isRoact ? "init" : "constructor",
 			statements,
 			parameters,

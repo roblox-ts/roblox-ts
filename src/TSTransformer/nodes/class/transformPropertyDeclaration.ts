@@ -5,12 +5,11 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
-import { Pointer } from "TSTransformer/util/pointer";
 
 export function transformPropertyDeclaration(
 	state: TransformState,
 	node: ts.PropertyDeclaration,
-	ptr: Pointer<luau.AnyIdentifier>,
+	name: luau.AnyIdentifier,
 ) {
 	if (!ts.hasStaticModifier(node)) {
 		return luau.list.make<luau.Statement>();
@@ -28,7 +27,7 @@ export function transformPropertyDeclaration(
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-				expression: ptr.value,
+				expression: name,
 				index: transformObjectKey(state, node.name),
 			}),
 			operator: "=",

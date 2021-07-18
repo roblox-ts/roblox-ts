@@ -339,10 +339,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		luau.list.pushList(statementsInner, createBoilerplate(state, node, internalName, isClassExpression));
 	}
 
-	luau.list.pushList(
-		statementsInner,
-		transformClassConstructor(state, node, { value: internalName }, getConstructor(node)),
-	);
+	luau.list.pushList(statementsInner, transformClassConstructor(state, node, internalName, getConstructor(node)));
 
 	for (const member of node.members) {
 		if (
@@ -399,7 +396,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}
 		}
 
-		luau.list.pushList(statementsInner, transformMethodDeclaration(state, method, { value: internalName }));
+		luau.list.pushList(
+			statementsInner,
+			transformMethodDeclaration(state, method, { name: "name", value: internalName }),
+		);
 	}
 
 	const toStringProperty = instanceType.getProperty(MAGIC_TO_STRING_METHOD);
@@ -425,7 +425,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	for (const property of staticProperties) {
-		luau.list.pushList(statementsInner, transformPropertyDeclaration(state, property, { value: internalName }));
+		luau.list.pushList(statementsInner, transformPropertyDeclaration(state, property, internalName));
 	}
 
 	// if using internal name, assign to return var
