@@ -7,7 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
-import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
+import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 
 function transformPropertyAssignment(
@@ -84,7 +84,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 export function transformObjectLiteralExpression(state: TransformState, node: ts.ObjectLiteralExpression) {
 	// starts as luau.Map, becomes luau.TemporaryIdentifier when `disableInline` is called
-	const ptr: MapPointer = { value: luau.map() };
+	const ptr = createMapPointer("object");
 	for (const property of node.properties) {
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {
