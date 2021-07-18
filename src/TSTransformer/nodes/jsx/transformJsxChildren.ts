@@ -172,7 +172,7 @@ function createJsxAddChild(
 		isPossiblyMap,
 	);
 	if (expUses > 1) {
-		expression = state.pushToVarIfNonId(expression, "exp");
+		expression = state.pushToVarIfNonId(expression, "child");
 	}
 
 	let statement!: luau.Statement;
