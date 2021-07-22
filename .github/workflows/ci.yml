@@ -39,7 +39,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install NPM dependencies
-        run: npm install
+        run: npm ci
 
       - name: Compile and run tests
         run: npm test
