@@ -132,20 +132,22 @@ function argumentsWithDefaults(
 ): Array<luau.Expression> {
 	// potentially nil arguments
 	for (let i = 0; i < args.length; i++) {
-		args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
-		state.prereq(
-			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: luau.binary(args[i], "==", luau.nil()),
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: args[i] as luau.TemporaryIdentifier,
-						operator: "=",
-						right: defaults[i],
-					}),
-				),
-				elseBody: luau.list.make(),
-			}),
-		);
+		if (!luau.isSimplePrimitive(args[i])) {
+			args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
+			state.prereq(
+				luau.create(luau.SyntaxKind.IfStatement, {
+					condition: luau.binary(args[i], "==", luau.nil()),
+					statements: luau.list.make(
+						luau.create(luau.SyntaxKind.Assignment, {
+							left: args[i] as luau.TemporaryIdentifier,
+							operator: "=",
+							right: defaults[i],
+						}),
+					),
+					elseBody: luau.list.make(),
+				}),
+			);
+		}
 	}
 
 	// not specified
