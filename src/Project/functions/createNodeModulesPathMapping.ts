@@ -12,7 +12,7 @@ export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 		if (fs.pathExistsSync(scopePath)) {
 			// map module paths
 			for (const pkgName of fs.readdirSync(scopePath)) {
-				const pkgPath = getCanonicalFileName(path.join(scopePath, pkgName));
+				const pkgPath = path.join(scopePath, pkgName);
 				const pkgJsonPath = realPathExistsSync(path.join(pkgPath, "package.json"));
 				if (pkgJsonPath !== undefined) {
 					const pkgJson = fs.readJsonSync(pkgJsonPath) as {
@@ -24,8 +24,8 @@ export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 					const typesPath = pkgJson.types ?? pkgJson.typings ?? "index.d.ts";
 					if (pkgJson.main) {
 						nodeModulesPathMapping.set(
-							path.resolve(pkgPath, typesPath),
-							path.resolve(pkgPath, pkgJson.main),
+							getCanonicalFileName(path.resolve(pkgPath, typesPath)),
+							getCanonicalFileName(path.resolve(pkgPath, pkgJson.main)),
 						);
 					}
 				}
