@@ -66,21 +66,10 @@ function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<Rojo
 	}
 }
 
-function getFromOperatingSystemPath(map: Map<string, string>, path: string) {
-	for (const [comparisonPath, value] of map) {
-		if (ts.comparePaths(path, comparisonPath, !ts.sys.useCaseSensitiveFileNames) === ts.Comparison.EqualTo) {
-			return value;
-		}
-	}
-
-	return undefined;
-}
-
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 	const moduleOutPath = state.pathTranslator.getImportPath(
-		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ??
-			getFromOperatingSystemPath(state.nodeModulesPathMapping, moduleFilePath) ??
-			moduleFilePath,
+		state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(moduleFilePath))) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
 	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
