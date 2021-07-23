@@ -12,7 +12,7 @@
 
 ## Introduction
 
-**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree and emit functionally similar structures in Luau so that the code behaves the same.
+**roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree and emit functionally similar structures in [Luau](https://luau-lang.org/) so that the code behaves the same.
 
 ## Quick start & Documentation
 
