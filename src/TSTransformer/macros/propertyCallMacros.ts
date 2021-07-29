@@ -592,35 +592,19 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
-		if (args.length === 0) {
-			return luau.unary("#", expression);
+		if (args.length !== 0) {
+			expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
 		}
-
-		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
-
-		args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
-		const valueIsUsed = !isUsedAsStatement(node);
-		const uses = (valueIsUsed ? 1 : 0) + args.length;
-
-		let lengthExp: luau.Expression = luau.unary("#", expression);
-		if (uses > 1) {
-			lengthExp = state.pushToVar(lengthExp, "length");
-		}
-
-		for (let i = 0; i < args.length; i++) {
+		for (const arg of args) {
 			state.prereq(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: luau.binary(lengthExp, "+", luau.number(i + 1)),
-					}),
-					operator: "=",
-					right: args[i],
+				luau.create(luau.SyntaxKind.CallStatement, {
+					expression: luau.call(luau.globals.table.insert, [expression, arg]),
 				}),
 			);
 		}
-
-		return valueIsUsed ? luau.binary(lengthExp, "+", luau.number(args.length)) : luau.nil();
+		// if return length is unused, don't bother doing `local _ = #arr`
+		// but if no args, do it anyway so we output *something*
+		return !isUsedAsStatement(node) || args.length === 0 ? luau.unary("#", expression) : luau.nil();
 	},
 
 	pop: (state, node, expression) => {
