@@ -46,7 +46,13 @@ function getPrecedence(node: luau.BinaryExpression | luau.UnaryExpression) {
 
 export function needsParentheses(node: luau.BinaryExpression | luau.UnaryExpression) {
 	if (node.parent && (luau.isBinaryExpression(node.parent) || luau.isUnaryExpression(node.parent))) {
-		return getPrecedence(node) < getPrecedence(node.parent);
+		const nodePrecedence = getPrecedence(node);
+		const parentPrecedence = getPrecedence(node.parent);
+		if (nodePrecedence < parentPrecedence) {
+			return true;
+		} else if (nodePrecedence === parentPrecedence) {
+			return luau.isBinaryExpression(node.parent) && node === node.parent.right;
+		}
 	}
 	return false;
 }
