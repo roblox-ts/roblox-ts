@@ -7,5 +7,9 @@ export function renderParenthesizedExpression(state: RenderState, node: luau.Par
 	while (luau.isParenthesizedExpression(expression)) {
 		expression = expression.expression;
 	}
-	return `(${render(state, node.expression)})`;
+	if (luau.isSimple(expression)) {
+		return render(state, node.expression);
+	} else {
+		return `(${render(state, node.expression)})`;
+	}
 }
