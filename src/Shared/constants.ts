@@ -29,5 +29,6 @@ export const PARENT_FIELD = "Parent";
 export enum ProjectType {
 	Game = "game",
 	Model = "model",
+	DynamicModel = "dmodel",
 	Package = "package",
 }

@@ -167,6 +167,7 @@ export class RojoResolver {
 	private filePathToRbxPathMap = new Map<string, RbxPath>();
 	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 	public isGame = false;
+	public isDmodel = false;
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
 		const realPath = fs.realpathSync(rojoConfigFilePath);
@@ -194,6 +195,10 @@ export class RojoResolver {
 
 		if (tree.$className === "DataModel") {
 			this.isGame = true;
+		}
+
+		if (tree.$className === "dModel") {
+			this.isDmodel = true;
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {

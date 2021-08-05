@@ -29,6 +29,8 @@ function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): Projec
 		return ProjectType.Package;
 	} else if (rojoResolver.isGame) {
 		return ProjectType.Game;
+	} else if (rojoResolver.isDmodel) {
+		return ProjectType.DynamicModel;
 	} else {
 		return ProjectType.Model;
 	}
