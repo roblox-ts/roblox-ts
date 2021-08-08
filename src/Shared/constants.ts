@@ -24,6 +24,14 @@ export const SERVER_SUBEXT = ".server";
 export const CLIENT_SUBEXT = ".client";
 export const MODULE_SUBEXT = "";
 
+export const FILENAME_WARNINGS = new Map();
+
+for (const scriptType of [SERVER_SUBEXT, CLIENT_SUBEXT, MODULE_SUBEXT]) {
+	for (const fileType of [TS_EXT, TSX_EXT, DTS_EXT]) {
+		FILENAME_WARNINGS.set(INIT_NAME + scriptType + fileType, INDEX_NAME + scriptType + fileType);
+	}
+}
+
 export const PARENT_FIELD = "Parent";
 
 export enum ProjectType {
