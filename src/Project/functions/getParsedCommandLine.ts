@@ -1,4 +1,5 @@
 import ts from "byots";
+import inspector from "inspector";
 import { ProjectData } from "Project";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
@@ -26,7 +27,7 @@ export function getParsedCommandLine(data: ProjectData) {
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	if ((globalThis as any).RBXTSC_DEV) {
+	if ((globalThis as any).RBXTSC_DEV || inspector.url() !== undefined) {
 		parsedCommandLine.options.incremental = false;
 		parsedCommandLine.options.tsBuildInfoFile = undefined;
 	}
