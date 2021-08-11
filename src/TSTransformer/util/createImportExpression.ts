@@ -11,11 +11,14 @@ import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 
-function getAbsoluteImport(moduleRbxPath: RbxPath) {
+function getAbsoluteImport(moduleRbxPath: RbxPath, nestedFolder?: string) {
 	const pathExpressions = new Array<luau.Expression>();
 	const serviceName = moduleRbxPath[0];
 	assert(serviceName);
 	pathExpressions.push(createGetService(serviceName));
+	if (nestedFolder) {
+		pathExpressions.push(luau.string(nestedFolder));
+	}
 	for (let i = 1; i < moduleRbxPath.length; i++) {
 		pathExpressions.push(luau.string(moduleRbxPath[i]));
 	}
@@ -149,10 +152,15 @@ export function createImportExpression(
 			return luau.emptyId();
 		}
 
-		if (state.projectType === ProjectType.Game) {
+		if (state.projectType === ProjectType.Game || state.projectType === ProjectType.DynamicModel) {
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
-				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
+				importPathExpressions.push(
+					...getAbsoluteImport(
+						moduleRbxPath,
+						ProjectType.DynamicModel ? (state.rojoResolver.isDmodel as string) : undefined,
+					),
+				);
 			} else if (fileRelation === FileRelation.InToIn) {
 				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
 			} else {

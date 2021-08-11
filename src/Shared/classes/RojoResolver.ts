@@ -2,6 +2,7 @@ import Ajv from "ajv";
 import fs from "fs-extra";
 import path from "path";
 import { Lazy } from "Shared/classes/Lazy";
+import { LogService } from "Shared/classes/LogService";
 import {
 	CLIENT_SUBEXT,
 	INIT_NAME,
@@ -167,7 +168,7 @@ export class RojoResolver {
 	private filePathToRbxPathMap = new Map<string, RbxPath>();
 	private isolatedContainers = [...DEFAULT_ISOLATED_CONTAINERS];
 	public isGame = false;
-	public isDmodel = false;
+	public isDmodel: string | false = false;
 
 	private parseConfig(rojoConfigFilePath: string, doNotPush = false) {
 		const realPath = fs.realpathSync(rojoConfigFilePath);
@@ -177,6 +178,10 @@ export class RojoResolver {
 				configJson = JSON.parse(fs.readFileSync(realPath).toString());
 			} catch (e) {}
 			if (isValidRojoConfig(configJson)) {
+				if (rojoConfigFilePath.endsWith("dModel.project.json")) {
+					LogService.writeLineIfVerbose("dymanic model project file found");
+					this.isDmodel = configJson.name;
+				}
 				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
 			} else {
 				warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
@@ -195,10 +200,6 @@ export class RojoResolver {
 
 		if (tree.$className === "DataModel") {
 			this.isGame = true;
-		}
-
-		if (tree.$className === "dModel") {
-			this.isDmodel = true;
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {

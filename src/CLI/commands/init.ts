@@ -27,6 +27,7 @@ enum InitMode {
 	Model = "model",
 	Plugin = "plugin",
 	Package = "package",
+	DymanmicModel = "dymnamicModel",
 }
 
 enum PackageManager {
@@ -114,10 +115,12 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				type: "select",
 				name: "template",
 				message: "Select template",
-				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
-					title: value,
-					value,
-				})),
+				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package, InitMode.DymanmicModel].map(
+					value => ({
+						title: value,
+						value,
+					}),
+				),
 				initial: 0,
 			})
 		).template;
@@ -333,6 +336,7 @@ const GAME_DESCRIPTION = "Generate a Roblox place";
 const MODEL_DESCRIPTION = "Generate a Roblox model";
 const PLUGIN_DESCRIPTION = "Generate a Roblox Studio plugin";
 const PACKAGE_DESCRIPTION = "Generate a roblox-ts npm package";
+const DMODEL_DESCRIPTION = "Generate a dynamic model";
 
 /**
  * Defines behavior of `rbxtsc init` command.
@@ -371,6 +375,9 @@ export = ts.identity<yargs.CommandModule<{}, InitOptions>>({
 			.command([InitMode.Game, InitMode.Place], GAME_DESCRIPTION, {}, argv => init(argv as never, InitMode.Game))
 			.command(InitMode.Model, MODEL_DESCRIPTION, {}, argv => init(argv as never, InitMode.Model))
 			.command(InitMode.Plugin, PLUGIN_DESCRIPTION, {}, argv => init(argv as never, InitMode.Plugin))
+			.command(InitMode.DymanmicModel, DMODEL_DESCRIPTION, {}, argv =>
+				init(argv as never, InitMode.DymanmicModel),
+			)
 			.command(InitMode.Package, PACKAGE_DESCRIPTION, {}, argv => init(argv as never, InitMode.Package)),
 	handler: argv => init(argv, InitMode.None),
 });

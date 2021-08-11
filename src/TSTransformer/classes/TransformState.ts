@@ -201,6 +201,9 @@ export class TransformState {
 		if (this.projectType === ProjectType.Game && this.isInReplicatedFirst) {
 			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
 		}
+		if (this.projectType === ProjectType.DynamicModel && this.isInReplicatedFirst) {
+			DiagnosticService.addDiagnostic(warnings.runtimeLibUsedInReplicatedFirst(node));
+		}
 
 		return luau.property(luau.globals.TS, name);
 	}
@@ -211,7 +214,7 @@ export class TransformState {
 	public createRuntimeLibImport(sourceFile: ts.SourceFile) {
 		// if the transform state has the game path to the RuntimeLib.lua
 		if (this.runtimeLibRbxPath) {
-			if (this.projectType === ProjectType.Game) {
+			if (this.projectType === ProjectType.Game || this.projectType === ProjectType.DynamicModel) {
 				// create an expression to obtain the service where RuntimeLib is stored
 				const serviceName = this.runtimeLibRbxPath[0];
 				assert(serviceName);

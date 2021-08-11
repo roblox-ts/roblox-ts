@@ -27,10 +27,10 @@ import { createTransformServices } from "TSTransformer/util/createTransformServi
 function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): ProjectType {
 	if (data.isPackage) {
 		return ProjectType.Package;
-	} else if (rojoResolver.isGame) {
-		return ProjectType.Game;
 	} else if (rojoResolver.isDmodel) {
 		return ProjectType.DynamicModel;
+	} else if (rojoResolver.isGame) {
+		return ProjectType.Game;
 	} else {
 		return ProjectType.Model;
 	}
@@ -99,6 +99,9 @@ export function compileFiles(
 	let runtimeLibRbxPath: RbxPath | undefined;
 	if (projectType !== ProjectType.Package) {
 		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
+		if (rojoResolver.isDmodel) {
+			(runtimeLibRbxPath as Array<string>).splice(1, 0, rojoResolver.isDmodel) as RbxPath;
+		}
 		if (!runtimeLibRbxPath) {
 			return emitResultFailure("Rojo project contained no data for include folder!");
 		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
