@@ -90,8 +90,9 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		}
 	});
 
-	return luau.list.make<luau.Statement>(
-		luau.create(luau.SyntaxKind.VariableDeclaration, { left: id, right: undefined }),
-		luau.create(luau.SyntaxKind.DoStatement, { statements }),
-	);
+	const list = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
+	if (symbol && state.isHoisted.get(symbol) !== true) {
+		luau.list.unshift(list, luau.create(luau.SyntaxKind.VariableDeclaration, { left: id, right: undefined }));
+	}
+	return list;
 }

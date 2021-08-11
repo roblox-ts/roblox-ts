@@ -214,7 +214,7 @@ export function compileFiles(
 					fs.outputFileSync(outPath, source);
 				}
 				if (compilerOptions.declaration) {
-					program.emit(sourceFile, ts.sys.writeFile, undefined, true, {
+					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
 					});
 				}
