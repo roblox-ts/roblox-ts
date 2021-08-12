@@ -1,6 +1,7 @@
 import ts from "byots";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
+import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 
 function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
 	for (const baseType of type.getBaseTypes() ?? []) {
@@ -167,6 +168,9 @@ export function isEmptyStringType(type: ts.Type) {
 	if (type.isStringLiteral()) {
 		return type.value === "";
 	}
+	if (isTemplateLiteralType(type)) {
+		return type.texts.length === 0 || type.texts.every(v => v.length === 0);
+	}
 	return isStringType(type);
 }
 
@@ -183,8 +187,9 @@ export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
 			walkTypes(t, callback);
 		}
 	} else {
+		// in template literal types, constraint === type and this causes infinite recursion
 		const constraint = type.getConstraint();
-		if (constraint) {
+		if (constraint && constraint !== type) {
 			walkTypes(constraint, callback);
 		} else {
 			callback(type);
