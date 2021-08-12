@@ -24,7 +24,6 @@ class PathInfo {
 }
 
 export class PathTranslator {
-	private warnedFiles = new Set<string>();
 	constructor(
 		public readonly rootDir: string,
 		public readonly outDir: string,
