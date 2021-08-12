@@ -48,9 +48,9 @@ describe("should compile tests project", () => {
 			if (ext === TS_EXT || ext === TSX_EXT) {
 				fileBaseName = path.basename(sourceFile.fileName, ext);
 			}
-			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1];
-			assert(diagnosticName);
-			const expectedId = errors[diagnosticName as keyof typeof errors].id;
+			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1] as keyof typeof errors;
+			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
+			const expectedId = errors[diagnosticName].id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (
