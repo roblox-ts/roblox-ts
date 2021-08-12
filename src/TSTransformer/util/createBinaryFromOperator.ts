@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 
 const OPERATOR_MAP = new Map<ts.SyntaxKind, luau.BinaryOperator>([
 	// comparison
@@ -83,6 +84,11 @@ export function createBinaryFromOperator(
 		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
 	) {
 		return luau.call(state.TS(node, "bit_lrsh"), [left, right]);
+	}
+
+	if (operatorKind === ts.SyntaxKind.CommaToken) {
+		state.prereqList(wrapExpressionStatement(left));
+		return right;
 	}
 
 	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);
