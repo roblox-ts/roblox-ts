@@ -1,7 +1,6 @@
 import path from "path";
-import { D_EXT, DTS_EXT, FILENAME_WARNINGS, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
-import { warn } from "Shared/warn";
 
 class PathInfo {
 	private constructor(public dirName: string, public fileName: string, public exts: Array<string>) {}
@@ -37,15 +36,6 @@ export class PathTranslator {
 		return (pathInfo: PathInfo) => path.join(to, path.relative(from, pathInfo.join()));
 	}
 
-	private checkFilenameWarnings(filePath: string) {
-		const baseName = path.basename(filePath);
-		const nameWarning = FILENAME_WARNINGS.get(baseName);
-		if (nameWarning && !this.warnedFiles.has(filePath)) {
-			warn(`PathTranslator: Dangerous file name! Change ${baseName} to ${nameWarning}! Full path: ${filePath}`);
-			this.warnedFiles.add(filePath);
-		}
-	}
-
 	/**
 	 * Maps an input path to an output path
 	 * - `.tsx?` && !`.d.tsx?` -> `.lua`
@@ -53,8 +43,6 @@ export class PathTranslator {
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputPath(filePath: string) {
-		this.checkFilenameWarnings(filePath);
-
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 
@@ -78,8 +66,6 @@ export class PathTranslator {
 	 * - `src/*` -> `out/*`
 	 */
 	public getOutputDeclarationPath(filePath: string) {
-		this.checkFilenameWarnings(filePath);
-
 		const makeRelative = this.makeRelativeFactory();
 		const pathInfo = PathInfo.from(filePath);
 

@@ -205,6 +205,12 @@ export const warnings = {
 			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
 			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
 		),
+	incorrectRootFilename: (originalFilename: string, suggestedFilename: string, fullPath: string) =>
+		warningText(
+			`Incorrect root file name: \`${originalFilename}\`!`,
+			`Full path: ${fullPath}`,
+			suggestion(`Change \`${originalFilename}\` to \`${suggestedFilename}\`.`),
+		),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
