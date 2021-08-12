@@ -115,7 +115,7 @@ export function compileFiles(
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
-	const diagnostics = new Array<ts.Diagnostic>();
+	const diagnostics = DiagnosticService.flush();
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
