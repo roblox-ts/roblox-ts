@@ -48,6 +48,8 @@ function getValueDeclarationStatement(symbol: ts.Symbol) {
 		const statement = getAncestor(declaration, ts.isStatement);
 		if (statement) {
 			if (ts.isFunctionDeclaration(statement) && !statement.body) continue;
+			if (ts.isTypeAliasDeclaration(statement)) continue;
+			if (ts.isInterfaceDeclaration(statement)) continue;
 			if (statement.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
 			return statement;
 		}
