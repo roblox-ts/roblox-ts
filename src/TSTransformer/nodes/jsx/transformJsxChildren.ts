@@ -302,7 +302,6 @@ export function transformJsxChildren(
 				if (child.dotDotDotToken) {
 					disableInline();
 					assert(luau.isAnyIdentifier(childrenPtr.value));
-					state.prereqList(prereqs);
 					// spread children must be Array<Roact.Element>
 					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
