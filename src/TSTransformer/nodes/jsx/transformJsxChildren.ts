@@ -308,7 +308,6 @@ export function transformJsxChildren(
 						// Otherwise they may overwrite the tuple from `unpack()`
 						disableInline();
 					} else {
-						// Other children exist, add them to the array
 						state.prereq(
 							createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
 						);
