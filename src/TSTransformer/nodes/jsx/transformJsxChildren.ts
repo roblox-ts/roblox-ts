@@ -300,10 +300,19 @@ export function transformJsxChildren(
 				}
 
 				if (child.dotDotDotToken) {
-					disableInline();
-					assert(luau.isAnyIdentifier(childrenPtr.value));
 					// spread children must be Array<Roact.Element>
-					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
+					if (luau.isMixedTable(childrenPtr.value)) {
+						// First non-static children, we can `unpack()` them into the mixed table
+						luau.list.push(childrenPtr.value.fields, luau.call(luau.globals.unpack, [expression]));
+						// But now all next children need to be inline
+						// Otherwise they may overwrite the tuple from `unpack()`
+						disableInline();
+					} else {
+						// Other children exist, add them to the array
+						state.prereq(
+							createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
+						);
+					}
 				} else {
 					const type = state.getType(innerExp);
 					if (isDefinitelyType(type, t => isRoactElementType(state, t))) {
