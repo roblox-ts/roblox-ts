@@ -307,6 +307,9 @@ export function transformJsxChildren(
 						// But now all next children need to be inline
 						// Otherwise they may overwrite the tuple from `unpack()`
 						disableInline();
+						// Continue to skip the `updateLengthId()` check.
+						// It hasn't changed because we added to the table literal directly.
+						continue;
 					} else {
 						state.prereq(
 							createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression),
