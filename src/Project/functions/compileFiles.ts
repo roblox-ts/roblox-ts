@@ -10,7 +10,6 @@ import { createTransformerList, flattenIntoTransformers } from "Project/transfor
 import { createTransformerWatcher } from "Project/transformers/createTransformerWatcher";
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";

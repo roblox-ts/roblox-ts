@@ -11,12 +11,12 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
-import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectFlags, ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { hasErrors } from "Shared/util/hasErrors";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {
