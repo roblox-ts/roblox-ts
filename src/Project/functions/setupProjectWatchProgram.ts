@@ -2,6 +2,7 @@ import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
+import { checkFilename } from "Project/functions/checkFileName";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
@@ -111,6 +112,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				fileNamesSet.add(fsPath);
 				filesToCompile.add(fsPath);
 			} else {
+				checkFilename(fsPath);
 				filesToCopy.add(fsPath);
 			}
 			if (fs.statSync(fsPath).isDirectory()) {

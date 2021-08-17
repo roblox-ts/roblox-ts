@@ -73,12 +73,12 @@ function errorWithContext<T>(
 	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
 }
 
-function warning(...messages: Array<string>): DiagnosticFactory {
-	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
+function errorText(...messages: Array<string>) {
+	return diagnosticText(ts.DiagnosticCategory.Error, ...messages);
 }
 
-function warningText(...messages: Array<string>) {
-	return diagnosticText(ts.DiagnosticCategory.Warning, ...messages);
+function warning(...messages: Array<string>): DiagnosticFactory {
+	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
 }
 
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
@@ -197,20 +197,23 @@ export const errors = {
 	noJsxText: error("JSX text is not supported!"),
 };
 
-export const warnings = {
-	truthyChange: (checksStr: string) => warning(`value will be checked against ${checksStr}`),
-	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
-	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
-		warningText(
-			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
-			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
-		),
+export const miscErrors = {
 	incorrectRootFilename: (originalFilename: string, suggestedFilename: string, fullPath: string) =>
-		warningText(
+		errorText(
 			`Incorrect root file name: \`${originalFilename}\`!`,
 			`Full path: ${fullPath}`,
 			suggestion(`Change \`${originalFilename}\` to \`${suggestedFilename}\`.`),
 		),
+	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
+		errorText(
+			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
+			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
+		),
+};
+
+export const warnings = {
+	truthyChange: (checksStr: string) => warning(`value will be checked against ${checksStr}`),
+	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),

@@ -2,6 +2,7 @@ import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
+import { checkFilename } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
@@ -13,7 +14,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
-import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -81,6 +82,12 @@ export function compileFiles(
 		: RojoResolver.synthetic(outDir);
 
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
+
+	for (const sourceFile of program.getSourceFiles()) {
+		if (!sourceFile.fileName.includes(NODE_MODULES)) {
+			checkFilename(sourceFile.fileName);
+		}
+	}
 
 	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
