@@ -4,7 +4,7 @@ import { CALL_MACROS } from "TSTransformer/macros/callMacros";
 import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
-import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
+import { CallMacro, ConstructorMacro, IdentifierMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -91,7 +91,7 @@ export class MacroManager {
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
 
-	constructor(typeChecker: ts.TypeChecker) {
+	constructor(private typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, name, ts.SymbolFlags.Variable);
 			this.identifierMacros.set(symbol, macro);
@@ -156,6 +156,43 @@ export class MacroManager {
 				this.symbols.set(NOMINAL_LUA_TUPLE_NAME, nominalLuaTupleSymbol);
 			}
 		}
+	}
+
+	public addMacroClassMethods(symbol: ts.Symbol, methods: MacroList<PropertyCallMacro>) {
+		const methodMap = new Map<string, ts.Symbol>();
+		for (const declaration of symbol.declarations ?? []) {
+			if (ts.isInterfaceDeclaration(declaration)) {
+				for (const member of declaration.members) {
+					if (ts.isMethodSignature(member) && ts.isIdentifier(member.name)) {
+						const symbol = getType(this.typeChecker, member).symbol;
+						assert(symbol);
+						methodMap.set(member.name.text, symbol);
+					}
+				}
+			}
+		}
+
+		for (const [methodName, macro] of Object.entries(methods)) {
+			const methodSymbol = methodMap.get(methodName);
+			if (!methodSymbol) {
+				throw new ProjectError(`MacroManager could not find method for ${symbol.name}.${methodName}`);
+			}
+			this.propertyCallMacros.set(methodSymbol, macro);
+		}
+	}
+
+	public addConstructorMacro(symbol: ts.Symbol, macro: ConstructorMacro) {
+		const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+		const constructSymbol = getConstructorSymbol(interfaceDec);
+		this.constructorMacros.set(constructSymbol, macro);
+	}
+
+	public addCallMacro(symbol: ts.Symbol, macro: CallMacro) {
+		this.callMacros.set(symbol, macro);
+	}
+
+	public addIdentifierMacro(symbol: ts.Symbol, macro: IdentifierMacro) {
+		this.identifierMacros.set(symbol, macro);
 	}
 
 	public getSymbolOrThrow(name: string) {
