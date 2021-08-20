@@ -60,7 +60,7 @@ function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check:
 			return declaration;
 		}
 	}
-	throw new ProjectError("");
+	throw new ProjectError("getFirstDeclarationOrThrow failed to find first declaration");
 }
 
 function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string, meaning: ts.SymbolFlags) {
