@@ -14,12 +14,8 @@ export function getPluginConfigs(tsConfigPath: string) {
 	const plugins = config.compilerOptions?.plugins;
 	if (plugins && Array.isArray(plugins)) {
 		for (const pluginConfig of plugins) {
-			if (typeof pluginConfig.transform === "string") {
+			if (pluginConfig.transform && typeof pluginConfig.transform === "string") {
 				pluginConfigs.push(pluginConfig);
-			} else {
-				throw new ProjectError(
-					`${pluginConfig.name ?? JSON.stringify(pluginConfig)} is not a valid compiler plugin!`,
-				);
 			}
 		}
 	}
