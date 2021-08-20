@@ -21,3 +21,13 @@ export type PropertyCallMacro = (
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
 ) => luau.Expression;
+
+export type MacroTransformer = (
+	Luau: typeof luau,
+	TS: typeof ts,
+) => {
+	identifier?: MacroList<IdentifierMacro>;
+	construct?: MacroList<ConstructorMacro>;
+	call?: MacroList<CallMacro>;
+	property?: Record<string, MacroList<PropertyCallMacro>>;
+};
