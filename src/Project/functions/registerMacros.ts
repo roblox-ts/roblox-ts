@@ -24,7 +24,7 @@ function getFileSymbolByNameOrThrow(
 ) {
 	const symbol = typeChecker.resolveName(name, node, meaning, false);
 	if (symbol) {
-		return symbol;
+		return ts.skipAlias(symbol, typeChecker);
 	}
 	bail(pkgName, `failed to find symbol for ${name} in types file ${node.fileName}`);
 }
