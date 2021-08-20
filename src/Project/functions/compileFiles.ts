@@ -4,6 +4,7 @@ import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
+import { registerMacros } from "Project/functions/registerMacros";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
 import { transformTypeReferenceDirectives } from "Project/transformers/builtin/transformTypeReferenceDirectives";
 import { createTransformerList, flattenIntoTransformers } from "Project/transformers/createTransformerList";
@@ -85,9 +86,6 @@ export function compileFiles(
 		}
 	}
 
-	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
-	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
-
 	const reverseSymlinkMap = getReverseSymlinkMap(program);
 
 	const projectType = data.projectOptions.type ?? inferProjectType(data, rojoResolver);
@@ -161,6 +159,11 @@ export function compileFiles(
 
 	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
 	const services = createTransformServices(proxyProgram, typeChecker, data);
+
+	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
+	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
+
+	registerMacros(compilerOptions.typeRoots!, program, services.macroManager, typeChecker);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
