@@ -1,6 +1,6 @@
 import ts from "byots";
 import { TransformState } from "TSTransformer";
-import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
+import { JSX_SYMBOL_NAMES } from "TSTransformer/classes/JsxSymbolManager";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 
 export function extendsRoactComponent(state: TransformState, node: ts.ClassLikeDeclaration) {
@@ -11,10 +11,9 @@ export function extendsRoactComponent(state: TransformState, node: ts.ClassLikeD
 			if (aliasSymbol) {
 				const originalSymbol = ts.skipAlias(aliasSymbol, state.typeChecker);
 				return (
+					originalSymbol === state.services.roactSymbolManager.getSymbolOrThrow(JSX_SYMBOL_NAMES.Component) ||
 					originalSymbol ===
-						state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Component) ||
-					originalSymbol ===
-						state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.PureComponent)
+						state.services.roactSymbolManager.getSymbolOrThrow(JSX_SYMBOL_NAMES.PureComponent)
 				);
 			}
 		}

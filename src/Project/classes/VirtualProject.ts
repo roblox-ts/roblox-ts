@@ -106,7 +106,7 @@ export class VirtualProject {
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
 		this.typeChecker = this.program.getDiagnosticsProducingTypeChecker();
 
-		const services = createTransformServices(this.program, this.typeChecker, this.data);
+		const services = createTransformServices(this.program, this.typeChecker, this.data, this.compilerOptions);
 		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);

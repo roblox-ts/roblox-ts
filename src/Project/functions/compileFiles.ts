@@ -157,7 +157,7 @@ export function compileFiles(
 	if (hasErrors(diagnostics)) return { emitSkipped: true, diagnostics };
 
 	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
-	const services = createTransformServices(proxyProgram, typeChecker, data);
+	const services = createTransformServices(proxyProgram, typeChecker, data, compilerOptions);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);

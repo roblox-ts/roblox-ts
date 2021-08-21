@@ -75,8 +75,26 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"jsx"`)} must be ${y(`"react"`)} or not defined`);
 	}
 
-	if (opts.jsxFactory !== undefined && opts.jsxFactory !== "Roact.createElement") {
-		errors.push(`${y(`"jsxFactory"`)} must be ${y(`"Roact.createElement"`)} or not defined`);
+	if (
+		opts.jsxFactory !== undefined &&
+		opts.jsxFactory !== "Roact.createElement" &&
+		opts.jsxFactory !== "Fusion.createElement"
+	) {
+		errors.push(
+			`${y(`"jsxFactory"`)} must be ${y(`"Roact.createElement"`)}, ${y(`"Fusion.createElement"`)} or not defined`,
+		);
+	}
+
+	if (
+		opts.jsxFragmentFactory !== undefined &&
+		opts.jsxFragmentFactory !== "Roact.createFragment" &&
+		opts.jsxFragmentFactory !== "Fusion.createFragment"
+	) {
+		errors.push(
+			`${y(`"jsxFragmentFactory"`)} must be ${y(`"Roact.createFragment"`)}, ${y(
+				`"Fusion.createFragment"`,
+			)} or not defined`,
+		);
 	}
 
 	// throw if errors

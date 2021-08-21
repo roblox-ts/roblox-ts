@@ -1,9 +1,9 @@
-import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
+import { GlobalSymbols, JsxSymbolManager, MacroManager } from "TSTransformer";
 
 export interface TransformServices {
 	globalSymbols: GlobalSymbols;
 	macroManager: MacroManager;
-	roactSymbolManager: RoactSymbolManager | undefined;
+	roactSymbolManager: JsxSymbolManager | undefined;
 }
 
 export interface TryUses {

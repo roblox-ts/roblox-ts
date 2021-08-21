@@ -86,7 +86,12 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 				disableMapInline(state, attributesPtr);
 			}
 			state.prereqList(initPrereqs);
-			assignToMapPointer(state, attributesPtr, createRoactIndex(attribute.name.text, property.name.text), init);
+			assignToMapPointer(
+				state,
+				attributesPtr,
+				createRoactIndex(state, attribute.name.text, property.name.text),
+				init,
+			);
 		}
 	} else {
 		disableMapInline(state, attributesPtr);
@@ -103,7 +108,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: attributesPtr.value,
 							index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: createRoactIndex(attribute.name.text),
+								expression: createRoactIndex(state, attribute.name.text),
 								index: keyId,
 							}),
 						}),
@@ -132,7 +137,7 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 	}
 
 	const name =
-		attributeName === REF_ATTRIBUTE_NAME ? createRoactIndex(REF_ATTRIBUTE_NAME) : luau.string(attributeName);
+		attributeName === REF_ATTRIBUTE_NAME ? createRoactIndex(state, REF_ATTRIBUTE_NAME) : luau.string(attributeName);
 	assignToMapPointer(state, attributesPtr, name, init);
 }
 

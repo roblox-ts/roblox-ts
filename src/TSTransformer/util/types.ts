@@ -1,5 +1,5 @@
 import ts from "byots";
-import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { JSX_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 
@@ -175,7 +175,7 @@ export function isEmptyStringType(type: ts.Type) {
 }
 
 export function isRoactElementType(state: TransformState, type: ts.Type) {
-	const symbol = state.services.roactSymbolManager?.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element);
+	const symbol = state.services.roactSymbolManager?.getSymbolOrThrow(JSX_SYMBOL_NAMES.Element);
 	return symbol !== undefined && type.symbol === symbol;
 }
 

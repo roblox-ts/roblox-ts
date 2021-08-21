@@ -24,6 +24,7 @@ export class TransformState {
 	private readonly sourceFileText: string;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
+	public jsxProvider: string;
 
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
@@ -61,6 +62,7 @@ export class TransformState {
 		const sourceOutPath = this.pathTranslator.getOutputPath(sourceFile.fileName);
 		const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 		this.isInReplicatedFirst = rbxPath !== undefined && rbxPath[0] === "ReplicatedFirst";
+		this.jsxProvider = compilerOptions.jsxFactory?.split(".")?.[0] ?? "Roact";
 	}
 
 	public readonly tryUsesStack = new Array<TryUses>();
