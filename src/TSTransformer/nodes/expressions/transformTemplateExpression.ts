@@ -1,11 +1,19 @@
 import ts from "byots";
 import luau from "LuauAST";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
-import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import {
+	isDefinitelyType,
+	isLuaTupleType,
+	isPossiblyType,
+	isStringType,
+	isUndefinedType,
+} from "TSTransformer/util/types";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral
@@ -25,11 +33,18 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 
 	for (let i = 0; i < node.templateSpans.length; i++) {
 		const templateSpan = node.templateSpans[i];
-		let exp = orderedExpressions[i];
-		if (!isDefinitelyType(state.getType(templateSpan.expression), t => isStringType(t))) {
-			exp = luau.call(luau.globals.tostring, [exp]);
+		let expression = orderedExpressions[i];
+		const type = state.getType(templateSpan.expression);
+		if (!isDefinitelyType(type, t => isStringType(t))) {
+			if (isPossiblyType(type, t => isUndefinedType(t))) {
+				if (isPossiblyType(type, t => isLuaTupleType(state, t))) {
+					DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(node));
+				}
+				expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+			}
+			expression = luau.call(luau.globals.tostring, [expression]);
 		}
-		expressions.push(exp);
+		expressions.push(expression);
 
 		if (templateSpan.literal.text.length > 0) {
 			expressions.push(createStringFromLiteral(templateSpan.literal));
