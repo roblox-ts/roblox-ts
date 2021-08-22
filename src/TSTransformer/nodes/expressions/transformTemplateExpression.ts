@@ -38,7 +38,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		if (!isDefinitelyType(type, t => isStringType(t))) {
 			if (isPossiblyType(type, t => isUndefinedType(t))) {
 				if (isPossiblyType(type, t => isLuaTupleType(state, t))) {
-					DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(node));
+					DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
 				}
 				expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 			}
