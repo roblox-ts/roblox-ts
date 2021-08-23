@@ -5,7 +5,6 @@ import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
-import { getConstructorSymbol } from "TSTransformer/util/getConstructorSymbol";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -72,12 +71,21 @@ function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string,
 	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
 }
 
-function getConstructorSymbolOrThrow(node: ts.InterfaceDeclaration) {
-	const construct = getConstructorSymbol(node);
-	if (construct) {
-		return construct;
+function getConstructorSymbolOrThrow(node: ts.InterfaceDeclaration | ts.ClassDeclaration) {
+	if (ts.isInterfaceDeclaration(node)) {
+		for (const member of node.members) {
+			if (ts.isConstructSignatureDeclaration(member)) {
+				return member.symbol;
+			}
+		}
+	} else {
+		for (const member of node.members) {
+			if (ts.isConstructorDeclaration(member)) {
+				return member.symbol;
+			}
+		}
 	}
-	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
+	throw new ProjectError(`MacroManager could not find constructor for ${node.name?.text}` + TYPES_NOTICE);
 }
 
 /**
