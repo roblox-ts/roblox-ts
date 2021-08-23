@@ -180,7 +180,8 @@ export class MacroManager {
 			this.propertyCallMacros.set(methodSymbol, macro);
 			methodMap.delete(methodName);
 		}
-		if (methodMap.size !== 0) {
+
+		if (methodMap.size === 0) {
 			// All methods were macros
 			this.customMacroClasses.add(symbol);
 		}
