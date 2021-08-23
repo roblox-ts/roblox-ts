@@ -5,6 +5,7 @@ import { CONSTRUCTOR_MACROS } from "TSTransformer/macros/constructorMacros";
 import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
+import { getConstructorSymbol } from "TSTransformer/util/getConstructorSymbol";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -71,12 +72,10 @@ function getGlobalSymbolByNameOrThrow(typeChecker: ts.TypeChecker, name: string,
 	throw new ProjectError(`MacroManager could not find symbol for ${name}` + TYPES_NOTICE);
 }
 
-function getConstructorSymbol(node: ts.InterfaceDeclaration) {
-	for (const member of node.members) {
-		if (ts.isConstructSignatureDeclaration(member)) {
-			assert(member.symbol);
-			return member.symbol;
-		}
+function getConstructorSymbolOrThrow(node: ts.InterfaceDeclaration) {
+	const construct = getConstructorSymbol(node);
+	if (construct) {
+		return construct;
 	}
 	throw new ProjectError(`MacroManager could not find constructor for ${node.name.text}` + TYPES_NOTICE);
 }
@@ -105,7 +104,7 @@ export class MacroManager {
 		for (const [className, macro] of Object.entries(CONSTRUCTOR_MACROS)) {
 			const symbol = getGlobalSymbolByNameOrThrow(typeChecker, className, ts.SymbolFlags.Interface);
 			const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
-			const constructSymbol = getConstructorSymbol(interfaceDec);
+			const constructSymbol = getConstructorSymbolOrThrow(interfaceDec);
 			this.constructorMacros.set(constructSymbol, macro);
 		}
 
@@ -183,7 +182,7 @@ export class MacroManager {
 
 	public addConstructorMacro(symbol: ts.Symbol, macro: ConstructorMacro) {
 		const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
-		const constructSymbol = getConstructorSymbol(interfaceDec);
+		const constructSymbol = getConstructorSymbolOrThrow(interfaceDec);
 		this.constructorMacros.set(constructSymbol, macro);
 	}
 
