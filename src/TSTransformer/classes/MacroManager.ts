@@ -168,13 +168,16 @@ export class MacroManager {
 
 	public addMacroClassMethods(symbol: ts.Symbol, methods: MacroList<PropertyCallMacro>) {
 		const methodMap = new Map<string, ts.Symbol>();
+		let constructSymbol;
 		for (const declaration of symbol.declarations ?? []) {
-			if (ts.isInterfaceDeclaration(declaration)) {
+			if (ts.isClassDeclaration(declaration)) {
 				for (const member of declaration.members) {
-					if (ts.isMethodSignature(member) && ts.isIdentifier(member.name)) {
+					if (ts.isMethodDeclaration(member) && ts.isIdentifier(member.name)) {
 						const symbol = getType(this.typeChecker, member).symbol;
 						assert(symbol);
 						methodMap.set(member.name.text, symbol);
+					} else if (ts.isConstructorDeclaration(member)) {
+						constructSymbol = member.symbol;
 					}
 				}
 			}
@@ -189,14 +192,14 @@ export class MacroManager {
 			methodMap.delete(methodName);
 		}
 
-		if (methodMap.size === 0) {
+		if (methodMap.size === 0 && (!constructSymbol || this.getConstructorMacro(constructSymbol) !== undefined)) {
 			// All methods were macros
 			this.customMacroClasses.add(symbol);
 		}
 	}
 
 	public addConstructorMacro(symbol: ts.Symbol, macro: ConstructorMacro) {
-		const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isInterfaceDeclaration);
+		const interfaceDec = getFirstDeclarationOrThrow(symbol, ts.isClassDeclaration);
 		const constructSymbol = getConstructorSymbolOrThrow(interfaceDec);
 		this.constructorMacros.set(constructSymbol, macro);
 	}

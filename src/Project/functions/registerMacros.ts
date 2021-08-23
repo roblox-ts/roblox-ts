@@ -72,7 +72,7 @@ export function registerMacros(
 						typeChecker,
 						name,
 						typesFile,
-						ts.SymbolFlags.Interface,
+						ts.SymbolFlags.Class,
 						pkgJson.name,
 					);
 					macroManager.addConstructorMacro(symbol, macro);
@@ -82,7 +82,7 @@ export function registerMacros(
 						typeChecker,
 						name,
 						typesFile,
-						ts.SymbolFlags.Interface,
+						ts.SymbolFlags.Class,
 						pkgJson.name,
 					);
 					macroManager.addMacroClassMethods(symbol, methods);

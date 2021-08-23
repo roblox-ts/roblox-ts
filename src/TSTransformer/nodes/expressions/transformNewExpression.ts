@@ -10,7 +10,7 @@ import ts from "typescript";
 export function transformNewExpression(state: TransformState, node: ts.NewExpression) {
 	validateNotAnyType(state, node.expression);
 
-	const symbol = getFirstConstructSymbol(state, node.expression);
+	const symbol = getFirstConstructSymbol(state, node.expression, true);
 	if (symbol) {
 		const macro = state.services.macroManager.getConstructorMacro(symbol);
 		if (macro) {

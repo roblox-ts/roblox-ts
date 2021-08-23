@@ -202,7 +202,7 @@ export function walkTypes(type: ts.Type, callback: (type: ts.Type) => void) {
 	}
 }
 
-export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression) {
+export function getFirstConstructSymbol(state: TransformState, expression: ts.Expression, searchClass = false) {
 	const type = state.getType(expression);
 	if (type.symbol) {
 		const declarations = type.symbol.getDeclarations();
@@ -211,6 +211,12 @@ export function getFirstConstructSymbol(state: TransformState, expression: ts.Ex
 				if (ts.isInterfaceDeclaration(declaration)) {
 					for (const member of declaration.members) {
 						if (ts.isConstructSignatureDeclaration(member)) {
+							return member.symbol;
+						}
+					}
+				} else if (searchClass && ts.isClassDeclaration(declaration)) {
+					for (const member of declaration.members) {
+						if (ts.isConstructorDeclaration(member)) {
 							return member.symbol;
 						}
 					}
