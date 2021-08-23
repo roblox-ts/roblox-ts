@@ -89,6 +89,7 @@ export class MacroManager {
 	private callMacros = new Map<ts.Symbol, CallMacro>();
 	private constructorMacros = new Map<ts.Symbol, ConstructorMacro>();
 	private propertyCallMacros = new Map<ts.Symbol, PropertyCallMacro>();
+	private customMacroClasses = new Set<ts.Symbol>();
 
 	constructor(private typeChecker: ts.TypeChecker) {
 		for (const [name, macro] of Object.entries(IDENTIFIER_MACROS)) {
@@ -177,6 +178,11 @@ export class MacroManager {
 				throw new ProjectError(`MacroManager could not find method for ${symbol.name}.${methodName}`);
 			}
 			this.propertyCallMacros.set(methodSymbol, macro);
+			methodMap.delete(methodName);
+		}
+		if (methodMap.size !== 0) {
+			// All methods were macros
+			this.customMacroClasses.add(symbol);
 		}
 	}
 
@@ -201,7 +207,10 @@ export class MacroManager {
 	}
 
 	public isMacroOnlyClass(symbol: ts.Symbol) {
-		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+		return (
+			this.customMacroClasses.has(symbol) ||
+			(this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name))
+		);
 	}
 
 	public getIdentifierMacro(symbol: ts.Symbol) {
