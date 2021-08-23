@@ -163,7 +163,7 @@ export function compileFiles(
 	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
 
-	registerMacros(compilerOptions.typeRoots!, program, services.macroManager, typeChecker);
+	registerMacros(compilerOptions.typeRoots!, program, services.macroManager, typeChecker, data.projectPath);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);
