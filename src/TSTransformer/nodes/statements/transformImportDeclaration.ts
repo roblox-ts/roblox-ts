@@ -9,28 +9,12 @@ import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFi
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
 
-function isMacro(state: TransformState, symbol: ts.Symbol) {
-	// TODO: Fix constructor macro detection
-	// Should look at construct signature
-	// Currently looking at class itself, doesn't work in edge cases
-	const macro =
-		state.services.macroManager.getIdentifierMacro(symbol) ||
-		state.services.macroManager.getCallMacro(symbol) ||
-		state.services.macroManager.getConstructorMacro(symbol) ||
-		state.services.macroManager.getPropertyCallMacro(symbol);
-	return macro !== undefined;
-}
-
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;
 
 	if (importClause.name) {
 		const symbol = state.getOriginalSymbol(importClause.name);
-		if (
-			state.resolver.isReferencedAliasDeclaration(importClause) &&
-			(!symbol || isSymbolOfValue(symbol)) &&
-			(!symbol || !isMacro(state, symbol))
-		) {
+		if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 			uses++;
 		}
 	}
@@ -41,11 +25,7 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 		} else {
 			for (const element of importClause.namedBindings.elements) {
 				const symbol = state.getOriginalSymbol(element.name);
-				if (
-					state.resolver.isReferencedAliasDeclaration(element) &&
-					(!symbol || isSymbolOfValue(symbol)) &&
-					(!symbol || !isMacro(state, symbol))
-				) {
+				if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 					uses++;
 				}
 			}
