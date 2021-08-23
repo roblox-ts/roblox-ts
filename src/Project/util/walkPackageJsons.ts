@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import path from "path";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 
-type PackageJson = {
+export type PackageJson = {
 	main?: string;
 	typings?: string;
 	types?: string;
