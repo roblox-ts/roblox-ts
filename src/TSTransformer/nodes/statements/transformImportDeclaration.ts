@@ -16,7 +16,7 @@ function isMacro(state: TransformState, symbol: ts.Symbol) {
 	return (identifierMacro || callMacro) !== undefined || isMacroClass;
 }
 
-function shouldUse(state: TransformState, importClause: ts.ImportClause, symbol: ts.Symbol | undefined) {
+function shouldUse(state: TransformState, importClause: ts.Node, symbol: ts.Symbol | undefined) {
 	return (
 		state.resolver.isReferencedAliasDeclaration(importClause) &&
 		(!symbol || isSymbolOfValue(symbol)) &&
@@ -104,7 +104,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			} else {
 				// named elements import logic
 				for (const element of importClause.namedBindings.elements) {
-					if (shouldUse(state, importClause, state.getOriginalSymbol(element.name))) {
+					if (shouldUse(state, element, state.getOriginalSymbol(element.name))) {
 						luau.list.pushList(
 							statements,
 							transformVariable(
