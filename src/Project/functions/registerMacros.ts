@@ -8,6 +8,7 @@ import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 import { MacroManager } from "TSTransformer";
+import * as TSTransformer from "TSTransformer/bundle";
 import { MacroList, MacroTransformer } from "TSTransformer/macros/types";
 
 function bail(pkgName: string, extra: string): never {
@@ -58,7 +59,7 @@ export function registerMacros(
 			// eslint-disable-next-line
 			const init = require(macroFile) as MacroTransformer;
 			assert(typeof init === "function");
-			const macros = init(luau, ts);
+			const macros = init({ luau, ts, TSTransformer });
 			addMacros(
 				macros.identifier ?? {},
 				typeChecker,
