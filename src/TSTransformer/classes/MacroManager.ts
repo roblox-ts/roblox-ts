@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";

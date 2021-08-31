@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { ProjectData } from "Shared/types";
 import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
 import { TransformServices } from "TSTransformer/types";

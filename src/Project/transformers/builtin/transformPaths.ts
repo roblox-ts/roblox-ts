@@ -27,7 +27,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import ts from "byots";
+import ts from "typescript";
 import { existsSync } from "fs";
 import { dirname, extname, relative, resolve } from "path";
 import { assert } from "Shared/util/assert";

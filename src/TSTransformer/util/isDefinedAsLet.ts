@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { getAncestor } from "TSTransformer/util/traversal";

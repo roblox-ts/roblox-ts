@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { findAncestorDir } from "Shared/util/findAncestorDir";

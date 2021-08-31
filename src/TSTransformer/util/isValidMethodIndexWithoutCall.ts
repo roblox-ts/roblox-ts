@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export function isValidMethodIndexWithoutCall(parent: ts.Node): boolean {
 	// a.b !== undefined

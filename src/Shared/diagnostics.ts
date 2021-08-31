@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import kleur from "kleur";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";

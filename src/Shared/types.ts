@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { ProjectType } from "Shared/constants";
 
 export interface ProjectOptions {

@@ -1,3 +1,4 @@
+import {} from "ts-expose-internals";
 export * from "TSTransformer/classes/GlobalSymbols";
 export * from "TSTransformer/classes/MacroManager";
 export * from "TSTransformer/classes/MultiTransformState";

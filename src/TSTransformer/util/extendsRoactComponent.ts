@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { TransformState } from "TSTransformer";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";

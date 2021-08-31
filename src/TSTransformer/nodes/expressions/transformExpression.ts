@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";

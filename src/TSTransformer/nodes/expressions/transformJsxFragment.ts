@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { TransformState } from "TSTransformer";
 import { transformJsxFragmentShorthand } from "TSTransformer/nodes/jsx/transformJsx";
 

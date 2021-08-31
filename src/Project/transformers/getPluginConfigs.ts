@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { TransformerPluginConfig } from "Shared/types";

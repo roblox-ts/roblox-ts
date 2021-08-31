@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export function getKindName(kind: ts.SyntaxKind) {
 	if (kind === ts.SyntaxKind.FirstAssignment) return "EqualsToken";

@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { TransformerWatcher } from "Shared/types";
 
 function createServiceHost(program: ts.Program) {

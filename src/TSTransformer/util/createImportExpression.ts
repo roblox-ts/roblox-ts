@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import path from "path";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "Shared/classes/RojoResolver";

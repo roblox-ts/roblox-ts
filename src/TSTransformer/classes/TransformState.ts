@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
 import { solveTempIds } from "LuauRenderer/solveTempIds";

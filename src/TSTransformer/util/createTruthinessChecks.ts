@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import { warnings } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";

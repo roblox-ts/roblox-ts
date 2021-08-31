@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { renderAST } from "LuauRenderer";
 import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";

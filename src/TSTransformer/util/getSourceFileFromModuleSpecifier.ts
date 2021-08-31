@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { assert } from "Shared/util/assert";
 
 export function getSourceFileFromModuleSpecifier(typeChecker: ts.TypeChecker, moduleSpecifier: ts.Expression) {

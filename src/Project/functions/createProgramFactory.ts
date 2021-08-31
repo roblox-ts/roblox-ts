@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";

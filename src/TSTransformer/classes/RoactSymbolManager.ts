@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import fs from "fs-extra";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";

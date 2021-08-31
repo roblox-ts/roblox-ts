@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import { RbxType } from "Shared/classes/RojoResolver";
 import { COMPILER_VERSION } from "Shared/constants";

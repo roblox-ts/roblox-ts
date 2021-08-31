@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { ProjectData } from "Shared/types";

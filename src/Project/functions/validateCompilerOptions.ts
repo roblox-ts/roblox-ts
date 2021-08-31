@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import kleur from "kleur";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";

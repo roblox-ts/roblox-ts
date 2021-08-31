@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";

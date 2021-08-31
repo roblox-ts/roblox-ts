@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import luau from "LuauAST";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";

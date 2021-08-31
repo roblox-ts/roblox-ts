@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import inspector from "inspector";
 import { ProjectData } from "Project";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";

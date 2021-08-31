@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;

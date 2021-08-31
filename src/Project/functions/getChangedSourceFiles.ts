@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { getChangedFilePaths } from "Project/functions/getChangedFilePaths";
 
 export function getChangedSourceFiles(program: ts.BuilderProgram, pathHints?: Array<string>) {

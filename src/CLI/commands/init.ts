@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { exec, ExecException } from "child_process";
 import build from "CLI/commands/build";
 import { CLIError } from "CLI/errors/CLIError";

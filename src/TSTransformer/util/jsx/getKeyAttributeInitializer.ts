@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { KEY_ATTRIBUTE_NAME } from "TSTransformer/util/jsx/constants";
 import { getAttributes } from "TSTransformer/util/jsx/getAttributes";
 

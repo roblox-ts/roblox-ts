@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 function getDeclaredVariablesFromBindingName(node: ts.BindingName, list: Array<ts.Identifier>) {
 	if (ts.isIdentifier(node)) {

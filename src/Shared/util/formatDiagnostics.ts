@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { EOL } from "os";
 
 function createFormatDiagnosticsHost(): ts.FormatDiagnosticsHost {

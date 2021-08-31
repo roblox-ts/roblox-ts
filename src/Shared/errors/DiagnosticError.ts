@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 

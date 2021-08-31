@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-require-imports */
-import ts from "byots";
+import ts from "typescript";
 import resolve from "resolve";
 import { TransformerPluginConfig } from "Shared/types";
 

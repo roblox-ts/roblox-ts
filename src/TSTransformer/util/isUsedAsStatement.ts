@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 import { skipUpwards } from "TSTransformer/util/traversal";
 
 export function isUsedAsStatement(expression: ts.Expression) {
