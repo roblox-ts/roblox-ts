@@ -86,21 +86,6 @@ export namespace list {
 		}
 	}
 
-	export function pop<T extends luau.Node>(list: luau.List<T>): T | undefined {
-		assert(!list.readonly);
-		if (list.tail) {
-			const tail = list.tail;
-			if (tail.prev) {
-				list.tail = tail.prev;
-				tail.prev.next = undefined;
-			} else {
-				list.head = undefined;
-				list.tail = undefined;
-			}
-			return tail.value;
-		}
-	}
-
 	export function shift<T extends luau.Node>(list: luau.List<T>): T | undefined {
 		assert(!list.readonly);
 		if (list.head) {
