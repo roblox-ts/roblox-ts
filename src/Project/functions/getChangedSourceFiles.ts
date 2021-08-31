@@ -1,5 +1,5 @@
-import ts from "typescript";
 import { getChangedFilePaths } from "Project/functions/getChangedFilePaths";
+import ts from "typescript";
 
 export function getChangedSourceFiles(program: ts.BuilderProgram, pathHints?: Array<string>) {
 	const sourceFiles = new Array<ts.SourceFile>();

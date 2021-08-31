@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
@@ -11,6 +10,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
+import ts from "typescript";
 
 export function transformClassConstructor(
 	state: TransformState,

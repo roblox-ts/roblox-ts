@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBreakBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
+import ts from "typescript";
 
 export function transformContinueStatement(state: TransformState, node: ts.ContinueStatement) {
 	if (node.label) {

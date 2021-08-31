@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
+import ts from "typescript";
 
 function transformCaseClauseExpression(
 	state: TransformState,

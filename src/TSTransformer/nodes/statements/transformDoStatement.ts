@@ -1,10 +1,10 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getStatements } from "TSTransformer/util/getStatements";
+import ts from "typescript";
 
 export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
 	const statements = transformStatementList(state, getStatements(node.statement));

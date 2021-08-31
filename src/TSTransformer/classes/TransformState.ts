@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { render, RenderState, renderStatements } from "LuauRenderer";
 import { solveTempIds } from "LuauRenderer/solveTempIds";
@@ -16,6 +15,7 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 /**
  * Represents the state of the transformation between TS -> Luau AST.

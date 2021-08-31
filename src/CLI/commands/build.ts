@@ -1,4 +1,3 @@
-import ts from "typescript";
 import { CLIError } from "CLI/errors/CLIError";
 import fs from "fs-extra";
 import path from "path";
@@ -17,6 +16,7 @@ import { ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
 import { ProjectFlags, ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import ts from "typescript";
 import yargs from "yargs";
 
 function getTsConfigProjectOptions(tsConfigPath?: string): Partial<ProjectOptions> | undefined {

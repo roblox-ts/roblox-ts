@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { RbxType } from "Shared/classes/RojoResolver";
 import { COMPILER_VERSION } from "Shared/constants";
@@ -9,6 +8,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 function getExportPair(state: TransformState, exportSymbol: ts.Symbol): [name: string, id: luau.AnyIdentifier] {
 	const declaration = exportSymbol.getDeclarations()?.[0];

@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -9,6 +8,7 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 export function transformWritableExpression(
 	state: TransformState,

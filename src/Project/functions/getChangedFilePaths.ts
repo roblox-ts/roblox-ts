@@ -1,5 +1,5 @@
-import ts from "typescript";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
+import ts from "typescript";
 
 /**
  * generates a `Set<string>` of paths for changed files + dependencies

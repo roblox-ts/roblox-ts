@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
+import ts from "typescript";
 
 export const objectAccessor = (
 	state: TransformState,

@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 export function transformParenthesizedExpression(state: TransformState, node: ts.ParenthesizedExpression) {
 	const expression = transformExpression(state, skipDownwards(node.expression));

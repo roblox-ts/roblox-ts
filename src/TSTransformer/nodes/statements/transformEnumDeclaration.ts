@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -7,6 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 	let amtValueDefinitions = 0;

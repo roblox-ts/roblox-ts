@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// compound assignment

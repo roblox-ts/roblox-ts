@@ -1,10 +1,10 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: luau.Expression) {
 	// intentionally NOT using state.getType() here, because that uses skipUpwards

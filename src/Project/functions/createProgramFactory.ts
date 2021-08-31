@@ -1,9 +1,9 @@
-import ts from "typescript";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 
 function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptions) {
 	const host = ts.createIncrementalCompilerHost(compilerOptions);

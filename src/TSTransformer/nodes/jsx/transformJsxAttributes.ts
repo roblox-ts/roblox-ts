@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -12,6 +11,7 @@ import {
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 function transformJsxInitializer(
 	state: TransformState,

@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -11,6 +10,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
 	if (declaration.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {

@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -8,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { isArrayType, isDefinitelyType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import ts from "typescript";
 
 export function transformSpreadElement(state: TransformState, node: ts.SpreadElement) {
 	validateNotAnyType(state, node.expression);

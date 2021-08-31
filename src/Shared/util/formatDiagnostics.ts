@@ -1,5 +1,5 @@
-import ts from "typescript";
 import { EOL } from "os";
+import ts from "typescript";
 
 function createFormatDiagnosticsHost(): ts.FormatDiagnosticsHost {
 	return {

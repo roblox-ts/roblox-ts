@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import ts from "typescript";
 
 /**
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.

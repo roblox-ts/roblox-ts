@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -27,6 +26,7 @@ import { transformTryStatement } from "TSTransformer/nodes/statements/transformT
 import { transformVariableStatement } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformWhileStatement } from "TSTransformer/nodes/statements/transformWhileStatement";
 import { getKindName } from "TSTransformer/util/getKindName";
+import ts from "typescript";
 
 const NO_EMIT = () => luau.list.make<luau.Statement>();
 

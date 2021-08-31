@@ -1,10 +1,10 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import ts from "typescript";
 
 export function transformPropertyDeclaration(
 	state: TransformState,

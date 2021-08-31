@@ -1,7 +1,7 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import ts from "typescript";
 
 export function transformThrowStatement(state: TransformState, node: ts.ThrowStatement) {
 	const args = new Array<luau.Expression>();

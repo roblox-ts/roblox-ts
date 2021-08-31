@@ -1,5 +1,5 @@
-import ts from "typescript";
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 
 export class GlobalSymbols {
 	private getSymbolOrThrow(symbolName: string) {

@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
@@ -9,6 +8,7 @@ import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 function transformPropertyAssignment(
 	state: TransformState,

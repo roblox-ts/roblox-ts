@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -6,6 +5,7 @@ import { createStringFromLiteral } from "TSTransformer/util/createStringFromLite
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral

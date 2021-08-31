@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import ts from "typescript";
 
 export function transformImportExpression(state: TransformState, node: ts.CallExpression) {
 	const moduleSpecifier = node.arguments[0];

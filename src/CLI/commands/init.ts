@@ -1,4 +1,3 @@
-import ts from "typescript";
 import { exec, ExecException } from "child_process";
 import build from "CLI/commands/build";
 import { CLIError } from "CLI/errors/CLIError";
@@ -9,6 +8,7 @@ import path from "path";
 import prompts from "prompts";
 import { COMPILER_VERSION, PACKAGE_ROOT, RBXTS_SCOPE } from "Shared/constants";
 import { benchmark } from "Shared/util/benchmark";
+import ts from "typescript";
 import yargs from "yargs";
 
 interface InitOptions {

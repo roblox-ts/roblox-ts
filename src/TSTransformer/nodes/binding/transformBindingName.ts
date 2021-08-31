@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
 import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/transformObjectBindingPattern";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import ts from "typescript";
 
 export function transformBindingName(
 	state: TransformState,

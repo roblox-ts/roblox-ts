@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
@@ -18,6 +17,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
+import ts from "typescript";
 
 enum OptionalChainItemKind {
 	PropertyAccess,

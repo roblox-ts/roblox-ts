@@ -1,8 +1,8 @@
-import ts from "typescript";
 import kleur from "kleur";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
+import ts from "typescript";
 
 const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,

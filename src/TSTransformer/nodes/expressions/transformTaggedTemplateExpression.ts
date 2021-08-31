@@ -1,9 +1,9 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import ts from "typescript";
 
 export function transformTaggedTemplateExpression(state: TransformState, node: ts.TaggedTemplateExpression) {
 	const tagExp = transformExpression(state, node.tag);

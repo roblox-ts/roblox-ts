@@ -1,9 +1,9 @@
-import ts from "typescript";
 import inspector from "inspector";
 import { ProjectData } from "Project";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectError } from "Shared/errors/ProjectError";
+import ts from "typescript";
 
 function createParseConfigFileHost(): ts.ParseConfigFileHost {
 	return {

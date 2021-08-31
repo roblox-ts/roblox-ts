@@ -1,6 +1,6 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
+import ts from "typescript";
 
 export type MacroList<T> = { [index: string]: T };
 

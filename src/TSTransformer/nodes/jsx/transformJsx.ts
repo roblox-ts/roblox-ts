@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
@@ -9,6 +8,7 @@ import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
+import ts from "typescript";
 
 export function transformJsxFragmentShorthand(state: TransformState, children: ReadonlyArray<ts.JsxChild>) {
 	const childrenPtr = createMixedTablePointer("children");

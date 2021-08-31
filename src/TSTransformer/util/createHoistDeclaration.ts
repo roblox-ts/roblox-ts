@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 export function createHoistDeclaration(state: TransformState, statement: ts.Statement | ts.CaseClause) {
 	const hoists = state.hoistsByStatement.get(statement);

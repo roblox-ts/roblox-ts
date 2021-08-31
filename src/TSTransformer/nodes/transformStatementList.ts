@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
+import ts from "typescript";
 
 /**
  * Convert a ts.Statement array into a luau.list<...> tree

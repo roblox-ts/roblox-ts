@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
@@ -10,6 +9,7 @@ import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodI
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import ts from "typescript";
 
 export function transformPropertyAccessExpressionInner(
 	state: TransformState,

@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import ts from "typescript";
 
 export function transformYieldExpression(state: TransformState, node: ts.YieldExpression) {
 	if (!node.expression) {

@@ -1,8 +1,8 @@
-import ts from "typescript";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { findAncestorDir } from "Shared/util/findAncestorDir";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import ts from "typescript";
 
 export function createPathTranslator(program: ts.BuilderProgram) {
 	const compilerOptions = program.getCompilerOptions();

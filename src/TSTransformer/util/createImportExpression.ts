@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import path from "path";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "Shared/classes/RojoResolver";
@@ -10,6 +9,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
+import ts from "typescript";
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
 	const pathExpressions = new Array<luau.Expression>();

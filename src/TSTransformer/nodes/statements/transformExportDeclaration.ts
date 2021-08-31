@@ -1,10 +1,10 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+import ts from "typescript";
 
 function isExportSpecifierValue(state: TransformState, element: ts.ExportSpecifier) {
 	if (state.resolver.isReferencedAliasDeclaration(element)) {

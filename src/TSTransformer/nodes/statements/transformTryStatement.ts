@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -9,6 +8,7 @@ import {
 	isBreakBlockedByTryStatement,
 	isReturnBlockedByTryStatement,
 } from "TSTransformer/util/isBlockedByTryStatement";
+import ts from "typescript";
 
 function transformCatchClause(state: TransformState, node: ts.CatchClause) {
 	const parameters = luau.list.make<luau.AnyIdentifier>();

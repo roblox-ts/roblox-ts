@@ -1,8 +1,8 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { offset } from "TSTransformer/util/offset";
 import { isArrayType, isDefinitelyType, isUndefinedType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 export function addOneIfArrayType(
 	state: TransformState,

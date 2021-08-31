@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -9,6 +8,7 @@ import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
+import ts from "typescript";
 
 export function transformFunctionDeclaration(state: TransformState, node: ts.FunctionDeclaration) {
 	if (!node.body) {

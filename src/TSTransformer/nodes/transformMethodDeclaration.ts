@@ -1,4 +1,3 @@
-import ts from "typescript";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -10,6 +9,7 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { isMethod } from "TSTransformer/util/isMethod";
 import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
 import { wrapStatementsAsGenerator } from "TSTransformer/util/wrapStatementsAsGenerator";
+import ts from "typescript";
 
 export function transformMethodDeclaration(
 	state: TransformState,
