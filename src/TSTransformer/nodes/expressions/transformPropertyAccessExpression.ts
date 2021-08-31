@@ -2,6 +2,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { transformIndexWithoutCall } from "TSTransformer/nodes/transformIndexWithoutCall";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -30,8 +31,7 @@ export function transformPropertyAccessExpressionInner(
 
 	const parent = skipUpwards(node).parent;
 	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
-		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
+		return transformIndexWithoutCall(state, node);
 	}
 
 	if (ts.isPrototypeAccess(node)) {

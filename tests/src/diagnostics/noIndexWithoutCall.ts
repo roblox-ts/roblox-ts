@@ -1,3 +1,3 @@
 export {};
 
-game.ChildAdded.Connect(game.Destroy);
+game.ChildAdded.Connect(game["Destroy"]);
