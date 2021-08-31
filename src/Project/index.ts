@@ -1,6 +1,6 @@
+import {} from "ts-expose-internals"; // inject ts internal typings
 export * from "Project/classes/VirtualProject";
 export * from "Project/functions/cleanup";
 export * from "Project/functions/createProjectData";
 export * from "Project/functions/createProjectProgram";
-import {} from "ts-expose-internals";
 export type { ProjectData, ProjectFlags, ProjectOptions } from "Shared/types";
