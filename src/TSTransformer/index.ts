@@ -1,4 +1,3 @@
-import {} from "ts-expose-internals"; // inject ts internal typings
 export * from "TSTransformer/classes/GlobalSymbols";
 export * from "TSTransformer/classes/MacroManager";
 export * from "TSTransformer/classes/MultiTransformState";

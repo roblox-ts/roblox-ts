@@ -1,4 +1,3 @@
-import {} from "ts-expose-internals"; // inject ts internal typings
 export * from "Project/classes/VirtualProject";
 export * from "Project/functions/cleanup";
 export * from "Project/functions/createProjectData";
