@@ -24,7 +24,7 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
-	ts.version = `${COMPILER_VERSION}-${host.createHash(contentsToHash)}`;
+	ts.version = `${COMPILER_VERSION}-hash-${host.createHash(contentsToHash)}`;
 
 	return host;
 }
