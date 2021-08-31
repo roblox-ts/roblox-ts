@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -6,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAddIterableToArrayBuilder } from "TSTransformer/util/getAddIterableToArrayBuilder";
 import { createArrayPointer, disableArrayInline } from "TSTransformer/util/pointer";
+import ts from "typescript";
 
 export function transformArrayLiteralExpression(state: TransformState, node: ts.ArrayLiteralExpression) {
 	if (!node.elements.find(element => ts.isSpreadElement(element))) {

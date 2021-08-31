@@ -1,10 +1,10 @@
-import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
 import { RojoResolver } from "Shared/classes/RojoResolver";
 import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectData, ProjectFlags, ProjectOptions } from "Shared/types";
+import ts from "typescript";
 
 const PACKAGE_REGEX = /^@[a-z0-9-]*\//;
 const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {

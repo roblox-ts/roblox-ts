@@ -1,7 +1,7 @@
-import ts from "byots";
 import { ProjectData } from "Shared/types";
 import { GlobalSymbols, MacroManager, RoactSymbolManager } from "TSTransformer";
 import { TransformServices } from "TSTransformer/types";
+import ts from "typescript";
 
 export function createTransformServices(
 	program: ts.Program,

@@ -50,14 +50,13 @@
 	"license": "MIT",
 	"dependencies": {
 		"ajv": "^8.6.1",
-		"byots": "^4.3.0-dev.20210326.17.17",
 		"chokidar": "^3.5.2",
 		"fs-extra": "^10.0.0",
 		"kleur": "^4.1.4",
 		"lookpath": "^1.2.1",
 		"prompts": "^2.4.1",
 		"resolve": "^1.20.0",
-		"typescript": "=4.3.5",
+		"typescript": "=4.4.2",
 		"yargs": "^17.0.1"
 	},
 	"devDependencies": {
@@ -69,13 +68,14 @@
 		"@types/yargs": "^17.0.2",
 		"@typescript-eslint/eslint-plugin": "^4.28.3",
 		"@typescript-eslint/parser": "^4.28.3",
-		"eslint": "^7.30.0",
 		"eslint-config-prettier": "^8.3.0",
 		"eslint-plugin-prettier": "^3.4.0",
 		"eslint-plugin-simple-import-sort": "^7.0.0",
+		"eslint": "^7.30.0",
 		"mocha": "^9.0.2",
 		"nyc": "^15.1.0",
 		"prettier": "^2.3.2",
+		"ts-expose-internals": "=4.4.2",
 		"ttypescript": "^1.5.12",
 		"typescript-transform-paths": "^3.1.0"
 	},

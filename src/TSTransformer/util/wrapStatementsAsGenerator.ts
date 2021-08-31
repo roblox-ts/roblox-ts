@@ -1,6 +1,6 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import ts from "typescript";
 
 export function wrapStatementsAsGenerator(state: TransformState, node: ts.Node, statements: luau.List<luau.Statement>) {
 	return luau.list.make(

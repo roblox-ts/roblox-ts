@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -10,6 +9,7 @@ import { transformWritableExpression } from "TSTransformer/nodes/transformWritab
 import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 export function transformObjectBindingLiteral(
 	state: TransformState,

@@ -1,4 +1,3 @@
-import ts from "byots";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
@@ -19,6 +18,7 @@ import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
 	awaitWriteFinish: {

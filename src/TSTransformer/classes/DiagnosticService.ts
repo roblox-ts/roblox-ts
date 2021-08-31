@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export class DiagnosticService {
 	private static diagnostics = new Array<ts.Diagnostic>();

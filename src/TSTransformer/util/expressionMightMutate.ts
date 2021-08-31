@@ -1,8 +1,8 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 export function expressionMightMutate(
 	state: TransformState,

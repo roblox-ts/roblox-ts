@@ -1,10 +1,10 @@
-import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
+import ts from "typescript";
 
 export const ROACT_SYMBOL_NAMES = {
 	Component: "Component",

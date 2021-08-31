@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export function getExtendsNode(node: ts.ClassLikeDeclaration) {
 	for (const clause of node.heritageClauses ?? []) {
