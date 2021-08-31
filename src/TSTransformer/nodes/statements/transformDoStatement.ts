@@ -18,16 +18,18 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 		),
 	);
 
+	const repeatStatements = luau.list.make<luau.Statement>();
+	luau.list.push(
+		repeatStatements,
+		luau.create(luau.SyntaxKind.DoStatement, {
+			statements,
+		}),
+	);
+	luau.list.pushList(repeatStatements, conditionPrereqs);
+
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.RepeatStatement, {
-			statements: luau.list.join(
-				luau.list.make(
-					luau.create(luau.SyntaxKind.DoStatement, {
-						statements,
-					}),
-				),
-				conditionPrereqs,
-			),
+			statements: repeatStatements,
 			condition: luau.unary("not", condition),
 		}),
 	);

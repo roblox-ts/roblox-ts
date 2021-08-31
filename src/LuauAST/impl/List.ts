@@ -30,37 +30,14 @@ export namespace list {
 			let tail = head;
 			for (let i = 1; i < values.length; i++) {
 				const node = luau.list.makeNode(values[i]);
-				if (tail) {
-					tail.next = node;
-					node.prev = tail;
-				}
+				tail.next = node;
+				node.prev = tail;
 				tail = node;
 			}
 			return { [LIST_MARKER]: true, head, tail, readonly: false };
 		} else {
 			return { [LIST_MARKER]: true, readonly: false };
 		}
-	}
-
-	export function join<T extends luau.Node>(...lists: Array<luau.List<T>>): luau.List<T> {
-		const nonEmptyLists = lists.filter(list => list.head !== undefined && list.tail !== undefined);
-		if (nonEmptyLists.length === 0) {
-			return luau.list.make();
-		}
-
-		const newList = luau.list.make<T>();
-		newList.head = nonEmptyLists[0].head;
-		newList.tail = nonEmptyLists[nonEmptyLists.length - 1].tail;
-		for (let i = 1; i < nonEmptyLists.length; i++) {
-			const list = nonEmptyLists[i];
-			const prevList = nonEmptyLists[i - 1];
-			assert(!list.readonly);
-			assert(!prevList.readonly);
-			list.readonly = true;
-			list.head!.prev = prevList.tail!;
-			prevList.tail!.next = list.head!;
-		}
-		return newList;
 	}
 
 	// type guard
