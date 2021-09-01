@@ -63,7 +63,12 @@ export function isPossiblyType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 
 export function isDefinedType(type: ts.Type) {
 	return (
-		type.flags === ts.TypeFlags.Object && type.getProperties().length === 0 && type.getCallSignatures().length === 0
+		type.flags === ts.TypeFlags.Object &&
+		type.getProperties().length === 0 &&
+		type.getCallSignatures().length === 0 &&
+		type.getConstructSignatures().length === 0 &&
+		type.getNumberIndexType() === undefined &&
+		type.getStringIndexType() === undefined
 	);
 }
 
