@@ -1,4 +1,3 @@
-import ts from "byots";
 import fs from "fs-extra";
 import luau from "LuauAST";
 import path from "path";
@@ -10,6 +9,7 @@ import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 import { MacroManager } from "TSTransformer";
 import * as TSTransformer from "TSTransformer/bundle";
 import { MacroList, MacroTransformer } from "TSTransformer/macros/types";
+import ts from "typescript";
 
 function bail(pkgName: string, extra: string): never {
 	debugger;
