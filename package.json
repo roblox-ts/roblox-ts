@@ -56,7 +56,7 @@
 		"lookpath": "^1.2.1",
 		"prompts": "^2.4.1",
 		"resolve": "^1.20.0",
-		"typescript": "=4.4.2",
+		"typescript": "=4.4.3",
 		"yargs": "^17.0.1"
 	},
 	"devDependencies": {
