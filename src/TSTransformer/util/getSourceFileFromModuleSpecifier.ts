@@ -1,5 +1,5 @@
-import ts from "byots";
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 
 export function getSourceFileFromModuleSpecifier(typeChecker: ts.TypeChecker, moduleSpecifier: ts.Expression) {
 	const symbol = typeChecker.getSymbolAtLocation(moduleSpecifier);

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-require-imports */
-import ts from "byots";
 import resolve from "resolve";
 import { TransformerPluginConfig } from "Shared/types";
+import ts from "typescript";
 
 interface TransformerBasePlugin {
 	before?: ts.TransformerFactory<ts.SourceFile>;

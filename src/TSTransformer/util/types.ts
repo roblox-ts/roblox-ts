@@ -1,7 +1,7 @@
-import ts from "byots";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
+import ts from "typescript";
 
 function getRecursiveBaseTypesInner(result: Array<ts.Type>, type: ts.InterfaceType) {
 	for (const baseType of type.getBaseTypes() ?? []) {
@@ -63,7 +63,12 @@ export function isPossiblyType(type: ts.Type, cb: (type: ts.Type) => boolean) {
 
 export function isDefinedType(type: ts.Type) {
 	return (
-		type.flags === ts.TypeFlags.Object && type.getProperties().length === 0 && type.getCallSignatures().length === 0
+		type.flags === ts.TypeFlags.Object &&
+		type.getProperties().length === 0 &&
+		type.getCallSignatures().length === 0 &&
+		type.getConstructSignatures().length === 0 &&
+		type.getNumberIndexType() === undefined &&
+		type.getStringIndexType() === undefined
 	);
 }
 

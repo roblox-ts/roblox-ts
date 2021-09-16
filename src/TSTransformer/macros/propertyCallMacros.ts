@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
@@ -8,6 +7,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
 import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
+import ts from "typescript";
 
 function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {

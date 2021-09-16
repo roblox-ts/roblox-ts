@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { DiagnosticFactory, errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -40,6 +39,7 @@ import {
 import { transformVoidExpression } from "TSTransformer/nodes/expressions/transformVoidExpression";
 import { transformYieldExpression } from "TSTransformer/nodes/expressions/transformYieldExpression";
 import { getKindName } from "TSTransformer/util/getKindName";
+import ts from "typescript";
 
 const NO_EMIT = () => luau.emptyId();
 

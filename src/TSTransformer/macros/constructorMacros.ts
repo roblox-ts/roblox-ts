@@ -1,10 +1,10 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { ConstructorMacro, MacroList } from "TSTransformer/macros/types";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import ts from "typescript";
 
 function wrapWeak(state: TransformState, node: ts.NewExpression, macro: ConstructorMacro) {
 	return luau.call(luau.globals.setmetatable, [

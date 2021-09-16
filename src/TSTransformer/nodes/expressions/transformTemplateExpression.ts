@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -14,6 +13,7 @@ import {
 	isStringType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
+import ts from "typescript";
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral

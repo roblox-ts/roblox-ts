@@ -1,4 +1,3 @@
-import ts from "byots";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
 import { CALL_MACROS } from "TSTransformer/macros/callMacros";
@@ -7,6 +6,7 @@ import { IDENTIFIER_MACROS } from "TSTransformer/macros/identifierMacros";
 import { PROPERTY_CALL_MACROS } from "TSTransformer/macros/propertyCallMacros";
 import { CallMacro, ConstructorMacro, IdentifierMacro, PropertyCallMacro } from "TSTransformer/macros/types";
 import { skipUpwards } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 	return typeChecker.getTypeAtLocation(skipUpwards(node));

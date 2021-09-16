@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export function isReturnBlockedByTryStatement(node: ts.Node) {
 	const ancestor = ts.findAncestor(

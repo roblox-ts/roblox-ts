@@ -1,8 +1,8 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
+import ts from "typescript";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 	if (!luau.isCall(exp)) {

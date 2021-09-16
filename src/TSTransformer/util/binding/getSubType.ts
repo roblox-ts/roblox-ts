@@ -1,4 +1,3 @@
-import ts from "byots";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import {
@@ -11,6 +10,7 @@ import {
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
+import ts from "typescript";
 
 export function getSubType(
 	state: TransformState,

@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 const SCOPE = "@rbxts/";
 const PACKAGE = "types";

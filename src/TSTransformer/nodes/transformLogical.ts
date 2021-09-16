@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -6,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { getKindName } from "TSTransformer/util/getKindName";
+import ts from "typescript";
 
 interface LogicalChainItem {
 	node: ts.Expression;

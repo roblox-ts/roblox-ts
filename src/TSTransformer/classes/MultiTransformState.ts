@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 /**
  * MultiTransformState is state that lives only for a single compilation step.

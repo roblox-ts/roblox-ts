@@ -1,5 +1,5 @@
-import ts from "byots";
 import luau from "LuauAST";
+import ts from "typescript";
 
 export interface Visitor {
 	before?: (node: luau.Node) => void;

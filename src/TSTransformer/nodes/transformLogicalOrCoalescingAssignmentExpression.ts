@@ -1,9 +1,9 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import ts from "typescript";
 
 function transformCoalescingAssignmentExpression(
 	state: TransformState,

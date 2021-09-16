@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -26,6 +25,7 @@ import {
 	isRoactElementType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
+import ts from "typescript";
 
 /** `children[lengthId + keyId] = valueId` */
 function createJsxAddNumericChild(

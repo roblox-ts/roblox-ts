@@ -1,7 +1,7 @@
-import ts from "byots";
 import kleur from "kleur";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
+import ts from "typescript";
 
 export type DiagnosticFactory<T = void> = {
 	(node: ts.Node, context: T): ts.DiagnosticWithLocation;

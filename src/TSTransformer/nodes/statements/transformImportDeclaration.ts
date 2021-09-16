@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { Lazy } from "Shared/classes/Lazy";
 import { assert } from "Shared/util/assert";
@@ -8,6 +7,7 @@ import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+import ts from "typescript";
 
 function countImportExpUses(state: TransformState, importClause: ts.ImportClause) {
 	let uses = 0;

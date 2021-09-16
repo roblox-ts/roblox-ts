@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
@@ -13,6 +12,7 @@ import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import ts from "typescript";
 
 export function transformElementAccessExpressionInner(
 	state: TransformState,

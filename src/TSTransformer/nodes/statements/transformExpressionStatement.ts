@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -9,6 +8,7 @@ import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
+import ts from "typescript";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
