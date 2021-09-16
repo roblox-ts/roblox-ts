@@ -36,10 +36,10 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		let expression = orderedExpressions[i];
 		const type = state.getType(templateSpan.expression);
 		if (!isDefinitelyType(type, t => isStringType(t))) {
+			if (isPossiblyType(type, t => isLuaTupleType(state, t))) {
+				DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
+			}
 			if (isPossiblyType(type, t => isUndefinedType(t))) {
-				if (isPossiblyType(type, t => isLuaTupleType(state, t))) {
-					DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
-				}
 				expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 			}
 			expression = luau.call(luau.globals.tostring, [expression]);
