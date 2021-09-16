@@ -1,4 +1,6 @@
 import luau from "LuauAST";
+import path from "path";
+import { NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -13,7 +15,7 @@ import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate"
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -86,6 +88,13 @@ function isInsideRoactComponent(state: TransformState, node: ts.Node) {
 	return false;
 }
 
+function isNodeSymbolFromRobloxTypes(state: TransformState, symbol: ts.Symbol | undefined) {
+	const filePath = symbol?.valueDeclaration?.getSourceFile()?.fileName;
+	const typesPath = path.join(state.data.projectPath, NODE_MODULES, RBXTS_SCOPE, "types");
+	const relative = filePath && path.relative(typesPath, filePath);
+	return relative && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -117,8 +126,17 @@ export function transformCallExpressionInner(
 		}
 	}
 
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
+	const isFromRobloxTypes = isNodeSymbolFromRobloxTypes(state, symbol);
+	const [args, prereqs] = state.capture(() =>
+		ensureTransformOrder(state, nodeArguments).map((e, i) => {
+			if (isFromRobloxTypes && isPossiblyType(state.getType(nodeArguments[i]), t => isUndefinedType(t))) {
+				return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+					expression: e,
+				});
+			}
+			return e;
+		}),
+	);
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
 		expression = state.pushToVar(expression, "exp");
 	}
@@ -158,8 +176,17 @@ export function transformPropertyCallExpressionInner(
 		}
 	}
 
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
+	const isFromRobloxTypes = isNodeSymbolFromRobloxTypes(state, symbol);
+	const [args, prereqs] = state.capture(() =>
+		ensureTransformOrder(state, nodeArguments).map((e, i) => {
+			if (isFromRobloxTypes && isPossiblyType(state.getType(nodeArguments[i]), t => isUndefinedType(t))) {
+				return luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+					expression: e,
+				});
+			}
+			return e;
+		}),
+	);
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
 		baseExpression = state.pushToVar(baseExpression, "fn");
 	}
