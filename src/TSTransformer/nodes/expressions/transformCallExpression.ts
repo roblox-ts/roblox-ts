@@ -167,6 +167,8 @@ export function transformPropertyCallExpressionInner(
 
 	let exp: luau.Expression;
 	if (isMethod(state, expression)) {
+		// Check that the name isn't a Luau keyword
+		// If it is, we need to use PropertyAccessExpression and manually add the self argument
 		if (luau.isValidIdentifier(name)) {
 			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 				name,
@@ -179,6 +181,7 @@ export function transformPropertyCallExpressionInner(
 			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
 	} else {
+		// PropertyAccessExpression will wrap the identifier for us if necessary
 		exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 	}
 
