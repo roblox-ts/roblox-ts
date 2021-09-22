@@ -13,13 +13,6 @@ function wrapWeak(state: TransformState, node: ts.NewExpression, macro: Construc
 	]);
 }
 
-function isFlatMap(expression: luau.Expression): expression is luau.Array<luau.Array> {
-	if (luau.isArray(expression)) {
-		return luau.list.every(expression.members, member => luau.isArray(member));
-	}
-	return false;
-}
-
 const ArrayConstructor: ConstructorMacro = (state, node) => {
 	if (node.arguments && node.arguments.length > 0) {
 		const args = ensureTransformOrder(state, node.arguments);
@@ -63,24 +56,21 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	if (!node.arguments || node.arguments.length === 0) {
 		return luau.map();
 	}
-	const arg = node.arguments[0];
-	const transformed = transformExpression(state, arg);
-	if (isFlatMap(transformed)) {
-		// TODO make this nicer?
-		const elements = luau.list.toArray(transformed.members).map(e => {
-			// non-null and type assertion because array will always have 2 members,
-			// due to map constructor typing
-			assert(luau.list.isNonEmpty(e.members));
-			return [e.members.head.value, e.members.head.next!.value] as [luau.Expression, luau.Expression];
-		});
-		return luau.map(elements);
+	const values = node.arguments[0];
+	if (ts.isArrayLiteralExpression(values) && values.elements.every(e => ts.isArrayLiteralExpression(e))) {
+		return luau.map(
+			values.elements.map(e => {
+				assert(ts.isArrayLiteralExpression(e));
+				return [transformExpression(state, e.elements[0]), transformExpression(state, e.elements[1])];
+			}),
+		);
 	} else {
 		const id = state.pushToVar(luau.map(), "map");
 		const valueId = luau.tempId("v");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
-				expression: luau.call(luau.globals.ipairs, [transformed]),
+				expression: luau.call(luau.globals.ipairs, [transformExpression(state, values)]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
