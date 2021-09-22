@@ -151,22 +151,10 @@ function handleExports(
 		);
 	} else if (exportPairs.length > 0) {
 		// only regular exports, we can do this as just returning an object at the bottom of the file
-		const fields = luau.list.make<luau.MapField>();
-		for (const [exportKey, exportId] of exportPairs) {
-			luau.list.push(
-				fields,
-				luau.create(luau.SyntaxKind.MapField, {
-					index: luau.string(exportKey),
-					value: exportId,
-				}),
-			);
-		}
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.ReturnStatement, {
-				expression: luau.create(luau.SyntaxKind.Map, {
-					fields,
-				}),
+				expression: luau.map(exportPairs.map(([key, id]) => [luau.string(key), id])),
 			}),
 		);
 	}
