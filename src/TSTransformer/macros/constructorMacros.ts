@@ -58,39 +58,41 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	}
 	const values = node.arguments[0];
 	if (ts.isArrayLiteralExpression(values) && values.elements.every(e => ts.isArrayLiteralExpression(e))) {
-		return luau.map(
-			values.elements.map(e => {
+		const [elements, prereqs] = state.capture(() =>
+			values.elements.map((e): [luau.Expression, luau.Expression] => {
 				assert(ts.isArrayLiteralExpression(e));
 				return [transformExpression(state, e.elements[0]), transformExpression(state, e.elements[1])];
 			}),
 		);
-	} else {
-		const id = state.pushToVar(luau.map(), "map");
-		const valueId = luau.tempId("v");
-		state.prereq(
-			luau.create(luau.SyntaxKind.ForStatement, {
-				ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
-				expression: luau.call(luau.globals.ipairs, [transformExpression(state, values)]),
-				statements: luau.list.make(
-					luau.create(luau.SyntaxKind.Assignment, {
-						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-							expression: id,
-							index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: valueId,
-								index: luau.number(1),
-							}),
-						}),
-						operator: "=",
-						right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+		if (luau.list.isEmpty(prereqs)) {
+			return luau.map(elements);
+		}
+	}
+	const id = state.pushToVar(luau.map(), "map");
+	const valueId = luau.tempId("v");
+	state.prereq(
+		luau.create(luau.SyntaxKind.ForStatement, {
+			ids: luau.list.make<luau.AnyIdentifier>(luau.emptyId(), valueId),
+			expression: luau.call(luau.globals.ipairs, [transformExpression(state, values)]),
+			statements: luau.list.make(
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: id,
+						index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: valueId,
-							index: luau.number(2),
+							index: luau.number(1),
 						}),
 					}),
-				),
-			}),
-		);
-		return id;
-	}
+					operator: "=",
+					right: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: valueId,
+						index: luau.number(2),
+					}),
+				}),
+			),
+		}),
+	);
+	return id;
 };
 
 export const CONSTRUCTOR_MACROS: MacroList<ConstructorMacro> = {

@@ -162,11 +162,7 @@ export class TransformState {
 	/**
 	 * Returns the node and prerequisite statements created by `callback`.
 	 */
-	public capture<T extends luau.Node>(callback: () => T): [node: T, prereqs: luau.List<luau.Statement>];
-	public capture<T extends luau.List<luau.Node>>(callback: () => T): [list: T, prereqs: luau.List<luau.Statement>];
-	public capture<T extends luau.Node | luau.List<luau.Node>>(
-		callback: () => T,
-	): [value: T, prereqs: luau.List<luau.Statement>] {
+	public capture<T>(callback: () => T): [value: T, prereqs: luau.List<luau.Statement>] {
 		let value!: T;
 		const prereqs = this.capturePrereqs(() => (value = callback()));
 		return [value, prereqs];
