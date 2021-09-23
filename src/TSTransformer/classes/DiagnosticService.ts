@@ -1,5 +1,5 @@
-import ts from "byots";
 import { hasErrors } from "Shared/util/hasErrors";
+import ts from "typescript";
 
 export class DiagnosticService {
 	private static diagnostics = new Array<ts.Diagnostic>();

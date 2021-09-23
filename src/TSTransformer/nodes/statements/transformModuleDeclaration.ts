@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -11,6 +10,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
 	if (declaration.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
@@ -48,6 +48,8 @@ function getValueDeclarationStatement(symbol: ts.Symbol) {
 		const statement = getAncestor(declaration, ts.isStatement);
 		if (statement) {
 			if (ts.isFunctionDeclaration(statement) && !statement.body) continue;
+			if (ts.isTypeAliasDeclaration(statement)) continue;
+			if (ts.isInterfaceDeclaration(statement)) continue;
 			if (statement.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
 			return statement;
 		}

@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -16,6 +15,7 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
+import ts from "typescript";
 
 function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
 	if (luau.list.isNonEmpty(node.statements)) {

@@ -1,7 +1,7 @@
-import ts from "byots";
 import path from "path";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { TransformerPluginConfig } from "Shared/types";
+import ts from "typescript";
 
 export function getPluginConfigs(tsConfigPath: string) {
 	const configFile = ts.readConfigFile(tsConfigPath, ts.sys.readFile);

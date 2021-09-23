@@ -1,5 +1,5 @@
-import ts from "byots";
 import { errors } from "Shared/diagnostics";
+import ts from "typescript";
 
 export function fileIsModule(sourceFile: ts.SourceFile) {
 	if (sourceFile.externalModuleIndicator === undefined) {

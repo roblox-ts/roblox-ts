@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -14,6 +13,7 @@ import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent"
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 

@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -8,6 +7,8 @@ import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
+import ts from "typescript";
 
 function transformUnaryExpressionStatement(
 	state: TransformState,
@@ -82,23 +83,7 @@ export function transformExpressionStatementInner(
 		return luau.list.make(transformUnaryExpressionStatement(state, expression));
 	}
 
-	const transformed = transformExpression(state, expression);
-	if (
-		luau.isEmptyIdentifier(transformed) ||
-		luau.isTemporaryIdentifier(transformed) ||
-		luau.isNilLiteral(transformed)
-	) {
-		return luau.list.make();
-	} else if (luau.isCall(transformed)) {
-		return luau.list.make(luau.create(luau.SyntaxKind.CallStatement, { expression: transformed }));
-	} else {
-		return luau.list.make(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.emptyId(),
-				right: transformed,
-			}),
-		);
-	}
+	return wrapExpressionStatement(transformExpression(state, expression));
 }
 
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {

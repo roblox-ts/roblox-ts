@@ -1,7 +1,7 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import ts from "typescript";
 
 export function transformInitializer(state: TransformState, id: luau.WritableExpression, initializer: ts.Expression) {
 	return luau.create(luau.SyntaxKind.IfStatement, {

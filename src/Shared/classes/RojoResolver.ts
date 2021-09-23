@@ -25,7 +25,6 @@ interface RojoTreeMetadata {
 	$path?: string;
 	$properties?: Array<RojoTreeProperty>;
 	$ignoreUnknownInstances?: boolean;
-	$isolated?: boolean;
 }
 
 type RojoTree = RojoTreeMetadata & RojoTreeMembers;

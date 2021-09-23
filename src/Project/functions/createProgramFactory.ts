@@ -1,26 +1,30 @@
-import ts from "byots";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { createReadBuildProgramHost } from "Project/util/createReadBuildProgramHost";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 
 function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptions) {
 	const host = ts.createIncrementalCompilerHost(compilerOptions);
 
-	let rojoHash = "";
+	let contentsToHash = "";
+
+	contentsToHash += data.pkgVersion;
+
 	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
-		assert(host.createHash);
-		rojoHash = "-" + host.createHash(fs.readFileSync(data.rojoConfigPath).toString());
+		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
 	}
 
 	// super hack!
 	// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
 	// rojoHash makes it so that changes to the rojo config will trigger full re-compile
 
+	assert(host.createHash);
+
 	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 	// @ts-ignore
-	ts.version = COMPILER_VERSION + data.pkgVersion + rojoHash;
+	ts.version = `${COMPILER_VERSION}-hash-${host.createHash(contentsToHash)}`;
 
 	return host;
 }

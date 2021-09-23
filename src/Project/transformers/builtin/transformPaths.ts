@@ -27,10 +27,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-import ts from "byots";
 import { existsSync } from "fs";
 import { dirname, extname, relative, resolve } from "path";
 import { assert } from "Shared/util/assert";
+import ts from "typescript";
 import { parse } from "url";
 
 /* ****************************************************************************************************************** *

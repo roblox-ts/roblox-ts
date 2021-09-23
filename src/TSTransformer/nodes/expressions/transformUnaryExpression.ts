@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -10,6 +9,7 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import ts from "typescript";
 
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	validateNotAnyType(state, node.operand);

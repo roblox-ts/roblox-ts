@@ -1,4 +1,3 @@
-import ts from "byots";
 import { renderAST } from "LuauRenderer";
 import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
@@ -13,6 +12,7 @@ import { hasErrors } from "Shared/util/hasErrors";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
+import ts from "typescript";
 
 const PROJECT_DIR = PATH_SEP;
 const ROOT_DIR = pathJoin(PROJECT_DIR, "src");

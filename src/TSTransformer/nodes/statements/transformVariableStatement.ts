@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -14,6 +13,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import ts from "typescript";
 
 function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
 	if (state.isHoisted.get(symbol) !== undefined) {

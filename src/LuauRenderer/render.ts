@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { renderCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuauRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
@@ -36,6 +35,7 @@ import { renderWhileStatement } from "LuauRenderer/nodes/statements/renderWhileS
 import { RenderState } from "LuauRenderer/RenderState";
 import { solveTempIds } from "LuauRenderer/solveTempIds";
 import { renderStatements } from "LuauRenderer/util/renderStatements";
+import ts from "typescript";
 
 type Renderer<T extends luau.SyntaxKind> = (state: RenderState, node: luau.NodeByKind[T]) => string;
 

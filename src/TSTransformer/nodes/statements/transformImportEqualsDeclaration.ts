@@ -1,10 +1,10 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
+import ts from "typescript";
 
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
 	if (ts.isExternalModuleReference(node.moduleReference)) {

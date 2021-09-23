@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -17,6 +16,7 @@ import {
 	isStringType,
 } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
+import ts from "typescript";
 
 type AddIterableToArrayBuilder = (
 	state: TransformState,

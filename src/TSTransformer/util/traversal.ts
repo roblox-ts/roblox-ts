@@ -1,4 +1,4 @@
-import ts from "byots";
+import ts from "typescript";
 
 export function isAncestorOf(ancestor: ts.Node, node: ts.Node) {
 	do {

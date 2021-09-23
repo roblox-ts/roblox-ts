@@ -1,10 +1,10 @@
-import ts from "byots";
 import { errors } from "Shared/diagnostics";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
+import ts from "typescript";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
 	const firstParam = parameters[0];

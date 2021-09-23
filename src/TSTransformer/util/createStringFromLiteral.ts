@@ -1,5 +1,5 @@
-import ts from "byots";
 import luau from "LuauAST";
+import ts from "typescript";
 
 const TEMPLATE_EDGE = "`".length;
 const TEMPLATE_EXP_START = "${".length;

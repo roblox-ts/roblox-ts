@@ -1,4 +1,3 @@
-import ts from "byots";
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
@@ -23,6 +22,7 @@ import { getRootDirs } from "Shared/util/getRootDirs";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createTransformServices } from "TSTransformer/util/createTransformServices";
+import ts from "typescript";
 
 function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): ProjectType {
 	if (data.isPackage) {
@@ -42,14 +42,9 @@ function emitResultFailure(messageText: string): ts.EmitResult {
 }
 
 function getReverseSymlinkMap(program: ts.Program) {
-	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
-	const symlinkCache = ts.discoverProbableSymlinks(
-		program.getSourceFiles(),
-		getCanonicalFileName,
-		ts.sys.getCurrentDirectory(),
-	);
-	const directoriesMap = symlinkCache.getSymlinkedDirectories();
 	const result = new Map<string, string>();
+
+	const directoriesMap = program.getSymlinkCache?.()?.getSymlinkedDirectories();
 	if (directoriesMap) {
 		directoriesMap.forEach((dir, fsPath) => {
 			if (typeof dir !== "boolean") {
@@ -57,6 +52,7 @@ function getReverseSymlinkMap(program: ts.Program) {
 			}
 		});
 	}
+
 	return result;
 }
 
@@ -215,7 +211,7 @@ export function compileFiles(
 					fs.outputFileSync(outPath, source);
 				}
 				if (compilerOptions.declaration) {
-					program.emit(sourceFile, ts.sys.writeFile, undefined, true, {
+					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
 						afterDeclarations: [transformTypeReferenceDirectives, transformPaths],
 					});
 				}

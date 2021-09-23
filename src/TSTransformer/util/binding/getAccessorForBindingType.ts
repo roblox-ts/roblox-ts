@@ -1,4 +1,3 @@
-import ts from "byots";
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
@@ -16,6 +15,7 @@ import {
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
+import ts from "typescript";
 
 type BindingAccessor = (
 	state: TransformState,

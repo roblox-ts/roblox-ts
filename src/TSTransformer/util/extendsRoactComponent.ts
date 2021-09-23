@@ -1,7 +1,7 @@
-import ts from "byots";
 import { TransformState } from "TSTransformer";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
+import ts from "typescript";
 
 export function extendsRoactComponent(state: TransformState, node: ts.ClassLikeDeclaration) {
 	if (state.services.roactSymbolManager) {
