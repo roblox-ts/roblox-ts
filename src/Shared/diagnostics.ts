@@ -195,14 +195,13 @@ export const errors = {
 		"`super(props)` must be the first statement of the constructor in a Roact component!",
 	),
 	noJsxText: error("JSX text is not supported!"),
-};
 
-export const miscErrors = {
-	incorrectRootFilename: (originalFilename: string, suggestedFilename: string, fullPath: string) =>
+	// files
+	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
 		errorText(
-			`Incorrect root file name: \`${originalFilename}\`!`,
+			`Incorrect file name: \`${originalFileName}\`!`,
 			`Full path: ${fullPath}`,
-			suggestion(`Change \`${originalFilename}\` to \`${suggestedFilename}\`.`),
+			suggestion(`Change \`${originalFileName}\` to \`${suggestedFileName}\`.`),
 		),
 	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
 		errorText(

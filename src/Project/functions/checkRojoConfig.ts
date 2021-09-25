@@ -2,7 +2,7 @@ import path from "path";
 import { ProjectData } from "Project";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoResolver } from "Shared/classes/RojoResolver";
-import { miscErrors } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 
@@ -21,7 +21,7 @@ export function checkRojoConfig(
 
 					const inputPath = path.relative(rojoConfigDir, partition.fsPath);
 					const suggestedPath = path.relative(rojoConfigDir, outPath);
-					DiagnosticService.addDiagnostic(miscErrors.rojoPathInSrc(inputPath, suggestedPath));
+					DiagnosticService.addDiagnostic(errors.rojoPathInSrc(inputPath, suggestedPath));
 				}
 			}
 		}
