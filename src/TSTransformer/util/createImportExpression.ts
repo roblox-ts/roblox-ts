@@ -67,8 +67,9 @@ function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<Rojo
 }
 
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 	const moduleOutPath = state.pathTranslator.getImportPath(
-		state.nodeModulesPathMapping.get(path.normalize(moduleFilePath)) ?? moduleFilePath,
+		state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(moduleFilePath))) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
 	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
