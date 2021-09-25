@@ -102,8 +102,8 @@ export interface UnaryExpression extends luau.Expression<luau.SyntaxKind.UnaryEx
 	expression: luau.Expression;
 }
 
-export interface Array<T extends luau.Expression = luau.Expression> extends luau.Expression<luau.SyntaxKind.Array> {
-	members: luau.List<T>;
+export interface Array extends luau.Expression<luau.SyntaxKind.Array> {
+	members: luau.List<luau.Expression>;
 }
 
 export interface Map extends luau.Expression<luau.SyntaxKind.Map> {
