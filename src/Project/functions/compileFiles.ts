@@ -13,7 +13,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
-import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -80,7 +80,7 @@ export function compileFiles(
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
 	for (const sourceFile of program.getSourceFiles()) {
-		if (!sourceFile.fileName.includes(NODE_MODULES)) {
+		if (!path.normalize(sourceFile.fileName).startsWith(data.nodeModulesPath)) {
 			checkFileName(sourceFile.fileName);
 		}
 	}
