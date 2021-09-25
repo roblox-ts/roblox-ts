@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
-import { checkFilename } from "Project/functions/checkFileName";
+import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
@@ -81,7 +81,7 @@ export function compileFiles(
 
 	for (const sourceFile of program.getSourceFiles()) {
 		if (!sourceFile.fileName.includes(NODE_MODULES)) {
-			checkFilename(sourceFile.fileName);
+			checkFileName(sourceFile.fileName);
 		}
 	}
 
