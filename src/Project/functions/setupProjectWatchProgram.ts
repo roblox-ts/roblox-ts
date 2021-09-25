@@ -112,6 +112,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				fileNamesSet.add(fsPath);
 				filesToCompile.add(fsPath);
 			} else {
+				// checks for copying `init.*.d.ts`
 				checkFileName(fsPath);
 				filesToCopy.add(fsPath);
 			}
