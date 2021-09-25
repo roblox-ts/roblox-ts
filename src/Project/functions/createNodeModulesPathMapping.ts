@@ -1,7 +1,7 @@
-import ts from "byots";
 import fs from "fs-extra";
 import path from "path";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
+import ts from "typescript";
 
 export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
