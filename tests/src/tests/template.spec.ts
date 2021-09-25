@@ -53,4 +53,9 @@ export = () => {
 		}
 		expect(foo`bar`).to.equal("baz");
 	});
+
+	it("should support functions which return void", () => {
+		function foo(): void {}
+		expect(`value = ${foo()}`).to.equal("value = nil")
+	});
 };
