@@ -8,7 +8,7 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
-import { errors, getDiagnosticId } from "Shared/diagnostics";
+import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -50,7 +50,7 @@ describe("should compile tests project", () => {
 			}
 			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1] as keyof typeof errors;
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
-			const expectedId = errors[diagnosticName].id;
+			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (
