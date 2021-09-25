@@ -1,5 +1,8 @@
 import luau from "LuauAST";
+import path from "path";
+import { RBXTS_SCOPE } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
+import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -13,7 +16,7 @@ import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate"
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
@@ -86,6 +89,41 @@ function isInsideRoactComponent(state: TransformState, node: ts.Node) {
 	return false;
 }
 
+function isNodeSymbolFromRobloxTypes(state: TransformState, symbol: ts.Symbol | undefined) {
+	const filePath = symbol?.valueDeclaration?.getSourceFile()?.fileName;
+	const typesPath = path.join(state.data.nodeModulesPath, RBXTS_SCOPE, "types");
+	return filePath !== undefined && isPathDescendantOf(filePath, typesPath);
+}
+
+/**
+ * Some C functions like `tonumber()` will error if the given argument is a function that returns nothing.
+ * i.e.
+ * ```lua
+ * local function foo()
+ * end
+ * local x = tonumber(foo()) -- error!
+ * ```
+ *
+ * To protect against this, we can wrap possibly-undefined arguments with `()` to coerce the values to `nil`
+ */
+function fixVoidArgumentsForRobloxFunctions(
+	state: TransformState,
+	symbol: ts.Symbol | undefined,
+	args: Array<luau.Expression>,
+	nodeArguments: ReadonlyArray<ts.Expression>,
+) {
+	if (isNodeSymbolFromRobloxTypes(state, symbol)) {
+		for (let i = 0; i < args.length; i++) {
+			const arg = args[i];
+			if (luau.isCall(arg) && isPossiblyType(state.getType(nodeArguments[i]), t => isUndefinedType(t))) {
+				args[i] = luau.create(luau.SyntaxKind.ParenthesizedExpression, {
+					expression: arg,
+				});
+			}
+		}
+	}
+}
+
 export function transformCallExpressionInner(
 	state: TransformState,
 	node: ts.CallExpression,
@@ -117,10 +155,11 @@ export function transformCallExpressionInner(
 		}
 	}
 
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
+	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
+	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression, "exp");
+		expression = state.pushToVar(expression, "fn");
 	}
 	state.prereqList(prereqs);
 
@@ -158,8 +197,9 @@ export function transformPropertyCallExpressionInner(
 		}
 	}
 
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(() => (args = ensureTransformOrder(state, nodeArguments)));
+	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
+	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
 		baseExpression = state.pushToVar(baseExpression, "fn");
 	}
@@ -167,6 +207,8 @@ export function transformPropertyCallExpressionInner(
 
 	let exp: luau.Expression;
 	if (isMethod(state, expression)) {
+		// check that the name isn't a Luau keyword
+		// if it is, we need to use PropertyAccessExpression and manually add the self argument
 		if (luau.isValidIdentifier(name)) {
 			exp = luau.create(luau.SyntaxKind.MethodCallExpression, {
 				name,
@@ -179,6 +221,7 @@ export function transformPropertyCallExpressionInner(
 			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
 	} else {
+		// PropertyAccessExpression will wrap the identifier for us if necessary
 		exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 	}
 
@@ -217,10 +260,9 @@ export function transformElementCallExpressionInner(
 		}
 	}
 
-	let args!: Array<luau.Expression>;
-	const prereqs = state.capturePrereqs(
-		() => (args = ensureTransformOrder(state, [argumentExpression, ...nodeArguments])),
-	);
+	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
+	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
+
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
 		baseExpression = state.pushToVar(baseExpression, "fn");
 	}

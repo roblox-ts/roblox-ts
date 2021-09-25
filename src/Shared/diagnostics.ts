@@ -146,6 +146,10 @@ export const errors = {
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
 	noForOfLuaTupleAssignment: error("for-of assignment with LuaTuple<T> is not supported!"),
+	noLuaTupleInTemplateExpression: error(
+		"Can't use LuaTuple<T> in a template literal expression!",
+		suggestion("Did you mean to add `[0]`?"),
+	),
 
 	// macro methods
 	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
