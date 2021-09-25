@@ -1,6 +1,7 @@
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
+import { checkFileName } from "Project/functions/checkFileName";
 import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
@@ -11,13 +12,13 @@ import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { hasErrors } from "Project/util/hasErrors";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
+import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -111,6 +112,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 				fileNamesSet.add(fsPath);
 				filesToCompile.add(fsPath);
 			} else {
+				// checks for copying `init.*.d.ts`
+				checkFileName(fsPath);
 				filesToCopy.add(fsPath);
 			}
 			if (fs.statSync(fsPath).isDirectory()) {

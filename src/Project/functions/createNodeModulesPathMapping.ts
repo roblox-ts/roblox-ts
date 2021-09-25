@@ -1,8 +1,11 @@
 import fs from "fs-extra";
 import path from "path";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
+import ts from "typescript";
 
 export function createNodeModulesPathMapping(typeRoots: Array<string>) {
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+
 	const nodeModulesPathMapping = new Map<string, string>();
 	// go through each org
 	for (const scopePath of typeRoots) {
@@ -21,8 +24,8 @@ export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 					const typesPath = pkgJson.types ?? pkgJson.typings ?? "index.d.ts";
 					if (pkgJson.main) {
 						nodeModulesPathMapping.set(
-							path.resolve(pkgPath, typesPath),
-							path.resolve(pkgPath, pkgJson.main),
+							getCanonicalFileName(path.resolve(pkgPath, typesPath)),
+							getCanonicalFileName(path.resolve(pkgPath, pkgJson.main)),
 						);
 					}
 				}

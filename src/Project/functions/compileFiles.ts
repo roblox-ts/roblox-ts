@@ -1,6 +1,7 @@
 import fs from "fs-extra";
 import { renderAST } from "LuauRenderer";
 import path from "path";
+import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
 import { createNodeModulesPathMapping } from "Project/functions/createNodeModulesPathMapping";
 import { transformPaths } from "Project/transformers/builtin/transformPaths";
@@ -9,7 +10,6 @@ import { createTransformerList, flattenIntoTransformers } from "Project/transfor
 import { createTransformerWatcher } from "Project/transformers/createTransformerWatcher";
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { hasErrors } from "Project/util/hasErrors";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
@@ -79,6 +79,12 @@ export function compileFiles(
 
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
+	for (const sourceFile of program.getSourceFiles()) {
+		if (!path.normalize(sourceFile.fileName).startsWith(data.nodeModulesPath)) {
+			checkFileName(sourceFile.fileName);
+		}
+	}
+
 	const pkgRojoResolvers = compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	const nodeModulesPathMapping = createNodeModulesPathMapping(compilerOptions.typeRoots!);
 
@@ -109,9 +115,10 @@ export function compileFiles(
 		return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
 	}
 
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
-	const diagnostics = new Array<ts.Diagnostic>();
 	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
@@ -137,7 +144,7 @@ export function compileFiles(
 					false,
 				);
 
-				if (transformResult.diagnostics) diagnostics.push(...transformResult.diagnostics);
+				if (transformResult.diagnostics) DiagnosticService.addDiagnostics(transformResult.diagnostics);
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
@@ -150,7 +157,7 @@ export function compileFiles(
 		});
 	}
 
-	if (hasErrors(diagnostics)) return { emitSkipped: true, diagnostics };
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	const typeChecker = proxyProgram.getDiagnosticsProducingTypeChecker();
 	const services = createTransformServices(proxyProgram, typeChecker, data);
@@ -160,10 +167,10 @@ export function compileFiles(
 		assert(sourceFile);
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
-			diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
-			if (hasErrors(diagnostics)) return;
-			diagnostics.push(...ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
-			if (hasErrors(diagnostics)) return;
+			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
+			if (DiagnosticService.hasErrors()) return;
+			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
+			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(
 				data,
@@ -182,8 +189,7 @@ export function compileFiles(
 			);
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
-			diagnostics.push(...DiagnosticService.flush());
-			if (hasErrors(diagnostics)) return;
+			if (DiagnosticService.hasErrors()) return;
 
 			const source = renderAST(luauAST);
 
@@ -191,7 +197,7 @@ export function compileFiles(
 		});
 	}
 
-	if (hasErrors(diagnostics)) return { emitSkipped: false, diagnostics };
+	if (DiagnosticService.hasErrors()) return { emitSkipped: false, diagnostics: DiagnosticService.flush() };
 
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
@@ -215,5 +221,5 @@ export function compileFiles(
 
 	program.emitBuildInfo();
 
-	return { emitSkipped: false, diagnostics };
+	return { emitSkipped: false, diagnostics: DiagnosticService.flush() };
 }
