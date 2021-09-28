@@ -54,8 +54,15 @@ export = () => {
 		expect(foo`bar`).to.equal("baz");
 	});
 
-	it("should support functions which return void", () => {
-		function foo(): void {}
-		expect(`value = ${foo()}`).to.equal("value = nil")
+	it("should support functions which might return void", () => {
+		function foo() {
+			if (math.random() > 1) {
+				// impossible condition, math.random will always be 0-1
+				// but this generates an optional return type for TS
+				return new Instance("Model");
+			}
+		}
+		game.GetService("Players").GetPlayerFromCharacter(foo());
+		expect(`value = ${foo()}`).to.equal("value = nil");
 	});
 };
