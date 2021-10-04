@@ -286,25 +286,34 @@ const buildIterableFunctionLoop: LoopBuilder = makeForLoopBuilder((state, initia
 	return exp;
 });
 
+function makeIterableFunctionLuaTupleShorthand(
+	state: TransformState,
+	array: ts.ArrayBindingPattern | ts.ArrayLiteralExpression,
+	statements: luau.List<luau.Statement>,
+	expression: luau.Expression,
+) {
+	const ids = luau.list.make<luau.AnyIdentifier>();
+	const initializers = luau.list.make<luau.Statement>();
+	if (ts.isArrayBindingPattern(array)) {
+		transformInLineArrayBindingPattern(state, array, ids, initializers);
+	} else {
+		transformInLineArrayBindingLiteral(state, array, ids, initializers);
+	}
+	luau.list.unshiftList(statements, initializers);
+	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
+}
+
 const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 	type => (state, statements, initializer, exp) => {
 		if (ts.isVariableDeclarationList(initializer)) {
+			// for (const [a, b] of iter())
 			const name = initializer.declarations[0].name;
 			if (ts.isArrayBindingPattern(name)) {
-				const ids = luau.list.make<luau.AnyIdentifier>();
-				const initializers = luau.list.make<luau.Statement>();
-				transformInLineArrayBindingPattern(state, name, ids, initializers);
-				luau.list.unshiftList(statements, initializers);
-				return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression: exp, statements }));
+				return makeIterableFunctionLuaTupleShorthand(state, name, statements, exp);
 			}
 		} else if (ts.isArrayLiteralExpression(initializer)) {
-			const ids = luau.list.make<luau.AnyIdentifier>();
-			const initializers = luau.list.make<luau.Statement>();
-			transformInLineArrayBindingLiteral(state, initializer, ids, initializers);
-			luau.list.unshiftList(statements, initializers);
-			return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression: exp, statements }));
-		} else {
-			DiagnosticService.addDiagnostic(errors.noForOfLuaTupleAssignment(initializer.parent));
+			// for ([a, b] of iter())
+			return makeIterableFunctionLuaTupleShorthand(state, initializer, statements, exp);
 		}
 
 		const iteratorReturnIds = new Array<luau.TemporaryIdentifier>();
@@ -315,8 +324,10 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			"Wrong LuaTuple<T> type arguments",
 		);
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
-
-		if (state.typeChecker.isTupleType(tupleArgType)) {
+		// if LuaTuple has defined element amount
+		// and initializer is a variable declaration `for (const a of iter())`
+		// then use lua for-in loop, specifying all elements and putting them in table
+		if (state.typeChecker.isTupleType(tupleArgType) && ts.isVariableDeclarationList(initializer)) {
 			const typeArguments = getTypeArguments(state, tupleArgType);
 			for (let i = 0; i < typeArguments.length; i++) {
 				// TODO: Name TempIds after tuple elements if labeled
@@ -326,7 +337,8 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			const iterFuncId = state.pushToVar(exp, "iterFunc");
 			const loopStatements = luau.list.make<luau.Statement>();
 
-			const valueId = transformForInitializer(state, initializer, loopStatements);
+			const initializerStatements = luau.list.make<luau.Statement>();
+			const valueId = transformForInitializer(state, initializer, initializerStatements);
 
 			luau.list.push(
 				loopStatements,
@@ -344,6 +356,8 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 					elseBody: luau.list.make(),
 				}),
 			);
+
+			luau.list.pushList(loopStatements, initializerStatements);
 
 			luau.list.pushList(loopStatements, statements);
 
