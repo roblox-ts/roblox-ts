@@ -141,7 +141,6 @@ export const errors = {
 	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
 	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),
 	noAwaitForOf: error("`await` is not supported in for-of loops!"),
-	noComplexForOf: error("for-of loops do not support complex variable lists!", issue(1253)),
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
@@ -150,9 +149,6 @@ export const errors = {
 		"Can't use LuaTuple<T> in a template literal expression!",
 		suggestion("Did you mean to add `[0]`?"),
 	),
-
-	// macro methods
-	noOptionalMacroCall: error("Macro methods can not be optionally called!"),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),
@@ -160,11 +156,8 @@ export const errors = {
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
 	),
-	noMacroWithoutCall: error(
-		"Cannot index a macro without calling it!",
-		suggestion("Use the form `() => a.b()` instead of `a.b`."),
-	),
-	noObjectWithoutMethod: error("Cannot access `Object` without calling a function on it!"),
+
+	// macro methods
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
 	noMacroExtends: error("Cannot extend from a macro class!"),
 	noMacroUnion: error("Macro cannot be applied to a union type!"),
@@ -183,9 +176,6 @@ export const errors = {
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
 	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
 	noUnscopedModule: error("You cannot use modules directly under node_modules."),
-	noRojoData: errorWithContext((path: string) => [
-		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
-	]),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
 
@@ -195,12 +185,15 @@ export const errors = {
 		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
 	),
 	noSuperPropertyCallRoactComponent: error("`super` is not supported inside Roact components!"),
-	noSuperConstructorRoactComponent: error(
+	missingSuperConstructorRoactComponent: error(
 		"`super(props)` must be the first statement of the constructor in a Roact component!",
 	),
 	noJsxText: error("JSX text is not supported!"),
 
 	// files
+	noRojoData: errorWithContext((path: string) => [
+		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
+	]),
 	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
 		errorText(
 			`Incorrect file name: \`${originalFileName}\`!`,
@@ -215,7 +208,7 @@ export const errors = {
 };
 
 export const warnings = {
-	truthyChange: (checksStr: string) => warning(`value will be checked against ${checksStr}`),
+	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
 	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
