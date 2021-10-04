@@ -318,7 +318,9 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 
 		const iteratorReturnIds = new Array<luau.TemporaryIdentifier>();
 
-		const luaTupleType = getTypeArguments(state, type)[0];
+		// get call signature of IterableFunction<T> which is `(): T`
+		// and get return type of call signature which is `T`
+		const luaTupleType = type.getCallSignatures()[0].getReturnType();
 		assert(
 			luaTupleType && luaTupleType.aliasTypeArguments && luaTupleType.aliasTypeArguments.length === 1,
 			"Wrong LuaTuple<T> type arguments",
