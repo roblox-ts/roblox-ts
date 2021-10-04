@@ -311,8 +311,8 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 
 		const luaTupleType = getTypeArguments(state, type)[0];
 		assert(
-			luaTupleType.aliasTypeArguments && luaTupleType.aliasTypeArguments.length > 0,
-			"No LuaTuple<T> type arguments",
+			luaTupleType && luaTupleType.aliasTypeArguments && luaTupleType.aliasTypeArguments.length === 1,
+			"Wrong LuaTuple<T> type arguments",
 		);
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
 
