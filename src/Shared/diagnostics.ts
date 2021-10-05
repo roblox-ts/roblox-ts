@@ -158,6 +158,10 @@ export const errors = {
 	),
 
 	// macro methods
+	noOptionalMacroCall: error(
+		"Macro methods can not be optionally called!",
+		suggestion("Macros always exist. Use a normal call."),
+	),
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
 	noMacroExtends: error("Cannot extend from a macro class!"),
 	noMacroUnion: error("Macro cannot be applied to a union type!"),

@@ -1,5 +1,7 @@
 import luau from "LuauAST";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import {
 	transformCallExpressionInner,
 	transformElementCallExpressionInner,
@@ -13,6 +15,7 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
 
@@ -270,6 +273,16 @@ function transformOptionalChainInner(
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
+					const expType = state.typeChecker.getNonOptionalType(state.getType(item.node.expression));
+					const symbol = getFirstDefinedSymbol(state, expType);
+					if (symbol) {
+						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
+						if (macro) {
+							DiagnosticService.addDiagnostic(errors.noOptionalMacroCall(item.node));
+							return luau.emptyId();
+						}
+					}
+
 					const args = ensureTransformOrder(state, item.args);
 					if (isMethodCall) {
 						if (isSuperCall) {
