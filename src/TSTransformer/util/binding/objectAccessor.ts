@@ -19,9 +19,8 @@ export const objectAccessor = (
 	if (symbol && state.services.macroManager.getPropertyCallMacro(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(name.parent));
 	}
-	if (ts.isIdentifier(name)) {
-		return luau.property(parentId, name.text);
-	} else if (ts.isComputedPropertyName(name)) {
+
+	if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
 			index: addOneIfArrayType(state, accessType, transformExpression(state, name.expression)),
@@ -31,7 +30,8 @@ export const objectAccessor = (
 			expression: parentId,
 			index: transformExpression(state, name),
 		});
-	} else {
-		assert(false, `Uncaught node kind ${getKindName(name.kind)} in objectAccessor`);
+	} else if (ts.isPrivateIdentifier(name)) {
+		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
 	}
+	return luau.property(parentId, name.text);
 };
