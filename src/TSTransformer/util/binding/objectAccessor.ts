@@ -1,11 +1,9 @@
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
