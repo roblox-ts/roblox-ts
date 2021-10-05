@@ -14,12 +14,10 @@ export function addIndexDiagnostics(
 	expType: ts.Type,
 ) {
 	const symbol = getFirstDefinedSymbol(state, expType);
-	if (symbol && state.services.macroManager.getPropertyCallMacro(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
-	}
-
-	if (!isValidMethodIndexWithoutCall(skipUpwards(node).parent) && isMethod(state, node)) {
+	if (
+		(symbol && state.services.macroManager.getPropertyCallMacro(symbol)) ||
+		(!isValidMethodIndexWithoutCall(skipUpwards(node).parent) && isMethod(state, node))
+	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
