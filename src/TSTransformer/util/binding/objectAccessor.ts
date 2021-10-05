@@ -13,13 +13,7 @@ export const objectAccessor = (
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
 	accessType: ts.Type | ReadonlyArray<ts.Type>,
-	name:
-		| ts.Identifier
-		| ts.ComputedPropertyName
-		| ts.NumericLiteral
-		| ts.StringLiteral
-		| ts.PrivateIdentifier
-		| ts.BindingPattern,
+	name: ts.PropertyName,
 ): luau.Expression => {
 	const symbol = getFirstDefinedSymbol(state, state.getType(name));
 	if (symbol && state.services.macroManager.getPropertyCallMacro(symbol)) {
