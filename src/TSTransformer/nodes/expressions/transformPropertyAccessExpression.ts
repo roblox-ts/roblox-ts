@@ -5,6 +5,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
@@ -17,6 +18,11 @@ export function transformPropertyAccessExpressionInner(
 ) {
 	validateNotAnyType(state, node.expression);
 	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
+
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
+	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		state.prereq(
