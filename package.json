@@ -75,7 +75,7 @@
 		"mocha": "^9.1.1",
 		"nyc": "^15.1.0",
 		"prettier": "^2.4.1",
-		"ts-expose-internals": "=4.4.3",
+		"ts-expose-internals": "=4.4.4",
 		"ttypescript": "^1.5.12",
 		"typescript-transform-paths": "^3.3.1"
 	},
