@@ -25,7 +25,7 @@ export function createNodeModulesPathMapping(typeRoots: Array<string>) {
 					if (pkgJson.main) {
 						nodeModulesPathMapping.set(
 							getCanonicalFileName(path.resolve(pkgPath, typesPath)),
-							getCanonicalFileName(path.resolve(pkgPath, pkgJson.main)),
+							path.resolve(pkgPath, pkgJson.main),
 						);
 					}
 				}
