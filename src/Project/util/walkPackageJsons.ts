@@ -6,7 +6,7 @@ export type PackageJson = {
 	main?: string;
 	typings?: string;
 	types?: string;
-	macros?: string;
+	macros?: string | Array<string>;
 	name: string;
 };
 

@@ -1,6 +1,5 @@
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
-import * as TSTransformer from "TSTransformer/bundle";
 import ts from "typescript";
 
 export type MacroList<T> = { [index: string]: T };
@@ -22,14 +21,3 @@ export type PropertyCallMacro = (
 	expression: luau.Expression,
 	args: Array<luau.Expression>,
 ) => luau.Expression;
-
-export type MacroTransformer = (dependencies: {
-	luau: typeof luau;
-	ts: typeof ts;
-	TSTransformer: typeof TSTransformer;
-}) => {
-	identifier?: MacroList<IdentifierMacro>;
-	construct?: MacroList<ConstructorMacro>;
-	call?: MacroList<CallMacro>;
-	property?: Record<string, MacroList<PropertyCallMacro>>;
-};

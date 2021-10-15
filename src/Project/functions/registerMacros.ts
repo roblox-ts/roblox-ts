@@ -2,14 +2,32 @@ import fs from "fs-extra";
 import luau from "LuauAST";
 import path from "path";
 import { PackageJson, walkPackageJsons } from "Project/util/walkPackageJsons";
-import { DTS_EXT } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { assert } from "Shared/util/assert";
-import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 import { MacroManager } from "TSTransformer";
 import * as TSTransformer from "TSTransformer/bundle";
-import { MacroList, MacroTransformer } from "TSTransformer/macros/types";
+import { CallMacro, ConstructorMacro, IdentifierMacro, MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import ts from "typescript";
+
+export type RegisterMacrosList = {
+	identifier?: MacroList<IdentifierMacro>;
+	construct?: MacroList<ConstructorMacro>;
+	call?: MacroList<CallMacro>;
+	property?: Record<string, MacroList<PropertyCallMacro>>;
+};
+export type TransformerBundle = (dependencies: {
+	luau: typeof luau;
+	ts: typeof ts;
+	TSTransformer: typeof TSTransformer;
+	services: {
+		program: ts.Program;
+		macroManager: MacroManager;
+		typeChecker: ts.TypeChecker;
+	};
+	helpers: {
+		registerMacros(file: string | ts.SourceFile, macros: RegisterMacrosList): void;
+	};
+}) => void;
 
 function bail(pkgName: string, extra: string): never {
 	debugger;
@@ -53,58 +71,74 @@ export function registerMacros(
 	typeChecker: ts.TypeChecker,
 	projectPath: string,
 ) {
-	function handle(macroFile: string, typesPath: string, pkgName: string) {
-		const typesFile = program.getSourceFile(typesPath);
-		if (typesFile) {
-			// eslint-disable-next-line
-			const init = require(macroFile) as MacroTransformer;
-			assert(typeof init === "function");
-			const macros = init({ luau, ts, TSTransformer });
-			addMacros(
-				macros.identifier ?? {},
+	function handle(macroFile: string, pkgName: string) {
+		// eslint-disable-next-line
+		const init = require(macroFile) as TransformerBundle;
+		assert(typeof init === "function");
+		init({
+			luau,
+			ts,
+			TSTransformer,
+			services: {
+				program,
+				macroManager,
 				typeChecker,
-				typesFile,
-				ts.SymbolFlags.Variable,
-				pkgName,
-				(symbol, macro) => macroManager.addIdentifierMacro(symbol, macro),
-			);
-			addMacros(macros.call ?? {}, typeChecker, typesFile, ts.SymbolFlags.Function, pkgName, (symbol, macro) =>
-				macroManager.addCallMacro(symbol, macro),
-			);
-			addMacros(macros.construct ?? {}, typeChecker, typesFile, ts.SymbolFlags.Class, pkgName, (symbol, macro) =>
-				macroManager.addConstructorMacro(symbol, macro),
-			);
-			addMacros(macros.property ?? {}, typeChecker, typesFile, ts.SymbolFlags.Class, pkgName, (symbol, methods) =>
-				macroManager.addMacroClassMethods(symbol, methods),
-			);
-		} else {
-			bail(
-				pkgName,
-				`failed to find macro register file macroFile=${macroFile} typesPath=${typesPath} typesFile=${typesFile} realPathExists=${realPathExistsSync(
-					macroFile,
-				)}`,
-			);
+			},
+			helpers: {
+				registerMacros(file, macros) {
+					const typesFile = typeof file === "string" ? program.getSourceFile(file) : file;
+					if (!typesFile) bail(pkgName, "Received undefined file reference in registerMacros helper");
+					addMacros(
+						macros.identifier ?? {},
+						typeChecker,
+						typesFile,
+						ts.SymbolFlags.Variable,
+						pkgName,
+						(symbol, macro) => macroManager.addIdentifierMacro(symbol, macro),
+					);
+					addMacros(
+						macros.call ?? {},
+						typeChecker,
+						typesFile,
+						ts.SymbolFlags.Function,
+						pkgName,
+						(symbol, macro) => macroManager.addCallMacro(symbol, macro),
+					);
+					addMacros(
+						macros.construct ?? {},
+						typeChecker,
+						typesFile,
+						ts.SymbolFlags.Class,
+						pkgName,
+						(symbol, macro) => macroManager.addConstructorMacro(symbol, macro),
+					);
+					addMacros(
+						macros.property ?? {},
+						typeChecker,
+						typesFile,
+						ts.SymbolFlags.Class,
+						pkgName,
+						(symbol, methods) => macroManager.addMacroClassMethods(symbol, methods),
+					);
+				},
+			},
+		});
+	}
+
+	function handlePackage(packageJson: PackageJson, packagePath: string) {
+		if (typeof packageJson.macros === "string") {
+			const macroFile = path.resolve(packagePath, packageJson.macros);
+			handle(macroFile, packageJson.name);
+		} else if (Array.isArray(packageJson.macros)) {
+			for (const macro of packageJson.macros) {
+				const macroFile = path.resolve(packagePath, macro);
+				handle(macroFile, packageJson.name);
+			}
 		}
 	}
-	walkPackageJsons(typeRoots, (pkgJson, pkgPath) => {
-		if (pkgJson.macros) {
-			const macroFile = path.resolve(pkgPath, pkgJson.macros);
-			const typesPath = realPathExistsSync(
-				path.resolve(pkgPath, pkgJson.types ?? pkgJson.typings ?? "index.d.ts"),
-			);
-			if (!typesPath) bail(pkgJson.name, `Expected macro package to have types file: ${typesPath}`);
-			handle(macroFile, typesPath, pkgJson.name);
-		}
-	});
+
 	const projectPackage = fs.readJsonSync(path.join(projectPath, "package.json")) as PackageJson;
-	if (projectPackage.macros) {
-		const macroFile = path.resolve(projectPath, projectPackage.macros);
-		const typesPath = path.resolve(
-			projectPath,
-			path.dirname(projectPackage.macros),
-			path.join(path.basename(projectPackage.macros), DTS_EXT),
-		);
-		if (!typesPath) bail(projectPackage.name, `Expected project macros to have types file: ${typesPath}`);
-		handle(macroFile, typesPath, projectPackage.name);
-	}
+	handlePackage(projectPackage, projectPath);
+
+	walkPackageJsons(typeRoots, handlePackage);
 }
