@@ -18,7 +18,9 @@ export const objectAccessor = (
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(name.parent));
 	}
 
-	if (ts.isComputedPropertyName(name)) {
+	if (ts.isIdentifier(name)) {
+		return luau.property(parentId, name.text);
+	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
 			index: addOneIfArrayType(state, accessType, transformExpression(state, name.expression)),
@@ -31,5 +33,5 @@ export const objectAccessor = (
 	} else if (ts.isPrivateIdentifier(name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
 	}
-	return luau.property(parentId, name.text);
+	assert(false);
 };
