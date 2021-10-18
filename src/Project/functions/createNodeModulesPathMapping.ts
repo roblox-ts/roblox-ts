@@ -4,7 +4,9 @@ import { realPathExistsSync } from "Shared/util/realPathExistsSync";
 import ts from "typescript";
 
 export function createNodeModulesPathMapping(typeRoots: Array<string>) {
-	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
+	// ts.sys does not exist in browser, and thus the playground
+	// VirtualFileSystem is case-sensitive, so default to true
+	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys?.useCaseSensitiveFileNames ?? true);
 
 	const nodeModulesPathMapping = new Map<string, string>();
 	// go through each org
