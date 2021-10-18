@@ -2,7 +2,7 @@ import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
@@ -105,17 +105,6 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 	return;
 }
 
-function isValidObjectUse(node: ts.Identifier) {
-	const parent = skipUpwards(node).parent;
-	if (ts.isPropertyAccessExpression(parent) || ts.isElementAccessExpression(parent)) {
-		const grandParent = skipUpwards(parent).parent;
-		if (ts.isCallExpression(grandParent)) {
-			return true;
-		}
-	}
-	return false;
-}
-
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
@@ -135,10 +124,6 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return macro(state, node);
 	}
 
-	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Object) && !isValidObjectUse(node)) {
-		DiagnosticService.addDiagnostic(errors.noObjectWithoutMethod(node));
-	}
-
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
@@ -152,7 +137,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		(!ts.isCallExpression(parent) || skipDownwards(parent.expression) != node) &&
 		state.services.macroManager.getCallMacro(symbol)
 	) {
-		DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
+		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
 	}
 

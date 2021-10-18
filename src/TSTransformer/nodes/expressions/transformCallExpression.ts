@@ -138,7 +138,7 @@ export function transformCallExpressionInner(
 
 	if (ts.isSuperCall(node)) {
 		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.noSuperConstructorRoactComponent(node));
+			DiagnosticService.addDiagnostic(errors.missingSuperConstructorRoactComponent(node));
 		}
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,

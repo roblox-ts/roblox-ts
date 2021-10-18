@@ -1,16 +1,14 @@
 import luau from "LuauAST";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
+import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isMethod } from "TSTransformer/util/isMethod";
-import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
+import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol, isLuaTupleType } from "TSTransformer/util/types";
+import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -24,27 +22,11 @@ export function transformElementAccessExpressionInner(
 	validateNotAnyType(state, node.argumentExpression);
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
-	const symbol = getFirstDefinedSymbol(state, expType);
-	if (symbol) {
-		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
-			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
-			return luau.emptyId();
-		}
-	}
+	addIndexDiagnostics(state, node, expType);
 
-	const parent = skipUpwards(node).parent;
-	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
-		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
-	}
-
-	if (ts.isPrototypeAccess(node)) {
-		DiagnosticService.addDiagnostic(errors.noPrototype(node));
-	}
-
-	const constantValue = state.typeChecker.getConstantValue(node);
-	if (constantValue !== undefined) {
-		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
 	}
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
@@ -69,7 +51,7 @@ export function transformElementAccessExpressionInner(
 		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 	}
 
-	if (ts.isDeleteExpression(parent)) {
+	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

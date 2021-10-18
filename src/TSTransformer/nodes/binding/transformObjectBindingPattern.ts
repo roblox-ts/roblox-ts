@@ -1,5 +1,6 @@
 import luau from "LuauAST";
 import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
@@ -32,7 +33,10 @@ export function transformObjectBindingPattern(
 				state.prereq(transformInitializer(state, id, element.initializer));
 			}
 		} else {
-			const value = objectAccessor(state, parentId, accessType, prop ?? name);
+			// if name is not identifier, it must be a binding pattern
+			// in that case, prop is guaranteed to exist
+			assert(prop);
+			const value = objectAccessor(state, parentId, accessType, prop);
 			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

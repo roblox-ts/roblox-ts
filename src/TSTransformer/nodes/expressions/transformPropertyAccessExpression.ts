@@ -3,11 +3,10 @@ import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
+import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { isMethod } from "TSTransformer/util/isMethod";
-import { isValidMethodIndexWithoutCall } from "TSTransformer/util/isValidMethodIndexWithoutCall";
+import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -18,32 +17,14 @@ export function transformPropertyAccessExpressionInner(
 	name: string,
 ) {
 	validateNotAnyType(state, node.expression);
+	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node));
-	const symbol = getFirstDefinedSymbol(state, expType);
-	if (symbol) {
-		if (state.services.macroManager.getPropertyCallMacro(symbol)) {
-			DiagnosticService.addDiagnostic(errors.noMacroWithoutCall(node));
-			return luau.emptyId();
-		}
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
 	}
 
-	const parent = skipUpwards(node).parent;
-	if (!isValidMethodIndexWithoutCall(parent) && isMethod(state, node)) {
-		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
-	}
-
-	if (ts.isPrototypeAccess(node)) {
-		DiagnosticService.addDiagnostic(errors.noPrototype(node));
-	}
-
-	const constantValue = state.typeChecker.getConstantValue(node);
-	if (constantValue !== undefined) {
-		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
-	}
-
-	if (ts.isDeleteExpression(parent)) {
+	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.property(convertToIndexableExpression(expression), name),
@@ -60,7 +41,6 @@ export function transformPropertyAccessExpressionInner(
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
 	if (ts.isSuperProperty(node)) {
 		DiagnosticService.addDiagnostic(errors.noSuperProperty(node));
-		return luau.emptyId();
 	}
 
 	return transformOptionalChain(state, node);

@@ -104,7 +104,7 @@ export = () => {
 		expect(Animal2.Snake).to.equal("SNAKE");
 	});
 
-	const enum Animal2 {
+	enum Animal2 {
 		Bear = "BEAR",
 		Dog = "DOG",
 		Snake = "SNAKE",
