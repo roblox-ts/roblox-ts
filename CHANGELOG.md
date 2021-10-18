@@ -1,3 +1,18 @@
+## 1.2.4
+- Improved temporary identifier names in a few cases
+- Small optimization for macros with defaults (#1521)
+- Fixed binary expression equal precedence issues (#1538)
+- Skip rendering parentheses for literals / simple expressions (#1543)
+- Fixed emitted type declarations with transformers (#1557)
+- Fixed enum hoisting (#1555)
+- Fixed namespace bugs (#1563)
+- Fixed template literal infinite recursion bug (#1564)
+- Improved incremental mode hash generation (#1589)
+- Improved detection for `defined` type
+- Improvements for watch mode (#1520)
+- Improved testing and code coverage :tada:
+- Fixed crash with for-of loops over `pairs(this)` (#1629)
+
 ## 1.2.3
 - Fixed a bug with array spread expressions like `[a, ...b]`
 - Fixed playground environment crash
