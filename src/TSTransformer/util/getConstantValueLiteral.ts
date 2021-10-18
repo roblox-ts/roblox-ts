@@ -8,6 +8,10 @@ export function getConstantValueLiteral(
 ) {
 	const constantValue = state.typeChecker.getConstantValue(node);
 	if (constantValue !== undefined) {
-		return typeof constantValue === "string" ? luau.string(constantValue) : luau.number(constantValue);
+		if (typeof constantValue === "string") {
+			return luau.string(constantValue);
+		} else {
+			return luau.number(constantValue);
+		}
 	}
 }
