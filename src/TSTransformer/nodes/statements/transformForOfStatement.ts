@@ -323,7 +323,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 		const luaTupleType = type.getCallSignatures()[0].getReturnType();
 		assert(
 			luaTupleType && luaTupleType.aliasTypeArguments && luaTupleType.aliasTypeArguments.length === 1,
-			"Wrong LuaTuple<T> type arguments",
+			"Incorrect LuaTuple<T> type arguments",
 		);
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
 		// if LuaTuple has defined element amount
