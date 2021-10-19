@@ -1,12 +1,12 @@
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isMethodInner } from "TSTransformer/util/isMethod";
+import { isMethodFromType } from "TSTransformer/util/isMethod";
 import ts from "typescript";
 
 function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
-	const assignmentIsMethod = isMethodInner(state, node, assignmentType);
-	if (isMethodInner(state, node, baseType) !== assignmentIsMethod) {
+	const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
+	if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
 		if (assignmentIsMethod) {
 			DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
 		} else {

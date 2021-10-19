@@ -48,7 +48,7 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	return false;
 }
 
-export function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
+function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
@@ -76,13 +76,10 @@ export function isMethodInner(state: TransformState, node: ts.Node, type: ts.Typ
 	return hasMethodDefinition;
 }
 
-export function isMethod(
-	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
-): boolean {
+export function isMethodFromType(state: TransformState, node: ts.Node, type: ts.Type) {
 	let result = false;
 
-	walkTypes(state.getType(node), t => {
+	walkTypes(type, t => {
 		if (t.symbol) {
 			result ||= getOrSetDefault(state.multiTransformState.isMethodCache, t.symbol, () =>
 				isMethodInner(state, node, t),
@@ -91,4 +88,11 @@ export function isMethod(
 	});
 
 	return result;
+}
+
+export function isMethod(
+	state: TransformState,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
+): boolean {
+	return isMethodFromType(state, node, state.getType(node));
 }
