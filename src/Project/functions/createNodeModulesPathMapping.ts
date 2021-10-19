@@ -1,11 +1,9 @@
 import fs from "fs-extra";
 import path from "path";
+import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
-import ts from "typescript";
 
 export function createNodeModulesPathMapping(typeRoots: Array<string>) {
-	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
-
 	const nodeModulesPathMapping = new Map<string, string>();
 	// go through each org
 	for (const scopePath of typeRoots) {
