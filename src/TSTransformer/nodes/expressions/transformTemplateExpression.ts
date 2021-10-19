@@ -36,7 +36,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		let expression = orderedExpressions[i];
 		const type = state.getType(templateSpan.expression);
 		if (!isDefinitelyType(type, t => isStringType(t))) {
-			if (isPossiblyType(type, t => isLuaTupleType(state, t))) {
+			if (isDefinitelyType(type, t => isLuaTupleType(state, t))) {
 				DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
 			}
 			if (luau.isCall(expression) && isPossiblyType(type, t => isUndefinedType(t))) {
