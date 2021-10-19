@@ -8,6 +8,7 @@ import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
 
 function transformPropertyAssignment(
@@ -86,6 +87,7 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 	// starts as luau.Map, becomes luau.TemporaryIdentifier when `disableInline` is called
 	const ptr = createMapPointer("object");
 	for (const property of node.properties) {
+		validateMethodAssignment(state, property);
 		if (ts.isPropertyAssignment(property)) {
 			if (ts.isPrivateIdentifier(property.name)) {
 				DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(property.name));

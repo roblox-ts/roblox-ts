@@ -48,11 +48,7 @@ function isMethodDeclaration(state: TransformState, node: ts.Node): boolean {
 	return false;
 }
 
-function isMethodInner(
-	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
-	type: ts.Type,
-) {
+export function isMethodInner(state: TransformState, node: ts.Node, type: ts.Type) {
 	let hasMethodDefinition = false;
 	let hasCallbackDefinition = false;
 
