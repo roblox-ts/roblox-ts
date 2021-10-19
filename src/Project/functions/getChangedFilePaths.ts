@@ -1,3 +1,4 @@
+import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import ts from "typescript";
 
@@ -11,8 +12,6 @@ import ts from "typescript";
 export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Array<string>) {
 	const compilerOptions = program.getCompilerOptions();
 	const buildState = program.getState();
-
-	const getCanonicalFileName = ts.createGetCanonicalFileName(ts.sys.useCaseSensitiveFileNames);
 
 	// buildState.referencedMap is sourceFile -> files that this file imports
 	// but we need sourceFile -> files that import this file
