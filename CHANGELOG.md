@@ -1,3 +1,6 @@
+## 1.2.5
+- Fixed playground crash (#1648)
+
 ## 1.2.4
 - Improved temporary identifier names in a few cases
 - Small optimization for macros with defaults (#1521)
