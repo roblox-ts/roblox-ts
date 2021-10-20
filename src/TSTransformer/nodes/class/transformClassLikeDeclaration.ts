@@ -13,6 +13,7 @@ import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent"
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
 
 const MAGIC_TO_STRING_METHOD = "toString";
@@ -355,6 +356,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const methods = new Array<ts.MethodDeclaration>();
 	const staticProperties = new Array<ts.PropertyDeclaration>();
 	for (const member of node.members) {
+		validateMethodAssignment(state, member);
 		if (
 			ts.isConstructorDeclaration(member) ||
 			ts.isIndexSignatureDeclaration(member) ||

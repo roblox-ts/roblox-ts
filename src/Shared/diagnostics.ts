@@ -193,6 +193,10 @@ export const errors = {
 	),
 	noJsxText: error("JSX text is not supported!"),
 
+	// semantic
+	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),
+	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
+
 	// files
 	noRojoData: errorWithContext((path: string) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
