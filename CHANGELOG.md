@@ -1,3 +1,7 @@
+## 1.2.6
+- Fixed regression with using `defined`/`unknown` values in string templates (#1652)
+- Added method assignment validation diagnostics (#1651)
+
 ## 1.2.5
 - Fixed playground crash (#1648)
 
