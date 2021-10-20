@@ -65,4 +65,14 @@ export = () => {
 		game.GetService("Players").GetPlayerFromCharacter(foo());
 		expect(`value = ${foo()}`).to.equal("value = nil");
 	});
+
+	it("should support defined expressions", () => {
+		const value: defined = 123;
+		expect(`value = ${value}`).to.equal("value = 123");
+	});
+
+	it("should support unknown expressions", () => {
+		const value: unknown = 456;
+		expect(`value = ${value}`).to.equal("value = 456");
+	});
 };
