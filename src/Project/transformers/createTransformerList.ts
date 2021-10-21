@@ -63,9 +63,11 @@ function getTransformerFromFactory(factory: PluginFactory, config: TransformerPl
 	}
 
 	if (typeof transformer === "function") {
-		if (after) return { after: transformer };
-		if (afterDeclarations)
+		if (after) {
+			return { after: transformer };
+		} else if (afterDeclarations) {
 			return { afterDeclarations: transformer as ts.TransformerFactory<ts.SourceFile | ts.Bundle> };
+		}
 		return { before: transformer };
 	}
 	return transformer;

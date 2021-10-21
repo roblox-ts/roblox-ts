@@ -39,10 +39,11 @@ import { parse } from "url";
 
 export const normalizePath = (p: string) =>
 	// Is extended length or has non-ascii chars (respectively)
+	// eslint-disable-next-line no-control-regex
 	/^\\\\\?\\/.test(p) || /[^\u0000-\u0080]+/.test(p)
 		? p
 		: // Normalize to forward slash and remove repeating slashes
-		  p.replace(/[\\\/]+/g, "/");
+		  p.replace(/[\\/]+/g, "/");
 
 /* ****************************************************************************************************************** *
  * Transformer

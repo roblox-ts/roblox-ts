@@ -14,6 +14,7 @@
 		"simple-import-sort"
 	],
 	"extends": [
+		"eslint:recommended",
 		"plugin:@typescript-eslint/recommended",
 		"plugin:prettier/recommended"
 	],
@@ -58,9 +59,13 @@
 		"@typescript-eslint/explicit-module-boundary-types": "off",
 		"@typescript-eslint/no-require-imports": "error",
 		"@typescript-eslint/no-unused-expressions": "warn",
+		"curly": ["warn", "multi-line", "consistent"],
 		"prefer-const": "warn",
+		"no-console": "warn",
+		"no-constant-condition": "off",
+		"no-debugger": "off",
+		"no-extra-boolean-cast": "off",
 		"no-undef-init": "error",
-		"no-console": "error",
 		"simple-import-sort/imports": "warn",
 		"simple-import-sort/exports": "warn"
 	}

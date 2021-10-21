@@ -173,11 +173,12 @@ export class RojoResolver {
 			let configJson: unknown;
 			try {
 				configJson = JSON.parse(fs.readFileSync(realPath).toString());
-			} catch (e) {}
-			if (isValidRojoConfig(configJson)) {
-				this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
-			} else {
-				warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
+			} finally {
+				if (isValidRojoConfig(configJson)) {
+					this.parseTree(path.dirname(rojoConfigFilePath), configJson.name, configJson.tree, doNotPush);
+				} else {
+					warn(`RojoResolver: Invalid configuration! ${ajv.errorsText(validateRojo.get().errors)}`);
+				}
 			}
 		} else {
 			warn(`RojoResolver: Path does not exist "${rojoConfigFilePath}"`);
