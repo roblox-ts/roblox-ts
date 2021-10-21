@@ -255,7 +255,11 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				},
 				ignorePatterns: ["/out"],
 				plugins: ["@typescript-eslint", "roblox-ts"],
-				extends: ["plugin:@typescript-eslint/recommended", "plugin:roblox-ts/recommended"],
+				extends: [
+					"eslint:recommended",
+					"plugin:@typescript-eslint/recommended",
+					"plugin:roblox-ts/recommended",
+				],
 				rules: ts.identity<{ [index: string]: unknown }>({}),
 			};
 
