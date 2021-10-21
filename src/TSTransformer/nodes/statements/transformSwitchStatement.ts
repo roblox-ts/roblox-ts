@@ -1,4 +1,5 @@
 import luau from "LuauAST";
+import { isFinal } from "LuauAST/util/isFinal";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -75,7 +76,7 @@ function transformCaseClause(
 		nonEmptyStatements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
 	);
 
-	const canFallThroughFrom = statements.tail === undefined || !luau.isFinalStatement(statements.tail.value);
+	const canFallThroughFrom = statements.tail === undefined || !isFinal(statements.tail);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
 		luau.list.push(
 			statements,

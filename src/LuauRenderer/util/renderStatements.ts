@@ -1,4 +1,5 @@
 import luau from "LuauAST";
+import { isFinal } from "LuauAST/util/isFinal";
 import { render, RenderState } from "LuauRenderer";
 import { assert } from "Shared/util/assert";
 
@@ -14,11 +15,8 @@ export function renderStatements(state: RenderState, statements: luau.List<luau.
 	let listNode = statements.head;
 	let hasFinalStatement = false;
 	while (listNode !== undefined) {
-		assert(
-			!hasFinalStatement || luau.isComment(listNode.value),
-			"Cannot render statement after break, continue, or return!",
-		);
-		hasFinalStatement ||= luau.isFinalStatement(listNode.value);
+		assert(!hasFinalStatement || luau.isComment(listNode.value), "Cannot render unreachable statements!");
+		hasFinalStatement ||= isFinal(listNode);
 
 		state.pushListNode(listNode);
 		result += render(state, listNode.value);
