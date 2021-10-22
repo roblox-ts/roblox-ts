@@ -167,9 +167,8 @@ export function compileFiles(
 		assert(sourceFile);
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
-			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
-			if (DiagnosticService.hasErrors()) return;
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
+			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
 			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(
