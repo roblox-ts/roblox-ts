@@ -113,9 +113,8 @@ export class VirtualProject {
 		assert(sourceFile);
 
 		const diagnostics = new Array<ts.Diagnostic>();
-		diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
-		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 		diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile));
+		diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
 		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const multiTransformState = new MultiTransformState();
