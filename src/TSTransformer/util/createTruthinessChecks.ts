@@ -8,9 +8,9 @@ import ts from "typescript";
 
 export function willCreateTruthinessChecks(type: ts.Type) {
 	return (
-		isPossiblyType(type, t => isNumberLiteralType(t, 0)) ||
-		isPossiblyType(type, t => isNaNType(t)) ||
-		isPossiblyType(type, t => isEmptyStringType(t))
+		isPossiblyType(type, isNumberLiteralType(0)) ||
+		isPossiblyType(type, isNaNType) ||
+		isPossiblyType(type, isEmptyStringType)
 	);
 }
 
@@ -20,9 +20,9 @@ export function createTruthinessChecks(
 	node: ts.Expression,
 	type: ts.Type,
 ) {
-	const isAssignableToZero = isPossiblyType(type, t => isNumberLiteralType(t, 0));
-	const isAssignableToNaN = isPossiblyType(type, t => isNaNType(t));
-	const isAssignableToEmptyString = isPossiblyType(type, t => isEmptyStringType(t));
+	const isAssignableToZero = isPossiblyType(type, isNumberLiteralType(0));
+	const isAssignableToNaN = isPossiblyType(type, isNaNType);
+	const isAssignableToEmptyString = isPossiblyType(type, isEmptyStringType);
 
 	if (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString) {
 		exp = state.pushToVarIfComplex(exp, "value");

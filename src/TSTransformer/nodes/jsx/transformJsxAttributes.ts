@@ -33,7 +33,7 @@ function createJsxAttributeLoop(
 	expression: luau.Expression,
 	type: ts.Type,
 ) {
-	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
+	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
 	if (possiblyUndefined) {
 		expression = state.pushToVarIfComplex(expression, "attribute");
 	}

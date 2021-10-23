@@ -422,21 +422,21 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, 
 });
 
 function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): LoopBuilder {
-	if (isDefinitelyType(type, t => isArrayType(state, t))) {
+	if (isDefinitelyType(type, isArrayType(state))) {
 		return buildArrayLoop;
-	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
+	} else if (isDefinitelyType(type, isSetType(state))) {
 		return buildSetLoop;
-	} else if (isDefinitelyType(type, t => isMapType(state, t))) {
+	} else if (isDefinitelyType(type, isMapType(state))) {
 		return buildMapLoop;
 	} else if (isDefinitelyType(type, t => isStringType(t))) {
 		return buildStringLoop;
-	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
 		return buildIterableFunctionLuaTupleLoop(type);
-	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableFunctionType(state))) {
 		return buildIterableFunctionLoop;
-	} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
+	} else if (isDefinitelyType(type, isGeneratorType(state))) {
 		return buildGeneratorLoop;
-	} else if (isDefinitelyType(type, t => isIterableType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
 	} else if (type.isUnion()) {

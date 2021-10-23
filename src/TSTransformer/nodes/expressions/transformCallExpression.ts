@@ -115,7 +115,8 @@ function fixVoidArgumentsForRobloxFunctions(
 	if (isNodeSymbolFromRobloxTypes(state, symbol)) {
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
-			if (luau.isCall(arg) && isPossiblyType(state.getType(nodeArguments[i]), t => isUndefinedType(t))) {
+			const nodeArg = nodeArguments[i];
+			if (ts.isCallExpression(nodeArg) && isPossiblyType(state.getType(nodeArg), isUndefinedType)) {
 				args[i] = luau.create(luau.SyntaxKind.ParenthesizedExpression, {
 					expression: arg,
 				});
