@@ -266,4 +266,14 @@ export = () => {
 		expect(result[1]).to.equal("abc");
 		expect(result[2]).to.equal(true);
 	});
+
+	it("should protect against void values passed into built-in functions", () => {
+		function foo() {}
+		expect(tonumber(foo())).to.equal(undefined);
+	});
+
+	it("should not wrap argument spread expressions in parentheses", () => {
+		const args: unknown[] = ["123", "456"];
+		expect(select(1, ...args)[1]).to.equal("456");
+	});
 };
