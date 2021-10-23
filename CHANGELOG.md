@@ -1,3 +1,7 @@
+## 1.2.7
+- Fixed roblox-ts pre-emit diagnostics being reported before TypeScript pre-emit diagnostics (#1663)
+- Fixed regression with `...args` in built-in functions that support var args (#1665)
+
 ## 1.2.6
 - Fixed regression with using `defined`/`unknown` values in string templates (#1652)
 - Added method assignment validation diagnostics (#1651)
