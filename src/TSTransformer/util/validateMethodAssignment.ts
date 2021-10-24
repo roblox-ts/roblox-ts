@@ -8,7 +8,7 @@ import ts from "typescript";
 function hasCallSignatures(type: ts.Type) {
 	let hasCallSignatures = false;
 	walkTypes(type, t => {
-		hasCallSignatures = hasCallSignatures || t.getCallSignatures().length > 0;
+		hasCallSignatures ||= t.getCallSignatures().length > 0;
 	});
 	return hasCallSignatures;
 }
