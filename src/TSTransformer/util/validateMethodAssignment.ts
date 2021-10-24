@@ -2,15 +2,26 @@ import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isMethodFromType } from "TSTransformer/util/isMethod";
+import { walkTypes } from "TSTransformer/util/types";
 import ts from "typescript";
 
+function hasCallSignatures(type: ts.Type) {
+	let hasCallSignatures = false;
+	walkTypes(type, t => {
+		hasCallSignatures = hasCallSignatures || t.getCallSignatures().length > 0;
+	});
+	return hasCallSignatures;
+}
+
 function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, assignmentType: ts.Type) {
-	const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
-	if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
-		if (assignmentIsMethod) {
-			DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
-		} else {
-			DiagnosticService.addDiagnostic(errors.expectedFunctionGotMethod(node));
+	if (hasCallSignatures(baseType) && hasCallSignatures(assignmentType)) {
+		const assignmentIsMethod = isMethodFromType(state, node, assignmentType);
+		if (isMethodFromType(state, node, baseType) !== assignmentIsMethod) {
+			if (assignmentIsMethod) {
+				DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
+			} else {
+				DiagnosticService.addDiagnostic(errors.expectedFunctionGotMethod(node));
+			}
 		}
 	}
 }
