@@ -36,6 +36,7 @@ export const isVarArgsLiteral = makeGuard(luau.SyntaxKind.VarArgsLiteral);
 export const isFunctionExpression = makeGuard(luau.SyntaxKind.FunctionExpression);
 export const isBinaryExpression = makeGuard(luau.SyntaxKind.BinaryExpression);
 export const isUnaryExpression = makeGuard(luau.SyntaxKind.UnaryExpression);
+export const isIfExpression = makeGuard(luau.SyntaxKind.IfExpression);
 export const isArray = makeGuard(luau.SyntaxKind.Array);
 export const isMap = makeGuard(luau.SyntaxKind.Map);
 export const isSet = makeGuard(luau.SyntaxKind.Set);

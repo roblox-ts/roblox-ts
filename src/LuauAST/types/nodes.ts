@@ -102,6 +102,12 @@ export interface UnaryExpression extends luau.Expression<luau.SyntaxKind.UnaryEx
 	expression: luau.Expression;
 }
 
+export interface IfExpression extends luau.Expression<luau.SyntaxKind.IfExpression> {
+	condition: luau.Expression;
+	expression: luau.Expression;
+	alternative: luau.Expression;
+}
+
 export interface Array extends luau.Expression<luau.SyntaxKind.Array> {
 	members: luau.List<luau.Expression>;
 }
