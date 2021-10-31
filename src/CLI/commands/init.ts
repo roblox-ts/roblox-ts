@@ -253,6 +253,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					sourceType: "module",
 					project: "./tsconfig.json",
 				},
+				ignorePatterns: ["/out"],
 				plugins: ["@typescript-eslint", "roblox-ts"],
 				extends: ["plugin:@typescript-eslint/recommended", "plugin:roblox-ts/recommended"],
 				rules: ts.identity<{ [index: string]: unknown }>({}),
