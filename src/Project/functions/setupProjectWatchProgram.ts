@@ -108,20 +108,20 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		const filesToClean = new Set<string>();
 
 		for (const fsPath of additions) {
-			if (isCompilableFile(fsPath)) {
+			if (fs.statSync(fsPath).isDirectory()) {
+				walkDirectorySync(fsPath, item => {
+					if (isCompilableFile(item)) {
+						fileNamesSet.add(item);
+						filesToCompile.add(item);
+					}
+				});
+			} else if (isCompilableFile(fsPath)) {
 				fileNamesSet.add(fsPath);
 				filesToCompile.add(fsPath);
 			} else {
 				// checks for copying `init.*.d.ts`
 				checkFileName(fsPath);
 				filesToCopy.add(fsPath);
-			}
-			if (fs.statSync(fsPath).isDirectory()) {
-				walkDirectorySync(fsPath, item => {
-					if (isCompilableFile(item)) {
-						filesToCompile.add(item);
-					}
-				});
 			}
 		}
 
