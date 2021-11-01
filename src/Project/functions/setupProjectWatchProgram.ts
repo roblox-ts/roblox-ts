@@ -102,11 +102,10 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		return emitResult;
 	}
 
+	const filesToCompile = new Set<string>();
+	const filesToCopy = new Set<string>();
+	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
-		const filesToCompile = new Set<string>();
-		const filesToCopy = new Set<string>();
-		const filesToClean = new Set<string>();
-
 		for (const fsPath of additions) {
 			if (fs.statSync(fsPath).isDirectory()) {
 				walkDirectorySync(fsPath, item => {
@@ -140,6 +139,17 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		refreshProgram();
 		assert(program && pathTranslator);
+		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		if (emitResult.emitSkipped) {
+			// exit before copying to prevent half-updated out directory
+			return emitResult;
+		} else {
+			// if emitted, clear the compile queue
+			filesToCompile.clear();
+			filesToCopy.clear();
+			filesToClean.clear();
+		}
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
 			if (options.declaration) {
@@ -149,8 +159,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
 		}
-		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
 		return emitResult;
 	}
 
