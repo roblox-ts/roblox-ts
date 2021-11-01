@@ -196,7 +196,7 @@ export function compileFiles(
 		});
 	}
 
-	if (DiagnosticService.hasErrors()) return { emitSkipped: false, diagnostics: DiagnosticService.flush() };
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
