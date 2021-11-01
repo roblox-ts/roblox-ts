@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable @typescript-eslint/no-require-imports */
 import resolve from "resolve";
+import { warnings } from "Shared/diagnostics";
 import { TransformerPluginConfig } from "Shared/types";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
 
 interface TransformerBasePlugin {
@@ -94,13 +96,15 @@ export function createTransformerList(
 	for (const config of configs) {
 		if (!config.transform) continue;
 
-		const modulePath = resolve.sync(config.transform, { basedir: baseDir });
-		const commonjsModule: PluginFactory | { [key: string]: PluginFactory } = require(modulePath);
+		try {
+			const modulePath = resolve.sync(config.transform, { basedir: baseDir });
+			const commonjsModule: PluginFactory | { [key: string]: PluginFactory } = require(modulePath);
 
-		const factoryModule = typeof commonjsModule === "function" ? { default: commonjsModule } : commonjsModule;
-		const factory = factoryModule[config.import ?? "default"];
+			const factoryModule = typeof commonjsModule === "function" ? { default: commonjsModule } : commonjsModule;
+			const factory = factoryModule[config.import ?? "default"];
 
-		if (factory && typeof factory === "function") {
+			if (!factory || typeof factory !== "function") throw new Error("factory not a function");
+
 			const transformer = getTransformerFromFactory(factory, config, program);
 			if (transformer) {
 				if (transformer.afterDeclarations) {
@@ -113,6 +117,8 @@ export function createTransformerList(
 					transforms.before?.push(transformer.before);
 				}
 			}
+		} catch (err) {
+			DiagnosticService.addDiagnostic(warnings.transformerNotFound(config.transform, err));
 		}
 	}
 

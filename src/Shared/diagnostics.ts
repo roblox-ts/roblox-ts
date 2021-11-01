@@ -81,6 +81,10 @@ function warning(...messages: Array<string>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
 }
 
+function warningText(...messages: Array<string>) {
+	return diagnosticText(ts.DiagnosticCategory.Warning, ...messages);
+}
+
 export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	return (diagnostic as any).id;
@@ -217,6 +221,12 @@ export const errors = {
 export const warnings = {
 	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
 	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
+	transformerNotFound: (name: string, err: unknown) =>
+		warningText(
+			`Transformer \`${name}\` was not found!`,
+			"More info: " + err,
+			suggestion("Did you forget to install the package?"),
+		),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
