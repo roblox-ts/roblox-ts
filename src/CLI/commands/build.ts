@@ -111,7 +111,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 			const projectOptions: Partial<ProjectOptions> = Object.assign(
 				{},
 				getTsConfigProjectOptions(tsConfigPath),
-				argv as ProjectFlags,
+				argv,
 			);
 
 			LogService.verbose = argv.verbose === true;
