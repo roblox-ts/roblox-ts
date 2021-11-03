@@ -70,15 +70,6 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"outDir"`)} must be defined`);
 	}
 
-	// roact compiler options
-	if (opts.jsx !== undefined && opts.jsx !== ts.JsxEmit.React) {
-		errors.push(`${y(`"jsx"`)} must be ${y(`"react"`)} or not defined`);
-	}
-
-	if (opts.jsxFactory !== undefined && opts.jsxFactory !== "Roact.createElement") {
-		errors.push(`${y(`"jsxFactory"`)} must be ${y(`"Roact.createElement"`)} or not defined`);
-	}
-
 	// throw if errors
 	if (errors.length > 0) {
 		throw new ProjectError(
