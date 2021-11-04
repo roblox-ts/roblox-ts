@@ -10,18 +10,6 @@ import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttribu
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
-export function transformJsxFragmentShorthand(state: TransformState, children: ReadonlyArray<ts.JsxChild>) {
-	const childrenPtr = createMixedTablePointer("children");
-	transformJsxChildren(state, children, createMapPointer("attributes"), childrenPtr);
-
-	const args = new Array<luau.Expression>();
-	if (luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields)) {
-		args.push(childrenPtr.value);
-	}
-
-	return luau.call(createRoactIndex("createFragment"), args);
-}
-
 export function transformJsx(
 	state: TransformState,
 	node: ts.JsxElement | ts.JsxSelfClosingElement,
@@ -29,6 +17,8 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
+	state.checkJsxFactory(node);
+
 	const isFragment =
 		state.services.roactSymbolManager &&
 		state.typeChecker.getSymbolAtLocation(tagName) ===

@@ -183,6 +183,8 @@ export const errors = {
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
 
 	// roact jsx
+	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
+	invalidJsxFragmentFactory: error("compilerOptions.jsxFragmentFactory must be `Roact.createFragment`!"),
 	noRoactInheritance: error(
 		"Composition is preferred over inheritance with Roact components.",
 		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
