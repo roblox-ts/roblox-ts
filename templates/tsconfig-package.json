@@ -1,6 +1,5 @@
 {
 	"compilerOptions": {
-		// required
 		"allowSyntheticDefaultImports": true,
 		"downlevelIteration": true,
 		"jsx": "react",
@@ -15,7 +14,6 @@
 		"target": "ESNext",
 		"typeRoots": ["node_modules/@rbxts"],
 
-		// configurable
 		"rootDir": "src",
 		"outDir": "out",
 		"baseUrl": "src",
