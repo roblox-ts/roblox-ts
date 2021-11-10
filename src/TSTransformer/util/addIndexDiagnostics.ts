@@ -16,7 +16,7 @@ export function addIndexDiagnostics(
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (
 		(symbol && state.services.macroManager.getPropertyCallMacro(symbol)) ||
-		(!isValidMethodIndexWithoutCall(skipUpwards(node).parent) && isMethod(state, node))
+		(!isValidMethodIndexWithoutCall(state, skipUpwards(node)) && isMethod(state, node))
 	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
 		return luau.emptyId();
