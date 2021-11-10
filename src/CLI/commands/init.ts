@@ -191,8 +191,9 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		},
 	]);
 
-	await benchmark("Initializing..", async () => {
-		const selectedPackageManager = packageManagerCommands[packageManager];
+	const selectedPackageManager = packageManagerCommands[packageManager];
+
+	await benchmark("Initializing npm package..", async () => {
 		await cmd(selectedPackageManager.init);
 		const pkgJson = await fs.readJson(paths.packageJson);
 		pkgJson.scripts = {
@@ -210,9 +211,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			pkgJson.scripts.prepublishOnly = selectedPackageManager.build;
 		}
 		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
+	});
 
-		// git init
-		if (git) {
+	if (git) {
+		await benchmark("Initializing git..", async () => {
 			try {
 				await cmd("git init");
 			} catch (error) {
@@ -222,9 +224,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				);
 			}
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
-		}
+		});
+	}
 
-		// npm install -D
+	await benchmark("Installing dependencies..", async () => {
 		const devDependencies = [
 			"@rbxts/types",
 			`@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`,
@@ -248,9 +251,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		await cmd(`${selectedPackageManager.devInstall} ${devDependencies.join(" ")}`);
+	});
 
-		// create .eslintrc.json
-		if (eslint) {
+	if (eslint) {
+		await benchmark("Configuring eslint..", async () => {
 			const eslintConfig = {
 				parser: "@typescript-eslint/parser",
 				parserOptions: {
@@ -277,18 +281,22 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			}
 
 			await fs.outputFile(paths.eslintrc, JSON.stringify(eslintConfig, undefined, "\t"));
-		}
+		});
+	}
 
-		if (prettier) {
+	if (prettier) {
+		await benchmark("Configuring prettier..", async () => {
 			const prettierConfig = {
 				printWidth: 120,
 				tabWidth: 4,
 				useTabs: true,
 			};
 			await fs.outputFile(paths.prettierrc, JSON.stringify(prettierConfig, undefined, "\t"));
-		}
+		});
+	}
 
-		if (vscode) {
+	if (vscode) {
+		await benchmark("Configuring vscode..", async () => {
 			const extensions = {
 				recommendations: ["roblox-ts.vscode-roblox-ts"],
 			};
@@ -327,8 +335,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
 			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
-		}
+		});
+	}
 
+	await benchmark("Copying template files..", async () => {
 		const templateTsConfig = path.join(
 			TEMPLATE_DIR,
 			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
@@ -339,7 +349,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	});
 
 	await benchmark(
-		"Building..",
+		"Compiling..",
 		() =>
 			build.handler({
 				logTruthyChanges: false,
