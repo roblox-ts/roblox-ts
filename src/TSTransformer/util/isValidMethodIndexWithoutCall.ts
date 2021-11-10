@@ -21,7 +21,13 @@ export function isValidMethodIndexWithoutCall(state: TransformState, node: ts.No
 		const symbol = getFirstDefinedSymbol(state, expType);
 		if (symbol) {
 			const macro = state.services.macroManager.getCallMacro(symbol);
-			return macro === CALL_MACROS.typeIs || macro === CALL_MACROS.typeOf;
+			if (
+				// typeIs will be a TypeError if usage is not the first argument
+				macro === CALL_MACROS.typeIs ||
+				macro === CALL_MACROS.typeOf
+			) {
+				return true;
+			}
 		}
 	}
 
