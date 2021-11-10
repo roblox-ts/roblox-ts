@@ -166,8 +166,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			initial: true,
 		},
 		{
-			type: (_, values) =>
-				(argv.eslint || values.eslint) && argv.prettier === undefined && argv.yes === undefined && "confirm",
+			type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
 			name: "prettier",
 			message: "Configure Prettier",
 			initial: true,
