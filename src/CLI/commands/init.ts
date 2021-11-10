@@ -89,7 +89,8 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		src: path.join(cwd, "src"),
 		tsconfig: path.join(cwd, "tsconfig.json"),
 		gitignore: path.join(cwd, ".gitignore"),
-		eslintrc: path.join(cwd, ".eslintrc.json"),
+		eslintrc: path.join(cwd, ".eslintrc"),
+		prettierrc: path.join(cwd, ".prettierrc"),
 		settings: path.join(cwd, ".vscode", "settings.json"),
 		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
