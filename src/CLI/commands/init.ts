@@ -225,18 +225,25 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 
 		// npm install -D
-		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`];
+		const devDependencies = [
+			"@rbxts/types",
+			`@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`,
+			"typescript",
+		];
+
+		if (prettier) {
+			devDependencies.push("prettier");
+		}
 
 		if (eslint) {
 			devDependencies.push(
 				"eslint",
-				"typescript",
 				"@typescript-eslint/eslint-plugin",
 				"@typescript-eslint/parser",
 				"eslint-plugin-roblox-ts",
 			);
 			if (prettier) {
-				devDependencies.push("prettier", "eslint-config-prettier", "eslint-plugin-prettier");
+				devDependencies.push("eslint-config-prettier", "eslint-plugin-prettier");
 			}
 		}
 
@@ -266,29 +273,32 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			if (prettier) {
 				eslintConfig.plugins.push("prettier");
 				eslintConfig.extends.push("plugin:prettier/recommended");
-				eslintConfig.rules["prettier/prettier"] = [
-					"warn",
-					{
-						semi: true,
-						trailingComma: "all",
-						singleQuote: false,
-						printWidth: 120,
-						tabWidth: 4,
-						useTabs: true,
-					},
-				];
+				eslintConfig.rules["prettier/prettier"] = "warn";
 			}
 
 			await fs.outputFile(paths.eslintrc, JSON.stringify(eslintConfig, undefined, "\t"));
+		}
+
+		if (prettier) {
+			const prettierConfig = {
+				printWidth: 120,
+				tabWidth: 4,
+				useTabs: true,
+			};
+			await fs.outputFile(paths.prettierrc, JSON.stringify(prettierConfig, undefined, "\t"));
 		}
 
 		if (vscode) {
 			const extensions = {
 				recommendations: ["roblox-ts.vscode-roblox-ts"],
 			};
+			const settings = {
+				"typescript.tsdk": "node_modules/typescript/lib",
+			};
 
 			if (eslint) {
-				const settings = {
+				extensions.recommendations.push("dbaeumer.vscode-eslint");
+				Object.assign(settings, {
 					"[typescript]": {
 						"editor.defaultFormatter": "dbaeumer.vscode-eslint",
 						"editor.formatOnSave": true,
@@ -299,15 +309,26 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					},
 					"eslint.run": "onType",
 					"eslint.format.enable": true,
-					"typescript.tsdk": "node_modules/typescript/lib",
-				};
-				await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
-
-				extensions.recommendations.push("dbaeumer.vscode-eslint");
+				});
+			} else if (prettier) {
+				// no eslint but still prettier
+				extensions.recommendations.push("esbenp.prettier-vscode");
+				Object.assign(settings, {
+					"[typescript]": {
+						"editor.defaultFormatter": "esbenp.prettier-vscode",
+						"editor.formatOnSave": true,
+					},
+					"[typescriptreact]": {
+						"editor.defaultFormatter": "esbenp.prettier-vscode",
+						"editor.formatOnSave": true,
+					},
+				});
 			}
 
 			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
+			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
 		}
+
 		const templateTsConfig = path.join(
 			TEMPLATE_DIR,
 			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
