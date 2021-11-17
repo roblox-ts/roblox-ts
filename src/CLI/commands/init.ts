@@ -302,6 +302,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			};
 			const settings = {
 				"typescript.tsdk": "node_modules/typescript/lib",
+				"files.eol": "\n",
 			};
 
 			if (eslint) {
