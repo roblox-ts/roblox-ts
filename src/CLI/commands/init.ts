@@ -289,6 +289,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			const prettierConfig = {
 				printWidth: 120,
 				tabWidth: 4,
+				trailingComma: "all",
 				useTabs: true,
 			};
 			await fs.outputFile(paths.prettierrc, JSON.stringify(prettierConfig, undefined, "\t"));
