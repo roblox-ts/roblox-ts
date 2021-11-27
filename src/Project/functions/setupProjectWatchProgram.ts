@@ -207,8 +207,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("addDir", collectAddEvent)
 		.on("change", collectChangeEvent)
 		.on("unlink", collectDeleteEvent)
-		.on("unlinkDir", collectDeleteEvent);
-
-	reportText("Starting compilation in watch mode...");
-	reportEmitResult(runInitialCompile());
+		.on("unlinkDir", collectDeleteEvent)
+		.once("ready", () => {
+			reportText("Starting compilation in watch mode...");
+			reportEmitResult(runInitialCompile());
+		});
 }
