@@ -18,7 +18,6 @@ import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
-import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -96,7 +95,7 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
-		if (!hasErrors(emitResult.diagnostics)) {
+		if (!emitResult.emitSkipped) {
 			initialCompileCompleted = true;
 		}
 		return emitResult;
