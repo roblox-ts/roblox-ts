@@ -140,26 +140,45 @@ export function transformVariableDeclaration(
 	state: TransformState,
 	node: ts.VariableDeclaration,
 ): luau.List<luau.Statement> {
-	// must transform right _before_ checking isHoisted, that way references inside of value can be hoisted
-	const value = node.initializer ? transformExpression(state, node.initializer) : undefined;
+	const statements = luau.list.make<luau.Statement>();
+	let value: luau.Expression | undefined;
+	if (node.initializer) {
+		// must transform right _before_ checking isHoisted, that way references inside of value can be hoisted
+		luau.list.pushList(
+			statements,
+			// non-null assertion on node.initializer because inside callback
+			state.capturePrereqs(() => (value = transformExpression(state, node.initializer!))),
+		);
+	}
 
 	if (ts.isIdentifier(node.name)) {
-		return transformVariable(state, node.name, value)[1];
+		luau.list.pushList(statements, transformVariable(state, node.name, value)[1]);
 	} else {
 		// in destructuring, rhs must be executed first
 		assert(node.initializer && value);
 		const name = node.name;
 		if (ts.isArrayBindingPattern(name)) {
 			if (luau.isCall(value) && isLuaTupleType(state, state.getType(node.initializer))) {
-				return transformLuaTupleDestructure(state, name, value);
+				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value));
+			} else {
+				luau.list.pushList(
+					statements,
+					state.capturePrereqs(() =>
+						transformArrayBindingPattern(state, name, state.pushToVar(value, "binding")),
+					),
+				);
 			}
-			const id = state.pushToVar(value, "binding");
-			return state.capturePrereqs(() => transformArrayBindingPattern(state, name, id));
 		} else {
-			const id = state.pushToVar(value, "binding");
-			return state.capturePrereqs(() => transformObjectBindingPattern(state, name, id));
+			luau.list.pushList(
+				statements,
+				state.capturePrereqs(() =>
+					transformObjectBindingPattern(state, name, state.pushToVar(value, "binding")),
+				),
+			);
 		}
 	}
+
+	return statements;
 }
 
 export function isVarDeclaration(node: ts.VariableDeclarationList) {
@@ -176,7 +195,9 @@ export function transformVariableDeclarationList(
 
 	const statements = luau.list.make<luau.Statement>();
 	for (const declaration of node.declarations) {
-		luau.list.pushList(statements, transformVariableDeclaration(state, declaration));
+		const [variableStatements, prereqs] = state.capture(() => transformVariableDeclaration(state, declaration));
+		luau.list.pushList(statements, prereqs);
+		luau.list.pushList(statements, variableStatements);
 	}
 
 	return statements;
