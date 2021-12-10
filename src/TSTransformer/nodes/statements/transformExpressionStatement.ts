@@ -56,7 +56,7 @@ export function transformExpressionStatementInner(
 						left: writable,
 						operator,
 						right:
-							operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t))
+							operator === "..=" && !isDefinitelyType(valueType, isStringType)
 								? luau.call(luau.globals.tostring, [value])
 								: value,
 					}),

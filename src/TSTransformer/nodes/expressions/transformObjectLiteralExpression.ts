@@ -7,7 +7,13 @@ import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodD
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { getFirstDefinedSymbol, isObjectType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import {
+	getFirstDefinedSymbol,
+	isDefinitelyType,
+	isObjectType,
+	isPossiblyType,
+	isUndefinedType,
+} from "TSTransformer/util/types";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
 
@@ -43,8 +49,8 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	const type = state.getType(property.expression);
 
-	const possiblyUndefined = isPossiblyType(type, t => isUndefinedType(t));
-	const isPossiblyNonObject = isPossiblyType(type, t => !isObjectType(t));
+	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
+	const isPossiblyNonObject = !isDefinitelyType(type, isObjectType);
 	if (possiblyUndefined || isPossiblyNonObject) {
 		spreadExp = state.pushToVarIfComplex(spreadExp, "spread");
 	}

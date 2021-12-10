@@ -152,7 +152,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			const rightExp = transformExpression(state, node.right);
 			const accessType = state.getType(node.right);
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state, accessType)) {
+			if (luau.isCall(rightExp) && isLuaTupleType(state)(accessType)) {
 				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
@@ -185,7 +185,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isDefinitelyType(valueType, t => isStringType(t))
+				operator === "..=" && !isDefinitelyType(valueType, isStringType)
 					? luau.call(luau.globals.tostring, [value])
 					: value,
 			);
@@ -229,8 +229,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
 		if (
-			(!isDefinitelyType(leftType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t))) ||
-			(!isDefinitelyType(rightType, t => isStringType(t)) && !isDefinitelyType(leftType, t => isNumberType(t)))
+			(!isDefinitelyType(leftType, isStringType) && !isDefinitelyType(leftType, isNumberType)) ||
+			(!isDefinitelyType(rightType, isStringType) && !isDefinitelyType(leftType, isNumberType))
 		) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}
