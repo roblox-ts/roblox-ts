@@ -12,6 +12,10 @@ function endsWithIndexableExpressionInner(node: luau.Expression): boolean {
 	} else if (luau.isUnaryExpression(node)) {
 		// `-a`
 		return endsWithIndexableExpressionInner(node.expression);
+	} else if (luau.isIfExpression(node)) {
+		// `if a then b else c`
+		// `if a then b elseif c then d else e`
+		return endsWithIndexableExpressionInner(node.alternative);
 	}
 	return false;
 }
@@ -26,7 +30,7 @@ function endsWithIndexableExpression(node: luau.Statement) {
 		if (node.right) {
 			furthestRight = node.right;
 		} else if (luau.list.isList(node.left)) {
-			assert(node.left.tail);
+			assert(luau.list.isNonEmpty(node.left));
 			furthestRight = node.left.tail.value;
 		} else {
 			furthestRight = node.left;

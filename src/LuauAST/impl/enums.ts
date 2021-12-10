@@ -19,6 +19,7 @@ export enum SyntaxKind {
 	FunctionExpression,
 	BinaryExpression,
 	UnaryExpression,
+	IfExpression,
 	Array,
 	Map,
 	Set,

@@ -46,6 +46,11 @@ const KIND_TO_VISITOR = ts.identity<{ [K in luau.SyntaxKind]: VisitStrategy<K> }
 		visitNode(node.right, visitor);
 	},
 	[luau.SyntaxKind.UnaryExpression]: (node, visitor) => visitNode(node.expression, visitor),
+	[luau.SyntaxKind.IfExpression]: (node, visitor) => {
+		visitNode(node.condition, visitor);
+		visitNode(node.expression, visitor);
+		visitNode(node.alternative, visitor);
+	},
 	[luau.SyntaxKind.Array]: (node, visitor) => visitList(node.members, visitor),
 	[luau.SyntaxKind.Map]: (node, visitor) => visitList(node.fields, visitor),
 	[luau.SyntaxKind.Set]: (node, visitor) => visitList(node.members, visitor),

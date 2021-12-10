@@ -2,29 +2,18 @@ import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { isBooleanLiteralType, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformConditionalExpression(state: TransformState, node: ts.ConditionalExpression) {
 	const condition = transformExpression(state, node.condition);
 	const [whenTrue, whenTruePrereqs] = state.capture(() => transformExpression(state, node.whenTrue));
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));
-	const type = state.getType(node.whenTrue);
-	if (
-		!isPossiblyType(type, isBooleanLiteralType(state, false)) &&
-		!isPossiblyType(type, isUndefinedType) &&
-		luau.list.isEmpty(whenTruePrereqs) &&
-		luau.list.isEmpty(whenFalsePrereqs)
-	) {
-		return luau.binary(
-			luau.binary(
-				createTruthinessChecks(state, condition, node.condition, state.getType(node.condition)),
-				"and",
-				whenTrue,
-			),
-			"or",
-			whenFalse,
-		);
+	if (luau.list.isEmpty(whenTruePrereqs) && luau.list.isEmpty(whenFalsePrereqs)) {
+		return luau.create(luau.SyntaxKind.IfExpression, {
+			condition: createTruthinessChecks(state, condition, node.condition, state.getType(node.condition)),
+			expression: whenTrue,
+			alternative: whenFalse,
+		});
 	}
 
 	const tempId = luau.tempId("result");
