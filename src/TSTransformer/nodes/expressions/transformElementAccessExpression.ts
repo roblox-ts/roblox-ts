@@ -33,7 +33,7 @@ export function transformElementAccessExpressionInner(
 
 	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
-		if (isLuaTupleType(state, expType)) {
+		if (isLuaTupleType(state)(expType)) {
 			expression = luau.array([expression]);
 		}
 
@@ -42,7 +42,7 @@ export function transformElementAccessExpressionInner(
 	}
 
 	// LuaTuple<T> checks
-	if (luau.isCall(expression) && isLuaTupleType(state, expType)) {
+	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
 		// wrap in select() if it isn't the first value
 		if (!luau.isNumberLiteral(index) || Number(index.value) !== 0) {
 			expression = luau.call(luau.globals.select, [offset(index, 1), expression]);

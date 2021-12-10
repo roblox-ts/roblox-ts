@@ -10,13 +10,13 @@ function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression
 	// intentionally NOT using state.getType() here, because that uses skipUpwards
 	return (
 		luau.isCall(luaExpression) &&
-		isLuaTupleType(state, state.typeChecker.getTypeAtLocation(skipDownwards(tsExpression)))
+		isLuaTupleType(state)(state.typeChecker.getTypeAtLocation(skipDownwards(tsExpression)))
 	);
 }
 
 export function transformReturnStatementInner(state: TransformState, returnExp: ts.Expression) {
 	let expression: luau.Expression | luau.List<luau.Expression> = transformExpression(state, skipDownwards(returnExp));
-	if (isLuaTupleType(state, state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
+	if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
 		if (luau.isArray(expression)) {
 			expression = expression.members;
 		} else {

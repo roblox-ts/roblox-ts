@@ -40,8 +40,8 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 ]);
 
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
-	const leftIsString = isDefinitelyType(leftType, t => isStringType(t));
-	const rightIsString = isDefinitelyType(rightType, t => isStringType(t));
+	const leftIsString = isDefinitelyType(leftType, isStringType);
+	const rightIsString = isDefinitelyType(rightType, isStringType);
 	if (leftIsString || rightIsString) {
 		return luau.binary(
 			leftIsString ? left : luau.call(luau.globals.tostring, [left]),

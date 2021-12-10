@@ -158,7 +158,7 @@ export function transformVariableDeclaration(
 		assert(node.initializer && value);
 		const name = node.name;
 		if (ts.isArrayBindingPattern(name)) {
-			if (luau.isCall(value) && isLuaTupleType(state, state.getType(node.initializer))) {
+			if (luau.isCall(value) && isLuaTupleType(state)(state.getType(node.initializer))) {
 				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value));
 			} else {
 				luau.list.pushList(

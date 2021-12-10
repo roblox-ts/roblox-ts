@@ -140,21 +140,18 @@ function createJsxAddChild(
 	expression: luau.Expression,
 	type: ts.Type,
 ): luau.Statement {
-	const isPossiblyUndefinedOrFalse = isPossiblyType(
-		type,
-		t => isUndefinedType(t) || isBooleanLiteralType(state, t, false),
-	);
-	const isPossiblyTrue = isPossiblyType(type, t => isBooleanLiteralType(state, t, true));
-	const isPossiblyElement = isPossiblyType(type, t => isRoactElementType(state, t));
+	const isPossiblyUndefinedOrFalse = isPossiblyType(type, isUndefinedType, isBooleanLiteralType(state, false));
+	const isPossiblyTrue = isPossiblyType(type, isBooleanLiteralType(state, true));
+	const isPossiblyElement = isPossiblyType(type, isRoactElementType(state));
 
 	// if map keys are possibly number, we need to add number keys to the end like arrays
-	let areMapKeysNonNumber = false;
+	let areMapKeysPossiblyNumber = false;
 	const isPossiblyMap = isPossiblyType(type, t => {
-		if (isMapType(state, t)) {
-			if (!areMapKeysNonNumber) {
+		if (isMapType(state)(t)) {
+			if (!areMapKeysPossiblyNumber) {
 				const typeArguments = getTypeArguments(state, t);
-				if (isDefinitelyType(typeArguments[0], t => !isNumberType(t))) {
-					areMapKeysNonNumber = true;
+				if (isPossiblyType(typeArguments[0], isNumberType)) {
+					areMapKeysPossiblyNumber = true;
 				}
 			}
 			return true;
@@ -162,7 +159,7 @@ function createJsxAddChild(
 		return false;
 	});
 
-	const isPossiblyArray = !areMapKeysNonNumber || isPossiblyType(type, t => isArrayType(state, t));
+	const isPossiblyArray = areMapKeysPossiblyNumber || isPossiblyType(type, isArrayType(state));
 
 	const expUses = countCreateJsxAddChildExpressionUses(
 		isPossiblyUndefinedOrFalse,
@@ -306,7 +303,7 @@ export function transformJsxChildren(
 					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
-					if (isDefinitelyType(type, t => isRoactElementType(state, t))) {
+					if (isDefinitelyType(type, isRoactElementType(state))) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {

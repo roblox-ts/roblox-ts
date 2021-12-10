@@ -11,8 +11,8 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));
 	const type = state.getType(node.whenTrue);
 	if (
-		!isPossiblyType(type, t => isBooleanLiteralType(state, t, false)) &&
-		!isPossiblyType(type, t => isUndefinedType(t)) &&
+		!isPossiblyType(type, isBooleanLiteralType(state, false)) &&
+		!isPossiblyType(type, isUndefinedType) &&
 		luau.list.isEmpty(whenTruePrereqs) &&
 		luau.list.isEmpty(whenFalsePrereqs)
 	) {

@@ -145,24 +145,24 @@ export function getAccessorForBindingType(
 	node: ts.Node,
 	type: ts.Type | ReadonlyArray<ts.Type>,
 ): BindingAccessor {
-	if (ts.isArray(type) || isDefinitelyType(type, t => isArrayType(state, t))) {
+	if (ts.isArray(type) || isDefinitelyType(type, isArrayType(state))) {
 		return arrayAccessor;
-	} else if (isDefinitelyType(type, t => isStringType(t))) {
+	} else if (isDefinitelyType(type, isStringType)) {
 		return stringAccessor;
-	} else if (isDefinitelyType(type, t => isSetType(state, t))) {
+	} else if (isDefinitelyType(type, isSetType(state))) {
 		return setAccessor;
-	} else if (isDefinitelyType(type, t => isMapType(state, t))) {
+	} else if (isDefinitelyType(type, isMapType(state))) {
 		return mapAccessor;
-	} else if (isDefinitelyType(type, t => isIterableFunctionLuaTupleType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
 		return iterableFunctionLuaTupleAccessor;
-	} else if (isDefinitelyType(type, t => isIterableFunctionType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableFunctionType(state))) {
 		return iterableFunctionAccessor;
-	} else if (isDefinitelyType(type, t => isIterableType(state, t))) {
+	} else if (isDefinitelyType(type, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.emptyId();
 	} else if (
-		isDefinitelyType(type, t => isGeneratorType(state, t)) ||
-		isDefinitelyType(type, t => isObjectType(t)) ||
+		isDefinitelyType(type, isGeneratorType(state)) ||
+		isDefinitelyType(type, isObjectType) ||
 		ts.isThis(node)
 	) {
 		return iterAccessor;

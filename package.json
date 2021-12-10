@@ -56,7 +56,7 @@
 		"lookpath": "^1.2.2",
 		"prompts": "^2.4.1",
 		"resolve": "^1.20.0",
-		"typescript": "=4.5.2",
+		"typescript": "=4.5.3",
 		"yargs": "^17.2.0"
 	},
 	"devDependencies": {
@@ -75,7 +75,7 @@
 		"mocha": "^9.1.1",
 		"nyc": "^15.1.0",
 		"prettier": "^2.4.1",
-		"ts-expose-internals": "=4.4.4",
+		"ts-expose-internals": "=4.5.2",
 		"ttypescript": "^1.5.12",
 		"typescript-transform-paths": "^3.3.1"
 	},
