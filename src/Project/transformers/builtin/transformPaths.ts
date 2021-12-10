@@ -221,7 +221,14 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 
 		const importClause = ts.visitNode(node.importClause, visitImportClause as any, ts.isImportClause);
 		return node.importClause === importClause || importClause || isDeclarationFile
-			? ts.updateImportDeclaration(node, node.decorators, node.modifiers, node.importClause, fileLiteral)
+			? ts.updateImportDeclaration(
+					node,
+					node.decorators,
+					node.modifiers,
+					node.importClause,
+					fileLiteral,
+					undefined,
+			  )
 			: undefined;
 	}
 	function visitImportClause(node: ts.ImportClause): ts.VisitResult<ts.ImportClause> {
