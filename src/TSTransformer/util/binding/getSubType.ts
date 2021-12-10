@@ -22,10 +22,10 @@ export function getSubType(
 			const prop = type.getProperty(index);
 			assert(prop && prop.valueDeclaration);
 			return state.getType(prop.valueDeclaration);
-		} else if (isLuaTupleType(state, type)) {
+		} else if (isLuaTupleType(state)(type)) {
 			assert(type.aliasTypeArguments);
 			return getSubType(state, type.aliasTypeArguments[0], index);
-		} else if (isDefinitelyType(type, t => isArrayType(state, t))) {
+		} else if (isDefinitelyType(type, isArrayType(state))) {
 			if (state.typeChecker.isTupleType(type)) {
 				return getSubType(state, getTypeArguments(state, type), index);
 			} else {
@@ -36,13 +36,13 @@ export function getSubType(
 		} else if (isDefinitelyType(type, t => isStringType(t))) {
 			// T -> T
 			return type;
-		} else if (isDefinitelyType(type, t => isSetType(state, t))) {
+		} else if (isDefinitelyType(type, isSetType(state))) {
 			// Set<T> -> T
 			return getTypeArguments(state, type)[0];
-		} else if (isDefinitelyType(type, t => isMapType(state, t))) {
+		} else if (isDefinitelyType(type, isMapType(state))) {
 			// Map<K, V> -> [K, V]
 			return getTypeArguments(state, type);
-		} else if (isDefinitelyType(type, t => isGeneratorType(state, t))) {
+		} else if (isDefinitelyType(type, isGeneratorType(state))) {
 			// Generator<T> -> T
 			return getTypeArguments(state, type)[0];
 		}

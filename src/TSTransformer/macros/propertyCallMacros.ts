@@ -5,7 +5,7 @@ import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { offset } from "TSTransformer/util/offset";
-import { isNumberType, isPossiblyType, isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
@@ -173,7 +173,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		// table.concat only works on string and number types, so call tostring() otherwise
-		if (indexType && isPossiblyType(indexType, t => !isStringType(t) && !isNumberType(t))) {
+		if (indexType && !isDefinitelyType(indexType, isStringType, isNumberType)) {
 			expression = state.pushToVarIfComplex(expression, "exp");
 			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]), "result");
 			const keyId = luau.tempId("k");

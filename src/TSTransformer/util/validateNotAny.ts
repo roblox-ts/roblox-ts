@@ -12,7 +12,7 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 
 	let type = state.getType(node);
 
-	if (isDefinitelyType(type, t => isArrayType(state, t))) {
+	if (isDefinitelyType(type, isArrayType(state))) {
 		// Array<T> -> T
 		const indexType = state.typeChecker.getIndexTypeOfType(type, ts.IndexKind.Number);
 		if (indexType) {
@@ -20,7 +20,7 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 		}
 	}
 
-	if (isDefinitelyType(type, t => isAnyType(t))) {
+	if (isDefinitelyType(type, isAnyType)) {
 		const symbol = state.getOriginalSymbol(node);
 		if (symbol && !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
 			state.multiTransformState.isReportedByNoAnyCache.add(symbol);

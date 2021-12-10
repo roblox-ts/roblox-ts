@@ -9,7 +9,7 @@ export function addOneIfArrayType(
 	type: ts.Type | ReadonlyArray<ts.Type>,
 	expression: luau.Expression,
 ) {
-	if (ts.isArray(type) || isDefinitelyType(type, t => isArrayType(state, t) || isUndefinedType(t))) {
+	if (ts.isArray(type) || isDefinitelyType(type, isArrayType(state), isUndefinedType)) {
 		return offset(expression, 1);
 	} else {
 		return expression;
