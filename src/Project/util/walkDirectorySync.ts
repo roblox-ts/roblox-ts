@@ -1,6 +1,9 @@
 import fs from "fs-extra";
 import path from "path";
 
+/**
+ * Recursively calls the callback on all descendant directories and files
+ */
 export function walkDirectorySync(dir: string, callback: (fsPath: string) => void) {
 	const queue = [dir];
 	for (let i = 0; i < queue.length; i++) {

@@ -18,7 +18,6 @@ import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
-import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
 
 const CHOKIDAR_OPTIONS: chokidar.WatchOptions = {
@@ -96,32 +95,31 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
-		if (!hasErrors(emitResult.diagnostics)) {
+		if (!emitResult.emitSkipped) {
 			initialCompileCompleted = true;
 		}
 		return emitResult;
 	}
 
+	const filesToCompile = new Set<string>();
+	const filesToCopy = new Set<string>();
+	const filesToClean = new Set<string>();
 	function runIncrementalCompile(additions: Set<string>, changes: Set<string>, removals: Set<string>): ts.EmitResult {
-		const filesToCompile = new Set<string>();
-		const filesToCopy = new Set<string>();
-		const filesToClean = new Set<string>();
-
 		for (const fsPath of additions) {
-			if (isCompilableFile(fsPath)) {
+			if (fs.statSync(fsPath).isDirectory()) {
+				walkDirectorySync(fsPath, item => {
+					if (isCompilableFile(item)) {
+						fileNamesSet.add(item);
+						filesToCompile.add(item);
+					}
+				});
+			} else if (isCompilableFile(fsPath)) {
 				fileNamesSet.add(fsPath);
 				filesToCompile.add(fsPath);
 			} else {
 				// checks for copying `init.*.d.ts`
 				checkFileName(fsPath);
 				filesToCopy.add(fsPath);
-			}
-			if (fs.statSync(fsPath).isDirectory()) {
-				walkDirectorySync(fsPath, item => {
-					if (isCompilableFile(item)) {
-						filesToCompile.add(item);
-					}
-				});
 			}
 		}
 
@@ -140,6 +138,17 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 
 		refreshProgram();
 		assert(program && pathTranslator);
+		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		if (emitResult.emitSkipped) {
+			// exit before copying to prevent half-updated out directory
+			return emitResult;
+		} else {
+			// if emitted, clear the compile queue
+			filesToCompile.clear();
+			filesToCopy.clear();
+			filesToClean.clear();
+		}
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
 			if (options.declaration) {
@@ -149,8 +158,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
 		}
-		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
 		return emitResult;
 	}
 
@@ -200,8 +207,9 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("addDir", collectAddEvent)
 		.on("change", collectChangeEvent)
 		.on("unlink", collectDeleteEvent)
-		.on("unlinkDir", collectDeleteEvent);
-
-	reportText("Starting compilation in watch mode...");
-	reportEmitResult(runInitialCompile());
+		.on("unlinkDir", collectDeleteEvent)
+		.once("ready", () => {
+			reportText("Starting compilation in watch mode...");
+			reportEmitResult(runInitialCompile());
+		});
 }

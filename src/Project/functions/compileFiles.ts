@@ -196,8 +196,9 @@ export function compileFiles(
 		});
 	}
 
-	if (DiagnosticService.hasErrors()) return { emitSkipped: false, diagnostics: DiagnosticService.flush() };
+	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
+	const emittedFiles: Array<string> = [];
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
 			for (const { sourceFile, source } of fileWriteQueue) {
@@ -208,6 +209,7 @@ export function compileFiles(
 					fs.readFileSync(outPath).toString() !== source
 				) {
 					fs.outputFileSync(outPath, source);
+					emittedFiles.push(outPath);
 				}
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, {
@@ -220,5 +222,5 @@ export function compileFiles(
 
 	program.emitBuildInfo();
 
-	return { emitSkipped: false, diagnostics: DiagnosticService.flush() };
+	return { emittedFiles, emitSkipped: false, diagnostics: DiagnosticService.flush() };
 }
