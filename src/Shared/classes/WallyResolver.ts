@@ -39,12 +39,12 @@ export class WallyResolver {
 	}
 
 	private parseConfig(wallyConfigFilePath: string): WallyFile {
-		const realPath = fs.realpathSync(wallyConfigFilePath);
 		let dependencies: Dependencies = {};
 		let serverDependencies: Dependencies = {};
 		let DevDependencies: Dependencies = {};
 
-		if (fs.pathExistsSync(realPath)) {
+		if (fs.pathExistsSync(wallyConfigFilePath)) {
+			const realPath = fs.realpathSync(wallyConfigFilePath);
 			let wallyToml: { [key: string]: unknown } | undefined;
 			try {
 				wallyToml = toml.parse(fs.readFileSync(realPath));
@@ -62,8 +62,6 @@ export class WallyResolver {
 				}
 			} catch (e) {}
 			// TODO: check that wallyToml follows spec
-		} else {
-			warn(`WallyResolver: Path does not exist "${wallyConfigFilePath}"`);
 		}
 
 		return {
