@@ -4,6 +4,7 @@ import { validateCompilerOptions } from "Project/functions/validateCompilerOptio
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RojoResolver } from "Shared/classes/RojoResolver";
+import { WallyResolver } from "Shared/classes/WallyResolver";
 import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";
@@ -29,6 +30,7 @@ export class VirtualProject {
 
 	private readonly compilerOptions: ts.CompilerOptions;
 	private readonly rojoResolver: RojoResolver;
+	private readonly wallyResolver: WallyResolver;
 	private readonly pkgRojoResolvers: Array<RojoResolver>;
 	private readonly compilerHost: ts.CompilerHost;
 
@@ -47,6 +49,7 @@ export class VirtualProject {
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
+			wallyConfigPath: undefined,
 			tsConfigPath: "",
 			writeOnlyChanged: false,
 			watch: false,
@@ -94,6 +97,7 @@ export class VirtualProject {
 				},
 			},
 		} as never);
+		this.wallyResolver = WallyResolver.fromPath(PROJECT_DIR, WallyResolver.getWallyConfigFilePath(PROJECT_DIR));
 		this.pkgRojoResolvers = this.compilerOptions.typeRoots!.map(RojoResolver.synthetic);
 	}
 
@@ -129,6 +133,7 @@ export class VirtualProject {
 			multiTransformState,
 			this.compilerOptions,
 			this.rojoResolver,
+			this.wallyResolver,
 			this.pkgRojoResolvers,
 			this.nodeModulesPathMapping,
 			new Map(),

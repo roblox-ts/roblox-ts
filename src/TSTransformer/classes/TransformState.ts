@@ -4,6 +4,7 @@ import { solveTempIds } from "LuauRenderer/solveTempIds";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
+import { WallyResolver } from "Shared/classes/WallyResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";
@@ -47,6 +48,7 @@ export class TransformState {
 		public readonly multiTransformState: MultiTransformState,
 		public readonly compilerOptions: ts.CompilerOptions,
 		public readonly rojoResolver: RojoResolver,
+		public readonly wallyResolver: WallyResolver,
 		public readonly pkgRojoResolvers: Array<RojoResolver>,
 		public readonly nodeModulesPathMapping: Map<string, string>,
 		public readonly reverseSymlinkMap: Map<string, string>,

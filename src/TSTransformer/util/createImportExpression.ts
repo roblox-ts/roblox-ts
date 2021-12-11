@@ -123,7 +123,56 @@ export function createImportExpression(
 	importPathExpressions.push(luau.globals.script);
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
-	if (ts.isInsideNodeModules(virtualPath)) {
+	const pathComponents = ts.getPathComponents(virtualPath);
+	const isInsideNodeModules = ts.isInsideNodeModules(virtualPath);
+	if (
+		isInsideNodeModules &&
+		pathComponents.find(
+			(value, index) => value === "node_modules" && pathComponents[index + 1] === "@rbxtswally",
+		) &&
+		ts.isStringLiteral(moduleSpecifier)
+	) {
+		const moduleOutPath = state.wallyResolver.getFileForPackage(moduleSpecifier.text);
+		assert(moduleOutPath);
+		// TODO: add real error
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
+			);
+			return luau.emptyId();
+		}
+		const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
+		const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+		if (!sourceRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath)),
+			);
+			return luau.emptyId();
+		}
+
+		if (state.projectType === ProjectType.Game) {
+			const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
+			if (!sourceRbxPath) {
+				DiagnosticService.addDiagnostic(
+					errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath)),
+				);
+				return luau.emptyId();
+			}
+
+			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
+			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
+				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
+			} else if (fileRelation === FileRelation.InToIn) {
+				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
+			} else {
+				DiagnosticService.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
+				return luau.emptyId();
+			}
+		} else {
+			importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
+		}
+	} else if (isInsideNodeModules) {
 		importPathExpressions.push(getNodeModulesImport(state, moduleSpecifier, virtualPath));
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);

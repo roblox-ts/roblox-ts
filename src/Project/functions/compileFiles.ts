@@ -13,6 +13,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
+import { WallyResolver } from "Shared/classes/WallyResolver";
 import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -76,6 +77,11 @@ export function compileFiles(
 	const rojoResolver = data.rojoConfigPath
 		? RojoResolver.fromPath(data.rojoConfigPath)
 		: RojoResolver.synthetic(outDir);
+
+	const wallyResolver = WallyResolver.fromPath(
+		data.projectPath,
+		data.wallyConfigPath ? data.wallyConfigPath : WallyResolver.getWallyConfigFilePath(data.projectPath),
+	);
 
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 
@@ -178,6 +184,7 @@ export function compileFiles(
 				multiTransformState,
 				compilerOptions,
 				rojoResolver,
+				wallyResolver,
 				pkgRojoResolvers,
 				nodeModulesPathMapping,
 				reverseSymlinkMap,

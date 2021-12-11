@@ -51,6 +51,8 @@ export function createProjectData(
 		rojoConfigPath = RojoResolver.findRojoConfigFilePath(projectPath);
 	}
 
+	const wallyConfigPath = path.join(projectPath, "wally.toml");
+	// TODO: make cli option
 	const writeOnlyChanged = flags.writeOnlyChanged;
 	const watch = flags.watch;
 
@@ -65,6 +67,7 @@ export function createProjectData(
 		projectOptions,
 		projectPath,
 		rojoConfigPath,
+		wallyConfigPath,
 		writeOnlyChanged,
 		watch,
 	};

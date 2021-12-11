@@ -28,6 +28,7 @@ export interface ProjectData {
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
+	wallyConfigPath: string | undefined;
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
 	watch: boolean;
