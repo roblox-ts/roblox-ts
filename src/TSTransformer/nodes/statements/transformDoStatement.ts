@@ -6,11 +6,17 @@ import { createTruthinessChecks } from "TSTransformer/util/createTruthinessCheck
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
-export function transformDoStatement(state: TransformState, node: ts.DoStatement) {
-	const statements = transformStatementList(state, getStatements(node.statement));
+export function transformDoStatement(state: TransformState, { expression, statement }: ts.DoStatement) {
+	const statements = transformStatementList(state, getStatements(statement));
+
+	let conditionIsInvertedInLuau = true;
+	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.ExclamationToken) {
+		expression = expression.operand;
+		conditionIsInvertedInLuau = false;
+	}
 
 	const [condition, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
+		createTruthinessChecks(state, transformExpression(state, expression), expression),
 	);
 
 	const repeatStatements = luau.list.make<luau.Statement>();
@@ -25,7 +31,7 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.RepeatStatement, {
 			statements: repeatStatements,
-			condition: luau.unary("not", condition),
+			condition: conditionIsInvertedInLuau ? luau.unary("not", condition) : condition,
 		}),
 	);
 }
