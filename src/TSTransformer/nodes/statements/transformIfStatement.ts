@@ -7,12 +7,7 @@ import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): luau.IfStatement {
-	const condition = createTruthinessChecks(
-		state,
-		transformExpression(state, node.expression),
-		node.expression,
-		state.getType(node.expression),
-	);
+	const condition = createTruthinessChecks(state, transformExpression(state, node.expression), node.expression);
 
 	const statements = transformStatementList(state, getStatements(node.thenStatement));
 

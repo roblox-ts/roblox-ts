@@ -11,12 +11,7 @@ export function transformWhileStatement(state: TransformState, node: ts.WhileSta
 
 	// eslint-disable-next-line prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(
-			state,
-			transformExpression(state, node.expression),
-			node.expression,
-			state.getType(node.expression),
-		),
+		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
 	);
 
 	if (!luau.list.isEmpty(conditionPrereqs)) {

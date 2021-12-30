@@ -40,7 +40,6 @@ function transformLogicalAndAssignmentExpression(
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writableType = state.getType(left);
 	const writable = transformWritableExpression(state, left, true);
 	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
 
@@ -59,7 +58,7 @@ function transformLogicalAndAssignmentExpression(
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTruthinessChecks(state, writable, left, writableType),
+			condition: createTruthinessChecks(state, writable, left),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),
@@ -81,7 +80,6 @@ function transformLogicalOrAssignmentExpression(
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writableType = state.getType(left);
 	const writable = transformWritableExpression(state, left, true);
 	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
 
@@ -100,7 +98,7 @@ function transformLogicalOrAssignmentExpression(
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition: luau.unary("not", createTruthinessChecks(state, writable, left, writableType)),
+			condition: luau.unary("not", createTruthinessChecks(state, writable, left)),
 			statements: ifStatements,
 			elseBody: luau.list.make(),
 		}),

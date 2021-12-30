@@ -17,7 +17,7 @@ const PRIMITIVE_LUAU_TYPES = new Set([
 
 export const CALL_MACROS: MacroList<CallMacro> = {
 	assert: (state, node, expression, args) => {
-		args[0] = createTruthinessChecks(state, args[0], node.arguments[0], state.getType(node.arguments[0]));
+		args[0] = createTruthinessChecks(state, args[0], node.arguments[0]);
 		return luau.call(luau.globals.assert, args);
 	},
 

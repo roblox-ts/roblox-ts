@@ -60,12 +60,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		}
 		return luau.unary("-", transformExpression(state, node.operand));
 	} else if (node.operator === ts.SyntaxKind.ExclamationToken) {
-		const checks = createTruthinessChecks(
-			state,
-			transformExpression(state, node.operand),
-			node.operand,
-			state.getType(node.operand),
-		);
+		const checks = createTruthinessChecks(state, transformExpression(state, node.operand), node.operand);
 		return luau.unary("not", checks);
 	} else if (node.operator === ts.SyntaxKind.TildeToken) {
 		return luau.call(luau.property(luau.globals.bit32, "bnot"), [transformExpression(state, node.operand)]);

@@ -9,7 +9,6 @@ import ts from "typescript";
 
 interface LogicalChainItem {
 	node: ts.Expression;
-	type: ts.Type;
 	expression: luau.Expression;
 	statements: luau.List<luau.Statement>;
 	inline: boolean;
@@ -59,7 +58,7 @@ function buildLogicalChainPrereqs(
 	state: TransformState,
 	chain: Array<LogicalChainItem>,
 	conditionId: luau.TemporaryIdentifier,
-	buildCondition: (conditionId: luau.TemporaryIdentifier, node: ts.Expression, type: ts.Type) => luau.Expression,
+	buildCondition: (conditionId: luau.TemporaryIdentifier, node: ts.Expression) => luau.Expression,
 	index = 0,
 ) {
 	const expInfo = chain[index];
@@ -83,7 +82,7 @@ function buildLogicalChainPrereqs(
 	if (index + 1 < chain.length) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: buildCondition(conditionId, expInfo.node, expInfo.type),
+				condition: buildCondition(conditionId, expInfo.node),
 				statements: state.capturePrereqs(() =>
 					buildLogicalChainPrereqs(state, chain, conditionId, buildCondition, index + 1),
 				),
@@ -128,7 +127,7 @@ function buildInlineConditionExpression(
 	node: ts.BinaryExpression,
 	tsBinaryOperator: ts.SyntaxKind,
 	luaBinaryOperator: luau.BinaryOperator,
-	buildCondition: (conditionId: luau.TemporaryIdentifier, node: ts.Expression, type: ts.Type) => luau.Expression,
+	buildCondition: (conditionId: luau.TemporaryIdentifier, node: ts.Expression) => luau.Expression,
 ) {
 	const chain = getLogicalChain(state, node, tsBinaryOperator, true);
 
@@ -146,12 +145,12 @@ function buildInlineConditionExpression(
 
 export function transformLogical(state: TransformState, node: ts.BinaryExpression): luau.Expression {
 	if (node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
-		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "and", (conditionId, node, type) =>
-			createTruthinessChecks(state, conditionId, node, type),
+		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "and", (conditionId, node) =>
+			createTruthinessChecks(state, conditionId, node),
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.BarBarToken) {
-		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", (conditionId, node, type) =>
-			luau.unary("not", createTruthinessChecks(state, conditionId, node, type)),
+		return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", (conditionId, node) =>
+			luau.unary("not", createTruthinessChecks(state, conditionId, node)),
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
 		/*
