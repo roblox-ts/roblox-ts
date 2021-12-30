@@ -10,12 +10,7 @@ export function transformDoStatement(state: TransformState, node: ts.DoStatement
 	const statements = transformStatementList(state, getStatements(node.statement));
 
 	const [condition, conditionPrereqs] = state.capture(() =>
-		createTruthinessChecks(
-			state,
-			transformExpression(state, node.expression),
-			node.expression,
-			state.getType(node.expression),
-		),
+		createTruthinessChecks(state, transformExpression(state, node.expression), node.expression),
 	);
 
 	const repeatStatements = luau.list.make<luau.Statement>();

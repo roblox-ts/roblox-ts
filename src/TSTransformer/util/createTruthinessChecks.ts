@@ -14,12 +14,8 @@ export function willCreateTruthinessChecks(type: ts.Type) {
 	);
 }
 
-export function createTruthinessChecks(
-	state: TransformState,
-	exp: luau.Expression,
-	node: ts.Expression,
-	type: ts.Type,
-) {
+export function createTruthinessChecks(state: TransformState, exp: luau.Expression, node: ts.Expression) {
+	const type = state.getType(node);
 	const isAssignableToZero = isPossiblyType(type, isNumberLiteralType(0));
 	const isAssignableToNaN = isPossiblyType(type, isNaNType);
 	const isAssignableToEmptyString = isPossiblyType(type, isEmptyStringType);
