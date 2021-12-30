@@ -198,7 +198,7 @@ export function compileFiles(
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
-	const emittedFiles: Array<string> = [];
+	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
 		benchmarkIfVerbose("writing compiled files", () => {
 			for (const { sourceFile, source } of fileWriteQueue) {
