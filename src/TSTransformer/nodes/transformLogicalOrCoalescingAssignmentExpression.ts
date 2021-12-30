@@ -40,7 +40,6 @@ function transformLogicalAndAssignmentExpression(
 	left: ts.LeftHandSideExpression,
 	right: ts.Expression,
 ) {
-	const writableType = state.getType(left);
 	const writable = transformWritableExpression(state, left, true);
 	const [value, valuePreqreqs] = state.capture(() => transformExpression(state, right));
 
