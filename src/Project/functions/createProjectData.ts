@@ -32,7 +32,9 @@ export function createProjectData(
 		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
 		pkgVersion = pkgJson.version;
-	} catch (e) {}
+	} catch (e) {
+		// errors if no pkgJson, so assume not a package and no version
+	}
 
 	const logTruthyChanges = flags.logTruthyChanges;
 	const noInclude = flags.noInclude;

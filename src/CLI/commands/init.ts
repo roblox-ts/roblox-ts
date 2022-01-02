@@ -89,7 +89,8 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		src: path.join(cwd, "src"),
 		tsconfig: path.join(cwd, "tsconfig.json"),
 		gitignore: path.join(cwd, ".gitignore"),
-		eslintrc: path.join(cwd, ".eslintrc.json"),
+		eslintrc: path.join(cwd, ".eslintrc"),
+		prettierrc: path.join(cwd, ".prettierrc"),
 		settings: path.join(cwd, ".vscode", "settings.json"),
 		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
@@ -165,8 +166,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			initial: true,
 		},
 		{
-			type: (_, values) =>
-				(argv.eslint || values.eslint) && argv.prettier === undefined && argv.yes === undefined && "confirm",
+			type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
 			name: "prettier",
 			message: "Configure Prettier",
 			initial: true,
@@ -191,8 +191,9 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		},
 	]);
 
-	await benchmark("Initializing..", async () => {
-		const selectedPackageManager = packageManagerCommands[packageManager];
+	const selectedPackageManager = packageManagerCommands[packageManager];
+
+	await benchmark("Initializing package.json..", async () => {
 		await cmd(selectedPackageManager.init);
 		const pkgJson = await fs.readJson(paths.packageJson);
 		pkgJson.scripts = {
@@ -210,9 +211,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			pkgJson.scripts.prepublishOnly = selectedPackageManager.build;
 		}
 		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
+	});
 
-		// git init
-		if (git) {
+	if (git) {
+		await benchmark("Initializing Git..", async () => {
 			try {
 				await cmd("git init");
 			} catch (error) {
@@ -222,28 +224,37 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				);
 			}
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
-		}
+		});
+	}
 
-		// npm install -D
-		const devDependencies = ["@rbxts/types", `@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`];
+	await benchmark("Installing dependencies..", async () => {
+		const devDependencies = [
+			"@rbxts/types",
+			`@rbxts/compiler-types@compiler-${getNonDevCompilerVersion()}`,
+			"typescript",
+		];
+
+		if (prettier) {
+			devDependencies.push("prettier");
+		}
 
 		if (eslint) {
 			devDependencies.push(
 				"eslint",
-				"typescript",
 				"@typescript-eslint/eslint-plugin",
 				"@typescript-eslint/parser",
 				"eslint-plugin-roblox-ts",
 			);
 			if (prettier) {
-				devDependencies.push("prettier", "eslint-config-prettier", "eslint-plugin-prettier");
+				devDependencies.push("eslint-config-prettier", "eslint-plugin-prettier");
 			}
 		}
 
 		await cmd(`${selectedPackageManager.devInstall} ${devDependencies.join(" ")}`);
+	});
 
-		// create .eslintrc.json
-		if (eslint) {
+	if (eslint) {
+		await benchmark("Configuring ESLint..", async () => {
 			const eslintConfig = {
 				parser: "@typescript-eslint/parser",
 				parserOptions: {
@@ -255,36 +266,49 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				},
 				ignorePatterns: ["/out"],
 				plugins: ["@typescript-eslint", "roblox-ts"],
-				extends: ["plugin:@typescript-eslint/recommended", "plugin:roblox-ts/recommended"],
+				extends: [
+					"eslint:recommended",
+					"plugin:@typescript-eslint/recommended",
+					"plugin:roblox-ts/recommended",
+				],
 				rules: ts.identity<{ [index: string]: unknown }>({}),
 			};
 
 			if (prettier) {
 				eslintConfig.plugins.push("prettier");
 				eslintConfig.extends.push("plugin:prettier/recommended");
-				eslintConfig.rules["prettier/prettier"] = [
-					"warn",
-					{
-						semi: true,
-						trailingComma: "all",
-						singleQuote: false,
-						printWidth: 120,
-						tabWidth: 4,
-						useTabs: true,
-					},
-				];
+				eslintConfig.rules["prettier/prettier"] = "warn";
 			}
 
 			await fs.outputFile(paths.eslintrc, JSON.stringify(eslintConfig, undefined, "\t"));
-		}
+		});
+	}
 
-		if (vscode) {
+	if (prettier) {
+		await benchmark("Configuring prettier..", async () => {
+			const prettierConfig = {
+				printWidth: 120,
+				tabWidth: 4,
+				trailingComma: "all",
+				useTabs: true,
+			};
+			await fs.outputFile(paths.prettierrc, JSON.stringify(prettierConfig, undefined, "\t"));
+		});
+	}
+
+	if (vscode) {
+		await benchmark("Configuring vscode..", async () => {
 			const extensions = {
 				recommendations: ["roblox-ts.vscode-roblox-ts"],
 			};
+			const settings = {
+				"typescript.tsdk": "node_modules/typescript/lib",
+				"files.eol": "\n",
+			};
 
 			if (eslint) {
-				const settings = {
+				extensions.recommendations.push("dbaeumer.vscode-eslint");
+				Object.assign(settings, {
 					"[typescript]": {
 						"editor.defaultFormatter": "dbaeumer.vscode-eslint",
 						"editor.formatOnSave": true,
@@ -295,15 +319,28 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					},
 					"eslint.run": "onType",
 					"eslint.format.enable": true,
-					"typescript.tsdk": "node_modules/typescript/lib",
-				};
-				await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
-
-				extensions.recommendations.push("dbaeumer.vscode-eslint");
+				});
+			} else if (prettier) {
+				// no eslint but still prettier
+				extensions.recommendations.push("esbenp.prettier-vscode");
+				Object.assign(settings, {
+					"[typescript]": {
+						"editor.defaultFormatter": "esbenp.prettier-vscode",
+						"editor.formatOnSave": true,
+					},
+					"[typescriptreact]": {
+						"editor.defaultFormatter": "esbenp.prettier-vscode",
+						"editor.formatOnSave": true,
+					},
+				});
 			}
 
 			await fs.outputFile(paths.extensions, JSON.stringify(extensions, undefined, "\t"));
-		}
+			await fs.outputFile(paths.settings, JSON.stringify(settings, undefined, "\t"));
+		});
+	}
+
+	await benchmark("Copying template files..", async () => {
 		const templateTsConfig = path.join(
 			TEMPLATE_DIR,
 			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
@@ -314,7 +351,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	});
 
 	await benchmark(
-		"Building..",
+		"Compiling..",
 		() =>
 			build.handler({
 				logTruthyChanges: false,
