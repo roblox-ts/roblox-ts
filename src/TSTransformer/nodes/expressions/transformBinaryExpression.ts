@@ -37,7 +37,7 @@ function transformLuaTupleDestructure(
 	const statements = state.capturePrereqs(() => {
 		for (let element of bindingLiteral.elements) {
 			if (ts.isOmittedExpression(element)) {
-				luau.list.push(writes, luau.emptyId());
+				luau.list.push(writes, luau.tempId());
 			} else if (ts.isSpreadElement(element)) {
 				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 			} else {
@@ -98,7 +98,7 @@ function transformLuaTupleDestructure(
 		} else {
 			state.prereq(
 				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: luau.list.make(luau.emptyId()),
+					left: luau.list.make(luau.tempId()),
 					right: value,
 				}),
 			);
@@ -124,13 +124,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noEqualsEquals(node));
-		return luau.emptyId();
+		return luau.nil();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noExclamationEquals(node));
-		return luau.emptyId();
+		return luau.nil();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
 		DiagnosticService.addDiagnostic(errors.noComma(node));
-		return luau.emptyId();
+		return luau.nil();
 	}
 
 	// logical
@@ -157,7 +157,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
-				return luau.emptyId();
+				return luau.nil();
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");

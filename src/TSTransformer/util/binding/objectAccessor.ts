@@ -33,7 +33,7 @@ export const objectAccessor = (
 		});
 	} else if (ts.isPrivateIdentifier(name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
-		return luau.emptyId();
+		return luau.nil();
 	}
 	assert(false);
 };

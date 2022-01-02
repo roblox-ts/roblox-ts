@@ -151,7 +151,7 @@ function transformForInitializer(
 }
 
 const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
-	luau.list.push(ids, luau.emptyId());
+	luau.list.push(ids, luau.tempId());
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
 	return luau.call(luau.globals.ipairs, [exp]);
 });
@@ -169,7 +169,7 @@ function transformInLineArrayBindingPattern(
 ) {
 	for (const element of pattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			luau.list.push(ids, luau.emptyId());
+			luau.list.push(ids, luau.tempId());
 		} else if (ts.isSpreadElement(element)) {
 			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 		} else {
@@ -193,7 +193,7 @@ function transformInLineArrayBindingLiteral(
 		state.capturePrereqs(() => {
 			for (let element of bindingLiteral.elements) {
 				if (ts.isOmittedExpression(element)) {
-					luau.list.push(ids, luau.emptyId());
+					luau.list.push(ids, luau.tempId());
 				} else if (ts.isSpreadElement(element)) {
 					DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
 				} else {

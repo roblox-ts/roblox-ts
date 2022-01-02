@@ -20,7 +20,7 @@ function optimizeArraySpreadParameter(
 ) {
 	for (const element of bindingPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
-			luau.list.push(parameters, luau.emptyId());
+			luau.list.push(parameters, luau.tempId());
 		} else {
 			if (element.dotDotDotToken) {
 				DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));

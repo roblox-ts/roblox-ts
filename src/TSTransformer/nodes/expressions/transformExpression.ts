@@ -41,7 +41,7 @@ import { transformYieldExpression } from "TSTransformer/nodes/expressions/transf
 import { getKindName } from "TSTransformer/util/getKindName";
 import ts from "typescript";
 
-const NO_EMIT = () => luau.emptyId();
+const NO_EMIT = () => luau.nil();
 
 const DIAGNOSTIC = (factory: DiagnosticFactory) => (state: TransformState, node: ts.Expression) => {
 	DiagnosticService.addDiagnostic(factory(node));

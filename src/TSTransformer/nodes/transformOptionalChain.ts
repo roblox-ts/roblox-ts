@@ -279,7 +279,7 @@ function transformOptionalChainInner(
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
 							DiagnosticService.addDiagnostic(errors.noOptionalMacroCall(item.node));
-							return luau.emptyId();
+							return luau.nil();
 						}
 					}
 
@@ -323,7 +323,7 @@ function transformOptionalChainInner(
 
 			state.prereq(createNilCheck(tempId, ifStatements));
 
-			return isUsed ? tempId : luau.emptyId();
+			return isUsed ? tempId : luau.nil();
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {

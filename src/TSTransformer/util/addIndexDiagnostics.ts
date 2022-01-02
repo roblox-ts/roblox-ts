@@ -19,7 +19,7 @@ export function addIndexDiagnostics(
 		(!isValidMethodIndexWithoutCall(state, skipUpwards(node)) && isMethod(state, node))
 	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
+		return luau.nil();
 	}
 
 	if (ts.isPrototypeAccess(node)) {

@@ -767,7 +767,7 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		const sizeId = state.pushToVar(luau.number(0), "size");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				ids: luau.list.make(luau.emptyId()),
+				ids: luau.list.make(luau.tempId()),
 				expression: luau.call(luau.globals.pairs, [expression]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {

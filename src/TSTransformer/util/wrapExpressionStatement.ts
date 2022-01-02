@@ -8,7 +8,7 @@ export function wrapExpressionStatement(node: luau.Expression): luau.List<luau.S
 	} else {
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.emptyId(),
+				left: luau.tempId(),
 				right: node,
 			}),
 		);

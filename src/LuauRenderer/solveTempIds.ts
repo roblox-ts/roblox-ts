@@ -117,11 +117,13 @@ export function solveTempIds(state: RenderState, ast: luau.List<luau.Node> | lua
 		if (state.seenTempNodes.get(tempId.id) === undefined) {
 			const scope = nodesToScopes.get(tempId);
 			assert(scope);
-			let input = tempId.name ? `_${tempId.name}` : `_0`;
-			const original = tempId.name ? input : "";
+
+			const seperator = tempId.name === "" ? "" : "_";
+
+			let input = `_${tempId.name}`;
 			let i = scope.lastTry.get(input) ?? 1;
 			while (scopeHasId(scope, input)) {
-				input = `${original}_${i++}`;
+				input = `_${tempId.name}${seperator}${i++}`;
 			}
 			scope.lastTry.set(input, i);
 			scope.ids.add(input);

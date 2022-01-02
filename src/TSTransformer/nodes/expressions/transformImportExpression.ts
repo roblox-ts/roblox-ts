@@ -10,7 +10,7 @@ export function transformImportExpression(state: TransformState, node: ts.CallEx
 
 	if (!moduleSpecifier || !ts.isStringLiteral(moduleSpecifier)) {
 		DiagnosticService.addDiagnostic(errors.noNonStringModuleSpecifier(node));
-		return luau.emptyId();
+		return luau.nil();
 	}
 
 	const importExpression = createImportExpression(state, node.getSourceFile(), moduleSpecifier);
