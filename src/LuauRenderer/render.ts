@@ -1,7 +1,6 @@
 import luau from "LuauAST";
 import { renderCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuauRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
-import { renderEmptyIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderEmptyIdentifier";
 import { renderIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderIdentifier";
 import { renderMethodCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderMethodCallExpression";
 import { renderParenthesizedExpression } from "LuauRenderer/nodes/expressions/indexable/renderParenthesizedExpression";
