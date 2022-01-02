@@ -30,7 +30,7 @@ interface RojoTreeMetadata {
 type RojoTree = RojoTreeMetadata & RojoTreeMembers;
 
 interface RojoTreeMembers {
-	[property: `$${string}`]: RojoTree;
+	[name: string]: RojoTree;
 }
 
 interface RojoFile {
@@ -194,7 +194,7 @@ export class RojoResolver {
 		}
 
 		for (const childName of Object.keys(tree).filter(v => !v.startsWith("$"))) {
-			this.parseTree(basePath, childName, tree[childName as `$${string}`]);
+			this.parseTree(basePath, childName, tree[childName]);
 		}
 
 		if (!doNotPush) this.rbxPath.pop();
