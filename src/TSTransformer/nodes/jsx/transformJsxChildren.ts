@@ -220,7 +220,7 @@ function createJsxAddChild(
 			});
 		} else {
 			statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.emptyId(),
+				left: luau.tempId(),
 				right: expression,
 			});
 		}

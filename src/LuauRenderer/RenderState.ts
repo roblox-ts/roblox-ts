@@ -32,6 +32,8 @@ export class RenderState {
 
 	/**
 	 * Returns an unique identifier that is unused in the current scope.
+	 * `this.seenTempNodes` should already be fully populated by this point!
+	 * This is a fallback mechanism for when `solveTempIds()` does not catch something properly.
 	 * @param node The identifier of the node
 	 */
 	public getTempName(node: luau.TemporaryIdentifier) {

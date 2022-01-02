@@ -138,7 +138,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		state.services.macroManager.getCallMacro(symbol)
 	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.emptyId();
+		return luau.nil();
 	}
 
 	// exit here for export let so we don't check hoist later

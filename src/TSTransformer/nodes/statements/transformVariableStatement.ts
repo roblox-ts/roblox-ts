@@ -100,7 +100,7 @@ function transformLuaTupleDestructure(
 		const statements = state.capturePrereqs(() => {
 			for (const element of bindingPattern.elements) {
 				if (ts.isOmittedExpression(element)) {
-					luau.list.push(ids, luau.emptyId());
+					luau.list.push(ids, luau.tempId());
 				} else {
 					if (element.dotDotDotToken) {
 						DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
@@ -129,7 +129,7 @@ function transformLuaTupleDestructure(
 			}
 		});
 		if (luau.list.isEmpty(ids)) {
-			luau.list.push(ids, luau.emptyId());
+			luau.list.push(ids, luau.tempId());
 		}
 		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		state.prereqList(statements);
