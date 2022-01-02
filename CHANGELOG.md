@@ -1,3 +1,17 @@
+## 1.2.8
+- Added `ignorePatterns` to `rbxtsc init` eslint config
+- Improved diagnostic for assignment of methods and non-methods to one another (#1667)
+- Added support for Luau if-expressions in emit (#1675)
+- Improved watch mode not recompiling after errors (#1682)
+- Added warning for transformers failing to initialize (#1683)
+- Improved JSX tsconfig.json errors to allow for custom JSX transformers (#1690)
+- Allowed for method indexing in `typeIs()` macro calls (#1696)
+- Removed `"baseUrl"` setting from `rbxtsc init package` tsconfig.json template
+- Fixed error with export * from .d.ts file (#1727)
+- Fixed double `not` keywords in do-while with negated condition (#1749)
+- Reworked the internals for `rbxtsc init`, added use of prettier without eslint (#1659)
+- Incremental mode now considers `--type` flag
+
 ## 1.2.7
 - Fixed roblox-ts pre-emit diagnostics being reported before TypeScript pre-emit diagnostics (#1663)
 - Fixed regression with `...args` in built-in functions that support var args (#1665)
