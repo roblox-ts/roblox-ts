@@ -9,7 +9,7 @@ export function expressionMightMutate(
 	expression: luau.Expression,
 	node?: ts.Expression,
 ): boolean {
-	if (luau.isEmptyIdentifier(expression) || luau.isTemporaryIdentifier(expression)) {
+	if (luau.isTemporaryIdentifier(expression)) {
 		return false;
 	} else if (luau.isParenthesizedExpression(expression)) {
 		return expressionMightMutate(state, expression.expression);
