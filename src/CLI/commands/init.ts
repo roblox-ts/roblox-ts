@@ -193,7 +193,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	const selectedPackageManager = packageManagerCommands[packageManager];
 
-	await benchmark("Initializing package..", async () => {
+	await benchmark("Initializing package.json..", async () => {
 		await cmd(selectedPackageManager.init);
 		const pkgJson = await fs.readJson(paths.packageJson);
 		pkgJson.scripts = {
