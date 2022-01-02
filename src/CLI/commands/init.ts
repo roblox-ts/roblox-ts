@@ -214,7 +214,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	});
 
 	if (git) {
-		await benchmark("Initializing git..", async () => {
+		await benchmark("Initializing Git..", async () => {
 			try {
 				await cmd("git init");
 			} catch (error) {
