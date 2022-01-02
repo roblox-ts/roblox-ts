@@ -1,7 +1,6 @@
 import luau from "LuauAST";
 import { renderCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuauRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
-import { renderEmptyIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderEmptyIdentifier";
 import { renderIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderIdentifier";
 import { renderMethodCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderMethodCallExpression";
 import { renderParenthesizedExpression } from "LuauRenderer/nodes/expressions/indexable/renderParenthesizedExpression";
@@ -43,7 +42,6 @@ type Renderer<T extends luau.SyntaxKind> = (state: RenderState, node: luau.NodeB
 const KIND_TO_RENDERER = ts.identity<{ [K in luau.SyntaxKind]: Renderer<K> }>({
 	// indexable expressions
 	[luau.SyntaxKind.Identifier]: renderIdentifier,
-	[luau.SyntaxKind.EmptyIdentifier]: renderEmptyIdentifier,
 	[luau.SyntaxKind.TemporaryIdentifier]: renderTemporaryIdentifier,
 	[luau.SyntaxKind.ComputedIndexExpression]: renderComputedIndexExpression,
 	[luau.SyntaxKind.PropertyAccessExpression]: renderPropertyAccessExpression,

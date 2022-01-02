@@ -6,13 +6,8 @@ function makeGuard<T extends keyof luau.NodeByKind>(...kinds: [...Array<T>]) {
 }
 
 // indexable expressions
-export const isAnyIdentifier = makeGuard(
-	luau.SyntaxKind.Identifier,
-	luau.SyntaxKind.EmptyIdentifier,
-	luau.SyntaxKind.TemporaryIdentifier,
-);
+export const isAnyIdentifier = makeGuard(luau.SyntaxKind.Identifier, luau.SyntaxKind.TemporaryIdentifier);
 export const isIdentifier = makeGuard(luau.SyntaxKind.Identifier);
-export const isEmptyIdentifier = makeGuard(luau.SyntaxKind.EmptyIdentifier);
 export const isTemporaryIdentifier = makeGuard(luau.SyntaxKind.TemporaryIdentifier);
 export const isComputedIndexExpression = makeGuard(luau.SyntaxKind.ComputedIndexExpression);
 export const isPropertyAccessExpression = makeGuard(luau.SyntaxKind.PropertyAccessExpression);
@@ -90,7 +85,6 @@ export function isNode(value: unknown): value is luau.Node {
 export const isSimple = makeGuard(
 	luau.SyntaxKind.Identifier,
 	luau.SyntaxKind.TemporaryIdentifier,
-	luau.SyntaxKind.EmptyIdentifier,
 	luau.SyntaxKind.NilLiteral,
 	luau.SyntaxKind.TrueLiteral,
 	luau.SyntaxKind.FalseLiteral,
@@ -119,7 +113,6 @@ export const isCall = makeGuard(luau.SyntaxKind.CallExpression, luau.SyntaxKind.
 export const isWritableExpression: (node: luau.Node) => node is luau.WritableExpression = makeGuard(
 	luau.SyntaxKind.Identifier,
 	luau.SyntaxKind.TemporaryIdentifier,
-	luau.SyntaxKind.EmptyIdentifier,
 	luau.SyntaxKind.PropertyAccessExpression,
 	luau.SyntaxKind.ComputedIndexExpression,
 );

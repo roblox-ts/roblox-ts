@@ -1,7 +1,6 @@
 export enum SyntaxKind {
 	// indexable expressions
 	Identifier,
-	EmptyIdentifier,
 	TemporaryIdentifier,
 	ComputedIndexExpression,
 	PropertyAccessExpression,

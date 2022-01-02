@@ -50,13 +50,6 @@ export function tempId(name = "") {
 }
 
 /**
- * Creates a new empty identifier '_' for a node.
- */
-export function emptyId() {
-	return luau.create(luau.SyntaxKind.EmptyIdentifier, {});
-}
-
-/**
  * Creates a new `nil` literal node.
  */
 export function nil() {

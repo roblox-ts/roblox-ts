@@ -298,8 +298,7 @@ function transformOptionalChainInner(
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
-			const isUsed =
-				!luau.isEmptyIdentifier(newValue) && !luau.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
+			const isUsed = !luau.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
 
 			if (tempId !== newValue && isUsed) {
 				luau.list.push(
