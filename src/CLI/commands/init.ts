@@ -254,7 +254,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	});
 
 	if (eslint) {
-		await benchmark("Configuring eslint..", async () => {
+		await benchmark("Configuring ESLint..", async () => {
 			const eslintConfig = {
 				parser: "@typescript-eslint/parser",
 				parserOptions: {
