@@ -66,7 +66,6 @@ export function transformStatementList(
 		}
 	}
 
-	// TODO we need a better way of transforming comments
 	if (state.compilerOptions.removeComments !== true && statements.length > 0) {
 		const lastStatement = statements[statements.length - 1];
 		const lastToken = lastStatement.parent.getLastToken();

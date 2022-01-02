@@ -59,7 +59,6 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 	const arg = node.arguments[0];
 	const transformed = transformExpression(state, arg);
 	if (luau.isArray(transformed) && luau.list.every(transformed.members, member => luau.isArray(member))) {
-		// TODO make this nicer?
 		const elements = luau.list.toArray(transformed.members).map(e => {
 			// non-null and type assertion because array will always have 2 members,
 			// due to map constructor typing

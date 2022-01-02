@@ -75,7 +75,7 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		throw new ProjectError(
 			[
 				`Invalid "tsconfig.json" configuration!`,
-				`https://roblox-ts.com/docs/quick-start#project-folder-setup`, // TODO update
+				`https://roblox-ts.com/docs/quick-start#project-folder-setup`,
 				errors.map(e => `- ${e}\n`).join(""),
 			].join("\n"),
 		);

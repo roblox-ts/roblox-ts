@@ -221,7 +221,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	const leftType = state.getType(node.left);
 	const rightType = state.getType(node.right);
 
-	// TODO issue #715
 	if (
 		operatorKind === ts.SyntaxKind.LessThanToken ||
 		operatorKind === ts.SyntaxKind.LessThanEqualsToken ||

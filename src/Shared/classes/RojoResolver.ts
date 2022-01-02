@@ -30,8 +30,6 @@ interface RojoTreeMetadata {
 type RojoTree = RojoTreeMetadata & RojoTreeMembers;
 
 interface RojoTreeMembers {
-	// TODO: Use this when TypeScript 4.4 is released:
-	// [property: `$${string}`]: unknown;
 	[name: string]: RojoTree;
 }
 
