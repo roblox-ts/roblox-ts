@@ -43,7 +43,6 @@ type Renderer<T extends luau.SyntaxKind> = (state: RenderState, node: luau.NodeB
 const KIND_TO_RENDERER = ts.identity<{ [K in luau.SyntaxKind]: Renderer<K> }>({
 	// indexable expressions
 	[luau.SyntaxKind.Identifier]: renderIdentifier,
-	[luau.SyntaxKind.EmptyIdentifier]: renderEmptyIdentifier,
 	[luau.SyntaxKind.TemporaryIdentifier]: renderTemporaryIdentifier,
 	[luau.SyntaxKind.ComputedIndexExpression]: renderComputedIndexExpression,
 	[luau.SyntaxKind.PropertyAccessExpression]: renderPropertyAccessExpression,

@@ -2,7 +2,6 @@ import luau from "LuauAST";
 
 export interface IndexableExpressionByKind {
 	[luau.SyntaxKind.Identifier]: luau.Identifier;
-	[luau.SyntaxKind.EmptyIdentifier]: luau.EmptyIdentifier;
 	[luau.SyntaxKind.TemporaryIdentifier]: luau.TemporaryIdentifier;
 	[luau.SyntaxKind.ComputedIndexExpression]: luau.ComputedIndexExpression;
 	[luau.SyntaxKind.PropertyAccessExpression]: luau.PropertyAccessExpression;

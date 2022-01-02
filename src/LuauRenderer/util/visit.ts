@@ -13,7 +13,6 @@ const NOOP = () => {};
 const KIND_TO_VISITOR = ts.identity<{ [K in luau.SyntaxKind]: VisitStrategy<K> }>({
 	// indexable expressions
 	[luau.SyntaxKind.Identifier]: NOOP,
-	[luau.SyntaxKind.EmptyIdentifier]: NOOP,
 	[luau.SyntaxKind.TemporaryIdentifier]: NOOP,
 	[luau.SyntaxKind.ComputedIndexExpression]: (node, visitor) => {
 		visitNode(node.expression, visitor);

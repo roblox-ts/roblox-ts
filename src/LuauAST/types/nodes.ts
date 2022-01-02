@@ -21,7 +21,7 @@ export interface HasParameters {
 	hasDotDotDot: boolean;
 }
 
-export type AnyIdentifier = luau.Identifier | luau.EmptyIdentifier | luau.TemporaryIdentifier;
+export type AnyIdentifier = luau.Identifier | luau.TemporaryIdentifier;
 
 export type WritableExpression = luau.AnyIdentifier | luau.PropertyAccessExpression | luau.ComputedIndexExpression;
 
@@ -58,8 +58,6 @@ export interface FunctionExpression extends luau.Expression<luau.SyntaxKind.Func
 export interface Identifier extends luau.Expression<luau.SyntaxKind.Identifier> {
 	name: string;
 }
-
-export interface EmptyIdentifier extends luau.Expression<luau.SyntaxKind.EmptyIdentifier> {}
 
 export interface TemporaryIdentifier extends luau.Expression<luau.SyntaxKind.TemporaryIdentifier> {
 	name: string;

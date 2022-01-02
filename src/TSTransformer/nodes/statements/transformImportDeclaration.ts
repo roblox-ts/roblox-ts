@@ -43,7 +43,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 	const statements = luau.list.make<luau.Statement>();
 
 	assert(ts.isStringLiteral(node.moduleSpecifier));
-	const importExp = new Lazy<luau.CallExpression | luau.AnyIdentifier>(() =>
+	const importExp = new Lazy<luau.IndexableExpression>(() =>
 		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 	);
 
