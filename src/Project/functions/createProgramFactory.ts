@@ -10,9 +10,10 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 
 	let contentsToHash = "";
 
-	contentsToHash += `${data.pkgVersion},`;
-	contentsToHash += `isPackage=${String(data.isPackage)},`;
+	contentsToHash += `pkgVersion=${data.pkgVersion},`;
 	contentsToHash += `type=${String(data.projectOptions.type)},`;
+	contentsToHash += `isPackage=${String(data.isPackage)},`;
+	contentsToHash += `plugins=${JSON.stringify(compilerOptions.plugins ?? [])},`;
 
 	if (data.rojoConfigPath && fs.existsSync(data.rojoConfigPath)) {
 		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
