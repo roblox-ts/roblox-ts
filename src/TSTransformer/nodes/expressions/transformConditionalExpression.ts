@@ -43,7 +43,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.IfStatement, {
-			condition,
+			condition: createTruthinessChecks(state, condition, node.condition),
 			statements: whenTruePrereqs,
 			elseBody: whenFalsePrereqs,
 		}),
