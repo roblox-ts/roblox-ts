@@ -262,14 +262,13 @@ export function transformElementCallExpressionInner(
 	}
 
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
+	const argumentExp = args.shift()!;
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
 		baseExpression = state.pushToVar(baseExpression, "fn");
 	}
 	state.prereqList(prereqs);
-
-	const argumentExp = args.shift()!;
 
 	if (isMethod(state, expression)) {
 		baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
