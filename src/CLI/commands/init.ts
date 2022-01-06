@@ -204,10 +204,8 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			pkgJson.name = RBXTS_SCOPE + "/" + pkgJson.name;
 			pkgJson.main = "out/init.lua";
 			pkgJson.types = "out/index.d.ts";
-			pkgJson.files = ["out"];
-			pkgJson.publishConfig = {
-				access: "public",
-			};
+			pkgJson.files = ["out", "!**/*.tsbuildinfo"];
+			pkgJson.publishConfig = { access: "public" };
 			pkgJson.scripts.prepublishOnly = selectedPackageManager.build;
 		}
 		await fs.outputFile(paths.packageJson, JSON.stringify(pkgJson, null, 2));
