@@ -34,4 +34,13 @@ export = () => {
 		expect(emptyStr ? "FAIL" : strB += "Y").to.equal("XY");
 		expect(NaN ? "FAIL" : strB += "Z").to.equal("XYZ");
 	});
+
+	it("should correctly wrap if-expressions in parentheses where needed", () => {
+		function getColorStr(on: boolean) {
+			return `${on ? "on" : "off"}Color`;
+		}
+
+		expect(getColorStr(true)).to.equal("onColor");
+		expect(getColorStr(false)).to.equal("offColor");
+	});
 };

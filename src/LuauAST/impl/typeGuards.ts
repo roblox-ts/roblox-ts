@@ -134,3 +134,9 @@ export const hasStatements = makeGuard(
 	luau.SyntaxKind.RepeatStatement,
 	luau.SyntaxKind.WhileStatement,
 );
+
+export const isExpressionWithPrecedence = makeGuard(
+	luau.SyntaxKind.IfExpression,
+	luau.SyntaxKind.UnaryExpression,
+	luau.SyntaxKind.BinaryExpression,
+);
