@@ -1,3 +1,11 @@
+## 1.2.9
+- Upgraded built-in roblox-lua-promise to v3.2.1
+- Improved incremental mode to recognize tsconfig.json "plugins"
+- Package template from `rbxtsc init` now ignores `.tsbuildinfo` files when uploading to npm
+- Fixed compiler crash when calling Roblox API methods via element expression `game["Destroy"]()` (#1761)
+- Fixed Luau if-expression truthiness bug (#1762)
+- Fixed Luau if-expression precedence bug (#1763)
+
 ## 1.2.8
 - Added `ignorePatterns` to `rbxtsc init` eslint config
 - Improved diagnostic for assignment of methods and non-methods to one another (#1667)
