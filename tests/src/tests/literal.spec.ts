@@ -126,13 +126,6 @@ export = () => {
 		expect(!true).to.equal(false);
 	});
 
-	it("should support ternary expressions", () => {
-		expect(true ? 1 : 0).to.equal(1);
-		expect(false ? 1 : 0).to.equal(0);
-		expect(true ? false : true).to.equal(false);
-		expect(false ? false : true).to.equal(true);
-	});
-
 	it("should allow postfix operators on properties", () => {
 		const obj = { x: 0 };
 		expect(obj.x).to.equal(0);
