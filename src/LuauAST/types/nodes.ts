@@ -34,6 +34,8 @@ export type SimpleTypes =
 	| luau.NumberLiteral
 	| luau.StringLiteral;
 
+export type ExpressionWithPrecedence = luau.IfExpression | luau.UnaryExpression | luau.BinaryExpression;
+
 // expressions
 export interface NilLiteral extends luau.Expression<luau.SyntaxKind.NilLiteral> {}
 
