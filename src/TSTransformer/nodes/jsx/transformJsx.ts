@@ -1,6 +1,5 @@
 import luau from "LuauAST";
 import { TransformState } from "TSTransformer";
-import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
@@ -19,34 +18,24 @@ export function transformJsx(
 ) {
 	state.checkJsxFactory(node);
 
-	const isFragment =
-		state.services.roactSymbolManager &&
-		state.typeChecker.getSymbolAtLocation(tagName) ===
-			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
-
-	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.nil();
+	const tagNameExp = transformJsxTagName(state, tagName);
 	const attributesPtr = createMapPointer("attributes");
 	const childrenPtr = createMixedTablePointer("children");
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
-	const args = new Array<luau.Expression>();
-	if (!isFragment) {
-		args.push(tagNameExp);
-	}
+	const args = [tagNameExp];
+
 	const pushAttributes = luau.isAnyIdentifier(attributesPtr.value) || !luau.list.isEmpty(attributesPtr.value.fields);
 	const pushChildren = luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields);
-	if (!isFragment && (pushAttributes || pushChildren)) {
+	if (pushAttributes || pushChildren) {
 		args.push(attributesPtr.value);
 	}
 	if (pushChildren) {
 		args.push(childrenPtr.value);
 	}
 
-	let result: luau.Expression = luau.call(
-		isFragment ? createRoactIndex("createFragment") : createRoactIndex("createElement"),
-		args,
-	);
+	let result: luau.Expression = luau.call(createRoactIndex("createElement"), args);
 
 	// if this is a top-level element, handle Key here
 	// otherwise, handle in transformJsxChildren
