@@ -1,8 +1,0 @@
-{
-	"extends": "../../tsconfig-base.json",
-	"compilerOptions": {
-		"outDir": "../../out/LuauAST",
-		"rootDir": "."
-	},
-	"references": [{ "path": "../Shared" }]
-}

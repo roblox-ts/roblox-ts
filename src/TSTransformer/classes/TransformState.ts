@@ -1,9 +1,8 @@
-import luau from "LuauAST";
-import { render, RenderState, renderStatements } from "LuauRenderer";
-import { solveTempIds } from "LuauRenderer/solveTempIds";
+import luau from "@roblox-ts/luau-ast";
+import { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
+import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { RbxPath, RbxPathParent, RojoResolver } from "Shared/classes/RojoResolver";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";

@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { skipDownwards } from "TSTransformer/util/traversal";

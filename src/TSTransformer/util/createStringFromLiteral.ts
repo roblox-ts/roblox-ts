@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import ts from "typescript";
 
 const TEMPLATE_EDGE = "`".length;

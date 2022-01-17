@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 function expressionToStr(expression: luau.Expression): string | undefined {
 	// X -> "X"

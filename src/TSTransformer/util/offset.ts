@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 function getLiteralNumberValue(expression: luau.Expression): number | undefined {
 	if (luau.isNumberLiteral(expression)) {

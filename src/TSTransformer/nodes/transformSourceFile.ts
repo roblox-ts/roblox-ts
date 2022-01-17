@@ -1,5 +1,5 @@
-import luau from "LuauAST";
-import { RbxType } from "Shared/classes/RojoResolver";
+import luau from "@roblox-ts/luau-ast";
+import { RbxType } from "@roblox-ts/rojo-resolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";

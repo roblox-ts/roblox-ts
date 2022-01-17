@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 /**
  * Returns a LuauAST node equivalent for `game:GetService(serviceName)`

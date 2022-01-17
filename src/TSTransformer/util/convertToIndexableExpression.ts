@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 export function convertToIndexableExpression(expression: luau.Expression) {
 	if (luau.isIndexableExpression(expression)) {

@@ -4,9 +4,5 @@
 		"outDir": "../../out/TSTransformer",
 		"rootDir": "."
 	},
-	"references": [
-		{ "path": "../Shared" },
-		{ "path": "../LuauAST" },
-		{ "path": "../LuauRenderer" }
-	]
+	"references": [{ "path": "../Shared" }]
 }

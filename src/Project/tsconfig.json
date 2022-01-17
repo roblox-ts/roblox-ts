@@ -4,9 +4,5 @@
 		"outDir": "../../out/Project",
 		"rootDir": "."
 	},
-	"references": [
-		{ "path": "../Shared" },
-		{ "path": "../LuauRenderer" },
-		{ "path": "../TSTransformer" }
-	]
+	"references": [{ "path": "../Shared" }, { "path": "../TSTransformer" }]
 }

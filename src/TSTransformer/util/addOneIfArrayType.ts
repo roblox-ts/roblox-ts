@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { offset } from "TSTransformer/util/offset";
 import { isArrayType, isDefinitelyType, isUndefinedType } from "TSTransformer/util/types";

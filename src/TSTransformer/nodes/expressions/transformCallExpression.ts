@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import path from "path";
 import { RBXTS_SCOPE } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
