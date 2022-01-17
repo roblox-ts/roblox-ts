@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpressionStatementInner } from "TSTransformer/nodes/statements/transformExpressionStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";

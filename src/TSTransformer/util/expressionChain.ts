@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 /**

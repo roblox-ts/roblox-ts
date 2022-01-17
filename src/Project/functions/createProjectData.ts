@@ -1,6 +1,7 @@
+import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
 import path from "path";
-import { RojoResolver } from "Shared/classes/RojoResolver";
+import { LogService } from "Shared/classes/LogService";
 import { NODE_MODULES } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import { ProjectData, ProjectFlags, ProjectOptions } from "Shared/types";
@@ -50,7 +51,11 @@ export function createProjectData(
 			rojoConfigPath = path.resolve(projectOptions.rojo);
 		}
 	} else {
-		rojoConfigPath = RojoResolver.findRojoConfigFilePath(projectPath);
+		const { path, warnings } = RojoResolver.findRojoConfigFilePath(projectPath);
+		rojoConfigPath = path;
+		for (const warning of warnings) {
+			LogService.warn(warning);
+		}
 	}
 
 	const writeOnlyChanged = flags.writeOnlyChanged;

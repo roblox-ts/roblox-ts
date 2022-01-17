@@ -1,3 +1,5 @@
+import kleur from "kleur";
+
 export class LogService {
 	public static verbose = false;
 	private static partial = false;
@@ -20,5 +22,9 @@ export class LogService {
 		if (this.verbose) {
 			this.writeLine(...messages);
 		}
+	}
+
+	static warn(message: string) {
+		this.writeLine(`${kleur.yellow("Compiler Warning:")} ${message}`);
 	}
 }

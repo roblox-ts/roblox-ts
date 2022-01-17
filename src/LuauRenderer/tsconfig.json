@@ -1,8 +1,0 @@
-{
-	"extends": "../../tsconfig-base.json",
-	"compilerOptions": {
-		"outDir": "../../out/LuauRenderer",
-		"rootDir": "."
-	},
-	"references": [{ "path": "../Shared" }, { "path": "../LuauAST" }]
-}

@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { IdentifierMacro, MacroList } from "TSTransformer/macros/types";
 
 export const IDENTIFIER_MACROS: MacroList<IdentifierMacro> = {

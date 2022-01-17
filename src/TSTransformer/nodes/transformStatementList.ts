@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";

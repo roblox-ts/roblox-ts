@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 export function transformTrueKeyword() {
 	return luau.create(luau.SyntaxKind.TrueLiteral, {});

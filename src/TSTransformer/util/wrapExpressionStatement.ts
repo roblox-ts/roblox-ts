@@ -1,4 +1,4 @@
-import luau from "LuauAST";
+import luau from "@roblox-ts/luau-ast";
 
 export function wrapExpressionStatement(node: luau.Expression): luau.List<luau.Statement> {
 	if (luau.isTemporaryIdentifier(node) || luau.isNilLiteral(node)) {

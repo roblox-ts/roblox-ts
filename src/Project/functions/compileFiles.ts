@@ -1,5 +1,6 @@
+import { renderAST } from "@roblox-ts/luau-ast";
+import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
-import { renderAST } from "LuauRenderer";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
@@ -12,7 +13,6 @@ import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { NetworkType, RbxPath, RojoResolver } from "Shared/classes/RojoResolver";
 import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -76,6 +76,10 @@ export function compileFiles(
 	const rojoResolver = data.rojoConfigPath
 		? RojoResolver.fromPath(data.rojoConfigPath)
 		: RojoResolver.synthetic(outDir);
+
+	for (const warning of rojoResolver.getWarnings()) {
+		LogService.warn(warning);
+	}
 
 	checkRojoConfig(data, rojoResolver, getRootDirs(compilerOptions), pathTranslator);
 

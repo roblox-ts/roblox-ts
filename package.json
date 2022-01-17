@@ -49,6 +49,8 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"@roblox-ts/luau-ast": "^1.0.0",
+		"@roblox-ts/rojo-resolver": "^1.0.0",
 		"ajv": "^8.6.3",
 		"chokidar": "^3.5.2",
 		"fs-extra": "^10.0.0",
@@ -85,6 +87,7 @@
 		"templates",
 		"CHANGELOG.md",
 		"rojo-schema.json",
-		"!**/*.js.map"
+		"!**/*.js.map",
+		"!**/*.tsbuildinfo"
 	]
 }
