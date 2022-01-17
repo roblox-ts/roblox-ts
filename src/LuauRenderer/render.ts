@@ -1,4 +1,5 @@
 import luau from "LuauAST";
+import { getKindName } from "LuauAST/util/getKindName";
 import { renderCallExpression } from "LuauRenderer/nodes/expressions/indexable/renderCallExpression";
 import { renderComputedIndexExpression } from "LuauRenderer/nodes/expressions/indexable/renderComputedIndexExpression";
 import { renderIdentifier } from "LuauRenderer/nodes/expressions/indexable/renderIdentifier";
@@ -35,6 +36,7 @@ import { renderWhileStatement } from "LuauRenderer/nodes/statements/renderWhileS
 import { RenderState } from "LuauRenderer/RenderState";
 import { solveTempIds } from "LuauRenderer/solveTempIds";
 import { renderStatements } from "LuauRenderer/util/renderStatements";
+import { visit } from "LuauRenderer/util/visit";
 import ts from "typescript";
 
 type Renderer<T extends luau.SyntaxKind> = (state: RenderState, node: luau.NodeByKind[T]) => string;
@@ -97,6 +99,25 @@ export function render<T extends luau.SyntaxKind>(state: RenderState, node: luau
 	return KIND_TO_RENDERER[node.kind](state, node as any);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function debugAST(ast: luau.List<luau.Statement>) {
+	let indent = "";
+
+	const pushIndent = () => (indent += "\t");
+	const popIndent = () => (indent = indent.substring(1));
+
+	visit(ast, {
+		before: node => {
+			// eslint-disable-next-line no-console
+			console.log(`${indent}${getKindName(node.kind)}`);
+			pushIndent();
+		},
+		after: () => {
+			popIndent();
+		},
+	});
+}
+
 /**
  * Returns a string that represents the given syntax tree, `ast`, as Luau code.
  */
@@ -104,6 +125,9 @@ export function renderAST(ast: luau.List<luau.Statement>): string {
 	const state = new RenderState();
 
 	solveTempIds(state, ast);
+
+	// useful for visualizing the Luau AST structure
+	// debugAST(ast);
 
 	return renderStatements(state, ast);
 }
