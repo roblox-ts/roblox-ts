@@ -1,2 +1,2 @@
-import * as luau from "LuauAST/bundle"; // inject ts internal typings
+import * as luau from "LuauAST/bundle";
 export default luau;
