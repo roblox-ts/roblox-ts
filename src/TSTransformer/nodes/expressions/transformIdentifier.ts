@@ -93,7 +93,9 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 			(ts.isFunctionDeclaration(declarationStatement) &&
 				!ts.getSelectedSyntacticModifierFlags(declarationStatement, ts.ModifierFlags.Async)) ||
 			ts.isClassDeclaration(declarationStatement) ||
-			(ts.isVariableStatement(declarationStatement) && getAncestor(node, ts.isStatement) === declarationStatement)
+			(ts.isVariableStatement(declarationStatement) &&
+				getAncestor(node, node => ts.isStatement(node) || ts.isFunctionLikeDeclaration(node)) ===
+					declarationStatement)
 		) {
 			return;
 		}
