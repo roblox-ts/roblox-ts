@@ -24,11 +24,11 @@ https://discord.gg/f6Rn6RY
 
 ## Games that use roblox-ts
 
-<a href="https://www.roblox.com/games/6872265039" target="_blank"><img width=32.9% src="https://i.imgur.com/S2x5isG.png"></a><!-- 2.2B -->
-<a href="https://www.roblox.com/games/4872321990" target="_blank"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png"></a><!-- 1.5B -->
-<a href="https://www.roblox.com/games/3759927663" target="_blank"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png"></a><!-- 191.2M -->
-<a href="https://www.roblox.com/games/841531820" target="_blank"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png"></a><!-- 26.0M -->
-<a href="https://www.roblox.com/games/5414779423" target="_blank"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png"></a><!-- 18.7M -->
-<a href="https://www.roblox.com/games/3837841034" target="_blank"><img width=32.9% src="https://i.imgur.com/nffggbO.png"></a><!-- 3.7M -->
-<a href="https://www.roblox.com/games/2184151436" target="_blank"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png"></a><!-- 2.0M -->
-<a href="https://www.roblox.com/games/8542259458" target="_blank"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg"></a><!-- 1.4M -->
+<a href="https://www.roblox.com/games/6872265039"><img width=32.9% src="https://i.imgur.com/S2x5isG.png"></a><!-- 2.2B -->
+<a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png"></a><!-- 1.5B -->
+<a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png"></a><!-- 191.2M -->
+<a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png"></a><!-- 26.0M -->
+<a href="https://www.roblox.com/games/5414779423"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png"></a><!-- 18.7M -->
+<a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png"></a><!-- 3.7M -->
+<a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png"></a><!-- 2.0M -->
+<a href="https://www.roblox.com/games/8542259458"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg"></a><!-- 1.4M -->
