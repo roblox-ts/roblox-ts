@@ -13,7 +13,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 		DiagnosticService.addDiagnostic(errors.noFunctionExpressionName(node.name));
 	}
 
-	// eslint-disable-next-line prefer-const
+	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 
 	const body = node.body;

@@ -12,7 +12,7 @@ function transformCaseClauseExpression(
 	fallThroughFlagId: luau.TemporaryIdentifier,
 	canFallThroughTo: boolean,
 ) {
-	// eslint-disable-next-line prefer-const
+	// eslint-disable-next-line no-autofix/prefer-const
 	let [expression, prereqStatements] = state.capture(() => transformExpression(state, caseClauseExpression));
 
 	expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });

@@ -3,9 +3,9 @@
 	"parserOptions": {
 		"jsx": true,
 		"useJSXTextNode": true,
-		"ecmaVersion": 2018,
+		"ecmaVersion": 2020,
 		"sourceType": "module",
-		"project": "./src/*/tsconfig.json"
+		"project": "./tsconfig.json"
 	},
 	"plugins": [
 		"@typescript-eslint",
@@ -39,12 +39,6 @@
 				"readonly": "generic"
 			}
 		],
-		"no-restricted-imports": [
-			"error",
-			{
-				"patterns": [".*"]
-			}
-		],
 		"@typescript-eslint/no-floating-promises": [
 			"error",
 			{ "ignoreVoid": true }
@@ -53,7 +47,7 @@
 		"@typescript-eslint/explicit-function-return-type": "off",
 		"@typescript-eslint/interface-name-prefix": "off",
 		"@typescript-eslint/no-empty-function": "off",
-		"@typescript-eslint/no-empty-interface": "Off",
+		"@typescript-eslint/no-empty-interface": "off",
 		"@typescript-eslint/no-namespace": "off",
 		"@typescript-eslint/no-non-null-assertion": "off",
 		"@typescript-eslint/no-use-before-define": "off",
@@ -61,14 +55,14 @@
 		"@typescript-eslint/no-require-imports": "error",
 		"@typescript-eslint/no-unused-expressions": "warn",
 		"curly": ["warn", "multi-line", "consistent"],
-		"prefer-const": "off",
 		"no-autofix/prefer-const": "warn",
-		"no-console": "warn",
-		"no-constant-condition": "off",
+		"no-constant-condition": ["error", { "checkLoops": false }],
 		"no-debugger": "off",
+		"no-empty": ["error", { "allowEmptyCatch": true }],
 		"no-extra-boolean-cast": "off",
 		"no-undef-init": "error",
-		"simple-import-sort/imports": "warn",
-		"simple-import-sort/exports": "warn"
+		"prefer-const": "off",
+		"simple-import-sort/exports": "warn",
+		"simple-import-sort/imports": "warn"
 	}
 }

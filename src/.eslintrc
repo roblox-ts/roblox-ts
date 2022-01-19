@@ -1,0 +1,14 @@
+{
+	"parserOptions": {
+		"project": "./src/*/tsconfig.json"
+	},
+	"rules": {
+		"no-console": "warn",
+		"no-restricted-imports": [
+			"error",
+			{
+				"patterns": [".*"]
+			}
+		]
+	}
+}

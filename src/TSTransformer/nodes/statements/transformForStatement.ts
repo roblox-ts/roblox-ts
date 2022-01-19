@@ -244,7 +244,7 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 		);
 	}
 
-	// eslint-disable-next-line prefer-const
+	// eslint-disable-next-line no-autofix/prefer-const
 	let [conditionExp, conditionPrereqs] = state.capture(() => {
 		if (condition) {
 			return createTruthinessChecks(state, transformExpression(state, condition), condition);

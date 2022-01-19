@@ -26,7 +26,7 @@ export function transformMethodDeclaration(
 		return luau.list.make<luau.Statement>();
 	}
 
-	// eslint-disable-next-line prefer-const
+	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 

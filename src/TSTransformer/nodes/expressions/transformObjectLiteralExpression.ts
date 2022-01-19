@@ -23,7 +23,7 @@ function transformPropertyAssignment(
 	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
 	initializer: ts.Expression,
 ) {
-	// eslint-disable-next-line prefer-const
+	// eslint-disable-next-line no-autofix/prefer-const
 	let [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
 	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 
