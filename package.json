@@ -87,7 +87,6 @@
 		"lib",
 		"templates",
 		"CHANGELOG.md",
-		"rojo-schema.json",
 		"!**/*.js.map",
 		"!**/*.tsbuildinfo"
 	]
