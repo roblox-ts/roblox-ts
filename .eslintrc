@@ -11,7 +11,8 @@
 		"@typescript-eslint",
 		"@typescript-eslint/eslint-plugin",
 		"prettier",
-		"simple-import-sort"
+		"simple-import-sort",
+		"no-autofix"
 	],
 	"extends": [
 		"eslint:recommended",
@@ -60,7 +61,8 @@
 		"@typescript-eslint/no-require-imports": "error",
 		"@typescript-eslint/no-unused-expressions": "warn",
 		"curly": ["warn", "multi-line", "consistent"],
-		"prefer-const": "warn",
+		"prefer-const": "off",
+		"no-autofix/prefer-const": "warn",
 		"no-console": "warn",
 		"no-constant-condition": "off",
 		"no-debugger": "off",
