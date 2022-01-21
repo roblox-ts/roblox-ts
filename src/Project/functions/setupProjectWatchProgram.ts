@@ -143,12 +143,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		if (emitResult.emitSkipped) {
 			// exit before copying to prevent half-updated out directory
 			return emitResult;
-		} else {
-			// if emitted, clear the compile queue
-			filesToCompile.clear();
-			filesToCopy.clear();
-			filesToClean.clear();
 		}
+
 		for (const fsPath of filesToClean) {
 			tryRemoveOutput(pathTranslator, pathTranslator.getOutputPath(fsPath));
 			if (options.declaration) {
@@ -158,6 +154,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		for (const fsPath of filesToCopy) {
 			copyItem(data, pathTranslator, fsPath);
 		}
+
+		filesToCompile.clear();
+		filesToCopy.clear();
+		filesToClean.clear();
+
 		return emitResult;
 	}
 
