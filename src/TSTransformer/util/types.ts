@@ -79,7 +79,13 @@ export function isDefinedType(type: ts.Type) {
 }
 
 export function isAnyType(type: ts.Type) {
-	return !!(type.flags & ts.TypeFlags.Any);
+	return (
+		!!(type.flags & ts.TypeFlags.Any) &&
+		!(
+			ts.getObjectFlags(type) &
+			(ts.ObjectFlags.CouldContainTypeVariables | ts.ObjectFlags.CouldContainTypeVariablesComputed)
+		)
+	);
 }
 
 export function isBooleanType(type: ts.Type) {
