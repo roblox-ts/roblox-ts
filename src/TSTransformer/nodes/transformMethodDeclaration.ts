@@ -35,11 +35,13 @@ export function transformMethodDeclaration(
 	let name = transformObjectKey(state, node.name);
 	if (node.decorators !== undefined && !luau.isSimple(name)) {
 		const tempId = luau.tempId("key");
-		const statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: tempId,
-			right: name,
-		});
-		luau.list.push(result, statement);
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: tempId,
+				right: name,
+			}),
+		);
 		name = tempId;
 		state.setClassElementObjectKey(node, tempId);
 	}
