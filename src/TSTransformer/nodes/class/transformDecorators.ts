@@ -23,7 +23,7 @@ function transformMethodDecorators(
 
 			luau.list.pushList(result, prereqs);
 
-			if (multipleDecorators) {
+			if (multipleDecorators && !luau.isSimple(expression)) {
 				const tempId = luau.tempId("decorator");
 				luau.list.push(
 					result,
@@ -117,7 +117,7 @@ function transformPropertyDecorators(
 
 			luau.list.pushList(result, prereqs);
 
-			if (multipleDecorators) {
+			if (multipleDecorators && !luau.isSimple(expression)) {
 				const tempId = luau.tempId("decorator");
 				luau.list.push(
 					result,
@@ -167,7 +167,7 @@ function transformParameterDecorators(
 
 				luau.list.pushList(result, prereqs);
 
-				if (multipleDecorators) {
+				if (multipleDecorators && !luau.isSimple(expression)) {
 					const tempId = luau.tempId("decorator");
 					luau.list.push(
 						result,
@@ -212,7 +212,7 @@ function transformClassDecorators(
 
 		luau.list.pushList(result, prereqs);
 
-		if (multipleDecorators) {
+		if (multipleDecorators && !luau.isSimple(expression)) {
 			const tempId = luau.tempId("decorator");
 			luau.list.push(
 				result,
