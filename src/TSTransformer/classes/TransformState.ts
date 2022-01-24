@@ -390,4 +390,15 @@ export class TransformState {
 	}
 
 	public symbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
+
+	private classElementToObjectKeyMap = new Map<ts.ClassElement, luau.AnyIdentifier>();
+
+	public setClassElementObjectKey(classElement: ts.ClassElement, identifier: luau.AnyIdentifier) {
+		assert(!this.classElementToObjectKeyMap.has(classElement));
+		this.classElementToObjectKeyMap.set(classElement, identifier);
+	}
+
+	public getClassElementObjectKey(classElement: ts.ClassElement) {
+		return this.classElementToObjectKeyMap.get(classElement);
+	}
 }

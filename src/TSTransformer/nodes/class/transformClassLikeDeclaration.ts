@@ -4,6 +4,7 @@ import { assert } from "Shared/util/assert";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
+import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
@@ -441,6 +442,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			}),
 		);
 	}
+
+	luau.list.pushList(statementsInner, transformDecorators(state, node, returnVar));
 
 	luau.list.push(
 		statements,

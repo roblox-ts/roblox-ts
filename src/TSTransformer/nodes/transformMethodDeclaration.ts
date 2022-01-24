@@ -16,21 +16,33 @@ export function transformMethodDeclaration(
 	node: ts.MethodDeclaration,
 	ptr: Pointer<luau.Map | luau.AnyIdentifier>,
 ) {
+	const result = luau.list.make<luau.Statement>();
+
 	if (!node.body) {
-		return luau.list.make<luau.Statement>();
+		return result;
 	}
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
-		return luau.list.make<luau.Statement>();
+		return result;
 	}
 
 	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
-	const name = transformObjectKey(state, node.name);
+	let name = transformObjectKey(state, node.name);
+	if (node.decorators !== undefined && !luau.isSimple(name)) {
+		const tempId = luau.tempId("key");
+		const statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
+			left: tempId,
+			right: name,
+		});
+		luau.list.push(result, statement);
+		name = tempId;
+		state.setClassElementObjectKey(node, tempId);
+	}
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);
 
@@ -45,7 +57,8 @@ export function transformMethodDeclaration(
 	if (!isAsync && luau.isStringLiteral(name) && !luau.isMap(ptr.value) && luau.isValidIdentifier(name.value)) {
 		if (isMethod(state, node)) {
 			luau.list.shift(parameters); // remove `self`
-			return luau.list.make(
+			luau.list.push(
+				result,
 				luau.create(luau.SyntaxKind.MethodDeclaration, {
 					expression: ptr.value,
 					name: name.value,
@@ -55,7 +68,8 @@ export function transformMethodDeclaration(
 				}),
 			);
 		} else {
-			return luau.list.make(
+			luau.list.push(
+				result,
 				luau.create(luau.SyntaxKind.FunctionDeclaration, {
 					name: luau.property(ptr.value, name.value),
 					localize: false,
@@ -65,6 +79,7 @@ export function transformMethodDeclaration(
 				}),
 			);
 		}
+		return result;
 	}
 
 	let expression: luau.Expression = luau.create(luau.SyntaxKind.FunctionExpression, {
@@ -78,5 +93,10 @@ export function transformMethodDeclaration(
 	}
 
 	// we have to use `class[name] = function()`
-	return state.capturePrereqs(() => assignToMapPointer(state, ptr, name, expression));
+	luau.list.pushList(
+		result,
+		state.capturePrereqs(() => assignToMapPointer(state, ptr, name, expression)),
+	);
+
+	return result;
 }
