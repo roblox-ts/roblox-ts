@@ -20,7 +20,7 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 		}
 	}
 
-	if (isDefinitelyType(type, isAnyType)) {
+	if (isDefinitelyType(type, isAnyType(state))) {
 		const symbol = state.getOriginalSymbol(node);
 		if (symbol && !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
 			state.multiTransformState.isReportedByNoAnyCache.add(symbol);
