@@ -391,6 +391,7 @@ export class TransformState {
 
 	public symbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
 
+	// stores a mapping of `key` in `obj[key] = value` for classes so that the `key` can be referred to later
 	private classElementToObjectKeyMap = new Map<ts.ClassElement, luau.AnyIdentifier>();
 
 	public setClassElementObjectKey(classElement: ts.ClassElement, identifier: luau.AnyIdentifier) {
