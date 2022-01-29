@@ -62,6 +62,8 @@ function transformMethodDecorators(
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
 	return transformMemberDecorators(state, member, (expression, key) => {
+		assert(key);
+
 		const result = luau.list.make<luau.Statement>();
 
 		// local _descriptor = decorator(Class, "name", { value = Class.name })
@@ -77,13 +79,13 @@ function transformMethodDecorators(
 				left: descriptorId,
 				right: luau.call(expression, [
 					classId,
-					key!,
+					key,
 					luau.map([
 						[
 							luau.string("value"),
 							luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 								expression: classId,
-								index: key!,
+								index: key,
 							}),
 						],
 					]),
@@ -99,7 +101,7 @@ function transformMethodDecorators(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: classId,
-							index: key!,
+							index: key,
 						}),
 						operator: "=",
 						right: luau.property(descriptorId, "value"),
@@ -118,14 +120,15 @@ function transformPropertyDecorators(
 	member: ts.PropertyDeclaration,
 	classId: luau.AnyIdentifier,
 ): luau.List<luau.Statement> {
-	return transformMemberDecorators(state, member, (expression, key) =>
+	return transformMemberDecorators(state, member, (expression, key) => {
+		assert(key);
 		// decorator(Class, "name")
-		luau.list.make(
+		return luau.list.make(
 			luau.create(luau.SyntaxKind.CallStatement, {
-				expression: luau.call(expression, [classId, key!]),
+				expression: luau.call(expression, [classId, key]),
 			}),
-		),
-	);
+		);
+	});
 }
 
 function transformParameterDecorators(
