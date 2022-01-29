@@ -3,6 +3,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
 function transformMemberDecorators(
@@ -40,15 +41,15 @@ function transformMemberDecorators(
 		if (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) {
 			key = state.getClassElementObjectKey(node);
 			if (!key) {
-				let keyPrereqs: luau.List<luau.Statement>;
+				// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
+				// we check against this above
 				assert(!ts.isBindingPattern(name));
-				[key, keyPrereqs] = state.capture(() => transformObjectKey(state, name));
+				const keyPrereqs = state.capturePrereqs(() => (key = transformObjectKey(state, name)));
 				luau.list.pushList(result, keyPrereqs);
 			}
 		}
 
-		assert(luau.isIndexableExpression(expression));
-		luau.list.unshiftList(finalizers, callback(expression, key));
+		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression), key));
 	}
 
 	luau.list.pushList(result, finalizers);
@@ -122,6 +123,7 @@ function transformPropertyDecorators(
 ): luau.List<luau.Statement> {
 	return transformMemberDecorators(state, member, (expression, key) => {
 		assert(key);
+
 		// decorator(Class, "name")
 		return luau.list.make(
 			luau.create(luau.SyntaxKind.CallStatement, {
