@@ -19,13 +19,13 @@ export function transformMethodDeclaration(
 	const result = luau.list.make<luau.Statement>();
 
 	if (!node.body) {
-		return result;
+		return luau.list.make<luau.Statement>();
 	}
 
 	assert(node.name);
 	if (ts.isPrivateIdentifier(node.name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
-		return result;
+		return luau.list.make<luau.Statement>();
 	}
 
 	// eslint-disable-next-line no-autofix/prefer-const
