@@ -5,5 +5,5 @@ interface HasCallback {
 }
 
 const obj: HasCallback = {
-	callback: function() {},
-}
+	callback: function () {},
+};

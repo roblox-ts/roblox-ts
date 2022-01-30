@@ -1,6 +1,6 @@
 export {};
 
 for (const x of [1, 2, 3]) {
-	// @ts-ignore
+	// @ts-expect-error non-existent label
 	continue label;
 }

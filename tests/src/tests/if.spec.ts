@@ -16,10 +16,11 @@ export = () => {
 		expect(foo(11)).to.equal("baz");
 	});
 
-	it("should support prereqs in elseif", () => {
+	it("should handle conditional execution of prereqs in elseif", () => {
 		const array = [1];
 		if (true) {
-		} else if (array.pop() === 1) {}
+		} else if (array.pop() === 1) {
+		}
 		expect(array.size()).to.equal(1);
 	});
 };

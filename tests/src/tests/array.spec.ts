@@ -18,6 +18,7 @@ export = () => {
 		expect(foo()[1]).to.equal(2);
 		expect(foo()[2]).to.equal(3);
 
+		// eslint-disable-next-line no-autofix/prefer-const
 		let i = 2;
 		let a = arr[i];
 		let b = arr[2];
@@ -40,7 +41,7 @@ export = () => {
 		expect(d).to.equal(3);
 
 		function f<T extends 0 | 1 | 2 | number>(v: T) {
-			let a = [];
+			const a = [];
 			a[v] = 3; // shouldn't make a compiler error
 		}
 
@@ -86,7 +87,7 @@ export = () => {
 		expect(noodle.strings[2]).to.equal("Lasagna");
 		expect(noodle.strings[3]).to.equal("Penne");
 
-		let arr = [0];
+		const arr = [0];
 		arr.push(1, 2, arr[1]);
 
 		expect(arr[0]).to.equal(0);
@@ -117,14 +118,14 @@ export = () => {
 
 	it("should support move", () => {
 		const a = [1, 2, 3];
-		let b = [0];
+		const b = [0];
 		a.move(1, 2, 0);
 		expect(a.join(", ")).to.equal("2, 3, 3");
 		a.move(0, 2, 1, b);
 		expect(b.join(", ")).to.equal("0, 2, 3, 3");
 		b.move(0, 1, 2);
 		expect(b.join(", ")).to.equal("0, 2, 0, 2");
-	})
+	});
 
 	it("should support shift", () => {
 		const a = [1, 2, 3];
@@ -313,15 +314,15 @@ export = () => {
 	});
 
 	it("should allow spread 3", () => {
-		const oldArr = [2]
-		let counter = 0
-		const newArr = [++counter, ...oldArr]
+		const oldArr = [2];
+		let counter = 0;
+		const newArr = [++counter, ...oldArr];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
 	});
 
 	it("should allow spread 4", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ..."abc"];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal("a");
@@ -330,14 +331,14 @@ export = () => {
 	});
 
 	it("should allow spread 5", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ...new Set([2])];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
 	});
 
 	it("should allow spread 6", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [["a", ++counter], ...new Map([["b", 2]])];
 		expect(newArr[0][0]).to.equal("a");
 		expect(newArr[0][1]).to.equal(1);
@@ -350,7 +351,7 @@ export = () => {
 			yield 2;
 		}
 
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ...foo()];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
@@ -471,7 +472,7 @@ export = () => {
 	});
 
 	it("should support Array constructor", () => {
-		expect(new Array(10, undefined).isEmpty()).to.equal(true);
+		expect([10, undefined].isEmpty()).to.equal(true);
 	});
 
 	it("should support Array.mapFiltered", () => {
