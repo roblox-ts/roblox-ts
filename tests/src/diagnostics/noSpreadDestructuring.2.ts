@@ -1,3 +1,3 @@
 export {};
 
-const {X, ...etc} = new Vector3();
+const { X, ...etc } = new Vector3();

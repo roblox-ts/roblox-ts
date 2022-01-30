@@ -2,7 +2,7 @@
 
 export = () => {
 	it("should support try/catch", () => {
-		let x: number = 123;
+		let x = 123;
 		try {
 			x = 456;
 		} catch (e) {}

@@ -16,13 +16,13 @@ export = () => {
 	});
 
 	it("should allow async function expressions", () => {
-		const foo = async function() {
+		const foo = async function () {
 			return "foo";
-		}
+		};
 
-		const bar = async function() {
+		const bar = async function () {
 			return (await foo()) + "bar";
-		}
+		};
 
 		const [success, value] = bar().await();
 		expect(success).to.equal(true);
