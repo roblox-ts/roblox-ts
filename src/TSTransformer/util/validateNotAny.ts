@@ -24,7 +24,7 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 		const symbol = state.getOriginalSymbol(node);
 		if (!symbol || !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
 			if (symbol) state.multiTransformState.isReportedByNoAnyCache.add(symbol);
-			return;
+			// TODO: remove file in favor of checking in `isDefinitelyType`
 			DiagnosticService.addDiagnostic(errors.noAny(node));
 		}
 	}
