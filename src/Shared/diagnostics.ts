@@ -152,6 +152,7 @@ export const errors = {
 		"Can't use LuaTuple<T> in a template literal expression!",
 		suggestion("Did you mean to add `[0]`?"),
 	),
+	noMixedTypes: error("Attempted to use mixed types! This usage requires the type to be a single possible type."),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),

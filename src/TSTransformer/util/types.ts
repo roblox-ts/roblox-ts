@@ -1,8 +1,8 @@
 import { errors } from "Shared/diagnostics";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
+import { addDiagnosticFromNodeIfNotCached } from "TSTransformer/util/addDiagnosticIfNotCached";
 import ts from "typescript";
 
 type TypeCheck = (type: ts.Type) => boolean;
@@ -25,15 +25,27 @@ function getRecursiveBaseTypes(type: ts.InterfaceType) {
 function isDefinitelyTypeInner(
 	state: TransformState,
 	type: ts.Type,
-	node: ts.Node,
 	callbacks: Array<TypeCheck>,
+	requireFullMatchNode?: ts.Node,
 ): boolean {
 	if (type.isUnion()) {
-		return type.types.every(t => isDefinitelyTypeInner(state, t, node, callbacks));
+		const numberOfFits = type.types.reduce(
+			(acc, t) => acc + (isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode) ? 1 : 0),
+			0,
+		);
+		if (requireFullMatchNode && numberOfFits !== 0 && numberOfFits !== type.types.length) {
+			addDiagnosticFromNodeIfNotCached(
+				state,
+				requireFullMatchNode,
+				errors.noMixedTypes(requireFullMatchNode),
+				state.multiTransformState.isReportedByNoMultiCache,
+			);
+		}
+		return numberOfFits === type.types.length;
 	} else if (type.isIntersection()) {
-		return type.types.some(t => isDefinitelyTypeInner(state, t, node, callbacks));
+		return type.types.some(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
 	} else {
-		if (isAnyType(type.checker)(type)) {
+		if (requireFullMatchNode && isAnyType(type.checker)(type)) {
 			// `any` means the type does not definitely fit.
 			// However, we return true here,
 			// because some exhaustive type checks will assertion crash
@@ -41,19 +53,16 @@ function isDefinitelyTypeInner(
 			// For example, `getAddIterableToArrayBuilder`.
 			// Since a diagnostic is reported,
 			// it won't matter that the emitted code is wrong
-			const symbol = state.getOriginalSymbol(node);
-			if (
-				!(symbol
-					? state.multiTransformState.isReportedByNoAnyCache.has(symbol)
-					: state.multiTransformState.isReportedByNoAnyCache.has(node))
-			) {
-				state.multiTransformState.isReportedByNoAnyCache.add(symbol ?? node);
-				DiagnosticService.addDiagnostic(errors.noAny(node));
-			}
+			addDiagnosticFromNodeIfNotCached(
+				state,
+				requireFullMatchNode,
+				errors.noAny(requireFullMatchNode),
+				state.multiTransformState.isReportedByNoAnyCache,
+			);
 			return true;
 		} else if (
 			type.isClassOrInterface() &&
-			getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(state, t, node, callbacks))
+			getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode))
 		) {
 			return true;
 		}
@@ -62,8 +71,13 @@ function isDefinitelyTypeInner(
 }
 
 /** Returns true if the type definitely fits *at least one* of the provided callbacks */
-export function isDefinitelyType(state: TransformState, type: ts.Type, node: ts.Node, ...callbacks: Array<TypeCheck>) {
-	return isDefinitelyTypeInner(state, type.getConstraint() ?? type, node, callbacks);
+export function isDefinitelyType(
+	state: TransformState,
+	type: ts.Type,
+	requireFullMatchNode?: ts.Node,
+	...callbacks: Array<TypeCheck>
+) {
+	return isDefinitelyTypeInner(state, type.getConstraint() ?? type, callbacks, requireFullMatchNode);
 }
 
 function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolean {

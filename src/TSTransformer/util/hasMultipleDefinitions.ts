@@ -1,5 +1,5 @@
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
+import { addDiagnosticIfNotCached } from "TSTransformer/util/addDiagnosticIfNotCached";
 import ts from "typescript";
 
 export function hasMultipleDeclarations(
@@ -13,9 +13,12 @@ export function hasMultipleDeclarations(
 		if (filter(declaration)) {
 			amtValueDefinitions++;
 			if (amtValueDefinitions > 1) {
-				if (error && !state.multiTransformState.isReportedByMultipleDefinitionsCache.has(symbol)) {
-					state.multiTransformState.isReportedByMultipleDefinitionsCache.add(symbol);
-					DiagnosticService.addDiagnostic(error);
+				if (error) {
+					addDiagnosticIfNotCached(
+						symbol,
+						error,
+						state.multiTransformState.isReportedByMultipleDefinitionsCache,
+					);
 				}
 				return true;
 			}

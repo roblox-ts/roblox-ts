@@ -1,31 +1,17 @@
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { skipDownwards } from "TSTransformer/util/traversal";
-import { isAnyType, isArrayType, isDefinitelyType } from "TSTransformer/util/types";
+import { isAnyType, isDefinitelyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
+/**
+ * Should only be used in cases where any counts for TS correctness.
+ * For example, `a++` is valid if `a` is `number` or `any`, but nothing else.
+ * In this case, we only need to check that the type is not `any`
+ * to guarantee that it will be a `number`.
+ * Since we then don't use isDefinitelyType, we call this instead
+ */
 export function validateNotAnyType(state: TransformState, node: ts.Node) {
-	if (ts.isSpreadElement(node)) {
-		node = skipDownwards(node.expression);
-	}
-
-	let type = state.getType(node);
-
-	if (isDefinitelyType(state, type, node, isArrayType(state))) {
-		// Array<T> -> T
-		const indexType = state.typeChecker.getIndexTypeOfType(type, ts.IndexKind.Number);
-		if (indexType) {
-			type = indexType;
-		}
-	}
-
-	if (isDefinitelyType(state, type, node, isAnyType(state.typeChecker))) {
-		const symbol = state.getOriginalSymbol(node);
-		if (!symbol || !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
-			if (symbol) state.multiTransformState.isReportedByNoAnyCache.add(symbol);
-			// TODO: remove file in favor of checking in `isDefinitelyType`
-			DiagnosticService.addDiagnostic(errors.noAny(node));
-		}
-	}
+	// no-any checks are automatically done in isDefinitelyType
+	// therefore, calling it will report the diagnostic
+	// and we can discard the result
+	isDefinitelyType(state, state.getType(node), node, isAnyType(state.typeChecker));
 }
