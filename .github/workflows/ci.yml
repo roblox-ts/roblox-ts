@@ -17,6 +17,9 @@ jobs:
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1.7.4
 
+      - name: Build projects for eslint types
+        run: npm run build
+
       - name: Run ESLint
         run: npm run eslint
   unit-tests:
