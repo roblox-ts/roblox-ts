@@ -367,9 +367,6 @@ export function getAddIterableToArrayBuilder(
 	} else if (isDefinitelyType(state, type, node, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
-	} else if (type.isUnion()) {
-		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
-		return () => luau.list.make();
 	} else {
 		assert(false, `Iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}

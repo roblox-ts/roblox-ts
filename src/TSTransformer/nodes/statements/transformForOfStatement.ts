@@ -413,9 +413,6 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	} else if (isDefinitelyType(state, type, node, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
-	} else if (type.isUnion()) {
-		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
-		return () => luau.list.make();
 	} else {
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
