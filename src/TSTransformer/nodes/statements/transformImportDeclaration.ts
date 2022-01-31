@@ -91,6 +91,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 				// named elements import logic
 				for (const element of importClause.namedBindings.elements) {
 					const symbol = state.getOriginalSymbol(element.name);
+					// check that import is referenced and has a value at runtime
 					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 						luau.list.pushList(
 							statements,
