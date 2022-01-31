@@ -69,7 +69,10 @@
 		"no-empty": ["error", { "allowEmptyCatch": true }],
 		"no-extra-boolean-cast": "off",
 		"no-undef-init": "error",
-		"no-warning-comments": "warn",
+		"no-warning-comments": [
+			"warn",
+			{ "terms": ["fixme", "xxx"], "location": "anywhere" }
+		],
 		"prefer-const": "off",
 		"simple-import-sort/exports": "warn",
 		"simple-import-sort/imports": "warn"

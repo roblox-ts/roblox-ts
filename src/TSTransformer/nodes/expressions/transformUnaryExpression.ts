@@ -52,6 +52,9 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		);
 		return writable;
 	} else if (node.operator === ts.SyntaxKind.PlusToken) {
+		// in JS, `+x` is of type number, and NaN if not valid
+		// in Lua, `tonumber(x)` is nil if not valid
+		// so we can't transform to that, and throw a diagnostic instead
 		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
