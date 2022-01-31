@@ -1,4 +1,4 @@
 export {};
 
-declare let a: any;
+declare const a: any;
 [...a];
