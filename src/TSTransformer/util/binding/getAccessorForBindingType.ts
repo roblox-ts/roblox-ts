@@ -141,24 +141,24 @@ const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitte
 };
 
 export function getAccessorForBindingType(state: TransformState, node: ts.Node, type: ts.Type): BindingAccessor {
-	if (isDefinitelyType(type, node, isArrayType(state))) {
+	if (isDefinitelyType(state, type, node, isArrayType(state))) {
 		return arrayAccessor;
-	} else if (isDefinitelyType(type, node, isStringType)) {
+	} else if (isDefinitelyType(state, type, node, isStringType)) {
 		return stringAccessor;
-	} else if (isDefinitelyType(type, node, isSetType(state))) {
+	} else if (isDefinitelyType(state, type, node, isSetType(state))) {
 		return setAccessor;
-	} else if (isDefinitelyType(type, node, isMapType(state))) {
+	} else if (isDefinitelyType(state, type, node, isMapType(state))) {
 		return mapAccessor;
-	} else if (isDefinitelyType(type, node, isIterableFunctionLuaTupleType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableFunctionLuaTupleType(state))) {
 		return iterableFunctionLuaTupleAccessor;
-	} else if (isDefinitelyType(type, node, isIterableFunctionType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableFunctionType(state))) {
 		return iterableFunctionAccessor;
-	} else if (isDefinitelyType(type, node, isIterableType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.nil();
 	} else if (
-		isDefinitelyType(type, node, isGeneratorType(state)) ||
-		isDefinitelyType(type, node, isObjectType) ||
+		isDefinitelyType(state, type, node, isGeneratorType(state)) ||
+		isDefinitelyType(state, type, node, isObjectType) ||
 		ts.isThis(node)
 	) {
 		return iterAccessor;

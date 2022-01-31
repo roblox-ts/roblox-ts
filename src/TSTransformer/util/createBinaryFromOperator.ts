@@ -40,14 +40,15 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 ]);
 
 function createBinaryAdd(
+	state: TransformState,
 	left: luau.Expression,
 	leftType: ts.Type,
 	right: luau.Expression,
 	rightType: ts.Type,
 	originNode: ts.BinaryExpression,
 ) {
-	const leftIsString = isDefinitelyType(leftType, originNode.left, isStringType);
-	const rightIsString = isDefinitelyType(rightType, originNode.right, isStringType);
+	const leftIsString = isDefinitelyType(state, leftType, originNode.left, isStringType);
+	const rightIsString = isDefinitelyType(state, rightType, originNode.right, isStringType);
 	if (leftIsString || rightIsString) {
 		return luau.binary(
 			leftIsString ? left : luau.call(luau.globals.tostring, [left]),
@@ -76,7 +77,7 @@ export function createBinaryFromOperator(
 
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return createBinaryAdd(left, leftType, right, rightType, node);
+		return createBinaryAdd(state, left, leftType, right, rightType, node);
 	}
 
 	// bitwise

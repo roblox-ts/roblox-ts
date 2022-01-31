@@ -55,7 +55,7 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {
-		if (!isDefinitelyType(state.getType(node.operand), node.operand, isNumberType)) {
+		if (!isDefinitelyType(state, state.getType(node.operand), node.operand, isNumberType)) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberUnaryMinus(node));
 		}
 		return luau.unary("-", transformExpression(state, node.operand));

@@ -39,6 +39,7 @@ export function transformExpressionStatementInner(
 			const writableType = state.getType(expression.left);
 			const valueType = state.getType(expression.right);
 			const operator = getSimpleAssignmentOperator(
+				state,
 				writableType,
 				operatorKind as ts.AssignmentOperator,
 				valueType,
@@ -57,7 +58,7 @@ export function transformExpressionStatementInner(
 						left: writable,
 						operator,
 						right:
-							operator === "..=" && !isDefinitelyType(valueType, expression.right, isStringType)
+							operator === "..=" && !isDefinitelyType(state, valueType, expression.right, isStringType)
 								? luau.call(luau.globals.tostring, [value])
 								: value,
 					}),

@@ -167,6 +167,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		const writableType = state.getType(node.left);
 		const valueType = state.getType(node.right);
 		const operator = getSimpleAssignmentOperator(
+			state,
 			writableType,
 			operatorKind as ts.AssignmentOperator,
 			valueType,
@@ -184,7 +185,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isDefinitelyType(valueType, node.right, isStringType)
+				operator === "..=" && !isDefinitelyType(state, valueType, node.right, isStringType)
 					? luau.call(luau.globals.tostring, [value])
 					: value,
 			);
@@ -227,10 +228,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
 		if (
-			(!isDefinitelyType(leftType, node.left, isStringType) &&
-				!isDefinitelyType(leftType, node.left, isNumberType)) ||
-			(!isDefinitelyType(rightType, node.right, isStringType) &&
-				!isDefinitelyType(leftType, node.left, isNumberType))
+			(!isDefinitelyType(state, leftType, node.left, isStringType) &&
+				!isDefinitelyType(state, leftType, node.left, isNumberType)) ||
+			(!isDefinitelyType(state, rightType, node.right, isStringType) &&
+				!isDefinitelyType(state, leftType, node.left, isNumberType))
 		) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}

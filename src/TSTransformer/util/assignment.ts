@@ -21,6 +21,7 @@ const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 ]);
 
 export function getSimpleAssignmentOperator(
+	state: TransformState,
 	leftType: ts.Type,
 	operatorKind: ts.AssignmentOperator,
 	rightType: ts.Type,
@@ -28,8 +29,8 @@ export function getSimpleAssignmentOperator(
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return isDefinitelyType(leftType, node.left, isStringType) ||
-			isDefinitelyType(rightType, node.right, isStringType)
+		return isDefinitelyType(state, leftType, node.left, isStringType) ||
+			isDefinitelyType(state, rightType, node.right, isStringType)
 			? "..="
 			: "+=";
 	}

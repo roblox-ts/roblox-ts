@@ -350,21 +350,21 @@ export function getAddIterableToArrayBuilder(
 	node: ts.Node,
 	type: ts.Type,
 ): AddIterableToArrayBuilder {
-	if (isDefinitelyType(type, node, isArrayType(state))) {
+	if (isDefinitelyType(state, type, node, isArrayType(state))) {
 		return addArray;
-	} else if (isDefinitelyType(type, node, t => isStringType(t))) {
+	} else if (isDefinitelyType(state, type, node, t => isStringType(t))) {
 		return addString;
-	} else if (isDefinitelyType(type, node, isSetType(state))) {
+	} else if (isDefinitelyType(state, type, node, isSetType(state))) {
 		return addSet;
-	} else if (isDefinitelyType(type, node, isMapType(state))) {
+	} else if (isDefinitelyType(state, type, node, isMapType(state))) {
 		return addMap;
-	} else if (isDefinitelyType(type, node, isIterableFunctionLuaTupleType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableFunctionLuaTupleType(state))) {
 		return addIterableFunctionLuaTuple;
-	} else if (isDefinitelyType(type, node, isIterableFunctionType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableFunctionType(state))) {
 		return addIterableFunction;
-	} else if (isDefinitelyType(type, node, isGeneratorType(state))) {
+	} else if (isDefinitelyType(state, type, node, isGeneratorType(state))) {
 		return addGenerator;
-	} else if (isDefinitelyType(type, node, isIterableType(state))) {
+	} else if (isDefinitelyType(state, type, node, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
 	} else if (type.isUnion()) {
