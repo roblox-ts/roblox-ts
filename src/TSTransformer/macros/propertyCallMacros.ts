@@ -173,7 +173,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 
 		// table.concat only works on string and number types, so call tostring() otherwise
-		if (indexType && !isDefinitelyType(indexType, isStringType, isNumberType)) {
+		if (indexType && !isDefinitelyType(indexType, node, isStringType, isNumberType)) {
 			expression = state.pushToVarIfComplex(expression, "exp");
 			const id = state.pushToVar(luau.call(luau.globals.table.create, [luau.unary("#", expression)]), "result");
 			const keyId = luau.tempId("k");
@@ -726,7 +726,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueId! : luau.nil();
+		return valueIsUsed ? valueId : luau.nil();
 	},
 
 	sort: (state, node, expression, args) => {

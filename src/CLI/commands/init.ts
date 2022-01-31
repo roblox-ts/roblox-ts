@@ -68,7 +68,7 @@ function cmd(cmdStr: string) {
 			resolve(stdout);
 		});
 	}).catch((error: ExecException) => {
-		throw new CLIError(`Command "${error.cmd}" exited with code ${error.code}\n\n${error.message}`);
+		throw new CLIError(`Command "${error.cmd!}" exited with code ${error.code!}\n\n${error.message}`);
 	});
 }
 
@@ -213,14 +213,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	if (git) {
 		await benchmark("Initializing Git..", async () => {
-			try {
-				await cmd("git init");
-			} catch (error) {
-				if (!(error instanceof CLIError)) throw error;
-				throw new CLIError(
-					`${error.diagnostics[0].messageText}\nDo you not have Git installed? Git CLI is required to use Git functionality. If you do not wish to use Git, answer no to "Configure Git".`,
-				);
-			}
+			await cmd("git init");
 			await fs.outputFile(paths.gitignore, GIT_IGNORE.join("\n") + "\n");
 		});
 	}

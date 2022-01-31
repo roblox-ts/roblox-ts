@@ -283,6 +283,7 @@ export function transformElementCallExpressionInner(
 				state,
 				state.typeChecker.getNonOptionalType(state.getType(expression.expression)),
 				argumentExp,
+				expression.expression,
 			),
 		}),
 		args,

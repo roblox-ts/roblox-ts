@@ -53,15 +53,16 @@ describe("should compile tests project", () => {
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
-				if (
-					emitResult.diagnostics.length > 0 &&
-					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
-				) {
+				if (emitResult.diagnostics.length === 1 && getDiagnosticId(emitResult.diagnostics[0]) === expectedId) {
 					done();
 				} else if (emitResult.diagnostics.length === 0) {
 					done(new Error(`Expected diagnostic ${diagnosticName} to be reported.`));
 				} else {
-					done(new Error("Unexpected diagnostics:\n" + formatDiagnostics(emitResult.diagnostics)));
+					done(
+						new Error(
+							"Did not receive precisely 1 diagnostic:\n" + formatDiagnostics(emitResult.diagnostics),
+						),
+					);
 				}
 			});
 		} else {

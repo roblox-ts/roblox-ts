@@ -42,6 +42,7 @@ export function transformExpressionStatementInner(
 				writableType,
 				operatorKind as ts.AssignmentOperator,
 				valueType,
+				expression,
 			);
 			const { writable, readable, value } = transformWritableAssignment(
 				state,
@@ -56,7 +57,7 @@ export function transformExpressionStatementInner(
 						left: writable,
 						operator,
 						right:
-							operator === "..=" && !isDefinitelyType(valueType, isStringType)
+							operator === "..=" && !isDefinitelyType(valueType, expression.right, isStringType)
 								? luau.call(luau.globals.tostring, [value])
 								: value,
 					}),

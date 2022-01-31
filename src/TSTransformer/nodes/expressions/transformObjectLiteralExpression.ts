@@ -50,7 +50,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	const type = state.getType(property.expression);
 
 	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
-	const isPossiblyNonObject = !isDefinitelyType(type, isObjectType);
+	const isPossiblyNonObject = !isDefinitelyType(type, property.expression, isObjectType);
 	if (possiblyUndefined || isPossiblyNonObject) {
 		spreadExp = state.pushToVarIfComplex(spreadExp, "spread");
 	}

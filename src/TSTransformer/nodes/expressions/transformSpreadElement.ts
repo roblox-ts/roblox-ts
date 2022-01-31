@@ -21,7 +21,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	const expression = transformExpression(state, node.expression);
 
 	const type = state.getType(node.expression);
-	if (isDefinitelyType(type, isArrayType(state))) {
+	if (isDefinitelyType(type, node, isArrayType(state))) {
 		return luau.call(luau.globals.unpack, [expression]);
 	} else {
 		const addIterableToArrayBuilder = getAddIterableToArrayBuilder(state, node.expression, type);

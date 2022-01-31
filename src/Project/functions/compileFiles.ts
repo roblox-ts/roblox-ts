@@ -137,7 +137,7 @@ export function compileFiles(
 				if (!data.transformerWatcher) {
 					data.transformerWatcher = createTransformerWatcher(program);
 				}
-				const { service, updateFile } = data.transformerWatcher!;
+				const { service, updateFile } = data.transformerWatcher;
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,

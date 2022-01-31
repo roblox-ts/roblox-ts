@@ -153,7 +153,9 @@ export = () => {
 	it("should support the non-null assertion operator on maps", () => {
 		const a = new Map<number, number>();
 		let c: Map<number, number> | undefined;
-		(c! = a!).set(1, 2);
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+		(c!!! = a!!!).set(1, 2);
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
 		expect(a!.get(1)).to.equal(2);
 
 		const b = new Map<string, Array<number>>([["a", [123]]]);

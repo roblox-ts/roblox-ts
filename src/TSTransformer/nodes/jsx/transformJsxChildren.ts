@@ -215,7 +215,7 @@ function createJsxAddChild(
 			}
 			statement = luau.create(luau.SyntaxKind.IfStatement, {
 				condition,
-				statements: luau.list.make(statement!),
+				statements: luau.list.make(statement),
 				elseBody: luau.list.make(),
 			});
 		} else {
@@ -303,7 +303,7 @@ export function transformJsxChildren(
 					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
-					if (isDefinitelyType(type, isRoactElementType(state))) {
+					if (isDefinitelyType(type, innerExp, isRoactElementType(state))) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {

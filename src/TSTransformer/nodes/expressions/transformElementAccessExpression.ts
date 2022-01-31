@@ -56,7 +56,7 @@ export function transformElementAccessExpressionInner(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 					expression: convertToIndexableExpression(expression),
-					index: addOneIfArrayType(state, expType, index),
+					index: addOneIfArrayType(state, expType, index, node.expression),
 				}),
 				operator: "=",
 				right: luau.nil(),
@@ -67,7 +67,7 @@ export function transformElementAccessExpressionInner(
 
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 		expression: convertToIndexableExpression(expression),
-		index: addOneIfArrayType(state, expType, index),
+		index: addOneIfArrayType(state, expType, index, node.expression),
 	});
 }
 

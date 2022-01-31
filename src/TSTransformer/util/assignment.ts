@@ -24,10 +24,14 @@ export function getSimpleAssignmentOperator(
 	leftType: ts.Type,
 	operatorKind: ts.AssignmentOperator,
 	rightType: ts.Type,
+	node: ts.BinaryExpression,
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return isDefinitelyType(leftType, isStringType) || isDefinitelyType(rightType, isStringType) ? "..=" : "+=";
+		return isDefinitelyType(leftType, node.left, isStringType) ||
+			isDefinitelyType(rightType, node.right, isStringType)
+			? "..="
+			: "+=";
 	}
 
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);
@@ -51,7 +55,7 @@ export function createAssignmentExpression(
 
 export function createCompoundAssignmentStatement(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
@@ -68,7 +72,7 @@ export function createCompoundAssignmentStatement(
 
 export function createCompoundAssignmentExpression(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,

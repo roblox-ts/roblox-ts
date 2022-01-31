@@ -39,9 +39,15 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
 ]);
 
-function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
-	const leftIsString = isDefinitelyType(leftType, isStringType);
-	const rightIsString = isDefinitelyType(rightType, isStringType);
+function createBinaryAdd(
+	left: luau.Expression,
+	leftType: ts.Type,
+	right: luau.Expression,
+	rightType: ts.Type,
+	originNode: ts.BinaryExpression,
+) {
+	const leftIsString = isDefinitelyType(leftType, originNode.left, isStringType);
+	const rightIsString = isDefinitelyType(rightType, originNode.right, isStringType);
 	if (leftIsString || rightIsString) {
 		return luau.binary(
 			leftIsString ? left : luau.call(luau.globals.tostring, [left]),
@@ -55,7 +61,7 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 
 export function createBinaryFromOperator(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.SyntaxKind,
@@ -70,7 +76,7 @@ export function createBinaryFromOperator(
 
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusToken || operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return createBinaryAdd(left, leftType, right, rightType);
+		return createBinaryAdd(left, leftType, right, rightType, node);
 	}
 
 	// bitwise

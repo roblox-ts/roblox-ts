@@ -1,4 +1,6 @@
+import { errors } from "Shared/diagnostics";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 import ts from "typescript";
@@ -20,21 +22,48 @@ function getRecursiveBaseTypes(type: ts.InterfaceType) {
 	return result;
 }
 
-function isDefinitelyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolean {
+function isDefinitelyTypeInner(
+	state: TransformState,
+	type: ts.Type,
+	node: ts.Node,
+	callbacks: Array<TypeCheck>,
+): boolean {
 	if (type.isUnion()) {
-		return type.types.every(t => isDefinitelyTypeInner(t, callbacks));
+		return type.types.every(t => isDefinitelyTypeInner(state, t, node, callbacks));
 	} else if (type.isIntersection()) {
-		return type.types.some(t => isDefinitelyTypeInner(t, callbacks));
+		return type.types.some(t => isDefinitelyTypeInner(state, t, node, callbacks));
 	} else {
-		if (type.isClassOrInterface() && getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(t, callbacks))) {
+		if (isAnyType(type.checker)(type)) {
+			// `any` means the type does not definitely fit.
+			// However, we return true here,
+			// because some exhaustive type checks will assertion crash
+			// if they do not match any of the specific cases.
+			// For example, `getAddIterableToArrayBuilder`.
+			// Since a diagnostic is reported,
+			// it won't matter that the emitted code is wrong
+			const symbol = state.getOriginalSymbol(node);
+			if (
+				!(symbol
+					? state.multiTransformState.isReportedByNoAnyCache.has(symbol)
+					: state.multiTransformState.isReportedByNoAnyCache.has(node))
+			) {
+				state.multiTransformState.isReportedByNoAnyCache.add(symbol ?? node);
+			}
+			DiagnosticService.addDiagnostic(errors.noAny(node));
+			return true;
+		} else if (
+			type.isClassOrInterface() &&
+			getRecursiveBaseTypes(type).some(t => isDefinitelyTypeInner(state, t, node, callbacks))
+		) {
 			return true;
 		}
 		return callbacks.some(cb => cb(type));
 	}
 }
 
-export function isDefinitelyType(type: ts.Type, ...callbacks: Array<TypeCheck>) {
-	return isDefinitelyTypeInner(type.getConstraint() ?? type, callbacks);
+/** Returns true if the type definitely fits *at least one* of the provided callbacks */
+export function isDefinitelyType(state: TransformState, type: ts.Type, node: ts.Node, ...callbacks: Array<TypeCheck>) {
+	return isDefinitelyTypeInner(state, type.getConstraint() ?? type, node, callbacks);
 }
 
 function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolean {
@@ -48,10 +77,9 @@ function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolea
 		// type variable without constraint, any, or unknown
 		if (!!(type.flags & (ts.TypeFlags.TypeVariable | ts.TypeFlags.AnyOrUnknown))) {
 			return true;
-		}
-
-		// defined type
-		if (isDefinedType(type)) {
+		} else if (isAnyType(type.checker)) {
+			return true;
+		} else if (isDefinedType(type)) {
 			if (callbacks.length === 1 && callbacks[0] === isUndefinedType) {
 				// if only matching undefined, then defined means not possible
 				return false;
@@ -63,6 +91,7 @@ function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolea
 	}
 }
 
+/** Returns true if the type possibly fits *at least one* of the provided callbacks */
 export function isPossiblyType(type: ts.Type, ...callbacks: Array<TypeCheck>) {
 	return isPossiblyTypeInner(type.getConstraint() ?? type, callbacks);
 }
@@ -78,8 +107,8 @@ export function isDefinedType(type: ts.Type) {
 	);
 }
 
-export function isAnyType(state: TransformState): TypeCheck {
-	return type => type === state.typeChecker.getAnyType();
+export function isAnyType(checker: ts.TypeChecker): TypeCheck {
+	return type => type === checker.getAnyType();
 }
 
 export function isBooleanType(type: ts.Type) {

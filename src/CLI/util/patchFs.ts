@@ -10,8 +10,10 @@ fs.copySync ??= NOOP;
 fs.existsSync ??= () => false;
 fs.outputFile ??= ASYNC_NOOP;
 fs.outputFileSync ??= NOOP;
+// eslint-disable-next-line @typescript-eslint/require-await
 fs.pathExists ??= async () => false;
 fs.pathExistsSync ??= () => false;
+// eslint-disable-next-line @typescript-eslint/require-await
 fs.readdir ??= async () => [];
 fs.readdirSync ??= () => [];
 fs.readFileSync ??= () => Buffer.from("") as Buffer & string;

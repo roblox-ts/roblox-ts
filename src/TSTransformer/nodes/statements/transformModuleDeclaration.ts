@@ -27,7 +27,7 @@ function isDeclarationOfNamespace(declaration: ts.Declaration) {
 	return false;
 }
 
-function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
+function hasMultipleInstantiations(symbol: ts.Symbol, node: ts.Node): boolean {
 	let amtValueDeclarations = 0;
 	const declarations = symbol.getDeclarations();
 	if (declarations) {
@@ -35,7 +35,11 @@ function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
 			if (isDeclarationOfNamespace(declaration)) {
 				amtValueDeclarations++;
 				if (amtValueDeclarations > 1) {
-					return true;
+					// Only error if this is not the first declaration
+					// To avoid duplicate diagnostics
+					console.dir(declaration);
+					console.dir(node);
+					return declaration !== node;
 				}
 			}
 		}
@@ -142,7 +146,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleInstantiations(symbol)) {
+	if (symbol && hasMultipleInstantiations(symbol, node.name)) {
 		DiagnosticService.addDiagnostic(errors.noNamespaceMerging(node));
 		return luau.list.make<luau.Statement>();
 	}

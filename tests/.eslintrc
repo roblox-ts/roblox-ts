@@ -9,6 +9,8 @@
 		"@typescript-eslint/no-extra-non-null-assertion": "off",
 		"@typescript-eslint/no-unused-expressions": "off",
 		"@typescript-eslint/no-unused-vars": "off",
+		"@typescript-eslint/require-await": "off",
+		"@typescript-eslint/restrict-template-expressions": "off",
 		"no-constant-condition": "off",
 		"no-empty": "off",
 		"no-empty-pattern": "off",

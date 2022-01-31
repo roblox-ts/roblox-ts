@@ -88,7 +88,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				hidden: true,
 			})
-			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
+			// Do not provide defaults below here, use DEFAULT_PROJECT_OPTIONS
 			.option("type", {
 				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,
 				describe: "override project type",
@@ -103,6 +103,8 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				describe: "manually select Rojo project file",
 			}),
 
+	// handler doesn't use await, but must be async or else yargs will crash
+	// eslint-disable-next-line @typescript-eslint/require-await
 	handler: async argv => {
 		try {
 			const tsConfigPath = findTsConfigPath(argv.project);

@@ -27,14 +27,17 @@ export function createProjectData(
 		throw new ProjectError("Unable to find package.json");
 	}
 
-	let isPackage = false;
-	let pkgVersion = "";
+	let isPackage: boolean;
+	let pkgVersion: string;
 	try {
 		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
 		pkgVersion = pkgJson.version;
 	} catch (e) {
-		// errors if no pkgJson, so assume not a package and no version
+		// fs call errors if no pkgJson
+		// assume not a package and no version
+		isPackage = false;
+		pkgVersion = "";
 	}
 
 	const logTruthyChanges = flags.logTruthyChanges;

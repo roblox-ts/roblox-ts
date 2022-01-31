@@ -26,7 +26,7 @@ export function transformWritableExpression(
 		);
 	} else if (ts.isElementAccessExpression(node)) {
 		const [expression, index] = ensureTransformOrder(state, [node.expression, node.argumentExpression]);
-		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index);
+		const indexExp = addOneIfArrayType(state, state.getType(node.expression), index, node.expression);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite
 				? state.pushToVarIfComplex(expression, "exp")
