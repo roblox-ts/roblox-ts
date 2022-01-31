@@ -17,7 +17,7 @@ export function transformPropertyAccessExpressionInner(
 	name: string,
 ) {
 	validateNotAnyType(state, node.expression);
-	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
+	addIndexDiagnostics(state, node, state.typeChecker.getNonNullableType(state.getType(node)));
 
 	const constantValue = getConstantValueLiteral(state, node);
 	if (constantValue) {

@@ -147,7 +147,7 @@ export function transformCallExpressionInner(
 		]);
 	}
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getCallMacro(symbol);
@@ -189,7 +189,7 @@ export function transformPropertyCallExpressionInner(
 		]);
 	}
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
@@ -252,7 +252,7 @@ export function transformElementCallExpressionInner(
 		);
 	}
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol) {
 		const macro = state.services.macroManager.getPropertyCallMacro(symbol);
@@ -281,7 +281,7 @@ export function transformElementCallExpressionInner(
 			expression: convertToIndexableExpression(baseExpression),
 			index: addOneIfArrayType(
 				state,
-				state.typeChecker.getNonOptionalType(state.getType(expression.expression)),
+				state.typeChecker.getNonNullableType(state.getType(expression.expression)),
 				argumentExp,
 				expression.expression,
 			),

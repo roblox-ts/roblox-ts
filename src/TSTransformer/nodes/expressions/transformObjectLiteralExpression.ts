@@ -39,7 +39,7 @@ function transformPropertyAssignment(
 }
 
 function transformSpreadAssignment(state: TransformState, ptr: MapPointer, property: ts.SpreadAssignment) {
-	const expType = state.typeChecker.getNonOptionalType(state.getType(property.expression));
+	const expType = state.typeChecker.getNonNullableType(state.getType(property.expression));
 	const symbol = getFirstDefinedSymbol(state, expType);
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(property));

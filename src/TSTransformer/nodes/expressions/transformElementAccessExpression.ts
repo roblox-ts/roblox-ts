@@ -21,7 +21,7 @@ export function transformElementAccessExpressionInner(
 	validateNotAnyType(state, node.expression);
 	validateNotAnyType(state, node.argumentExpression);
 
-	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
+	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	addIndexDiagnostics(state, node, expType);
 
 	const constantValue = getConstantValueLiteral(state, node);

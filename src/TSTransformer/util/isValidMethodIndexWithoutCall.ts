@@ -17,7 +17,7 @@ export function isValidMethodIndexWithoutCall(state: TransformState, node: ts.No
 
 	// typeIs/typeOf macros
 	if (ts.isCallExpression(parent)) {
-		const expType = state.typeChecker.getNonOptionalType(state.getType(parent.expression));
+		const expType = state.typeChecker.getNonNullableType(state.getType(parent.expression));
 		const symbol = getFirstDefinedSymbol(state, expType);
 		if (symbol) {
 			const macro = state.services.macroManager.getCallMacro(symbol);

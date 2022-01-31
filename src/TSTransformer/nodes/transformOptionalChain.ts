@@ -273,7 +273,7 @@ function transformOptionalChainInner(
 			const [newValue, ifStatements] = state.capture(() => {
 				let newExpression: luau.Expression;
 				if (isCompoundCall(item) && item.callOptional) {
-					const expType = state.typeChecker.getNonOptionalType(state.getType(item.node.expression));
+					const expType = state.typeChecker.getNonNullableType(state.getType(item.node.expression));
 					const symbol = getFirstDefinedSymbol(state, expType);
 					if (symbol) {
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
