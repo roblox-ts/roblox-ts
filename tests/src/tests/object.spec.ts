@@ -175,7 +175,7 @@ export = () => {
 		}
 
 		{
-			const k: Record<string, any> = { o: 1, b: 2 };
+			const k: Record<string, number> = { o: 1, b: 2 };
 			const o = {
 				o: 3,
 				...k,
@@ -187,7 +187,7 @@ export = () => {
 		}
 
 		{
-			const k: Record<string, any> = { o: 1, b: 2 };
+			const k: Record<string, number> = { o: 1, b: 2 };
 			const o = {
 				o: 3,
 				b: k.o++,
