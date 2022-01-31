@@ -7,6 +7,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
@@ -14,47 +15,48 @@ import ts from "typescript";
 export function transformPostfixUnaryExpression(state: TransformState, node: ts.PostfixUnaryExpression) {
 	validateNotAnyType(state, node.operand);
 
-	const writable = transformWritableExpression(state, node.operand, true);
+	const originalIsUsed = !isUsedAsStatement(node);
+
+	const writable = transformWritableExpression(state, node.operand, originalIsUsed);
 	const origValue = luau.tempId("original");
-
-	state.prereq(
-		luau.create(luau.SyntaxKind.VariableDeclaration, {
-			left: origValue,
-			right: writable,
-		}),
-	);
-
-	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+	if (originalIsUsed) {
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: origValue,
+				right: writable,
+			}),
+		);
+	}
 
 	state.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
-			operator,
+			operator: node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=",
 			right: luau.number(1),
 		}),
 	);
 
-	return origValue;
+	return originalIsUsed ? origValue : luau.nil();
 }
 
 export function transformPrefixUnaryExpression(state: TransformState, node: ts.PrefixUnaryExpression) {
 	validateNotAnyType(state, node.operand);
 
 	if (node.operator === ts.SyntaxKind.PlusPlusToken || node.operator === ts.SyntaxKind.MinusMinusToken) {
-		const writable = transformWritableExpression(state, node.operand, true);
-		const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
+		const resultIsUsed = !isUsedAsStatement(node);
+		const writable = transformWritableExpression(state, node.operand, resultIsUsed);
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: writable,
-				operator,
+				operator: node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=",
 				right: luau.number(1),
 			}),
 		);
-		return writable;
+		return resultIsUsed ? writable : luau.nil();
 	} else if (node.operator === ts.SyntaxKind.PlusToken) {
 		// in JS, `+x` is of type number, and NaN if not valid
 		// in Lua, `tonumber(x)` is nil if not valid
-		// so we can't transform to that, and throw a diagnostic instead
+		// so we can't emit that, and throw a diagnostic instead
 		DiagnosticService.addDiagnostic(errors.noUnaryPlus(node));
 		return transformExpression(state, node.operand);
 	} else if (node.operator === ts.SyntaxKind.MinusToken) {

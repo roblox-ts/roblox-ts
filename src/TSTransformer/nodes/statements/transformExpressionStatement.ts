@@ -2,26 +2,12 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformLogicalOrCoalescingAssignmentExpressionStatement } from "TSTransformer/nodes/transformLogicalOrCoalescingAssignmentExpression";
-import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
-import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
+import { transformWritableAssignment } from "TSTransformer/nodes/transformWritable";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
-
-function transformUnaryExpressionStatement(
-	state: TransformState,
-	node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression,
-) {
-	const writable = transformWritableExpression(state, node.operand, false);
-	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
-	return luau.create(luau.SyntaxKind.Assignment, {
-		left: writable,
-		operator,
-		right: luau.number(1),
-	});
-}
 
 export function transformExpressionStatementInner(
 	state: TransformState,
@@ -78,11 +64,6 @@ export function transformExpressionStatementInner(
 				);
 			}
 		}
-	} else if (
-		(ts.isPrefixUnaryExpression(expression) || ts.isPostfixUnaryExpression(expression)) &&
-		isUnaryAssignmentOperator(expression.operator)
-	) {
-		return luau.list.make(transformUnaryExpressionStatement(state, expression));
 	}
 
 	return wrapExpressionStatement(transformExpression(state, expression));
