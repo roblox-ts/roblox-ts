@@ -472,7 +472,7 @@ export = () => {
 	});
 
 	it("should support Array constructor", () => {
-		expect([10, undefined].isEmpty()).to.equal(true);
+		expect(new Array(10, undefined).isEmpty()).to.equal(true);
 	});
 
 	it("should support Array.mapFiltered", () => {
