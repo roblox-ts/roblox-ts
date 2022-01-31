@@ -227,12 +227,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.GreaterThanToken ||
 		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
-		if (
-			(!isDefinitelyType(state, leftType, node.left, isStringType) &&
-				!isDefinitelyType(state, leftType, node.left, isNumberType)) ||
-			(!isDefinitelyType(state, rightType, node.right, isStringType) &&
-				!isDefinitelyType(state, leftType, node.left, isNumberType))
-		) {
+		// Only need to check left side, TS assures right side is comparable
+		if (!isDefinitelyType(state, leftType, node.left, isStringType, isNumberType)) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}
 	}

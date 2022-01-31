@@ -1,4 +1,4 @@
 export {};
 
-declare const a: any;
+declare const a: { b: any };
 a["b"]();

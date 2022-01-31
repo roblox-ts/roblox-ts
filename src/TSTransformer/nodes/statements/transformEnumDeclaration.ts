@@ -2,27 +2,11 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
-
-function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
-	let amtValueDefinitions = 0;
-	for (const declaration of symbol.getDeclarations() ?? []) {
-		if (
-			ts.isEnumDeclaration(declaration) &&
-			!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const)
-		) {
-			amtValueDefinitions++;
-			if (amtValueDefinitions > 1) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const)) {
@@ -30,8 +14,17 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	}
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleDefinitions(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noEnumMerging(node));
+	if (
+		symbol &&
+		hasMultipleDeclarations(
+			state,
+			symbol,
+			declaration =>
+				ts.isEnumDeclaration(declaration) &&
+				!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const),
+			errors.noEnumMerging(node),
+		)
+	) {
 		return luau.list.make<luau.Statement>();
 	}
 

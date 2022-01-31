@@ -48,8 +48,8 @@ function isDefinitelyTypeInner(
 					: state.multiTransformState.isReportedByNoAnyCache.has(node))
 			) {
 				state.multiTransformState.isReportedByNoAnyCache.add(symbol ?? node);
+				DiagnosticService.addDiagnostic(errors.noAny(node));
 			}
-			DiagnosticService.addDiagnostic(errors.noAny(node));
 			return true;
 		} else if (
 			type.isClassOrInterface() &&
