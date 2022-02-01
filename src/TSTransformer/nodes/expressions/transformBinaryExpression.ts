@@ -191,7 +191,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isDefinitelyType(state, valueType, node.right, isStringType)
+				operator === "..=" && !isDefinitelyType(state, valueType, undefined, isStringType, isNumberType)
 					? luau.call(luau.globals.tostring, [value])
 					: value,
 			);
