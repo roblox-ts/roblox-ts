@@ -1,5 +1,5 @@
 export {};
 
-declare const a: Record<string, number>;
-declare const b: any;
+declare const a: any;
+declare const b: string;
 a[b];

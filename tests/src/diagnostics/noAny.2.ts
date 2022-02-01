@@ -1,4 +1,4 @@
 export {};
 
 declare const x: any;
-const { a, b } = x;
+const { [1]: a, b } = x;

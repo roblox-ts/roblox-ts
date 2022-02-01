@@ -1,4 +1,4 @@
 export {};
 
-declare const A: any;
-new A();
+declare const a: any;
+[...a];
