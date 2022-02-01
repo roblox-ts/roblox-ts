@@ -25,7 +25,9 @@ export class RoactSymbolManager {
 
 		for (const symbolName of Object.values(ROACT_SYMBOL_NAMES)) {
 			const symbol = roactExports.get(ts.escapeLeadingUnderscores(symbolName));
-			assert(symbol);
+			if (!symbol) {
+				assert(false, `RoactSymbolManager could not find Roact export symbol for ${symbolName}`);
+			}
 			this.symbols.set(symbolName, ts.skipAlias(symbol, typeChecker));
 		}
 
