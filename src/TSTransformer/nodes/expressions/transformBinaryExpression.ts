@@ -177,6 +177,16 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operator === undefined,
 		);
 		if (operator !== undefined) {
+			if (operator === "..=" && !isDefinitelyType(state, writableType, undefined, isStringType, isNumberType)) {
+				// If operator is `..=`, both sides must be `string` or `number`, otherwise Luau will error
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: writable,
+						operator: "=",
+						right: luau.call(luau.globals.tostring, [writable]),
+					}),
+				);
+			}
 			return createAssignmentExpression(
 				state,
 				writable,
