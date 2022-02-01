@@ -12,7 +12,9 @@ import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function checkUnaryType(state: TransformState, node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression): void {
-	if (!isDefinitelyType(state, state.getType(node.operand), node.operand, isNumberType)) {
+	// We can omit passing `node` because `any` won't match `number`
+	// The noNonNumberUnary error is more accurate than no-any
+	if (!isDefinitelyType(state, state.getType(node.operand), undefined, isNumberType)) {
 		DiagnosticService.addDiagnostic(errors.noNonNumberUnary(node));
 	}
 }
