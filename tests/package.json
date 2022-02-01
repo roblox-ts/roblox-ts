@@ -11,7 +11,7 @@
 	"license": "ISC",
 	"dependencies": {
 		"@rbxts/compiler-types": "^1.2.9-types.0",
-		"@rbxts/roact": "^1.3.0-ts.7",
+		"@rbxts/roact": "^1.4.0-ts.2",
 		"@rbxts/services": "^1.1.2",
 		"@rbxts/testez": "^0.3.1-ts.6",
 		"@rbxts/types": "^1.0.571"
