@@ -12,5 +12,11 @@
 		"editor.formatOnSave": false,
 		"editor.wordWrap": "bounded",
 		"editor.wordWrapColumn": 120
-	}
+	},
+	"gitlens.autolinks": [
+		{
+			"prefix": "#",
+			"url": "https://github.com/roblox-ts/roblox-ts/issues/<num>"
+		}
+	]
 }
