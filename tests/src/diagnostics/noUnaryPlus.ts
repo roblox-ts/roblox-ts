@@ -1,3 +1,3 @@
 export {};
 
-const x = +"foo";
+const x = +1;

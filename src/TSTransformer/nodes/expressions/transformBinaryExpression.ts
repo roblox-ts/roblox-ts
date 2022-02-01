@@ -21,7 +21,6 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
 function transformLuaTupleDestructure(
@@ -113,9 +112,6 @@ function transformLuaTupleDestructure(
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
 	const operatorKind = node.operatorToken.kind;
-
-	validateNotAnyType(state, node.left);
-	validateNotAnyType(state, node.right);
 
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {

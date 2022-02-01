@@ -143,7 +143,7 @@ export const errors = {
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
 	noUnaryPlus: error("Unary `+` is not supported!", suggestion("Use `tonumber(x)` instead.")),
-	noNonNumberUnaryMinus: error("Unary `-` is only supported for number types!"),
+	noNonNumberUnary: error("This unary operator only supports number types!"),
 	noAwaitForOf: error("`await` is not supported in for-of loops!"),
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),

@@ -17,7 +17,6 @@ import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent"
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import { wrapReturnIfLuaTuple } from "TSTransformer/util/wrapReturnIfLuaTuple";
 import ts from "typescript";
@@ -135,8 +134,6 @@ export function transformCallExpressionInner(
 		return transformImportExpression(state, node);
 	}
 
-	validateNotAnyType(state, node.expression);
-
 	if (ts.isSuperCall(node)) {
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.missingSuperConstructorRoactComponent(node));
@@ -177,8 +174,6 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	validateNotAnyType(state, node.expression);
-
 	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
@@ -237,8 +232,6 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	validateNotAnyType(state, node.expression);
-
 	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));

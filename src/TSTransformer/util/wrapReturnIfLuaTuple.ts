@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
@@ -51,7 +51,7 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 }
 
 export function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
-	if (isLuaTupleType(state)(state.getType(node)) && shouldWrapLuaTuple(node, exp)) {
+	if (isDefinitelyType(state, state.getType(node), node, isLuaTupleType(state)) && shouldWrapLuaTuple(node, exp)) {
 		return luau.array([exp]);
 	}
 	return exp;

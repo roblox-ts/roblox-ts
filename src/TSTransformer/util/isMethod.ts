@@ -4,6 +4,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { walkTypes } from "TSTransformer/util/types";
+import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
 function getThisParameter(parameters: ts.NodeArray<ts.ParameterDeclaration>) {
@@ -94,5 +95,6 @@ export function isMethod(
 	state: TransformState,
 	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
 ): boolean {
+	validateNotAnyType(state, node);
 	return isMethodFromType(state, node, state.getType(node));
 }

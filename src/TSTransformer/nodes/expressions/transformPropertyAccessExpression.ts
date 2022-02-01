@@ -7,7 +7,6 @@ import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
 export function transformPropertyAccessExpressionInner(
@@ -16,7 +15,6 @@ export function transformPropertyAccessExpressionInner(
 	expression: luau.Expression,
 	name: string,
 ) {
-	validateNotAnyType(state, node.expression);
 	addIndexDiagnostics(state, node, state.typeChecker.getNonNullableType(state.getType(node)));
 
 	const constantValue = getConstantValueLiteral(state, node);

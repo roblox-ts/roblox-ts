@@ -164,10 +164,6 @@ export class MacroManager {
 		return symbol;
 	}
 
-	public isMacroOnlyClass(symbol: ts.Symbol) {
-		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
-	}
-
 	public getIdentifierMacro(symbol: ts.Symbol) {
 		return this.identifierMacros.get(symbol);
 	}
@@ -180,14 +176,17 @@ export class MacroManager {
 		return this.constructorMacros.get(symbol);
 	}
 
+	public isMacroOnlyClass(symbol: ts.Symbol) {
+		return this.symbols.get(symbol.name) === symbol && MACRO_ONLY_CLASSES.has(symbol.name);
+	}
+
 	public getPropertyCallMacro(symbol: ts.Symbol) {
 		const macro = this.propertyCallMacros.get(symbol);
-		if (
-			!macro &&
-			symbol.parent &&
-			this.symbols.get(symbol.parent.name) === symbol.parent &&
-			this.isMacroOnlyClass(symbol.parent)
-		) {
+		// if no macro implementation
+		// and symbol belongs to class
+		// and symbol's class is macro-only
+		// then implementation must be missing
+		if (!macro && symbol.parent && this.isMacroOnlyClass(symbol.parent)) {
 			assert(false, `Macro ${symbol.parent.name}.${symbol.name}() is not implemented!`);
 		}
 		return macro;

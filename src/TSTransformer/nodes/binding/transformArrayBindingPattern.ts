@@ -6,7 +6,6 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
 export function transformArrayBindingPattern(
@@ -14,8 +13,6 @@ export function transformArrayBindingPattern(
 	bindingPattern: ts.ArrayBindingPattern,
 	parentId: luau.AnyIdentifier,
 ) {
-	validateNotAnyType(state, bindingPattern);
-
 	let index = 0;
 	const idStack = new Array<luau.AnyIdentifier>();
 	const accessor = getAccessorForBindingType(state, bindingPattern, state.getType(bindingPattern));

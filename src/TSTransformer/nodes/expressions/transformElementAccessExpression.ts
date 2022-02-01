@@ -8,8 +8,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { getConstantValueLiteral } from "TSTransformer/util/getConstantValueLiteral";
 import { offset } from "TSTransformer/util/offset";
 import { skipUpwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
-import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformElementAccessExpressionInner(
@@ -18,9 +17,6 @@ export function transformElementAccessExpressionInner(
 	expression: luau.Expression,
 	argumentExpression: ts.Expression,
 ) {
-	validateNotAnyType(state, node.expression);
-	validateNotAnyType(state, node.argumentExpression);
-
 	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	addIndexDiagnostics(state, node, expType);
 
@@ -33,7 +29,7 @@ export function transformElementAccessExpressionInner(
 
 	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
-		if (isLuaTupleType(state)(expType)) {
+		if (isDefinitelyType(state, expType, node, isLuaTupleType(state))) {
 			expression = luau.array([expression]);
 		}
 
@@ -42,7 +38,7 @@ export function transformElementAccessExpressionInner(
 	}
 
 	// LuaTuple<T> checks
-	if (luau.isCall(expression) && isLuaTupleType(state)(expType)) {
+	if (luau.isCall(expression) && isDefinitelyType(state, expType, node.expression, isLuaTupleType(state))) {
 		// wrap in select() if it isn't the first value
 		if (!luau.isNumberLiteral(index) || Number(index.value) !== 0) {
 			expression = luau.call(luau.globals.select, [offset(index, 1), expression]);
