@@ -9,30 +9,30 @@ export = () => {
 	});
 
 	it("should support JS truthiness", () => {
-		let value = 123;
-		let zero = 0;
-		let emptyStr = "";
-		let NaN = 0/0;
+		const value = 123;
+		const zero = 0;
+		const emptyStr = "";
+		const nan = 0 / 0;
 
 		expect(value ? "PASS" : "FAIL").to.equal("PASS");
 		expect(zero ? "PASS" : "FAIL").to.equal("FAIL");
 		expect(emptyStr ? "PASS" : "FAIL").to.equal("FAIL");
-		expect(NaN ? "PASS" : "FAIL").to.equal("FAIL");
+		expect(nan ? "PASS" : "FAIL").to.equal("FAIL");
 	});
 
 	it("should support JS truthiness with prereqs", () => {
-		let value = 123;
-		let zero = 0;
-		let emptyStr = "";
-		let NaN = 0/0;
+		const value = 123;
+		const zero = 0;
+		const emptyStr = "";
+		const nan = 0 / 0;
 
 		let strA = "A";
 		let strB = "";
 
-		expect(value ? strA += "B" : "FAIL").to.equal("AB");
-		expect(zero ? "FAIL" : strB += "X").to.equal("X");
-		expect(emptyStr ? "FAIL" : strB += "Y").to.equal("XY");
-		expect(NaN ? "FAIL" : strB += "Z").to.equal("XYZ");
+		expect(value ? (strA += "B") : "FAIL").to.equal("AB");
+		expect(zero ? "FAIL" : (strB += "X")).to.equal("X");
+		expect(emptyStr ? "FAIL" : (strB += "Y")).to.equal("XY");
+		expect(nan ? "FAIL" : (strB += "Z")).to.equal("XYZ");
 	});
 
 	it("should correctly wrap if-expressions in parentheses where needed", () => {
