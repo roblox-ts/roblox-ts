@@ -14,7 +14,7 @@
 		"prepublishOnly": "npm run build",
 		"build": "ttsc -b",
 		"build-watch": "ttsc -b -w",
-		"eslint": "eslint src/**/*.ts tests/**/*.ts --max-warnings 0",
+		"eslint": "eslint src/**/*.ts tests/**/*.ts tests/**/*.tsx --max-warnings 0",
 		"devlink": "cd devlink && npm link",
 		"test": "npm run build && npm run test-setup && npm run test-compile && npm run test-rojo && npm run test-run",
 		"test-setup": "cd tests && npm install @rbxts/types@latest @rbxts/compiler-types@latest",
