@@ -14,7 +14,7 @@ import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 
-const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
+const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?\.?(\d+)?$/;
 
 describe("should compile tests project", () => {
 	const data = createProjectData(
@@ -48,12 +48,19 @@ describe("should compile tests project", () => {
 			if (ext === TS_EXT || ext === TSX_EXT) {
 				fileBaseName = path.basename(sourceFile.fileName, ext);
 			}
-			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1] as keyof typeof errors;
+			const regexResults = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX);
+			const diagnosticName = regexResults?.[1] as keyof typeof errors;
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
+			const repeatAmount = (regexResults && parseInt(regexResults?.[2])) || 1;
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
-			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
+			it(`should compile ${fileName} and report diagnostic ${diagnosticName}${
+				repeatAmount > 1 ? ` ${repeatAmount} times` : ""
+			}`, done => {
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
-				if (emitResult.diagnostics.length === 1 && getDiagnosticId(emitResult.diagnostics[0]) === expectedId) {
+				if (
+					emitResult.diagnostics.length === repeatAmount &&
+					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
+				) {
 					done();
 				} else if (emitResult.diagnostics.length === 0) {
 					done(new Error(`Expected diagnostic ${diagnosticName} to be reported.`));
