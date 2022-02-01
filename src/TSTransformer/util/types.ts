@@ -24,11 +24,25 @@ function getRecursiveBaseTypes(type: ts.InterfaceType) {
 
 function isDefinitelyTypeInner(
 	state: TransformState,
-	type: ts.Type,
+	type: ts.Type | Array<ts.Type>,
 	callbacks: Array<TypeCheck>,
 	requireFullMatchNode?: ts.Node,
 ): boolean {
-	if (type.isUnion()) {
+	if (ts.isArray(type)) {
+		if (!requireFullMatchNode) {
+			return type.some(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
+		}
+		// For any checks:
+		// With an array, *at least one* of the types must match *at least one* of the callbacks
+		// If this is not the case, *and* at least one of the types is `any`, report the error
+		// Intentionally omit the recursive `requireFullMatchNode` here in case a defined type matches
+		const numberOfFits = type.reduce((acc, t) => acc + (isDefinitelyTypeInner(state, t, callbacks) ? 1 : 0), 0);
+		if (numberOfFits === 0) {
+			// None matched, so run with passing `requireFullMatchNode` to report possible no-any
+			type.forEach(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
+		}
+		return numberOfFits > 0;
+	} else if (type.isUnion()) {
 		const numberOfFits = type.types.reduce(
 			(acc, t) => acc + (isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode) ? 1 : 0),
 			0,
@@ -73,11 +87,16 @@ function isDefinitelyTypeInner(
 /** Returns true if the type definitely fits *at least one* of the provided callbacks */
 export function isDefinitelyType(
 	state: TransformState,
-	type: ts.Type,
+	type: ts.Type | Array<ts.Type>,
 	requireFullMatchNode?: ts.Node,
 	...callbacks: Array<TypeCheck>
 ) {
-	return isDefinitelyTypeInner(state, type.getConstraint() ?? type, callbacks, requireFullMatchNode);
+	return isDefinitelyTypeInner(
+		state,
+		ts.isArray(type) ? type.map(t => t.getConstraint() ?? t) : type.getConstraint() ?? type,
+		callbacks,
+		requireFullMatchNode,
+	);
 }
 
 function isPossiblyTypeInner(type: ts.Type, callbacks: Array<TypeCheck>): boolean {

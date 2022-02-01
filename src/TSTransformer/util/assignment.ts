@@ -29,10 +29,8 @@ export function getSimpleAssignmentOperator(
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		return isDefinitelyType(state, leftType, node.left, isStringType) ||
-			isDefinitelyType(state, rightType, node.right, isStringType)
-			? "..="
-			: "+=";
+		const isString = isDefinitelyType(state, [leftType, rightType], node, isStringType);
+		return isString ? "..=" : "+=";
 	}
 
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);
