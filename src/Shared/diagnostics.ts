@@ -167,7 +167,10 @@ export const errors = {
 		suggestion("Macros always exist. Use a normal call."),
 	),
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
-	noMacroExtends: error("Cannot extend from a macro class!"),
+	noMacroExtends: error(
+		"Cannot extend from a macro class!",
+		suggestion("Add a property with the macro class, and index that instead of `super`"),
+	),
 	noMacroObjectSpread: error(
 		"Macro classes cannot be used in an object spread!",
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
