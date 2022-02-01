@@ -2,7 +2,6 @@
 
 let y = 0;
 namespace Foo {
-	// eslint-disable-next-line no-autofix/prefer-const
 	export let x = 1;
 	y = x;
 }
@@ -15,14 +14,12 @@ namespace Bar {
 
 	export const { ClassName: a } = plr;
 
-	// eslint-disable-next-line no-autofix/prefer-const
 	export let { ClassName: b, Name: c } = plr;
-	// eslint-disable-next-line no-autofix/prefer-const
 	export let { ClassName, Name } = plr;
 }
 
 export = () => {
-	it("should allow mutable exports", () => {
+	it("should allow mutatable exports", () => {
 		expect(Foo.x).to.equal(1);
 		Foo.x = 2;
 		expect(Foo.x).to.equal(2);

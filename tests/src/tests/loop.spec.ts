@@ -119,7 +119,6 @@ export = () => {
 		const hit = new Set<number>();
 		const limit = 1;
 		let n = 0;
-		// eslint-disable-next-line for-direction
 		for (let i = 3; i <= limit; i -= 1) {
 			hit.add(i);
 			n++;
@@ -370,10 +369,10 @@ export = () => {
 
 	it("should support indexing tuple as array", () => {
 		const obj = {
-			a: 1,
-			b: 2,
-			c: 3,
-		};
+			a:1,
+			b:2,
+			c:3,
+		}
 
 		for (const tuple of pairs(obj)) {
 			expect(tuple[1]).to.equal(obj[tuple[0]]);
@@ -387,16 +386,14 @@ export = () => {
 			expect(tuple.size()).to.equal(1);
 			break;
 		}
-	});
+	})
 
 	it("should support iterator function with multiple returns when indexing tuple as array", () => {
-		const longIterator: IterableFunction<LuaTuple<[boolean, boolean, boolean, boolean, boolean, boolean]>> = (() =>
-			[true, true, true, true, true, true] as LuaTuple<
-				[boolean, boolean, boolean, boolean, boolean, boolean]
-			>) as never;
+		const longIterator: IterableFunction<LuaTuple<[boolean, boolean, boolean, boolean, boolean, boolean]>> =
+		(() => [true, true, true, true, true, true] as LuaTuple<[boolean, boolean, boolean, boolean, boolean, boolean]>) as never;
 		for (const tuple of longIterator) {
 			expect(tuple.size()).to.equal(6);
 			break;
 		}
-	});
+	})
 };

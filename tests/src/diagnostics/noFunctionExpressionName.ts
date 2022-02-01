@@ -1,3 +1,3 @@
 export {};
 
-print(function foo() {});
+print(function foo() {})

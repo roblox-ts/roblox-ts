@@ -56,7 +56,7 @@ export = () => {
 									this.b++;
 								},
 
-								no: function () {
+								no: function() {
 									return (this[5] *= 7);
 								},
 
@@ -124,7 +124,7 @@ export = () => {
 		(x) *= 9;
 		expect(x).to.equal(45);
 
-		const o = { x: 3 };
+		let o = { x: 3 };
 		// prettier-ignore
 		(o.x) = 5;
 		expect(o.x).to.equal(5);

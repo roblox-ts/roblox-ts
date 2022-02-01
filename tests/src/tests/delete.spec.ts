@@ -16,7 +16,6 @@ export = () => {
 			};
 
 			delete myTrolly.apples;
-			// prettier-ignore
 			delete (myTrolly.pears);
 
 			expect(myTrolly.apples).to.equal(undefined);
@@ -31,7 +30,6 @@ export = () => {
 			};
 
 			delete myTrolly?.apples;
-			// prettier-ignore
 			delete (myTrolly?.pears);
 
 			expect(myTrolly.apples).to.equal(undefined);
@@ -46,7 +44,6 @@ export = () => {
 			};
 
 			delete myTrolly["apples"];
-			// prettier-ignore
 			delete (myTrolly["pears"]);
 
 			expect(myTrolly.apples).to.equal(undefined);
@@ -61,7 +58,6 @@ export = () => {
 			};
 
 			delete myTrolly?.["apples"];
-			// prettier-ignore
 			delete (myTrolly?.["pears"]);
 
 			expect(myTrolly.apples).to.equal(undefined);
@@ -110,7 +106,6 @@ export = () => {
 			};
 
 			expect(delete myTrolly.apples).to.equal(true);
-			// prettier-ignore
 			expect(delete (myTrolly.pears)).to.equal(true);
 		});
 
@@ -118,7 +113,6 @@ export = () => {
 			const myTrolly = getFruitsOrUndefined();
 
 			expect(delete myTrolly?.apples).to.equal(true);
-			// prettier-ignore
 			expect(delete (myTrolly?.pears)).to.equal(true);
 		});
 
@@ -130,7 +124,6 @@ export = () => {
 			};
 
 			expect(delete myTrolly["apples"]).to.equal(true);
-			// prettier-ignore
 			expect(delete (myTrolly["apples"])).to.equal(true);
 		});
 
@@ -138,7 +131,6 @@ export = () => {
 			const myTrolly = getFruitsOrUndefined();
 
 			expect(delete myTrolly?.["apples"]).to.equal(true);
-			// prettier-ignore
 			expect(delete (myTrolly?.["pears"])).to.equal(true);
 		});
 	});

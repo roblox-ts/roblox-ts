@@ -3,7 +3,6 @@
 export = () => {
 	it("should support logical null coalescing assignment statement", () => {
 		let x: boolean | undefined;
-		// eslint-disable-next-line no-autofix/prefer-const
 		x ??= true;
 		expect(x).to.equal(true);
 	});
@@ -22,19 +21,19 @@ export = () => {
 
 	it("should support logical null coalescing assignment expression", () => {
 		let x: boolean | undefined;
-		expect((x ??= true)).to.equal(true);
+		expect(x ??= true).to.equal(true);
 		expect(x).to.equal(true);
 	});
 
 	it("should support logical or assignment expression", () => {
 		let x = false;
-		expect((x ||= true)).to.equal(true);
+		expect(x ||= true).to.equal(true);
 		expect(x).to.equal(true);
 	});
 
 	it("should support logical and assignment expression", () => {
 		let x = true;
-		expect((x &&= false)).to.equal(false);
+		expect(x &&= false).to.equal(false);
 		expect(x).to.equal(false);
 	});
 };

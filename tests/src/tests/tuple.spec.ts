@@ -121,7 +121,6 @@ export = () => {
 		}
 
 		function bar(): LuaTuple<[[number, string], boolean]> {
-			// prettier-ignore
 			return ([foo(), true] as unknown) as LuaTuple<[[number, string], boolean]>;
 		}
 
@@ -163,7 +162,6 @@ export = () => {
 
 	it("should allow LuaTuples to have Array<> inside", () => {
 		function foo(): LuaTuple<[number, number, ...Array<string>] | []> {
-			// prettier-ignore
 			return ([1, 2, "3"] as unknown) as LuaTuple<[number, number, ...Array<string>] | []>;
 		}
 
