@@ -1,4 +1,3 @@
-/* eslint-disable no-duplicate-case */
 /// <reference types="@rbxts/testez/globals" />
 
 export = () => {
@@ -74,7 +73,7 @@ export = () => {
 			switch (n) {
 				case x++:
 					return -1;
-				case x++:
+				case x++: // eslint-disable-line no-duplicate-case
 					return -2;
 			}
 			return 0;
@@ -90,7 +89,7 @@ export = () => {
 			let x = 1;
 			switch (n) {
 				case x++:
-				case x++:
+				case x++: // eslint-disable-line no-duplicate-case
 					return -2;
 			}
 			return 0;
@@ -106,9 +105,9 @@ export = () => {
 			let x = 1;
 			switch (++n) {
 				case x++:
-				case x++:
-				case x++:
-				case x++:
+				case x++: // eslint-disable-line no-duplicate-case
+				case x++: // eslint-disable-line no-duplicate-case
+				case x++: // eslint-disable-line no-duplicate-case
 					return -2;
 			}
 			return 0;
