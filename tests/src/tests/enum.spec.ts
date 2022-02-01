@@ -26,20 +26,10 @@ enum Soups {
 
 enum EnumWithEscapedQuote {
 	// prettier-ignore
-	Quote = '\'',
-}
-
-const enum EnumWithEscapedQuoteConst {
-	// prettier-ignore
-	Quote = '\'',
-}
-
-enum EnumWithEscapedDoubleQuote {
-	// prettier-ignore
 	Quote = "\"",
 }
 
-const enum EnumWithEscapedDoubleQuoteConst {
+const enum EnumWithEscapedQuoteConst {
 	// prettier-ignore
 	Quote = "\"",
 }
@@ -121,12 +111,10 @@ export = () => {
 	}
 
 	it("should support enums with escaped quotes", () => {
-		expect(EnumWithEscapedQuote.Quote).to.equal("'");
-		expect(EnumWithEscapedDoubleQuote.Quote).to.equal('"');
+		expect(EnumWithEscapedQuote.Quote).to.equal('"');
 	});
 
 	it("should support const enums with escaped quotes", () => {
-		expect(EnumWithEscapedQuoteConst.Quote).to.equal("'");
-		expect(EnumWithEscapedDoubleQuoteConst.Quote).to.equal('"');
+		expect(EnumWithEscapedQuoteConst.Quote).to.equal('"');
 	});
 };

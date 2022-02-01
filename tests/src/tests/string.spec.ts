@@ -75,8 +75,8 @@ export = () => {
 	});
 
 	it("should support variable string indices", () => {
-		const i = 1;
-		const j = 3;
+		let i = 1;
+		let j = 3;
 		expect("foobar".sub(i, j)).to.equal("foo");
 	});
 
@@ -103,7 +103,7 @@ export = () => {
 		}
 
 		let j = 0;
-		const myStr = "யாமறிந்த";
+		let myStr = "யாமறிந்த";
 		for (const substr of myStr) {
 			expect(substr).to.equal(["ய", "ா", "ம", "ற", "ி", "ந", "்", "த"][j++]);
 		}
@@ -115,28 +115,18 @@ export = () => {
 
 		const obj = {
 			[`str
-			ing`]: "foo",
+			ing`]: "foo"
 		};
 
-		expect(
-			obj[
-				`str
-			ing`
-			],
-		).to.equal("foo");
+		expect(obj[`str
+			ing`]).to.equal("foo");
 		expect(obj[key]).to.equal("foo");
 
-		obj[
-			`str
-			ing`
-		] = "bar";
+		obj[`str
+			ing`] = "bar";
 
-		expect(
-			obj[
-				`str
-			ing`
-			],
-		).to.equal("bar");
+		expect(obj[`str
+			ing`]).to.equal("bar");
 		expect(obj[key]).to.equal("bar");
 	});
 

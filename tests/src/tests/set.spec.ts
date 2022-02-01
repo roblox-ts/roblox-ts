@@ -89,7 +89,7 @@ export = () => {
 		expect(set.has(f)).to.equal(true);
 		let i = 0;
 
-		const k = { x: i++ };
+		let k = { x: i++ };
 
 		new WeakSet();
 		new WeakSet([]);
@@ -128,7 +128,10 @@ export = () => {
 	});
 
 	it("should support has", () => {
-		const set = new Set<string>().add("a").add("b").add("c");
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
 		set.has("a");
 		expect(set.has("a")).to.equal(true);
 		expect(set.has("b")).to.equal(true);
@@ -137,7 +140,10 @@ export = () => {
 	});
 
 	it("should support clear", () => {
-		const set = new Set<string>().add("a").add("b").add("c");
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
 		set.clear();
 		expect(set.size()).to.equal(0);
 		expect(set.has("a")).to.equal(false);
@@ -146,7 +152,10 @@ export = () => {
 	});
 
 	it("should support delete", () => {
-		const set = new Set<string>().add("a").add("b").add("c");
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
 		expect(set.size()).to.equal(3);
 		expect(set.has("b")).to.equal(true);
 		const hadB = set.delete("b");
@@ -165,7 +174,10 @@ export = () => {
 		let hitB = 0;
 		let hitC = 0;
 
-		const set = new Set<string>().add("a").add("b").add("c");
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
 		set.forEach((value, value2, obj) => {
 			expect(value).to.equal(value2);
 			expect(obj).to.equal(set);
@@ -183,7 +195,10 @@ export = () => {
 	});
 
 	it("should support size", () => {
-		const set = new Set<string>().add("a").add("b").add("c");
+		const set = new Set<string>()
+			.add("a")
+			.add("b")
+			.add("c");
 		expect(set.size()).to.equal(3);
 		set.add("d");
 		expect(set.size()).to.equal(4);

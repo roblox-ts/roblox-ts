@@ -1,6 +1,6 @@
 export {};
 
 for (const x of [1, 2, 3]) {
-	// @ts-expect-error non-existent label
+	// @ts-ignore
 	break label;
 }

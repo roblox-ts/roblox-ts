@@ -1,4 +1,3 @@
-/* eslint-disable no-duplicate-case */
 /// <reference types="@rbxts/testez/globals" />
 
 export = () => {
@@ -14,7 +13,6 @@ export = () => {
 					if (true) {
 						break;
 					}
-				// eslint-disable-next-line no-fallthrough
 				case "e": {
 					return 4;
 				}

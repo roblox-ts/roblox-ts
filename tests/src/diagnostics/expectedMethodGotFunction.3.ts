@@ -8,4 +8,4 @@ function method() {}
 
 const obj: HasMethod = {
 	method,
-};
+}

@@ -6,4 +6,4 @@ interface HasMethod {
 
 const obj: HasMethod = {
 	method: () => {},
-};
+}

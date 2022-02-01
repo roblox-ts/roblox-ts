@@ -33,9 +33,7 @@ export = () => {
 		expect('foo'.size()).to.equal(3);
 		expect(`foo`.size()).to.equal(3);
 		expect("\"").to.equal("\"");
-		// eslint-disable-next-line no-useless-escape
 		expect(`\"`).to.equal("\"");
-		// eslint-disable-next-line no-useless-escape
 		expect('\"').to.equal("\"");
 		expect(`"`).to.equal("\"");
 		expect('"').to.equal("\"");

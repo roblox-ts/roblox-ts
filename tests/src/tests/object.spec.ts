@@ -3,7 +3,6 @@
 declare const self: undefined;
 
 namespace N {
-	// eslint-disable-next-line no-autofix/prefer-const
 	export let x = 5;
 	export const p = { a: { x } };
 }
@@ -27,7 +26,6 @@ export = () => {
 			2: 1,
 		};
 
-		// eslint-disable-next-line no-autofix/prefer-const
 		let i = 2;
 		let a = obj[i];
 		let b = obj[2];
@@ -175,8 +173,9 @@ export = () => {
 		}
 
 		{
-			const k: Record<string, number> = { o: 1, b: 2 };
+			const k = { o: 1, b: 2 };
 			const o = {
+				// @ts-ignore
 				o: 3,
 				...k,
 				b: k.o++,
@@ -187,9 +186,11 @@ export = () => {
 		}
 
 		{
-			const k: Record<string, number> = { o: 1, b: 2 };
+			const k = { o: 1, b: 2 };
 			const o = {
+				// @ts-ignore
 				o: 3,
+				// @ts-ignore
 				b: k.o++,
 				...k,
 			};
@@ -211,7 +212,6 @@ export = () => {
 
 	it("should support computedMethodNames", () => {
 		{
-			// eslint-disable-next-line no-inner-declarations
 			function g(n: 5) {
 				expect(self).to.equal(undefined);
 				return o.f(n);
@@ -317,7 +317,7 @@ export = () => {
 			return (this.n += n);
 		}
 
-		const mul = function <T extends Numerable>(this: T, n: number) {
+		const mul = function<T extends Numerable>(this: T, n: number) {
 			this.n *= n;
 			return this;
 		};
@@ -338,7 +338,7 @@ export = () => {
 		const o = {
 			count: 1,
 
-			getCount: function () {
+			getCount: function() {
 				return this.count;
 			},
 		};

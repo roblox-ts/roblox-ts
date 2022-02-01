@@ -6,4 +6,4 @@ interface HasCallback {
 
 const obj: HasCallback = {
 	callback() {},
-};
+}

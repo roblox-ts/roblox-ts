@@ -138,7 +138,6 @@ export = () => {
 		let x: number;
 		let y: number;
 		let z: number;
-		// eslint-disable-next-line no-autofix/prefer-const
 		[x, y, [z]] = [1, 2, [3]];
 		expect(x).to.equal(1);
 		expect(y).to.equal(2);
@@ -146,9 +145,9 @@ export = () => {
 	});
 
 	it("should support destructure assignment with identifier", () => {
-		let x = 0;
-		let y = 0;
-		let z = 0;
+		let x: number;
+		let y: number;
+		let z: number;
 		const obj: [number, number, [number]] = [1, 2, [3]];
 		[x, y, [z]] = obj;
 		expect(x).to.equal(1);
@@ -205,13 +204,13 @@ export = () => {
 	});
 
 	it("should destructure properly into already declared variables", () => {
-		let a = 0;
+		let a: number;
 		[a] = new Set([4]);
 		expect(a).to.equal(4);
 
-		let third = 0;
-		({ [2]: third } = [1, 2, 3]);
-		expect(third).to.equal(3);
+		let len: number;
+		({ [2]: len } = [1, 2, 3]);
+		expect(len).to.equal(3);
 
 		let y = 0;
 		({ x: y } = { x: 1 });
@@ -219,10 +218,11 @@ export = () => {
 	});
 
 	it("should destructure computed property types as well (number-only)", () => {
-		const array = [1, 2, 3, 4];
+		const array = new Array<number>();
+		array.push(1, 2, 3, 4);
 
 		function f(i: number) {
-			let num = 0 / 0;
+			let num: number;
 			({ [i]: num } = array);
 			return num;
 		}
@@ -346,8 +346,8 @@ export = () => {
 
 	it("should properly destruct with var element access", () => {
 		const array = [1, 2];
-		const a = 0;
-		const b = 1;
+		let a = 0;
+		let b = 1;
 		[array[a], array[b]] = [array[b], array[a]];
 		expect(array[a]).to.equal(2);
 		expect(array[b]).to.equal(1);
@@ -377,8 +377,8 @@ export = () => {
 
 	it("should support arrays with object destructure", () => {
 		const array = [3, 4];
-		const a = 0;
-		const b = 1;
+		let a = 0;
+		let b = 1;
 		({ [a]: array[b], [b]: array[a] } = array);
 		expect(array[a]).to.equal(3);
 		expect(array[b]).to.equal(3);
@@ -392,19 +392,19 @@ export = () => {
 	});
 
 	it("should support object destructing from object with shorthand syntax", () => {
-		const x = 123;
+		let x = 123;
 		const { x: y } = { x };
 		expect(y).to.equal(123);
 	});
 
 	it("should support object destructing from object with numeric literal key", () => {
-		const x = 456;
+		let x = 456;
 		const { 1: y } = { 1: x };
 		expect(y).to.equal(456);
 	});
 
 	it("should support object destructing from object with string literal key", () => {
-		const x = 789;
+		let x = 789;
 		// prettier-ignore
 		const { "str": y } = { "str": x };
 		expect(y).to.equal(789);
@@ -539,7 +539,6 @@ export = () => {
 			x: new Map([["heck", 123]]),
 		};
 		({
-			// eslint-disable-next-line no-autofix/prefer-const
 			x: [a],
 		} = obj);
 		expect(a[0]).to.equal("heck");
@@ -553,7 +552,6 @@ export = () => {
 			x: new Map([["heck", 123]]),
 		};
 		({
-			// eslint-disable-next-line no-autofix/prefer-const
 			x: [[a, b]],
 		} = obj);
 		expect(a).to.equal("heck");
@@ -567,7 +565,6 @@ export = () => {
 			x: [new Map([["heck", 123]])],
 		};
 		({
-			// eslint-disable-next-line no-autofix/prefer-const
 			x: [[[a, b]]],
 		} = obj);
 		expect(a).to.equal("heck");
@@ -580,7 +577,6 @@ export = () => {
 			x: [new Set(["heck"])],
 		};
 		({
-			// eslint-disable-next-line no-autofix/prefer-const
 			x: [[a]],
 		} = obj);
 		expect(a).to.equal("heck");
@@ -592,7 +588,6 @@ export = () => {
 			x: [new Set(["heck"])],
 		};
 		({
-			// eslint-disable-next-line no-autofix/prefer-const
 			x: [[[a]]],
 		} = obj);
 		expect(a).to.equal("h");
@@ -693,13 +688,13 @@ export = () => {
 
 	it("should support empty destructure", () => {
 		let x = 0;
-		const [] = pcall(() => (x = 123));
+		const [] = pcall(() => x = 123);
 		expect(x).to.equal(123);
 	});
 
 	it("should support empty destructure assignment", () => {
 		let x = 0;
-		[] = pcall(() => (x = 123));
+		[] = pcall(() => x = 123);
 		expect(x).to.equal(123);
 	});
 };
