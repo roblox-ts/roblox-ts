@@ -15,18 +15,22 @@ export class MultiTransformState {
 	public hasCheckedJsxFactory = false;
 	public isRoactJsxFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
 		const shouldTryToCompile = compilerOptions.jsxFragmentFactory === "Roact.createElement";
-		if (!this.hasCheckedJsxFactory && !shouldTryToCompile) {
+		if (!this.hasCheckedJsxFactory) {
 			this.hasCheckedJsxFactory = true;
-			DiagnosticService.addDiagnostic(errors.invalidJsxFactory(node));
+			if (!shouldTryToCompile) {
+				DiagnosticService.addDiagnostic(errors.invalidJsxFactory(node));
+			}
 		}
 		return shouldTryToCompile;
 	}
 	public hasCheckedJsxFragmentFactory = false;
 	public isRoactJsxFragmentFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
 		const shouldTryToCompile = compilerOptions.jsxFragmentFactory === "Roact.createFragment";
-		if (!this.hasCheckedJsxFragmentFactory && !shouldTryToCompile) {
+		if (!this.hasCheckedJsxFragmentFactory) {
 			this.hasCheckedJsxFragmentFactory = true;
-			DiagnosticService.addDiagnostic(errors.invalidJsxFragmentFactory(node));
+			if (!shouldTryToCompile) {
+				DiagnosticService.addDiagnostic(errors.invalidJsxFactory(node));
+			}
 		}
 		return shouldTryToCompile;
 	}
