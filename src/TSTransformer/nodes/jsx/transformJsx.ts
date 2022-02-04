@@ -17,7 +17,7 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	state.checkJsxFactory(node);
+	if (!state.isRoactJsxFactory(node)) return luau.nil();
 
 	const isFragment =
 		state.services.roactSymbolManager &&

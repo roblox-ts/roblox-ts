@@ -200,11 +200,11 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
-	public checkJsxFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFactory(node, this.compilerOptions);
+	public isRoactJsxFactory(node: ts.Node) {
+		return this.multiTransformState.isRoactJsxFactory(node, this.compilerOptions);
 	}
-	public checkJsxFragmentFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFragmentFactory(node, this.compilerOptions);
+	public isRoactJsxFragmentFactory(node: ts.Node) {
+		return this.multiTransformState.isRoactJsxFragmentFactory(node, this.compilerOptions);
 	}
 
 	/**
