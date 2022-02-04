@@ -14,7 +14,7 @@ export class MultiTransformState {
 
 	public hasCheckedJsxFactory = false;
 	public isRoactJsxFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
-		const shouldTryToCompile = compilerOptions.jsxFragmentFactory === "Roact.createElement";
+		const shouldTryToCompile = compilerOptions.jsxFactory === "Roact.createElement";
 		if (!this.hasCheckedJsxFactory) {
 			this.hasCheckedJsxFactory = true;
 			if (!shouldTryToCompile) {
@@ -29,7 +29,7 @@ export class MultiTransformState {
 		if (!this.hasCheckedJsxFragmentFactory) {
 			this.hasCheckedJsxFragmentFactory = true;
 			if (!shouldTryToCompile) {
-				DiagnosticService.addDiagnostic(errors.invalidJsxFactory(node));
+				DiagnosticService.addDiagnostic(errors.invalidJsxFragmentFactory(node));
 			}
 		}
 		return shouldTryToCompile;
