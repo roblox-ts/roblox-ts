@@ -13,18 +13,22 @@ export class MultiTransformState {
 	public readonly getModuleExportsAliasMapCache = new Map<ts.Symbol, Map<ts.Symbol, string>>();
 
 	public hasCheckedJsxFactory = false;
-	public checkJsxFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
-		this.hasCheckedJsxFactory = true;
-		if (!this.hasCheckedJsxFactory && compilerOptions.jsxFactory !== "Roact.createElement") {
+	public isRoactJsxFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
+		const shouldTryToCompile = compilerOptions.jsxFragmentFactory === "Roact.createElement";
+		if (!this.hasCheckedJsxFactory && !shouldTryToCompile) {
+			this.hasCheckedJsxFactory = true;
 			DiagnosticService.addDiagnostic(errors.invalidJsxFactory(node));
 		}
+		return shouldTryToCompile;
 	}
 	public hasCheckedJsxFragmentFactory = false;
-	public checkJsxFragmentFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
-		this.hasCheckedJsxFragmentFactory = true;
-		if (!this.hasCheckedJsxFragmentFactory && compilerOptions.jsxFragmentFactory !== "Roact.createFragment") {
+	public isRoactJsxFragmentFactory(node: ts.Node, compilerOptions: ts.CompilerOptions) {
+		const shouldTryToCompile = compilerOptions.jsxFragmentFactory === "Roact.createFragment";
+		if (!this.hasCheckedJsxFragmentFactory && !shouldTryToCompile) {
+			this.hasCheckedJsxFragmentFactory = true;
 			DiagnosticService.addDiagnostic(errors.invalidJsxFragmentFactory(node));
 		}
+		return shouldTryToCompile;
 	}
 
 	constructor() {}

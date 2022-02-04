@@ -6,7 +6,7 @@ import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/po
 import ts from "typescript";
 
 export function transformJsxFragment(state: TransformState, node: ts.JsxFragment) {
-	state.checkJsxFragmentFactory(node);
+	if (!state.isRoactJsxFragmentFactory(node)) return luau.nil();
 
 	const childrenPtr = createMixedTablePointer("children");
 	transformJsxChildren(state, node.children, createMapPointer("attributes"), childrenPtr);
