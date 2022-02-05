@@ -65,7 +65,13 @@ describe("should compile tests project", () => {
 				} else if (emitResult.diagnostics.length === 0) {
 					done(new Error(`Expected diagnostic ${diagnosticName} to be reported.`));
 				} else {
-					done(new Error("Unexpected diagnostics:\n" + formatDiagnostics(emitResult.diagnostics)));
+					done(
+						new Error(
+							`Did not receive precisely ${repeatAmount} diagnostic${
+								repeatAmount === 1 ? "" : "s"
+							} of ${diagnosticName}:\n${formatDiagnostics(emitResult.diagnostics)}`,
+						),
+					);
 				}
 			});
 		} else {
