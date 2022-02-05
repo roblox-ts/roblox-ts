@@ -1,4 +1,4 @@
 export {};
 
 declare const a: any;
-a();
+const b = a();
