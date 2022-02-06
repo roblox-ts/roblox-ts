@@ -3,24 +3,26 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-export function transformArrayBindingLiteral(
+export function transformArrayAssignmentPattern(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
-	accessType: ts.Type | ReadonlyArray<ts.Type>,
 ) {
 	let index = 0;
 	const idStack = new Array<luau.Identifier>();
-	const accessor = getAccessorForBindingType(state, bindingLiteral, accessType);
-	for (let element of bindingLiteral.elements) {
+	const accessor = getAccessorForBindingType(
+		state,
+		assignmentPattern,
+		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
+	);
+	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {
@@ -54,13 +56,13 @@ export function transformArrayBindingLiteral(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
+				transformArrayAssignmentPattern(state, element, id);
 			} else if (ts.isObjectLiteralExpression(element)) {
 				const id = state.pushToVar(value, "binding");
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformObjectBindingLiteral(state, element, id, getSubType(state, accessType, index));
+				transformObjectAssignmentPattern(state, element, id);
 			} else {
 				assert(false);
 			}
