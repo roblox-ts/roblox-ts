@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
@@ -126,15 +127,13 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (
-		symbol &&
-		hasMultipleDeclarations(
+	if (symbol && hasMultipleDeclarations(state, symbol, declaration => isDeclarationOfNamespace(declaration))) {
+		DiagnosticService.addDiagnosticFromNodeIfNotCached(
 			state,
-			symbol,
-			declaration => isDeclarationOfNamespace(declaration),
+			node,
 			errors.noNamespaceMerging(node),
-		)
-	) {
+			state.multiTransformState.isReportedByMultipleDefinitionsCache,
+		);
 		return luau.list.make<luau.Statement>();
 	}
 

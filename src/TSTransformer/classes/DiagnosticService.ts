@@ -1,4 +1,6 @@
 import { hasErrors } from "Shared/util/hasErrors";
+import { TransformState } from "TSTransformer";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import ts from "typescript";
 
 export class DiagnosticService {
@@ -18,6 +20,19 @@ export class DiagnosticService {
 
 	public static addDiagnostics(diagnostics: ReadonlyArray<ts.Diagnostic>) {
 		this.diagnostics.push(...diagnostics);
+	}
+
+	public static addDiagnosticFromNodeIfNotCached(
+		state: TransformState,
+		node: ts.Node,
+		diagnostic: ts.Diagnostic,
+		cache: Set<ts.Node | ts.Symbol>,
+	) {
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, node);
+		if (!cache.has(symbol ?? node)) {
+			cache.add(symbol ?? node);
+			DiagnosticService.addDiagnostic(diagnostic);
+		}
 	}
 
 	public static flush() {

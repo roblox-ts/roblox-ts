@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
@@ -25,9 +26,14 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			declaration =>
 				ts.isEnumDeclaration(declaration) &&
 				!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const),
-			errors.noEnumMerging(node),
 		)
 	) {
+		DiagnosticService.addDiagnosticFromNodeIfNotCached(
+			state,
+			node,
+			errors.noEnumMerging(node),
+			state.multiTransformState.isReportedByMultipleDefinitionsCache,
+		);
 		return luau.list.make<luau.Statement>();
 	}
 
