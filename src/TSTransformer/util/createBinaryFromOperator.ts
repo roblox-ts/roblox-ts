@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import { isDefinitelyType, isNumberType, isOneOfArrayDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
@@ -47,14 +47,15 @@ function createBinaryAdd(
 	rightType: ts.Type,
 	originNode: ts.BinaryExpression,
 ) {
-	const leftIsString = isDefinitelyType(state, leftType, originNode.left, isStringType);
-	const rightIsString = isDefinitelyType(state, rightType, originNode.right, isStringType);
-	if (leftIsString || rightIsString) {
-		return luau.binary(
-			leftIsString ? left : luau.call(luau.globals.tostring, [left]),
-			"..",
-			rightIsString ? right : luau.call(luau.globals.tostring, [right]),
-		);
+	if (isOneOfArrayDefinitelyType(state, [leftType, rightType], [originNode.left, originNode.right], isStringType)) {
+		// both sides must be string or number, otherwise Luau will error
+		if (!isDefinitelyType(state, leftType, undefined, isStringType, isNumberType)) {
+			left = luau.call(luau.globals.tostring, [left]);
+		}
+		if (!isDefinitelyType(state, rightType, undefined, isStringType, isNumberType)) {
+			right = luau.call(luau.globals.tostring, [right]);
+		}
+		return luau.binary(left, "..", right);
 	} else {
 		return luau.binary(left, "+", right);
 	}

@@ -6,6 +6,7 @@ import ts from "typescript";
 
 const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
 	// compound assignment
+	[ts.SyntaxKind.PlusEqualsToken, "+="],
 	[ts.SyntaxKind.MinusEqualsToken, "-="],
 	[ts.SyntaxKind.AsteriskEqualsToken, "*="],
 	[ts.SyntaxKind.SlashEqualsToken, "/="],
@@ -28,9 +29,11 @@ export function getSimpleAssignmentOperator(
 	node: ts.BinaryExpression,
 ) {
 	// plus
-	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		const isString = isOneOfArrayDefinitelyType(state, [leftType, rightType], node, isStringType);
-		return isString ? "..=" : "+=";
+	if (
+		operatorKind === ts.SyntaxKind.PlusEqualsToken &&
+		isOneOfArrayDefinitelyType(state, [leftType, rightType], [node.left, node.right], isStringType)
+	) {
+		return "..=";
 	}
 
 	return COMPOUND_OPERATOR_MAP.get(operatorKind);

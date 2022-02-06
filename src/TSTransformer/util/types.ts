@@ -84,7 +84,7 @@ export function isDefinitelyType(
 export function isOneOfArrayDefinitelyType(
 	state: TransformState,
 	types: Array<ts.Type>,
-	requireFullMatchNode?: ts.Node,
+	requireFullMatchNode?: Array<ts.Node>,
 	...callbacks: Array<TypeCheck>
 ) {
 	if (!requireFullMatchNode) {
@@ -100,7 +100,7 @@ export function isOneOfArrayDefinitelyType(
 	const numberOfFits = arrayCount(types, t => isDefinitelyTypeInner(state, t, callbacks));
 	if (numberOfFits === 0) {
 		// None of the types matched, so run with `requireFullMatchNode` to report possible noAny
-		types.forEach(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
+		types.forEach((t, i) => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode[i]));
 	}
 	return numberOfFits > 0;
 }

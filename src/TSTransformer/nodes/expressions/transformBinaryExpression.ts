@@ -169,7 +169,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			valueType,
 			node,
 		);
-		const { writable, readable, value } = transformWritableAssignment(
+		// eslint-disable-next-line no-autofix/prefer-const
+		let { writable, readable, value } = transformWritableAssignment(
 			state,
 			node.left,
 			node.right,
@@ -177,8 +178,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operator === undefined,
 		);
 		if (operator !== undefined) {
+			// If operator is `..=`, both sides must be string or number, otherwise Luau will error
 			if (operator === "..=" && !isDefinitelyType(state, writableType, undefined, isStringType, isNumberType)) {
-				// If operator is `..=`, both sides must be string or number, otherwise Luau will error
 				state.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,
@@ -187,14 +188,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 					}),
 				);
 			}
-			return createAssignmentExpression(
-				state,
-				writable,
-				operator,
-				operator === "..=" && !isDefinitelyType(state, valueType, undefined, isStringType, isNumberType)
-					? luau.call(luau.globals.tostring, [value])
-					: value,
-			);
+			if (operator === "..=" && !isDefinitelyType(state, valueType, undefined, isStringType, isNumberType)) {
+				value = luau.call(luau.globals.tostring, [value]);
+			}
+			return createAssignmentExpression(state, writable, operator, value);
 		} else {
 			return createCompoundAssignmentExpression(
 				state,
