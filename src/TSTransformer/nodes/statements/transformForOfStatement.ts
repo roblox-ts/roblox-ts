@@ -414,7 +414,6 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
 		return () => luau.list.make();
 	} else {
-		// TODO: Check for the type's `[Symbol.iterator]` property and use that
 		// Known failure case: iterating over a class with a custom `[Symbol.iterator]` method
 		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
 	}
