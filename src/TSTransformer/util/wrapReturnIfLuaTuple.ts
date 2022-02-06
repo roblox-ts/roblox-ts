@@ -9,10 +9,16 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 		return true;
 	}
 
-	const parent = skipUpwards(node).parent;
+	const child = skipUpwards(node);
+	const parent = child.parent;
 
-	// `foo()`
-	if (ts.isExpressionStatement(parent) || ts.isForStatement(parent)) {
+	// `foo();`
+	if (ts.isExpressionStatement(parent)) {
+		return false;
+	}
+
+	// if part of for statement definition, except if used as the condition
+	if (ts.isForStatement(parent) && parent.condition !== child) {
 		return false;
 	}
 
