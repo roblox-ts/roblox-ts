@@ -417,6 +417,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		}
 	}
 
+	// TODO: Make this more generic, and add it for `[Symbol.iterator]` => `__iter`
 	const toStringProperty = instanceType.getProperty(MAGIC_TO_STRING_METHOD);
 	if (toStringProperty && !!(toStringProperty.flags & ts.SymbolFlags.Method)) {
 		luau.list.push(
