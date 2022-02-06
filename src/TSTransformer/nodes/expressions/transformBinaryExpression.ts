@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
+import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
@@ -61,7 +61,7 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformArrayBindingLiteral(state, element, id);
+					transformArrayAssignmentPattern(state, element, id);
 				} else if (ts.isObjectLiteralExpression(element)) {
 					const id = luau.tempId("binding");
 					luau.list.push(variables, id);
@@ -156,7 +156,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");
-			transformArrayBindingLiteral(state, node.left, parentId);
+			transformArrayAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
 			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");

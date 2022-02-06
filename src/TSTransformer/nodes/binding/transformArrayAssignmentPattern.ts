@@ -10,7 +10,7 @@ import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccesso
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-export function transformArrayBindingLiteral(
+export function transformArrayAssignmentPattern(
 	state: TransformState,
 	bindingLiteral: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
@@ -56,7 +56,7 @@ export function transformArrayBindingLiteral(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformArrayBindingLiteral(state, element, id);
+				transformArrayAssignmentPattern(state, element, id);
 			} else if (ts.isObjectLiteralExpression(element)) {
 				const id = state.pushToVar(value, "binding");
 				if (initializer) {

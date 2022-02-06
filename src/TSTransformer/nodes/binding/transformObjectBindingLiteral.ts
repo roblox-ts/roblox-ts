@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
+import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
@@ -72,7 +72,7 @@ export function transformObjectBindingLiteral(
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 				assert(ts.isIdentifier(name));
-				transformArrayBindingLiteral(state, init, id);
+				transformArrayAssignmentPattern(state, init, id);
 			} else if (ts.isObjectLiteralExpression(init)) {
 				const id = state.pushToVar(value, "binding");
 				if (initializer) {
