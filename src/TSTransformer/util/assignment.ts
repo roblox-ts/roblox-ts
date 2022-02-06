@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
-import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
+import { isOneOfArrayDefinitelyType, isStringType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 const COMPOUND_OPERATOR_MAP = new Map<ts.SyntaxKind, luau.AssignmentOperator>([
@@ -29,7 +29,7 @@ export function getSimpleAssignmentOperator(
 ) {
 	// plus
 	if (operatorKind === ts.SyntaxKind.PlusEqualsToken) {
-		const isString = isDefinitelyType(state, [leftType, rightType], node, isStringType);
+		const isString = isOneOfArrayDefinitelyType(state, [leftType, rightType], node, isStringType);
 		return isString ? "..=" : "+=";
 	}
 
