@@ -10,7 +10,7 @@ import ts from "typescript";
  * Since we then don't use isDefinitelyType, we call this instead
  */
 export function validateNotAnyType(state: TransformState, node: ts.Node) {
-	// no-any checks are automatically done in isDefinitelyType
+	// noAny checks are automatically done in isDefinitelyType
 	// therefore, calling it will report the diagnostic
 	// and we can discard the result
 	isDefinitelyType(state, state.getType(node), node, isAnyType(state.typeChecker));

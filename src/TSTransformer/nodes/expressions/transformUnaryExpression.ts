@@ -13,7 +13,7 @@ import ts from "typescript";
 
 function checkUnaryType(state: TransformState, node: ts.PrefixUnaryExpression | ts.PostfixUnaryExpression): void {
 	// We can omit passing `node` because `any` won't match `number`
-	// The noNonNumberUnary error is more accurate than no-any
+	// The noNonNumberUnary error is more accurate than noAny
 	if (!isDefinitelyType(state, state.getType(node.operand), undefined, isNumberType)) {
 		DiagnosticService.addDiagnostic(errors.noNonNumberUnary(node));
 	}
