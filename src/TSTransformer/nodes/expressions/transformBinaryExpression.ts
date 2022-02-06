@@ -15,7 +15,6 @@ import {
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -29,9 +28,7 @@ function transformLuaTupleDestructure(
 	state: TransformState,
 	bindingLiteral: ts.ArrayLiteralExpression,
 	value: luau.Expression,
-	accessType: ts.Type,
 ) {
-	let index = 0;
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
 	const statements = state.capturePrereqs(() => {
@@ -64,7 +61,7 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
+					transformArrayBindingLiteral(state, element, id);
 				} else if (ts.isObjectLiteralExpression(element)) {
 					const id = luau.tempId("binding");
 					luau.list.push(variables, id);
@@ -72,12 +69,11 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformObjectBindingLiteral(state, element, id, getSubType(state, accessType, index));
+					transformObjectBindingLiteral(state, element, id);
 				} else {
 					assert(false);
 				}
 			}
-			index++;
 		}
 	});
 	if (!luau.list.isEmpty(variables)) {
@@ -150,10 +146,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
-			const accessType = state.getType(node.right);
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(accessType)) {
-				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
+			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+				transformLuaTupleDestructure(state, node.left, rightExp);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
@@ -161,12 +156,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");
-			transformArrayBindingLiteral(state, node.left, parentId, accessType);
+			transformArrayBindingLiteral(state, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
 			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");
-			const accessType = state.getType(node.right);
-			transformObjectBindingLiteral(state, node.left, parentId, accessType);
+			transformObjectBindingLiteral(state, node.left, parentId);
 			return parentId;
 		}
 

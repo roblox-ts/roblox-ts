@@ -7,7 +7,6 @@ import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/trans
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -15,11 +14,14 @@ export function transformArrayBindingLiteral(
 	state: TransformState,
 	bindingLiteral: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
-	accessType: ts.Type | ReadonlyArray<ts.Type>,
 ) {
 	let index = 0;
 	const idStack = new Array<luau.Identifier>();
-	const accessor = getAccessorForBindingType(state, bindingLiteral, accessType);
+	const accessor = getAccessorForBindingType(
+		state,
+		bindingLiteral,
+		state.typeChecker.getTypeOfAssignmentPattern(bindingLiteral),
+	);
 	for (let element of bindingLiteral.elements) {
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
@@ -54,13 +56,13 @@ export function transformArrayBindingLiteral(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
+				transformArrayBindingLiteral(state, element, id);
 			} else if (ts.isObjectLiteralExpression(element)) {
 				const id = state.pushToVar(value, "binding");
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformObjectBindingLiteral(state, element, id, getSubType(state, accessType, index));
+				transformObjectBindingLiteral(state, element, id);
 			} else {
 				assert(false);
 			}

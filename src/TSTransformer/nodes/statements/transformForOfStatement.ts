@@ -10,7 +10,6 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -54,12 +53,6 @@ function makeForLoopBuilder(
 	};
 }
 
-function getForInitializerAccessType(state: TransformState, initializer: ts.ForInitializer) {
-	const forOfStatement = initializer.parent;
-	assert(ts.isForOfStatement(forOfStatement));
-	return getSubType(state, state.getType(forOfStatement.expression), 0);
-}
-
 function transformForInitializerExpressionDirect(
 	state: TransformState,
 	initializer: ts.Expression,
@@ -69,7 +62,7 @@ function transformForInitializerExpressionDirect(
 	if (ts.isArrayLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
 			const parentId = state.pushToVar(value, "binding");
-			transformArrayBindingLiteral(state, initializer, parentId, getForInitializerAccessType(state, initializer));
+			transformArrayBindingLiteral(state, initializer, parentId);
 			return parentId;
 		});
 		luau.list.pushList(initializers, prereqs);
@@ -77,12 +70,7 @@ function transformForInitializerExpressionDirect(
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
 			const parentId = state.pushToVar(value, "binding");
-			transformObjectBindingLiteral(
-				state,
-				initializer,
-				parentId,
-				getForInitializerAccessType(state, initializer),
-			);
+			transformObjectBindingLiteral(state, initializer, parentId);
 			return parentId;
 		});
 		luau.list.pushList(initializers, prereqs);
@@ -111,28 +99,14 @@ function transformForInitializer(
 		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
-			state.capturePrereqs(() =>
-				transformArrayBindingLiteral(
-					state,
-					initializer,
-					parentId,
-					getForInitializerAccessType(state, initializer),
-				),
-			),
+			state.capturePrereqs(() => transformArrayBindingLiteral(state, initializer, parentId)),
 		);
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
-			state.capturePrereqs(() =>
-				transformObjectBindingLiteral(
-					state,
-					initializer,
-					parentId,
-					getForInitializerAccessType(state, initializer),
-				),
-			),
+			state.capturePrereqs(() => transformObjectBindingLiteral(state, initializer, parentId)),
 		);
 		return parentId;
 	} else {
@@ -224,12 +198,12 @@ function transformInLineArrayBindingLiteral(
 						if (initializer) {
 							state.prereq(transformInitializer(state, valueId, initializer));
 						}
-						transformArrayBindingLiteral(state, element, valueId, state.getType(element));
+						transformArrayBindingLiteral(state, element, valueId);
 					} else if (ts.isObjectLiteralExpression(element)) {
 						if (initializer) {
 							state.prereq(transformInitializer(state, valueId, initializer));
 						}
-						transformObjectBindingLiteral(state, element, valueId, state.getType(element));
+						transformObjectBindingLiteral(state, element, valueId);
 					} else {
 						assert(false);
 					}

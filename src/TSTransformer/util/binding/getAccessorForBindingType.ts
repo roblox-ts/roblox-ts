@@ -140,11 +140,7 @@ const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitte
 	}
 };
 
-export function getAccessorForBindingType(
-	state: TransformState,
-	node: ts.Node,
-	type: ts.Type | ReadonlyArray<ts.Type>,
-): BindingAccessor {
+export function getAccessorForBindingType(state: TransformState, node: ts.Node, type: ts.Type): BindingAccessor {
 	if (ts.isArray(type) || isDefinitelyType(type, isArrayType(state))) {
 		return arrayAccessor;
 	} else if (isDefinitelyType(type, isStringType)) {

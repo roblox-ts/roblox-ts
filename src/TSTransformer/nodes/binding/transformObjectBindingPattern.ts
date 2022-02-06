@@ -16,8 +16,6 @@ export function transformObjectBindingPattern(
 	parentId: luau.AnyIdentifier,
 ) {
 	validateNotAnyType(state, bindingPattern);
-	const accessType = state.getType(bindingPattern);
-
 	for (const element of bindingPattern.elements) {
 		if (element.dotDotDotToken) {
 			DiagnosticService.addDiagnostic(errors.noSpreadDestructuring(element));
@@ -26,7 +24,7 @@ export function transformObjectBindingPattern(
 		const name = element.name;
 		const prop = element.propertyName;
 		if (ts.isIdentifier(name)) {
-			const value = objectAccessor(state, parentId, accessType, prop ?? name);
+			const value = objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
 			const [id, prereqs] = transformVariable(state, name, value);
 			state.prereqList(prereqs);
 			if (element.initializer) {
@@ -36,7 +34,7 @@ export function transformObjectBindingPattern(
 			// if name is not identifier, it must be a binding pattern
 			// in that case, prop is guaranteed to exist
 			assert(prop);
-			const value = objectAccessor(state, parentId, accessType, prop);
+			const value = objectAccessor(state, parentId, state.getType(bindingPattern), prop);
 			const id = state.pushToVar(value, "binding");
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));
