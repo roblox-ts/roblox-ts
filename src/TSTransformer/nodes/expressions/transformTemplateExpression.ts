@@ -35,11 +35,13 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 		const templateSpan = node.templateSpans[i];
 		let expression = orderedExpressions[i];
 		const type = state.getType(templateSpan.expression);
-		if (!isDefinitelyType(state, type, templateSpan.expression, isStringType)) {
-			if (isDefinitelyType(state, type, templateSpan.expression, isLuaTupleType(state))) {
+		if (!isDefinitelyType(state, type, undefined, isStringType)) {
+			if (isDefinitelyType(state, type, undefined, isLuaTupleType(state))) {
 				DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
 			}
 			if (ts.isCallExpression(templateSpan.expression) && isPossiblyType(type, isUndefinedType)) {
+				// undefined type might mean void return in Lua
+				// wrap in parentheses to avoid `tostring` erroring thinking no argument was passed
 				expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 			}
 			expression = luau.call(luau.globals.tostring, [expression]);
