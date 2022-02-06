@@ -60,9 +60,7 @@ describe("should compile tests project", () => {
 				} else {
 					done(
 						new Error(
-							`Did not receive precisely ${repeatAmount} diagnostic${
-								repeatAmount === 1 ? "" : "s"
-							}:\n${formatDiagnostics(emitResult.diagnostics)}`,
+							"Did not receive precisely 1 diagnostic:\n" + formatDiagnostics(emitResult.diagnostics),
 						),
 					);
 				}
