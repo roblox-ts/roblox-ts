@@ -10,11 +10,8 @@ export function addOneIfArrayType(
 	expression: luau.Expression,
 	originNode: ts.Node,
 ) {
-	// Use nonNullable to handle optional chaining
-	type = ts.isArray(type)
-		? type.map(t => state.typeChecker.getNonNullableType(t))
-		: state.typeChecker.getNonNullableType(type);
-	if (ts.isArray(type) || isDefinitelyType(state, type, originNode, isArrayType(state))) {
+	// Use nonNullableType to handle optional chaining
+	if (isDefinitelyType(state, state.typeChecker.getNonNullableType(type), originNode, isArrayType(state))) {
 		return offset(expression, 1);
 	} else {
 		return expression;
