@@ -200,13 +200,6 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
-	public isRoactJsxFactory(node: ts.Node) {
-		return this.multiTransformState.isRoactJsxFactory(node, this.compilerOptions);
-	}
-	public isRoactJsxFragmentFactory(node: ts.Node) {
-		return this.multiTransformState.isRoactJsxFragmentFactory(node, this.compilerOptions);
-	}
-
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */

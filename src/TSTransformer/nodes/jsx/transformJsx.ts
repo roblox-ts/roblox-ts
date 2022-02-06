@@ -1,5 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
@@ -17,7 +19,9 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	if (!state.isRoactJsxFactory(node)) return luau.nil();
+	if (state.compilerOptions.jsxFactory !== "Roact.createElement") {
+		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node.getSourceFile()));
+	}
 
 	const isFragment =
 		state.services.roactSymbolManager &&
