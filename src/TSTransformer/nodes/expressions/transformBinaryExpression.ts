@@ -178,7 +178,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		);
 		if (operator !== undefined) {
 			if (operator === "..=" && !isDefinitelyType(state, writableType, undefined, isStringType, isNumberType)) {
-				// If operator is `..=`, both sides must be `string` or `number`, otherwise Luau will error
+				// If operator is `..=`, both sides must be string or number, otherwise Luau will error
 				state.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,
@@ -234,7 +234,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		operatorKind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
 		// Only need to check left side, TS assures right side is comparable
-		if (!isDefinitelyType(state, leftType, node.left, isStringType, isNumberType)) {
+		// We can omit passing `node.left` because `any` won't match `number` or `string`
+		// The noNumberStringRelationOperator error is more accurate than noAny
+		if (!isDefinitelyType(state, leftType, undefined, isStringType, isNumberType)) {
 			DiagnosticService.addDiagnostic(errors.noNonNumberStringRelationOperator(node));
 		}
 	}
