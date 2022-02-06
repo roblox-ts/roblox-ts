@@ -303,7 +303,7 @@ export function transformJsxChildren(
 					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
-					if (isDefinitelyType(state, type, innerExp, isRoactElementType(state))) {
+					if (isDefinitelyType(state, type, undefined, isRoactElementType(state))) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {
