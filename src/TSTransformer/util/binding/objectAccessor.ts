@@ -24,7 +24,6 @@ export const objectAccessor = (
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
-			// FIXME: wrong side of assignment is passed as 4th argument
 			index: addOneIfArrayType(state, type, transformExpression(state, name.expression), name),
 		});
 	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
