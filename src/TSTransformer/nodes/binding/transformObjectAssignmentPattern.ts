@@ -78,7 +78,6 @@ export function transformObjectAssignmentPattern(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				assert(ts.isIdentifier(name));
 				transformObjectAssignmentPattern(state, init, id);
 			} else {
 				assert(false);
