@@ -359,6 +359,31 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	const instanceType = state.typeChecker.getDeclaredTypeOfSymbol(node.symbol);
 
 	for (const member of node.members) {
+		if (ts.isMethodDeclaration(member)) {
+			if (ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)) {
+				if (luau.isMetamethod(member.name.text)) {
+					DiagnosticService.addDiagnostic(errors.noClassMetamethods(member.name));
+				}
+
+				if (!!ts.getSelectedSyntacticModifierFlags(member, ts.ModifierFlags.Static)) {
+					if (instanceType.getProperty(member.name.text) !== undefined) {
+						DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(member));
+					}
+				} else {
+					if (classType.getProperty(member.name.text) !== undefined) {
+						DiagnosticService.addDiagnostic(errors.noStaticMethodCollisions(member));
+					}
+				}
+			}
+
+			luau.list.pushList(
+				statementsInner,
+				transformMethodDeclaration(state, member, { name: "name", value: internalName }),
+			);
+		}
+	}
+
+	for (const member of node.members) {
 		validateMethodAssignment(state, member);
 		if (
 			// handled above
@@ -366,31 +391,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			// type-only, nothing to emit
 			ts.isIndexSignatureDeclaration(member) ||
 			// does nothing
-			ts.isSemicolonClassElement(member)
+			ts.isSemicolonClassElement(member) ||
+			// handled above
+			ts.isMethodDeclaration(member)
 		) {
 			continue;
-		} else if (ts.isMethodDeclaration(member)) {
-			const method = member;
-			if (ts.isIdentifier(method.name) || ts.isStringLiteral(method.name)) {
-				if (luau.isMetamethod(method.name.text)) {
-					DiagnosticService.addDiagnostic(errors.noClassMetamethods(method.name));
-				}
-
-				if (!!ts.getSelectedSyntacticModifierFlags(method, ts.ModifierFlags.Static)) {
-					if (instanceType.getProperty(method.name.text) !== undefined) {
-						DiagnosticService.addDiagnostic(errors.noInstanceMethodCollisions(method));
-					}
-				} else {
-					if (classType.getProperty(method.name.text) !== undefined) {
-						DiagnosticService.addDiagnostic(errors.noStaticMethodCollisions(method));
-					}
-				}
-			}
-
-			luau.list.pushList(
-				statementsInner,
-				transformMethodDeclaration(state, method, { name: "name", value: internalName }),
-			);
 		} else if (ts.isPropertyDeclaration(member)) {
 			// Non-static properties are handled in constructor
 			if (ts.hasStaticModifier(member)) {
