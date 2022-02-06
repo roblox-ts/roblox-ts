@@ -5,7 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -70,7 +70,7 @@ function transformForInitializerExpressionDirect(
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
 			const parentId = state.pushToVar(value, "binding");
-			transformObjectBindingLiteral(state, initializer, parentId);
+			transformObjectAssignmentPattern(state, initializer, parentId);
 			return parentId;
 		});
 		luau.list.pushList(initializers, prereqs);
@@ -106,7 +106,7 @@ function transformForInitializer(
 		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
-			state.capturePrereqs(() => transformObjectBindingLiteral(state, initializer, parentId)),
+			state.capturePrereqs(() => transformObjectAssignmentPattern(state, initializer, parentId)),
 		);
 		return parentId;
 	} else {
@@ -203,7 +203,7 @@ function transformInLineArrayBindingLiteral(
 						if (initializer) {
 							state.prereq(transformInitializer(state, valueId, initializer));
 						}
-						transformObjectBindingLiteral(state, element, valueId);
+						transformObjectAssignmentPattern(state, element, valueId);
 					} else {
 						assert(false);
 					}

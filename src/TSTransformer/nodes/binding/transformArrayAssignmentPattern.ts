@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
@@ -62,7 +62,7 @@ export function transformArrayAssignmentPattern(
 				if (initializer) {
 					state.prereq(transformInitializer(state, id, initializer));
 				}
-				transformObjectBindingLiteral(state, element, id);
+				transformObjectAssignmentPattern(state, element, id);
 			} else {
 				assert(false);
 			}

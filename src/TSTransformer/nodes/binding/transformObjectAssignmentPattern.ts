@@ -10,7 +10,7 @@ import { objectAccessor } from "TSTransformer/util/binding/objectAccessor";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
-export function transformObjectBindingLiteral(
+export function transformObjectAssignmentPattern(
 	state: TransformState,
 	bindingLiteral: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
@@ -79,7 +79,7 @@ export function transformObjectBindingLiteral(
 					state.prereq(transformInitializer(state, id, initializer));
 				}
 				assert(ts.isIdentifier(name));
-				transformObjectBindingLiteral(state, init, id);
+				transformObjectAssignmentPattern(state, init, id);
 			} else {
 				assert(false);
 			}

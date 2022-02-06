@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
@@ -69,7 +69,7 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformObjectBindingLiteral(state, element, id);
+					transformObjectAssignmentPattern(state, element, id);
 				} else {
 					assert(false);
 				}
@@ -160,7 +160,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
 			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");
-			transformObjectBindingLiteral(state, node.left, parentId);
+			transformObjectAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		}
 
