@@ -1,5 +1,5 @@
 import { TransformState } from "TSTransformer";
-import { isAnyType, isDefinitelyType } from "TSTransformer/util/types";
+import { isDefinitelyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 /**
@@ -13,5 +13,5 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 	// noAny checks are automatically done in isDefinitelyType
 	// therefore, calling it will report the diagnostic
 	// and we can discard the result
-	isDefinitelyType(state, state.getType(node), node, isAnyType(state.typeChecker));
+	isDefinitelyType(state, state.getType(node), node);
 }
