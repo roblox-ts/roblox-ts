@@ -134,15 +134,14 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 
 	// Although npm is installed by default, it can be uninstalled
 	// and replaced by another manager, so check for it to make sure
-	const npmAvailable = lookpath("npm");
-	const pnpmAvailable = lookpath("pnpm");
-	const yarnAvailable = lookpath("yarn");
-	const gitAvailable = !!(await lookpath("git"));
+	const [npmAvailable, pnpmAvailable, yarnAvailable, gitAvailable] = (
+		await Promise.allSettled(["npm", "pnpm", "yarn", "git"].map(v => lookpath(v)))
+	).map(v => v !== undefined);
 
 	const packageManagerExistance: Record<PackageManager, boolean> = {
-		[PackageManager.NPM]: !!(await npmAvailable),
-		[PackageManager.PNPM]: !!(await pnpmAvailable),
-		[PackageManager.Yarn]: !!(await yarnAvailable),
+		[PackageManager.NPM]: npmAvailable,
+		[PackageManager.PNPM]: pnpmAvailable,
+		[PackageManager.Yarn]: yarnAvailable,
 	};
 
 	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
