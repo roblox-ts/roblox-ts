@@ -30,15 +30,18 @@ function isDefinitelyTypeInner(
 ): boolean {
 	if (ts.isArray(type)) {
 		if (!requireFullMatchNode) {
+			// If no node to check `any` types on
+			// then just make sure at least one of the types matches one of the callbacks
 			return type.some(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
 		}
 		// For any checks:
 		// With an array, *at least one* of the types must match *at least one* of the callbacks
 		// If this is not the case, *and* at least one of the types is `any`, report the error
-		// Intentionally omit the recursive `requireFullMatchNode` here in case a defined type matches
+		// Intentionally omit the recursive `requireFullMatchNode` here in case one of the types matches
+		// In which case we don't want the noAny diagnostic to be reported
 		const numberOfFits = type.reduce((acc, t) => acc + (isDefinitelyTypeInner(state, t, callbacks) ? 1 : 0), 0);
 		if (numberOfFits === 0) {
-			// None matched, so run with passing `requireFullMatchNode` to report possible no-any
+			// None of the types matched, so run with `requireFullMatchNode` to report possible noAny
 			type.forEach(t => isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode));
 		}
 		return numberOfFits > 0;
@@ -47,6 +50,7 @@ function isDefinitelyTypeInner(
 			(acc, t) => acc + (isDefinitelyTypeInner(state, t, callbacks, requireFullMatchNode) ? 1 : 0),
 			0,
 		);
+		// In a union, either *all* or *none* of the types should match
 		if (requireFullMatchNode && numberOfFits !== 0 && numberOfFits !== type.types.length) {
 			addDiagnosticFromNodeIfNotCached(
 				state,
