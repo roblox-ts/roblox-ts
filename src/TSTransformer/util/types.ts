@@ -1,8 +1,8 @@
 import { errors } from "Shared/diagnostics";
 import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
-import { addDiagnosticFromNodeIfNotCached } from "TSTransformer/util/addDiagnosticIfNotCached";
 import ts from "typescript";
 
 type TypeCheck = (type: ts.Type) => boolean;
@@ -52,7 +52,7 @@ function isDefinitelyTypeInner(
 		);
 		// In a union, either *all* or *none* of the types should match
 		if (requireFullMatchNode && numberOfFits !== 0 && numberOfFits !== type.types.length) {
-			addDiagnosticFromNodeIfNotCached(
+			DiagnosticService.addDiagnosticFromNodeIfNotCached(
 				state,
 				requireFullMatchNode,
 				errors.noMixedTypes(requireFullMatchNode),
@@ -71,7 +71,7 @@ function isDefinitelyTypeInner(
 			// For example, `getAddIterableToArrayBuilder`.
 			// Since a diagnostic is reported,
 			// it won't matter that the emitted code is wrong
-			addDiagnosticFromNodeIfNotCached(
+			DiagnosticService.addDiagnosticFromNodeIfNotCached(
 				state,
 				requireFullMatchNode,
 				errors.noAny(requireFullMatchNode),
