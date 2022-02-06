@@ -94,7 +94,7 @@ export function createBinaryFromOperator(
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.prereqList(wrapExpressionStatement(left, luau.list.make()));
+		state.prereqList(wrapExpressionStatement(left));
 		return right;
 	}
 

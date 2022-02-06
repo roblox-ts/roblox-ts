@@ -14,7 +14,9 @@ export function transformExpressionStatementInner(
 		return transformLogicalOrCoalescingAssignmentExpressionStatement(state, expression);
 	}
 
-	return wrapExpressionStatement(...state.capture(() => transformExpression(state, expression)));
+	const [expressionResult, expressionPrereqs] = state.capture(() => transformExpression(state, expression));
+	luau.list.pushList(expressionPrereqs, wrapExpressionStatement(expressionResult));
+	return expressionPrereqs;
 }
 
 export function transformExpressionStatement(state: TransformState, node: ts.ExpressionStatement) {
