@@ -25,11 +25,12 @@ export function transformElementAccessExpressionInner(
 		return constantValue;
 	}
 
-	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
+	const isLuaTuple = isDefinitelyType(state, expType, node.expression, isLuaTupleType(state));
 
+	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 	if (!luau.list.isEmpty(prereqs)) {
 		// hack because wrapReturnIfLuaTuple will not wrap this, but now we need to!
-		if (isDefinitelyType(state, expType, node, isLuaTupleType(state))) {
+		if (isLuaTuple) {
 			expression = luau.array([expression]);
 		}
 
@@ -38,13 +39,15 @@ export function transformElementAccessExpressionInner(
 	}
 
 	// LuaTuple<T> checks
-	if (luau.isCall(expression) && isDefinitelyType(state, expType, node.expression, isLuaTupleType(state))) {
-		// wrap in select() if it isn't the first value
+	if (luau.isCall(expression) && isLuaTuple) {
 		if (!luau.isNumberLiteral(index) || Number(index.value) !== 0) {
+			// not the first value => wrap in select()
 			expression = luau.call(luau.globals.select, [offset(index, 1), expression]);
+		} else {
+			// parentheses to trim off the rest of the values
+			expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
 		}
-		// parentheses to trim off the rest of the values
-		return luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
+		return expression;
 	}
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
