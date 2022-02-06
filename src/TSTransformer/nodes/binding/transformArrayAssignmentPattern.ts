@@ -12,17 +12,17 @@ import ts from "typescript";
 
 export function transformArrayAssignmentPattern(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
 	let index = 0;
 	const idStack = new Array<luau.Identifier>();
 	const accessor = getAccessorForBindingType(
 		state,
-		bindingLiteral,
-		state.typeChecker.getTypeOfAssignmentPattern(bindingLiteral),
+		assignmentPattern,
+		state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 	);
-	for (let element of bindingLiteral.elements) {
+	for (let element of assignmentPattern.elements) {
 		if (ts.isOmittedExpression(element)) {
 			accessor(state, parentId, index, idStack, true);
 		} else if (ts.isSpreadElement(element)) {

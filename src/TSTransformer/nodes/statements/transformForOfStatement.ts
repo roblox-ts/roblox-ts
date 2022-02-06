@@ -156,16 +156,16 @@ function transformInLineArrayBindingPattern(
 	}
 }
 
-function transformInLineArrayBindingLiteral(
+function transformInLineArrayAssignmentPattern(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	ids: luau.List<luau.AnyIdentifier>,
 	initializers: luau.List<luau.Statement>,
 ) {
 	luau.list.pushList(
 		initializers,
 		state.capturePrereqs(() => {
-			for (let element of bindingLiteral.elements) {
+			for (let element of assignmentPattern.elements) {
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
 				} else if (ts.isSpreadElement(element)) {
@@ -224,7 +224,7 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 			return luau.call(luau.globals.pairs, [exp]);
 		}
 	} else if (ts.isArrayLiteralExpression(initializer)) {
-		transformInLineArrayBindingLiteral(state, initializer, ids, initializers);
+		transformInLineArrayAssignmentPattern(state, initializer, ids, initializers);
 		return luau.call(luau.globals.pairs, [exp]);
 	}
 
@@ -271,7 +271,7 @@ function makeIterableFunctionLuaTupleShorthand(
 	if (ts.isArrayBindingPattern(array)) {
 		transformInLineArrayBindingPattern(state, array, ids, initializers);
 	} else {
-		transformInLineArrayBindingLiteral(state, array, ids, initializers);
+		transformInLineArrayAssignmentPattern(state, array, ids, initializers);
 	}
 	luau.list.unshiftList(statements, initializers);
 	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));

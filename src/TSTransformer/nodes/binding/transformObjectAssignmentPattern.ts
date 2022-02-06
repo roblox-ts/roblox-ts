@@ -12,16 +12,16 @@ import ts from "typescript";
 
 export function transformObjectAssignmentPattern(
 	state: TransformState,
-	bindingLiteral: ts.ObjectLiteralExpression,
+	assignmentPattern: ts.ObjectLiteralExpression,
 	parentId: luau.AnyIdentifier,
 ) {
-	for (const property of bindingLiteral.properties) {
+	for (const property of assignmentPattern.properties) {
 		if (ts.isShorthandPropertyAssignment(property)) {
 			const name = property.name;
 			const value = objectAccessor(
 				state,
 				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(bindingLiteral),
+				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			const id = transformWritableExpression(state, name, property.objectAssignmentInitializer !== undefined);
@@ -51,7 +51,7 @@ export function transformObjectAssignmentPattern(
 			const value = objectAccessor(
 				state,
 				parentId,
-				state.typeChecker.getTypeOfAssignmentPattern(bindingLiteral),
+				state.typeChecker.getTypeOfAssignmentPattern(assignmentPattern),
 				name,
 			);
 			if (ts.isIdentifier(init) || ts.isElementAccessExpression(init) || ts.isPropertyAccessExpression(init)) {

@@ -26,13 +26,13 @@ import ts from "typescript";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	value: luau.Expression,
 ) {
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
 	const statements = state.capturePrereqs(() => {
-		for (let element of bindingLiteral.elements) {
+		for (let element of assignmentPattern.elements) {
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.tempId());
 			} else if (ts.isSpreadElement(element)) {
