@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -33,7 +34,8 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 	}
 
 	// `[a] = foo()`
-	if (ts.isAssignmentExpression(parent) && ts.isArrayLiteralExpression(parent.left)) {
+	// If assignment is used as expression, direct assignment optimisation is skipped
+	if (ts.isAssignmentExpression(parent) && ts.isArrayLiteralExpression(parent.left) && isUsedAsStatement(parent)) {
 		return false;
 	}
 

@@ -141,9 +141,6 @@ export const errors = {
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
 	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
-	noLuaTupleDestructureAssignmentExpression: error(
-		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
-	),
 	noExportAssignmentLet: error("Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
 	noGlobalThis: error("`globalThis` is not supported!"),
 	noArguments: error("`arguments` is not supported!"),

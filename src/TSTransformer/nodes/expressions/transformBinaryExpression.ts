@@ -143,42 +143,31 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
 
-			// optimize empty array destructure
-			if (node.left.elements.length === 0) {
-				if (isUsedAsStatement(node) && luau.isArray(rightExp) && luau.list.isEmpty(rightExp.members)) {
-					return luau.none();
-				}
-				return rightExp;
-			}
-
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+			if (
+				luau.isCall(rightExp) &&
+				isUsedAsStatement(node) &&
+				isDefinitelyType(state.getType(node.right), isLuaTupleType(state)) &&
+				node.left.elements.length > 0
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp);
-				if (!isUsedAsStatement(node)) {
-					DiagnosticService.addDiagnostic(errors.noLuaTupleDestructureAssignmentExpression(node));
-				}
 				return luau.none();
 			}
 
-			if (luau.isArray(rightExp) && !luau.list.isEmpty(rightExp.members) && isUsedAsStatement(node)) {
+			if (
+				luau.isArray(rightExp) &&
+				isUsedAsStatement(node) &&
+				!luau.list.isEmpty(rightExp.members) &&
+				node.left.elements.length > 0
+			) {
 				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp.members);
 				return luau.none();
 			}
 
-			const parentId = state.pushToVar(rightExp, "binding");
+			const parentId = state.pushToVarIfNonId(rightExp, "binding");
 			transformArrayAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
-			const rightExp = transformExpression(state, node.right);
-
-			// optimize empty object destructure
-			if (node.left.properties.length === 0) {
-				if (isUsedAsStatement(node) && luau.isMap(rightExp) && luau.list.isEmpty(rightExp.fields)) {
-					return luau.none();
-				}
-				return rightExp;
-			}
-
-			const parentId = state.pushToVar(rightExp, "binding");
+			const parentId = state.pushToVarIfNonId(transformExpression(state, node.right), "binding");
 			transformObjectAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		}
