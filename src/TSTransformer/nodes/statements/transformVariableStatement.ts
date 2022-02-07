@@ -120,7 +120,8 @@ export function transformVariableDeclaration(
 			state.capturePrereqs(() => transformVariable(state, name, value)),
 		);
 	} else {
-		// in destructuring, rhs must be executed first
+		// destructuring/binding => node must have initializer
+		// if initializer, if statement above always sets `value`
 		assert(node.initializer && value);
 
 		// optimize empty destructure
