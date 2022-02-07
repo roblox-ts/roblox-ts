@@ -3,20 +3,26 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { isReturnBlockedByTryStatement } from "TSTransformer/util/isBlockedByTryStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression, luaExpression: luau.Expression) {
-	// intentionally NOT using state.getType() here, because that uses skipUpwards
+	const skippedDown = skipDownwards(tsExpression);
 	return (
 		luau.isCall(luaExpression) &&
-		isLuaTupleType(state)(state.typeChecker.getTypeAtLocation(skipDownwards(tsExpression)))
+		// intentionally NOT using state.getType() here, because that uses skipUpwards
+		isDefinitelyType(state, state.typeChecker.getTypeAtLocation(skippedDown), skippedDown, isLuaTupleType(state))
 	);
 }
 
 export function transformReturnStatementInner(state: TransformState, returnExp: ts.Expression) {
+	// Intentionally skipDownwards before transformExpression
+	// Otherwise `return (functionThatReturnsLuaTuple())` will be wrong
 	let expression: luau.Expression | luau.List<luau.Expression> = transformExpression(state, skipDownwards(returnExp));
-	if (isLuaTupleType(state)(state.getType(returnExp)) && !isTupleReturningCall(state, returnExp, expression)) {
+	if (
+		!isTupleReturningCall(state, returnExp, expression) &&
+		isDefinitelyType(state, state.getType(returnExp), returnExp, isLuaTupleType(state))
+	) {
 		if (luau.isArray(expression)) {
 			expression = expression.members;
 		} else {
