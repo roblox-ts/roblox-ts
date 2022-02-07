@@ -11,7 +11,7 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
-import { isLuaTupleType } from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
@@ -158,7 +158,10 @@ export function transformVariableDeclaration(
 		assert(node.initializer && value);
 		const name = node.name;
 		if (ts.isArrayBindingPattern(name)) {
-			if (luau.isCall(value) && isLuaTupleType(state)(state.getType(node.initializer))) {
+			if (
+				luau.isCall(value) &&
+				isDefinitelyType(state, state.getType(node.initializer), node.initializer, isLuaTupleType(state))
+			) {
 				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value));
 			} else {
 				luau.list.pushList(
