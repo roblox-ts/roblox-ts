@@ -226,6 +226,7 @@ export = () => {
 		let hasRun1 = false;
 		for (; luaTupleReturn(); ) {
 			hasRun1 = true;
+			break;
 		}
 		expect(hasRun1).to.equal(true);
 	});
