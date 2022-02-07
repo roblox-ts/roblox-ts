@@ -3,8 +3,8 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformLogical } from "TSTransformer/nodes/transformLogical";
@@ -15,7 +15,6 @@ import {
 	createCompoundAssignmentExpression,
 	getSimpleAssignmentOperator,
 } from "TSTransformer/util/assignment";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
@@ -27,15 +26,13 @@ import ts from "typescript";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	value: luau.Expression,
-	accessType: ts.Type,
 ) {
-	let index = 0;
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
 	const statements = state.capturePrereqs(() => {
-		for (let element of bindingLiteral.elements) {
+		for (let element of assignmentPattern.elements) {
 			if (ts.isOmittedExpression(element)) {
 				luau.list.push(writes, luau.tempId());
 			} else if (ts.isSpreadElement(element)) {
@@ -64,7 +61,7 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformArrayBindingLiteral(state, element, id, getSubType(state, accessType, index));
+					transformArrayAssignmentPattern(state, element, id);
 				} else if (ts.isObjectLiteralExpression(element)) {
 					const id = luau.tempId("binding");
 					luau.list.push(variables, id);
@@ -72,12 +69,11 @@ function transformLuaTupleDestructure(
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
 					}
-					transformObjectBindingLiteral(state, element, id, getSubType(state, accessType, index));
+					transformObjectAssignmentPattern(state, element, id);
 				} else {
 					assert(false);
 				}
 			}
-			index++;
 		}
 	});
 	if (!luau.list.isEmpty(variables)) {
@@ -150,10 +146,9 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
-			const accessType = state.getType(node.right);
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(accessType)) {
-				transformLuaTupleDestructure(state, node.left, rightExp, accessType);
+			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+				transformLuaTupleDestructure(state, node.left, rightExp);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
@@ -161,12 +156,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");
-			transformArrayBindingLiteral(state, node.left, parentId, accessType);
+			transformArrayAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
 			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");
-			const accessType = state.getType(node.right);
-			transformObjectBindingLiteral(state, node.left, parentId, accessType);
+			transformObjectAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		}
 
