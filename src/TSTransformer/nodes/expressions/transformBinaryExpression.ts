@@ -139,7 +139,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	}
 
 	if (ts.isAssignmentOperator(operatorKind)) {
-		// in destructuring, rhs must be executed first
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
 
