@@ -130,7 +130,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 	if (symbol && hasMultipleDeclarations(state, symbol, declaration => isDeclarationOfNamespace(declaration))) {
 		DiagnosticService.addDiagnosticFromNodeIfNotCached(
 			state,
-			node,
+			node.name,
 			errors.noNamespaceMerging(node),
 			state.multiTransformState.isReportedByMultipleDefinitionsCache,
 		);

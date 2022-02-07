@@ -27,7 +27,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	) {
 		DiagnosticService.addDiagnosticFromNodeIfNotCached(
 			state,
-			node,
+			node.name,
 			errors.noEnumMerging(node),
 			state.multiTransformState.isReportedByMultipleDefinitionsCache,
 		);
