@@ -204,8 +204,11 @@ export const errors = {
 	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
 
 	// files
-	noRojoData: errorWithContext((path: string) => [
-		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
+	noRojoData: errorWithContext(([outPath, srcPath]: [string, string]) => [
+		`Could not find Rojo data. There is no $path in your Rojo config that covers \`${outPath}\`.`,
+		suggestion(
+			`This location needs to be in your config because it is getting imported when referencing \`${srcPath}\`.`,
+		),
 	]),
 	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
 		errorText(

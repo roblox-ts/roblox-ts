@@ -76,7 +76,10 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
 	if (!relativeRbxPath || (!state.data.isPackage && !gameRbxPath)) {
 		DiagnosticService.addDiagnostic(
-			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
+			errors.noRojoData(moduleSpecifier, [
+				path.relative(state.data.projectPath, moduleOutPath),
+				path.relative(state.data.projectPath, moduleFilePath),
+			]),
 		);
 		return luau.nil();
 	}
@@ -130,7 +133,10 @@ export function createImportExpression(
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
+				errors.noRojoData(moduleSpecifier, [
+					path.relative(state.data.projectPath, moduleOutPath),
+					path.relative(state.data.projectPath, virtualPath),
+				]),
 			);
 			return luau.tempId();
 		}
@@ -145,7 +151,11 @@ export function createImportExpression(
 		const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 		if (!sourceRbxPath) {
 			DiagnosticService.addDiagnostic(
-				errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath)),
+				// TODO: Better error node and "generated from importing <file>" here
+				errors.noRojoData(sourceFile, [
+					path.relative(state.data.projectPath, sourceOutPath),
+					path.relative(state.data.projectPath, sourceFile.fileName),
+				]),
 			);
 			return luau.tempId();
 		}
