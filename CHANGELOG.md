@@ -6,6 +6,8 @@
 - Loosened "any" type checks to allow for improved usage with type variables
 - Improved support for object destructuring assignment (#1822)
 - `rbxtsc init` will no longer prompt for `git init` if git isn't installed (#1823)
+- Fix `LuaTuple<T>` wrapping in for loop condition (#1819)
+- Added initial support for TypeScript decorators :tada: (#1793)
 - Bumped TypeScript version to 4.5.5
 
 ## 1.2.9
