@@ -62,6 +62,7 @@ export class VirtualProject {
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,
+			experimentalDecorators: true,
 			rootDir: ROOT_DIR,
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
