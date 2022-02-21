@@ -1,3 +1,13 @@
+## 1.3.0
+- Split out compiler parts into multiple packages (#1775)
+- Fixed broken hoisting on arrow function variables (#1777)
+- Improved emit for expression statement ternaries (#1783)
+- Improved watch mode stability (#1787)
+- Loosened "any" type checks to allow for improved usage with type variables
+- Improved support for object destructuring assignment (#1822)
+- `rbxtsc init` will no longer prompt for `git init` if git isn't installed (#1823)
+- Bumped TypeScript version to 4.5.5
+
 ## 1.2.9
 - Upgraded built-in roblox-lua-promise to v3.2.1
 - Improved incremental mode to recognize tsconfig.json "plugins"
