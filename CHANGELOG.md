@@ -1,3 +1,6 @@
+## 1.3.1
+- Added "experimentalDecorators" tsconfig.json option to templates + playground (#1850)
+
 ## 1.3.0
 - Split out compiler parts into multiple packages (#1775)
 - Fixed broken hoisting on arrow function variables (#1777)
