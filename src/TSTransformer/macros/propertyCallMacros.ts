@@ -592,16 +592,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
-		if (args.length === 0) {
-			return luau.unary("#", expression);
-		}
-
-		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
-
-		if (args.length > 1) {
-			args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
-		}
-
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
@@ -610,7 +600,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
+		return !isUsedAsStatement(node) || args.length === 0 ? luau.unary("#", expression) : luau.none();
 	},
 
 	pop: (state, node, expression) => {
