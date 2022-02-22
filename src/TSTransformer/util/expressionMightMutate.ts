@@ -15,6 +15,12 @@ export function expressionMightMutate(
 		return expressionMightMutate(state, expression.expression);
 	} else if (luau.isSimplePrimitive(expression)) {
 		return false;
+	} else if (luau.isIfExpression(expression)) {
+		return (
+			expressionMightMutate(state, expression.condition) ||
+			expressionMightMutate(state, expression.expression) ||
+			expressionMightMutate(state, expression.alternative)
+		);
 	} else if (luau.isBinaryExpression(expression)) {
 		return expressionMightMutate(state, expression.left) || expressionMightMutate(state, expression.right);
 	} else if (luau.isUnaryExpression(expression)) {
