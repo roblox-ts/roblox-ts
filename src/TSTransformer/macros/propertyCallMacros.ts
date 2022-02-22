@@ -598,29 +598,19 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
 
-		args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
-		const valueIsUsed = !isUsedAsStatement(node);
-		const uses = (valueIsUsed ? 1 : 0) + args.length;
-
-		let lengthExp: luau.Expression = luau.unary("#", expression);
-		if (uses > 1) {
-			lengthExp = state.pushToVar(lengthExp, "length");
+		if (args.length > 1) {
+			args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
 		}
 
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
-						index: luau.binary(lengthExp, "+", luau.number(i + 1)),
-					}),
-					operator: "=",
-					right: args[i],
+				luau.create(luau.SyntaxKind.CallStatement, {
+					expression: luau.call(luau.globals.table.insert, [expression, args[i]]),
 				}),
 			);
 		}
 
-		return valueIsUsed ? luau.binary(lengthExp, "+", luau.number(args.length)) : luau.nil();
+		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.nil();
 	},
 
 	pop: (state, node, expression) => {
