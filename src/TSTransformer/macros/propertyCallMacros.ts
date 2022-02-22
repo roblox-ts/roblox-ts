@@ -599,7 +599,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
 
 		if (args.length > 1) {
-			args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
+			args = args.map((arg, i) => state.pushToVarIfMightMutate(arg, valueToIdStr(arg) || `arg${i}`));
 		}
 
 		for (let i = 0; i < args.length; i++) {
