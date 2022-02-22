@@ -12,8 +12,14 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 	const [whenFalse, whenFalsePrereqs] = state.capture(() => transformExpression(state, node.whenFalse));
 
 	if (isUsedAsStatement(node)) {
-		luau.list.pushList(whenTruePrereqs, wrapExpressionStatement(whenTrue));
-		luau.list.pushList(whenFalsePrereqs, wrapExpressionStatement(whenFalse));
+		luau.list.pushList(
+			whenTruePrereqs,
+			wrapExpressionStatement(state, whenTrue, luau.list.isNonEmpty(whenTruePrereqs), node),
+		);
+		luau.list.pushList(
+			whenFalsePrereqs,
+			wrapExpressionStatement(state, whenFalse, luau.list.isNonEmpty(whenFalsePrereqs), node),
+		);
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: createTruthinessChecks(state, condition, node.condition),

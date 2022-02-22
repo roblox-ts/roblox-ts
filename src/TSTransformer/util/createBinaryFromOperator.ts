@@ -95,7 +95,7 @@ export function createBinaryFromOperator(
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
-		state.prereqList(wrapExpressionStatement(left));
+		state.prereqList(wrapExpressionStatement(state, left));
 		return right;
 	}
 

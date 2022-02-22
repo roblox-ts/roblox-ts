@@ -15,7 +15,11 @@ export function transformExpressionStatementInner(
 	}
 
 	const [expressionResult, expressionPrereqs] = state.capture(() => transformExpression(state, expression));
-	luau.list.pushList(expressionPrereqs, wrapExpressionStatement(expressionResult));
+
+	luau.list.pushList(
+		expressionPrereqs,
+		wrapExpressionStatement(state, expressionResult, luau.list.isNonEmpty(expressionPrereqs), expression),
+	);
 	return expressionPrereqs;
 }
 
