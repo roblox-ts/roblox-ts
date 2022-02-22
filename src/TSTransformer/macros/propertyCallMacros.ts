@@ -1000,7 +1000,7 @@ function wrapComments(methodName: string, callback: PropertyCallMacro): Property
 				pushStatement = luau.list.shift(prereqs);
 				size--;
 			}
-			if (size > 0) {
+			if (size > 1) {
 				luau.list.unshift(prereqs, header(methodName));
 				if (wasPushed && pushStatement) {
 					luau.list.unshift(prereqs, pushStatement);
