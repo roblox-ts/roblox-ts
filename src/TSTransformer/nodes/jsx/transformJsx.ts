@@ -20,7 +20,8 @@ export function transformJsx(
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
 	if (state.compilerOptions.jsxFactory !== "Roact.createElement") {
-		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node.getSourceFile()));
+		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node));
+		return luau.nil();
 	}
 
 	const isFragment =

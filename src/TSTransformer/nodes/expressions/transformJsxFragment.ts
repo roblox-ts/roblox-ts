@@ -9,7 +9,8 @@ import ts from "typescript";
 
 export function transformJsxFragment(state: TransformState, node: ts.JsxFragment) {
 	if (state.compilerOptions.jsxFragmentFactory !== "Roact.createFragment") {
-		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFragmentFactory(node.getSourceFile()));
+		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFragmentFactory(node));
+		return luau.nil();
 	}
 
 	const childrenPtr = createMixedTablePointer("children");
