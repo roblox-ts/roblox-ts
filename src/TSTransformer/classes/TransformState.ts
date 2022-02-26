@@ -246,7 +246,7 @@ export class TransformState {
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: luau.globals.TS,
-						right: luau.nil(),
+						right: luau.none(),
 					});
 				}
 

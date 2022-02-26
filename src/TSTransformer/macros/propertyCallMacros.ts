@@ -260,7 +260,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return luau.nil();
+		return isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 
 	map: (state, node, expression, args) => {
@@ -523,7 +523,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		const callbackId = state.pushToVarIfComplex(args[0], "callback");
 		const loopId = luau.tempId("i");
 		const valueId = luau.tempId("v");
-		const resultId = state.pushToVar(luau.nil(), "result");
+		const resultId = state.pushToVar(undefined, "result");
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
@@ -610,7 +610,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.nil();
+		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
 	},
 
 	pop: (state, node, expression) => {
@@ -618,9 +618,9 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		let lengthExp: luau.Expression = luau.unary("#", expression);
 
-		const valueIsUsed = !isUsedAsStatement(node);
+		const returnValueIsUsed = !isUsedAsStatement(node);
 		let retValue: luau.TemporaryIdentifier;
-		if (valueIsUsed) {
+		if (returnValueIsUsed) {
 			lengthExp = state.pushToVar(lengthExp, "length");
 			retValue = state.pushToVar(
 				luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -642,7 +642,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? retValue! : luau.nil();
+		return returnValueIsUsed ? retValue! : luau.none();
 	},
 
 	shift: (state, node, expression) => luau.call(luau.globals.table.remove, [expression, luau.number(1)]),
@@ -659,11 +659,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		if (isUsedAsStatement(node)) {
-			return luau.nil();
-		} else {
-			return luau.unary("#", expression);
-		}
+		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
 	},
 
 	insert: (state, node, expression, args) => {
@@ -716,7 +712,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueId! : luau.nil();
+		return valueIsUsed ? valueId! : luau.none();
 	},
 
 	sort: (state, node, expression, args) => {
@@ -733,7 +729,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? expression : luau.nil();
+		return valueIsUsed ? expression : luau.none();
 	},
 
 	clear: (state, node, expression) => {
@@ -742,7 +738,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 				expression: luau.call(luau.globals.table.clear, [expression]),
 			}),
 		);
-		return luau.nil();
+		return isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 };
 
@@ -750,10 +746,6 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 	isEmpty: (state, node, expression) => luau.binary(luau.call(luau.globals.next, [expression]), "==", luau.nil()),
 
 	size: (state, node, expression) => {
-		if (isUsedAsStatement(node)) {
-			return luau.nil();
-		}
-
 		const sizeId = state.pushToVar(luau.number(0), "size");
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
@@ -810,7 +802,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueExistedId! : luau.nil();
+		return valueIsUsed ? valueExistedId! : luau.none();
 	},
 
 	clear: (state, node, expression) => {
@@ -819,7 +811,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 				expression: luau.call(luau.globals.table.clear, [expression]),
 			}),
 		);
-		return luau.nil();
+		return isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 };
 
@@ -843,7 +835,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return luau.nil();
+		return isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 };
 
@@ -865,7 +857,7 @@ const SET_METHODS: MacroList<PropertyCallMacro> = {
 				right: luau.bool(true),
 			}),
 		);
-		return valueIsUsed ? expression : luau.nil();
+		return valueIsUsed ? expression : luau.none();
 	},
 };
 
@@ -890,7 +882,7 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return luau.nil();
+		return isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 
 	get: (state, node, expression, args) =>
@@ -919,7 +911,7 @@ const MAP_METHODS: MacroList<PropertyCallMacro> = {
 				right: valueExp,
 			}),
 		);
-		return valueIsUsed ? expression : luau.nil();
+		return valueIsUsed ? expression : luau.none();
 	},
 };
 

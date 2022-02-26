@@ -78,7 +78,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		DiagnosticService.addDiagnostic(
 			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	const relativeFilePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
@@ -87,7 +87,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
-		return luau.nil();
+		return luau.none();
 	}
 
 	const moduleName = relativeRbxPath[0];
@@ -95,7 +95,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!validateModule(state, moduleScope)) {
 		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
-		return luau.nil();
+		return luau.none();
 	}
 
 	return propertyAccessExpressionChain(

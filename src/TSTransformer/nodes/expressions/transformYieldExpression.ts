@@ -29,7 +29,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 			}),
 		);
 
-		return luau.nil();
+		return luau.none();
 	} else {
 		return luau.call(luau.globals.coroutine.yield, [expression]);
 	}

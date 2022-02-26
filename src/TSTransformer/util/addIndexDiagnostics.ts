@@ -1,4 +1,3 @@
-import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -19,7 +18,6 @@ export function addIndexDiagnostics(
 		(!isValidMethodIndexWithoutCall(state, skipUpwards(node)) && isMethod(state, node))
 	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.nil();
 	}
 
 	if (ts.isPrototypeAccess(node)) {
