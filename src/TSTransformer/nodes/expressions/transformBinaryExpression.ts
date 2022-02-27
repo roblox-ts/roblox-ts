@@ -22,6 +22,7 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
 function transformLuaTupleDestructure(
@@ -85,20 +86,7 @@ function transformLuaTupleDestructure(
 		);
 	}
 	if (luau.list.isEmpty(writes)) {
-		if (luau.isCall(value)) {
-			state.prereq(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: value,
-				}),
-			);
-		} else {
-			state.prereq(
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: luau.list.make(luau.tempId()),
-					right: value,
-				}),
-			);
-		}
+		state.prereqList(wrapExpressionStatement(value));
 	} else {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
