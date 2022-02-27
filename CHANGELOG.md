@@ -1,3 +1,9 @@
+## 1.3.2
+- `Array.push` now optimizes to use `table.insert()`
+- Macro emit is no longer wrapped in comments for single statements
+- null coalescing expressions can now be inlined if Lua truthiness allows (#1857)
+- Fixed conditional expression usage inside for loops (#1856)
+
 ## 1.3.1
 - Added "experimentalDecorators" tsconfig.json option to templates + playground (#1850)
 
