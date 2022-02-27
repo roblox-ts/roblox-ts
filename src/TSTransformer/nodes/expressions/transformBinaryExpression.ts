@@ -108,13 +108,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noEqualsEquals(node));
-		return luau.nil();
+		return luau.none();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noExclamationEquals(node));
-		return luau.nil();
+		return luau.none();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
 		DiagnosticService.addDiagnostic(errors.noComma(node));
-		return luau.nil();
+		return luau.none();
 	}
 
 	// logical
@@ -140,7 +140,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
-				return luau.nil();
+				return luau.none();
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");

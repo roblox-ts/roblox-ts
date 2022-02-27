@@ -62,7 +62,7 @@ export function transformElementAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {

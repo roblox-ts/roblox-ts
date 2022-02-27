@@ -32,7 +32,7 @@ export function transformPropertyAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	return luau.property(convertToIndexableExpression(expression), name);
