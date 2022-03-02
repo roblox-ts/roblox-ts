@@ -260,7 +260,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return isUsedAsStatement(node) ? luau.nil() : luau.none();
+		return !isUsedAsStatement(node) ? luau.nil() : luau.none();
 	},
 
 	map: (state, node, expression, args) => {
