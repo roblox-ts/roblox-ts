@@ -20,18 +20,7 @@
 		"plugin:prettier/recommended"
 	],
 	"rules": {
-		"prettier/prettier": [
-			"warn",
-			{
-				"semi": true,
-				"trailingComma": "all",
-				"singleQuote": false,
-				"printWidth": 120,
-				"tabWidth": 4,
-				"useTabs": true,
-				"arrowParens": "avoid"
-			}
-		],
+		"prettier/prettier": "warn",
 		"@typescript-eslint/array-type": [
 			"warn",
 			{
