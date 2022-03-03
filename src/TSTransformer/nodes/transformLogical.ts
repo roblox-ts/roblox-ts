@@ -179,6 +179,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 			);
 			checkNode = checkNode.left;
 		}
+		// Finally, check the inner-most expression, `A` in the above example
 		canInline &&= !isPossiblyType(state.getType(checkNode), isBooleanLiteralType(state, false));
 		if (canInline) {
 			return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", conditionBuilder);
