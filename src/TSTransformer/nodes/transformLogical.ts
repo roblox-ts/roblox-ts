@@ -161,7 +161,26 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
 		const conditionBuilder = (conditionId: luau.TemporaryIdentifier) => luau.binary(conditionId, "==", luau.nil());
-		if (!isPossiblyType(state.getType(node), isBooleanLiteralType(state, false))) {
+		let canInline = !isPossiblyType(state.getType(node.left), isBooleanLiteralType(state, false));
+		// Multiple consecutive expressions look like Bin(Bin(Bin(A, B), C), D)
+		// So check right sides for possibly `false` type
+		// Then recurse on left side to go down the tree
+		let checkNode = node.left;
+		while (canInline && ts.isBinaryExpression(checkNode)) {
+			const type = state.getType(checkNode.right);
+			const symbol = state.getOriginalSymbol(checkNode.right);
+			canInline &&= !isPossiblyType(
+				symbol && symbol.valueDeclaration
+					? // Get the type at the variable declaration
+					  // This avoids incorrect type narrowing, see #1868
+					  state.typeChecker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration)
+					: type,
+				isBooleanLiteralType(state, false),
+			);
+			checkNode = checkNode.left;
+		}
+		canInline &&= !isPossiblyType(state.getType(checkNode), isBooleanLiteralType(state, false));
+		if (canInline) {
 			return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", conditionBuilder);
 		}
 		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
