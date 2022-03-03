@@ -45,7 +45,13 @@ function getLogicalChain(
 		const [expression, statements] = state.capture(() => transformExpression(state, node));
 		let inline = false;
 		if (enableInlining) {
-			const willWrap = index < array.length - 1 && willCreateTruthinessChecks(type);
+			const willWrap =
+				// Last item in chain is not tested for truthiness
+				index < array.length - 1 &&
+				// Not non-null, as that does not check truthiness
+				binaryOperatorKind !== ts.SyntaxKind.QuestionQuestionToken &&
+				// And will actually generate extra truthiness check(s)
+				willCreateTruthinessChecks(type);
 			inline = luau.list.isEmpty(statements) && !willWrap;
 		}
 		return { node, type, expression, statements, inline };
