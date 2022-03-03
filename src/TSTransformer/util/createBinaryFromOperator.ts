@@ -55,7 +55,7 @@ function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.E
 
 export function createBinaryFromOperator(
 	state: TransformState,
-	node: ts.Node,
+	node: ts.BinaryExpression,
 	left: luau.Expression,
 	leftType: ts.Type,
 	operatorKind: ts.SyntaxKind,
@@ -87,6 +87,7 @@ export function createBinaryFromOperator(
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
+		// Banned by diagnostic, but handled anyways in case it slips through
 		state.prereqList(wrapExpressionStatement(left));
 		return right;
 	}
