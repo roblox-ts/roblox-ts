@@ -5,7 +5,7 @@ import { isArrayType, isDefinitelyType, isUndefinedType } from "TSTransformer/ut
 import ts from "typescript";
 
 export function addOneIfArrayType(state: TransformState, type: ts.Type, expression: luau.Expression) {
-	if (ts.isArray(type) || isDefinitelyType(type, isArrayType(state), isUndefinedType)) {
+	if (isDefinitelyType(type, isArrayType(state), isUndefinedType)) {
 		return offset(expression, 1);
 	} else {
 		return expression;
