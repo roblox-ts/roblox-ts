@@ -21,7 +21,7 @@ function y(str: string) {
 function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
 	const typesPath = path.resolve(nodeModulesPath);
 	for (const typeRoot of typeRoots) {
-		if (path.normalize(typeRoot) === typesPath) {
+		if (path.resolve(typeRoot) === typesPath) {
 			return true;
 		}
 	}
