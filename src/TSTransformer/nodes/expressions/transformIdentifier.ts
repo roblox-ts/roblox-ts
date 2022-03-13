@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isBlockLike, isNonNamespaceModuleDeclaration } from "TSTransformer/typeGuards";
+import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
@@ -147,7 +147,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	if (
 		symbol.valueDeclaration &&
 		symbol.valueDeclaration.getSourceFile() === node.getSourceFile() &&
-		getAncestor(symbol.valueDeclaration, isNonNamespaceModuleDeclaration) === undefined
+		getAncestor(symbol.valueDeclaration, node => ts.isModuleDeclaration(node) && !isNamespace(node)) === undefined
 	) {
 		const exportAccess = state.getModuleIdPropertyAccess(symbol);
 		if (exportAccess && isDefinedAsLet(state, symbol)) {
