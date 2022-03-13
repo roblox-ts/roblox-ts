@@ -24,11 +24,6 @@ export function transformElementAccessExpressionInner(
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
 	addIndexDiagnostics(state, node, expType);
 
-	const constantValue = getConstantValueLiteral(state, node);
-	if (constantValue) {
-		return constantValue;
-	}
-
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
 
 	if (!luau.list.isEmpty(prereqs)) {
@@ -72,5 +67,10 @@ export function transformElementAccessExpressionInner(
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
+	}
+
 	return transformOptionalChain(state, node);
 }
