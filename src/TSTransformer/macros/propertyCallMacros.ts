@@ -686,7 +686,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.IfStatement, {
-				condition: valueId,
+				condition: luau.binary(valueId, "~=", luau.nil()),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -712,7 +712,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			}),
 		);
 
-		return valueIsUsed ? valueId! : luau.none();
+		return valueIsUsed ? valueId : luau.none();
 	},
 
 	sort: (state, node, expression, args) => {
