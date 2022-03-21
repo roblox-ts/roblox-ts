@@ -10,6 +10,8 @@ export function expressionMightMutate(
 	node?: ts.Expression,
 ): boolean {
 	if (luau.isTemporaryIdentifier(expression)) {
+		// Assume tempIds are never re-assigned after being returned
+		// TODO: Is this actually safe to assume?
 		return false;
 	} else if (luau.isParenthesizedExpression(expression)) {
 		return expressionMightMutate(state, expression.expression);
