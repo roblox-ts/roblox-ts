@@ -30,7 +30,7 @@ function transformPropertyAssignment(
 	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
 		disableMapInline(state, ptr);
 		state.prereqList(leftPrereqs);
-		left = state.pushToVar(left, "left");
+		left = state.pushToVarIfMightMutate(left, "left", ts.isComputedPropertyName(name) ? name.expression : name);
 	}
 
 	state.prereqList(rightPrereqs);
