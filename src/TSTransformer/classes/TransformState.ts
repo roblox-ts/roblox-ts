@@ -13,6 +13,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -311,6 +312,21 @@ export class TransformState {
 	 */
 	public pushToVarIfNonId<T extends luau.Expression>(expression: T, name?: string): luau.AnyIdentifier {
 		if (luau.isAnyIdentifier(expression)) {
+			return expression;
+		}
+		return this.pushToVar(expression, name);
+	}
+
+	/**
+	 * Uses `state.pushToVar(expression)` unless `expressionMightMutate(expression)`
+	 * @param expression the expression to push
+	 */
+	public pushToVarIfMightMutate<T extends luau.Expression>(
+		expression: T,
+		name?: string,
+		node?: ts.Expression,
+	): luau.Expression {
+		if (!expressionMightMutate(this, expression, node)) {
 			return expression;
 		}
 		return this.pushToVar(expression, name);

@@ -12,7 +12,6 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { getAncestor } from "TSTransformer/util/traversal";
@@ -61,11 +60,9 @@ function runCallMacro(
 			);
 		}
 
-		for (let i = 0; i < args.length; i++) {
-			if (expressionMightMutate(state, args[i], nodeArguments[i])) {
-				args[i] = state.pushToVar(args[i], valueToIdStr(args[i]) || `arg${i}`);
-			}
-		}
+		args = args.map((element, i) =>
+			state.pushToVarIfMightMutate(element, valueToIdStr(element) || `arg${i}`, nodeArguments[i]),
+		);
 	});
 
 	let nodeExpression = node.expression;
@@ -73,8 +70,8 @@ function runCallMacro(
 		nodeExpression = nodeExpression.expression;
 	}
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, nodeExpression)) {
-		expression = state.pushToVar(expression, valueToIdStr(expression) || "exp");
+	if (!luau.list.isEmpty(prereqs)) {
+		expression = state.pushToVarIfMightMutate(expression, valueToIdStr(expression) || "exp", nodeExpression);
 	}
 	state.prereqList(prereqs);
 
@@ -159,8 +156,8 @@ export function transformCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, expression, node.expression)) {
-		expression = state.pushToVar(expression, "fn");
+	if (!luau.list.isEmpty(prereqs)) {
+		expression = state.pushToVarIfMightMutate(expression, "fn", node.expression);
 	}
 	state.prereqList(prereqs);
 
@@ -201,8 +198,8 @@ export function transformPropertyCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+	if (!luau.list.isEmpty(prereqs)) {
+		baseExpression = state.pushToVarIfMightMutate(baseExpression, "fn", node.expression);
 	}
 	state.prereqList(prereqs);
 
@@ -267,8 +264,8 @@ export function transformElementCallExpressionInner(
 
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+	if (!luau.list.isEmpty(prereqs)) {
+		baseExpression = state.pushToVarIfMightMutate(baseExpression, "fn", node.expression);
 	}
 	state.prereqList(prereqs);
 
