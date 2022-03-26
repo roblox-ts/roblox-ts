@@ -19,6 +19,7 @@ jobs:
 
       - name: Build projects for eslint types
         run: npm run build
+        continue-on-error: true
 
       - name: Run ESLint
         run: npm run eslint
