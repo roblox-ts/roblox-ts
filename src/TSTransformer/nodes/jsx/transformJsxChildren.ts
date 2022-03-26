@@ -139,6 +139,7 @@ function createJsxAddChild(
 	amtSinceUpdate: number,
 	lengthId: luau.AnyIdentifier,
 	expression: luau.Expression,
+	expressionOrigin: ts.Expression,
 	type: ts.Type,
 ): luau.Statement {
 	const isPossiblyUndefinedOrFalse = isPossiblyType(type, isUndefinedType, isBooleanLiteralType(state, false));
@@ -220,7 +221,7 @@ function createJsxAddChild(
 				elseBody: luau.list.make(),
 			});
 		} else {
-			state.prereqList(wrapExpressionStatement(expression));
+			state.prereqList(wrapExpressionStatement(state, expression, false, expressionOrigin));
 		}
 	}
 
@@ -319,7 +320,15 @@ export function transformJsxChildren(
 						disableInline();
 						assert(luau.isAnyIdentifier(childrenPtr.value));
 						state.prereq(
-							createJsxAddChild(state, childrenPtr.value, amtSinceUpdate, lengthId, expression, type),
+							createJsxAddChild(
+								state,
+								childrenPtr.value,
+								amtSinceUpdate,
+								lengthId,
+								expression,
+								innerExp,
+								type,
+							),
 						);
 					}
 				}

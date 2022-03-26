@@ -95,6 +95,7 @@ function transformLuaTupleDestructure(
 	state: TransformState,
 	bindingPattern: ts.ArrayBindingPattern,
 	value: luau.Expression,
+	valueOrigin: ts.Expression,
 ) {
 	return state.capturePrereqs(() => {
 		const ids = luau.list.make<luau.AnyIdentifier>();
@@ -130,7 +131,7 @@ function transformLuaTupleDestructure(
 			}
 		});
 		if (luau.list.isEmpty(ids)) {
-			state.prereqList(wrapExpressionStatement(value));
+			state.prereqList(wrapExpressionStatement(state, value, luau.list.isNonEmpty(statements), valueOrigin));
 		} else {
 			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		}
@@ -164,7 +165,7 @@ export function transformVariableDeclaration(
 				luau.isCall(value) &&
 				isDefinitelyType(state, state.getType(node.initializer), node.initializer, isLuaTupleType(state))
 			) {
-				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value));
+				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value, node.initializer));
 			} else {
 				luau.list.pushList(
 					statements,
