@@ -20,11 +20,6 @@ export function transformElementAccessExpressionInner(
 	const expType = state.typeChecker.getNonNullableType(state.getType(node.expression));
 	addIndexDiagnostics(state, node, expType);
 
-	const constantValue = getConstantValueLiteral(state, node);
-	if (constantValue) {
-		return constantValue;
-	}
-
 	const isLuaTuple = isDefinitelyType(state, expType, node.expression, isLuaTupleType(state));
 
 	const [index, prereqs] = state.capture(() => transformExpression(state, argumentExpression));
@@ -61,7 +56,7 @@ export function transformElementAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -71,5 +66,10 @@ export function transformElementAccessExpressionInner(
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
+	}
+
 	return transformOptionalChain(state, node);
 }

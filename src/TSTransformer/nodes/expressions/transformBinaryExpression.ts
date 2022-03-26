@@ -21,12 +21,14 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
 function transformLuaTupleDestructure(
 	state: TransformState,
 	assignmentPattern: ts.ArrayLiteralExpression,
 	value: luau.Expression,
+	valueOrigin: ts.Expression,
 ) {
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
@@ -84,20 +86,9 @@ function transformLuaTupleDestructure(
 		);
 	}
 	if (luau.list.isEmpty(writes)) {
-		if (luau.isCall(value)) {
-			state.prereq(
-				luau.create(luau.SyntaxKind.CallStatement, {
-					expression: value,
-				}),
-			);
-		} else {
-			state.prereq(
-				luau.create(luau.SyntaxKind.VariableDeclaration, {
-					left: luau.list.make(luau.tempId()),
-					right: value,
-				}),
-			);
-		}
+		// only need to check `variables` is nonEmpty
+		// if it is empty, `statements` is automatically empty too
+		state.prereqList(wrapExpressionStatement(state, value, luau.list.isNonEmpty(variables), valueOrigin));
 	} else {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -116,13 +107,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noEqualsEquals(node));
-		return luau.nil();
+		return luau.none();
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noExclamationEquals(node));
-		return luau.nil();
+		return luau.none();
 	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
 		DiagnosticService.addDiagnostic(errors.noComma(node));
-		return luau.nil();
+		return luau.none();
 	}
 
 	// logical
@@ -144,11 +135,11 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			const rightExp = transformExpression(state, node.right);
 
 			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
-				transformLuaTupleDestructure(state, node.left, rightExp);
+				transformLuaTupleDestructure(state, node.left, rightExp, node.right);
 				if (!isUsedAsStatement(node)) {
 					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
 				}
-				return luau.nil();
+				return luau.none();
 			}
 
 			const parentId = state.pushToVar(rightExp, "binding");

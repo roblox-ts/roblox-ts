@@ -10,6 +10,7 @@
 		"moduleResolution": "Node",
 		"noLib": true,
 		"resolveJsonModule": true,
+		"experimentalDecorators": true,
 		"forceConsistentCasingInFileNames": true,
 		"strict": true,
 		"target": "ESNext",

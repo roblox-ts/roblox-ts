@@ -12,11 +12,12 @@ export function wrapExpressionStatement(
 	const result = luau.list.make<luau.Statement>();
 	if (luau.isCall(expression)) {
 		luau.list.push(result, luau.create(luau.SyntaxKind.CallStatement, { expression: expression }));
-	} else if (luau.isTemporaryIdentifier(expression)) {
-		// Assume compiler-generated remnant, can safely ignore
+	} else if (luau.isTemporaryIdentifier(expression) || luau.isNone(expression)) {
+		// Compiler-generated remnant, can safely ignore
 	} else if (hasPrereqs && !expressionMightMutate(state, expression, node)) {
 		// No side effects, can safely remove
 		// Only skip if there are prereqs to avoid "vanishing" statements
+		return luau.list.make<luau.Statement>();
 	} else {
 		luau.list.push(
 			result,

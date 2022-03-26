@@ -24,7 +24,7 @@ export function transformJsx(
 		state.typeChecker.getSymbolAtLocation(tagName) ===
 			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
-	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.nil();
+	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.none();
 	const attributesPtr = createMapPointer("attributes");
 	const childrenPtr = createMixedTablePointer("children");
 	transformJsxAttributes(state, attributes, attributesPtr);

@@ -13,6 +13,7 @@ import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
 function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
@@ -129,9 +130,10 @@ function transformLuaTupleDestructure(
 			}
 		});
 		if (luau.list.isEmpty(ids)) {
-			luau.list.push(ids, luau.tempId());
+			state.prereqList(wrapExpressionStatement(value));
+		} else {
+			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		}
-		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
 		state.prereqList(statements);
 	});
 }

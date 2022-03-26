@@ -25,6 +25,7 @@ import {
 	isRoactElementType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
+import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
 /** `children[lengthId + keyId] = valueId` */
@@ -219,10 +220,7 @@ function createJsxAddChild(
 				elseBody: luau.list.make(),
 			});
 		} else {
-			statement = luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.tempId(),
-				right: expression,
-			});
+			state.prereqList(wrapExpressionStatement(expression));
 		}
 	}
 
