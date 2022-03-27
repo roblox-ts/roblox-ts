@@ -160,11 +160,15 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			valueType,
 			node,
 		);
+
+		const usedAsStatement = isUsedAsStatement(node);
+
 		// eslint-disable-next-line no-autofix/prefer-const
 		let { writable, readable, value } = transformWritableAssignment(
 			state,
 			node.left,
 			node.right,
+			// TODO: consider if this can use `usedAsStatement`
 			true,
 			operator === undefined,
 		);
@@ -182,9 +186,13 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			if (operator === "..=" && !isDefinitelyType(state, valueType, undefined, isStringType, isNumberType)) {
 				value = luau.call(luau.globals.tostring, [value]);
 			}
-			return createAssignmentExpression(state, writable, operator, value);
+			// Always execute for prereqs
+			const result = createAssignmentExpression(state, writable, operator, value);
+			// TODO: Replace with luau.lazy once implemented
+			return !usedAsStatement ? result : luau.none();
 		} else {
-			return createCompoundAssignmentExpression(
+			// Always execute for prereqs
+			const result = createCompoundAssignmentExpression(
 				state,
 				node,
 				writable,
@@ -194,6 +202,8 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				value,
 				valueType,
 			);
+			// TODO: Replace with luau.lazy once implemented
+			return !usedAsStatement ? result : luau.none();
 		}
 	}
 
