@@ -56,7 +56,8 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// TS will error otherwise
+			// `member.name` is typed as `PropertyName`
+			// but only identifiers and string literals are legal in enum properties
 			assert(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name));
 
 			const nameStr = member.name.text;
