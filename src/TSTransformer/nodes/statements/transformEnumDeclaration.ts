@@ -25,7 +25,10 @@ function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
-	if (!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const)) {
+	if (
+		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
+		state.compilerOptions.preserveConstEnums !== true
+	) {
 		return luau.list.make<luau.Statement>();
 	}
 
