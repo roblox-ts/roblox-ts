@@ -14,7 +14,6 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
-	getTypeArguments,
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
@@ -300,14 +299,24 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			"Incorrect LuaTuple<T> type arguments",
 		);
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
-		// if LuaTuple has defined element amount
-		// and initializer is a variable declaration `for (const a of iter())`
+		// if initializer is a variable declaration `for (const a of iter())`
+		// and LuaTuple has defined element amount, and no rest elements
 		// then use lua for-in loop, specifying all elements and putting them in table
-		if (state.typeChecker.isTupleType(tupleArgType) && ts.isVariableDeclarationList(initializer)) {
-			const typeArguments = getTypeArguments(state, tupleArgType);
-			for (let i = 0; i < typeArguments.length; i++) {
-				// TODO: Name TempIds after tuple elements if labeled
-				iteratorReturnIds.push(luau.tempId("element"));
+		if (
+			ts.isVariableDeclarationList(initializer) &&
+			state.typeChecker.isTupleType(tupleArgType) &&
+			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Rest)
+		) {
+			const tupleType = (tupleArgType as ts.TupleTypeReference).target;
+			for (let i = 0; i < tupleType.elementFlags.length; i++) {
+				let name = "element";
+				if (tupleType.labeledElementDeclarations) {
+					const label = tupleType.labeledElementDeclarations[i];
+					if (ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+						name = label.name.text;
+					}
+				}
+				iteratorReturnIds.push(luau.tempId(name));
 			}
 		} else {
 			const iterFuncId = state.pushToVar(exp, "iterFunc");
