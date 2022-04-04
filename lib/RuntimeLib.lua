@@ -34,7 +34,7 @@ function TS.getModule(object, scope, moduleName)
 	repeat
 		local modules = object:FindFirstChild("node_modules")
 		if modules and modules ~= globalModules then
-			modules = modules:FindFirstChild("@rbxts")
+			modules = modules:FindFirstChild(scope or "@rbxts") or modules
 		end
 		if modules then
 			local module = modules:FindFirstChild(moduleName)
@@ -45,7 +45,7 @@ function TS.getModule(object, scope, moduleName)
 		object = object.Parent
 	until object == nil or object == globalModules
 
-	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts");
+	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts")
 	return (scopedModules or globalModules):FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
 end
 
