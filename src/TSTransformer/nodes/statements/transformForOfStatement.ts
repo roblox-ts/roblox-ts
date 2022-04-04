@@ -25,6 +25,7 @@ import {
 	isStringType,
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 type LoopBuilder = (
@@ -319,7 +320,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 				iteratorReturnIds.push(luau.tempId(name));
 			}
 		} else {
-			const iterFuncId = state.pushToVar(exp, "iterFunc");
+			const iterFuncId = state.pushToVar(exp, valueToIdStr(exp) || "iterFunc");
 			const loopStatements = luau.list.make<luau.Statement>();
 
 			const initializerStatements = luau.list.make<luau.Statement>();
