@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
+import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
@@ -153,6 +153,13 @@ export function createImportExpression(
 		if (state.projectType === ProjectType.Game) {
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
+				if (
+					state.rojoResolver.getNetworkType(moduleRbxPath) === NetworkType.Server &&
+					state.rojoResolver.getNetworkType(sourceRbxPath) !== NetworkType.Server
+				) {
+					DiagnosticService.addDiagnostic(errors.noServerImport(moduleSpecifier));
+					return luau.none();
+				}
 				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
 			} else if (fileRelation === FileRelation.InToIn) {
 				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));

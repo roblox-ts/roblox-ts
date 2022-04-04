@@ -185,6 +185,11 @@ export const errors = {
 	noUnscopedModule: error("You cannot use modules directly under node_modules."),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
+	noServerImport: error(
+		"Cannot import a server package from a shared or client location!",
+		suggestion("Add the package to your rojo project in a shared location."),
+		issue(1898),
+	),
 
 	// roact jsx
 	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
