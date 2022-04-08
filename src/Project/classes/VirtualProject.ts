@@ -105,7 +105,7 @@ export class VirtualProject {
 			.getFilePaths()
 			.filter(v => v.endsWith(ts.Extension.Ts) || v.endsWith(ts.Extension.Tsx) || v.endsWith(ts.Extension.Dts));
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
-		this.typeChecker = this.program.getDiagnosticsProducingTypeChecker();
+		this.typeChecker = this.program.getTypeChecker();
 
 		const services = createTransformServices(this.program, this.typeChecker, this.data);
 		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
