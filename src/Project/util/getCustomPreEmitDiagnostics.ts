@@ -1,4 +1,3 @@
-import { fileIsModule } from "TSTransformer/preEmitDiagnostics/fileIsModule";
 import ts from "typescript";
 
 export type PreEmitChecker = (sourceFile: ts.SourceFile) => Array<ts.Diagnostic>;
