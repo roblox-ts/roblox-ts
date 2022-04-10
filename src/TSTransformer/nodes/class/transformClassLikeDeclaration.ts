@@ -375,7 +375,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
 		} else {
-			assert(false, `Class member type not implemented: ${getKindName(member.kind)}`);
+			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
 		}
 	}
 
