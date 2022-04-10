@@ -11,9 +11,9 @@ export function addOneIfArrayType(
 	expression: luau.Expression,
 	originNode: ts.Node,
 ) {
-	// Use nonNullableType to handle optional chaining
 	if (
 		isPossiblyType(indexType, isNumberType) &&
+		// Use nonNullableType to handle optional chaining
 		isDefinitelyType(state, state.typeChecker.getNonNullableType(type), originNode, isArrayType(state))
 	) {
 		return offset(expression, 1);
