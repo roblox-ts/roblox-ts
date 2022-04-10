@@ -24,7 +24,13 @@ export const objectAccessor = (
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
-			index: addOneIfArrayType(state, type, transformExpression(state, name.expression), name),
+			index: addOneIfArrayType(
+				state,
+				type,
+				state.getType(name),
+				transformExpression(state, name.expression),
+				name,
+			),
 		});
 	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {

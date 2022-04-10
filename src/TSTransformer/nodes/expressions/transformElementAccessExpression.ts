@@ -45,13 +45,15 @@ export function transformElementAccessExpressionInner(
 		return expression;
 	}
 
+	const indexExp = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+		expression: convertToIndexableExpression(expression),
+		index: addOneIfArrayType(state, expType, state.getType(argumentExpression), index, node.expression),
+	});
+
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-					expression: convertToIndexableExpression(expression),
-					index: addOneIfArrayType(state, expType, index, node.expression),
-				}),
+				left: indexExp,
 				operator: "=",
 				right: luau.nil(),
 			}),
@@ -59,10 +61,7 @@ export function transformElementAccessExpressionInner(
 		return luau.none();
 	}
 
-	return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-		expression: convertToIndexableExpression(expression),
-		index: addOneIfArrayType(state, expType, index, node.expression),
-	});
+	return indexExp;
 }
 
 export function transformElementAccessExpression(state: TransformState, node: ts.ElementAccessExpression) {

@@ -272,6 +272,7 @@ export function transformElementCallExpressionInner(
 			index: addOneIfArrayType(
 				state,
 				state.typeChecker.getNonNullableType(state.getType(expression.expression)),
+				state.getType(argumentExpression),
 				argumentExp,
 				expression.expression,
 			),
