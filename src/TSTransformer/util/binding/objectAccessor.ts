@@ -1,6 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -35,5 +34,7 @@ export const objectAccessor = (
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
 		return luau.none();
 	}
-	assert(false);
+	// Hack: This will throw a compile error if `name` has any uncovered variant
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	return (name as [any])[0];
 };
