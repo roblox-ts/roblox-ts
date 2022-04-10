@@ -701,12 +701,12 @@ export = () => {
 	it("should support function destructuring if not a method", () => {
 		let x = 0;
 		const a = {
-			b: () => {
-				x = 123;
+			b: (param: number) => {
+				x = param;
 			},
 		};
 		const { b } = a;
-		b();
+		b(123);
 		expect(x).to.equal(123);
 	});
 };
