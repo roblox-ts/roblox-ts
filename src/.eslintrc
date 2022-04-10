@@ -4,7 +4,7 @@
 	},
 	"rules": {
 		"no-console": "warn",
-		"no-restricted-imports": [
+		"@typescript-eslint/no-restricted-imports": [
 			"error",
 			{
 				"patterns": [".*"]
