@@ -1,9 +1,9 @@
 export {};
 
 interface HasCallback {
-	callback: () => void;
+	callback: (a: number) => void;
 }
 
 const obj: HasCallback = {
-	callback: function() {},
-}
+	callback: function (a) {},
+};
