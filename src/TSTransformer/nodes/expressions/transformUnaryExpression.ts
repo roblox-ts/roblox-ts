@@ -1,5 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -30,9 +31,7 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 					? "+="
 					: node.operator === ts.SyntaxKind.MinusMinusToken
 					? "-="
-					: // Hack: This will throw a compile error if `node.operator` has any uncovered variant
-					  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-					  (node.operator as [any])[0],
+					: assertNever(node.operator, "transformPostfixUnaryExpression"),
 			right: luau.number(1),
 		}),
 	);
@@ -68,7 +67,5 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 	} else if (node.operator === ts.SyntaxKind.TildeToken) {
 		return luau.call(luau.property(luau.globals.bit32, "bnot"), [transformExpression(state, node.operand)]);
 	}
-	// Hack: This will throw a compile error if `node.operator` has any uncovered variant
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (node.operator as [any])[0];
+	return assertNever(node.operator, "transformPrefixUnaryExpression");
 }
