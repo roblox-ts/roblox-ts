@@ -89,5 +89,10 @@
 		"CHANGELOG.md",
 		"!**/*.js.map",
 		"!**/*.tsbuildinfo"
-	]
+	],
+	"overrides": {
+		"ts-node": {
+			"typescript": "4.6.4"
+		}
+	}
 }
