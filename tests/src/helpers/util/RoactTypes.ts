@@ -5,7 +5,6 @@ const RoactModule = game
 	.WaitForChild("include")
 	.WaitForChild("node_modules")
 	.WaitForChild("roact")
-	.WaitForChild("roact")
 	.WaitForChild("src") as ModuleScript;
 
 export declare interface ElementKind {
