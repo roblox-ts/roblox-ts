@@ -54,11 +54,22 @@ local currentlyLoading = {}
 local registeredLibraries = {}
 
 function TS.import(caller, module, ...)
+	local args = {...}
+	local ok
+
 	for i = 1, select("#", ...) do
-		module = module:WaitForChild((select(i, ...)))
+		-- Since declaration files are not synced,
+		-- not properly handling a possibly non-existent instance will cause the thread to yield forever
+		ok, module = Promise.retryWithDelay(function()
+			return Promise.try(function()
+				return module[(select(i, unpack(args)))]
+			end)
+		end, 15, task.wait()):await()
 	end
 
-	if module.ClassName ~= "ModuleScript" then
+	if not ok then
+		return
+	elseif module.ClassName ~= "ModuleScript" then
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
