@@ -96,9 +96,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			statements,
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				// importExp may be `nil` in .d.ts files, so default to `{}`
-				// boolean `or` is safe, because importExp can only be a table if not `nil`
-				expression: luau.call(luau.globals.pairs, [luau.binary(importExp, "or", luau.map())]),
+				expression: luau.call(luau.globals.pairs, [importExp]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
