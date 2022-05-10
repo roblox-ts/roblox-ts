@@ -53,8 +53,8 @@ end
 local currentlyLoading = {}
 local registeredLibraries = {}
 
-function TS.import(isDeclarationFile, caller, module, ...)
-	if isDeclarationFile then
+function TS.import(caller, moduleExists, module, ...)
+	if not moduleExists then
 		return {}
 	end
 

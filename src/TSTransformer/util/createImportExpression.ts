@@ -10,6 +10,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
+import { existsSync } from "fs";
 import ts from "typescript";
 
 function getAbsoluteImport(moduleRbxPath: RbxPath) {
@@ -67,6 +68,17 @@ function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<Rojo
 	}
 }
 
+function rbxModuleExists(moduleFile: ts.SourceFile) {
+	if (!moduleFile.isDeclarationFile) {
+		return true;
+	}
+
+	const modulePath = path.resolve(moduleFile.path);
+	const moduleName = path.basename(modulePath);
+
+	return existsSync(path.join(path.dirname(modulePath), moduleName.replace(".d.ts", ".lua")));
+}
+
 function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Expression, moduleFilePath: string) {
 	const moduleOutPath = state.pathTranslator.getImportPath(
 		state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(moduleFilePath))) ?? moduleFilePath,
@@ -120,7 +132,7 @@ export function createImportExpression(
 	}
 
 	const importPathExpressions = new Array<luau.Expression>();
-	importPathExpressions.push(luau.bool(moduleFile.fileName.endsWith(".d.ts")), luau.globals.script);
+	importPathExpressions.push(luau.globals.script, luau.bool(rbxModuleExists(moduleFile)));
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
