@@ -53,16 +53,22 @@ end
 local currentlyLoading = {}
 local registeredLibraries = {}
 
-function TS.import(caller, module, ...)
+function TS.import(isDeclarationFile, caller, module, ...)
+	if isDeclarationFile then
+		return {}
+	end
+
 	for i = 1, select("#", ...) do
 		-- Since declaration files are not synced,
 		-- not properly handling a possibly non-existent instance will cause the thread to yield forever
-		module = module:WaitForChild(select(i, ...), 1)
+		module = module:WaitForChild(select(i, ...), 5)
+
+		if not module then
+			error("Failed to import! The given module path does not exist.", 2)
+		end
 	end
 
-	if not module then
-		return
-	elseif module.ClassName ~= "ModuleScript" then
+	if module.ClassName ~= "ModuleScript" then
 		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 

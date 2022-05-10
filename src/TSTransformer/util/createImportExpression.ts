@@ -120,7 +120,7 @@ export function createImportExpression(
 	}
 
 	const importPathExpressions = new Array<luau.Expression>();
-	importPathExpressions.push(luau.globals.script);
+	importPathExpressions.push(luau.bool(moduleFile.fileName.endsWith(".d.ts")), luau.globals.script);
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
