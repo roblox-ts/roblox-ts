@@ -59,8 +59,6 @@ function TS.import(isDeclarationFile, caller, module, ...)
 	end
 
 	for i = 1, select("#", ...) do
-		-- Since declaration files are not synced,
-		-- not properly handling a possibly non-existent instance will cause the thread to yield forever
 		module = module:WaitForChild(select(i, ...))
 	end
 
