@@ -185,11 +185,7 @@ export const errors = {
 	noUnscopedModule: error("You cannot use modules directly under node_modules."),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
-	noExportAllFromDeclarationFile: error(
-		"`export * from` is not supported for declaration files!",
-		suggestion(`Use \`export * as module;\` instead.`),
-		issue(1789),
-	),
+	noExportAllFromDeclarationFile: error("`export * from` is not supported for declaration files!", issue(1789)),
 
 	// roact jsx
 	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
