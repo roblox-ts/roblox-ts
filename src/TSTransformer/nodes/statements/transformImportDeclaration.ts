@@ -44,7 +44,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 	assert(ts.isStringLiteral(node.moduleSpecifier));
 	const importExp = new Lazy<luau.IndexableExpression>(() =>
-		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
+		createImportExpression(state, node.getSourceFile(), node.moduleSpecifier, false),
 	);
 
 	if (importClause) {

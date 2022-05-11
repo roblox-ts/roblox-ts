@@ -44,7 +44,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 	// detect if we need to push to a new var or not
 	const uses = countImportExpUses(state, exportClause);
 	if (uses === 1) {
-		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier);
+		importExp = createImportExpression(state, node.getSourceFile(), node.moduleSpecifier, false);
 	} else if (uses > 1) {
 		const moduleName = node.moduleSpecifier.text.split("/");
 		importExp = luau.tempId(cleanModuleName(moduleName[moduleName.length - 1]));
@@ -52,7 +52,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			statements,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: importExp as luau.TemporaryIdentifier,
-				right: createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
+				right: createImportExpression(state, node.getSourceFile(), node.moduleSpecifier, false),
 			}),
 		);
 	}
@@ -96,9 +96,15 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 			statements,
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				// importExp may be `nil` in .d.ts files, so default to `{}`
+				// importExp may be `nil` in .d.ts files and modules that doesn't export anything, so default to `{}`
 				// boolean `or` is safe, because importExp can only be a table if not `nil`
-				expression: luau.call(luau.globals.pairs, [luau.binary(importExp, "or", luau.map())]),
+				expression: luau.call(luau.globals.pairs, [
+					luau.binary(
+						createImportExpression(state, node.getSourceFile(), node.moduleSpecifier, true),
+						"or",
+						luau.map(),
+					),
+				]),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

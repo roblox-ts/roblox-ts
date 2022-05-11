@@ -53,11 +53,7 @@ end
 local currentlyLoading = {}
 local registeredLibraries = {}
 
-function TS.import(caller, moduleExists, module, ...)
-	if not moduleExists then
-		return {}
-	end
-
+function TS.import(caller, module, ...)
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild(select(i, ...))
 	end

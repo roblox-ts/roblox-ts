@@ -13,7 +13,7 @@ export function transformImportExpression(state: TransformState, node: ts.CallEx
 		return luau.none();
 	}
 
-	const importExpression = createImportExpression(state, node.getSourceFile(), moduleSpecifier);
+	const importExpression = createImportExpression(state, node.getSourceFile(), moduleSpecifier, false);
 	const resolveId = luau.id("resolve");
 
 	return luau.call(luau.property(state.TS(node, "Promise"), "new"), [

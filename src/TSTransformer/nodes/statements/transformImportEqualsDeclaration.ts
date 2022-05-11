@@ -9,7 +9,7 @@ import ts from "typescript";
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
 	if (ts.isExternalModuleReference(node.moduleReference)) {
 		assert(ts.isStringLiteral(node.moduleReference.expression));
-		const importExp = createImportExpression(state, node.getSourceFile(), node.moduleReference.expression);
+		const importExp = createImportExpression(state, node.getSourceFile(), node.moduleReference.expression, false);
 
 		const statements = luau.list.make<luau.Statement>();
 
