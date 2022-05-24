@@ -27,18 +27,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
 
-      - name: Set up WireGuard
-        uses: egor-tensin/setup-wireguard@v1
-        with:
-          endpoint: "159.223.100.103:51820"
-          endpoint_public_key: "OjHvdFkcsxo9mcR6P++4UwNgCKZIjnbuWAT975vgjx4="
-          ips: "10.13.13.3"
-          allowed_ips: "0.0.0.0/0"
-          private_key: "8PZtXvyxodteU9zah9VH3u7APnW0sWJdrW470IV7MUM="
-          preshared_key: "EUcBY9Q5Gvn6tE9gbSmIHiSpKUVWeufJRkmsQzJDoZg="
+      - name: Download WireGuard
+        run: Invoke-WebRequest -Uri https://github.com/DrEm-s/wireguard-windows-portable/releases/download/v1.0/wireguard.exe -OutFile ./wireguard.exe;
 
       - name: Run WireGuard
-        run: "& \"C:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice .\\wireguard.conf"
+        run: "& ./wireguard.exe /installtunnelservice .\\wireguard.conf"
 
       - name: Install Roblox Studio
         uses: OrbitalOwen/roblox-win-installer-action@1.1
