@@ -33,8 +33,11 @@ jobs:
       - name: Install WireGuard
         run: ./wireguard-installer.exe
 
+      - name: Wait for WireGuard Installer?
+        run: while (!(Test-Path "C:\Program Files\WireGuard\wireguard.exe")) { Start-Sleep 5 }
+
       - name: Run WireGuard
-        run: "& \"c:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice .\\wireguard.conf"
+        run: "& \"C:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice .\\wireguard.conf"
 
       - name: Install Roblox Studio
         uses: OrbitalOwen/roblox-win-installer-action@1.1
