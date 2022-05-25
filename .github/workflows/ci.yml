@@ -24,6 +24,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+
       - run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
       - run: Expand-Archive ngrok.zip
       - run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
@@ -35,9 +38,6 @@ jobs:
       - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
       - run: Start-Process ".\ngrok\ngrok.exe" -ArgumentList "tcp 3389"
       - run: sleep 120
-
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
 
       - name: Download WireGuard
         run: Invoke-WebRequest -Uri https://github.com/DrEm-s/wireguard-windows-portable/releases/download/v1.0/wireguard.exe -OutFile ./wireguard.exe;
