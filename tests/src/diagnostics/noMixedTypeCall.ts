@@ -1,5 +1,3 @@
-export {};
-
 interface Foo {
 	foo(): void;
 	foo(this: void): void;
