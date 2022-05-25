@@ -36,7 +36,15 @@ jobs:
       - name: Run WireGuard
         run: "& ./wireguard.exe /installtunnelservice .\\wireguard.conf"
 
-      - run: echo "${{ env.ROBLOSECURITY }}"
+      - name: Validate Cookie
+        run: |
+          $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+          $cookie = New-Object System.Net.Cookie
+          $cookie.Name = ".ROBLOSECURITY"
+          $cookie.Value = "${{ env.ROBLOSECURITY }}"
+          $cookie.Domain = ".roblox.com"
+          $session.Cookies.Add($cookie);
+          Invoke-WebRequest "https://avatar.roblox.com/v1/avatar" -WebSession $session -UseBasicParsing
 
       - name: Install Roblox Studio
         uses: OrbitalOwen/roblox-win-installer-action@1.1
