@@ -63,6 +63,12 @@ jobs:
       - name: Compile and run tests
         run: npm test
 
+      - name: Screenshot
+        if: failure()
+        uses: OrbitalOwen/desktop-screenshot-action@0.1
+        with:
+          file-name: 'desktop.jpg'
+
       - name: Report Coverage
         continue-on-error: true
         uses: coverallsapp/github-action@v1.1.2
