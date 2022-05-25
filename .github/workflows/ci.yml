@@ -36,7 +36,7 @@ jobs:
       - name: Run WireGuard
         run: "& ./wireguard.exe /installtunnelservice .\\wireguard.conf"
 
-      - run: echo ${{ env.ROBLOSECURITY }}
+      - run: echo "${{ env.ROBLOSECURITY }}"
 
       - name: Install Roblox Studio
         uses: OrbitalOwen/roblox-win-installer-action@1.1
