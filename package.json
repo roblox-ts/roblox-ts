@@ -58,7 +58,7 @@
 		"lookpath": "^1.2.2",
 		"prompts": "^2.4.1",
 		"resolve": "^1.20.0",
-		"typescript": "^4.7.0-beta",
+		"typescript": "^4.7.0",
 		"yargs": "^17.2.0"
 	},
 	"devDependencies": {
@@ -89,10 +89,5 @@
 		"CHANGELOG.md",
 		"!**/*.js.map",
 		"!**/*.tsbuildinfo"
-	],
-	"overrides": {
-		"ts-node": {
-			"typescript": "4.6.4"
-		}
-	}
+	]
 }
