@@ -43,7 +43,7 @@ jobs:
         run: |
           Start-Process 'C:\Program Files\WireGuard\wireguard.exe' -ArgumentList '/installtunnelservice', 'wireguard.conf' -Wait -NoNewWindow -PassThru
           Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$wireguard', 'start= delayed-auto' -Wait -NoNewWindow -PassThru
-          Start-Service -Name WireGuardTunnel$wireguard -ErrorAction SilentlyContinue
+          Start-Service -Name 'WireGuardTunnel$wireguard' -ErrorAction SilentlyContinue
 
       - name: Poll for IP Change
         run: |
