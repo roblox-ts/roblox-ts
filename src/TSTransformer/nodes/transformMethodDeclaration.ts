@@ -3,8 +3,8 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { assignToMapPointer, Pointer } from "TSTransformer/util/pointer";
@@ -32,7 +32,7 @@ export function transformMethodDeclaration(
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
 	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
-	let name = transformObjectKey(state, node.name);
+	let name = transformPropertyName(state, node.name);
 	if (node.decorators !== undefined && !luau.isSimple(name)) {
 		const tempId = luau.tempId("key");
 		luau.list.push(

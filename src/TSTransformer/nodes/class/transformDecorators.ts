@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
@@ -44,7 +44,7 @@ function transformMemberDecorators(
 				// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
 				// we check against this above
 				assert(!ts.isBindingPattern(name));
-				const keyPrereqs = state.capturePrereqs(() => (key = transformObjectKey(state, name)));
+				const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, name)));
 				luau.list.pushList(result, keyPrereqs);
 			}
 		}
