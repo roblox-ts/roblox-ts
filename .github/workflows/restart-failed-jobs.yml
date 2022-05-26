@@ -8,5 +8,16 @@ jobs:
     name: Restart Failed Jobs
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, "!restart") }}
     steps:
+      - name: Add Reaction
+        uses: actions/github-script@v6.1.0
+        with:
+          script: |
+            const {owner, repo} = context.issue
+            github.reactions.createForIssueComment({
+              owner,
+              repo,
+              comment_id: context.payload.comment.id,
+              content: "+1",
+            });
       - name: Restart Failed Jobs
         run: gh run rerun --failed
