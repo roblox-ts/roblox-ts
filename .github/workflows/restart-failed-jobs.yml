@@ -1,3 +1,5 @@
+name: Restart Failed Jobs
+
 on:
   issue_comment:
     types:
@@ -6,7 +8,7 @@ on:
 jobs:
   restart-failed-jobs:
     name: Restart Failed Jobs
-    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, "!restart") }}
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '!restart') }}
     steps:
       - name: Add Reaction
         uses: actions/github-script@v6.1.0
