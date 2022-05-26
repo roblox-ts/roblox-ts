@@ -16,7 +16,8 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.issue;
-            console.log(context);
+            console.log(context.payload.comment.user);
+            console.log(context.payload.issue.user);
 
             github.rest.reactions.createForIssueComment({
               owner,
@@ -33,7 +34,7 @@ jobs:
 
             for (const run of check_runs) {
               if (run.app.slug == 'github-actions') {
-                console.log({ owner, repo, run_id: run.id });
+                github.actions.reRunWorkflow({ owner, repo, run_id: run.id });
               }
             }
       - name: Restart Failed Jobs
