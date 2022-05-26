@@ -46,11 +46,13 @@ jobs:
         run: |
           $elapsed = 0
           while ($true) {
-            $response = Invoke-WebRequest -Uri 'https://httpbin.org/ip' -Method GET -UseBasicParsing
-            $content = ConvertFrom-Json $response.Content
-            if ($content.origin -eq "159.223.100.103") {
-              break
-            }
+            try {
+              $response = Invoke-WebRequest -Uri 'https://httpbin.org/ip' -Method GET -UseBasicParsing
+              $content = ConvertFrom-Json $response.Content
+              if ($content.origin -eq "159.223.100.103") {
+                break
+              }
+            } catch {}
             if ($elapsed -ge 20) {
               Write-Error "Timeout reached!"
               exit 1
