@@ -91,5 +91,5 @@ export function createBinaryFromOperator(
 		return right;
 	}
 
-	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);
+	assert(false, `createBinaryFromOperator unknown operator: ${getKindName(operatorKind)}`);
 }
