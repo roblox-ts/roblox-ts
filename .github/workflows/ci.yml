@@ -42,8 +42,8 @@ jobs:
       - name: Run WireGuard
         run: |
           Start-Process 'C:\Program Files\WireGuard\wireguard.exe' -ArgumentList '/installtunnelservice', 'wireguard.conf' -Wait -NoNewWindow -PassThru | Out-Null
-          Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$my-tunnel', 'start= delayed-auto' -Wait -NoNewWindow -PassThru | Out-Null
-          Start-Service -Name WireGuardTunnel$my-tunnel -ErrorAction SilentlyContinue
+          Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$wireguard', 'start= delayed-auto' -Wait -NoNewWindow -PassThru | Out-Null
+          Start-Service -Name WireGuardTunnel$wireguard -ErrorAction SilentlyContinue
 
       - name: Poll for IP Change
         run: |
