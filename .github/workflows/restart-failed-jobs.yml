@@ -15,28 +15,33 @@ jobs:
         uses: actions/github-script@v6.1.0
         with:
           script: |
-            const { owner, repo } = context.issue;
-            console.log(context.payload.comment.user);
-            console.log(context.payload.issue.user);
+            const WHITELIST = new Set([ "osyrisrblx" ]);
 
-            github.rest.reactions.createForIssueComment({
-              owner,
-              repo,
-              comment_id: context.payload.comment.id,
-              content: "+1",
-            });
+            const commentName = context.payload.comment.user.login;
+            const issueName = context.payload.issue.user.login;
+            if (commentName === issueName || WHITELIST.has(commentName)) {
+              const { owner, repo } = context.issue;
 
-            const check_runs = (await github.rest.checks.listForRef({
-              owner: context.payload.repository.owner.login,
-              repo: context.payload.repository.name,
-              ref: pull_request.head.sha,
-            })).data.check_runs;
+              github.rest.reactions.createForIssueComment({
+                owner,
+                repo,
+                comment_id: context.payload.comment.id,
+                content: "+1",
+              });
 
-            for (const run of check_runs) {
-              if (run.app.slug == 'github-actions') {
-                github.actions.reRunWorkflow({ owner, repo, run_id: run.id });
+              const check_runs = (await github.rest.checks.listForRef({
+                owner: context.payload.repository.owner.login,
+                repo: context.payload.repository.name,
+                ref: context.payload.issue.pull_request.head.sha,
+              })).data.check_runs;
+
+              for (const run of check_runs) {
+                if (run.app.slug == 'github-actions') {
+                  github.actions.reRunWorkflow({ owner, repo, run_id: run.id });
+                }
               }
             }
+
       - name: Restart Failed Jobs
         run: gh run rerun --failed
         env:
