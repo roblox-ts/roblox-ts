@@ -8,6 +8,7 @@ on:
 jobs:
   restart-failed-jobs:
     name: Restart Failed Jobs
+    runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, '!restart') }}
     steps:
       - name: Add Reaction
