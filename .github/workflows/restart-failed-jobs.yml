@@ -16,13 +16,26 @@ jobs:
         with:
           script: |
             const { owner, repo } = context.issue;
-            console.log(context.issue);
+            console.log(context);
+
             github.rest.reactions.createForIssueComment({
               owner,
               repo,
               comment_id: context.payload.comment.id,
               content: "+1",
             });
+
+            const check_runs = (await github.rest.checks.listForRef({
+              owner: context.payload.repository.owner.login,
+              repo: context.payload.repository.name,
+              ref: pull_request.head.sha,
+            })).data.check_runs;
+
+            for (const run of check_runs) {
+              if (run.app.slug == 'github-actions') {
+                console.log({ owner, repo, run_id: run.id });
+              }
+            }
       - name: Restart Failed Jobs
         run: gh run rerun --failed
         env:
