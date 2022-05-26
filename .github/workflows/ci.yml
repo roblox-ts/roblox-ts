@@ -40,7 +40,7 @@ jobs:
         run: while (!(Test-Path 'C:\\Program Files\\WireGuard\\wireguard.exe')) { Start-Sleep 5 }
 
       - name: Run WireGuard
-        run: "& \"C:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice $((Resolve-Path .\wireguard.conf).Path)"
+        run: "& \"C:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice $((Resolve-Path .\\wireguard.conf).Path)"
 
       - name: Poll for IP Change
         run: |
