@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
@@ -56,26 +57,28 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// `member.name` is typed as `PropertyName`
-			// but only identifiers and string literals are legal in enum properties
-			assert(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name));
+			// identifier also needs to be pushed
+			// because value calculation might modify that same variable
+			const index = state.pushToVar(transformPropertyName(state, member.name));
 
-			const nameStr = member.name.text;
 			const value = state.typeChecker.getConstantValue(member);
-
 			let valueExp: luau.Expression;
 			if (typeof value === "string") {
 				valueExp = luau.string(value);
 			} else if (typeof value === "number") {
 				valueExp = luau.number(value);
 			} else {
+				// without initializer, constantValue is always number
 				assert(member.initializer);
 				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer), "value");
 			}
 
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(id, nameStr),
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: id,
+						index,
+					}),
 					operator: "=",
 					right: valueExp,
 				}),
@@ -88,7 +91,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 						index: valueExp,
 					}),
 					operator: "=",
-					right: luau.string(nameStr),
+					right: index,
 				}),
 			);
 		}
