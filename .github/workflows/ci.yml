@@ -41,8 +41,8 @@ jobs:
 
       - name: Run WireGuard
         run: |
-          Start-Process 'C:\Program Files\WireGuard\wireguard.exe' -ArgumentList '/installtunnelservice', 'wireguard.conf' -Wait -NoNewWindow -PassThru | Out-Null
-          Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$wireguard', 'start= delayed-auto' -Wait -NoNewWindow -PassThru | Out-Null
+          Start-Process 'C:\Program Files\WireGuard\wireguard.exe' -ArgumentList '/installtunnelservice', 'wireguard.conf' -Wait -NoNewWindow -PassThru
+          Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$wireguard', 'start= delayed-auto' -Wait -NoNewWindow -PassThru
           Start-Service -Name WireGuardTunnel$wireguard -ErrorAction SilentlyContinue
 
       - name: Poll for IP Change
@@ -54,7 +54,7 @@ jobs:
             if ($content.origin -eq "159.223.100.103") {
               break
             }
-            if ($elapsed -ge 300) {
+            if ($elapsed -ge 30) {
               Write-Error "Timeout reached!"
               exit 1
             }
