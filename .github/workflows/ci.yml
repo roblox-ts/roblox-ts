@@ -37,13 +37,10 @@ jobs:
         run: ./wireguard-installer.exe
 
       - name: Wait for WireGuard Installer?
-        run: while (!(Test-Path "C:\\Program Files\\WireGuard\\wireguard.exe")) { Start-Sleep 5 }
+        run: while (!(Test-Path 'C:\Program Files\WireGuard\wireguard.exe')) { Start-Sleep 5 }
 
       - name: Run WireGuard
-        run: |
-          Start-Process 'C:\Program Files\WireGuard\wireguard.exe' -ArgumentList '/installtunnelservice', 'wireguard.conf' -Wait -NoNewWindow -PassThru
-          Start-Process sc.exe -ArgumentList 'config', 'WireGuardTunnel$wireguard', 'start= delayed-auto' -Wait -NoNewWindow -PassThru
-          Start-Service -Name 'WireGuardTunnel$wireguard' -ErrorAction SilentlyContinue
+        run: & "C:\\Program Files\\WireGuard\\wireguard.exe" /installtunnelservice $(Resolve-Path .\wireguard.conf).Path
 
       - name: Poll for IP Change
         run: |
