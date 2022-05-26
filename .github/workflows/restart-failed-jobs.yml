@@ -15,7 +15,8 @@ jobs:
         uses: actions/github-script@v6.1.0
         with:
           script: |
-            const {owner, repo} = context.issue
+            const { owner, repo } = context.issue;
+            console.log(context.issue);
             github.rest.reactions.createForIssueComment({
               owner,
               repo,
@@ -24,3 +25,6 @@ jobs:
             });
       - name: Restart Failed Jobs
         run: gh run rerun --failed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE: ${{ github.event.issue.html_url }}
