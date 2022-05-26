@@ -58,7 +58,7 @@ export function createBinaryFromOperator(
 	node: ts.Node,
 	left: luau.Expression,
 	leftType: ts.Type,
-	operatorKind: ts.SyntaxKind,
+	operatorKind: ts.BinaryOperator,
 	right: luau.Expression,
 	rightType: ts.Type,
 ): luau.Expression {
