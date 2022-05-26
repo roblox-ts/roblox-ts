@@ -17,6 +17,8 @@ jobs:
           script: |
             const WHITELIST = new Set([ "osyrisrblx" ]);
 
+            console.log(context.payload.issue.pull_request);
+
             const commentName = context.payload.comment.user.login;
             const issueName = context.payload.issue.user.login;
             if (commentName === issueName || WHITELIST.has(commentName)) {
