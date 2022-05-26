@@ -45,11 +45,11 @@ jobs:
             if ($content.origin -eq "159.223.100.103") {
               break
             }
-            if ($elapsed -ge 60) {
+            if ($elapsed -ge 300) {
               Write-Error "Timeout reached!"
               exit 1
             }
-            Write-Output "Polling.. $elapsed"
+            Write-Output "Polling.. Elasped: $elapsed, IP: $($content.origin)"
             sleep 5
             $elapsed += 5
           }
