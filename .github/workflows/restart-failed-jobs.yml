@@ -1,0 +1,12 @@
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  restart-failed-jobs:
+    name: Restart Failed Jobs
+    if: ${{ github.event.issue.pull_request && contains(github.event.comment.body, "!restart") }}
+    steps:
+      - name: Restart Failed Jobs
+        run: gh run rerun --failed
