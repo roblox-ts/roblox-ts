@@ -318,7 +318,7 @@ export class TransformState {
 	}
 
 	/**
-	 * Uses `state.pushToVar(expression)` unless `expressionMightMutate(expression)`
+	 * Uses `state.pushToVar(expression)` if `expressionMightMutate(expression)`
 	 * @param expression the expression to push
 	 */
 	public pushToVarIfMightMutate<T extends luau.Expression>(
