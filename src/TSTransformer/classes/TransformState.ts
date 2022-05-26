@@ -13,7 +13,8 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
+import { expressionMightHaveSideEffects } from "TSTransformer/util/expressionMightHaveSideEffects";
+import { expressionResultIsStatic } from "TSTransformer/util/expressionResultIsStatic";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -318,15 +319,22 @@ export class TransformState {
 	}
 
 	/**
-	 * Uses `state.pushToVar(expression)` if `expressionMightMutate(expression)`
+	 * Uses `state.pushToVar(expression)` if `expressionMightHaveSideEffects(expression)`
 	 * @param expression the expression to push
 	 */
-	public pushToVarIfMightMutate<T extends luau.Expression>(
-		expression: T,
-		name?: string,
-		node?: ts.Expression,
-	): luau.Expression {
-		if (!expressionMightMutate(this, expression, node)) {
+	public pushToVarIfMightHaveSideEffects<T extends luau.Expression>(expression: T, name?: string): luau.Expression {
+		if (!expressionMightHaveSideEffects(this, expression)) {
+			return expression;
+		}
+		return this.pushToVar(expression, name);
+	}
+
+	/**
+	 * Uses `state.pushToVar(expression)` unless `expressionResultIsStatic(expression)`
+	 * @param expression the expression to push
+	 */
+	public pushToVarIfResultMightChange<T extends luau.Expression>(expression: T, name?: string): luau.Expression {
+		if (expressionResultIsStatic(this, expression)) {
 			return expression;
 		}
 		return this.pushToVar(expression, name);
