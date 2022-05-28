@@ -34,7 +34,7 @@ jobs:
         run: choco install openvpn
 
       - name: Run OpenVPN
-        run: openvpn.exe
+        run: "& \"C:\Program Files\OpenVPN\bin\openvpn.exe\""
 
       - name: Poll for IP Change
         run: |
