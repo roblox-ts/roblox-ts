@@ -34,7 +34,7 @@ jobs:
         run: choco install openvpn
 
       - name: Run OpenVPN
-        run: Start-Process -NoNewWindow -FilePath "C:\\Program Files\\OpenVPN\\bin\\openvpn-gui.exe" -ArgumentList "--command connect $((Resolve-Path .\\actions.ovpn).Path)"
+        run: & "C:\\Program Files\\OpenVPN\\bin\\openvpn-gui.exe" --command connect $((Resolve-Path .\\actions.ovpn).Path)
 
       - name: Poll for IP Change
         run: |
