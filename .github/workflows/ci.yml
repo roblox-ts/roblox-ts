@@ -30,11 +30,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
 
-      - name: Download WireGuard
-        run: Invoke-WebRequest -Uri https://github.com/DrEm-s/wireguard-windows-portable/releases/download/v1.0/wireguard.exe -OutFile ./wireguard.exe;
+      - name: Download OpenVPN
+        run: choco install openvpn
 
-      - name: Run WireGuard
-        run: "& \".\\wireguard.exe\" /installtunnelservice $((Resolve-Path .\\wireguard.conf).Path)"
+      - name: Run OpenVPN
+        run: openvpn.exe
 
       - name: Poll for IP Change
         run: |
