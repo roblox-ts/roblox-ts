@@ -38,6 +38,18 @@ jobs:
 
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1.7.4
+      
+      - name: Compile Source Files
+        run: npm run build
+
+      - name: Install Latest Test Types
+        run: npm run test-setup
+
+      - name: Compile Test Files
+        run: npm run test-compile
+
+      - name: Build Test Place File
+        run: npm run test-rojo
 
       - name: Download OpenVPN
         run: choco install openvpn
@@ -82,8 +94,8 @@ jobs:
           cookie: ${{ env.ROBLOSECURITY }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compile and run tests
-        run: npm test
+      - name: Run Tests
+        run: npm run test-run
 
       - name: Screenshot
         if: failure()
