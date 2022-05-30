@@ -120,6 +120,11 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 	const attributeName = attribute.name.text;
 	if (attributeName === KEY_ATTRIBUTE_NAME) return;
 
+	assert(state.services.roactSymbolManager);
+	const attributeSymbol = state.typeChecker.getSymbolAtLocation(attribute.name);
+
+	// check if attributeSymbol == state.services.roactSymbolManager.eventSymbol
+
 	if (attributeName === EVENT_ATTRIBUTE_NAME || attributeName === CHANGE_ATTRIBUTE_NAME) {
 		transformSpecialAttribute(state, attribute, attributesPtr);
 		return;

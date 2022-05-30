@@ -16,6 +16,8 @@ export const ROACT_SYMBOL_NAMES = {
 export class RoactSymbolManager {
 	private readonly symbols = new Map<string, ts.Symbol>();
 	private readonly jsxIntrinsicNameMap = new Map<ts.Symbol, string>();
+	public readonly changeSymbol: ts.Symbol;
+	public readonly eventSymbol: ts.Symbol;
 
 	private constructor(typeChecker: ts.TypeChecker, roactIndexSourceFile: ts.SourceFile) {
 		const roactNamespace = roactIndexSourceFile.locals?.get(ts.escapeLeadingUnderscores("Roact"))?.valueDeclaration;
@@ -37,6 +39,13 @@ export class RoactSymbolManager {
 			assert(className);
 			this.jsxIntrinsicNameMap.set(symbol, className);
 		}
+
+		// prototyping
+		const jsxInstanceType = roactExports.get(ts.escapeLeadingUnderscores("JsxInstance"));
+		assert(jsxInstanceType);
+		const jsxInstanceTypeType = typeChecker.getTypeAtLocation(jsxInstanceType.declarations![0]);
+		this.changeSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, "Change")!;
+		this.eventSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, "Event")!;
 	}
 
 	public static create(
