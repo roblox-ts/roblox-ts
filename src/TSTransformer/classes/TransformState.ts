@@ -200,13 +200,6 @@ export class TransformState {
 		return luau.property(luau.globals.TS, name);
 	}
 
-	public checkJsxFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFactory(node, this.compilerOptions);
-	}
-	public checkJsxFragmentFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFragmentFactory(node, this.compilerOptions);
-	}
-
 	/**
 	 * Returns a `luau.VariableDeclaration` for RuntimeLib.lua
 	 */
