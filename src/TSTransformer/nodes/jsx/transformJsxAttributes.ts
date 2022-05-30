@@ -116,16 +116,38 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 	}
 }
 
+function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
+	const { roactSymbolManager } = state.services;
+	assert(roactSymbolManager);
+
+	const contextualType = state.typeChecker.getContextualType(attribute.parent);
+	if (contextualType) {
+		const eventSymbol = contextualType.getProperty(EVENT_ATTRIBUTE_NAME);
+		if (
+			eventSymbol &&
+			ts.getSymbolTarget(eventSymbol, state.typeChecker) ===
+				roactSymbolManager.getSymbolOrThrow(EVENT_ATTRIBUTE_NAME)
+		) {
+			return true;
+		}
+
+		const changeSymbol = contextualType.getProperty(CHANGE_ATTRIBUTE_NAME);
+		if (
+			changeSymbol &&
+			ts.getSymbolTarget(changeSymbol, state.typeChecker) ===
+				roactSymbolManager.getSymbolOrThrow(CHANGE_ATTRIBUTE_NAME)
+		) {
+			return true;
+		}
+	}
+	return false;
+}
+
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
 	const attributeName = attribute.name.text;
 	if (attributeName === KEY_ATTRIBUTE_NAME) return;
 
-	assert(state.services.roactSymbolManager);
-	const attributeSymbol = state.typeChecker.getSymbolAtLocation(attribute.name);
-
-	// check if attributeSymbol == state.services.roactSymbolManager.eventSymbol
-
-	if (attributeName === EVENT_ATTRIBUTE_NAME || attributeName === CHANGE_ATTRIBUTE_NAME) {
+	if (isSpecialAttribute(state, attribute)) {
 		transformSpecialAttribute(state, attribute, attributesPtr);
 		return;
 	}
