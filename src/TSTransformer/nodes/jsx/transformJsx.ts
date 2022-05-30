@@ -21,7 +21,7 @@ export function transformJsx(
 ) {
 	if (state.compilerOptions.jsxFactory !== "Roact.createElement") {
 		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node));
-		return luau.nil();
+		return luau.none();
 	}
 
 	const isFragment =
