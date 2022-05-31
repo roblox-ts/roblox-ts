@@ -1,5 +1,4 @@
-import luau from "@roblox-ts/luau-ast";
-import { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
+import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
 import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
@@ -180,13 +179,6 @@ export class TransformState {
 	private getTypeCache = new Map<ts.Node, ts.Type>();
 	public getType(node: ts.Node) {
 		return getOrSetDefault(this.getTypeCache, node, () => this.typeChecker.getTypeAtLocation(skipUpwards(node)));
-	}
-
-	public getOriginalSymbol(node: ts.Node) {
-		const symbol = this.typeChecker.getSymbolAtLocation(node);
-		if (symbol) {
-			return ts.skipAlias(symbol, this.typeChecker);
-		}
 	}
 
 	public usesRuntimeLib = false;
