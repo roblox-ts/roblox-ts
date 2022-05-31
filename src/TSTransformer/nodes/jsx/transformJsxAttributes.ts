@@ -117,27 +117,18 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 }
 
 function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
-	const { roactSymbolManager } = state.services;
-	assert(roactSymbolManager);
-
+	assert(state.services.roactSymbolManager);
 	const contextualType = state.typeChecker.getContextualType(attribute.parent);
 	if (contextualType) {
-		const eventSymbol = contextualType.getProperty(EVENT_ATTRIBUTE_NAME);
-		if (
-			eventSymbol &&
-			ts.getSymbolTarget(eventSymbol, state.typeChecker) ===
-				roactSymbolManager.getSymbolOrThrow(EVENT_ATTRIBUTE_NAME)
-		) {
-			return true;
-		}
-
-		const changeSymbol = contextualType.getProperty(CHANGE_ATTRIBUTE_NAME);
-		if (
-			changeSymbol &&
-			ts.getSymbolTarget(changeSymbol, state.typeChecker) ===
-				roactSymbolManager.getSymbolOrThrow(CHANGE_ATTRIBUTE_NAME)
-		) {
-			return true;
+		const symbol = contextualType.getProperty(attribute.name.text);
+		if (symbol) {
+			const targetSymbol = ts.getSymbolTarget(symbol, state.typeChecker);
+			if (
+				targetSymbol === state.services.roactSymbolManager.getSymbolOrThrow(EVENT_ATTRIBUTE_NAME) ||
+				targetSymbol === state.services.roactSymbolManager.getSymbolOrThrow(CHANGE_ATTRIBUTE_NAME)
+			) {
+				return true;
+			}
 		}
 	}
 	return false;

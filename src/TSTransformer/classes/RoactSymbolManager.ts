@@ -4,6 +4,7 @@ import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
+import { getOriginalSymbol } from "TSTransformer/util/getOriginalSymbol";
 import { CHANGE_ATTRIBUTE_NAME, EVENT_ATTRIBUTE_NAME } from "TSTransformer/util/jsx/constants";
 import ts from "typescript";
 
@@ -18,11 +19,6 @@ export class RoactSymbolManager {
 	private readonly symbols = new Map<string, ts.Symbol>();
 	private readonly jsxIntrinsicNameMap = new Map<ts.Symbol, string>();
 
-	private registerSymbolOrThrow(name: string, symbol: ts.Symbol | undefined) {
-		assert(symbol);
-		this.symbols.set(name, symbol);
-	}
-
 	private constructor(typeChecker: ts.TypeChecker, roactIndexSourceFile: ts.SourceFile) {
 		const roactNamespace = roactIndexSourceFile.locals?.get(ts.escapeLeadingUnderscores("Roact"))?.valueDeclaration;
 		assert(roactNamespace);
@@ -30,7 +26,9 @@ export class RoactSymbolManager {
 		assert(roactExports);
 
 		for (const symbolName of Object.values(ROACT_SYMBOL_NAMES)) {
-			this.registerSymbolOrThrow(symbolName, roactExports.get(ts.escapeLeadingUnderscores(symbolName)));
+			const symbol = roactExports.get(ts.escapeLeadingUnderscores(symbolName));
+			assert(symbol);
+			this.symbols.set(symbolName, getOriginalSymbol(typeChecker, symbol));
 		}
 
 		// JSX intrinsic elements
@@ -39,7 +37,7 @@ export class RoactSymbolManager {
 			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
 			const className = symbol.valueDeclaration.type.typeArguments?.[0].getText();
 			assert(className);
-			this.jsxIntrinsicNameMap.set(symbol, className);
+			this.jsxIntrinsicNameMap.set(getOriginalSymbol(typeChecker, symbol), className);
 		}
 
 		const jsxInstanceType = roactExports.get(ts.escapeLeadingUnderscores("JsxInstance"));
@@ -48,14 +46,13 @@ export class RoactSymbolManager {
 		assert(jsxInstanceTypeDeclaration);
 		const jsxInstanceTypeType = typeChecker.getTypeAtLocation(jsxInstanceTypeDeclaration);
 
-		this.registerSymbolOrThrow(
-			CHANGE_ATTRIBUTE_NAME,
-			typeChecker.getPropertyOfType(jsxInstanceTypeType, CHANGE_ATTRIBUTE_NAME),
-		);
-		this.registerSymbolOrThrow(
-			EVENT_ATTRIBUTE_NAME,
-			typeChecker.getPropertyOfType(jsxInstanceTypeType, EVENT_ATTRIBUTE_NAME),
-		);
+		const changeSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, CHANGE_ATTRIBUTE_NAME);
+		assert(changeSymbol);
+		this.symbols.set(CHANGE_ATTRIBUTE_NAME, getOriginalSymbol(typeChecker, changeSymbol));
+
+		const eventSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, EVENT_ATTRIBUTE_NAME);
+		assert(eventSymbol);
+		this.symbols.set(EVENT_ATTRIBUTE_NAME, getOriginalSymbol(typeChecker, eventSymbol));
 	}
 
 	public static create(
