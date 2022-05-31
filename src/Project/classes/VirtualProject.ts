@@ -49,6 +49,7 @@ export class VirtualProject {
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
 			writeOnlyChanged: false,
+			optimizedLoops: false,
 			watch: false,
 		};
 
