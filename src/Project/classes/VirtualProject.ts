@@ -60,6 +60,7 @@ export class VirtualProject {
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
 			moduleResolution: ts.ModuleResolutionKind.NodeJs,
+			moduleDetection: ts.ModuleDetectionKind.Force,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,
 			experimentalDecorators: true,
