@@ -1,5 +1,4 @@
 /// <reference types="@rbxts/testez/globals" />
-/// <reference types="@rbxts/roact/internal"/>
 
 import Roact from "@rbxts/roact";
 
@@ -157,9 +156,7 @@ export = () => {
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
 			const propElement = <textbutton Text={TEXT} />;
-			const propElementProps = propElement.props as Roact.Template<
-				TextButton
-			>;
+			const propElementProps = propElement.props as TextButton;
 
 			expect(propElementProps.Text).to.equal(TEXT);
 		});
@@ -394,7 +391,7 @@ export = () => {
 	});
 
 	it("should support passing identifier objects as events/changed handlers", () => {
-		const Events: RoactEvents<Frame> = {
+		const Events: Roact.JsxInstanceEvents<Frame> = {
 			MouseEnter: () => {}
 		};
 
