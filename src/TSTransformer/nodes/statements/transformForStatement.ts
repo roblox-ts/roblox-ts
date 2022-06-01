@@ -353,7 +353,7 @@ function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body:
 			state.typeChecker,
 			identifier.getSourceFile(),
 			token => {
-				const parent = skipUpwards(token.parent);
+				const parent = skipUpwards(token).parent;
 				if (ts.isAssignmentExpression(parent) && skipDownwards(parent.left) === token) {
 					return true;
 				} else if (ts.isUnaryExpressionWithWrite(parent) && skipDownwards(parent.operand) === token) {
