@@ -175,6 +175,7 @@ export const errors = {
 	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
 	noRangeMacroExpressionInitializer: error("for-of loops using $range() must have a `const` or `let` initializer!"),
 	noRangeMacroNonIdentifierInitializer: error("for-of loops using $range() must have an identifier initializer!"),
+	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
