@@ -66,7 +66,7 @@ export function createBinaryFromOperator(
 	node: ts.BinaryExpression,
 	left: luau.Expression,
 	leftType: ts.Type,
-	operatorKind: ts.SyntaxKind,
+	operatorKind: ts.BinaryOperator,
 	right: luau.Expression,
 	rightType: ts.Type,
 ): luau.Expression {
@@ -99,5 +99,5 @@ export function createBinaryFromOperator(
 		return right;
 	}
 
-	assert(false, `Unrecognized operator: ${getKindName(operatorKind)}`);
+	assert(false, `createBinaryFromOperator unknown operator: ${getKindName(operatorKind)}`);
 }

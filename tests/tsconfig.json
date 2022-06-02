@@ -11,6 +11,7 @@
 		"noLib": true,
 		"resolveJsonModule": true,
 		"forceConsistentCasingInFileNames": true,
+		"moduleDetection": "force",
 		"strict": true,
 		"target": "ESNext",
 		"typeRoots": ["node_modules/@rbxts"],

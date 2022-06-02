@@ -1,5 +1,3 @@
-export {};
-
 interface HasMethod {
 	method: (this: HasMethod) => void;
 }

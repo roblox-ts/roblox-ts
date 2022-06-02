@@ -4,6 +4,7 @@ import { RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { realPathExistsSync } from "Shared/util/realPathExistsSync";
+import { CHANGE_ATTRIBUTE_NAME, EVENT_ATTRIBUTE_NAME } from "TSTransformer/util/jsx/constants";
 import ts from "typescript";
 
 export const ROACT_SYMBOL_NAMES = {
@@ -37,8 +38,22 @@ export class RoactSymbolManager {
 			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
 			const className = symbol.valueDeclaration.type.typeArguments?.[0].getText();
 			assert(className);
-			this.jsxIntrinsicNameMap.set(symbol, className);
+			this.jsxIntrinsicNameMap.set(ts.skipAlias(symbol, typeChecker), className);
 		}
+
+		const jsxInstanceType = roactExports.get(ts.escapeLeadingUnderscores("JsxInstance"));
+		assert(jsxInstanceType);
+		const jsxInstanceTypeDeclaration = jsxInstanceType.declarations?.[0];
+		assert(jsxInstanceTypeDeclaration);
+		const jsxInstanceTypeType = typeChecker.getTypeAtLocation(jsxInstanceTypeDeclaration);
+
+		const changeSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, CHANGE_ATTRIBUTE_NAME);
+		assert(changeSymbol);
+		this.symbols.set(CHANGE_ATTRIBUTE_NAME, ts.skipAlias(changeSymbol, typeChecker));
+
+		const eventSymbol = typeChecker.getPropertyOfType(jsxInstanceTypeType, EVENT_ATTRIBUTE_NAME);
+		assert(eventSymbol);
+		this.symbols.set(EVENT_ATTRIBUTE_NAME, ts.skipAlias(eventSymbol, typeChecker));
 	}
 
 	public static create(

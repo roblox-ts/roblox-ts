@@ -6,6 +6,9 @@ on:
     branches:
       - master
 
+env:
+  ROBLOSECURITY: ${{ secrets.ROBLOSECURITY || '_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_4085A104FA557C16A96A37229CDE54D9CA369B2E7E04BAE54E082144C887EE716B5E53DDCB8FAB5E45CD6222BF7840870D2733EFD95CE37D9DA9310599E8D2558D98B8DBF9316D8EF32BF8DA693E2F25049F0A709A343A544AEE8CB6D7BF29AFAC4098B6EB225ECB3213431D4E52AEBFC6FB3D4BD1889288B9D4C8B88EC125BD5385F0276D18E7CB6BC4C59CE6C78868FEFC016E71410724C127C9DCF2CEF4AF55C438E428F11AA41BCBE313A604EF52BFAD542DB7844FEC40F4261E8A07909047683EE6747FF0112E105277C58C2C36F5ADC6263B03CFCF5E9573F595EE16DA641283A5B941787F58579375607F5B28C32A4E1E14E2840E29907938E0BCD9B9127B218292A9BAB3876446F30649FCE84C0BD4BFFF370CC878987CA87754DE5F9726EF5C3F8F0A203872A478E9ACF02D3B8A0BCFED9B47EBC8BA2999EEDD6266D2DA7629CE9FDCA9FD3077FADF8EA88A7E7E9F476CB2C622611AA1CE5F9140AA53A799B4A8EF674C9762BCE28922BB3AA6C86615BD5E95EAC0DE666B9E74AA7D87773B7756DB7EA57AD4159E5AC7CD272D0D952E' }}
+
 jobs:
   lint:
     name: ESLint
@@ -23,6 +26,7 @@ jobs:
 
       - name: Run ESLint
         run: npm run eslint
+
   unit-tests:
     name: Unit Tests
     runs-on: windows-latest
@@ -31,12 +35,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
 
-      - name: Install Roblox Studio
-        uses: OrbitalOwen/roblox-win-installer-action@1.1
-        with:
-          cookie: ${{ secrets.ROBLOSECURITY || '_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_D06F9DBC48A47A8B9324A713D4C6A311D391C8C5710617FBCC44310B9A770DF5F51C6FDD2930E72EDEDDB46CC6AAE1759D2738B67D78AFBC4EA660310BBCAEC2B0485FE7ED9334DE4F3BBE4A414176F8637158BD6D7E2587883E5C9BD347AC23507B2FB2C9577FA8EB9613C327FB15174E000CD7938F549889E3B7853057750638504159D7A398C028D615E265EFB144750BC0EBCE52CBF470B1F662D90AD00748694FDD2EE28E5AF0B7D4EEA4AF5448CFCE24121A1F499B8990189FB8A922A76F32E8A9E31324001CC5FA59DA44808F1DEC3AD1BD4A8C5F2EAC68577AC955100D20DCC3E0C8AB552358F263FBF7A33086A9886F9C659AF98867BDFECC05EEA43F79397A2FD72CA1A0253DA76B87411AFF79657D80C82DEFE14185EBAAF8FC1879F7ECB4FC2A9DB7A71BF10368BE39905A55C839CE6A96D71FE2ED831A2CC302A96C54A1A73F386241B79E2984B3DA76DCED72BAC726F7EDC3FBEBEA677ABFC1F2899274' }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Foreman
         uses: rojo-rbx/setup-foreman@v1.0.1
         with:
@@ -44,9 +42,70 @@ jobs:
 
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1.7.4
+      
+      - name: Compile Source Files
+        run: npm run build
 
-      - name: Compile and run tests
-        run: npm test
+      - name: Install Latest Test Types
+        run: npm run test-setup
+
+      - name: Compile Test Files
+        run: npm run test-compile
+
+      - name: Build Test Place File
+        run: npm run test-rojo
+
+      - name: Download OpenVPN
+        run: choco install openvpn
+
+      - name: Run OpenVPN
+        run: Start-Process -FilePath "C:\\Program Files\\OpenVPN\\bin\\openvpn.exe" -ArgumentList "--config $((Resolve-Path .\\actions.ovpn).Path)"
+
+      - name: Poll for IP Change
+        run: |
+          $elapsed = 0
+          while ($true) {
+            try {
+              $response = Invoke-WebRequest -Uri 'https://httpbin.org/ip' -Method GET -UseBasicParsing
+              $content = ConvertFrom-Json $response.Content
+              if ($content.origin -eq "159.223.100.103") {
+                break
+              }
+            } catch {}
+            if ($elapsed -ge 20) {
+              Write-Error "Timeout reached!"
+              exit 1
+            }
+            Write-Output "Polling.. Elasped: $elapsed, IP: $($content.origin)"
+            Start-Sleep 5
+            $elapsed += 5
+          }
+          Write-Output "Success!"
+
+      - name: Validate Cookie
+        run: |
+          $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+          $cookie = New-Object System.Net.Cookie
+          $cookie.Name = ".ROBLOSECURITY"
+          $cookie.Value = "${{ env.ROBLOSECURITY }}"
+          $cookie.Domain = ".roblox.com"
+          $session.Cookies.Add($cookie);
+          Invoke-WebRequest "https://avatar.roblox.com/v1/avatar" -WebSession $session -UseBasicParsing
+
+      - name: Install Roblox Studio
+        uses: OrbitalOwen/roblox-win-installer-action@1.1
+        with:
+          cookie: ${{ env.ROBLOSECURITY }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Tests
+        run: npm run test-run
+
+      - name: Screenshot
+        if: failure()
+        uses: OrbitalOwen/desktop-screenshot-action@0.1
+        with:
+          file-name: 'desktop.jpg'
 
       - name: Report Coverage
         continue-on-error: true

@@ -45,13 +45,15 @@ export const SYMBOL_NAMES = {
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";
 
 const MACRO_ONLY_CLASSES = new Set<string>([
-	"ReadonlyArray",
-	"Array",
-	"ReadonlyMap",
-	"Map",
-	"ReadonlySet",
-	"Set",
-	"String",
+	SYMBOL_NAMES.ReadonlyArray,
+	SYMBOL_NAMES.Array,
+	SYMBOL_NAMES.ReadonlyMap,
+	SYMBOL_NAMES.WeakMap,
+	SYMBOL_NAMES.Map,
+	SYMBOL_NAMES.ReadonlySet,
+	SYMBOL_NAMES.WeakSet,
+	SYMBOL_NAMES.Set,
+	SYMBOL_NAMES.String,
 ]);
 
 function getFirstDeclarationOrThrow<T extends ts.Node>(symbol: ts.Symbol, check: (value: ts.Node) => value is T): T {

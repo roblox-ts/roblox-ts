@@ -10,7 +10,10 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
-	if (!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const)) {
+	if (
+		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
+		state.compilerOptions.preserveConstEnums !== true
+	) {
 		return luau.list.make<luau.Statement>();
 	}
 
@@ -52,7 +55,8 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// TS will error otherwise
+			// `member.name` is typed as `PropertyName`
+			// but only identifiers and string literals are legal in enum properties
 			assert(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name));
 
 			const nameStr = member.name.text;

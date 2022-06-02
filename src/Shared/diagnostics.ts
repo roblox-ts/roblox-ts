@@ -178,11 +178,6 @@ export const errors = {
 	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
 
 	// import/export
-	noNonModule: error(
-		"File does not have an import or export statement!",
-		suggestion("Add `export {};` as the first line."),
-		issue(1043),
-	),
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
 	noInvalidModule: error("You can only use npm scopes that are listed in your typeRoots."),
 	noUnscopedModule: error("You cannot use modules directly under node_modules."),
