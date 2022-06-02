@@ -1,3 +1,29 @@
+## 1.3.3
+- Fixed some regressions for compiling void-returning macros as expressions (#1864, #1876)
+- Improved validation for  `tsconfig.json` `"typeRoots"` field (#1873)
+- Fixed a crash when referencing global const enums in the same file they're declared in (#1878)
+
+## 1.3.2
+- `Array.push` now optimizes to use `table.insert()`
+- Macro emit is no longer wrapped in comments for single statements
+- null coalescing expressions can now be inlined if Lua truthiness allows (#1857)
+- Fixed conditional expression usage inside for loops (#1856)
+
+## 1.3.1
+- Added "experimentalDecorators" tsconfig.json option to templates + playground (#1850)
+
+## 1.3.0
+- Split out compiler parts into multiple packages (#1775)
+- Fixed broken hoisting on arrow function variables (#1777)
+- Improved emit for expression statement ternaries (#1783)
+- Improved watch mode stability (#1787)
+- Loosened "any" type checks to allow for improved usage with type variables
+- Improved support for object destructuring assignment (#1822)
+- `rbxtsc init` will no longer prompt for `git init` if git isn't installed (#1823)
+- Fix `LuaTuple<T>` wrapping in for loop condition (#1819)
+- Added initial support for TypeScript decorators :tada: (#1793)
+- Bumped TypeScript version to 4.5.5
+
 ## 1.2.9
 - Upgraded built-in roblox-lua-promise to v3.2.1
 - Improved incremental mode to recognize tsconfig.json "plugins"

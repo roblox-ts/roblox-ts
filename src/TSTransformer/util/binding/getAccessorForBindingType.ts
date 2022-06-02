@@ -56,7 +56,7 @@ const stringAccessor: BindingAccessor = (state, parentId, index, idStack, isOmit
 				expression: callExp,
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	} else {
 		return callExp;
 	}
@@ -75,7 +75,7 @@ const setAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitted
 				expression: callExp,
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	} else {
 		const id = state.pushToVar(callExp, "value");
 		idStack.push(id);
@@ -110,7 +110,7 @@ const iterableFunctionLuaTupleAccessor: BindingAccessor = (state, parentId, inde
 				expression: callExp,
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	} else {
 		return luau.array([callExp]);
 	}
@@ -124,7 +124,7 @@ const iterableFunctionAccessor: BindingAccessor = (state, parentId, index, idSta
 				expression: callExp,
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	} else {
 		return callExp;
 	}
@@ -134,14 +134,14 @@ const iterAccessor: BindingAccessor = (state, parentId, index, idStack, isOmitte
 	const callExp = luau.call(luau.property(parentId, "next"));
 	if (isOmitted) {
 		state.prereq(luau.create(luau.SyntaxKind.CallStatement, { expression: callExp }));
-		return luau.nil();
+		return luau.none();
 	} else {
 		return luau.property(callExp, "value");
 	}
 };
 
 export function getAccessorForBindingType(state: TransformState, node: ts.Node, type: ts.Type): BindingAccessor {
-	if (ts.isArray(type) || isDefinitelyType(type, isArrayType(state))) {
+	if (isDefinitelyType(type, isArrayType(state))) {
 		return arrayAccessor;
 	} else if (isDefinitelyType(type, isStringType)) {
 		return stringAccessor;
@@ -155,7 +155,7 @@ export function getAccessorForBindingType(state: TransformState, node: ts.Node, 
 		return iterableFunctionAccessor;
 	} else if (isDefinitelyType(type, isIterableType(state))) {
 		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
-		return () => luau.nil();
+		return () => luau.none();
 	} else if (
 		isDefinitelyType(type, isGeneratorType(state)) ||
 		isDefinitelyType(type, isObjectType) ||

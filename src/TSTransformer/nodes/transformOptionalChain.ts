@@ -279,7 +279,7 @@ function transformOptionalChainInner(
 						const macro = state.services.macroManager.getPropertyCallMacro(symbol);
 						if (macro) {
 							DiagnosticService.addDiagnostic(errors.noOptionalMacroCall(item.node));
-							return luau.nil();
+							return luau.none();
 						}
 					}
 
@@ -298,7 +298,7 @@ function transformOptionalChainInner(
 				return transformOptionalChainInner(state, chain, newExpression, tempId, index + 1);
 			});
 
-			const isUsed = !luau.isNilLiteral(newValue) && !isUsedAsStatement(item.node);
+			const isUsed = !luau.isNone(newValue) && !isUsedAsStatement(item.node);
 
 			if (tempId !== newValue && isUsed) {
 				luau.list.push(
@@ -322,7 +322,7 @@ function transformOptionalChainInner(
 
 			state.prereq(createNilCheck(tempId, ifStatements));
 
-			return isUsed ? tempId : luau.nil();
+			return isUsed ? tempId : luau.none();
 		});
 
 		if (isCompoundCall(item) && item.optional && item.callOptional) {

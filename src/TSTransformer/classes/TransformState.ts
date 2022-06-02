@@ -1,5 +1,4 @@
-import luau from "@roblox-ts/luau-ast";
-import { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
+import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
 import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PathTranslator } from "Shared/classes/PathTranslator";
@@ -182,13 +181,6 @@ export class TransformState {
 		return getOrSetDefault(this.getTypeCache, node, () => this.typeChecker.getTypeAtLocation(skipUpwards(node)));
 	}
 
-	public getOriginalSymbol(node: ts.Node) {
-		const symbol = this.typeChecker.getSymbolAtLocation(node);
-		if (symbol) {
-			return ts.skipAlias(symbol, this.typeChecker);
-		}
-	}
-
 	public usesRuntimeLib = false;
 	public TS(node: ts.Node, name: string) {
 		this.usesRuntimeLib = true;
@@ -198,13 +190,6 @@ export class TransformState {
 		}
 
 		return luau.property(luau.globals.TS, name);
-	}
-
-	public checkJsxFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFactory(node, this.compilerOptions);
-	}
-	public checkJsxFragmentFactory(node: ts.Node) {
-		this.multiTransformState.checkJsxFragmentFactory(node, this.compilerOptions);
 	}
 
 	/**
@@ -246,7 +231,7 @@ export class TransformState {
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: luau.globals.TS,
-						right: luau.nil(),
+						right: luau.none(),
 					});
 				}
 

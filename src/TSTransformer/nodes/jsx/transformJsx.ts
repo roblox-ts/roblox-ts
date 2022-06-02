@@ -1,5 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
@@ -17,14 +19,17 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	state.checkJsxFactory(node);
+	if (state.compilerOptions.jsxFactory !== "Roact.createElement") {
+		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node));
+		return luau.none();
+	}
 
 	const isFragment =
 		state.services.roactSymbolManager &&
 		state.typeChecker.getSymbolAtLocation(tagName) ===
 			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
 
-	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.nil();
+	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.none();
 	const attributesPtr = createMapPointer("attributes");
 	const childrenPtr = createMixedTablePointer("children");
 	transformJsxAttributes(state, attributes, attributesPtr);

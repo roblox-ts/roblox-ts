@@ -19,11 +19,6 @@ export function transformPropertyAccessExpressionInner(
 	validateNotAnyType(state, node.expression);
 	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
 
-	const constantValue = getConstantValueLiteral(state, node);
-	if (constantValue) {
-		return constantValue;
-	}
-
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
@@ -32,7 +27,7 @@ export function transformPropertyAccessExpressionInner(
 				right: luau.nil(),
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	return luau.property(convertToIndexableExpression(expression), name);
@@ -41,6 +36,11 @@ export function transformPropertyAccessExpressionInner(
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
 	if (ts.isSuperProperty(node)) {
 		DiagnosticService.addDiagnostic(errors.noSuperProperty(node));
+	}
+
+	const constantValue = getConstantValueLiteral(state, node);
+	if (constantValue) {
+		return constantValue;
 	}
 
 	return transformOptionalChain(state, node);

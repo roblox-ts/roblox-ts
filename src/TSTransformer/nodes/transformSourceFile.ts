@@ -5,6 +5,7 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
@@ -49,7 +50,7 @@ function getIgnoredExportSymbols(state: TransformState, sourceFile: ts.SourceFil
 		if (ts.isExportDeclaration(statement) && statement.moduleSpecifier) {
 			if (!statement.exportClause) {
 				// export * from "./module";
-				const moduleSymbol = state.getOriginalSymbol(statement.moduleSpecifier);
+				const moduleSymbol = getOriginalSymbolOfNode(state.typeChecker, statement.moduleSpecifier);
 				if (moduleSymbol) {
 					state.getModuleExports(moduleSymbol).forEach(v => ignoredSymbols.add(v));
 				}
