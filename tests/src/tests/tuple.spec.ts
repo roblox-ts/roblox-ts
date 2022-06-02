@@ -215,4 +215,17 @@ export = () => {
 		expect(a).to.equal(101);
 		expect(b).to.equal(345);
 	});
+
+	it("should wrap LuaTuple returns in for loop conditions", () => {
+		function luaTupleReturn() {
+			return [false] as LuaTuple<[boolean]>;
+		}
+
+		let hasRun1 = false;
+		for (; luaTupleReturn(); ) {
+			hasRun1 = true;
+			break;
+		}
+		expect(hasRun1).to.equal(true);
+	});
 };

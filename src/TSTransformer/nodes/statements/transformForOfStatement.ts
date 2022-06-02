@@ -3,19 +3,18 @@ import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { transformArrayBindingLiteral } from "TSTransformer/nodes/binding/transformArrayBindingLiteral";
+import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
-import { transformObjectBindingLiteral } from "TSTransformer/nodes/binding/transformObjectBindingLiteral";
+import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
-import { getSubType } from "TSTransformer/util/binding/getSubType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
-	getTypeArguments,
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
@@ -27,6 +26,7 @@ import {
 	isStringType,
 } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 type LoopBuilder = (
@@ -54,12 +54,6 @@ function makeForLoopBuilder(
 	};
 }
 
-function getForInitializerAccessType(state: TransformState, initializer: ts.ForInitializer) {
-	const forOfStatement = initializer.parent;
-	assert(ts.isForOfStatement(forOfStatement));
-	return getSubType(state, state.getType(forOfStatement.expression), 0);
-}
-
 function transformForInitializerExpressionDirect(
 	state: TransformState,
 	initializer: ts.Expression,
@@ -69,7 +63,7 @@ function transformForInitializerExpressionDirect(
 	if (ts.isArrayLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
 			const parentId = state.pushToVar(value, "binding");
-			transformArrayBindingLiteral(state, initializer, parentId, getForInitializerAccessType(state, initializer));
+			transformArrayAssignmentPattern(state, initializer, parentId);
 			return parentId;
 		});
 		luau.list.pushList(initializers, prereqs);
@@ -77,12 +71,7 @@ function transformForInitializerExpressionDirect(
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const [parentId, prereqs] = state.capture(() => {
 			const parentId = state.pushToVar(value, "binding");
-			transformObjectBindingLiteral(
-				state,
-				initializer,
-				parentId,
-				getForInitializerAccessType(state, initializer),
-			);
+			transformObjectAssignmentPattern(state, initializer, parentId);
 			return parentId;
 		});
 		luau.list.pushList(initializers, prereqs);
@@ -111,28 +100,14 @@ function transformForInitializer(
 		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
-			state.capturePrereqs(() =>
-				transformArrayBindingLiteral(
-					state,
-					initializer,
-					parentId,
-					getForInitializerAccessType(state, initializer),
-				),
-			),
+			state.capturePrereqs(() => transformArrayAssignmentPattern(state, initializer, parentId)),
 		);
 		return parentId;
 	} else if (ts.isObjectLiteralExpression(initializer)) {
 		const parentId = luau.tempId("binding");
 		luau.list.pushList(
 			initializers,
-			state.capturePrereqs(() =>
-				transformObjectBindingLiteral(
-					state,
-					initializer,
-					parentId,
-					getForInitializerAccessType(state, initializer),
-				),
-			),
+			state.capturePrereqs(() => transformObjectAssignmentPattern(state, initializer, parentId)),
 		);
 		return parentId;
 	} else {
@@ -182,16 +157,16 @@ function transformInLineArrayBindingPattern(
 	}
 }
 
-function transformInLineArrayBindingLiteral(
+function transformInLineArrayAssignmentPattern(
 	state: TransformState,
-	bindingLiteral: ts.ArrayLiteralExpression,
+	assignmentPattern: ts.ArrayLiteralExpression,
 	ids: luau.List<luau.AnyIdentifier>,
 	initializers: luau.List<luau.Statement>,
 ) {
 	luau.list.pushList(
 		initializers,
 		state.capturePrereqs(() => {
-			for (let element of bindingLiteral.elements) {
+			for (let element of assignmentPattern.elements) {
 				if (ts.isOmittedExpression(element)) {
 					luau.list.push(ids, luau.tempId());
 				} else if (ts.isSpreadElement(element)) {
@@ -224,14 +199,17 @@ function transformInLineArrayBindingLiteral(
 						if (initializer) {
 							state.prereq(transformInitializer(state, valueId, initializer));
 						}
-						transformArrayBindingLiteral(state, element, valueId, state.getType(element));
+						transformArrayAssignmentPattern(state, element, valueId);
 					} else if (ts.isObjectLiteralExpression(element)) {
 						if (initializer) {
 							state.prereq(transformInitializer(state, valueId, initializer));
 						}
-						transformObjectBindingLiteral(state, element, valueId, state.getType(element));
+						transformObjectAssignmentPattern(state, element, valueId);
 					} else {
-						assert(false);
+						assert(
+							false,
+							`transformInLineArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`,
+						);
 					}
 
 					luau.list.push(ids, valueId);
@@ -250,7 +228,7 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 			return luau.call(luau.globals.pairs, [exp]);
 		}
 	} else if (ts.isArrayLiteralExpression(initializer)) {
-		transformInLineArrayBindingLiteral(state, initializer, ids, initializers);
+		transformInLineArrayAssignmentPattern(state, initializer, ids, initializers);
 		return luau.call(luau.globals.pairs, [exp]);
 	}
 
@@ -297,7 +275,7 @@ function makeIterableFunctionLuaTupleShorthand(
 	if (ts.isArrayBindingPattern(array)) {
 		transformInLineArrayBindingPattern(state, array, ids, initializers);
 	} else {
-		transformInLineArrayBindingLiteral(state, array, ids, initializers);
+		transformInLineArrayAssignmentPattern(state, array, ids, initializers);
 	}
 	luau.list.unshiftList(statements, initializers);
 	return luau.list.make(luau.create(luau.SyntaxKind.ForStatement, { ids, expression, statements }));
@@ -326,17 +304,27 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 			"Incorrect LuaTuple<T> type arguments",
 		);
 		const tupleArgType = luaTupleType.aliasTypeArguments[0];
-		// if LuaTuple has defined element amount
-		// and initializer is a variable declaration `for (const a of iter())`
+		// if initializer is a variable declaration `for (const a of iter())`
+		// and LuaTuple has defined element amount, and no rest elements
 		// then use lua for-in loop, specifying all elements and putting them in table
-		if (state.typeChecker.isTupleType(tupleArgType) && ts.isVariableDeclarationList(initializer)) {
-			const typeArguments = getTypeArguments(state, tupleArgType);
-			for (let i = 0; i < typeArguments.length; i++) {
-				// TODO: Name TempIds after tuple elements if labeled
-				iteratorReturnIds.push(luau.tempId("element"));
+		if (
+			ts.isVariableDeclarationList(initializer) &&
+			state.typeChecker.isTupleType(tupleArgType) &&
+			!((tupleArgType as ts.TupleTypeReference).target.combinedFlags & ts.ElementFlags.Rest)
+		) {
+			const tupleType = (tupleArgType as ts.TupleTypeReference).target;
+			for (let i = 0; i < tupleType.elementFlags.length; i++) {
+				let name = "element";
+				if (tupleType.labeledElementDeclarations) {
+					const label = tupleType.labeledElementDeclarations[i];
+					if (ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+						name = label.name.text;
+					}
+				}
+				iteratorReturnIds.push(luau.tempId(name));
 			}
 		} else {
-			const iterFuncId = state.pushToVar(exp, "iterFunc");
+			const iterFuncId = state.pushToVar(exp, valueToIdStr(exp) || "iterFunc");
 			const loopStatements = luau.list.make<luau.Statement>();
 
 			const initializerStatements = luau.list.make<luau.Statement>();

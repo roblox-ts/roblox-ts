@@ -5,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isBooleanLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 interface LogicalChainItem {
@@ -153,14 +154,13 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 			luau.unary("not", createTruthinessChecks(state, conditionId, node)),
 		);
 	} else if (node.operatorToken.kind === ts.SyntaxKind.QuestionQuestionToken) {
-		/*
-		  nullish coalescing is similar to and/or transformation, but:
-		  - doesn't use wrapConditional
-		  - cannot inline
-		*/
+		const conditionBuilder = (conditionId: luau.TemporaryIdentifier) => luau.binary(conditionId, "==", luau.nil());
+		if (!isPossiblyType(state.getType(node), isBooleanLiteralType(state, false))) {
+			return buildInlineConditionExpression(state, node, node.operatorToken.kind, "or", conditionBuilder);
+		}
 		const chain = getLogicalChain(state, node, ts.SyntaxKind.QuestionQuestionToken, false);
 		const conditionId = luau.tempId("condition");
-		buildLogicalChainPrereqs(state, chain, conditionId, conditionId => luau.binary(conditionId, "==", luau.nil()));
+		buildLogicalChainPrereqs(state, chain, conditionId, conditionBuilder);
 		return conditionId;
 	}
 	assert(false, `Operator not implemented: ${getKindName(node.operatorToken.kind)}`);

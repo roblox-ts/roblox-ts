@@ -21,7 +21,7 @@ export function transformConditionalExpression(state: TransformState, node: ts.C
 				elseBody: whenFalsePrereqs,
 			}),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	if (luau.list.isEmpty(whenTruePrereqs) && luau.list.isEmpty(whenFalsePrereqs)) {

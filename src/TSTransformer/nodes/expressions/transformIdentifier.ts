@@ -4,7 +4,7 @@ import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { isBlockLike } from "TSTransformer/typeGuards";
+import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
@@ -140,11 +140,15 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		state.services.macroManager.getCallMacro(symbol)
 	) {
 		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(node));
-		return luau.nil();
+		return luau.none();
 	}
 
 	// exit here for export let so we don't check hoist later
-	if (symbol.valueDeclaration && symbol.valueDeclaration.getSourceFile() === node.getSourceFile()) {
+	if (
+		symbol.valueDeclaration &&
+		symbol.valueDeclaration.getSourceFile() === node.getSourceFile() &&
+		getAncestor(symbol.valueDeclaration, node => ts.isModuleDeclaration(node) && !isNamespace(node)) === undefined
+	) {
 		const exportAccess = state.getModuleIdPropertyAccess(symbol);
 		if (exportAccess && isDefinedAsLet(state, symbol)) {
 			return exportAccess;

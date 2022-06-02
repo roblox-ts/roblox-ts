@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -11,7 +11,7 @@ import ts from "typescript";
 export const objectAccessor = (
 	state: TransformState,
 	parentId: luau.AnyIdentifier,
-	accessType: ts.Type | ReadonlyArray<ts.Type>,
+	type: ts.Type,
 	name: ts.PropertyName,
 ): luau.Expression => {
 	const symbol = getFirstDefinedSymbol(state, state.getType(name));
@@ -24,7 +24,7 @@ export const objectAccessor = (
 	} else if (ts.isComputedPropertyName(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
-			index: addOneIfArrayType(state, accessType, transformExpression(state, name.expression)),
+			index: addOneIfArrayType(state, type, transformExpression(state, name.expression)),
 		});
 	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -33,7 +33,7 @@ export const objectAccessor = (
 		});
 	} else if (ts.isPrivateIdentifier(name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
-		return luau.nil();
+		return luau.none();
 	}
-	assert(false);
+	return assertNever(name, "transformPrefixUnaryExpression");
 };

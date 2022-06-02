@@ -1,5 +1,3 @@
-export {};
-
 class A {
 	x = 1;
 }

@@ -129,19 +129,25 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		}
 	}
 
-	// Detect if there is additional package managers
+	// Detect if there are any additional package managers
 	// We don't need to prompt the user to use additional package managers if none are installed
 
+	// Although npm is installed by default, it can be uninstalled
+	// and replaced by another manager, so check for it to make sure
+	const [npmAvailable, pnpmAvailable, yarnAvailable, gitAvailable] = (
+		await Promise.allSettled(["npm", "pnpm", "yarn", "git"].map(v => lookpath(v)))
+	).map(v => v !== undefined);
+
 	const packageManagerExistance: Record<PackageManager, boolean> = {
-		[PackageManager.NPM]: true, // NPM is installed by default, skip checking to save time
-		[PackageManager.PNPM]: (await lookpath("pnpm")) ? true : false,
-		[PackageManager.Yarn]: (await lookpath("yarn")) ? true : false,
+		[PackageManager.NPM]: npmAvailable,
+		[PackageManager.PNPM]: pnpmAvailable,
+		[PackageManager.Yarn]: yarnAvailable,
 	};
 
 	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
 
 	const {
-		git = argv.git ?? argv.yes ?? false,
+		git = argv.git ?? (argv.yes && gitAvailable) ?? false,
 		eslint = argv.eslint ?? argv.yes ?? false,
 		prettier = argv.prettier ?? argv.yes ?? false,
 		vscode = argv.vscode ?? argv.yes ?? false,
@@ -154,7 +160,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		packageManager: PackageManager;
 	} = await prompts([
 		{
-			type: () => argv.git === undefined && argv.yes === undefined && "confirm",
+			type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
 			name: "git",
 			message: "Configure Git",
 			initial: true,
