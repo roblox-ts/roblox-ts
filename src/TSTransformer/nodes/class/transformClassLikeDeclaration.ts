@@ -13,6 +13,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
@@ -253,17 +254,16 @@ function createBoilerplate(
 function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration) {
 	const extendsNode = getExtendsNode(node);
 	if (extendsNode) {
-		const aliasSymbol = state.getType(extendsNode.expression).symbol;
-		if (aliasSymbol) {
-			const originalSymbol = ts.skipAlias(aliasSymbol, state.typeChecker);
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+		if (symbol) {
 			return (
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
-				originalSymbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
+				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
 			);
 		}
 	}
@@ -375,7 +375,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
 		} else {
-			assert(false, `Class member type not implemented: ${getKindName(member.kind)}`);
+			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
 		}
 	}
 

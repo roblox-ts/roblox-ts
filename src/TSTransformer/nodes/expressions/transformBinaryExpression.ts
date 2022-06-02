@@ -18,6 +18,7 @@ import {
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { getKindName } from "TSTransformer/util/getKindName";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
@@ -72,7 +73,7 @@ function transformLuaTupleDestructure(
 					}
 					transformObjectAssignmentPattern(state, element, id);
 				} else {
-					assert(false);
+					assert(false, `transformLuaTupleDestructure invalid element: ${getKindName(element.kind)}`);
 				}
 			}
 		}
