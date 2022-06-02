@@ -1,12 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
-import { getKindName } from "TSTransformer/util/getKindName";
 import { isDefinitelyType, isNumberType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
@@ -24,12 +23,15 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 		}),
 	);
 
-	const operator: luau.AssignmentOperator = node.operator === ts.SyntaxKind.PlusPlusToken ? "+=" : "-=";
-
 	state.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writable,
-			operator,
+			operator:
+				node.operator === ts.SyntaxKind.PlusPlusToken
+					? "+="
+					: node.operator === ts.SyntaxKind.MinusMinusToken
+					? "-="
+					: assertNever(node.operator, "transformPostfixUnaryExpression"),
 			right: luau.number(1),
 		}),
 	);
@@ -65,5 +67,5 @@ export function transformPrefixUnaryExpression(state: TransformState, node: ts.P
 	} else if (node.operator === ts.SyntaxKind.TildeToken) {
 		return luau.call(luau.property(luau.globals.bit32, "bnot"), [transformExpression(state, node.operand)]);
 	}
-	assert(false, `Unsupported PrefixUnaryExpression operator: ${getKindName(node.operator)}`);
+	return assertNever(node.operator, "transformPrefixUnaryExpression");
 }
