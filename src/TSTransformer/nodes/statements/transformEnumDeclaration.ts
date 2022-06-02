@@ -27,9 +27,8 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const),
 		)
 	) {
-		DiagnosticService.addDiagnosticFromNodeIfNotCached(
-			state,
-			node,
+		DiagnosticService.addDiagnosticWithCache(
+			symbol,
 			errors.noEnumMerging(node),
 			state.multiTransformState.isReportedByMultipleDefinitionsCache,
 		);

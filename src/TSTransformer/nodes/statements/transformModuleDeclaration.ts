@@ -128,9 +128,8 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (symbol && hasMultipleDefinitions(symbol, declaration => isDeclarationOfNamespace(declaration))) {
-		DiagnosticService.addDiagnosticFromNodeIfNotCached(
-			state,
-			node,
+		DiagnosticService.addDiagnosticWithCache(
+			symbol,
 			errors.noNamespaceMerging(node),
 			state.multiTransformState.isReportedByMultipleDefinitionsCache,
 		);
