@@ -128,7 +128,7 @@ export function transformLogicalOrCoalescingAssignmentExpression(
 	} else if (operator === ts.SyntaxKind.BarBarEqualsToken) {
 		return transformLogicalOrAssignmentExpression(state, node.left, node.right);
 	} else {
-		assert(false, `Unknown logical or coalescing assignment operator: ${operator}`);
+		assertNever(operator, `transformLogicalOrCoalescingAssignmentExpression unknown operator`);
 	}
 }
 
