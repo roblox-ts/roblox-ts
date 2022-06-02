@@ -7,6 +7,7 @@ import ts from "typescript";
 const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
+	moduleDetection: ts.ModuleDetectionKind.Force,
 	moduleResolution: ts.ModuleResolutionKind.NodeJs,
 	noLib: true,
 	strict: true,
@@ -46,6 +47,10 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 
 	if (opts.module !== ENFORCED_OPTIONS.module) {
 		errors.push(`${y(`"module"`)} must be ${y(`commonjs`)}`);
+	}
+
+	if (opts.moduleDetection !== ENFORCED_OPTIONS.moduleDetection) {
+		errors.push(`${y(`"moduleDetection"`)} must be ${y(`"force"`)}`);
 	}
 
 	if (opts.moduleResolution !== ENFORCED_OPTIONS.moduleResolution) {
