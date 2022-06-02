@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
 import { cleanModuleName } from "TSTransformer/util/cleanModuleName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { getSourceFileFromModuleSpecifier } from "TSTransformer/util/getSourceFileFromModuleSpecifier";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
@@ -13,7 +14,7 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 	let uses = 0;
 
 	if (importClause.name) {
-		const symbol = state.getOriginalSymbol(importClause.name);
+		const symbol = getOriginalSymbolOfNode(state.typeChecker, importClause.name);
 		if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 			uses++;
 		}
@@ -24,7 +25,7 @@ function countImportExpUses(state: TransformState, importClause: ts.ImportClause
 			uses++;
 		} else {
 			for (const element of importClause.namedBindings.elements) {
-				const symbol = state.getOriginalSymbol(element.name);
+				const symbol = getOriginalSymbolOfNode(state.typeChecker, element.name);
 				if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 					uses++;
 				}
@@ -65,7 +66,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 
 		// default import logic
 		if (importClause.name) {
-			const symbol = state.getOriginalSymbol(importClause.name);
+			const symbol = getOriginalSymbolOfNode(state.typeChecker, importClause.name);
 			if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
@@ -90,7 +91,7 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 			} else {
 				// named elements import logic
 				for (const element of importClause.namedBindings.elements) {
-					const symbol = state.getOriginalSymbol(element.name);
+					const symbol = getOriginalSymbolOfNode(state.typeChecker, element.name);
 					// check that import is referenced and has a value at runtime
 					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 						luau.list.pushList(
