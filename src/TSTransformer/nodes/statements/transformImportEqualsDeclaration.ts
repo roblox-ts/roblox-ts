@@ -31,6 +31,7 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		return statements;
 	} else {
 		// Identifier | QualifiedName
+		// See: https://github.com/roblox-ts/roblox-ts/issues/1895
 		assert(false, "Identifier and QualifiedName are not implemented for ImportEqualsDeclaration!");
 	}
 }
