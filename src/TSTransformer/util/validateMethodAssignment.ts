@@ -33,7 +33,7 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 				!ts.isFunctionLike(node) ||
 				ts.forEachChildRecursively(
 					node,
-					child => child.kind === ts.SyntaxKind.ThisKeyword || ts.isSuperOrSuperProperty(child),
+					child => ts.isThisIdentifier(child) || ts.isSuperOrSuperProperty(child),
 				))
 		) {
 			if (assignmentIsMethod) {
