@@ -1,5 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { assert } from "Shared/util/assert";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
