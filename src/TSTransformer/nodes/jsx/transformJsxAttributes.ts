@@ -116,11 +116,29 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 	}
 }
 
+function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
+	assert(state.services.roactSymbolManager);
+	const contextualType = state.typeChecker.getContextualType(attribute.parent);
+	if (contextualType) {
+		const symbol = contextualType.getProperty(attribute.name.text);
+		if (symbol) {
+			const targetSymbol = ts.getSymbolTarget(symbol, state.typeChecker);
+			if (
+				targetSymbol === state.services.roactSymbolManager.getSymbolOrThrow(EVENT_ATTRIBUTE_NAME) ||
+				targetSymbol === state.services.roactSymbolManager.getSymbolOrThrow(CHANGE_ATTRIBUTE_NAME)
+			) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
 	const attributeName = attribute.name.text;
 	if (attributeName === KEY_ATTRIBUTE_NAME) return;
 
-	if (attributeName === EVENT_ATTRIBUTE_NAME || attributeName === CHANGE_ATTRIBUTE_NAME) {
+	if (isSpecialAttribute(state, attribute)) {
 		transformSpecialAttribute(state, attribute, attributesPtr);
 		return;
 	}

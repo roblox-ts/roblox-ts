@@ -1,3 +1,8 @@
+## 1.3.3
+- Fixed some regressions for compiling void-returning macros as expressions (#1864, #1876)
+- Improved validation for  `tsconfig.json` `"typeRoots"` field (#1873)
+- Fixed a crash when referencing global const enums in the same file they're declared in (#1878)
+
 ## 1.3.2
 - `Array.push` now optimizes to use `table.insert()`
 - Macro emit is no longer wrapped in comments for single statements
