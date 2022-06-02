@@ -5,6 +5,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { isBooleanLiteralType, isPossiblyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
@@ -168,7 +169,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		let checkNode = node.left;
 		while (canInline && ts.isBinaryExpression(checkNode)) {
 			const type = state.getType(checkNode.right);
-			const symbol = state.getOriginalSymbol(checkNode.right);
+			const symbol = getOriginalSymbolOfNode(checkNode.right);
 			canInline &&= !isPossiblyType(
 				symbol && symbol.valueDeclaration
 					? // Get the type at the variable declaration
