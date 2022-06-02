@@ -19,3 +19,7 @@ export function isUnaryAssignmentOperator(
 export function isTemplateLiteralType(type: ts.Type): type is ts.TemplateLiteralType {
 	return "texts" in type && "types" in type && !!(type.flags & ts.TypeFlags.TemplateLiteral);
 }
+
+export function isNamespace(node: ts.Node): node is ts.ModuleDeclaration {
+	return ts.isModuleDeclaration(node) && !!(node.flags & ts.NodeFlags.Namespace);
+}

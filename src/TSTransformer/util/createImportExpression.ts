@@ -81,7 +81,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 				path.relative(state.data.projectPath, moduleFilePath),
 			]),
 		);
-		return luau.nil();
+		return luau.none();
 	}
 
 	const relativeFilePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
@@ -90,7 +90,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
-		return luau.nil();
+		return luau.none();
 	}
 
 	const moduleName = relativeRbxPath[0];
@@ -98,7 +98,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!validateModule(state, moduleScope)) {
 		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
-		return luau.nil();
+		return luau.none();
 	}
 
 	return propertyAccessExpressionChain(
@@ -119,7 +119,7 @@ export function createImportExpression(
 	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
 	if (!moduleFile) {
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
-		return luau.tempId();
+		return luau.none();
 	}
 
 	const importPathExpressions = new Array<luau.Expression>();
@@ -138,13 +138,13 @@ export function createImportExpression(
 					path.relative(state.data.projectPath, virtualPath),
 				]),
 			);
-			return luau.tempId();
+			return luau.none();
 		}
 
 		const moduleRbxType = state.rojoResolver.getRbxTypeFromFilePath(moduleOutPath);
 		if (moduleRbxType === RbxType.Script || moduleRbxType === RbxType.LocalScript) {
 			DiagnosticService.addDiagnostic(errors.noNonModuleImport(moduleSpecifier));
-			return luau.tempId();
+			return luau.none();
 		}
 
 		const sourceOutPath = state.pathTranslator.getOutputPath(sourceFile.fileName);
@@ -157,7 +157,7 @@ export function createImportExpression(
 					path.relative(state.data.projectPath, sourceFile.fileName),
 				]),
 			);
-			return luau.tempId();
+			return luau.none();
 		}
 
 		if (state.projectType === ProjectType.Game) {
@@ -168,7 +168,7 @@ export function createImportExpression(
 				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
 			} else {
 				DiagnosticService.addDiagnostic(errors.noIsolatedImport(moduleSpecifier));
-				return luau.tempId();
+				return luau.none();
 			}
 		} else {
 			importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));

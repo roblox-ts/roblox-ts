@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -33,7 +33,7 @@ export const objectAccessor = (
 		});
 	} else if (ts.isPrivateIdentifier(name)) {
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
-		return luau.nil();
+		return luau.none();
 	}
-	assert(false);
+	return assertNever(name, "transformPrefixUnaryExpression");
 };

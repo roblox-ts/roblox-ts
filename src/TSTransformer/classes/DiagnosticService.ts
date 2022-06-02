@@ -4,6 +4,14 @@ import ts from "typescript";
 export class DiagnosticService {
 	private static diagnostics = new Array<ts.Diagnostic>();
 
+	private static singleDiagnostics = new Set<number>();
+	public static addSingleDiagnostic(diagnostic: ts.Diagnostic) {
+		if (!this.singleDiagnostics.has(diagnostic.code)) {
+			this.singleDiagnostics.add(diagnostic.code);
+			this.addDiagnostic(diagnostic);
+		}
+	}
+
 	public static addDiagnostic(diagnostic: ts.Diagnostic) {
 		this.diagnostics.push(diagnostic);
 	}
@@ -15,6 +23,7 @@ export class DiagnosticService {
 	public static flush() {
 		const current = this.diagnostics;
 		this.diagnostics = [];
+		this.singleDiagnostics.clear();
 		return current;
 	}
 
