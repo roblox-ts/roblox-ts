@@ -1,5 +1,3 @@
-export {};
-
 interface MyWow {
 	callback: (a: number) => void;
 }

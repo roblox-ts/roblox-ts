@@ -13,8 +13,6 @@
 		"composite": true,
 		"sourceMap": true,
 		"outDir": "out",
-		"types": ["@types/node", "ts-expose-internals"],
-
 		"baseUrl": "src",
 		"paths": {
 			"*": ["*"]

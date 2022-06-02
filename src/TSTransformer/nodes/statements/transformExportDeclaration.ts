@@ -7,6 +7,10 @@ import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
 
 function isExportSpecifierValue(state: TransformState, element: ts.ExportSpecifier) {
+	if (element.isTypeOnly) {
+		return false;
+	}
+
 	if (state.resolver.isReferencedAliasDeclaration(element)) {
 		return true;
 	}

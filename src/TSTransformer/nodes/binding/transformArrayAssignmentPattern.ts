@@ -7,6 +7,7 @@ import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/tr
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { getAccessorForBindingType } from "TSTransformer/util/binding/getAccessorForBindingType";
+import { getKindName } from "TSTransformer/util/getKindName";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -64,7 +65,7 @@ export function transformArrayAssignmentPattern(
 				}
 				transformObjectAssignmentPattern(state, element, id);
 			} else {
-				assert(false);
+				assert(false, `transformArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`);
 			}
 		}
 		index++;

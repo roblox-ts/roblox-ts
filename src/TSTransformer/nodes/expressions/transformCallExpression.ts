@@ -261,8 +261,9 @@ export function transformElementCallExpressionInner(
 		}
 	}
 
-	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, [argumentExpression, ...nodeArguments]));
-	const argumentExp = args.shift()!;
+	const [[argumentExp, ...args], prereqs] = state.capture(() =>
+		ensureTransformOrder(state, [argumentExpression, ...nodeArguments]),
+	);
 
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 

@@ -1,5 +1,3 @@
-export {};
-
 interface HasCallback {
 	callback: (a: number) => void;
 }
