@@ -22,6 +22,7 @@ jobs:
 
       - name: Run ESLint
         run: npm run eslint
+
   unit-tests:
     name: Unit Tests
     runs-on: windows-latest
@@ -30,17 +31,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
 
-      - name: Download WireGuard
-        run: Invoke-WebRequest -Uri https://download.wireguard.com/windows-client/wireguard-installer.exe -OutFile ./wireguard-installer.exe;
+      - name: Install Foreman
+        uses: rojo-rbx/setup-foreman@v1.0.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install WireGuard
-        run: ./wireguard-installer.exe
+      - name: Install NPM dependencies
+        uses: bahmutov/npm-install@v1.7.4
+      
+      - name: Compile Source Files
+        run: npm run build
 
-      - name: Wait for WireGuard Installer?
-        run: while (!(Test-Path 'C:\\Program Files\\WireGuard\\wireguard.exe')) { Start-Sleep 5 }
+      - name: Install Latest Test Types
+        run: npm run test-setup
 
-      - name: Run WireGuard
-        run: "& \"C:\\Program Files\\WireGuard\\wireguard.exe\" /installtunnelservice $((Resolve-Path .\\wireguard.conf).Path)"
+      - name: Compile Test Files
+        run: npm run test-compile
+
+      - name: Build Test Place File
+        run: npm run test-rojo
+
+      - name: Download OpenVPN
+        run: choco install openvpn
+
+      - name: Run OpenVPN
+        run: Start-Process -FilePath "C:\\Program Files\\OpenVPN\\bin\\openvpn.exe" -ArgumentList "--config $((Resolve-Path .\\actions.ovpn).Path)"
 
       - name: Poll for IP Change
         run: |
@@ -79,16 +94,8 @@ jobs:
           cookie: ${{ env.ROBLOSECURITY }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Foreman
-        uses: rojo-rbx/setup-foreman@v1.0.1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install NPM dependencies
-        uses: bahmutov/npm-install@v1.7.4
-
-      - name: Compile and run tests
-        run: npm test
+      - name: Run Tests
+        run: npm run test-run
 
       - name: Screenshot
         if: failure()

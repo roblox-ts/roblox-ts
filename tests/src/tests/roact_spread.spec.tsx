@@ -25,7 +25,7 @@ export = () => {
 			const TextColor = Color3.fromRGB(220, 220, 220);
 
 			const element = <textlabel TextColor3={TextColor} {...props} />;
-			const elementProps = element.props as Roact.Template<TextLabel>;
+			const elementProps = element.props as TextLabel;
 
 			expect(elementProps.BackgroundColor3).to.equal(
 				props.BackgroundColor3
@@ -43,7 +43,7 @@ export = () => {
 			};
 
 			const element = <textlabel {...props} {...props2} />;
-			const elementProps = element.props as Roact.Template<TextLabel>;
+			const elementProps = element.props as TextLabel;
 
 			expect(elementProps.TextColor3).to.equal(props2.TextColor3);
 			expect(elementProps.BackgroundColor3).to.equal(
