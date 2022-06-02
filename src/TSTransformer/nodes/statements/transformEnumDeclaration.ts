@@ -21,7 +21,6 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	if (
 		symbol &&
 		hasMultipleDefinitions(
-			state,
 			symbol,
 			declaration =>
 				ts.isEnumDeclaration(declaration) &&
