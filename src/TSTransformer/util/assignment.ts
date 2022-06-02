@@ -55,7 +55,7 @@ export function createCompoundAssignmentStatement(
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
-	operator: ts.SyntaxKind,
+	operator: ts.BinaryOperator,
 	value: luau.Expression,
 	valueType: ts.Type,
 ) {
@@ -72,7 +72,7 @@ export function createCompoundAssignmentExpression(
 	writable: luau.WritableExpression,
 	writableType: ts.Type,
 	readable: luau.WritableExpression,
-	operator: ts.SyntaxKind,
+	operator: ts.BinaryOperator,
 	value: luau.Expression,
 	valueType: ts.Type,
 ) {

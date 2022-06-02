@@ -120,7 +120,7 @@ export = () => {
 		]);
 		const map2 = new Map<string, number>(arr);
 
-		function values<V>(map: Map<unknown, V>): Array<V> {
+		function values<V extends defined>(map: Map<unknown, V>): Array<V> {
 			const result = new Array<V>();
 			for (const [, value] of map) {
 				result.push(value);
