@@ -40,6 +40,8 @@ export const SYMBOL_NAMES = {
 	WeakSet: "WeakSet",
 
 	Iterable: "Iterable",
+
+	$range: "$range",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";

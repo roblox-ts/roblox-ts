@@ -1,12 +1,13 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/transformArrayAssignmentPattern";
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
@@ -15,6 +16,7 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
+	getFirstDefinedSymbol,
 	isArrayType,
 	isDefinitelyType,
 	isGeneratorType,
@@ -435,6 +437,50 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	}
 }
 
+export function transformForOfRangeMacro(state: TransformState, node: ts.ForOfStatement): luau.List<luau.Statement> {
+	// we proved this before
+	assert(ts.isCallExpression(node.expression));
+
+	if (!ts.isVariableDeclarationList(node.initializer)) {
+		DiagnosticService.addDiagnostic(errors.noRangeMacroExpressionInitializer(node.initializer));
+		return luau.list.make();
+	}
+
+	// this should be impossible to fail
+	assert(node.initializer.declarations.length === 1);
+
+	const decName = node.initializer.declarations[0].name;
+	if (!ts.isIdentifier(decName)) {
+		DiagnosticService.addDiagnostic(errors.noRangeMacroNonIdentifierInitializer(decName));
+		return luau.list.make();
+	}
+
+	const result = luau.list.make<luau.Statement>();
+
+	const args = node.expression.arguments;
+
+	const id = transformIdentifierDefined(state, decName);
+
+	const [start, startPrereqs] = state.capture(() => transformExpression(state, args[0]));
+	luau.list.pushList(result, startPrereqs);
+
+	const [end, endPrereqs] = state.capture(() => transformExpression(state, args[1]));
+	luau.list.pushList(result, endPrereqs);
+
+	let step: luau.Expression | undefined;
+	let stepPrereqs: luau.List<luau.Statement>;
+	if (args[2] !== undefined) {
+		[step, stepPrereqs] = state.capture(() => transformExpression(state, args[2]));
+		luau.list.pushList(result, stepPrereqs);
+	}
+
+	const statements = transformStatementList(state, getStatements(node.statement));
+
+	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, step, end, statements }));
+
+	return result;
+}
+
 export function transformForOfStatement(state: TransformState, node: ts.ForOfStatement): luau.List<luau.Statement> {
 	if (node.awaitModifier) {
 		DiagnosticService.addDiagnostic(errors.noAwaitForOf(node));
@@ -444,6 +490,14 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 		const name = node.initializer.declarations[0].name;
 		if (ts.isIdentifier(name)) {
 			validateIdentifier(state, name);
+		}
+	}
+
+	if (ts.isCallExpression(node.expression)) {
+		const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression.expression));
+		const symbol = getFirstDefinedSymbol(state, expType);
+		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
+			return transformForOfRangeMacro(state, node);
 		}
 	}
 

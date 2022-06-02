@@ -173,6 +173,8 @@ export const errors = {
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
 	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noRangeMacroExpressionInitializer: error("for-of loops using $range() must have a `const` or `let` initializer!"),
+	noRangeMacroNonIdentifierInitializer: error("for-of loops using $range() must have an identifier initializer!"),
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),

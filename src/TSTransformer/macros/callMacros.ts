@@ -1,4 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
@@ -38,4 +40,9 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 	},
 
 	identity: (state, node, expression, args) => args[0],
+
+	$range: (state, node) => {
+		DiagnosticService.addDiagnostic(errors.noRangeMacroOutsideForOf(node.expression));
+		return luau.none();
+	},
 };
