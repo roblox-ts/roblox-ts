@@ -5,7 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
+import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
@@ -20,7 +20,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
 	if (
 		symbol &&
-		hasMultipleDeclarations(
+		hasMultipleDefinitions(
 			state,
 			symbol,
 			declaration =>

@@ -1,11 +1,6 @@
-import { TransformState } from "TSTransformer";
 import ts from "typescript";
 
-export function hasMultipleDeclarations(
-	state: TransformState,
-	symbol: ts.Symbol,
-	filter: (declaration: ts.Declaration) => boolean,
-): boolean {
+export function hasMultipleDefinitions(symbol: ts.Symbol, filter: (declaration: ts.Declaration) => boolean): boolean {
 	let amtValueDefinitions = 0;
 	for (const declaration of symbol.getDeclarations() ?? []) {
 		if (filter(declaration)) {

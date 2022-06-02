@@ -6,7 +6,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
+import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
@@ -127,7 +127,7 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleDeclarations(state, symbol, declaration => isDeclarationOfNamespace(declaration))) {
+	if (symbol && hasMultipleDefinitions(symbol, declaration => isDeclarationOfNamespace(declaration))) {
 		DiagnosticService.addDiagnosticFromNodeIfNotCached(
 			state,
 			node,
