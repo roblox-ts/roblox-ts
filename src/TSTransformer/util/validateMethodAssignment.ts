@@ -31,10 +31,7 @@ function validateTypes(state: TransformState, node: ts.Node, baseType: ts.Type, 
 				// `this` and `super` disallowed: would either be missing or not passed by caller
 				// if not the function definition, assume they *are* used for safety
 				!ts.isFunctionLike(node) ||
-				ts.forEachChildRecursively(
-					node,
-					child => ts.isThisIdentifier(child) || ts.isSuperOrSuperProperty(child),
-				))
+				ts.forEachChildRecursively(node, child => ts.isThis(child) || ts.isSuperOrSuperProperty(child)))
 		) {
 			if (assignmentIsMethod) {
 				DiagnosticService.addDiagnostic(errors.expectedMethodGotFunction(node));
