@@ -16,6 +16,7 @@ export interface ProjectFlags {
 	verbose: boolean;
 	watch: boolean;
 	writeOnlyChanged: boolean;
+	optimizedLoops: boolean;
 }
 
 export interface ProjectData {
@@ -30,6 +31,7 @@ export interface ProjectData {
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
+	optimizedLoops: boolean;
 	watch: boolean;
 	transformerWatcher?: TransformerWatcher;
 }

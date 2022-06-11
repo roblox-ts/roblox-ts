@@ -59,6 +59,7 @@ export function createProjectData(
 	}
 
 	const writeOnlyChanged = flags.writeOnlyChanged;
+	const optimizedLoops = flags.optimizedLoops;
 	const watch = flags.watch;
 
 	return {
@@ -73,6 +74,7 @@ export function createProjectData(
 		projectPath,
 		rojoConfigPath,
 		writeOnlyChanged,
+		optimizedLoops,
 		watch,
 	};
 }
