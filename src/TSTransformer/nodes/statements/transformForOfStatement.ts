@@ -7,11 +7,11 @@ import { transformArrayAssignmentPattern } from "TSTransformer/nodes/binding/tra
 import { transformBindingName } from "TSTransformer/nodes/binding/transformBindingName";
 import { transformObjectAssignmentPattern } from "TSTransformer/nodes/binding/transformObjectAssignmentPattern";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { skipDownwards } from "TSTransformer/util/traversal";
@@ -437,46 +437,35 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	}
 }
 
-export function transformForOfRangeMacro(state: TransformState, node: ts.ForOfStatement): luau.List<luau.Statement> {
-	// we proved this before
-	assert(ts.isCallExpression(node.expression));
-
-	if (!ts.isVariableDeclarationList(node.initializer)) {
-		DiagnosticService.addDiagnostic(errors.noRangeMacroExpressionInitializer(node.initializer));
-		return luau.list.make();
+function isRangeMacro(
+	state: TransformState,
+	node: ts.ForOfStatement,
+): node is ts.ForOfStatement & { expression: ts.CallExpression } {
+	if (ts.isCallExpression(node.expression)) {
+		const symbol = getFirstDefinedSymbol(state, state.getType(node.expression.expression));
+		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
+			return true;
+		}
 	}
+	return false;
+}
 
-	// this should be impossible to fail
-	assert(node.initializer.declarations.length === 1);
-
-	const decName = node.initializer.declarations[0].name;
-	if (!ts.isIdentifier(decName)) {
-		DiagnosticService.addDiagnostic(errors.noRangeMacroNonIdentifierInitializer(decName));
-		return luau.list.make();
-	}
-
+export function transformForOfRangeMacro(
+	state: TransformState,
+	node: ts.ForOfStatement & { expression: ts.CallExpression },
+): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 
+	const statements = luau.list.make<luau.Statement>();
+	const id = transformForInitializer(state, node.initializer, statements);
+
 	const args = node.expression.arguments;
+	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, args));
+	luau.list.pushList(result, prereqs);
 
-	const id = transformIdentifierDefined(state, decName);
+	luau.list.pushList(statements, transformStatementList(state, getStatements(node.statement)));
 
-	const [start, startPrereqs] = state.capture(() => transformExpression(state, args[0]));
-	luau.list.pushList(result, startPrereqs);
-
-	const [end, endPrereqs] = state.capture(() => transformExpression(state, args[1]));
-	luau.list.pushList(result, endPrereqs);
-
-	let step: luau.Expression | undefined;
-	let stepPrereqs: luau.List<luau.Statement>;
-	if (args[2] !== undefined) {
-		[step, stepPrereqs] = state.capture(() => transformExpression(state, args[2]));
-		luau.list.pushList(result, stepPrereqs);
-	}
-
-	const statements = transformStatementList(state, getStatements(node.statement));
-
-	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, step, end, statements }));
+	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
 
 	return result;
 }
@@ -493,12 +482,8 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 		}
 	}
 
-	if (ts.isCallExpression(node.expression)) {
-		const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression.expression));
-		const symbol = getFirstDefinedSymbol(state, expType);
-		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
-			return transformForOfRangeMacro(state, node);
-		}
+	if (isRangeMacro(state, node)) {
+		return transformForOfRangeMacro(state, node);
 	}
 
 	const result = luau.list.make<luau.Statement>();
