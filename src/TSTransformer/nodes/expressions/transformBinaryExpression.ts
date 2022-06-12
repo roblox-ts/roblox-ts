@@ -32,6 +32,7 @@ function transformOptimizedArrayAssignmentPattern(
 ) {
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
+	const writesPrereqs = luau.list.make<luau.Statement>();
 	const statements = state.capturePrereqs(() => {
 		for (let element of assignmentPattern.elements) {
 			if (ts.isOmittedExpression(element)) {
@@ -50,7 +51,8 @@ function transformOptimizedArrayAssignmentPattern(
 					ts.isElementAccessExpression(element) ||
 					ts.isPropertyAccessExpression(element)
 				) {
-					const id = transformWritableExpression(state, element, true);
+					const [id, idPrereqs] = state.capture(() => transformWritableExpression(state, element, true));
+					luau.list.pushList(writesPrereqs, idPrereqs);
 					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
@@ -88,8 +90,8 @@ function transformOptimizedArrayAssignmentPattern(
 			}),
 		);
 	}
+	state.prereqList(writesPrereqs);
 	assert(!luau.list.isEmpty(writes));
-	state.prereqList(statements);
 	state.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writes,
@@ -97,6 +99,7 @@ function transformOptimizedArrayAssignmentPattern(
 			right: rhs,
 		}),
 	);
+	state.prereqList(statements);
 }
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
