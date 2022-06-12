@@ -72,7 +72,10 @@ function transformOptimizedArrayAssignmentPattern(
 					}
 					transformObjectAssignmentPattern(state, element, id);
 				} else {
-					assert(false, `transformLuaTupleAssignmentPattern invalid element: ${getKindName(element.kind)}`);
+					assert(
+						false,
+						`transformOptimizedArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`,
+					);
 				}
 			}
 		}
