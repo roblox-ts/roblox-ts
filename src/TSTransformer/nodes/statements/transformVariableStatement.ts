@@ -140,6 +140,7 @@ export function transformVariableDeclaration(
 			} else if (
 				luau.isArray(value) &&
 				!luau.list.isEmpty(value.members) &&
+				// we can't localize multiple variables at the same time if any of them are hoisted
 				!arrayBindingPatternContainsHoists(state, name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
