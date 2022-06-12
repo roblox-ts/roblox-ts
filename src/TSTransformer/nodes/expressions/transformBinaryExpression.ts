@@ -89,6 +89,7 @@ function transformOptimizedArrayAssignmentPattern(
 		);
 	}
 	assert(!luau.list.isEmpty(writes));
+	state.prereqList(statements);
 	state.prereq(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: writes,
@@ -96,7 +97,6 @@ function transformOptimizedArrayAssignmentPattern(
 			right: rhs,
 		}),
 	);
-	state.prereqList(statements);
 }
 
 export function transformBinaryExpression(state: TransformState, node: ts.BinaryExpression) {
