@@ -88,6 +88,11 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				default: false,
 				hidden: true,
 			})
+			.option("optimizedLoops", {
+				boolean: true,
+				default: false,
+				hidden: true,
+			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("type", {
 				choices: [ProjectType.Game, ProjectType.Model, ProjectType.Package] as const,

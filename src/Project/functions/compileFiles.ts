@@ -134,10 +134,7 @@ export function compileFiles(
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
-				if (!data.transformerWatcher) {
-					data.transformerWatcher = createTransformerWatcher(program);
-				}
-				const { service, updateFile } = data.transformerWatcher!;
+				const { service, updateFile } = (data.transformerWatcher ??= createTransformerWatcher(program));
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,

@@ -10,7 +10,6 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 
 	let contentsToHash = "";
 
-	contentsToHash += `pkgVersion=${data.pkgVersion},`;
 	contentsToHash += `type=${String(data.projectOptions.type)},`;
 	contentsToHash += `isPackage=${String(data.isPackage)},`;
 	contentsToHash += `plugins=${JSON.stringify(compilerOptions.plugins ?? [])},`;

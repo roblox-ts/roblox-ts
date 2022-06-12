@@ -1,13 +1,12 @@
 import luau from "@roblox-ts/luau-ast";
 
 function expressionToStr(expression: luau.Expression): string | undefined {
-	// X -> "X"
-	if (luau.isIdentifier(expression)) {
-		return expression.name;
-	}
-
-	// A.B -> "B"
-	if (luau.isPropertyAccessExpression(expression)) {
+	if (
+		// X -> "X"
+		luau.isIdentifier(expression) ||
+		// A.B -> "B"
+		luau.isPropertyAccessExpression(expression)
+	) {
 		return expression.name;
 	}
 
@@ -25,7 +24,7 @@ function uncapitalizeFirstLetter(str: string) {
 
 export function valueToIdStr(value: luau.Expression): string {
 	const valueStr = expressionToStr(value);
-	if (valueStr !== undefined) {
+	if (valueStr !== undefined && luau.isValidIdentifier(valueStr)) {
 		return uncapitalizeFirstLetter(valueStr);
 	}
 

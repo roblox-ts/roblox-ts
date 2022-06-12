@@ -28,6 +28,7 @@ describe("should compile tests project", () => {
 			verbose: false,
 			watch: false,
 			writeOnlyChanged: false,
+			optimizedLoops: false,
 		},
 	);
 	const program = createProjectProgram(data);

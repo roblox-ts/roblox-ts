@@ -365,6 +365,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				verbose: false,
 				watch: false,
 				writeOnlyChanged: false,
+				optimizedLoops: false,
 				$0: argv.$0,
 				_: argv._,
 			}) as never,

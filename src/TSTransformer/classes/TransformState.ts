@@ -13,6 +13,7 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
@@ -266,7 +267,7 @@ export class TransformState {
 	 * @param expression
 	 */
 	public pushToVar(expression: luau.Expression | undefined, name?: string) {
-		const temp = luau.tempId(name);
+		const temp = luau.tempId(name || (expression && valueToIdStr(expression)));
 		this.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: temp,

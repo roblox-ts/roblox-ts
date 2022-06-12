@@ -1,4 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
@@ -37,28 +39,10 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.binary(luau.property(convertToIndexableExpression(value), "ClassName"), "==", typeStr);
 	},
 
-	opcall: (state, node, expression, args) => {
-		const successId = luau.tempId("success");
-		const valueOrErrorId = luau.tempId("valueOrError");
-		state.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: luau.list.make(successId, valueOrErrorId),
-				right: luau.call(luau.globals.pcall, args),
-			}),
-		);
-
-		const successExp = luau.map([
-			[luau.strings.success, luau.bool(true)],
-			[luau.strings.value, valueOrErrorId],
-		]);
-
-		const failureExp = luau.map([
-			[luau.strings.success, luau.bool(false)],
-			[luau.strings.error, valueOrErrorId],
-		]);
-
-		return luau.binary(luau.binary(successId, "and", successExp), "or", failureExp);
-	},
-
 	identity: (state, node, expression, args) => args[0],
+
+	$range: (state, node) => {
+		DiagnosticService.addDiagnostic(errors.noRangeMacroOutsideForOf(node.expression));
+		return luau.none();
+	},
 };
