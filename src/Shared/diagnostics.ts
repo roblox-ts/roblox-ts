@@ -174,6 +174,7 @@ export const errors = {
 	),
 	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
 	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
+	noTupleMacroOutsideReturn: error("$tuple() macro is only valid as an expression of a return statement!"),
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
