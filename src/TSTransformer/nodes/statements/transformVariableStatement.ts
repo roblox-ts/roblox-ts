@@ -121,7 +121,7 @@ export function transformVariableDeclaration(
 		);
 	} else {
 		// destructuring/binding => node must have initializer
-		// if initializer, if statement above always sets `value`
+		// if initializer, the if statement above always sets `value`
 		assert(node.initializer && value);
 
 		// optimize empty destructure
