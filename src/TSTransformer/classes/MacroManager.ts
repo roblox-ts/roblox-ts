@@ -41,6 +41,7 @@ export const SYMBOL_NAMES = {
 
 	Iterable: "Iterable",
 
+	$range: "$range",
 	$tuple: "$tuple",
 } as const;
 
