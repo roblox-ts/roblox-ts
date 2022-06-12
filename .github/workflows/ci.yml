@@ -38,7 +38,7 @@ jobs:
 
       - name: Install NPM dependencies
         uses: bahmutov/npm-install@v1.7.4
-      
+
       - name: Compile Source Files
         run: npm run build
 
