@@ -9,7 +9,7 @@ import ts from "typescript";
 
 export function addIndexDiagnostics(
 	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase | ts.PropertyName,
 	expType: ts.Type,
 ) {
 	const symbol = getFirstDefinedSymbol(state, expType);
