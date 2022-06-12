@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { findLastIndex } from "Shared/util/findLastIndex";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import ts from "typescript";
 
 /**
@@ -21,7 +21,7 @@ export function ensureTransformOrder(state: TransformState, expressions: Readonl
 		const exp = expressions[i];
 		if (ts.isIdentifier(exp)) {
 			const symbol = state.typeChecker.getSymbolAtLocation(exp);
-			if (symbol && !isDefinedAsLet(state, symbol)) {
+			if (symbol && !isSymbolMutable(state, symbol)) {
 				isConstVar = true;
 			}
 		}

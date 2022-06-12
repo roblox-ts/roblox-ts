@@ -9,8 +9,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
-import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -59,7 +58,7 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 		assert(symbol);
 
 		// export let
-		if (isDefinedAsLet(state, symbol)) {
+		if (isSymbolMutable(state, symbol)) {
 			const exportAccess = state.getModuleIdPropertyAccess(symbol);
 			if (exportAccess) {
 				if (right) {
