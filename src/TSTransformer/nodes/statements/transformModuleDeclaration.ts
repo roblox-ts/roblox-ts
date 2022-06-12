@@ -6,6 +6,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
+import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
@@ -23,22 +24,6 @@ function isDeclarationOfNamespace(declaration: ts.Declaration) {
 		return true;
 	} else if (ts.isClassDeclaration(declaration)) {
 		return true;
-	}
-	return false;
-}
-
-function hasMultipleInstantiations(symbol: ts.Symbol): boolean {
-	let amtValueDeclarations = 0;
-	const declarations = symbol.getDeclarations();
-	if (declarations) {
-		for (const declaration of declarations) {
-			if (isDeclarationOfNamespace(declaration)) {
-				amtValueDeclarations++;
-				if (amtValueDeclarations > 1) {
-					return true;
-				}
-			}
-		}
 	}
 	return false;
 }
@@ -142,8 +127,12 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleInstantiations(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noNamespaceMerging(node));
+	if (symbol && hasMultipleDefinitions(symbol, declaration => isDeclarationOfNamespace(declaration))) {
+		DiagnosticService.addDiagnosticWithCache(
+			symbol,
+			errors.noNamespaceMerging(node),
+			state.multiTransformState.isReportedByMultipleDefinitionsCache,
+		);
 		return luau.list.make<luau.Statement>();
 	}
 
