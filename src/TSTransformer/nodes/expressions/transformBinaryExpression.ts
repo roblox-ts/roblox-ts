@@ -23,7 +23,6 @@ import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
-import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
 function transformOptimizedArrayAssignmentPattern(
@@ -86,21 +85,14 @@ function transformOptimizedArrayAssignmentPattern(
 			}),
 		);
 	}
-	if (luau.list.isEmpty(writes)) {
-		if (luau.list.isList(rhs)) {
-			state.prereqList(wrapExpressionStatement(luau.create(luau.SyntaxKind.Array, { members: rhs })));
-		} else {
-			state.prereqList(wrapExpressionStatement(rhs));
-		}
-	} else {
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: writes,
-				operator: "=",
-				right: rhs,
-			}),
-		);
-	}
+	assert(!luau.list.isEmpty(writes));
+	state.prereq(
+		luau.create(luau.SyntaxKind.Assignment, {
+			left: writes,
+			operator: "=",
+			right: rhs,
+		}),
+	);
 	state.prereqList(statements);
 }
 

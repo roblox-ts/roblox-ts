@@ -94,15 +94,8 @@ function transformOptimizedArrayBindingPattern(
 				}
 			}
 		});
-		if (luau.list.isEmpty(ids)) {
-			if (luau.list.isList(rhs)) {
-				state.prereqList(wrapExpressionStatement(luau.create(luau.SyntaxKind.Array, { members: rhs })));
-			} else {
-				state.prereqList(wrapExpressionStatement(rhs));
-			}
-		} else {
-			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: rhs }));
-		}
+		assert(!luau.list.isEmpty(ids));
+		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: rhs }));
 		state.prereqList(statements);
 	});
 }
