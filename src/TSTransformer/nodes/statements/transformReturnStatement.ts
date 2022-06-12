@@ -17,8 +17,7 @@ function isTupleReturningCall(state: TransformState, tsExpression: ts.Expression
 
 function isTupleMacro(state: TransformState, expression: ts.Expression) {
 	if (ts.isCallExpression(expression)) {
-		const expType = state.typeChecker.getNonOptionalType(state.getType(expression.expression));
-		const symbol = getFirstDefinedSymbol(state, expType);
+		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
 		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$tuple)) {
 			return true;
 		}
