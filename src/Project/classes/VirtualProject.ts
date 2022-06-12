@@ -43,7 +43,6 @@ export class VirtualProject {
 			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
 			noInclude: false,
-			pkgVersion: "",
 			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,

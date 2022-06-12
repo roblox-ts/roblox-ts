@@ -25,7 +25,6 @@ export interface ProjectData {
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	noInclude: boolean;
-	pkgVersion: string;
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
