@@ -169,7 +169,7 @@ export function transformLogical(state: TransformState, node: ts.BinaryExpressio
 		let checkNode = node.left;
 		while (canInline && ts.isBinaryExpression(checkNode)) {
 			const type = state.getType(checkNode.right);
-			const symbol = getOriginalSymbolOfNode(checkNode.right);
+			const symbol = getOriginalSymbolOfNode(state, checkNode.right);
 			canInline &&= !isPossiblyType(
 				symbol && symbol.valueDeclaration
 					? // Get the type at the variable declaration
