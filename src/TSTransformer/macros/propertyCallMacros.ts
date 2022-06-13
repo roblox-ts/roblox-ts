@@ -600,7 +600,8 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
+		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
+		return !isUsedAsStatement(node) || args.length === 0 ? luau.unary("#", expression) : luau.none();
 	},
 
 	pop: (state, node, expression) => {
