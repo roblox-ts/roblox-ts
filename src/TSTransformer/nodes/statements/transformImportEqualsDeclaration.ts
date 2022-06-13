@@ -16,16 +16,20 @@ function transformQualifiedName(state: TransformState, node: ts.QualifiedName): 
 }
 
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
-	if (ts.isExternalModuleReference(node.moduleReference)) {
-		assert(ts.isStringLiteral(node.moduleReference.expression));
-		const importExp = createImportExpression(state, node.getSourceFile(), node.moduleReference.expression);
+	const { moduleReference } = node;
+	if (ts.isExternalModuleReference(moduleReference)) {
+		assert(ts.isStringLiteral(moduleReference.expression));
+		const importExp = createImportExpression(state, node.getSourceFile(), moduleReference.expression);
 
 		const statements = luau.list.make<luau.Statement>();
 
 		const aliasSymbol = state.typeChecker.getSymbolAtLocation(node.name);
 		assert(aliasSymbol);
 		if (isSymbolOfValue(ts.skipAlias(aliasSymbol, state.typeChecker))) {
-			luau.list.pushList(statements, transformVariable(state, node.name, importExp)[1]);
+			luau.list.pushList(
+				statements,
+				state.capturePrereqs(() => transformVariable(state, node.name, importExp)),
+			);
 		}
 
 		// ensure we emit something
@@ -41,6 +45,8 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 	} else {
 		// Identifier | QualifiedName
 		// see: https://github.com/roblox-ts/roblox-ts/issues/1895
-		return transformVariable(state, node.name, transformEntityName(state, node.moduleReference))[1];
+		return state.capturePrereqs(() =>
+			transformVariable(state, node.name, transformEntityName(state, moduleReference)),
+		);
 	}
 }
