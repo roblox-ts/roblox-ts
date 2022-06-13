@@ -40,6 +40,7 @@ export function transformImportEqualsDeclaration(state: TransformState, node: ts
 		return statements;
 	} else {
 		// Identifier | QualifiedName
+		// see: https://github.com/roblox-ts/roblox-ts/issues/1895
 		return transformVariable(state, node.name, transformEntityName(state, node.moduleReference))[1];
 	}
 }
