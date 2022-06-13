@@ -69,7 +69,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			} else if (typeof value === "number") {
 				valueExp = luau.number(value);
 			} else {
-				// without initializer, constantValue is always number
+				// constantValue is always number without initializer, so assert is safe
 				assert(member.initializer);
 				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer), "value");
 			}
