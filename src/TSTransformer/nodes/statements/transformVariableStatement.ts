@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayBindingPattern } from "TSTransformer/nodes/binding/transformArrayBindingPattern";
@@ -9,46 +8,13 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
+import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
-
-function checkVariableHoist(state: TransformState, node: ts.Identifier, symbol: ts.Symbol) {
-	if (state.isHoisted.get(symbol) !== undefined) {
-		return;
-	}
-
-	const statement = getAncestor(node, ts.isStatement);
-	if (!statement) {
-		return;
-	}
-
-	const caseClause = statement.parent;
-	if (!ts.isCaseClause(caseClause)) {
-		return;
-	}
-	const caseBlock = caseClause.parent;
-
-	const isUsedOutsideOfCaseClause =
-		ts.FindAllReferences.Core.eachSymbolReferenceInFile(
-			node,
-			state.typeChecker,
-			node.getSourceFile(),
-			token => {
-				if (!isAncestorOf(caseClause, token)) {
-					return true;
-				}
-			},
-			caseBlock,
-		) === true;
-
-	if (isUsedOutsideOfCaseClause) {
-		getOrSetDefault(state.hoistsByStatement, statement.parent, () => new Array<ts.Identifier>()).push(node);
-		state.isHoisted.set(symbol, true);
-	}
-}
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: luau.Expression) {
 	return state.capture(() => {
@@ -90,10 +56,10 @@ export function transformVariable(state: TransformState, identifier: ts.Identifi
 	});
 }
 
-function transformLuaTupleDestructure(
+function transformOptimizedArrayBindingPattern(
 	state: TransformState,
 	bindingPattern: ts.ArrayBindingPattern,
-	value: luau.Expression,
+	rhs: luau.Expression | luau.List<luau.Expression>,
 ) {
 	return state.capturePrereqs(() => {
 		const ids = luau.list.make<luau.AnyIdentifier>();
@@ -128,11 +94,8 @@ function transformLuaTupleDestructure(
 				}
 			}
 		});
-		if (luau.list.isEmpty(ids)) {
-			state.prereqList(wrapExpressionStatement(value));
-		} else {
-			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: value }));
-		}
+		assert(!luau.list.isEmpty(ids));
+		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left: ids, right: rhs }));
 		state.prereqList(statements);
 	});
 }
@@ -158,9 +121,29 @@ export function transformVariableDeclaration(
 		// in destructuring, rhs must be executed first
 		assert(node.initializer && value);
 		const name = node.name;
+
+		// optimize empty destructure
+		if (name.elements.length === 0) {
+			if (!luau.isArray(value) || !luau.list.isEmpty(value.members)) {
+				luau.list.pushList(statements, wrapExpressionStatement(value));
+			}
+			return statements;
+		}
+
 		if (ts.isArrayBindingPattern(name)) {
-			if (luau.isCall(value) && isLuaTupleType(state)(state.getType(node.initializer))) {
-				luau.list.pushList(statements, transformLuaTupleDestructure(state, name, value));
+			if (
+				luau.isCall(value) &&
+				isLuaTupleType(state)(state.getType(node.initializer)) &&
+				!arrayBindingPatternContainsHoists(state, name)
+			) {
+				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value));
+			} else if (
+				luau.isArray(value) &&
+				!luau.list.isEmpty(value.members) &&
+				// we can't localize multiple variables at the same time if any of them are hoisted
+				!arrayBindingPatternContainsHoists(state, name)
+			) {
+				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
 			} else {
 				luau.list.pushList(
 					statements,

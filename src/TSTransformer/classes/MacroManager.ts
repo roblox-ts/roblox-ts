@@ -42,6 +42,7 @@ export const SYMBOL_NAMES = {
 	Iterable: "Iterable",
 
 	$range: "$range",
+	$tuple: "$tuple",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";

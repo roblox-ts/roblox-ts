@@ -45,4 +45,9 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		DiagnosticService.addDiagnostic(errors.noRangeMacroOutsideForOf(node.expression));
 		return luau.none();
 	},
+
+	$tuple: (state, node) => {
+		DiagnosticService.addDiagnostic(errors.noTupleMacroOutsideReturn(node));
+		return luau.none();
+	},
 };
