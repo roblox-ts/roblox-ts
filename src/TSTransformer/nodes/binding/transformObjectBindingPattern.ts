@@ -25,7 +25,7 @@ export function transformObjectBindingPattern(
 		const prop = element.propertyName;
 		if (ts.isIdentifier(name)) {
 			const value = objectAccessor(state, parentId, state.getType(bindingPattern), prop ?? name);
-			const [id, prereqs] = transformVariable(state, name, value);
+			const [id, prereqs] = state.capture(() => transformVariable(state, name, value));
 			state.prereqList(prereqs);
 			if (element.initializer) {
 				state.prereq(transformInitializer(state, id, element.initializer));

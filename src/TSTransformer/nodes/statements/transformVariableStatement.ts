@@ -17,43 +17,41 @@ import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatem
 import ts from "typescript";
 
 export function transformVariable(state: TransformState, identifier: ts.Identifier, right?: luau.Expression) {
-	return state.capture(() => {
-		validateIdentifier(state, identifier);
+	validateIdentifier(state, identifier);
 
-		const symbol = state.typeChecker.getSymbolAtLocation(identifier);
-		assert(symbol);
+	const symbol = state.typeChecker.getSymbolAtLocation(identifier);
+	assert(symbol);
 
-		// export let
-		if (isSymbolMutable(state, symbol)) {
-			const exportAccess = state.getModuleIdPropertyAccess(symbol);
-			if (exportAccess) {
-				if (right) {
-					state.prereq(
-						luau.create(luau.SyntaxKind.Assignment, {
-							left: exportAccess,
-							operator: "=",
-							right,
-						}),
-					);
-				}
-				return exportAccess;
-			}
-		}
-
-		const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
-
-		checkVariableHoist(state, identifier, symbol);
-		if (state.isHoisted.get(symbol) === true) {
-			// no need to do `x = nil` if the variable is already created
+	// export let
+	if (isSymbolMutable(state, symbol)) {
+		const exportAccess = state.getModuleIdPropertyAccess(symbol);
+		if (exportAccess) {
 			if (right) {
-				state.prereq(luau.create(luau.SyntaxKind.Assignment, { left, operator: "=", right }));
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: exportAccess,
+						operator: "=",
+						right,
+					}),
+				);
 			}
-		} else {
-			state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }));
+			return exportAccess;
 		}
+	}
 
-		return left;
-	});
+	const left: luau.AnyIdentifier = transformIdentifierDefined(state, identifier);
+
+	checkVariableHoist(state, identifier, symbol);
+	if (state.isHoisted.get(symbol) === true) {
+		// no need to do `x = nil` if the variable is already created
+		if (right) {
+			state.prereq(luau.create(luau.SyntaxKind.Assignment, { left, operator: "=", right }));
+		}
+	} else {
+		state.prereq(luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }));
+	}
+
+	return left;
 }
 
 function transformOptimizedArrayBindingPattern(
@@ -115,12 +113,15 @@ export function transformVariableDeclaration(
 		);
 	}
 
-	if (ts.isIdentifier(node.name)) {
-		luau.list.pushList(statements, transformVariable(state, node.name, value)[1]);
+	const name = node.name;
+	if (ts.isIdentifier(name)) {
+		luau.list.pushList(
+			statements,
+			state.capturePrereqs(() => transformVariable(state, name, value)),
+		);
 	} else {
 		// in destructuring, rhs must be executed first
 		assert(node.initializer && value);
-		const name = node.name;
 
 		// optimize empty destructure
 		if (name.elements.length === 0) {
