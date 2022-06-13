@@ -57,8 +57,9 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// identifier also needs to be pushed
-			// because value calculation might modify that same variable
+			// note: we don't use pushToVarIfComplex here
+			// because identifier also needs to be pushed
+			// since the value calculation might reassign the variable
 			const index = state.pushToVar(transformPropertyName(state, member.name));
 
 			const value = state.typeChecker.getConstantValue(member);
