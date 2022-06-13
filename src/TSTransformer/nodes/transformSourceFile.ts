@@ -6,7 +6,7 @@ import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import ts from "typescript";
@@ -98,7 +98,7 @@ function handleExports(
 			if (!isSymbolOfValue(originalSymbol)) continue;
 
 			// handle this in transformIdentifier
-			if (isDefinedAsLet(state, originalSymbol)) {
+			if (isSymbolMutable(state, originalSymbol)) {
 				mustPushExports = true;
 				continue;
 			}

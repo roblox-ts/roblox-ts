@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
-import { getAncestor, skipDownwards } from "TSTransformer/util/traversal";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
 export function expressionMightMutate(
@@ -39,14 +39,7 @@ export function expressionMightMutate(
 			node = skipDownwards(node);
 			if (ts.isIdentifier(node)) {
 				const symbol = state.typeChecker.getSymbolAtLocation(node);
-				if (
-					symbol &&
-					symbol.valueDeclaration &&
-					// isDefinedAsLet will return false for non-variables
-					// But that is unsafe for things like function parameters
-					getAncestor(symbol.valueDeclaration, ts.isVariableDeclarationList) &&
-					!isDefinedAsLet(state, symbol)
-				) {
+				if (symbol && !isSymbolMutable(state, symbol)) {
 					return false;
 				}
 			}
