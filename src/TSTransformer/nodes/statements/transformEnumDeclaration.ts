@@ -6,6 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
@@ -54,10 +55,17 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// note: we don't use pushToVarIfComplex here
-			// because identifier also needs to be pushed
-			// since the value calculation might reassign the variable
-			const index = state.pushToVar(transformPropertyName(state, member.name));
+			const name = transformPropertyName(state, member.name);
+			const index = expressionMightMutate(
+				state,
+				name,
+				ts.isComputedPropertyName(member.name) ? member.name.expression : member.name,
+			)
+				? // note: we don't use pushToVarIfComplex here
+				  // because identifier also needs to be pushed
+				  // since the value calculation might reassign the variable
+				  state.pushToVar(name)
+				: name;
 
 			const value = state.typeChecker.getConstantValue(member);
 			let valueExp: luau.Expression;
