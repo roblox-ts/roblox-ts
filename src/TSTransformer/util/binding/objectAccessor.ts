@@ -4,8 +4,8 @@ import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export const objectAccessor = (
@@ -14,10 +14,7 @@ export const objectAccessor = (
 	type: ts.Type,
 	name: ts.PropertyName,
 ): luau.Expression => {
-	const symbol = getFirstDefinedSymbol(state, state.getType(name));
-	if (symbol && state.services.macroManager.getPropertyCallMacro(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noIndexWithoutCall(name.parent));
-	}
+	addIndexDiagnostics(state, name, state.getType(name));
 
 	if (ts.isIdentifier(name)) {
 		return luau.property(parentId, name.text);

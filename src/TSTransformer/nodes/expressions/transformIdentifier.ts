@@ -5,7 +5,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -36,7 +36,7 @@ function getAncestorWhichIsChildOf(parent: ts.Node, node: ts.Node) {
 // for some reason, symbol.valueDeclaration doesn't point to imports?
 function getDeclarationFromImport(symbol: ts.Symbol) {
 	for (const declaration of symbol.declarations ?? []) {
-		const importDec = getAncestor(declaration, ts.isImportDeclaration);
+		const importDec = getAncestor(declaration, ts.isAnyImportSyntax);
 		if (importDec) {
 			return declaration;
 		}
@@ -150,7 +150,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		getAncestor(symbol.valueDeclaration, node => ts.isModuleDeclaration(node) && !isNamespace(node)) === undefined
 	) {
 		const exportAccess = state.getModuleIdPropertyAccess(symbol);
-		if (exportAccess && isDefinedAsLet(state, symbol)) {
+		if (exportAccess && isSymbolMutable(state, symbol)) {
 			return exportAccess;
 		}
 	}

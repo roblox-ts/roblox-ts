@@ -1,4 +1,4 @@
 let a: boolean;
-let b: string | void;
+let b: unknown | void;
 
 print(([a, b] = pcall(() => {})));

@@ -65,42 +65,53 @@ export function transformImportDeclaration(state: TransformState, node: ts.Impor
 		}
 
 		// default import logic
-		if (importClause.name) {
-			const symbol = getOriginalSymbolOfNode(state.typeChecker, importClause.name);
+		const importClauseName = importClause.name;
+		if (importClauseName) {
+			const symbol = getOriginalSymbolOfNode(state.typeChecker, importClauseName);
 			if (state.resolver.isReferencedAliasDeclaration(importClause) && (!symbol || isSymbolOfValue(symbol))) {
 				const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, node.moduleSpecifier);
 				const moduleSymbol = moduleFile && state.typeChecker.getSymbolAtLocation(moduleFile);
 				if (moduleSymbol && state.getModuleExports(moduleSymbol).some(v => v.name === "default")) {
 					luau.list.pushList(
 						statements,
-						transformVariable(state, importClause.name, luau.property(importExp.get(), "default"))[1],
+						state.capturePrereqs(() =>
+							transformVariable(state, importClauseName, luau.property(importExp.get(), "default")),
+						),
 					);
 				} else {
-					luau.list.pushList(statements, transformVariable(state, importClause.name, importExp.get())[1]);
+					luau.list.pushList(
+						statements,
+						state.capturePrereqs(() => transformVariable(state, importClauseName, importExp.get())),
+					);
 				}
 			}
 		}
 
-		if (importClause.namedBindings) {
+		const importClauseNamedBindings = importClause.namedBindings;
+		if (importClauseNamedBindings) {
 			// namespace import logic
-			if (ts.isNamespaceImport(importClause.namedBindings)) {
+			if (ts.isNamespaceImport(importClauseNamedBindings)) {
 				luau.list.pushList(
 					statements,
-					transformVariable(state, importClause.namedBindings.name, importExp.get())[1],
+					state.capturePrereqs(() =>
+						transformVariable(state, importClauseNamedBindings.name, importExp.get()),
+					),
 				);
 			} else {
 				// named elements import logic
-				for (const element of importClause.namedBindings.elements) {
+				for (const element of importClauseNamedBindings.elements) {
 					const symbol = getOriginalSymbolOfNode(state.typeChecker, element.name);
 					// check that import is referenced and has a value at runtime
 					if (state.resolver.isReferencedAliasDeclaration(element) && (!symbol || isSymbolOfValue(symbol))) {
 						luau.list.pushList(
 							statements,
-							transformVariable(
-								state,
-								element.name,
-								luau.property(importExp.get(), (element.propertyName ?? element.name).text),
-							)[1],
+							state.capturePrereqs(() =>
+								transformVariable(
+									state,
+									element.name,
+									luau.property(importExp.get(), (element.propertyName ?? element.name).text),
+								),
+							),
 						);
 					}
 				}

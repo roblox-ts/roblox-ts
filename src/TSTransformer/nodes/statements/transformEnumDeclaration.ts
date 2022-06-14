@@ -6,24 +6,9 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
-
-function hasMultipleDefinitions(symbol: ts.Symbol): boolean {
-	let amtValueDefinitions = 0;
-	for (const declaration of symbol.getDeclarations() ?? []) {
-		if (
-			ts.isEnumDeclaration(declaration) &&
-			!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const)
-		) {
-			amtValueDefinitions++;
-			if (amtValueDefinitions > 1) {
-				return true;
-			}
-		}
-	}
-	return false;
-}
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (
@@ -34,8 +19,20 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	}
 
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleDefinitions(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noEnumMerging(node));
+	if (
+		symbol &&
+		hasMultipleDefinitions(
+			symbol,
+			declaration =>
+				ts.isEnumDeclaration(declaration) &&
+				!ts.getSelectedSyntacticModifierFlags(declaration, ts.ModifierFlags.Const),
+		)
+	) {
+		DiagnosticService.addDiagnosticWithCache(
+			symbol,
+			errors.noEnumMerging(node),
+			state.multiTransformState.isReportedByMultipleDefinitionsCache,
+		);
 		return luau.list.make<luau.Statement>();
 	}
 

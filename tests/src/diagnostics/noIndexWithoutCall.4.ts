@@ -1,0 +1,1 @@
+const { Destroy } = game;
