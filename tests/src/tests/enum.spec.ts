@@ -119,6 +119,14 @@ export = () => {
 	});
 
 	it("should support computed keys", () => {
+		const constKeyIndex = 4;
+		let constKeyValue = 7;
+		enum ConstComputedKey {
+			// @ts-expect-error computed enum property key
+			[constKeyIndex] = constKeyValue,
+		}
+		expect(ConstComputedKey[4]).to.equal(7);
+
 		let computedKeyIndex = 1;
 		enum ComputedKey {
 			// @ts-expect-error computed enum property key
