@@ -71,7 +71,7 @@ function createJsxAddAmbiguousChildren(
 	const valueId = luau.tempId("v");
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: expression,
+		expression,
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.IfStatement, {
 				condition: createTypeCheck(keyId, luau.strings.number),
@@ -104,7 +104,7 @@ function createJsxAddMapChildren(id: luau.AnyIdentifier, expression: luau.Expres
 	const valueId = luau.tempId("v");
 	return luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: expression,
+		expression,
 		statements: luau.list.make(createJsxAddKeyChild(id, keyId, valueId)),
 	});
 }

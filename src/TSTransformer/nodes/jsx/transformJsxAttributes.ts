@@ -42,7 +42,7 @@ function createJsxAttributeLoop(
 	const valueId = luau.tempId("v");
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: expression,
+		expression,
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

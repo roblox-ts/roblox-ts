@@ -80,7 +80,7 @@ function makeEveryOrSomeMethod(
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: initialState ? luau.unary("not", callCallback) : callCallback,
@@ -178,7 +178,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				luau.create(luau.SyntaxKind.ForStatement, {
 					ids: luau.list.make(keyId, valueId),
-					expression: expression,
+					expression,
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -244,7 +244,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, offset(keyId, -1), expression]),
@@ -268,7 +268,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -297,7 +297,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: resultId,
@@ -337,7 +337,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(indexId1),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.binary(indexId1, ">", lengthId),
@@ -410,7 +410,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.create(luau.SyntaxKind.BinaryExpression, {
@@ -520,7 +520,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				expression: expression,
+				expression,
 				ids: luau.list.make(loopId, valueId),
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.IfStatement, {
@@ -556,7 +556,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				expression: expression,
+				expression,
 				ids: luau.list.make(loopId, valueId),
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.IfStatement, {
@@ -743,7 +743,7 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(luau.tempId()),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: sizeId,
@@ -819,7 +819,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, valueId, expression]),
@@ -866,7 +866,7 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: expression,
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, keyId, expression]),
