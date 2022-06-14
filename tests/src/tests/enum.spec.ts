@@ -122,7 +122,6 @@ export = () => {
 		let computedKeyIndex = 1;
 		enum ComputedKey {
 			// @ts-expect-error computed enum property key
-			// prettier-ignore
 			[computedKeyIndex++] = computedKeyIndex,
 		}
 		expect(ComputedKey[1]).to.equal(2);
@@ -131,7 +130,6 @@ export = () => {
 		let computedValueIndex = 3;
 		enum PrereqInValue {
 			// @ts-expect-error computed enum property key
-			// prettier-ignore
 			[computedValueIndex] = (computedValueIndex = 6),
 		}
 		expect(PrereqInValue[3]).to.equal(6);
@@ -140,7 +138,6 @@ export = () => {
 		let obj = { prop: 8 };
 		enum PrereqValueReference {
 			// @ts-expect-error computed enum property key
-			// prettier-ignore
 			[obj.prop] = (obj.prop = 6),
 		}
 		expect(PrereqValueReference[8]).to.equal(6);
