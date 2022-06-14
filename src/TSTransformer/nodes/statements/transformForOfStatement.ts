@@ -130,12 +130,12 @@ function transformForInitializer(
 const buildArrayLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
 	luau.list.push(ids, luau.tempId());
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
-	return luau.call(luau.globals.ipairs, [exp]);
+	return exp;
 });
 
 const buildSetLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
-	return luau.call(luau.globals.pairs, [exp]);
+	return exp;
 });
 
 function transformInLineArrayBindingPattern(
@@ -227,11 +227,11 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 		const name = initializer.declarations[0].name;
 		if (ts.isArrayBindingPattern(name)) {
 			transformInLineArrayBindingPattern(state, name, ids, initializers);
-			return luau.call(luau.globals.pairs, [exp]);
+			return exp;
 		}
 	} else if (ts.isArrayLiteralExpression(initializer)) {
 		transformInLineArrayAssignmentPattern(state, initializer, ids, initializers);
-		return luau.call(luau.globals.pairs, [exp]);
+		return exp;
 	}
 
 	const keyId = luau.tempId("k");
@@ -253,7 +253,7 @@ const buildMapLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, i
 		transformForInitializerExpressionDirect(state, initializer, initializers, luau.array([keyId, valueId]));
 	}
 
-	return luau.call(luau.globals.pairs, [exp]);
+	return exp;
 });
 
 const buildStringLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
