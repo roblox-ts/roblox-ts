@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
-import { TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
@@ -117,7 +117,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 		return luau.nil();
 	} else if (state.typeChecker.isArgumentsSymbol(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noArguments(node));
-	} else if (symbol === state.services.globalSymbols.globalThis) {
+	} else if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.globalThis)) {
 		DiagnosticService.addDiagnostic(errors.noGlobalThis(node));
 	}
 
