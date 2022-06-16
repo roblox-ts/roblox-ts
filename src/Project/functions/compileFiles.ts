@@ -1,6 +1,7 @@
 import { renderAST } from "@roblox-ts/luau-ast";
 import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
+import kleur from "kleur";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
@@ -112,11 +113,22 @@ export function compileFiles(
 		}
 	}
 
-	if (
-		projectType !== ProjectType.Package &&
-		!rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE))
-	) {
-		return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
+	if (projectType !== ProjectType.Package) {
+		const defaultScopeRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE));
+		if (!defaultScopeRbxPath) {
+			return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
+		} else if (defaultScopeRbxPath[defaultScopeRbxPath.length - 1] !== RBXTS_SCOPE) {
+			return emitResultFailure(
+				"Rojo project `node_modules` must be in the form of:" +
+					kleur.yellow(`
+"node_modules": {
+	"$className": "Folder",
+	"@rbxts": {
+		"$path": "node_modules/@rbxts"
+	}
+}`),
+			);
+		}
 	}
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };

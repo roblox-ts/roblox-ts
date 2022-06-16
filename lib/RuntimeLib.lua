@@ -3,6 +3,10 @@ local Promise = require(script.Parent.Promise)
 local RunService = game:GetService("RunService")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
+local function err(str, level)
+	error("roblox-ts: " .. str, level ~= nil and level + 1 or 3)
+end
+
 local TS = {}
 
 TS.Promise = Promise
@@ -11,10 +15,14 @@ local function isPlugin(object)
 	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
-function TS.getModule(object, scope, moduleName)
+local NODE_MODULES = "node_modules"
+local DEFAULT_SCOPE = "@rbxts"
+
+function TS.getModuleInternal(object, scope, moduleName)
+	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
-		scope = "@rbxts"
+		scope = DEFAULT_SCOPE
 	end
 
 	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
@@ -26,27 +34,41 @@ function TS.getModule(object, scope, moduleName)
 		game.Loaded:Wait()
 	end
 
-	local globalModules = script.Parent:FindFirstChild("node_modules")
-	if not globalModules then
-		error("Could not find any modules!", 2)
-	end
-
 	repeat
-		local modules = object:FindFirstChild("node_modules")
-		if modules and modules ~= globalModules then
-			modules = modules:FindFirstChild("@rbxts")
-		end
+		local modules = object:FindFirstChild(NODE_MODULES)
 		if modules then
-			local module = modules:FindFirstChild(moduleName)
-			if module then
-				return module
+			modules = modules:FindFirstChild(scope)
+			if modules then
+				local module = modules:FindFirstChild(moduleName)
+				if module then
+					return module
+				end
 			end
 		end
-		object = object.Parent
-	until object == nil or object == globalModules
+		object = object:FindFirstAncestor(NODE_MODULES)
+	until object == nil
 
-	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts");
-	return (scopedModules or globalModules):FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
+	err("Could not find module: " .. moduleName)
+end
+TS.getModule = TS.getModuleInternal
+
+function TS.getModuleHost(object, scope, moduleName)
+	local globalModules = script.Parent:FindFirstChild(NODE_MODULES)
+	if not globalModules then
+		err("Could not find global node_modules!")
+	end
+
+	local scopeFolder = globalModules:FindFirstChild(scope)
+	if not scopeFolder then
+		err("Could not find node_modules scope: " .. scope)
+	end
+
+	local module = scopeFolder:FindFirstChild(moduleName)
+	if module then
+		return module
+	end
+
+	err("Could not find module: " .. moduleName)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
@@ -59,7 +81,7 @@ function TS.import(caller, module, ...)
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
+		err("Failed to import! Expected ModuleScript, got " .. module.ClassName)
 	end
 
 	currentlyLoading[caller] = module
@@ -86,16 +108,13 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+			err("Failed to import! Detected a circular dependency chain: " .. str)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
-			error(
-				"Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(),
-				2
-			)
+			err("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName())
 		end
 
 		_G[module] = TS
