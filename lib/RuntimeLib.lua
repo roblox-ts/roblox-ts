@@ -18,7 +18,7 @@ end
 local NODE_MODULES = "node_modules"
 local DEFAULT_SCOPE = "@rbxts"
 
-function TS.getModuleInternal(object, scope, moduleName)
+function TS.getModuleRelative(object, scope, moduleName)
 	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
@@ -35,11 +35,11 @@ function TS.getModuleInternal(object, scope, moduleName)
 	end
 
 	repeat
-		local modules = object:FindFirstChild(NODE_MODULES)
-		if modules then
-			modules = modules:FindFirstChild(scope)
-			if modules then
-				local module = modules:FindFirstChild(moduleName)
+		local nodeModulesFolder = object:FindFirstChild(NODE_MODULES)
+		if nodeModulesFolder then
+			local scopeFolder = nodeModulesFolder:FindFirstChild(scope)
+			if scopeFolder then
+				local module = scopeFolder:FindFirstChild(moduleName)
 				if module then
 					return module
 				end
@@ -50,9 +50,9 @@ function TS.getModuleInternal(object, scope, moduleName)
 
 	err("Could not find module: " .. moduleName)
 end
-TS.getModule = TS.getModuleInternal
+TS.getModule = TS.getModuleRelative
 
-function TS.getModuleHost(object, scope, moduleName)
+function TS.getModuleGlobal(object, scope, moduleName)
 	local globalModules = script.Parent:FindFirstChild(NODE_MODULES)
 	if not globalModules then
 		err("Could not find global node_modules!")
