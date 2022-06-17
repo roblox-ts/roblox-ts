@@ -10,6 +10,7 @@ import { copyItem } from "Project/functions/copyItem";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
 import { createRojoResolver } from "Project/functions/createRojoResolver";
+import { generateManifestFile } from "Project/functions/generateManifestFile";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
@@ -93,9 +94,11 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		assert(program && pathTranslator);
 		cleanup(pathTranslator);
 		copyInclude(data);
+		const compilerOptions = program.getCompilerOptions();
+		const rojoResolver = createRojoResolver(data, compilerOptions);
+		generateManifestFile(data, compilerOptions, rojoResolver);
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
-		const rojoResolver = createRojoResolver(data, program.getCompilerOptions());
 		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, rojoResolver, sourceFiles);
 		if (!emitResult.emitSkipped) {
 			initialCompileCompleted = true;
