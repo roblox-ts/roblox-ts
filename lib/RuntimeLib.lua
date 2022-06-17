@@ -3,6 +3,30 @@ local Promise = require(script.Parent.Promise)
 local RunService = game:GetService("RunService")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
+local ERROR_PREFIX = "roblox-ts: "
+local NODE_MODULES = "node_modules"
+local DEFAULT_SCOPE = "@rbxts"
+
+local manifest = require(script.Parent.manifest)
+manifest.reverse = {}
+
+local MANIFEST_PARENT_SYMBOL = {}
+
+-- sets up parent links + manifest.reverse
+local function patchManifest(node)
+	local rbxPath = node._rbxPath
+	if rbxPath ~= nil then
+		manifest.reverse[rbxPath] = node
+	end
+	for name, child in node do
+		if name ~= MANIFEST_PARENT_SYMBOL and type(child) ~= "string" then
+			child[MANIFEST_PARENT_SYMBOL] = node
+			patchManifest(child)
+		end
+	end
+end
+patchManifest(manifest)
+
 local TS = {}
 
 TS.Promise = Promise
@@ -11,42 +35,94 @@ local function isPlugin(object)
 	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
-function TS.getModule(object, scope, moduleName)
+local function hash(instance)
+	if instance.Parent and instance.Parent ~= game then
+		return hash(instance.Parent) .. ">" .. instance.Name
+	else
+		return instance.Name
+	end
+end
+
+local function findPackageFolderAncestor(instance)
+	if instance.Parent then
+		if string.sub(instance.Parent.Name, 1, 1) == "@" then
+			return instance
+		else
+			return findPackageFolderAncestor(instance.Parent)
+		end
+	end
+end
+
+local function waitForVirtualNode(virtualNode)
+	local rbxPath = virtualNode._rbxPath
+	if rbxPath == nil then
+		error(ERROR_PREFIX .. "VirtualNode did not have a _rbxPath!", 3)
+	end
+	local obj = game
+	for _, part in string.split(rbxPath, ">") do
+		obj = obj:WaitForChild(part)
+	end
+	return obj
+end
+
+function TS.getModuleRelative(context, scope, moduleName)
+	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
-		scope = "@rbxts"
+		scope = DEFAULT_SCOPE
 	end
 
-	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
+	if RunService:IsRunning() and context:IsDescendantOf(ReplicatedFirst) then
 		warn("roblox-ts packages should not be used from ReplicatedFirst!")
 	end
 
 	-- ensure modules have fully replicated
-	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
+	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(context) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
-	local globalModules = script.Parent:FindFirstChild("node_modules")
-	if not globalModules then
-		error("Could not find any modules!", 2)
+	local packageFolder = findPackageFolderAncestor(context)
+	local packageFolderHash = hash(packageFolder)
+	local virtualNode = manifest.reverse[packageFolderHash]
+	if not virtualNode then
+		error(ERROR_PREFIX .. string.format("Could not %s in manifest.json", packageFolderHash), 2)
 	end
 
 	repeat
-		local modules = object:FindFirstChild("node_modules")
-		if modules and modules ~= globalModules then
-			modules = modules:FindFirstChild("@rbxts")
-		end
-		if modules then
-			local module = modules:FindFirstChild(moduleName)
-			if module then
-				return module
+		local nodeModulesFolder = virtualNode[NODE_MODULES]
+		if nodeModulesFolder then
+			local scopeFolder = nodeModulesFolder[scope]
+			if scopeFolder then
+				local module = scopeFolder[moduleName]
+				if module then
+					return waitForVirtualNode(module)
+				end
 			end
 		end
-		object = object.Parent
-	until object == nil or object == globalModules
+		virtualNode = virtualNode[MANIFEST_PARENT_SYMBOL]
+	until virtualNode == nil
 
-	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts");
-	return (scopedModules or globalModules):FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
+	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
+end
+TS.getModule = TS.getModuleRelative
+
+function TS.getModuleGlobal(object, scope, moduleName)
+	local globalModules = manifest[NODE_MODULES]
+	if not globalModules then
+		error(ERROR_PREFIX .. "Could not find global node_modules!", 2)
+	end
+
+	local scopeFolder = globalModules[scope]
+	if not scopeFolder then
+		error(ERROR_PREFIX .. "Could not find node_modules scope: " .. scope, 2)
+	end
+
+	local module = scopeFolder[moduleName]
+	if module then
+		return waitForVirtualNode(module)
+	end
+
+	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
@@ -59,7 +135,7 @@ function TS.import(caller, module, ...)
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
+		error(ERROR_PREFIX .. "Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
 	currentlyLoading[caller] = module
@@ -86,14 +162,16 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+			error(ERROR_PREFIX .. "Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
 			error(
-				"Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(),
+				ERROR_PREFIX
+				.. "Invalid module access! Do you have multiple TS runtimes trying to import this? "
+				.. module:GetFullName(),
 				2
 			)
 		end

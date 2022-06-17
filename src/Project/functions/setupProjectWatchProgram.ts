@@ -9,6 +9,7 @@ import { copyInclude } from "Project/functions/copyInclude";
 import { copyItem } from "Project/functions/copyItem";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProgramFactory } from "Project/functions/createProgramFactory";
+import { createRojoResolver } from "Project/functions/createRojoResolver";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
@@ -94,7 +95,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		copyInclude(data);
 		copyFiles(data, pathTranslator, new Set(getRootDirs(options)));
 		const sourceFiles = getChangedSourceFiles(program);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const rojoResolver = createRojoResolver(data, program.getCompilerOptions());
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, rojoResolver, sourceFiles);
 		if (!emitResult.emitSkipped) {
 			initialCompileCompleted = true;
 		}
@@ -139,7 +141,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		refreshProgram();
 		assert(program && pathTranslator);
 		const sourceFiles = getChangedSourceFiles(program, options.incremental ? undefined : [...filesToCompile]);
-		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, sourceFiles);
+		const rojoResolver = createRojoResolver(data, program.getCompilerOptions());
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, rojoResolver, sourceFiles);
 		if (emitResult.emitSkipped) {
 			// exit before copying to prevent half-updated out directory
 			return emitResult;

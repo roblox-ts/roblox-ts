@@ -98,8 +98,9 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		return luau.none();
 	}
 
+	const getModuleName = state.projectType === ProjectType.Package ? "getModuleRelative" : "getModuleGlobal";
 	return propertyAccessExpressionChain(
-		luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
+		luau.call(state.TS(moduleSpecifier.parent, getModuleName), [
 			luau.globals.script,
 			luau.string(moduleScope),
 			luau.string(moduleName),

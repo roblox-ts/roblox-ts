@@ -8,6 +8,8 @@ import { copyInclude } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
+import { createRojoResolver } from "Project/functions/createRojoResolver";
+import { generateManifestFile } from "Project/functions/generateManifestFile";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchProgram";
 import { LogService } from "Shared/classes/LogService";
@@ -128,14 +130,18 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFl
 				setupProjectWatchProgram(data, argv.usePolling);
 			} else {
 				const program = createProjectProgram(data);
+				const compilerOptions = program.getCompilerOptions();
 				const pathTranslator = createPathTranslator(program);
+				const rojoResolver = createRojoResolver(data, compilerOptions);
 				cleanup(pathTranslator);
 				copyInclude(data);
-				copyFiles(data, pathTranslator, new Set(getRootDirs(program.getCompilerOptions())));
+				generateManifestFile(data, compilerOptions, rojoResolver);
+				copyFiles(data, pathTranslator, new Set(getRootDirs(compilerOptions)));
 				const emitResult = compileFiles(
 					program.getProgram(),
 					data,
 					pathTranslator,
+					rojoResolver,
 					getChangedSourceFiles(program),
 				);
 				for (const diagnostic of emitResult.diagnostics) {

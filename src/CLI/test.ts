@@ -7,6 +7,7 @@ import { copyInclude } from "Project/functions/copyInclude";
 import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
+import { createRojoResolver } from "Project/functions/createRojoResolver";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
@@ -33,10 +34,12 @@ describe("should compile tests project", () => {
 		},
 	);
 	const program = createProjectProgram(data);
+	const compilerOptions = program.getCompilerOptions();
 	const pathTranslator = createPathTranslator(program);
+	const rojoResolver = createRojoResolver(data, compilerOptions);
 
 	// clean outDir between test runs
-	fs.removeSync(program.getCompilerOptions().outDir!);
+	fs.removeSync(compilerOptions.outDir!);
 
 	it("should copy include files", () => copyInclude(data));
 
@@ -57,7 +60,7 @@ describe("should compile tests project", () => {
 			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
 			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, rojoResolver, [sourceFile]);
 				if (
 					emitResult.diagnostics.length > 0 &&
 					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
@@ -71,7 +74,7 @@ describe("should compile tests project", () => {
 			});
 		} else {
 			it(`should compile ${fileName}`, done => {
-				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, rojoResolver, [sourceFile]);
 				if (emitResult.diagnostics.length > 0) {
 					done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
 				} else {

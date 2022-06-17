@@ -65,17 +65,12 @@ export function compileFiles(
 	program: ts.Program,
 	data: ProjectData,
 	pathTranslator: PathTranslator,
+	rojoResolver: RojoResolver,
 	sourceFiles: Array<ts.SourceFile>,
 ): ts.EmitResult {
 	const compilerOptions = program.getCompilerOptions();
 
 	const multiTransformState = new MultiTransformState();
-
-	const outDir = compilerOptions.outDir!;
-
-	const rojoResolver = data.rojoConfigPath
-		? RojoResolver.fromPath(data.rojoConfigPath)
-		: RojoResolver.synthetic(outDir);
 
 	for (const warning of rojoResolver.getWarnings()) {
 		LogService.warn(warning);
