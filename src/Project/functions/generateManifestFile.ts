@@ -28,7 +28,10 @@ function generatePackageManifest(fsPath: string, rojoResolver: RojoResolver) {
 		result[NODE_MODULES] = generateNodeModulesManifest(nodeModulesPath, rojoResolver);
 	}
 
-	result._rbxPath = rojoResolver.getRbxPathFromFilePath(fsPath)!.join(">");
+	const rbxPath = rojoResolver.getRbxPathFromFilePath(fsPath);
+	if (rbxPath) {
+		result._rbxPath = rbxPath.join(">");
+	}
 
 	return result;
 }
