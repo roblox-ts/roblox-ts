@@ -20,9 +20,9 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 	if (ts.isFunctionBody(body)) {
 		luau.list.pushList(statements, transformStatementList(state, body.statements));
 	} else {
-		const [returnStatement, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
+		const [returnStatements, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
 		luau.list.pushList(statements, prereqs);
-		luau.list.push(statements, returnStatement);
+		luau.list.pushList(statements, returnStatements);
 	}
 
 	const isAsync = !!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Async);

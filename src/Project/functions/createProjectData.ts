@@ -28,13 +28,11 @@ export function createProjectData(
 	}
 
 	let isPackage = false;
-	let pkgVersion = "";
 	try {
 		const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath).toString());
 		isPackage = PACKAGE_REGEX.test(pkgJson.name ?? "");
-		pkgVersion = pkgJson.version;
 	} catch (e) {
-		// errors if no pkgJson, so assume not a package and no version
+		// errors if no pkgJson, so assume not a package
 	}
 
 	const logTruthyChanges = flags.logTruthyChanges;
@@ -59,6 +57,7 @@ export function createProjectData(
 	}
 
 	const writeOnlyChanged = flags.writeOnlyChanged;
+	const optimizedLoops = flags.optimizedLoops;
 	const watch = flags.watch;
 
 	return {
@@ -68,11 +67,11 @@ export function createProjectData(
 		logTruthyChanges,
 		noInclude,
 		nodeModulesPath,
-		pkgVersion,
 		projectOptions,
 		projectPath,
 		rojoConfigPath,
 		writeOnlyChanged,
+		optimizedLoops,
 		watch,
 	};
 }

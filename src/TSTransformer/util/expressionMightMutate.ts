@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import ts from "typescript";
 
@@ -39,7 +39,7 @@ export function expressionMightMutate(
 			node = skipDownwards(node);
 			if (ts.isIdentifier(node)) {
 				const symbol = state.typeChecker.getSymbolAtLocation(node);
-				if (symbol && !isDefinedAsLet(state, symbol)) {
+				if (symbol && !isSymbolMutable(state, symbol)) {
 					return false;
 				}
 			}

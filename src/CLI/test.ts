@@ -1,3 +1,4 @@
+import fs from "fs-extra";
 import { describe } from "mocha";
 import path from "path";
 import { compileFiles } from "Project/functions/compileFiles";
@@ -28,10 +29,14 @@ describe("should compile tests project", () => {
 			verbose: false,
 			watch: false,
 			writeOnlyChanged: false,
+			optimizedLoops: false,
 		},
 	);
 	const program = createProjectProgram(data);
 	const pathTranslator = createPathTranslator(program);
+
+	// clean outDir between test runs
+	fs.removeSync(program.getCompilerOptions().outDir!);
 
 	it("should copy include files", () => copyInclude(data));
 
