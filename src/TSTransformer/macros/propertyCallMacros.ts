@@ -926,15 +926,6 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
-	// math classes
-	// CFrame: makeMathSet("+", "-", "*"),
-	// UDim: makeMathSet("+", "-"),
-	// UDim2: makeMathSet("+", "-"),
-	// Vector2: makeMathSet("+", "-", "*", "/"),
-	// Vector2int16: makeMathSet("+", "-", "*", "/"),
-	// Vector3: makeMathSet("+", "-", "*", "/"),
-	// Vector3int16: makeMathSet("+", "-", "*", "/"),
-
 	Add: makeMathSet("+"),
 	Sub: makeMathSet("-"),
 	Mul: makeMathSet("*"),
