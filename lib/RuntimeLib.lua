@@ -3,9 +3,9 @@ local Promise = require(script.Parent.Promise)
 local RunService = game:GetService("RunService")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
-local function err(str, level)
-	error("roblox-ts: " .. str, level ~= nil and level + 1 or 3)
-end
+local ERROR_PREFIX = "roblox-ts: "
+local NODE_MODULES = "node_modules"
+local DEFAULT_SCOPE = "@rbxts"
 
 local TS = {}
 
@@ -14,9 +14,6 @@ TS.Promise = Promise
 local function isPlugin(object)
 	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
-
-local NODE_MODULES = "node_modules"
-local DEFAULT_SCOPE = "@rbxts"
 
 function TS.getModuleRelative(object, scope, moduleName)
 	-- legacy call signature
@@ -48,19 +45,19 @@ function TS.getModuleRelative(object, scope, moduleName)
 		object = object:FindFirstAncestor(NODE_MODULES)
 	until object == nil
 
-	err("Could not find module: " .. moduleName)
+	error("Could not find module: " .. moduleName, 2)
 end
 TS.getModule = TS.getModuleRelative
 
 function TS.getModuleGlobal(object, scope, moduleName)
 	local globalModules = script.Parent:FindFirstChild(NODE_MODULES)
 	if not globalModules then
-		err("Could not find global node_modules!")
+		error("Could not find global node_modules!", 2)
 	end
 
 	local scopeFolder = globalModules:FindFirstChild(scope)
 	if not scopeFolder then
-		err("Could not find node_modules scope: " .. scope)
+		error("Could not find node_modules scope: " .. scope, 2)
 	end
 
 	local module = scopeFolder:FindFirstChild(moduleName)
@@ -68,7 +65,7 @@ function TS.getModuleGlobal(object, scope, moduleName)
 		return module
 	end
 
-	err("Could not find module: " .. moduleName)
+	error("Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
@@ -81,7 +78,7 @@ function TS.import(caller, module, ...)
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		err("Failed to import! Expected ModuleScript, got " .. module.ClassName)
+		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
 	currentlyLoading[caller] = module
@@ -108,13 +105,17 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			err("Failed to import! Detected a circular dependency chain: " .. str)
+			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
-			err("Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName())
+			error(
+				"Invalid module access! Do you have multiple TS runtimes trying to import this? "
+				.. module:GetFullName(),
+				2
+			)
 		end
 
 		_G[module] = TS
