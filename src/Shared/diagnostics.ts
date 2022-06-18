@@ -181,9 +181,8 @@ export const errors = {
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
 	noServerImport: error(
-		"Cannot import a server package from a shared or client location!",
-		suggestion("Add the package to your rojo project in a shared location."),
-		issue(1898),
+		"Cannot import a server file from a shared or client location!",
+		suggestion("Move the file you want to import to a shared location."),
 	),
 
 	// roact jsx
