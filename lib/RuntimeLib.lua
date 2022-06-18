@@ -15,7 +15,7 @@ local function isPlugin(object)
 	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
-function TS.getModuleRelative(object, scope, moduleName)
+function TS.getModule(object, scope, moduleName)
 	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
@@ -42,28 +42,8 @@ function TS.getModuleRelative(object, scope, moduleName)
 				end
 			end
 		end
-		object = object:FindFirstAncestor(NODE_MODULES)
+		object = object.Parent
 	until object == nil
-
-	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
-end
-TS.getModule = TS.getModuleRelative
-
-function TS.getModuleGlobal(object, scope, moduleName)
-	local globalModules = script.Parent:FindFirstChild(NODE_MODULES)
-	if not globalModules then
-		error(ERROR_PREFIX .. "Could not find global node_modules!", 2)
-	end
-
-	local scopeFolder = globalModules:FindFirstChild(scope)
-	if not scopeFolder then
-		error(ERROR_PREFIX .. "Could not find node_modules scope: " .. scope, 2)
-	end
-
-	local module = scopeFolder:FindFirstChild(moduleName)
-	if module then
-		return module
-	end
 
 	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
 end

@@ -79,7 +79,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		DiagnosticService.addDiagnostic(
 			errors.noRojoDataPackage(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
 		);
-		return luau.none();
+		return [];
 	}
 
 	const relativeFilePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
@@ -88,7 +88,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
-		return luau.none();
+		return [];
 	}
 
 	if (gameRbxPath && !gameRbxPath.includes(moduleScope)) {
@@ -99,7 +99,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 				gameRbxPath,
 			),
 		);
-		return luau.none();
+		return [];
 	}
 
 	const moduleName = relativeRbxPath[0];
@@ -107,18 +107,24 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!validateModule(state, moduleScope)) {
 		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
-		return luau.none();
+		return [];
 	}
 
-	const getModuleName = state.projectType === ProjectType.Package ? "getModuleRelative" : "getModuleGlobal";
-	return propertyAccessExpressionChain(
-		luau.call(state.TS(moduleSpecifier.parent, getModuleName), [
-			luau.globals.script,
-			luau.string(moduleScope),
-			luau.string(moduleName),
-		]),
-		relativeRbxPath.slice(1),
-	);
+	if (state.projectType === ProjectType.Package) {
+		return [
+			propertyAccessExpressionChain(
+				luau.call(state.TS(moduleSpecifier.parent, "getModuleRelative"), [
+					luau.globals.script,
+					luau.string(moduleScope),
+					luau.string(moduleName),
+				]),
+				relativeRbxPath.slice(1),
+			),
+		];
+	} else {
+		assert(gameRbxPath);
+		return getAbsoluteImport(gameRbxPath);
+	}
 }
 
 export function createImportExpression(
@@ -137,7 +143,7 @@ export function createImportExpression(
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
-		importPathExpressions.push(getNodeModulesImport(state, moduleSpecifier, virtualPath));
+		importPathExpressions.push(...getNodeModulesImport(state, moduleSpecifier, virtualPath));
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
