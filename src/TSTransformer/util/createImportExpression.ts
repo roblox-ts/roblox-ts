@@ -100,7 +100,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 		return [
 			propertyAccessExpressionChain(
-				luau.call(state.TS(moduleSpecifier.parent, "getModuleRelative"), [
+				luau.call(state.TS(moduleSpecifier.parent, "getModule"), [
 					luau.globals.script,
 					luau.string(moduleScope),
 					luau.string(moduleName),
