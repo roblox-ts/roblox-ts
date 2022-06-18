@@ -1,7 +1,6 @@
 local Promise = require(script.Parent.Promise)
 
 local RunService = game:GetService("RunService")
-local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
 local OUTPUT_PREFIX = "roblox-ts: "
 local NODE_MODULES = "node_modules"
