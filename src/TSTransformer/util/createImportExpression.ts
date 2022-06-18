@@ -158,6 +158,7 @@ export function createImportExpression(
 				DiagnosticService.addDiagnostic(errors.noServerImport(moduleSpecifier));
 				return luau.none();
 			}
+
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
 				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
