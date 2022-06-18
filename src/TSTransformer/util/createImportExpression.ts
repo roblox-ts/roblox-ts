@@ -151,15 +151,15 @@ export function createImportExpression(
 		}
 
 		if (state.projectType === ProjectType.Game) {
+			if (
+				state.rojoResolver.getNetworkType(moduleRbxPath) === NetworkType.Server &&
+				state.rojoResolver.getNetworkType(sourceRbxPath) !== NetworkType.Server
+			) {
+				DiagnosticService.addDiagnostic(errors.noServerImport(moduleSpecifier));
+				return luau.none();
+			}
 			const fileRelation = state.rojoResolver.getFileRelation(sourceRbxPath, moduleRbxPath);
 			if (fileRelation === FileRelation.OutToOut || fileRelation === FileRelation.InToOut) {
-				if (
-					state.rojoResolver.getNetworkType(moduleRbxPath) === NetworkType.Server &&
-					state.rojoResolver.getNetworkType(sourceRbxPath) !== NetworkType.Server
-				) {
-					DiagnosticService.addDiagnostic(errors.noServerImport(moduleSpecifier));
-					return luau.none();
-				}
 				importPathExpressions.push(...getAbsoluteImport(moduleRbxPath));
 			} else if (fileRelation === FileRelation.InToIn) {
 				importPathExpressions.push(...getRelativeImport(sourceRbxPath, moduleRbxPath));
