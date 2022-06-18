@@ -45,19 +45,19 @@ function TS.getModuleRelative(object, scope, moduleName)
 		object = object:FindFirstAncestor(NODE_MODULES)
 	until object == nil
 
-	error("Could not find module: " .. moduleName, 2)
+	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
 end
 TS.getModule = TS.getModuleRelative
 
 function TS.getModuleGlobal(object, scope, moduleName)
 	local globalModules = script.Parent:FindFirstChild(NODE_MODULES)
 	if not globalModules then
-		error("Could not find global node_modules!", 2)
+		error(ERROR_PREFIX .. "Could not find global node_modules!", 2)
 	end
 
 	local scopeFolder = globalModules:FindFirstChild(scope)
 	if not scopeFolder then
-		error("Could not find node_modules scope: " .. scope, 2)
+		error(ERROR_PREFIX .. "Could not find node_modules scope: " .. scope, 2)
 	end
 
 	local module = scopeFolder:FindFirstChild(moduleName)
@@ -65,7 +65,7 @@ function TS.getModuleGlobal(object, scope, moduleName)
 		return module
 	end
 
-	error("Could not find module: " .. moduleName, 2)
+	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
@@ -78,7 +78,7 @@ function TS.import(caller, module, ...)
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
+		error(ERROR_PREFIX .. "Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
 	currentlyLoading[caller] = module
@@ -105,14 +105,15 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+			error(ERROR_PREFIX .. "Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
 			error(
-				"Invalid module access! Do you have multiple TS runtimes trying to import this? "
+				ERROR_PREFIX
+				.. "Invalid module access! Do you have multiple TS runtimes trying to import this? "
 				.. module:GetFullName(),
 				2
 			)
