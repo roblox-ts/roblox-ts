@@ -11,7 +11,7 @@ export type DiagnosticFactory<T extends Array<any> = []> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string>;
+type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
@@ -29,7 +29,7 @@ let id = 0;
  * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
  * @param messages The list of messages to include in the error report.
  */
-function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>): DiagnosticFactory {
+function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string | false>): DiagnosticFactory {
 	return diagnosticWithContext(category, undefined, ...messages);
 }
 
@@ -45,7 +45,7 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>)
 function diagnosticWithContext<T extends Array<any> = []>(
 	category: ts.DiagnosticCategory,
 	contextFormatter?: DiagnosticContextFormatter<T>,
-	...messages: Array<string>
+	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	const result = (node: ts.Node, ...context: T) => {
 		if (category === ts.DiagnosticCategory.Error) {
@@ -56,24 +56,24 @@ function diagnosticWithContext<T extends Array<any> = []>(
 			messages.push(...contextFormatter(...context));
 		}
 
-		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
+		return createDiagnosticWithLocation(result.id, messages.filter(v => v !== false).join("\n"), category, node);
 	};
 	result.id = id++;
 	return result;
 }
 
-function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string>) {
-	return createTextDiagnostic(messages.join("\n"), category);
+function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string | false>) {
+	return createTextDiagnostic(messages.filter(v => v !== false).join("\n"), category);
 }
 
-function error(...messages: Array<string>): DiagnosticFactory {
+function error(...messages: Array<string | false>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function errorWithContext<T extends Array<any> = []>(
 	contextFormatter: DiagnosticContextFormatter<T>,
-	...messages: Array<string>
+	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
 }
@@ -206,12 +206,9 @@ export const errors = {
 	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
 
 	// files
-	noRojoData: errorWithContext((path: string) => [
+	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
-	]),
-	noRojoDataPackage: errorWithContext((path: string) => [
-		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
-		suggestion(`Did you forget to add a custom npm scope to your default.project.json?`),
+		isPackage && suggestion(`Did you forget to add a custom npm scope to your default.project.json?`),
 	]),
 	noPackageImportWithoutScope: errorWithContext((path: string, rbxPath: RbxPath) => [
 		`Imported package Roblox path is missing an npm scope!`,
@@ -224,7 +221,7 @@ export const errors = {
 	"@rbxts": {
 		"$path": "node_modules/@rbxts"
 	}
-}`.trim(),
+}`,
 		),
 	]),
 	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
@@ -252,4 +249,5 @@ export const warnings = {
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
+	packageUsedInReplicatedFirst: warning("node_modules should not be used from ReplicatedFirst."),
 };

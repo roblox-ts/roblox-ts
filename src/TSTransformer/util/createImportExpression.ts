@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { FileRelation, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { errors } from "Shared/diagnostics";
+import { errors, warnings } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
@@ -73,37 +73,13 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		/* isNodeModule */ true,
 	);
 
-	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
-	if (!relativeRbxPath || (state.projectType !== ProjectType.Package && !gameRbxPath)) {
-		DiagnosticService.addDiagnostic(
-			errors.noRojoDataPackage(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
-		);
-		return [];
-	}
-
-	const relativeFilePath = path.relative(state.data.nodeModulesPath, moduleOutPath);
-	const moduleScope = relativeFilePath.split(path.sep)[0];
-	assert(moduleScope && typeof moduleScope === "string");
+	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
+	assert(moduleScope);
 
 	if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
 		return [];
 	}
-
-	if (gameRbxPath && !gameRbxPath.includes(moduleScope)) {
-		DiagnosticService.addDiagnostic(
-			errors.noPackageImportWithoutScope(
-				moduleSpecifier,
-				path.relative(state.data.projectPath, moduleOutPath),
-				gameRbxPath,
-			),
-		);
-		return [];
-	}
-
-	const moduleName = relativeRbxPath[0];
-	assert(moduleName && typeof moduleName === "string");
 
 	if (!validateModule(state, moduleScope)) {
 		DiagnosticService.addDiagnostic(errors.noInvalidModule(moduleSpecifier));
@@ -111,6 +87,17 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	}
 
 	if (state.projectType === ProjectType.Package) {
+		const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
+		if (!relativeRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+			);
+			return [];
+		}
+
+		const moduleName = relativeRbxPath[0];
+		assert(moduleName);
+
 		return [
 			propertyAccessExpressionChain(
 				luau.call(state.TS(moduleSpecifier.parent, "getModuleRelative"), [
@@ -122,7 +109,28 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 			),
 		];
 	} else {
-		assert(gameRbxPath);
+		const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!gameRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+			);
+			return [];
+		}
+
+		if (!gameRbxPath.includes(moduleScope)) {
+			DiagnosticService.addDiagnostic(
+				errors.noPackageImportWithoutScope(
+					moduleSpecifier,
+					path.relative(state.data.projectPath, moduleOutPath),
+					gameRbxPath,
+				),
+			);
+			return [];
+		}
+
+		if (gameRbxPath[0] === "ReplicatedFirst") {
+			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
+		}
 		return getAbsoluteImport(gameRbxPath);
 	}
 }
@@ -149,7 +157,7 @@ export function createImportExpression(
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
 			);
 			return luau.none();
 		}
@@ -164,7 +172,7 @@ export function createImportExpression(
 		const sourceRbxPath = state.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 		if (!sourceRbxPath) {
 			DiagnosticService.addDiagnostic(
-				errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath)),
+				errors.noRojoData(sourceFile, path.relative(state.data.projectPath, sourceOutPath), false),
 			);
 			return luau.none();
 		}
