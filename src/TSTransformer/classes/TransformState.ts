@@ -228,7 +228,11 @@ export class TransformState {
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					DiagnosticService.addDiagnostic(
-						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
+						// TODO: Better error node and "generated from importing <file>" here
+						errors.noRojoData(sourceFile, [
+							path.relative(this.data.projectPath, sourceOutPath),
+							path.relative(this.data.projectPath, sourceFile.fileName),
+						]),
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: luau.globals.TS,
