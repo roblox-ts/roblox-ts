@@ -13,7 +13,7 @@ import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { ProjectType } from "Shared/constants";
+import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -110,6 +110,13 @@ export function compileFiles(
 		} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
 			return emitResultFailure("Runtime library cannot be in an isolated container!");
 		}
+	}
+
+	if (
+		projectType !== ProjectType.Package &&
+		!rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE))
+	) {
+		return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
 	}
 
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
