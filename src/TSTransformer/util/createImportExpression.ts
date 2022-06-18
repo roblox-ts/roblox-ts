@@ -93,7 +93,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (gameRbxPath && !gameRbxPath.includes(moduleScope)) {
 		DiagnosticService.addDiagnostic(
-			errors.packageImportMissingScope(
+			errors.noPackageImportWithoutScope(
 				moduleSpecifier,
 				path.relative(state.data.projectPath, moduleOutPath),
 				gameRbxPath,
