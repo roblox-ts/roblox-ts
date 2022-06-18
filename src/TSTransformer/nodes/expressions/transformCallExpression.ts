@@ -198,6 +198,14 @@ export function transformPropertyCallExpressionInner(
 		}
 	}
 
+	const expSymbol = state.typeChecker.getSymbolAtLocation(node.expression)?.valueDeclaration?.symbol;
+	if (expSymbol) {
+		const macro = state.services.macroManager.getPropertyCallMacro(expSymbol);
+		if (macro) {
+			return runCallMacro(macro, state, node, baseExpression, nodeArguments);
+		}
+	}
+
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
