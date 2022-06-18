@@ -77,18 +77,7 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 	const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
 	if (!relativeRbxPath || (state.projectType !== ProjectType.Package && !gameRbxPath)) {
 		DiagnosticService.addDiagnostic(
-			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
-		);
-		return luau.none();
-	}
-
-	if (gameRbxPath && !gameRbxPath.some(v => state.isValidScope(v))) {
-		DiagnosticService.addDiagnostic(
-			errors.packageImportMissingScope(
-				moduleSpecifier,
-				path.relative(state.data.projectPath, moduleOutPath),
-				gameRbxPath,
-			),
+			errors.noRojoDataPackage(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
 		);
 		return luau.none();
 	}
@@ -99,6 +88,17 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 
 	if (!moduleScope.startsWith("@")) {
 		DiagnosticService.addDiagnostic(errors.noUnscopedModule(moduleSpecifier));
+		return luau.none();
+	}
+
+	if (gameRbxPath && !gameRbxPath.includes(moduleScope)) {
+		DiagnosticService.addDiagnostic(
+			errors.packageImportMissingScope(
+				moduleSpecifier,
+				path.relative(state.data.projectPath, moduleOutPath),
+				gameRbxPath,
+			),
+		);
 		return luau.none();
 	}
 

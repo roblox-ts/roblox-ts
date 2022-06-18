@@ -389,9 +389,4 @@ export class TransformState {
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
 	}
-
-	private readonly scopeSet = getScopeSet(this.compilerOptions);
-	public isValidScope(scopeName: string) {
-		return this.scopeSet.has(scopeName);
-	}
 }
