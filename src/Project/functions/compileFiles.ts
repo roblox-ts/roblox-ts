@@ -1,7 +1,6 @@
 import { renderAST } from "@roblox-ts/luau-ast";
 import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
-import kleur from "kleur";
 import path from "path";
 import { checkFileName } from "Project/functions/checkFileName";
 import { checkRojoConfig } from "Project/functions/checkRojoConfig";
@@ -14,7 +13,7 @@ import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -110,24 +109,6 @@ export function compileFiles(
 			return emitResultFailure("Runtime library cannot be in a server-only or client-only container!");
 		} else if (rojoResolver.isIsolated(runtimeLibRbxPath)) {
 			return emitResultFailure("Runtime library cannot be in an isolated container!");
-		}
-	}
-
-	if (projectType !== ProjectType.Package) {
-		const defaultScopeRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE));
-		if (!defaultScopeRbxPath) {
-			return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
-		} else if (defaultScopeRbxPath[defaultScopeRbxPath.length - 1] !== RBXTS_SCOPE) {
-			return emitResultFailure(
-				"Rojo project `node_modules` must be in the form of:" +
-					kleur.yellow(`
-"node_modules": {
-	"$className": "Folder",
-	"@rbxts": {
-		"$path": "node_modules/@rbxts"
-	}
-}`),
-			);
 		}
 	}
 

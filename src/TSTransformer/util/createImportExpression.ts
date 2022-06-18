@@ -72,11 +72,23 @@ function getNodeModulesImport(state: TransformState, moduleSpecifier: ts.Express
 		state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(moduleFilePath))) ?? moduleFilePath,
 		/* isNodeModule */ true,
 	);
+
 	const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 	const relativeRbxPath = findRelativeRbxPath(moduleOutPath, state.pkgRojoResolvers);
-	if (!relativeRbxPath || (!state.data.isPackage && !gameRbxPath)) {
+	if (!relativeRbxPath || (state.projectType !== ProjectType.Package && !gameRbxPath)) {
 		DiagnosticService.addDiagnostic(
 			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath)),
+		);
+		return luau.none();
+	}
+
+	if (gameRbxPath && !gameRbxPath.some(v => state.isValidScope(v))) {
+		DiagnosticService.addDiagnostic(
+			errors.packageImportMissingScope(
+				moduleSpecifier,
+				path.relative(state.data.projectPath, moduleOutPath),
+				gameRbxPath,
+			),
 		);
 		return luau.none();
 	}

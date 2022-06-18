@@ -12,6 +12,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
+import { getScopeSet } from "TSTransformer/util/getScopeSet";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
@@ -387,5 +388,10 @@ export class TransformState {
 
 	public getClassElementObjectKey(classElement: ts.ClassElement) {
 		return this.classElementToObjectKeyMap.get(classElement);
+	}
+
+	private readonly scopeSet = getScopeSet(this.compilerOptions);
+	public isValidScope(scopeName: string) {
+		return this.scopeSet.has(scopeName);
 	}
 }
