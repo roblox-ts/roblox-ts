@@ -3,7 +3,7 @@ local Promise = require(script.Parent.Promise)
 local RunService = game:GetService("RunService")
 local ReplicatedFirst = game:GetService("ReplicatedFirst")
 
-local ERROR_PREFIX = "roblox-ts: "
+local OUTPUT_PREFIX = "roblox-ts: "
 local NODE_MODULES = "node_modules"
 local DEFAULT_SCOPE = "@rbxts"
 
@@ -11,26 +11,23 @@ local TS = {}
 
 TS.Promise = Promise
 
-local function isPlugin(object)
-	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
+local function isPlugin(context)
+	return RunService:IsStudio() and context:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
-function TS.getModule(object, scope, moduleName)
+function TS.getModule(context, scope, moduleName)
 	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
 		scope = DEFAULT_SCOPE
 	end
 
-	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
-		warn("roblox-ts packages should not be used from ReplicatedFirst!")
-	end
-
 	-- ensure modules have fully replicated
-	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
+	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(context) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
+	local object = context
 	repeat
 		local nodeModulesFolder = object:FindFirstChild(NODE_MODULES)
 		if nodeModulesFolder then
@@ -45,23 +42,23 @@ function TS.getModule(object, scope, moduleName)
 		object = object.Parent
 	until object == nil
 
-	error(ERROR_PREFIX .. "Could not find module: " .. moduleName, 2)
+	error(OUTPUT_PREFIX .. "Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
 local currentlyLoading = {}
 local registeredLibraries = {}
 
-function TS.import(caller, module, ...)
+function TS.import(context, module, ...)
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild((select(i, ...)))
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		error(ERROR_PREFIX .. "Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
+		error(OUTPUT_PREFIX .. "Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
-	currentlyLoading[caller] = module
+	currentlyLoading[context] = module
 
 	-- Check to see if a case like this occurs:
 	-- module -> Module1 -> Module2 -> module
@@ -85,14 +82,14 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			error(ERROR_PREFIX .. "Failed to import! Detected a circular dependency chain: " .. str, 2)
+			error(OUTPUT_PREFIX .. "Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
 			error(
-				ERROR_PREFIX
+				OUTPUT_PREFIX
 				.. "Invalid module access! Do you have multiple TS runtimes trying to import this? "
 				.. module:GetFullName(),
 				2
@@ -105,8 +102,8 @@ function TS.import(caller, module, ...)
 
 	local data = require(module)
 
-	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
-		currentlyLoading[caller] = nil
+	if currentlyLoading[context] == module then -- Thread-safe cleanup!
+		currentlyLoading[context] = nil
 	end
 
 	return data
