@@ -185,36 +185,33 @@ export function createImportExpression(
 		return luau.none();
 	}
 
-	const importPathExpressions = new Array<luau.Expression>();
-	importPathExpressions.push(luau.globals.script);
+	const parts = new Array<luau.Expression>();
+	parts.push(luau.globals.script);
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
+	const isInsideNodeModules = ts.isInsideNodeModules(virtualPath);
+	const moduleOutPath = isInsideNodeModules
+		? state.pathTranslator.getImportPath(
+				state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
+				/* isNodeModule */ true,
+		  )
+		: state.pathTranslator.getImportPath(virtualPath);
+	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+	if (!moduleRbxPath) {
+		DiagnosticService.addDiagnostic(
+			errors.noRojoData(
+				moduleSpecifier,
+				path.relative(state.data.projectPath, moduleOutPath),
+				isInsideNodeModules,
+			),
+		);
+		return luau.none();
+	}
 	if (ts.isInsideNodeModules(virtualPath)) {
-		const moduleOutPath = state.pathTranslator.getImportPath(
-			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
-			/* isNodeModule */ true,
-		);
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!moduleRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
-			);
-			return luau.none();
-		}
-		importPathExpressions.push(
-			...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath),
-		);
+		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	} else {
-		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!moduleRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
-			);
-			return luau.none();
-		}
-		importPathExpressions.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
-	return luau.call(state.TS(moduleSpecifier.parent, "import"), importPathExpressions);
+	return luau.call(state.TS(moduleSpecifier.parent, "import"), parts);
 }
