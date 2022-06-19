@@ -109,24 +109,24 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		throw new CLIError(`Cannot initialize project, process could overwrite:\n${pathInfo}`);
 	}
 
+	const promptsOptions: prompts.Options = { onCancel: () => process.exit(1) };
+
 	if (mode === InitMode.None) {
 		mode = (
-			await prompts({
-				type: "select",
-				name: "template",
-				message: "Select template",
-				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
-					title: value,
-					value,
-				})),
-				initial: 0,
-			})
+			await prompts(
+				{
+					type: "select",
+					name: "template",
+					message: "Select template",
+					choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
+						title: value,
+						value,
+					})),
+					initial: 0,
+				},
+				promptsOptions,
+			)
 		).template;
-
-		// ctrl+c
-		if (mode === undefined) {
-			return;
-		}
 	}
 
 	// Detect if there are any additional package managers
@@ -158,44 +158,47 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		prettier: boolean;
 		vscode: boolean;
 		packageManager: PackageManager;
-	} = await prompts([
-		{
-			type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
-			name: "git",
-			message: "Configure Git",
-			initial: true,
-		},
-		{
-			type: () => argv.eslint === undefined && argv.yes === undefined && "confirm",
-			name: "eslint",
-			message: "Configure ESLint",
-			initial: true,
-		},
-		{
-			type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
-			name: "prettier",
-			message: "Configure Prettier",
-			initial: true,
-		},
-		{
-			type: () => argv.vscode === undefined && argv.yes === undefined && "confirm",
-			name: "vscode",
-			message: "Configure VSCode Project Settings",
-			initial: true,
-		},
-		{
-			type: () =>
-				argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
-			name: "packageManager",
-			message: "Multiple package managers detected. Select package manager:",
-			choices: Object.entries(PackageManager)
-				.filter(([, packageManager]) => packageManagerExistance[packageManager])
-				.map(([managerDisplayName, managerEnum]) => ({
-					title: managerDisplayName,
-					value: managerEnum,
-				})),
-		},
-	]);
+	} = await prompts(
+		[
+			{
+				type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
+				name: "git",
+				message: "Configure Git",
+				initial: true,
+			},
+			{
+				type: () => argv.eslint === undefined && argv.yes === undefined && "confirm",
+				name: "eslint",
+				message: "Configure ESLint",
+				initial: true,
+			},
+			{
+				type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
+				name: "prettier",
+				message: "Configure Prettier",
+				initial: true,
+			},
+			{
+				type: () => argv.vscode === undefined && argv.yes === undefined && "confirm",
+				name: "vscode",
+				message: "Configure VSCode Project Settings",
+				initial: true,
+			},
+			{
+				type: () =>
+					argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
+				name: "packageManager",
+				message: "Multiple package managers detected. Select package manager:",
+				choices: Object.entries(PackageManager)
+					.filter(([, packageManager]) => packageManagerExistance[packageManager])
+					.map(([managerDisplayName, managerEnum]) => ({
+						title: managerDisplayName,
+						value: managerEnum,
+					})),
+			},
+		],
+		promptsOptions,
+	);
 
 	const selectedPackageManager = packageManagerCommands[packageManager];
 
