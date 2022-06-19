@@ -136,7 +136,9 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	// and replaced by another manager, so check for it to make sure
 	const [npmAvailable, pnpmAvailable, yarnAvailable, gitAvailable] = (
 		await Promise.allSettled(["npm", "pnpm", "yarn", "git"].map(v => lookpath(v)))
-	).map(v => v !== undefined);
+	)
+		.filter((v): v is PromiseFulfilledResult<string | undefined> => v.status === "fulfilled")
+		.map(v => v.value !== undefined);
 
 	const packageManagerExistance: Record<PackageManager, boolean> = {
 		[PackageManager.NPM]: npmAvailable,
