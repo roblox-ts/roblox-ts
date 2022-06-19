@@ -185,9 +185,6 @@ export function createImportExpression(
 		return luau.none();
 	}
 
-	const parts = new Array<luau.Expression>();
-	parts.push(luau.globals.script);
-
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	const isInsideNodeModules = ts.isInsideNodeModules(virtualPath);
 
@@ -209,6 +206,9 @@ export function createImportExpression(
 		);
 		return luau.none();
 	}
+
+	const parts = new Array<luau.Expression>();
+	parts.push(luau.globals.script);
 
 	if (isInsideNodeModules) {
 		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
