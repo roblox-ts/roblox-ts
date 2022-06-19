@@ -190,12 +190,14 @@ export function createImportExpression(
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	const isInsideNodeModules = ts.isInsideNodeModules(virtualPath);
+
 	const moduleOutPath = isInsideNodeModules
 		? state.pathTranslator.getImportPath(
 				state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
 				/* isNodeModule */ true,
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
+
 	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
 	if (!moduleRbxPath) {
 		DiagnosticService.addDiagnostic(
@@ -207,6 +209,7 @@ export function createImportExpression(
 		);
 		return luau.none();
 	}
+
 	if (isInsideNodeModules) {
 		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	} else {
