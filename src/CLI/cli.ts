@@ -25,19 +25,19 @@ void yargs
 	.wrap(yargs.terminalWidth())
 
 	// execute
-	.fail((str, e: unknown) => {
+	.fail(str => {
 		process.exitCode = 1;
+		if (str) {
+			// eslint-disable-next-line no-console
+			console.log(str);
+		}
+	})
+	.parseAsync()
+	.catch(e => {
 		if (e instanceof CLIError) {
 			e.log();
+			debugger;
 		} else {
-			// eslint-disable-next-line no-console
-			if (str !== undefined && str !== null) console.log(str);
-			// eslint-disable-next-line no-console
-			if (e) console.log(e);
+			throw e;
 		}
-		debugger;
-	})
-	.parse();
-
-// mute unhandled promise rejection warnings as they should be handled in .fail()
-process.on("unhandledRejection", () => {});
+	});
