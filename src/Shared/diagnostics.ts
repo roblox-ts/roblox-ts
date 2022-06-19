@@ -131,7 +131,7 @@ export const errors = {
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
 	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
-	noDestructureAssignmentExpression: error(
+	noLuaTupleDestructureAssignmentExpression: error(
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),
 	noExportAssignmentLet: error("Cannot use `export =` on a `let` variable!", suggestion("Use `const` instead.")),
@@ -173,6 +173,8 @@ export const errors = {
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
 	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
+	noTupleMacroOutsideReturn: error("$tuple() macro is only valid as an expression of a return statement!"),
 
 	// import/export
 	noModuleSpecifierFile: error("Could not find file for import. Did you forget to `npm install`?"),
