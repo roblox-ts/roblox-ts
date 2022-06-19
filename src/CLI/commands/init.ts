@@ -76,7 +76,7 @@ function getNonDevCompilerVersion() {
 	return COMPILER_VERSION.match(/^(.+)-dev.+$/)?.[1] ?? COMPILER_VERSION;
 }
 
-const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
+const TEMPLATES_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
 async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
@@ -167,9 +167,6 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 	const paths = {
 		packageJson: path.join(cwd, "package.json"),
 		packageLockJson: path.join(cwd, "package-lock.json"),
-		projectJson: path.join(cwd, "default.project.json"),
-		serveProjectJson: template === InitMode.Plugin && path.join(cwd, "serve.project.json"),
-		src: path.join(cwd, "src"),
 		tsconfig: path.join(cwd, "tsconfig.json"),
 		gitignore: path.join(cwd, ".gitignore"),
 		eslintrc: path.join(cwd, ".eslintrc"),
@@ -178,8 +175,15 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
 
+	const templateDir = path.join(TEMPLATES_DIR, template);
+
+	const pathValues = Object.values(paths);
+	for (const fileName of await fs.readdir(templateDir)) {
+		pathValues.push(fileName);
+	}
+
 	const existingPaths = new Array<string>();
-	for (const filePath of Object.values(paths)) {
+	for (const filePath of pathValues) {
 		if (filePath && (await fs.pathExists(filePath))) {
 			const stat = await fs.stat(filePath);
 			if (stat.isFile() || stat.isSymbolicLink() || (await fs.readdir(filePath)).length > 0) {
@@ -342,12 +346,12 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 
 	await benchmark("Copying template files..", async () => {
 		const templateTsConfig = path.join(
-			TEMPLATE_DIR,
+			TEMPLATES_DIR,
 			`tsconfig-${template === InitMode.Package ? "package" : "default"}.json`,
 		);
 		await fs.copy(templateTsConfig, paths.tsconfig);
 
-		await fs.copy(path.join(TEMPLATE_DIR, template), cwd);
+		await fs.copy(templateDir, cwd);
 	});
 
 	await benchmark(
