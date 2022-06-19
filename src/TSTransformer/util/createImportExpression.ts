@@ -67,7 +67,7 @@ function findRelativeRbxPath(moduleOutPath: string, pkgRojoResolvers: Array<Rojo
 	}
 }
 
-function getNodeModulesImport(
+function getNodeModulesImportParts(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
@@ -114,34 +114,34 @@ function getNodeModulesImport(
 			),
 		];
 	} else {
-		const gameRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!gameRbxPath) {
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
 			DiagnosticService.addDiagnostic(
 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
 			);
 			return [];
 		}
 
-		if (!gameRbxPath.includes(moduleScope)) {
+		if (!moduleRbxPath.includes(moduleScope)) {
 			DiagnosticService.addDiagnostic(
 				errors.noPackageImportWithoutScope(
 					moduleSpecifier,
 					path.relative(state.data.projectPath, moduleOutPath),
-					gameRbxPath,
+					moduleRbxPath,
 				),
 			);
 			return [];
 		}
 
-		if (gameRbxPath[0] === "ReplicatedFirst") {
+		if (moduleRbxPath[0] === "ReplicatedFirst") {
 			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
 		}
 
-		return getNormalImport(state, sourceFile, moduleSpecifier, moduleFilePath);
+		return getImportParts(state, sourceFile, moduleSpecifier, moduleFilePath);
 	}
 }
 
-function getNormalImport(
+function getImportParts(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
@@ -210,9 +210,9 @@ export function createImportExpression(
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
-		importPathExpressions.push(...getNodeModulesImport(state, sourceFile, moduleSpecifier, virtualPath));
+		importPathExpressions.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, virtualPath));
 	} else {
-		importPathExpressions.push(...getNormalImport(state, sourceFile, moduleSpecifier, virtualPath));
+		importPathExpressions.push(...getImportParts(state, sourceFile, moduleSpecifier, virtualPath));
 	}
 
 	return luau.call(state.TS(moduleSpecifier.parent, "import"), importPathExpressions);
