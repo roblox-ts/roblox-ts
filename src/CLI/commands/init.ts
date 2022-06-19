@@ -109,26 +109,6 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		throw new CLIError(`Cannot initialize project, process could overwrite:\n${pathInfo}`);
 	}
 
-	const promptsOptions: prompts.Options = { onCancel: () => process.exit(1) };
-
-	if (mode === InitMode.None) {
-		mode = (
-			await prompts(
-				{
-					type: "select",
-					name: "template",
-					message: "Select template",
-					choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
-						title: value,
-						value,
-					})),
-					initial: 0,
-				},
-				promptsOptions,
-			)
-		).template;
-	}
-
 	// Detect if there are any additional package managers
 	// We don't need to prompt the user to use additional package managers if none are installed
 
@@ -147,12 +127,14 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
 
 	const {
+		template = mode,
 		git = argv.git ?? (argv.yes && gitAvailable) ?? false,
 		eslint = argv.eslint ?? argv.yes ?? false,
 		prettier = argv.prettier ?? argv.yes ?? false,
 		vscode = argv.vscode ?? argv.yes ?? false,
 		packageManager = argv.packageManager ?? PackageManager.NPM,
 	}: {
+		template: InitMode;
 		git: boolean;
 		eslint: boolean;
 		prettier: boolean;
@@ -160,6 +142,16 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		packageManager: PackageManager;
 	} = await prompts(
 		[
+			{
+				type: () => mode === InitMode.None && "select",
+				name: "template",
+				message: "Select template",
+				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
+					title: value,
+					value,
+				})),
+				initial: 0,
+			},
 			{
 				type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
 				name: "git",
@@ -197,8 +189,10 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 					})),
 			},
 		],
-		promptsOptions,
+		{ onCancel: () => process.exit(1) },
 	);
+
+	mode = template;
 
 	const selectedPackageManager = packageManagerCommands[packageManager];
 
