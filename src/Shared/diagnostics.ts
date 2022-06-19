@@ -1,14 +1,17 @@
+import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
-export type DiagnosticFactory<T = void> = {
-	(node: ts.Node, context: T): ts.DiagnosticWithLocation;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DiagnosticFactory<T extends Array<any> = []> = {
+	(node: ts.Node, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
 };
 
-type DiagnosticContextFormatter<T> = (ctx: T) => Array<string>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
 const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
 
@@ -26,8 +29,8 @@ let id = 0;
  * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
  * @param messages The list of messages to include in the error report.
  */
-function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>): DiagnosticFactory {
-	return diagnosticWithContext<void>(category, undefined, ...messages);
+function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string | false>): DiagnosticFactory {
+	return diagnosticWithContext(category, undefined, ...messages);
 }
 
 /**
@@ -38,37 +41,39 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string>)
  * formatted messages are displayed last in the diagnostic report.
  * @param messages The list of messages to include in the diagnostic report.
  */
-function diagnosticWithContext<T>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function diagnosticWithContext<T extends Array<any> = []>(
 	category: ts.DiagnosticCategory,
 	contextFormatter?: DiagnosticContextFormatter<T>,
-	...messages: Array<string>
+	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
-	const result = (node: ts.Node, context: T) => {
+	const result = (node: ts.Node, ...context: T) => {
 		if (category === ts.DiagnosticCategory.Error) {
 			debugger;
 		}
 
 		if (contextFormatter) {
-			messages.push(...contextFormatter(context));
+			messages.push(...contextFormatter(...context));
 		}
 
-		return createDiagnosticWithLocation(result.id, messages.join("\n"), category, node);
+		return createDiagnosticWithLocation(result.id, messages.filter(v => v !== false).join("\n"), category, node);
 	};
 	result.id = id++;
 	return result;
 }
 
-function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string>) {
-	return createTextDiagnostic(messages.join("\n"), category);
+function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string | false>) {
+	return createTextDiagnostic(messages.filter(v => v !== false).join("\n"), category);
 }
 
-function error(...messages: Array<string>): DiagnosticFactory {
+function error(...messages: Array<string | false>): DiagnosticFactory {
 	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
 }
 
-function errorWithContext<T>(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function errorWithContext<T extends Array<any> = []>(
 	contextFormatter: DiagnosticContextFormatter<T>,
-	...messages: Array<string>
+	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
 	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
 }
@@ -182,6 +187,10 @@ export const errors = {
 	noUnscopedModule: error("You cannot use modules directly under node_modules."),
 	noNonModuleImport: error("Cannot import a non-ModuleScript!"),
 	noIsolatedImport: error("Attempted to import a file inside of an isolated container from outside!"),
+	noServerImport: error(
+		"Cannot import a server file from a shared or client location!",
+		suggestion("Move the file you want to import to a shared location."),
+	),
 
 	// roact jsx
 	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
@@ -201,8 +210,23 @@ export const errors = {
 	expectedFunctionGotMethod: error("Attempted to assign method where non-method was expected."),
 
 	// files
-	noRojoData: errorWithContext((path: string) => [
+	noRojoData: errorWithContext((path: string, isPackage: boolean) => [
 		`Could not find Rojo data. There is no $path in your Rojo config that covers ${path}`,
+		isPackage && suggestion(`Did you forget to add a custom npm scope to your default.project.json?`),
+	]),
+	noPackageImportWithoutScope: errorWithContext((path: string, rbxPath: RbxPath) => [
+		`Imported package Roblox path is missing an npm scope!`,
+		`Package path: ${path}`,
+		`Roblox path: ${rbxPath.join(".")}`,
+		suggestion(
+			`You might need to update your "node_modules" in default.project.json to match:
+"node_modules": {
+	"$className": "Folder",
+	"@rbxts": {
+		"$path": "node_modules/@rbxts"
+	}
+}`,
+		),
 	]),
 	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
 		errorText(
@@ -229,4 +253,5 @@ export const warnings = {
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
+	packageUsedInReplicatedFirst: warning("Packages from node_modules should not be used from ReplicatedFirst."),
 };

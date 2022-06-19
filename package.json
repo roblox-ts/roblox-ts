@@ -84,7 +84,7 @@
 	},
 	"files": [
 		"out",
-		"lib",
+		"include",
 		"templates",
 		"CHANGELOG.md",
 		"!**/*.js.map",

@@ -6,6 +6,7 @@ const RoactModule = game
 	.GetService("ReplicatedStorage")
 	.WaitForChild("include")
 	.WaitForChild("node_modules")
+	.WaitForChild("@rbxts")
 	.WaitForChild("roact")
 	.WaitForChild("src") as ModuleScript;
 
