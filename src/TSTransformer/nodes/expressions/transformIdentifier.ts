@@ -1,6 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -14,9 +13,8 @@ export function transformIdentifierDefined(state: TransformState, node: ts.Ident
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
 
-	const replacementId = state.symbolToIdMap.get(symbol);
+	const replacementId = symbol && state.symbolToIdMap.get(symbol);
 	if (replacementId) {
 		return replacementId;
 	}
@@ -111,7 +109,13 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
+
+	if (!symbol) {
+		// No symbol means identifier was not declared
+		// And then used with @ts-ignore to allow use
+		// We exit early here because all the checks below use the symbol
+		return transformIdentifierDefined(state, node);
+	}
 
 	if (state.typeChecker.isUndefinedSymbol(symbol)) {
 		return luau.nil();
