@@ -167,9 +167,6 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 	const paths = {
 		packageJson: path.join(cwd, "package.json"),
 		packageLockJson: path.join(cwd, "package-lock.json"),
-		projectJson: path.join(cwd, "default.project.json"),
-		serveProjectJson: template === InitMode.Plugin && path.join(cwd, "serve.project.json"),
-		src: path.join(cwd, "src"),
 		tsconfig: path.join(cwd, "tsconfig.json"),
 		gitignore: path.join(cwd, ".gitignore"),
 		eslintrc: path.join(cwd, ".eslintrc"),
@@ -177,6 +174,11 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 		settings: path.join(cwd, ".vscode", "settings.json"),
 		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
+
+	const pathValues = Object.values(paths);
+	for (const fileName of await fs.readdir(path.join(TEMPLATE_DIR, template))) {
+		pathValues.push(fileName);
+	}
 
 	const existingPaths = new Array<string>();
 	for (const filePath of Object.values(paths)) {
