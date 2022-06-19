@@ -76,7 +76,7 @@ function getNonDevCompilerVersion() {
 	return COMPILER_VERSION.match(/^(.+)-dev.+$/)?.[1] ?? COMPILER_VERSION;
 }
 
-const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
+const TEMPLATES_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
 async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
@@ -175,8 +175,10 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 		extensions: path.join(cwd, ".vscode", "extensions.json"),
 	};
 
+	const templateDir = path.join(TEMPLATES_DIR, template);
+
 	const pathValues = Object.values(paths);
-	for (const fileName of await fs.readdir(path.join(TEMPLATE_DIR, template))) {
+	for (const fileName of await fs.readdir(templateDir)) {
 		pathValues.push(fileName);
 	}
 
@@ -344,12 +346,12 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 
 	await benchmark("Copying template files..", async () => {
 		const templateTsConfig = path.join(
-			TEMPLATE_DIR,
+			TEMPLATES_DIR,
 			`tsconfig-${template === InitMode.Package ? "package" : "default"}.json`,
 		);
 		await fs.copy(templateTsConfig, paths.tsconfig);
 
-		await fs.copy(path.join(TEMPLATE_DIR, template), cwd);
+		await fs.copy(templateDir, cwd);
 	});
 
 	await benchmark(
