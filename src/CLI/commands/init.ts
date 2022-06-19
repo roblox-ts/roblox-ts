@@ -182,7 +182,7 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 	for (const filePath of Object.values(paths)) {
 		if (filePath && (await fs.pathExists(filePath))) {
 			const stat = await fs.stat(filePath);
-			if (stat.isFile() || (await fs.readdir(filePath)).length > 0) {
+			if (stat.isFile() || stat.isSymbolicLink() || (await fs.readdir(filePath)).length > 0) {
 				existingPaths.push(path.relative(cwd, filePath));
 			}
 		}
