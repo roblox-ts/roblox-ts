@@ -41,7 +41,7 @@ interface PackageManagerCommands {
 	build: string;
 }
 
-const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
+const packageManagerCommands: { [K in PackageManager]: PackageManagerCommands } = {
 	[PackageManager.NPM]: {
 		init: "npm init -y",
 		devInstall: "npm install --silent -D",
@@ -138,7 +138,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 		await Promise.allSettled(["npm", "pnpm", "yarn", "git"].map(v => lookpath(v)))
 	).map(v => (v.status === "fulfilled" ? v.value !== undefined : false));
 
-	const packageManagerExistance: Record<PackageManager, boolean> = {
+	const packageManagerExistance: { [K in PackageManager]: boolean } = {
 		[PackageManager.NPM]: npmAvailable,
 		[PackageManager.PNPM]: pnpmAvailable,
 		[PackageManager.Yarn]: yarnAvailable,
