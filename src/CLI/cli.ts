@@ -38,3 +38,6 @@ void yargs
 		debugger;
 	})
 	.parse();
+
+// mute unhandled promise rejection warnings as they should be handled in .fail()
+process.on("unhandledRejection", () => {});
