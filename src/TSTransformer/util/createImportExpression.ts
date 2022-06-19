@@ -71,13 +71,9 @@ function getNodeModulesImportParts(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
-	moduleFilePath: string,
+	moduleOutPath: string,
+	moduleRbxPath: RbxPath,
 ) {
-	const moduleOutPath = state.pathTranslator.getImportPath(
-		state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(moduleFilePath))) ?? moduleFilePath,
-		/* isNodeModule */ true,
-	);
-
 	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
 	assert(moduleScope);
 
@@ -114,14 +110,6 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
-		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-		if (!moduleRbxPath) {
-			DiagnosticService.addDiagnostic(
-				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
-			);
-			return [];
-		}
-
 		if (!moduleRbxPath.includes(moduleScope)) {
 			DiagnosticService.addDiagnostic(
 				errors.noPackageImportWithoutScope(
@@ -137,7 +125,7 @@ function getNodeModulesImportParts(
 			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
 		}
 
-		return getImportParts(state, sourceFile, moduleSpecifier, moduleFilePath);
+		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
 	}
 }
 
@@ -145,17 +133,9 @@ function getImportParts(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
-	moduleFilePath: string,
+	moduleOutPath: string,
+	moduleRbxPath: RbxPath,
 ) {
-	const moduleOutPath = state.pathTranslator.getImportPath(moduleFilePath);
-	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	if (!moduleRbxPath) {
-		DiagnosticService.addDiagnostic(
-			errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
-		);
-		return [];
-	}
-
 	const moduleRbxType = state.rojoResolver.getRbxTypeFromFilePath(moduleOutPath);
 	if (moduleRbxType === RbxType.Script || moduleRbxType === RbxType.LocalScript) {
 		DiagnosticService.addDiagnostic(errors.noNonModuleImport(moduleSpecifier));
@@ -210,9 +190,30 @@ export function createImportExpression(
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 	if (ts.isInsideNodeModules(virtualPath)) {
-		importPathExpressions.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, virtualPath));
+		const moduleOutPath = state.pathTranslator.getImportPath(
+			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
+			/* isNodeModule */ true,
+		);
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+			);
+			return luau.none();
+		}
+		importPathExpressions.push(
+			...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath),
+		);
 	} else {
-		importPathExpressions.push(...getImportParts(state, sourceFile, moduleSpecifier, virtualPath));
+		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
+			);
+			return luau.none();
+		}
+		importPathExpressions.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
 	return luau.call(state.TS(moduleSpecifier.parent, "import"), importPathExpressions);
