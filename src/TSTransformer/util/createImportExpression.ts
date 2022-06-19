@@ -207,7 +207,7 @@ export function createImportExpression(
 		);
 		return luau.none();
 	}
-	if (ts.isInsideNodeModules(virtualPath)) {
+	if (isInsideNodeModules) {
 		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	} else {
 		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
