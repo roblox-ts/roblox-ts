@@ -5,6 +5,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
@@ -53,26 +55,36 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 		);
 
 		for (const member of node.members) {
-			// `member.name` is typed as `PropertyName`
-			// but only identifiers and string literals are legal in enum properties
-			assert(ts.isIdentifier(member.name) || ts.isStringLiteral(member.name));
+			const name = transformPropertyName(state, member.name);
+			const index = expressionMightMutate(
+				state,
+				name,
+				ts.isComputedPropertyName(member.name) ? member.name.expression : member.name,
+			)
+				? // note: we don't use pushToVarIfComplex here
+				  // because identifier also needs to be pushed
+				  // since the value calculation might reassign the variable
+				  state.pushToVar(name)
+				: name;
 
-			const nameStr = member.name.text;
 			const value = state.typeChecker.getConstantValue(member);
-
 			let valueExp: luau.Expression;
 			if (typeof value === "string") {
 				valueExp = luau.string(value);
 			} else if (typeof value === "number") {
 				valueExp = luau.number(value);
 			} else {
+				// constantValue is always number without initializer, so assert is safe
 				assert(member.initializer);
 				valueExp = state.pushToVarIfComplex(transformExpression(state, member.initializer), "value");
 			}
 
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.property(id, nameStr),
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: id,
+						index,
+					}),
 					operator: "=",
 					right: valueExp,
 				}),
@@ -85,7 +97,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 						index: valueExp,
 					}),
 					operator: "=",
-					right: luau.string(nameStr),
+					right: index,
 				}),
 			);
 		}
