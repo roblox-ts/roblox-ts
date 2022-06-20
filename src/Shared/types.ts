@@ -5,10 +5,6 @@ export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
-}
-
-/** Optional flags that add alternate behavior to project. */
-export interface ProjectFlags {
 	logTruthyChanges: boolean;
 	noInclude: boolean;
 	project: string;

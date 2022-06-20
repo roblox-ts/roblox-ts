@@ -1,4 +1,5 @@
 import path from "path";
+import { ProjectOptions } from "Shared/types";
 
 export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
 export const INCLUDE_PATH = path.join(PACKAGE_ROOT, "include");
@@ -38,3 +39,17 @@ export enum ProjectType {
 	Model = "model",
 	Package = "package",
 }
+
+export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
+	includePath: "",
+	rojo: undefined,
+	type: undefined,
+	project: ".",
+	watch: false,
+	usePolling: false,
+	verbose: false,
+	noInclude: false,
+	logTruthyChanges: false,
+	writeOnlyChanged: false,
+	optimizedLoops: false,
+};
