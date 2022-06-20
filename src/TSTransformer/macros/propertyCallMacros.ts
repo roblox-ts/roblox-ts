@@ -8,7 +8,7 @@ import { isDefinitelyType, isNumberType, isStringType } from "TSTransformer/util
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
-function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
+function makeBinaryMacroMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	return (state, node, expression, args) => {
 		let rhs = args[0];
 		if (!luau.isSimple(rhs)) {
@@ -907,11 +907,11 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
-	Add: { add: makeMathMethod("+") },
-	Sub: { sub: makeMathMethod("-") },
-	Mul: { mul: makeMathMethod("*") },
-	Div: { div: makeMathMethod("/") },
-	Concat: { concat: makeMathMethod("..") },
+	Add: { add: makeBinaryMacroMethod("+") },
+	Sub: { sub: makeBinaryMacroMethod("-") },
+	Mul: { mul: makeBinaryMacroMethod("*") },
+	Div: { div: makeBinaryMacroMethod("/") },
+	Concat: { concat: makeBinaryMacroMethod("..") },
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
