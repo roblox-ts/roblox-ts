@@ -7,10 +7,8 @@ const PRE_EMIT_DIAGNOSTICS: Array<PreEmitChecker> = [fileUsesCommentDirectives];
 
 export function getCustomPreEmitDiagnostics(data: ProjectData, sourceFile: ts.SourceFile) {
 	const diagnostics = new Array<ts.Diagnostic>();
-	if (!data.projectOptions.allowCommentDirectives) {
-		for (const check of PRE_EMIT_DIAGNOSTICS) {
-			diagnostics.push(...check(data, sourceFile));
-		}
+	for (const check of PRE_EMIT_DIAGNOSTICS) {
+		diagnostics.push(...check(data, sourceFile));
 	}
 	return diagnostics;
 }
