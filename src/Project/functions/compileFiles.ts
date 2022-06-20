@@ -162,7 +162,7 @@ export function compileFiles(
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
-			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
+			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
 			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(

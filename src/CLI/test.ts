@@ -21,14 +21,9 @@ describe("should compile tests project", () => {
 	const data = createProjectData(
 		path.join(PACKAGE_ROOT, "tests", "tsconfig.json"),
 		Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
-			logTruthyChanges: false,
-			noInclude: false,
 			project: "",
-			usePolling: false,
-			verbose: false,
-			watch: false,
-			writeOnlyChanged: false,
-			optimizedLoops: false,
+			allowCommentDirectives: true,
+			optimizedLoops: true,
 		}),
 	);
 	const program = createProjectProgram(data);

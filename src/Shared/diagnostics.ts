@@ -1,12 +1,13 @@
 import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
+import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DiagnosticFactory<T extends Array<any> = []> = {
-	(node: ts.Node, ...context: T): ts.DiagnosticWithLocation;
+	(node: ts.Node | SourceFileWithTextRange, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
 };
 
@@ -47,7 +48,7 @@ function diagnosticWithContext<T extends Array<any> = []>(
 	contextFormatter?: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
-	const result = (node: ts.Node, ...context: T) => {
+	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
 		if (category === ts.DiagnosticCategory.Error) {
 			debugger;
 		}
@@ -163,6 +164,11 @@ export const errors = {
 	noIndexWithoutCall: error(
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
+	),
+	noCommentDirectives: error(
+		"Usage of `@ts-ignore`, `@ts-expect-error`, and `@ts-nocheck` are not supported!",
+		"roblox-ts needs type and symbol info to compile correctly.",
+		suggestion("Consider using type assertions or `declare` statements."),
 	),
 
 	// macro methods
