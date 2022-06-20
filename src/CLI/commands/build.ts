@@ -43,7 +43,7 @@ function findTsConfigPath(projectPath: string) {
  * Defines the behavior for the `rbxtsc build` command.
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-export = ts.identity<yargs.CommandModule<{}, ProjectFlags & Partial<ProjectOptions>>>({
+export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFlags>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
@@ -52,8 +52,8 @@ export = ts.identity<yargs.CommandModule<{}, ProjectFlags & Partial<ProjectOptio
 		yargs
 			.option("project", {
 				alias: "p",
-				default: ".",
 				string: true,
+				default: ".",
 				describe: "project path",
 			})
 			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
