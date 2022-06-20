@@ -13,7 +13,7 @@ import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchPro
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
-import { ProjectOptions } from "Shared/types";
+import { ProjectFlags, ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
@@ -43,19 +43,20 @@ function findTsConfigPath(projectPath: string) {
  * Defines the behavior for the `rbxtsc build` command.
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions>>>({
+export = ts.identity<yargs.CommandModule<{}, ProjectFlags & Partial<ProjectOptions>>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",
 
 	builder: () =>
 		yargs
-			// DO NOT PROVIDE DEFAULTS HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("project", {
 				alias: "p",
+				default: ".",
 				string: true,
 				describe: "project path",
 			})
+			// DO NOT PROVIDE DEFAULTS BELOW HERE, USE DEFAULT_PROJECT_OPTIONS
 			.option("watch", {
 				alias: "w",
 				boolean: true,
@@ -102,7 +103,7 @@ export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions>>>({
 
 	handler: async argv => {
 		try {
-			const tsConfigPath = findTsConfigPath(argv.project ?? DEFAULT_PROJECT_OPTIONS.project);
+			const tsConfigPath = findTsConfigPath(argv.project);
 
 			// parse the contents of the retrieved JSON path as a partial `ProjectOptions`
 			const projectOptions: ProjectOptions = Object.assign(

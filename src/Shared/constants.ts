@@ -44,7 +44,6 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	includePath: "",
 	rojo: undefined,
 	type: undefined,
-	project: ".",
 	watch: false,
 	usePolling: false,
 	verbose: false,

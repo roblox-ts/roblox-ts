@@ -1,13 +1,16 @@
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
+export interface ProjectFlags {
+	project: string;
+}
+
 export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
 	logTruthyChanges: boolean;
 	noInclude: boolean;
-	project: string;
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
