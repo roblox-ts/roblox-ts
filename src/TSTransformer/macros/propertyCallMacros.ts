@@ -1,5 +1,4 @@
 import luau from "@roblox-ts/luau-ast";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import { MacroList, PropertyCallMacro } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -17,24 +16,6 @@ function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 		}
 		return luau.binary(expression, operator, rhs);
 	};
-}
-
-const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div" | "concat">([
-	["+", "add"],
-	["-", "sub"],
-	["*", "mul"],
-	["/", "div"],
-	["..", "concat"],
-]);
-
-function makeMathSet(...operators: Array<luau.BinaryOperator>) {
-	const result: { [index: string]: PropertyCallMacro } = {};
-	for (const operator of operators) {
-		const methodName = OPERATOR_TO_NAME_MAP.get(operator);
-		assert(methodName);
-		result[methodName] = makeMathMethod(operator);
-	}
-	return result;
 }
 
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
@@ -926,11 +907,11 @@ const PROMISE_METHODS: MacroList<PropertyCallMacro> = {
 };
 
 export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCallMacro> } = {
-	Add: makeMathSet("+"),
-	Sub: makeMathSet("-"),
-	Mul: makeMathSet("*"),
-	Div: makeMathSet("/"),
-	Concat: makeMathSet(".."),
+	Add: { add: makeMathMethod("+") },
+	Sub: { sub: makeMathMethod("-") },
+	Mul: { mul: makeMathMethod("*") },
+	Div: { div: makeMathMethod("/") },
+	Concat: { concat: makeMathMethod("..") },
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
