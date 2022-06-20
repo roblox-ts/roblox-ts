@@ -103,6 +103,10 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			.option("rojo", {
 				string: true,
 				describe: "manually select Rojo project file",
+			})
+			.option("allowCommentDirectives", {
+				boolean: true,
+				hidden: true,
 			}),
 
 	handler: async argv => {

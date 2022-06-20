@@ -12,6 +12,7 @@ export interface ProjectOptions {
 	watch: boolean;
 	writeOnlyChanged: boolean;
 	optimizedLoops: boolean;
+	allowCommentDirectives: boolean;
 }
 
 export interface ProjectData {
@@ -65,4 +66,9 @@ export interface TransformerPluginConfig {
 	 * any other properties provided to the transformer as config argument
 	 * */
 	[options: string]: unknown;
+}
+
+export interface SourceFileWithTextRange {
+	sourceFile: ts.SourceFile;
+	range: ts.ReadonlyTextRange;
 }

@@ -51,4 +51,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	logTruthyChanges: false,
 	writeOnlyChanged: false,
 	optimizedLoops: false,
+	allowCommentDirectives: false,
 };
