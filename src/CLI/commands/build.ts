@@ -13,7 +13,7 @@ import { setupProjectWatchProgram } from "Project/functions/setupProjectWatchPro
 import { LogService } from "Shared/classes/LogService";
 import { DEFAULT_PROJECT_OPTIONS, ProjectType } from "Shared/constants";
 import { LoggableError } from "Shared/errors/LoggableError";
-import { ProjectFlags, ProjectOptions } from "Shared/types";
+import { ProjectOptions } from "Shared/types";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { hasErrors } from "Shared/util/hasErrors";
 import ts from "typescript";
@@ -39,11 +39,15 @@ function findTsConfigPath(projectPath: string) {
 	return path.resolve(process.cwd(), tsConfigPath);
 }
 
+interface BuildFlags {
+	project: string;
+}
+
 /**
  * Defines the behavior for the `rbxtsc build` command.
  */
 // eslint-disable-next-line @typescript-eslint/ban-types
-export = ts.identity<yargs.CommandModule<{}, Partial<ProjectOptions> & ProjectFlags>>({
+export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions>>>({
 	command: ["$0", "build"],
 
 	describe: "Build a project",

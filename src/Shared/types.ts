@@ -1,10 +1,6 @@
 import { ProjectType } from "Shared/constants";
 import ts from "typescript";
 
-export interface ProjectFlags {
-	project: string;
-}
-
 export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;
