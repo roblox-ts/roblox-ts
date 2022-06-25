@@ -345,12 +345,6 @@ async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 	}
 
 	await benchmark("Copying template files..", async () => {
-		const templateTsConfig = path.join(
-			TEMPLATES_DIR,
-			`tsconfig-${template === InitMode.Package ? "package" : "default"}.json`,
-		);
-		await fs.copy(templateTsConfig, paths.tsconfig);
-
 		await fs.copy(templateDir, cwd);
 	});
 
