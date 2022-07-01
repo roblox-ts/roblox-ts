@@ -93,7 +93,7 @@ export function isMethodFromType(state: TransformState, node: ts.Node, type: ts.
 
 export function isMethod(
 	state: TransformState,
-	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase,
+	node: ts.PropertyAccessExpression | ts.ElementAccessExpression | ts.SignatureDeclarationBase | ts.PropertyName,
 ): boolean {
 	validateNotAnyType(state, node);
 	return isMethodFromType(state, node, state.getType(node));

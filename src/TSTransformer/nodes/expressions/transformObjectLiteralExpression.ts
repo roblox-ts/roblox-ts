@@ -4,7 +4,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import {
@@ -20,11 +20,11 @@ import ts from "typescript";
 function transformPropertyAssignment(
 	state: TransformState,
 	ptr: MapPointer,
-	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
+	name: ts.PropertyName,
 	initializer: ts.Expression,
 ) {
 	// eslint-disable-next-line no-autofix/prefer-const
-	let [left, leftPrereqs] = state.capture(() => transformObjectKey(state, name));
+	let [left, leftPrereqs] = state.capture(() => transformPropertyName(state, name));
 	const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
 
 	if (!luau.list.isEmpty(leftPrereqs) || !luau.list.isEmpty(rightPrereqs)) {
@@ -59,7 +59,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	const valueId = luau.tempId("v");
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.call(luau.globals.pairs, [spreadExp]),
+		expression: spreadExp,
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

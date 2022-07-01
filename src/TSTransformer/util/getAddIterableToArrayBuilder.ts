@@ -131,7 +131,7 @@ const addSet: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId,
 		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make(valueId),
-			expression: luau.call(luau.globals.pairs, [expression]),
+			expression,
 			statements: luau.list.make(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,
@@ -173,7 +173,7 @@ const addMap: AddIterableToArrayBuilder = (state, expression, arrayId, lengthId,
 		result,
 		luau.create(luau.SyntaxKind.ForStatement, {
 			ids: luau.list.make(keyId, valueId),
-			expression: luau.call(luau.globals.pairs, [expression]),
+			expression,
 			statements: luau.list.make<luau.Statement>(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: lengthId,

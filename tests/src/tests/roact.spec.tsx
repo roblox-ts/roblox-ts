@@ -1,7 +1,43 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import Roact from "@rbxts/roact";
-import { ElementKind, ExplicitProps, FragmentLike, Template, Type } from "helpers/util/RoactTypes";
+
+const RoactModule = game
+	.GetService("ReplicatedStorage")
+	.WaitForChild("include")
+	.WaitForChild("node_modules")
+	.WaitForChild("@rbxts")
+	.WaitForChild("roact")
+	.WaitForChild("src") as ModuleScript;
+
+declare interface ElementKind {
+	Portal: symbol;
+	Host: symbol;
+	Function: symbol;
+	Stateful: symbol;
+	Fragment: symbol;
+	of: (value: unknown) => boolean;
+}
+const ElementKind = require(RoactModule.WaitForChild("ElementKind") as ModuleScript) as ElementKind;
+
+declare interface Type {
+	Binding: symbol;
+	Element: symbol;
+	HostChangeEvent: symbol;
+	HostEvent: symbol;
+	StatefulComponentClass: symbol;
+	VirtualNode: symbol;
+	VirtualTree: symbol;
+	of: (value: unknown) => boolean;
+}
+const Type = require(RoactModule.WaitForChild("Type") as ModuleScript) as Type;
+
+type ExplicitProps<P = {}> = Partial<P> & {
+	[Roact.Children]: { [name: string]: Roact.Element | undefined };
+};
+interface FragmentLike {
+	elements: { [name: string]: unknown };
+}
 
 export = () => {
 	describe("should support Roact.Component", () => {

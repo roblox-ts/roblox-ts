@@ -22,17 +22,16 @@ import { getKindName } from "TSTransformer/util/getKindName";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
-import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
-function transformLuaTupleDestructure(
+function transformOptimizedArrayAssignmentPattern(
 	state: TransformState,
 	assignmentPattern: ts.ArrayLiteralExpression,
-	value: luau.Expression,
-	valueOrigin: ts.Expression,
+	rhs: luau.Expression | luau.List<luau.Expression>,
 ) {
 	const variables = luau.list.make<luau.TemporaryIdentifier>();
 	const writes = luau.list.make<luau.WritableExpression>();
+	const writesPrereqs = luau.list.make<luau.Statement>();
 	const statements = state.capturePrereqs(() => {
 		for (let element of assignmentPattern.elements) {
 			if (ts.isOmittedExpression(element)) {
@@ -51,7 +50,8 @@ function transformLuaTupleDestructure(
 					ts.isElementAccessExpression(element) ||
 					ts.isPropertyAccessExpression(element)
 				) {
-					const id = transformWritableExpression(state, element, true);
+					const [id, idPrereqs] = state.capture(() => transformWritableExpression(state, element, true));
+					luau.list.pushList(writesPrereqs, idPrereqs);
 					luau.list.push(writes, id);
 					if (initializer) {
 						state.prereq(transformInitializer(state, id, initializer));
@@ -73,7 +73,10 @@ function transformLuaTupleDestructure(
 					}
 					transformObjectAssignmentPattern(state, element, id);
 				} else {
-					assert(false, `transformLuaTupleDestructure invalid element: ${getKindName(element.kind)}`);
+					assert(
+						false,
+						`transformOptimizedArrayAssignmentPattern invalid element: ${getKindName(element.kind)}`,
+					);
 				}
 			}
 		}
@@ -86,19 +89,15 @@ function transformLuaTupleDestructure(
 			}),
 		);
 	}
-	if (luau.list.isEmpty(writes)) {
-		// only need to check `variables` is nonEmpty
-		// if it is empty, `statements` is automatically empty too
-		state.prereqList(wrapExpressionStatement(state, value, luau.list.isNonEmpty(variables), valueOrigin));
-	} else {
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: writes,
-				operator: "=",
-				right: value,
-			}),
-		);
-	}
+	state.prereqList(writesPrereqs);
+	assert(!luau.list.isEmpty(writes));
+	state.prereq(
+		luau.create(luau.SyntaxKind.Assignment, {
+			left: writes,
+			operator: "=",
+			right: rhs,
+		}),
+	);
 	state.prereqList(statements);
 }
 
@@ -135,11 +134,25 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
 
-			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
-				transformLuaTupleDestructure(state, node.left, rightExp, node.right);
-				if (!isUsedAsStatement(node)) {
-					DiagnosticService.addDiagnostic(errors.noDestructureAssignmentExpression(node));
+			// optimize empty array destructure
+			if (node.left.elements.length === 0) {
+				// specifically strip out `[] = []` if used as statement
+				if (isUsedAsStatement(node) && luau.isArray(rightExp) && luau.list.isEmpty(rightExp.members)) {
+					return luau.none();
 				}
+				return rightExp;
+			}
+
+			if (luau.isCall(rightExp) && isLuaTupleType(state)(state.getType(node.right))) {
+				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp);
+				if (!isUsedAsStatement(node)) {
+					DiagnosticService.addDiagnostic(errors.noLuaTupleDestructureAssignmentExpression(node));
+				}
+				return luau.none();
+			}
+
+			if (luau.isArray(rightExp) && !luau.list.isEmpty(rightExp.members) && isUsedAsStatement(node)) {
+				transformOptimizedArrayAssignmentPattern(state, node.left, rightExp.members);
 				return luau.none();
 			}
 
@@ -147,7 +160,17 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			transformArrayAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		} else if (ts.isObjectLiteralExpression(node.left)) {
-			const parentId = state.pushToVar(transformExpression(state, node.right), "binding");
+			const rightExp = transformExpression(state, node.right);
+
+			// optimize empty object destructure
+			if (node.left.properties.length === 0) {
+				if (isUsedAsStatement(node) && luau.isMap(rightExp) && luau.list.isEmpty(rightExp.fields)) {
+					return luau.none();
+				}
+				return rightExp;
+			}
+
+			const parentId = state.pushToVar(rightExp, "binding");
 			transformObjectAssignmentPattern(state, node.left, parentId);
 			return parentId;
 		}

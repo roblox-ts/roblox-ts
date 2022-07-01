@@ -6,8 +6,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { hasMultipleDeclarations } from "TSTransformer/util/hasMultipleDefinitions";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import { getAncestor } from "TSTransformer/util/traversal";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
@@ -87,7 +87,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 		if (moduleExports.length > 0) {
 			for (const exportSymbol of moduleExports) {
 				const originalSymbol = ts.skipAlias(exportSymbol, state.typeChecker);
-				if (isSymbolOfValue(originalSymbol) && !isDefinedAsLet(state, originalSymbol)) {
+				if (isSymbolOfValue(originalSymbol) && !isSymbolMutable(state, originalSymbol)) {
 					const valueDeclarationStatement = getValueDeclarationStatement(exportSymbol);
 					if (valueDeclarationStatement) {
 						getOrSetDefault(exportsMap, valueDeclarationStatement, () => []).push(exportSymbol.name);
@@ -127,10 +127,9 @@ export function transformModuleDeclaration(state: TransformState, node: ts.Modul
 
 	// disallow merging
 	const symbol = state.typeChecker.getSymbolAtLocation(node.name);
-	if (symbol && hasMultipleDeclarations(state, symbol, declaration => isDeclarationOfNamespace(declaration))) {
-		DiagnosticService.addDiagnosticFromNodeIfNotCached(
-			state,
-			node.name,
+	if (symbol && hasMultipleDefinitions(symbol, declaration => isDeclarationOfNamespace(declaration))) {
+		DiagnosticService.addDiagnosticWithCache(
+			symbol,
 			errors.noNamespaceMerging(node),
 			state.multiTransformState.isReportedByMultipleDefinitionsCache,
 		);

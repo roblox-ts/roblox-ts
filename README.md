@@ -3,7 +3,7 @@
 <div align="center">A TypeScript-to-Luau Compiler for Roblox</div>
 <br>
 <div align="center">
-	<a href="https://discord.gg/f6Rn6RY"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
+	<a href="https://discord.gg/JFvZY5JSBT"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
 	<a href="https://github.com/roblox-ts/roblox-ts/actions"><img src="https://github.com/roblox-ts/roblox-ts/workflows/CI/badge.svg" alt="CI Status" /></a>
 	<a href="https://coveralls.io/github/roblox-ts/roblox-ts?branch=master"><img src="https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master" alt="Coverage Status" /></a>
 	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
@@ -20,7 +20,7 @@ Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
 
 ## Join the Community!
 
-https://discord.gg/f6Rn6RY
+https://discord.gg/JFvZY5JSBT
 
 ## Games that use roblox-ts
 
@@ -33,3 +33,5 @@ https://discord.gg/f6Rn6RY
 <a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 3.7M -->
 <a href="https://www.roblox.com/games/8542259458"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg" /></a><!-- SkyWars 2.0M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
+<a href="https://www.roblox.com/games/9611595239"><img width=32.9% src="https://i.imgur.com/qISPda3.png" /></a><!-- Rift Royale 1.0M -->
+

@@ -13,7 +13,7 @@ import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
@@ -112,13 +112,6 @@ export function compileFiles(
 		}
 	}
 
-	if (
-		projectType !== ProjectType.Package &&
-		!rojoResolver.getRbxPathFromFilePath(path.join(data.nodeModulesPath, RBXTS_SCOPE))
-	) {
-		return emitResultFailure("Rojo project contained no data for node_modules/@rbxts folder!");
-	}
-
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
@@ -134,10 +127,7 @@ export function compileFiles(
 			const transformerList = createTransformerList(program, pluginConfigs, data.projectPath);
 			const transformers = flattenIntoTransformers(transformerList);
 			if (transformers.length > 0) {
-				if (!data.transformerWatcher) {
-					data.transformerWatcher = createTransformerWatcher(program);
-				}
-				const { service, updateFile } = data.transformerWatcher;
+				const { service, updateFile } = (data.transformerWatcher ??= createTransformerWatcher(program));
 				const transformResult = ts.transformNodes(
 					undefined,
 					undefined,
@@ -172,7 +162,7 @@ export function compileFiles(
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
-			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
+			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
 			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(

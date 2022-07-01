@@ -21,7 +21,7 @@ export function transformWritableExpression(
 	if (ts.isPropertyAccessExpression(node)) {
 		const expression = transformExpression(state, node.expression);
 		return luau.property(
-			readAfterWrite ? state.pushToVarIfComplex(expression, "exp") : convertToIndexableExpression(expression),
+			readAfterWrite ? state.pushToVarIfNonId(expression, "exp") : convertToIndexableExpression(expression),
 			node.name.text,
 		);
 	} else if (ts.isElementAccessExpression(node)) {
@@ -35,7 +35,7 @@ export function transformWritableExpression(
 		);
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: readAfterWrite
-				? state.pushToVarIfComplex(expression, "exp")
+				? state.pushToVarIfNonId(expression, "exp")
 				: convertToIndexableExpression(expression),
 			index: readAfterWrite ? state.pushToVarIfComplex(indexExp, "index") : indexExp,
 		});

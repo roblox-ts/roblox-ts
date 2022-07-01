@@ -35,7 +35,7 @@ const SetConstructor: ConstructorMacro = (state, node) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.tempId(), valueId),
-				expression: luau.call(luau.globals.ipairs, [transformExpression(state, arg)]),
+				expression: transformExpression(state, arg),
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -72,7 +72,7 @@ const MapConstructor: ConstructorMacro = (state, node) => {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make<luau.AnyIdentifier>(luau.tempId(), valueId),
-				expression: luau.call(luau.globals.ipairs, [transformed]),
+				expression: transformed,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {

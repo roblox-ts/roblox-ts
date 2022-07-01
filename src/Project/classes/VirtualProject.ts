@@ -4,7 +4,7 @@ import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFi
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -43,12 +43,15 @@ export class VirtualProject {
 			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
 			noInclude: false,
-			pkgVersion: "",
-			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
+			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
+				rojo: "",
+				type: ProjectType.Model,
+			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
 			writeOnlyChanged: false,
+			optimizedLoops: false,
 			watch: false,
 		};
 
@@ -116,7 +119,7 @@ export class VirtualProject {
 
 		const diagnostics = new Array<ts.Diagnostic>();
 		diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile));
-		diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
+		diagnostics.push(...getCustomPreEmitDiagnostics(this.data, sourceFile));
 		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const multiTransformState = new MultiTransformState();

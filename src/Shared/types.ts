@@ -5,17 +5,14 @@ export interface ProjectOptions {
 	includePath: string;
 	rojo: string | undefined;
 	type: ProjectType | undefined;
-}
-
-/** Optional flags that add alternate behavior to project. */
-export interface ProjectFlags {
 	logTruthyChanges: boolean;
 	noInclude: boolean;
-	project: string;
 	usePolling: boolean;
 	verbose: boolean;
 	watch: boolean;
 	writeOnlyChanged: boolean;
+	optimizedLoops: boolean;
+	allowCommentDirectives: boolean;
 }
 
 export interface ProjectData {
@@ -24,12 +21,12 @@ export interface ProjectData {
 	logTruthyChanges: boolean;
 	nodeModulesPath: string;
 	noInclude: boolean;
-	pkgVersion: string;
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
 	writeOnlyChanged: boolean;
+	optimizedLoops: boolean;
 	watch: boolean;
 	transformerWatcher?: TransformerWatcher;
 }
@@ -69,4 +66,9 @@ export interface TransformerPluginConfig {
 	 * any other properties provided to the transformer as config argument
 	 * */
 	[options: string]: unknown;
+}
+
+export interface SourceFileWithTextRange {
+	sourceFile: ts.SourceFile;
+	range: ts.ReadonlyTextRange;
 }

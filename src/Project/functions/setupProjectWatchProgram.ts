@@ -73,18 +73,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	let pathTranslator: PathTranslator | undefined;
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
-		try {
-			program = createProgram([...fileNamesSet], options);
-			pathTranslator = createPathTranslator(program);
-		} catch (e) {
-			if (e instanceof DiagnosticError) {
-				for (const diagnostic of e.diagnostics) {
-					diagnosticReporter(diagnostic);
-				}
-			} else {
-				throw e;
-			}
-		}
+		program = createProgram([...fileNamesSet], options);
+		pathTranslator = createPathTranslator(program);
 	}
 
 	function runInitialCompile() {
@@ -162,19 +152,34 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		return emitResult;
 	}
 
+	function runCompile() {
+		try {
+			if (!initialCompileCompleted) {
+				return runInitialCompile();
+			} else {
+				const additions = filesToAdd;
+				const changes = filesToChange;
+				const removals = filesToDelete;
+				filesToAdd = new Set();
+				filesToChange = new Set();
+				filesToDelete = new Set();
+				return runIncrementalCompile(additions, changes, removals);
+			}
+		} catch (e) {
+			if (e instanceof DiagnosticError) {
+				return {
+					emitSkipped: true,
+					diagnostics: e.diagnostics,
+				};
+			} else {
+				throw e;
+			}
+		}
+	}
+
 	function closeEventCollection() {
 		collecting = false;
-		const additions = filesToAdd;
-		const changes = filesToChange;
-		const removals = filesToDelete;
-		filesToAdd = new Set();
-		filesToChange = new Set();
-		filesToDelete = new Set();
-
-		const emitResult = !initialCompileCompleted
-			? runInitialCompile()
-			: runIncrementalCompile(additions, changes, removals);
-		reportEmitResult(emitResult);
+		reportEmitResult(runCompile());
 	}
 
 	function openEventCollection() {
@@ -211,6 +216,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
 			reportText("Starting compilation in watch mode...");
-			reportEmitResult(runInitialCompile());
+			reportEmitResult(runCompile());
 		});
 }

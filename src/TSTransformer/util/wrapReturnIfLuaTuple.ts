@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
+import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
+function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
 	if (!luau.isCall(exp)) {
 		return true;
 	}
@@ -23,7 +24,11 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 	}
 
 	// `const [a] = foo()`
-	if (ts.isVariableDeclaration(parent) && ts.isArrayBindingPattern(parent.name)) {
+	if (
+		ts.isVariableDeclaration(parent) &&
+		ts.isArrayBindingPattern(parent.name) &&
+		!arrayBindingPatternContainsHoists(state, parent.name)
+	) {
 		return false;
 	}
 
@@ -51,7 +56,7 @@ function shouldWrapLuaTuple(node: ts.CallExpression, exp: luau.Expression) {
 }
 
 export function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
-	if (shouldWrapLuaTuple(node, exp) && isDefinitelyType(state, state.getType(node), node, isLuaTupleType(state))) {
+	if (shouldWrapLuaTuple(state, node, exp) && isDefinitelyType(state, state.getType(node), node, isLuaTupleType(state))) {
 		return luau.array([exp]);
 	}
 	return exp;

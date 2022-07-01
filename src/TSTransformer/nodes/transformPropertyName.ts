@@ -3,15 +3,12 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts from "typescript";
 
-export function transformObjectKey(
-	state: TransformState,
-	name: ts.Identifier | ts.StringLiteral | ts.NumericLiteral | ts.ComputedPropertyName,
-) {
+export function transformPropertyName(state: TransformState, name: ts.PropertyName) {
+	// identifier directly is from `{ a: value }`, so key must be "a"
 	if (ts.isIdentifier(name)) {
 		return luau.string(name.text);
 	} else {
-		// order here is fragile, ComputedPropertyName -> Identifier should NOT be string key
-		// we must do this check here instead of before
+		// `name.expression`, if identifier, is from `{ [a]: value }`
 		return transformExpression(state, ts.isComputedPropertyName(name) ? name.expression : name);
 	}
 }
