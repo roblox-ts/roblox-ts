@@ -35,9 +35,8 @@ function isDefinitelyTypeInner(
 		);
 		// In a union, either *all* or *none* of the types should match
 		if (requireFullMatchNode && numberOfFits !== 0 && numberOfFits !== type.types.length) {
-			DiagnosticService.addDiagnosticFromNodeIfNotCached(
-				state,
-				requireFullMatchNode,
+			DiagnosticService.addDiagnosticWithCache(
+				type.symbol ?? requireFullMatchNode,
 				errors.noMixedTypes(requireFullMatchNode),
 				state.multiTransformState.isReportedByNoMultiCache,
 			);
@@ -54,9 +53,8 @@ function isDefinitelyTypeInner(
 			// For example, `getAddIterableToArrayBuilder`.
 			// Since a diagnostic is reported,
 			// it won't matter that the emitted code is wrong
-			DiagnosticService.addDiagnosticFromNodeIfNotCached(
-				state,
-				requireFullMatchNode,
+			DiagnosticService.addDiagnosticWithCache(
+				type.symbol ?? requireFullMatchNode,
 				errors.noAny(requireFullMatchNode),
 				state.multiTransformState.isReportedByNoAnyCache,
 			);
