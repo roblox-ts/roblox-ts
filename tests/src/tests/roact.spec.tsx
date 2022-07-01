@@ -147,7 +147,7 @@ export = () => {
 		it("should support props", () => {
 			const TEXT = "Hello, World!";
 			const propElement = <textbutton Text={TEXT} />;
-			const propElementProps = propElement.props as Template<TextButton>;
+			const propElementProps = propElement.props as TextButton;
 
 			expect(propElementProps.Text).to.equal(TEXT);
 		});
