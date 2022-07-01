@@ -1,7 +1,6 @@
 /// <reference types="@rbxts/testez/globals" />
 
 import Roact from "@rbxts/roact";
-import { Template } from "helpers/util/RoactTypes";
 
 export = () => {
 	describe("Roact Spread operator", () => {
