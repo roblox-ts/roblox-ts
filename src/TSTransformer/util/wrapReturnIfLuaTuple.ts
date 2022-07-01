@@ -56,7 +56,10 @@ function shouldWrapLuaTuple(state: TransformState, node: ts.CallExpression, exp:
 }
 
 export function wrapReturnIfLuaTuple(state: TransformState, node: ts.CallExpression, exp: luau.Expression) {
-	if (shouldWrapLuaTuple(state, node, exp) && isDefinitelyType(state, state.getType(node), node, isLuaTupleType(state))) {
+	if (
+		shouldWrapLuaTuple(state, node, exp) &&
+		isDefinitelyType(state, state.getType(node), node, isLuaTupleType(state))
+	) {
 		return luau.array([exp]);
 	}
 	return exp;

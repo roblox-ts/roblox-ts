@@ -8,11 +8,10 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
-import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
@@ -128,7 +127,10 @@ export function transformVariableDeclaration(
 		if (name.elements.length === 0) {
 			// if not `const [] = []`, then wrapExpressionStatement
 			if (!luau.isArray(value) || !luau.list.isEmpty(value.members)) {
-				luau.list.pushList(statements, wrapExpressionStatement(state, value, luau.list.isNonEmpty(statements), node.initializer));
+				luau.list.pushList(
+					statements,
+					wrapExpressionStatement(state, value, luau.list.isNonEmpty(statements), node.initializer),
+				);
 			}
 			return statements;
 		}
