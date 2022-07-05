@@ -135,7 +135,13 @@ export = () => {
 
 	it("should support comma operator", () => {
 		let x = 0;
-		expect((expect((x = 1)).to.equal(1), expect(x).to.equal(1), expect((x = 3)).to.equal(3), x + 2)).to.equal(5);
+		expect(
+			(expect(x).to.equal(0),
+			expect((x = 1)).to.equal(1),
+			expect(x).to.equal(1),
+			expect((x = 3)).to.equal(3),
+			x + 2),
+		).to.equal(5);
 
 		function a() {
 			return $tuple(1, 2);
