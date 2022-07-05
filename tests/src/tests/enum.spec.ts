@@ -139,6 +139,7 @@ export = () => {
 		}
 		expect(ConstComputedKey[4]).to.equal(7);
 
+		// eslint-disable-next-line no-autofix/prefer-const
 		let computedKeyIndex = 1;
 		enum ComputedKey {
 			// @ts-expect-error computed enum property key
@@ -155,7 +156,7 @@ export = () => {
 		expect(PrereqInValue[3]).to.equal(6);
 		expect(computedValueIndex).to.equal(6);
 
-		let obj = { prop: 8 };
+		const obj = { prop: 8 };
 		enum PrereqValueReference {
 			// @ts-expect-error computed enum property key
 			[obj.prop] = (obj.prop = 6),
