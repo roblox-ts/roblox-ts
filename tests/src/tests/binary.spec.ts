@@ -132,4 +132,9 @@ export = () => {
 		(o["x"]) = 8;
 		expect(o.x).to.equal(8);
 	});
+
+	it("should support comma operator", () => {
+		let x = 0;
+		expect((expect((x = 1)).to.equal(1), expect(x).to.equal(1), expect((x = 3)).to.equal(3), x + 2)).to.equal(5);
+	});
 };
