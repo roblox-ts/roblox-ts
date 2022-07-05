@@ -115,9 +115,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	} else if (operatorKind === ts.SyntaxKind.ExclamationEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noExclamationEquals(node));
 		return luau.none();
-	} else if (operatorKind === ts.SyntaxKind.CommaToken) {
-		DiagnosticService.addDiagnostic(errors.noComma(node));
-		return luau.none();
 	}
 
 	// logical
