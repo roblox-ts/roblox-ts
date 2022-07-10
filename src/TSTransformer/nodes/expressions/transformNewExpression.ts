@@ -1,6 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { transformSpreadElement } from "TSTransformer/nodes/expressions/transformSpreadElement";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
@@ -19,6 +20,12 @@ export function transformNewExpression(state: TransformState, node: ts.NewExpres
 	}
 
 	const expression = convertToIndexableExpression(transformExpression(state, node.expression));
-	const args = node.arguments ? ensureTransformOrder(state, node.arguments) : [];
+	const args = node.arguments
+		? ensureTransformOrder(state, node.arguments, (state, expression) =>
+				ts.isSpreadElement(expression)
+					? luau.list.make(transformExpression(state, expression))
+					: transformSpreadElement(state, expression),
+		  )
+		: [];
 	return luau.call(luau.property(expression, "new"), args);
 }
