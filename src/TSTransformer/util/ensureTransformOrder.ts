@@ -9,8 +9,16 @@ import ts from "typescript";
  * Takes an array of `ts.Expression` and transforms each, capturing prereqs. Returns the transformed nodes.
  * Ensures the `luau.Expression` nodes execute in the same order as the `ts.Expression` nodes.
  */
-export function ensureTransformOrder(state: TransformState, expressions: ReadonlyArray<ts.Expression>) {
-	const expressionInfoList = expressions.map(exp => state.capture(() => transformExpression(state, exp)));
+export function ensureTransformOrder(
+	state: TransformState,
+	expressions: ReadonlyArray<ts.Expression>,
+	transformer: (
+		state: TransformState,
+		expression: ts.Expression,
+		index: number,
+	) => luau.Expression = transformExpression,
+) {
+	const expressionInfoList = expressions.map((exp, index) => state.capture(() => transformer(state, exp, index)));
 	const lastArgWithPrereqsIndex = findLastIndex(expressionInfoList, info => !luau.list.isEmpty(info[1]));
 	const result = new Array<luau.Expression>();
 	for (let i = 0; i < expressionInfoList.length; i++) {
