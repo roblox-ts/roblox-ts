@@ -55,7 +55,7 @@ function transformExportFrom(state: TransformState, node: ts.ExportDeclaration) 
 		luau.list.push(
 			statements,
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: importExp as luau.TemporaryIdentifier,
+				left: importExp,
 				right: createImportExpression(state, node.getSourceFile(), node.moduleSpecifier),
 			}),
 		);
