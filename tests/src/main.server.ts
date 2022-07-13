@@ -5,12 +5,3 @@ const results = TestEZ.TestBootstrap.run([ServerScriptService.tests]);
 if (results.errors.size() > 0 || results.failureCount > 0) {
 	error("Tests failed!");
 }
-
-switch (1) {
-	case 1: {
-		break;
-	}
-	case 1: {
-		break;
-	}
-}
