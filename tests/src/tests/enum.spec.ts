@@ -132,6 +132,7 @@ export = () => {
 
 	it("should support computed keys", () => {
 		const constKeyIndex = 4;
+		// eslint-disable-next-line no-autofix/prefer-const
 		let constKeyValue = 7;
 		enum ConstComputedKey {
 			// @ts-expect-error computed enum property key
