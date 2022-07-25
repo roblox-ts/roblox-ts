@@ -16,4 +16,8 @@ export class Lazy<T> {
 		this.isInitialized = true;
 		this.value = value;
 	}
+
+	public wasInitialized() {
+		return this.isInitialized;
+	}
 }
