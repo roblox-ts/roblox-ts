@@ -118,6 +118,47 @@ export = () => {
 		expect(EnumWithEscapedQuoteConst.Quote).to.equal('"');
 	});
 
+	enum AllEqualValue {
+		Bear = "Bear",
+		Dog = "Dog",
+		Snake = "Snake",
+	}
+
+	enum SomeEqualValue {
+		Bear = "Bear",
+		Dog = "NotDog",
+		Snake = "NotSnake",
+	}
+
+	enum NoneEqualValue {
+		Bear = 1,
+		Dog = 2,
+		Snake = 3,
+	}
+
+	it("should support enums with optimised inverse mappings", () => {
+		expect(AllEqualValue.Bear).to.equal("Bear");
+		expect(AllEqualValue.Dog).to.equal("Dog");
+		expect(AllEqualValue.Snake).to.equal("Snake");
+		expect(AllEqualValue[AllEqualValue.Bear]).to.equal("Bear");
+		expect(AllEqualValue[AllEqualValue.Dog]).to.equal("Dog");
+		expect(AllEqualValue[AllEqualValue.Snake]).to.equal("Snake");
+
+		expect(SomeEqualValue.Bear).to.equal("Bear");
+		expect(SomeEqualValue.Dog).to.equal("NotDog");
+		expect(SomeEqualValue.Snake).to.equal("NotSnake");
+		expect(SomeEqualValue[SomeEqualValue.Bear as "Bear"]).to.equal("Bear");
+		expect(SomeEqualValue[SomeEqualValue.Dog as "Bear"]).to.equal("Dog");
+		expect(SomeEqualValue[SomeEqualValue.Snake as "Bear"]).to.equal("Snake");
+
+		expect(NoneEqualValue.Bear).to.equal(1);
+		expect(NoneEqualValue.Dog).to.equal(2);
+		expect(NoneEqualValue.Snake).to.equal(3);
+		expect(NoneEqualValue[NoneEqualValue.Bear]).to.equal("Bear");
+		expect(NoneEqualValue[NoneEqualValue.Dog]).to.equal("Dog");
+		expect(NoneEqualValue[NoneEqualValue.Snake]).to.equal("Snake");
+	});
+
 	it("should support computed keys", () => {
 		const constKeyIndex = 4;
 		let constKeyValue = 7;
