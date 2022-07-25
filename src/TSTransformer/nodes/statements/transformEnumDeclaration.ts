@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { Lazy } from "Shared/classes/Lazy";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
@@ -10,6 +11,21 @@ import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate"
 import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinitions";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
+
+function needsInverseEntry(member: ts.EnumMember) {
+	if (member.initializer && ts.isStringLiteral(member.initializer)) {
+		const name =
+			ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)
+				? member.name.text
+				: ts.isComputedPropertyName(member.name) && ts.isStringLiteral(member.name.expression)
+				? member.name.expression.text
+				: undefined;
+		if (member.initializer.text === name) {
+			return false;
+		}
+	}
+	return true;
+}
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (
@@ -40,20 +56,10 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	validateIdentifier(state, node.name);
 
 	const id = transformIdentifierDefined(state, node.name);
+	const inverseId = luau.tempId("inverse");
+	const inverse = new Lazy(() => inverseId);
 
 	const statements = state.capturePrereqs(() => {
-		const inverseId = state.pushToVar(luau.map(), "inverse");
-		state.prereq(
-			luau.create(luau.SyntaxKind.Assignment, {
-				left: id,
-				operator: "=",
-				right: luau.call(luau.globals.setmetatable, [
-					luau.map(),
-					luau.map([[luau.strings.__index, inverseId]]),
-				]),
-			}),
-		);
-
 		for (const member of node.members) {
 			const name = transformPropertyName(state, member.name);
 			const index = expressionMightMutate(
@@ -90,18 +96,40 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				}),
 			);
 
-			state.prereq(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: inverseId,
-						index: valueExp,
+			if (needsInverseEntry(member)) {
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: inverse.get(),
+							index: valueExp,
+						}),
+						operator: "=",
+						right: index,
 					}),
-					operator: "=",
-					right: index,
-				}),
-			);
+				);
+			}
 		}
 	});
+
+	luau.list.unshift(
+		statements,
+		luau.create(luau.SyntaxKind.Assignment, {
+			left: id,
+			operator: "=",
+			right: inverse.wasInitialized()
+				? luau.call(luau.globals.setmetatable, [luau.map(), luau.map([[luau.strings.__index, inverseId]])])
+				: luau.map(),
+		}),
+	);
+	if (inverse.wasInitialized()) {
+		luau.list.unshift(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: inverseId,
+				right: luau.map(),
+			}),
+		);
+	}
 
 	const list = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
 	if (symbol && state.isHoisted.get(symbol) !== true) {
