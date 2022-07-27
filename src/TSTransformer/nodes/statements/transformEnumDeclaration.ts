@@ -12,19 +12,14 @@ import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinition
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
-function needsInverseEntry(member: ts.EnumMember) {
-	if (member.initializer && ts.isStringLiteral(member.initializer)) {
-		const name =
-			ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)
-				? member.name.text
-				: ts.isComputedPropertyName(member.name) && ts.isStringLiteral(member.name.expression)
-				? member.name.expression.text
-				: undefined;
-		if (member.initializer.text === name) {
-			return false;
-		}
-	}
-	return true;
+function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
+	const name =
+		ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)
+			? member.name.text
+			: ts.isComputedPropertyName(member.name) && ts.isStringLiteral(member.name.expression)
+			? member.name.expression.text
+			: undefined;
+	return state.typeChecker.getConstantValue(member) !== name;
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
@@ -96,7 +91,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				}),
 			);
 
-			if (needsInverseEntry(member)) {
+			if (needsInverseEntry(state, member)) {
 				state.prereq(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
