@@ -177,7 +177,7 @@ local function bit_sign(num)
 end
 
 function TS.bit_lrsh(a, b)
-	return bit_sign(bit32.arshift(a, b % 32))
+	return bit_sign(bit32.arshift(a, b))
 end
 
 TS.TRY_RETURN = 1
