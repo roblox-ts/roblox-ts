@@ -165,14 +165,19 @@ function TS.await(promise)
 	end
 end
 
-function TS.bit_lrsh(a, b)
-	local absA = math.abs(a)
-	local result = bit32.rshift(absA, b)
-	if a == absA then
-		return result
+local SIGN = 2 ^ 31
+local COMPLEMENT = 2 ^ 32
+local function bit_sign(num)
+	-- Restores the sign after an unsigned conversion according to 2s complement.
+	if bit32.btest(num, SIGN) then
+		return num - COMPLEMENT
 	else
-		return -result - 1
+		return num
 	end
+end
+
+function TS.bit_lrsh(a, b)
+	return bit_sign(bit32.arshift(a, b % 32))
 end
 
 TS.TRY_RETURN = 1
