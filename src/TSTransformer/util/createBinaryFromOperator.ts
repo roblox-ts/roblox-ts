@@ -30,6 +30,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
+	[ts.SyntaxKind.GreaterThanGreaterThanToken, "arshift"],
 
 	// bitwise compound assignment
 	[ts.SyntaxKind.AmpersandEqualsToken, "band"],
@@ -37,6 +38,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretEqualsToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanEqualsToken, "lshift"],
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
+	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
 ]);
 
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
