@@ -64,22 +64,6 @@ export = () => {
 	it("should support bitwise with negative numbers", () => {
 		let x = -5;
 		x >>= 1;
-		expect(x).to.equal(-3);
-	});
-
-	it("should support right shift on negative number", () => {
-		let a = -1;
-		a >>= 0;
-		expect(a).to.equal(-1);
-
-		let b = 2 ** 31;
-		b >>= 0;
-		expect(b).to.equal(-(2 ** 31));
-	});
-
-	it("should support right shift with negative shift", () => {
-		let a = 4;
-		a >>= -31;
-		expect(a).to.equal(2);
+		expect(x).to.equal(4294967293);
 	});
 };
