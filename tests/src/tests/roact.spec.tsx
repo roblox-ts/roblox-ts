@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 import Roact from "@rbxts/roact";
 
 const RoactModule = game
