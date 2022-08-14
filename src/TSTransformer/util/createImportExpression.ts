@@ -179,7 +179,7 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 ): luau.IndexableExpression {
-	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
+	const moduleFile = getSourceFileFromModuleSpecifier(state, moduleSpecifier);
 	if (!moduleFile) {
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
 		return luau.none();

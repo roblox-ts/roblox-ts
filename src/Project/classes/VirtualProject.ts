@@ -128,6 +128,7 @@ export class VirtualProject {
 		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
+			this.program,
 			this.data,
 			services,
 			pathTranslator,
