@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should understand number literals", () => {
 		expect(1).to.equal(1);

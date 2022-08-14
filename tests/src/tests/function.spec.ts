@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 namespace N {
 	export const a = function(this: typeof N, n: 5) {
 		return n;

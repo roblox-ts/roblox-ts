@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support ternary expressions", () => {
 		expect(true ? 1 : 0).to.equal(1);
