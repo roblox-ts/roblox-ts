@@ -142,5 +142,13 @@ export = () => {
 		const b = (c = 1);
 		expect(b).to.equal(1);
 		expect(c).to.equal(1);
+
+		const r: Record<number, number> = {};
+		let foo = () => r;
+		let bar = 1;
+		const result = (foo()[bar++] = bar++);
+		expect(bar).to.equal(3);
+		expect(r[1]).to.equal(2);
+		expect(result).to.equal(2);
 	});
 };
