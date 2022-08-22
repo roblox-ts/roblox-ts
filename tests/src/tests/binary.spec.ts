@@ -54,7 +54,7 @@ export = () => {
 									this.b++;
 								},
 
-								no: function() {
+								no: function () {
 									return (this[5] *= 7);
 								},
 
@@ -129,5 +129,18 @@ export = () => {
 		// prettier-ignore
 		(o["x"]) = 8;
 		expect(o.x).to.equal(8);
+	});
+
+	it("should support the result of assignment expressions", () => {
+		function myFunc() {}
+		const child = new Instance("BindableFunction");
+		// should return assigned value, not re-index which would error here
+		const a = (child.OnInvoke = myFunc);
+		expect(a).to.equal(myFunc);
+
+		let c = 0;
+		const b = (c = 1);
+		expect(b).to.equal(1);
+		expect(c).to.equal(1);
 	});
 };
