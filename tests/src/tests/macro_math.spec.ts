@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support CFrame * CFrame = CFrame", () => {
 		const a = new CFrame(3, 7, 9);

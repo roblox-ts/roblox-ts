@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 	const result = new Set<T>();
 	for (const value of set1) {

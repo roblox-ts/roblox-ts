@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 namespace n1 {
 	export const a = "a";
 }

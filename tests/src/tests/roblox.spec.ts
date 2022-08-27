@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support using the Roblox API", () => {
 		expect(game.FindFirstChild("Workspace")).to.equal(game.GetService("Workspace"));

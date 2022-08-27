@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support if statements", () => {
 		function foo(n: number) {
