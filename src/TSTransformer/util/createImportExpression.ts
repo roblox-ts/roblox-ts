@@ -110,7 +110,8 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
-		if (!moduleRbxPath.includes(moduleScope)) {
+		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
+		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== "node_modules") {
 			DiagnosticService.addDiagnostic(
 				errors.noPackageImportWithoutScope(
 					moduleSpecifier,
