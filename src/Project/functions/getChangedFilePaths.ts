@@ -16,11 +16,18 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 	// buildState.referencedMap is sourceFile -> files that this file imports
 	// but we need sourceFile -> files that import this file
 	const reversedReferencedMap = new Map<string, Set<string>>();
-	buildState.referencedMap?.forEach((referencedSet, filePath) => {
-		referencedSet.forEach((_, refFilePath) => {
-			getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
-		});
-	});
+
+	const referencedMap = buildState.referencedMap;
+	if (referencedMap) {
+		for (const filePath of ts.arrayFrom(referencedMap.keys())) {
+			const referencedSet = referencedMap.getValues(filePath);
+			if (referencedSet) {
+				referencedSet.forEach((_, refFilePath) => {
+					getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
+				});
+			}
+		}
+	}
 
 	const changedFilesSet = new Set<string>();
 
