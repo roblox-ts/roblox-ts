@@ -259,5 +259,4 @@ export const warnings = {
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
-	packageUsedInReplicatedFirst: warning("Packages from node_modules should not be used from ReplicatedFirst."),
 };
