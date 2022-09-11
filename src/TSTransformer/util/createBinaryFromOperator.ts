@@ -81,13 +81,6 @@ export function createBinaryFromOperator(
 		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
 	}
 
-	if (
-		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
-		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
-	) {
-		return luau.call(state.TS(node, "bit_lrsh"), [left, right]);
-	}
-
 	if (operatorKind === ts.SyntaxKind.CommaToken) {
 		state.prereqList(wrapExpressionStatement(left));
 		return right;
