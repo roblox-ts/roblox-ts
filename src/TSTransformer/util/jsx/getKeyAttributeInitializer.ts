@@ -1,3 +1,4 @@
+import { assert } from "console";
 import { KEY_ATTRIBUTE_NAME } from "TSTransformer/util/jsx/constants";
 import { getAttributes } from "TSTransformer/util/jsx/getAttributes";
 import ts from "typescript";
@@ -9,6 +10,8 @@ export function getKeyAttributeInitializer(element: ts.JsxElement | ts.JsxSelfCl
 				return attribute.initializer;
 			} else if (ts.isJsxExpression(attribute.initializer)) {
 				return attribute.initializer.expression;
+			} else {
+				assert(false, `Unexpected JSX attribute initializer type!`);
 			}
 		}
 	}
