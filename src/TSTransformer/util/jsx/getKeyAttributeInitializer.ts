@@ -7,7 +7,7 @@ export function getKeyAttributeInitializer(element: ts.JsxElement | ts.JsxSelfCl
 		if (ts.isJsxAttribute(attribute) && attribute.name.text === KEY_ATTRIBUTE_NAME && attribute.initializer) {
 			if (ts.isStringLiteral(attribute.initializer)) {
 				return attribute.initializer;
-			} else {
+			} else if (ts.isJsxExpression(attribute.initializer)) {
 				return attribute.initializer.expression;
 			}
 		}
