@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
-import { PARENT_FIELD, ProjectType } from "Shared/constants";
+import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
@@ -110,7 +110,8 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
-		if (!moduleRbxPath.includes(moduleScope)) {
+		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
+		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== NODE_MODULES) {
 			DiagnosticService.addDiagnostic(
 				errors.noPackageImportWithoutScope(
 					moduleSpecifier,
