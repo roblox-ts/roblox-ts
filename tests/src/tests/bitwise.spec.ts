@@ -62,6 +62,6 @@ export = () => {
 	it("should support bitwise with negative numbers", () => {
 		let x = -5;
 		x >>= 1;
-		expect(x).to.equal(-3);
+		expect(x).to.equal(4294967293);
 	});
 };
