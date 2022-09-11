@@ -18,14 +18,12 @@ export function getChangedFilePaths(program: ts.BuilderProgram, pathHints?: Arra
 	const reversedReferencedMap = new Map<string, Set<string>>();
 
 	const referencedMap = buildState.referencedMap;
+
 	if (referencedMap) {
 		for (const filePath of ts.arrayFrom(referencedMap.keys())) {
-			const referencedSet = referencedMap.getValues(filePath);
-			if (referencedSet) {
-				referencedSet.forEach((_, refFilePath) => {
-					getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
-				});
-			}
+			referencedMap.getValues(filePath)?.forEach((_, refFilePath) => {
+				getOrSetDefault(reversedReferencedMap, refFilePath, () => new Set()).add(filePath);
+			});
 		}
 	}
 
