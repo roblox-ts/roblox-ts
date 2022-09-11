@@ -10,6 +10,7 @@ export function getKeyAttributeInitializer(element: ts.JsxElement | ts.JsxSelfCl
 			} else if (ts.isJsxExpression(attribute.initializer)) {
 				return attribute.initializer.expression;
 			}
+			// embedded JSX elements are ignored because "Key" type doesn't support them by default
 		}
 	}
 }
