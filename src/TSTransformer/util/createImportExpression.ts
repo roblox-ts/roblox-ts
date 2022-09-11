@@ -121,10 +121,6 @@ function getNodeModulesImportParts(
 			return [];
 		}
 
-		if (moduleRbxPath[0] === "ReplicatedFirst") {
-			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
-		}
-
 		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
 	}
 }
