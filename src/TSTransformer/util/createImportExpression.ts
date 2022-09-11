@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
-import { errors, warnings } from "Shared/diagnostics";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
@@ -120,10 +120,6 @@ function getNodeModulesImportParts(
 				),
 			);
 			return [];
-		}
-
-		if (moduleRbxPath[0] === "ReplicatedFirst") {
-			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
 		}
 
 		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
