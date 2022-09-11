@@ -49,8 +49,8 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
-		"@roblox-ts/luau-ast": "^1.0.2",
-		"@roblox-ts/rojo-resolver": "^1.0.2",
+		"@roblox-ts/luau-ast": "^1.0.3",
+		"@roblox-ts/rojo-resolver": "^1.0.3",
 		"ajv": "^8.6.3",
 		"chokidar": "^3.5.3",
 		"fs-extra": "^10.1.0",
