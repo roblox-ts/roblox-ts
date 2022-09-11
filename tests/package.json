@@ -14,6 +14,6 @@
 		"@rbxts/roact": "^1.4.2-ts.2",
 		"@rbxts/services": "^1.2.0",
 		"@rbxts/testez": "^0.4.2-ts.0",
-		"@rbxts/types": "^1.0.634"
+		"@rbxts/types": "^1.0.641"
 	}
 }
