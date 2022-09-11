@@ -29,9 +29,9 @@ https://discord.gg/JFvZY5JSBT
 <a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png" /></a><!-- Zombie Strike 206.8M -->
 <a href="https://www.roblox.com/games/8542259458"><img width=32.9% src="https://i.imgur.com/n6fMYfz.jpeg" /></a><!-- SkyWars 27.3M -->
 <a href="https://www.roblox.com/games/841531820"><img width=32.9% src="https://i.imgur.com/KFUgqsV.png" /></a><!-- Deep Space Tycoon 27.1M -->
+<a href="https://www.roblox.com/games/9611595239"><img width=32.9% src="https://i.imgur.com/qISPda3.png" /></a><!-- Rift Royale 21.1M -->
 <a href="https://www.roblox.com/games/8747402506"><img width=32.9% src="https://i.imgur.com/cZsnXms.png" /></a><!-- Prop Hunt 19.7M -->
 <a href="https://www.roblox.com/games/5414779423"><img width=32.9% src="https://i.imgur.com/5GTAGqt.png" /></a><!-- Science Simulator 19.1M -->
-<a href="https://www.roblox.com/games/9611595239"><img width=32.9% src="https://i.imgur.com/qISPda3.png" /></a><!-- Rift Royale 6.8M -->
 <a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 6.5M -->
+<a href="https://www.roblox.com/games/8597844216"><img width=32.9% src="https://i.imgur.com/S728lWz.png" /></a><!-- Slither.io Simulator 5.6M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
-

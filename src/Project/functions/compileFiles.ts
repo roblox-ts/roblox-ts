@@ -166,6 +166,7 @@ export function compileFiles(
 			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(
+				proxyProgram,
 				data,
 				services,
 				pathTranslator,

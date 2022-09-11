@@ -53,7 +53,7 @@ const packageManagerCommands: { [K in PackageManager]: PackageManagerCommands } 
 		build: "yarn run build",
 	},
 	[PackageManager.PNPM]: {
-		init: "pnpm init -y",
+		init: "pnpm init",
 		devInstall: "pnpm install --silent -D",
 		build: "pnpm run build",
 	},

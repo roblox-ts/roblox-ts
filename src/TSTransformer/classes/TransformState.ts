@@ -40,6 +40,7 @@ export class TransformState {
 	private isInReplicatedFirst: boolean;
 
 	constructor(
+		public readonly program: ts.Program,
 		public readonly data: ProjectData,
 		public readonly services: TransformServices,
 		public readonly pathTranslator: PathTranslator,
