@@ -95,7 +95,10 @@ export class VirtualProject {
 			include: {
 				$path: INCLUDE_PATH,
 				node_modules: {
-					$path: RBXTS_SCOPE_PATH,
+					$className: "Folder",
+					"@rbxts": {
+						$path: RBXTS_SCOPE_PATH,
+					},
 				},
 			},
 		} as never);
