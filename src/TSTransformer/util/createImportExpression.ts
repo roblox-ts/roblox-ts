@@ -72,7 +72,6 @@ function getNodeModulesImportParts(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 	moduleOutPath: string,
-	moduleRbxPath: RbxPath,
 ) {
 	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
 	assert(moduleScope);
@@ -110,6 +109,14 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+			);
+			return [];
+		}
+
 		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
 		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== NODE_MODULES) {
 			DiagnosticService.addDiagnostic(
@@ -192,24 +199,19 @@ export function createImportExpression(
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
 
-	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	if (!moduleRbxPath) {
-		DiagnosticService.addDiagnostic(
-			errors.noRojoData(
-				moduleSpecifier,
-				path.relative(state.data.projectPath, moduleOutPath),
-				isInsideNodeModules,
-			),
-		);
-		return luau.none();
-	}
-
 	const parts = new Array<luau.Expression>();
 	parts.push(luau.globals.script);
 
 	if (isInsideNodeModules) {
-		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
 	} else {
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
+			);
+			return luau.none();
+		}
 		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
