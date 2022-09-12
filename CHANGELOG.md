@@ -1,3 +1,6 @@
+## 2.0.1
+- Fixed new regression with Package projects importing package dependencies (#2125)
+
 ## 2.0.0
 - **Breaking Changes**
 	- Removed `opcall` in favor of `pcall` (#1991)
