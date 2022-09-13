@@ -1,3 +1,6 @@
+## 2.0.2
+- Fixed new regression with Playground environment
+
 ## 2.0.1
 - Fixed new regression with Package projects importing package dependencies (#2125)
 
