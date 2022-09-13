@@ -472,7 +472,7 @@ export function transformForOfRangeMacro(
 			end,
 			step: luau.binary(step, "or", luau.number(1)),
 			statements,
-		})
+		}),
 	);
 
 	return result;
