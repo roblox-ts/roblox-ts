@@ -1,0 +1,21 @@
+name: ESLint
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+
+      - name: Install NPM dependencies
+        uses: bahmutov/npm-install@v1.7.4
+
+      - name: Run ESLint
+        run: npm run eslint
