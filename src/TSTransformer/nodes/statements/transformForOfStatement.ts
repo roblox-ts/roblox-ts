@@ -459,7 +459,7 @@ export function transformForOfRangeMacro(
 	const statements = luau.list.make<luau.Statement>();
 	const id = transformForInitializer(state, node.initializer, statements);
 
-	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, node.expression.arguments));
+	const [[start, end, stepExp], prereqs] = state.capture(() => ensureTransformOrder(state, node.expression.arguments));
 	luau.list.pushList(result, prereqs);
 
 	luau.list.pushList(statements, transformStatementList(state, getStatements(node.statement)));
@@ -470,8 +470,8 @@ export function transformForOfRangeMacro(
 			id,
 			start,
 			end,
-			step: step === undefined || luau.isNumberLiteral(step)
-				? step
+			step: stepExp === undefined || luau.isNumberLiteral(step)
+				? stepExp
 				: luau.binary(step, "or", luau.number(1)),
 			statements,
 		}),
