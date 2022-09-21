@@ -13,6 +13,7 @@ import { TransformServices, TryUses } from "TSTransformer/types";
 import { createGetService } from "TSTransformer/util/createGetService";
 import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 import { getModuleAncestor, skipUpwards } from "TSTransformer/util/traversal";
+import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
 import ts from "typescript";
 
 /**
@@ -39,6 +40,7 @@ export class TransformState {
 	private isInReplicatedFirst: boolean;
 
 	constructor(
+		public readonly program: ts.Program,
 		public readonly data: ProjectData,
 		public readonly services: TransformServices,
 		public readonly pathTranslator: PathTranslator,
@@ -227,7 +229,7 @@ export class TransformState {
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					DiagnosticService.addDiagnostic(
-						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
+						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath), false),
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: luau.globals.TS,
@@ -266,7 +268,7 @@ export class TransformState {
 	 * @param expression
 	 */
 	public pushToVar(expression: luau.Expression | undefined, name?: string) {
-		const temp = luau.tempId(name);
+		const temp = luau.tempId(name || (expression && valueToIdStr(expression)));
 		this.prereq(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: temp,

@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support bitwise operations", () => {
 		const a = 0b101;
@@ -64,6 +62,6 @@ export = () => {
 	it("should support bitwise with negative numbers", () => {
 		let x = -5;
 		x >>= 1;
-		expect(x).to.equal(-3);
+		expect(x).to.equal(4294967293);
 	});
 };

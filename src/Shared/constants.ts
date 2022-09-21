@@ -1,7 +1,8 @@
 import path from "path";
+import { ProjectOptions } from "Shared/types";
 
 export const PACKAGE_ROOT = path.join(__dirname, "..", "..");
-export const LIB_PATH = path.join(PACKAGE_ROOT, "lib");
+export const INCLUDE_PATH = path.join(PACKAGE_ROOT, "include");
 
 // intentionally not using PACKAGE_ROOT because playground has webpack issues
 // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
@@ -38,3 +39,17 @@ export enum ProjectType {
 	Model = "model",
 	Package = "package",
 }
+
+export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
+	includePath: "",
+	rojo: undefined,
+	type: undefined,
+	watch: false,
+	usePolling: false,
+	verbose: false,
+	noInclude: false,
+	logTruthyChanges: false,
+	writeOnlyChanged: false,
+	optimizedLoops: false,
+	allowCommentDirectives: false,
+};

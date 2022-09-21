@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should properly fetch types with parenthesis and nonNull assertions", () => {
 		function loop(array?: Array<number>) {

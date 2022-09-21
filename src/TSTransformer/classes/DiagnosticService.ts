@@ -20,6 +20,13 @@ export class DiagnosticService {
 		this.diagnostics.push(...diagnostics);
 	}
 
+	public static addDiagnosticWithCache<T>(cacheBy: T, diagnostic: ts.Diagnostic, cache: Set<T>) {
+		if (!cache.has(cacheBy)) {
+			cache.add(cacheBy);
+			this.addDiagnostic(diagnostic);
+		}
+	}
+
 	public static flush() {
 		const current = this.diagnostics;
 		this.diagnostics = [];

@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { isDefinedAsLet } from "TSTransformer/util/isDefinedAsLet";
+import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
 
@@ -44,7 +44,7 @@ function transformExportDefault(state: TransformState, node: ts.ExportAssignment
 
 export function transformExportAssignment(state: TransformState, node: ts.ExportAssignment) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node.expression);
-	if (symbol && isDefinedAsLet(state, symbol)) {
+	if (symbol && isSymbolMutable(state, symbol)) {
 		DiagnosticService.addDiagnostic(errors.noExportAssignmentLet(node));
 	}
 

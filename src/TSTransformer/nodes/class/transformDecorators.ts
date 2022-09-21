@@ -2,7 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
@@ -14,12 +14,13 @@ function transformMemberDecorators(
 	const result = luau.list.make<luau.Statement>();
 	const finalizers = luau.list.make<luau.Statement>();
 
-	const multipleDecorators = node.decorators !== undefined && node.decorators.length > 1;
+	const decorators = ts.getDecorators(node);
+	const multipleDecorators = decorators !== undefined && decorators.length > 1;
 
 	const name = node.name;
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
-	for (const decorator of node.decorators ?? []) {
+	for (const decorator of decorators ?? []) {
 		// eslint-disable-next-line no-autofix/prefer-const
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 
@@ -44,7 +45,7 @@ function transformMemberDecorators(
 				// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
 				// we check against this above
 				assert(!ts.isBindingPattern(name));
-				const keyPrereqs = state.capturePrereqs(() => (key = transformObjectKey(state, name)));
+				const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, name)));
 				luau.list.pushList(result, keyPrereqs);
 			}
 		}

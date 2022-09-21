@@ -15,6 +15,8 @@ function getType(typeChecker: ts.TypeChecker, node: ts.Node) {
 const TYPES_NOTICE = "\nYou may need to update your @rbxts/compiler-types!";
 
 export const SYMBOL_NAMES = {
+	globalThis: "globalThis",
+
 	ArrayConstructor: "ArrayConstructor",
 	SetConstructor: "SetConstructor",
 	MapConstructor: "MapConstructor",
@@ -40,6 +42,9 @@ export const SYMBOL_NAMES = {
 	WeakSet: "WeakSet",
 
 	Iterable: "Iterable",
+
+	$range: "$range",
+	$tuple: "$tuple",
 } as const;
 
 export const NOMINAL_LUA_TUPLE_NAME = "_nominal_LuaTuple";

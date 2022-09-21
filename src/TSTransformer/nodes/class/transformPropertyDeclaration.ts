@@ -3,7 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import ts from "typescript";
 
 export function transformPropertyDeclaration(
@@ -28,7 +28,7 @@ export function transformPropertyDeclaration(
 		luau.create(luau.SyntaxKind.Assignment, {
 			left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: name,
-				index: transformObjectKey(state, node.name),
+				index: transformPropertyName(state, node.name),
 			}),
 			operator: "=",
 			right: transformExpression(state, node.initializer),

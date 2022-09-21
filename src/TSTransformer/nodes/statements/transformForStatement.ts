@@ -14,7 +14,9 @@ import { transformStatementList } from "TSTransformer/nodes/transformStatementLi
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { getAncestor, isAncestorOf } from "TSTransformer/util/traversal";
+import { offset } from "TSTransformer/util/offset";
+import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
@@ -97,7 +99,7 @@ function isIdWriteOrAsyncRead(state: TransformState, forStatement: ts.ForStateme
 	);
 }
 
-export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
+function transformForStatementFallback(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
 	const { initializer, condition, incrementor, statement } = node;
 
 	const result = luau.list.make<luau.Statement>();
@@ -293,4 +295,185 @@ export function transformForStatement(state: TransformState, node: ts.ForStateme
 	return result.head === result.tail
 		? result
 		: luau.list.make(luau.create(luau.SyntaxKind.DoStatement, { statements: result }));
+}
+
+function getOptimizedIncrementorStepValue(state: TransformState, incrementor: ts.Expression, idSymbol: ts.Symbol) {
+	if (
+		ts.isBinaryExpression(incrementor) &&
+		ts.isIdentifier(incrementor.left) &&
+		state.typeChecker.getSymbolAtLocation(incrementor.left) === idSymbol &&
+		incrementor.operatorToken.kind === ts.SyntaxKind.PlusEqualsToken &&
+		ts.isNumericLiteral(incrementor.right) &&
+		isProbablyInteger(state, incrementor.right)
+	) {
+		return Number(incrementor.right.getText());
+	} else if (
+		ts.isBinaryExpression(incrementor) &&
+		incrementor.operatorToken.kind === ts.SyntaxKind.MinusEqualsToken &&
+		ts.isNumericLiteral(incrementor.right) &&
+		isProbablyInteger(state, incrementor.right)
+	) {
+		return -Number(incrementor.right.getText());
+	} else if (
+		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
+		ts.isIdentifier(incrementor.operand) &&
+		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol &&
+		incrementor.operator === ts.SyntaxKind.PlusPlusToken
+	) {
+		return 1;
+	} else if (
+		(ts.isPostfixUnaryExpression(incrementor) || ts.isPrefixUnaryExpression(incrementor)) &&
+		ts.isIdentifier(incrementor.operand) &&
+		state.typeChecker.getSymbolAtLocation(incrementor.operand) === idSymbol &&
+		incrementor.operator === ts.SyntaxKind.MinusMinusToken
+	) {
+		return -1;
+	}
+	return undefined;
+}
+
+function isSizeMacro(state: TransformState, expression: ts.Expression): boolean {
+	if (ts.isCallExpression(expression)) {
+		const expType = state.typeChecker.getNonOptionalType(state.getType(expression.expression));
+		const symbol = getFirstDefinedSymbol(state, expType);
+		if (symbol) {
+			const macro = state.services.macroManager.getPropertyCallMacro(symbol);
+			if (macro && symbol.name === "size") {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function isMutatedInBody(state: TransformState, identifier: ts.Identifier, body: ts.Statement): boolean {
+	return (
+		ts.FindAllReferences.Core.eachSymbolReferenceInFile(
+			identifier,
+			state.typeChecker,
+			identifier.getSourceFile(),
+			token => {
+				const parent = skipUpwards(token).parent;
+				if (ts.isAssignmentExpression(parent) && skipDownwards(parent.left) === token) {
+					return true;
+				} else if (ts.isUnaryExpressionWithWrite(parent) && skipDownwards(parent.operand) === token) {
+					return true;
+				}
+				return false;
+			},
+			body,
+		) === true
+	);
+}
+
+function isProbablyInteger(state: TransformState, expression: ts.Expression): boolean {
+	if (ts.isNumericLiteral(expression)) {
+		return Number.isInteger(Number(expression.getText()));
+	} else if (ts.isBinaryExpression(expression)) {
+		if (
+			expression.operatorToken.kind === ts.SyntaxKind.PlusToken ||
+			expression.operatorToken.kind === ts.SyntaxKind.MinusToken ||
+			expression.operatorToken.kind === ts.SyntaxKind.AsteriskToken ||
+			expression.operatorToken.kind === ts.SyntaxKind.AsteriskAsteriskToken
+		) {
+			return isProbablyInteger(state, expression.left) && isProbablyInteger(state, expression.right);
+		}
+	} else if (ts.isPrefixUnaryExpression(expression)) {
+		if (expression.operator === ts.SyntaxKind.PlusToken || expression.operator === ts.SyntaxKind.MinusToken) {
+			return isProbablyInteger(state, expression.operand);
+		}
+	} else if (isSizeMacro(state, expression)) {
+		return true;
+	}
+	return false;
+}
+
+function transformForStatementOptimized(state: TransformState, node: ts.ForStatement) {
+	const { initializer, condition, incrementor, statement } = node;
+
+	// validate initializer
+
+	if (!initializer || !ts.isVariableDeclarationList(initializer) || initializer.declarations.length !== 1) {
+		return undefined;
+	}
+
+	const { name: decName, initializer: decInit } = initializer.declarations[0];
+	if (!ts.isIdentifier(decName) || decInit === undefined) {
+		return undefined;
+	}
+
+	const idSymbol = state.typeChecker.getSymbolAtLocation(decName);
+	if (!idSymbol) {
+		return undefined;
+	}
+
+	// validate condition
+
+	if (!condition || !ts.isBinaryExpression(condition)) {
+		return undefined;
+	}
+
+	if (
+		condition.operatorToken.kind !== ts.SyntaxKind.LessThanToken &&
+		condition.operatorToken.kind !== ts.SyntaxKind.LessThanEqualsToken &&
+		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanToken &&
+		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanEqualsToken
+	) {
+		return undefined;
+	}
+
+	// validate incrementor
+
+	if (!incrementor) {
+		return undefined;
+	}
+
+	const stepValue = getOptimizedIncrementorStepValue(state, incrementor, idSymbol);
+	if (stepValue === undefined) {
+		return undefined;
+	}
+
+	if (!isProbablyInteger(state, decInit) || !isProbablyInteger(state, condition.right)) {
+		return undefined;
+	}
+
+	if (isMutatedInBody(state, decName, statement)) {
+		return undefined;
+	}
+
+	// commit to the optimization and start transforming..
+
+	const result = luau.list.make<luau.Statement>();
+
+	const id = transformIdentifierDefined(state, decName);
+
+	const [start, startPrereqs] = state.capture(() => transformExpression(state, decInit));
+	luau.list.pushList(result, startPrereqs);
+
+	// eslint-disable-next-line no-autofix/prefer-const
+	let [end, endPrereqs] = state.capture(() => transformExpression(state, condition.right));
+	luau.list.pushList(result, endPrereqs);
+
+	const step = luau.number(stepValue);
+	const statements = transformStatementList(state, getStatements(statement));
+
+	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
+		end = offset(end, -1);
+	} else if (condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken) {
+		end = offset(end, 1);
+	}
+
+	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
+
+	return result;
+}
+
+export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
+	if (state.data.optimizedLoops) {
+		const optimized = transformForStatementOptimized(state, node);
+		if (optimized) {
+			return optimized;
+		}
+	}
+	return transformForStatementFallback(state, node);
 }

@@ -17,7 +17,10 @@
 			"rbxts_include": {
 				"$path": "include",
 				"node_modules": {
-					"$path": "node_modules/@rbxts"
+					"$className": "Folder",
+					"@rbxts": {
+						"$path": "node_modules/@rbxts"
+					}
 				}
 			},
 			"TS": {

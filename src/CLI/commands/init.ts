@@ -41,7 +41,7 @@ interface PackageManagerCommands {
 	build: string;
 }
 
-const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
+const packageManagerCommands: { [K in PackageManager]: PackageManagerCommands } = {
 	[PackageManager.NPM]: {
 		init: "npm init -y",
 		devInstall: "npm install --silent -D",
@@ -53,7 +53,7 @@ const packageManagerCommands: Record<PackageManager, PackageManagerCommands> = {
 		build: "yarn run build",
 	},
 	[PackageManager.PNPM]: {
-		init: "pnpm init -y",
+		init: "pnpm init",
 		devInstall: "pnpm install --silent -D",
 		build: "pnpm run build",
 	},
@@ -76,59 +76,10 @@ function getNonDevCompilerVersion() {
 	return COMPILER_VERSION.match(/^(.+)-dev.+$/)?.[1] ?? COMPILER_VERSION;
 }
 
-const TEMPLATE_DIR = path.join(PACKAGE_ROOT, "templates");
+const TEMPLATES_DIR = path.join(PACKAGE_ROOT, "templates");
 const GIT_IGNORE = ["/node_modules", "/out", "/include", "*.tsbuildinfo"];
 
-async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
-	const cwd = process.cwd();
-	const paths = {
-		packageJson: path.join(cwd, "package.json"),
-		packageLockJson: path.join(cwd, "package-lock.json"),
-		projectJson: path.join(cwd, "default.project.json"),
-		serveProjectJson: mode === InitMode.Plugin && path.join(cwd, "serve.project.json"),
-		src: path.join(cwd, "src"),
-		tsconfig: path.join(cwd, "tsconfig.json"),
-		gitignore: path.join(cwd, ".gitignore"),
-		eslintrc: path.join(cwd, ".eslintrc"),
-		prettierrc: path.join(cwd, ".prettierrc"),
-		settings: path.join(cwd, ".vscode", "settings.json"),
-		extensions: path.join(cwd, ".vscode", "extensions.json"),
-	};
-
-	const existingPaths = new Array<string>();
-	for (const filePath of Object.values(paths)) {
-		if (filePath && (await fs.pathExists(filePath))) {
-			const stat = await fs.stat(filePath);
-			if (stat.isFile() || (await fs.readdir(filePath)).length > 0) {
-				existingPaths.push(path.relative(cwd, filePath));
-			}
-		}
-	}
-	if (existingPaths.length > 0) {
-		const pathInfo = existingPaths.map(v => `  - ${kleur.yellow(v)}\n`).join("");
-		throw new CLIError(`Cannot initialize project, process could overwrite:\n${pathInfo}`);
-	}
-
-	if (mode === InitMode.None) {
-		mode = (
-			await prompts({
-				type: "select",
-				name: "template",
-				message: "Select template",
-				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
-					title: value,
-					value,
-				})),
-				initial: 0,
-			})
-		).template;
-
-		// ctrl+c
-		if (mode === undefined) {
-			return;
-		}
-	}
-
+async function init(argv: yargs.Arguments<InitOptions>, initMode: InitMode) {
 	// Detect if there are any additional package managers
 	// We don't need to prompt the user to use additional package managers if none are installed
 
@@ -136,9 +87,9 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	// and replaced by another manager, so check for it to make sure
 	const [npmAvailable, pnpmAvailable, yarnAvailable, gitAvailable] = (
 		await Promise.allSettled(["npm", "pnpm", "yarn", "git"].map(v => lookpath(v)))
-	).map(v => v !== undefined);
+	).map(v => (v.status === "fulfilled" ? v.value !== undefined : true));
 
-	const packageManagerExistance: Record<PackageManager, boolean> = {
+	const packageManagerExistance: { [K in PackageManager]: boolean } = {
 		[PackageManager.NPM]: npmAvailable,
 		[PackageManager.PNPM]: pnpmAvailable,
 		[PackageManager.Yarn]: yarnAvailable,
@@ -147,55 +98,104 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	const packageManagerCount = Object.values(packageManagerExistance).filter(exists => exists).length;
 
 	const {
+		template = initMode,
 		git = argv.git ?? (argv.yes && gitAvailable) ?? false,
 		eslint = argv.eslint ?? argv.yes ?? false,
 		prettier = argv.prettier ?? argv.yes ?? false,
 		vscode = argv.vscode ?? argv.yes ?? false,
 		packageManager = argv.packageManager ?? PackageManager.NPM,
 	}: {
+		template: InitMode;
 		git: boolean;
 		eslint: boolean;
 		prettier: boolean;
 		vscode: boolean;
 		packageManager: PackageManager;
-	} = await prompts([
-		{
-			type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
-			name: "git",
-			message: "Configure Git",
-			initial: true,
-		},
-		{
-			type: () => argv.eslint === undefined && argv.yes === undefined && "confirm",
-			name: "eslint",
-			message: "Configure ESLint",
-			initial: true,
-		},
-		{
-			type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
-			name: "prettier",
-			message: "Configure Prettier",
-			initial: true,
-		},
-		{
-			type: () => argv.vscode === undefined && argv.yes === undefined && "confirm",
-			name: "vscode",
-			message: "Configure VSCode Project Settings",
-			initial: true,
-		},
-		{
-			type: () =>
-				argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
-			name: "packageManager",
-			message: "Multiple package managers detected. Select package manager:",
-			choices: Object.entries(PackageManager)
-				.filter(([, packageManager]) => packageManagerExistance[packageManager])
-				.map(([managerDisplayName, managerEnum]) => ({
-					title: managerDisplayName,
-					value: managerEnum,
+	} = await prompts(
+		[
+			{
+				type: () => initMode === InitMode.None && "select",
+				name: "template",
+				message: "Select template",
+				choices: [InitMode.Game, InitMode.Model, InitMode.Plugin, InitMode.Package].map(value => ({
+					title: value,
+					value,
 				})),
-		},
-	]);
+				initial: 0,
+			},
+			{
+				type: () => argv.git === undefined && argv.yes === undefined && gitAvailable && "confirm",
+				name: "git",
+				message: "Configure Git",
+				initial: true,
+			},
+			{
+				type: () => argv.eslint === undefined && argv.yes === undefined && "confirm",
+				name: "eslint",
+				message: "Configure ESLint",
+				initial: true,
+			},
+			{
+				type: () => argv.prettier === undefined && argv.yes === undefined && "confirm",
+				name: "prettier",
+				message: "Configure Prettier",
+				initial: true,
+			},
+			{
+				type: () => argv.vscode === undefined && argv.yes === undefined && "confirm",
+				name: "vscode",
+				message: "Configure VSCode Project Settings",
+				initial: true,
+			},
+			{
+				type: () =>
+					argv.packageManager === undefined && packageManagerCount > 1 && argv.yes === undefined && "select",
+				name: "packageManager",
+				message: "Multiple package managers detected. Select package manager:",
+				choices: Object.entries(PackageManager)
+					.filter(([, packageManager]) => packageManagerExistance[packageManager])
+					.map(([managerDisplayName, managerEnum]) => ({
+						title: managerDisplayName,
+						value: managerEnum,
+					})),
+			},
+		],
+		{ onCancel: () => process.exit(1) },
+	);
+
+	const cwd = process.cwd();
+	const paths = {
+		packageJson: path.join(cwd, "package.json"),
+		packageLockJson: path.join(cwd, "package-lock.json"),
+		tsconfig: path.join(cwd, "tsconfig.json"),
+		gitignore: path.join(cwd, ".gitignore"),
+		eslintrc: path.join(cwd, ".eslintrc"),
+		prettierrc: path.join(cwd, ".prettierrc"),
+		settings: path.join(cwd, ".vscode", "settings.json"),
+		extensions: path.join(cwd, ".vscode", "extensions.json"),
+	};
+
+	const templateDir = path.join(TEMPLATES_DIR, template);
+
+	const pathValues = Object.values(paths);
+	for (const fileName of await fs.readdir(templateDir)) {
+		pathValues.push(fileName);
+	}
+
+	const existingPaths = new Array<string>();
+	for (const filePath of pathValues) {
+		if (filePath && (await fs.pathExists(filePath))) {
+			const stat = await fs.stat(filePath);
+			if (stat.isFile() || stat.isSymbolicLink() || (await fs.readdir(filePath)).length > 0) {
+				existingPaths.push(path.relative(cwd, filePath));
+			}
+		}
+	}
+
+	if (existingPaths.length > 0) {
+		const pathInfo = existingPaths.map(v => `  - ${kleur.yellow(v)}\n`).join("");
+		throw new CLIError(`Cannot initialize project, process could overwrite:\n${pathInfo}`);
+	}
 
 	const selectedPackageManager = packageManagerCommands[packageManager];
 
@@ -206,7 +206,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 			build: "rbxtsc",
 			watch: "rbxtsc -w",
 		};
-		if (mode === InitMode.Package) {
+		if (template === InitMode.Package) {
 			pkgJson.name = RBXTS_SCOPE + "/" + pkgJson.name;
 			pkgJson.main = "out/init.lua";
 			pkgJson.types = "out/index.d.ts";
@@ -345,13 +345,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 	}
 
 	await benchmark("Copying template files..", async () => {
-		const templateTsConfig = path.join(
-			TEMPLATE_DIR,
-			`tsconfig-${mode === InitMode.Package ? "package" : "default"}.json`,
-		);
-		await fs.copy(templateTsConfig, paths.tsconfig);
-
-		await fs.copy(path.join(TEMPLATE_DIR, mode), cwd);
+		await fs.copy(templateDir, cwd);
 	});
 
 	await benchmark(
@@ -365,6 +359,7 @@ async function init(argv: yargs.Arguments<InitOptions>, mode: InitMode) {
 				verbose: false,
 				watch: false,
 				writeOnlyChanged: false,
+				optimizedLoops: false,
 				$0: argv.$0,
 				_: argv._,
 			}) as never,

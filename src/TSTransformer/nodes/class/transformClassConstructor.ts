@@ -4,8 +4,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
@@ -95,7 +95,7 @@ export function transformClassConstructor(
 				continue;
 			}
 
-			const [index, indexPrereqs] = state.capture(() => transformObjectKey(state, name));
+			const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));
 			luau.list.pushList(statements, indexPrereqs);
 
 			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));

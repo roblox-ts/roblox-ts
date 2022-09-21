@@ -1,4 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
 /* eslint-disable prefer-const */
 
 export = () => {
@@ -280,17 +279,17 @@ export = () => {
 		expect([...`'abc"defg'`].every((x, i) => truth[i] === x)).to.equal(true);
 	});
 
-	// it("should properly destruct gmatch #1", () => {
-	// 	function catchLetters(...letterPairs: Array<LuaTuple<Array<string | number>>>) {
-	// 		let i = 97;
-	// 		for (const [a, b] of letterPairs) {
-	// 			expect(a).to.equal(string.char(i++));
-	// 			expect(b).to.equal(string.char(i++));
-	// 		}
-	// 	}
+	it("should properly destruct gmatch #1", () => {
+		function catchLetters(...letterPairs: Array<LuaTuple<Array<string | number>>>) {
+			let i = 97;
+			for (const [a, b] of letterPairs) {
+				expect(a).to.equal(string.char(i++));
+				expect(b).to.equal(string.char(i++));
+			}
+		}
 
-	// 	catchLetters(..."abcdefghijklmnopqrstuvwxyz".gmatch("(%l)(%l)"));
-	// });
+		catchLetters(..."abcdefghijklmnopqrstuvwxyz".gmatch("(%l)(%l)"));
+	});
 
 	it("should properly destruct gmatch #2", () => {
 		const [[a], [b], [c]] = "a,b,c".gmatch("[^,]+");
@@ -688,13 +687,25 @@ export = () => {
 
 	it("should support empty destructure", () => {
 		let x = 0;
-		const [] = pcall(() => x = 123);
+		const [] = pcall(() => (x = 123));
 		expect(x).to.equal(123);
 	});
 
 	it("should support empty destructure assignment", () => {
 		let x = 0;
-		[] = pcall(() => x = 123);
+		[] = pcall(() => (x = 123));
+		expect(x).to.equal(123);
+	});
+
+	it("should support function destructuring if not a method", () => {
+		let x = 0;
+		const a = {
+			b: (param: number) => {
+				x = param;
+			},
+		};
+		const { b } = a;
+		b(123);
 		expect(x).to.equal(123);
 	});
 };

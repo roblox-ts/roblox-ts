@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should permit the use of GetEnums()", () => {
 		for (const enumType of Enum.GetEnums()) {

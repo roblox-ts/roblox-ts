@@ -1,19 +1,35 @@
+import { SourceFileWithTextRange } from "Shared/types";
 import ts from "typescript";
 
 export function createDiagnosticWithLocation(
 	id: number,
-	message: string,
+	messageText: string,
 	category: ts.DiagnosticCategory,
-	node: ts.Node,
+	node: ts.Node | SourceFileWithTextRange,
 ): ts.DiagnosticWithLocation {
-	return {
-		category,
-		code: " roblox-ts" as unknown as number,
-		file: node.getSourceFile(),
-		messageText: message,
-		start: node.getStart(),
-		length: node.getWidth(),
-		diagnosticType: 0,
-		id,
-	} as ts.DiagnosticWithLocation;
+	const code = " roblox-ts" as never;
+	const diagnosticType = 0;
+	if ("kind" in node) {
+		return {
+			category,
+			code,
+			messageText,
+			diagnosticType,
+			id,
+			file: node.getSourceFile(),
+			start: node.getStart(),
+			length: node.getWidth(),
+		} as ts.DiagnosticWithLocation;
+	} else {
+		return {
+			category,
+			code,
+			messageText,
+			diagnosticType,
+			id,
+			file: node.sourceFile,
+			start: node.range.pos,
+			length: node.range.end,
+		} as ts.DiagnosticWithLocation;
+	}
 }
