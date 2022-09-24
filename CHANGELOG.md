@@ -1,3 +1,6 @@
+## 2.0.3
+- Fixed new regression with incremental mode (#2138)
+
 ## 2.0.2
 - Fixed new regression with Playground environment
 
