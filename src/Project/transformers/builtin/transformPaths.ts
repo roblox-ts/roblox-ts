@@ -173,9 +173,9 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 			return node;
 		}
 
-		const fileLiteral = ts.createLiteral(file);
+		const fileLiteral = ts.factory.createStringLiteral(file);
 
-		return ts.updateCall(node, node.expression, node.typeArguments, [fileLiteral]);
+		return ts.factory.updateCallExpression(node, node.expression, node.typeArguments, [fileLiteral]);
 	}
 
 	function unpathImportTypeNode(node: ts.ImportTypeNode) {
@@ -192,8 +192,8 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 			return node;
 		}
 
-		const fileLiteral = ts.createLiteral(file);
-		const fileArgument = ts.updateLiteralTypeNode(argument, fileLiteral);
+		const fileLiteral = ts.factory.createStringLiteral(file);
+		const fileArgument = ts.factory.updateLiteralTypeNode(argument, fileLiteral);
 
 		return ts.updateImportTypeNode(node, fileArgument, node.qualifier, node.typeArguments, node.isTypeOf);
 	}
@@ -208,7 +208,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		}
 		const fileLiteral = ts.createLiteral(file);
 
-		return ts.updateExternalModuleReference(node, fileLiteral);
+		return ts.factory.updateExternalModuleReference(node, fileLiteral);
 	}
 	function unpathImportDeclaration(node: ts.ImportDeclaration): ts.VisitResult<ts.Statement> {
 		if (!ts.isStringLiteral(node.moduleSpecifier)) {
@@ -218,31 +218,26 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		if (!file) {
 			return node;
 		}
-		const fileLiteral = ts.createLiteral(file);
+		const fileLiteral = ts.factory.createStringLiteral(file);
 
 		const importClause = ts.visitNode(node.importClause, visitImportClause as any, ts.isImportClause);
 		return node.importClause === importClause || importClause || isDeclarationFile
-			? ts.updateImportDeclaration(
-					node,
-					node.decorators,
-					node.modifiers,
-					node.importClause,
-					fileLiteral,
-					undefined,
-			  )
+			? ts.factory.updateImportDeclaration(node, node.modifiers, node.importClause, fileLiteral, undefined)
 			: undefined;
 	}
 	function visitImportClause(node: ts.ImportClause): ts.VisitResult<ts.ImportClause> {
 		const name = resolver.isReferencedAliasDeclaration(node) ? node.name : undefined;
 		const namedBindings = ts.visitNode(node.namedBindings, visitNamedImportBindings as any, ts.isNamedImports);
-		return name || namedBindings ? ts.updateImportClause(node, name, namedBindings, node.isTypeOnly) : undefined;
+		return name || namedBindings
+			? ts.factory.updateImportClause(node, node.isTypeOnly, name, namedBindings)
+			: undefined;
 	}
 	function visitNamedImportBindings(node: ts.NamedImportBindings): ts.VisitResult<ts.NamedImportBindings> {
 		if (node.kind === ts.SyntaxKind.NamespaceImport) {
 			return resolver.isReferencedAliasDeclaration(node) ? node : undefined;
 		} else {
 			const elements = ts.visitNodes(node.elements, visitImportSpecifier as any, ts.isImportSpecifier);
-			return elements.some(e => e) ? ts.updateNamedImports(node, elements) : undefined;
+			return elements.some(e => e) ? ts.factory.updateNamedImports(node, elements) : undefined;
 		}
 	}
 	function visitImportSpecifier(node: ts.ImportSpecifier): ts.VisitResult<ts.ImportSpecifier> {
@@ -266,25 +261,25 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 				!resolver.moduleExportsSomeValue(node.moduleSpecifier)) ||
 			(node.exportClause && resolver.isValueAliasDeclaration(node))
 		) {
-			return ts.updateExportDeclaration(
+			return ts.factory.updateExportDeclaration(
 				node,
-				node.decorators,
 				node.modifiers,
+				node.isTypeOnly,
 				node.exportClause,
 				fileLiteral,
-				node.isTypeOnly,
+				node.assertClause,
 			);
 		}
 
 		const exportClause = ts.visitNode(node.exportClause, visitNamedExports as any, ts.isNamedExports);
 		return node.exportClause === exportClause || exportClause || isDeclarationFile
-			? ts.updateExportDeclaration(
+			? ts.factory.updateExportDeclaration(
 					node,
-					node.decorators,
 					node.modifiers,
+					node.isTypeOnly,
 					node.exportClause,
 					fileLiteral,
-					node.isTypeOnly,
+					node.assertClause,
 			  )
 			: undefined;
 	}
