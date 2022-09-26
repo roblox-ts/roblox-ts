@@ -206,7 +206,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		if (!file) {
 			return node;
 		}
-		const fileLiteral = ts.createLiteral(file);
+		const fileLiteral = ts.factory.createStringLiteral(file);
 
 		return ts.factory.updateExternalModuleReference(node, fileLiteral);
 	}
@@ -253,7 +253,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		if (!file) {
 			return node;
 		}
-		const fileLiteral = ts.createLiteral(file);
+		const fileLiteral = ts.factory.createStringLiteral(file);
 
 		if (
 			(!node.exportClause &&
