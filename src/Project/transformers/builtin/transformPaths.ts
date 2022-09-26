@@ -195,7 +195,14 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		const fileLiteral = ts.factory.createStringLiteral(file);
 		const fileArgument = ts.factory.updateLiteralTypeNode(argument, fileLiteral);
 
-		return ts.updateImportTypeNode(node, fileArgument, node.qualifier, node.typeArguments, node.isTypeOf);
+		return ts.factory.updateImportTypeNode(
+			node,
+			fileArgument,
+			node.assertions,
+			node.qualifier,
+			node.typeArguments,
+			node.isTypeOf,
+		);
 	}
 
 	function unpathImportEqualsDeclaration(node: ts.ExternalModuleReference) {
@@ -285,7 +292,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 	}
 	function visitNamedExports(node: ts.NamedExports): ts.VisitResult<ts.NamedExports> {
 		const elements = ts.visitNodes(node.elements, visitExportSpecifier as any, ts.isExportSpecifier);
-		return elements.some(e => e) ? ts.updateNamedExports(node, elements) : undefined;
+		return elements.some(e => e) ? ts.factory.updateNamedExports(node, elements) : undefined;
 	}
 	function visitExportSpecifier(node: ts.ExportSpecifier): ts.VisitResult<ts.ExportSpecifier> {
 		return resolver.isValueAliasDeclaration(node) ? node : undefined;
