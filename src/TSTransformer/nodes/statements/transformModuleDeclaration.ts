@@ -14,7 +14,8 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
 function isDeclarationOfNamespace(declaration: ts.Declaration) {
-	if (declaration.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
+	const modifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
+	if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) {
 		return false;
 	}
 
@@ -32,10 +33,11 @@ function getValueDeclarationStatement(symbol: ts.Symbol) {
 	for (const declaration of symbol.getDeclarations() ?? []) {
 		const statement = getAncestor(declaration, ts.isStatement);
 		if (statement) {
+			const modifiers = ts.canHaveModifiers(statement) ? ts.getModifiers(statement) : undefined;
 			if (ts.isFunctionDeclaration(statement) && !statement.body) continue;
 			if (ts.isTypeAliasDeclaration(statement)) continue;
 			if (ts.isInterfaceDeclaration(statement)) continue;
-			if (statement.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
+			if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) continue;
 			return statement;
 		}
 	}
