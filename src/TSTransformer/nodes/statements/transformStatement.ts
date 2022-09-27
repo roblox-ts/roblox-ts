@@ -85,7 +85,8 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, StatementTransformer>([
 export function transformStatement(state: TransformState, node: ts.Statement): luau.List<luau.Statement> {
 	// if any modifiers of the node include the `declare` keyword we do not transform
 	// `declare` tells us that the identifier of the node is defined somewhere else and we should trust it
-	if (node.modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
+	const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+	if (modifiers?.some(v => v.kind === ts.SyntaxKind.DeclareKeyword)) return NO_EMIT();
 	const transformer = TRANSFORMER_BY_KIND.get(node.kind);
 	if (transformer) {
 		return transformer(state, node);
