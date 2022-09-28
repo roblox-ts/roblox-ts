@@ -1,3 +1,6 @@
+## 2.0.4
+- Updated deprecated APIs for TS 4.8 (#2143)
+
 ## 2.0.3
 - Fixed new regression with incremental mode (#2138)
 
