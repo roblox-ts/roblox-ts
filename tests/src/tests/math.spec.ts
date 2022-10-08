@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	describe("should support basic math operators", () => {
 		it("should add numbers", () => {

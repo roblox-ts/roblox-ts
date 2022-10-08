@@ -14,12 +14,13 @@ function transformMemberDecorators(
 	const result = luau.list.make<luau.Statement>();
 	const finalizers = luau.list.make<luau.Statement>();
 
-	const multipleDecorators = node.decorators !== undefined && node.decorators.length > 1;
+	const decorators = ts.getDecorators(node);
+	const multipleDecorators = decorators !== undefined && decorators.length > 1;
 
 	const name = node.name;
 	if (!name || ts.isPrivateIdentifier(name)) return result;
 
-	for (const decorator of node.decorators ?? []) {
+	for (const decorator of decorators ?? []) {
 		// eslint-disable-next-line no-autofix/prefer-const
 		let [expression, prereqs] = state.capture(() => transformExpression(state, decorator.expression));
 

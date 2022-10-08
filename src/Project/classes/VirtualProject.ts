@@ -95,7 +95,10 @@ export class VirtualProject {
 			include: {
 				$path: INCLUDE_PATH,
 				node_modules: {
-					$path: RBXTS_SCOPE_PATH,
+					$className: "Folder",
+					"@rbxts": {
+						$path: RBXTS_SCOPE_PATH,
+					},
 				},
 			},
 		} as never);
@@ -128,6 +131,7 @@ export class VirtualProject {
 		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
+			this.program,
 			this.data,
 			services,
 			pathTranslator,

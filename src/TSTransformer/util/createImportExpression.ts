@@ -1,8 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
 import { FileRelation, NetworkType, RbxPath, RbxPathParent, RbxType, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
-import { PARENT_FIELD, ProjectType } from "Shared/constants";
-import { errors, warnings } from "Shared/diagnostics";
+import { NODE_MODULES, PARENT_FIELD, ProjectType } from "Shared/constants";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { getCanonicalFileName } from "Shared/util/getCanonicalFileName";
 import { TransformState } from "TSTransformer";
@@ -72,7 +72,6 @@ function getNodeModulesImportParts(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 	moduleOutPath: string,
-	moduleRbxPath: RbxPath,
 ) {
 	const moduleScope = path.relative(state.data.nodeModulesPath, moduleOutPath).split(path.sep)[0];
 	assert(moduleScope);
@@ -110,7 +109,16 @@ function getNodeModulesImportParts(
 			),
 		];
 	} else {
-		if (!moduleRbxPath.includes(moduleScope)) {
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), true),
+			);
+			return [];
+		}
+
+		const indexOfScope = moduleRbxPath.indexOf(moduleScope);
+		if (indexOfScope === -1 || moduleRbxPath[indexOfScope - 1] !== NODE_MODULES) {
 			DiagnosticService.addDiagnostic(
 				errors.noPackageImportWithoutScope(
 					moduleSpecifier,
@@ -119,10 +127,6 @@ function getNodeModulesImportParts(
 				),
 			);
 			return [];
-		}
-
-		if (moduleRbxPath[0] === "ReplicatedFirst") {
-			DiagnosticService.addDiagnostic(warnings.packageUsedInReplicatedFirst(moduleSpecifier));
 		}
 
 		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
@@ -179,7 +183,7 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 ): luau.IndexableExpression {
-	const moduleFile = getSourceFileFromModuleSpecifier(state.typeChecker, moduleSpecifier);
+	const moduleFile = getSourceFileFromModuleSpecifier(state, moduleSpecifier);
 	if (!moduleFile) {
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
 		return luau.none();
@@ -195,24 +199,19 @@ export function createImportExpression(
 		  )
 		: state.pathTranslator.getImportPath(virtualPath);
 
-	const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
-	if (!moduleRbxPath) {
-		DiagnosticService.addDiagnostic(
-			errors.noRojoData(
-				moduleSpecifier,
-				path.relative(state.data.projectPath, moduleOutPath),
-				isInsideNodeModules,
-			),
-		);
-		return luau.none();
-	}
-
 	const parts = new Array<luau.Expression>();
 	parts.push(luau.globals.script);
 
 	if (isInsideNodeModules) {
-		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
 	} else {
+		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
+		if (!moduleRbxPath) {
+			DiagnosticService.addDiagnostic(
+				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
+			);
+			return luau.none();
+		}
 		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
