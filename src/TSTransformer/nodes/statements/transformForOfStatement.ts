@@ -14,7 +14,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { skipDownwards } from "TSTransformer/util/traversal";
+import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import {
 	getFirstDefinedSymbol,
 	isArrayType,
@@ -441,8 +441,9 @@ function isRangeMacro(
 	state: TransformState,
 	node: ts.ForOfStatement,
 ): node is ts.ForOfStatement & { expression: ts.CallExpression } {
-	if (ts.isCallExpression(node.expression)) {
-		const symbol = getFirstDefinedSymbol(state, state.getType(node.expression.expression));
+	const expression = skipUpwards(node.expression);
+	if (ts.isCallExpression(expression)) {
+		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
 		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
 			return true;
 		}
