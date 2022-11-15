@@ -352,6 +352,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		) {
 			DiagnosticService.addDiagnostic(errors.noReservedClassFields(member.name));
 		}
+		if (ts.isAutoAccessorPropertyDeclaration(member)) {
+			const keyword = ts.getModifiers(member)!.find(m => m.kind === ts.SyntaxKind.AccessorKeyword);
+			DiagnosticService.addDiagnostic(errors.noAutoAccessorModifiers(keyword));
+		}
 	}
 
 	const methods = new Array<ts.MethodDeclaration>();
@@ -367,7 +371,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		} else if (ts.isMethodDeclaration(member)) {
 			methods.push(member);
 		} else if (ts.isPropertyDeclaration(member)) {
-			// do not emit non-static properties here
+			// non-static properties are done in transformClassConstructor
 			if (!ts.hasStaticModifier(member)) {
 				continue;
 			}

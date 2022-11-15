@@ -2,6 +2,9 @@ import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import ts from "typescript";
 
-export function transformNonNullExpression(state: TransformState, node: ts.NonNullExpression) {
+export function transformTypeExpression(
+	state: TransformState,
+	node: ts.AsExpression | ts.NonNullExpression | ts.SatisfiesExpression | ts.TypeAssertion,
+) {
 	return transformExpression(state, node.expression);
 }

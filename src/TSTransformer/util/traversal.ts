@@ -16,7 +16,8 @@ export function skipDownwards(node: ts.Node): ts.Node {
 		ts.isNonNullExpression(node) ||
 		ts.isParenthesizedExpression(node) ||
 		ts.isAsExpression(node) ||
-		ts.isTypeAssertionExpression(node)
+		ts.isTypeAssertionExpression(node) ||
+		ts.isSatisfiesExpression(node)
 	) {
 		node = node.expression;
 	}
@@ -30,7 +31,8 @@ export function skipUpwards(node: ts.Node) {
 		(ts.isNonNullExpression(parent) ||
 			ts.isParenthesizedExpression(parent) ||
 			ts.isAsExpression(parent) ||
-			ts.isTypeAssertionExpression(parent))
+			ts.isTypeAssertionExpression(parent) ||
+			ts.isSatisfiesExpression(parent))
 	) {
 		node = parent;
 		parent = node.parent;
