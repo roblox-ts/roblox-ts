@@ -352,7 +352,7 @@ export function getAddIterableToArrayBuilder(
 ): AddIterableToArrayBuilder {
 	if (isDefinitelyType(type, isArrayType(state))) {
 		return addArray;
-	} else if (isDefinitelyType(type, t => isStringType(t))) {
+	} else if (isDefinitelyType(type, isStringType)) {
 		return addString;
 	} else if (isDefinitelyType(type, isSetType(state))) {
 		return addSet;
