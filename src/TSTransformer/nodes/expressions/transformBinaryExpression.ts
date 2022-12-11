@@ -19,9 +19,16 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
+import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isDefinitelyType, isLuaTupleType, isNumberType, isStringType } from "TSTransformer/util/types";
+import {
+	getFirstDefinedSymbol,
+	isDefinitelyType,
+	isLuaTupleType,
+	isNumberType,
+	isStringType,
+} from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import ts from "typescript";
 
@@ -223,6 +230,10 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			luau.nil(),
 		);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
+		const symbol = getFirstDefinedSymbol(state, state.getType(node.right));
+		if (isSymbolFromRobloxTypes(state, symbol)) {
+			DiagnosticService.addDiagnostic(errors.noRobloxSymbolInstanceof(node.right));
+		}
 		return luau.call(state.TS(node, "instanceof"), [left, right]);
 	}
 
