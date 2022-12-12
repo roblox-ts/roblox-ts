@@ -13,9 +13,8 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
-import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { isInsideRoactComponent } from "TSTransformer/util/isInsideRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { getAncestor } from "TSTransformer/util/traversal";
 import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -79,14 +78,6 @@ function runCallMacro(
 	state.prereqList(prereqs);
 
 	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, args));
-}
-
-function isInsideRoactComponent(state: TransformState, node: ts.Node) {
-	const classLikeAncestor = getAncestor(node, ts.isClassLike);
-	if (classLikeAncestor) {
-		return extendsRoactComponent(state, classLikeAncestor);
-	}
-	return false;
 }
 
 function isNodeSymbolFromRobloxTypes(state: TransformState, symbol: ts.Symbol | undefined) {
