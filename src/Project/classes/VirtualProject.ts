@@ -71,7 +71,7 @@ export class VirtualProject {
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
 			jsxFactory: "Roact.createElement",
-			jsxFragmentFactory: "Roact.Fragment",
+			jsxFragmentFactory: "Roact.createFragment",
 		};
 		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
 
