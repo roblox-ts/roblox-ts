@@ -1,4 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
+import { assert } from "Shared/util/assert";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 
 /**
