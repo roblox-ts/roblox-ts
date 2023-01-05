@@ -136,6 +136,28 @@ export = () => {
 		expect(hit.has(3)).to.equal(true);
 	});
 
+	it("should support optimized simple loops #8", () => {
+		const hit = new Set<number>();
+		let n = 0;
+		for (let i = 3; i <= 1; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(0);
+		expect(hit.has(1)).to.equal(false);
+		expect(hit.has(2)).to.equal(false);
+		expect(hit.has(3)).to.equal(false);
+
+		for (let i = 3; i >= 1; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+	});
+
 	it("should support for-of loops over arrays", () => {
 		const hit = new Set<string>();
 		const array = ["1", "2", "3", "4"];
