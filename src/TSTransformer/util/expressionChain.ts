@@ -12,7 +12,7 @@ export function binaryExpressionChain(
 	operator: luau.BinaryOperator,
 ): luau.Expression {
 	const firstExp = expressions.shift();
-	assert(firstExp);
+	assert(firstExp, "binaryExpressionChain called without any expressions");
 	return expressions.reduce((acc, current) => luau.binary(acc, operator, current), firstExp);
 }
 
