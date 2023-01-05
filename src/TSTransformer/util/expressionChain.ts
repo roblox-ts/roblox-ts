@@ -9,23 +9,20 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 export function binaryExpressionChain(
 	expressions: Array<luau.Expression>,
 	operator: luau.BinaryOperator,
-	index = 0,
 ): luau.Expression {
-	if (index === expressions.length - 1) {
-		return expressions[index];
-	} else {
-		return luau.binary(expressions[index], operator, binaryExpressionChain(expressions, operator, index + 1));
-	}
+	const firstExp = expressions.shift();
+	assert(firstExp);
+	return expressions.reduce((acc, current) => luau.binary(acc, operator, current), firstExp);
 }
 
+/**
+ * Combines multiple strings into a chain of property accesses
+ *
+ * i.e. `["a", "b", "c"]` -> `exp.a.b.c`
+ */
 export function propertyAccessExpressionChain(
 	expression: luau.Expression,
 	names: Array<string>,
-	index = names.length - 1,
 ): luau.IndexableExpression {
-	if (index < 0) {
-		return convertToIndexableExpression(expression);
-	} else {
-		return luau.property(propertyAccessExpressionChain(expression, names, index - 1), names[index]);
-	}
+	return names.reduce((acc, current) => luau.property(acc, current), expression);
 }
