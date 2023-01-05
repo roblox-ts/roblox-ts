@@ -25,5 +25,5 @@ export function propertyAccessExpressionChain(
 	expression: luau.Expression,
 	names: Array<string>,
 ): luau.IndexableExpression {
-	return names.reduce((acc, current) => luau.property(acc, current), expression);
+	return names.reduce((acc, current) => luau.property(acc, current), convertToIndexableExpression(expression));
 }
