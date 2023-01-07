@@ -16,7 +16,7 @@ import { getDeclaredVariables } from "TSTransformer/util/getDeclaredVariables";
 import { getStatements } from "TSTransformer/util/getStatements";
 import { offset } from "TSTransformer/util/offset";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
-import { getFirstDefinedSymbol } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isDefinitelyType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function addFinalizersToIfStatement(node: luau.IfStatement, finalizers: luau.List<luau.Statement>) {
@@ -383,6 +383,8 @@ function isProbablyInteger(state: TransformState, expression: ts.Expression): bo
 			return isProbablyInteger(state, expression.operand);
 		}
 	} else if (isSizeMacro(state, expression)) {
+		return true;
+	} else if (isDefinitelyType(state.getType(expression), t => t.isNumberLiteral() && Number.isInteger(t.value))) {
 		return true;
 	}
 	return false;
