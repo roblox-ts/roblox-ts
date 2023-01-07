@@ -353,7 +353,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			DiagnosticService.addDiagnostic(errors.noReservedClassFields(member.name));
 		}
 		if (ts.isAutoAccessorPropertyDeclaration(member)) {
-			const keyword = ts.getModifiers(member)!.find(m => m.kind === ts.SyntaxKind.AccessorKeyword);
+			// member must have AccessorKeyword to be AutoAccessorPropertyDeclaration
+			const keyword = ts.getModifiers(member)!.find(m => m.kind === ts.SyntaxKind.AccessorKeyword)!;
 			DiagnosticService.addDiagnostic(errors.noAutoAccessorModifiers(keyword));
 		}
 	}
