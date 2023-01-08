@@ -12,7 +12,13 @@ export function isAncestorOf(ancestor: ts.Node, node: ts.Node) {
 
 export function skipDownwards(node: ts.Expression): ts.Expression;
 export function skipDownwards(node: ts.Node): ts.Node {
-	while (ts.isNonNullExpression(node) || ts.isParenthesizedExpression(node) || ts.isAsExpression(node)) {
+	while (
+		ts.isNonNullExpression(node) ||
+		ts.isParenthesizedExpression(node) ||
+		ts.isAsExpression(node) ||
+		ts.isTypeAssertionExpression(node) ||
+		ts.isSatisfiesExpression(node)
+	) {
 		node = node.expression;
 	}
 	return node;
@@ -22,7 +28,11 @@ export function skipUpwards(node: ts.Node) {
 	let parent = node.parent;
 	while (
 		parent &&
-		(ts.isNonNullExpression(parent) || ts.isParenthesizedExpression(parent) || ts.isAsExpression(parent))
+		(ts.isNonNullExpression(parent) ||
+			ts.isParenthesizedExpression(parent) ||
+			ts.isAsExpression(parent) ||
+			ts.isTypeAssertionExpression(parent) ||
+			ts.isSatisfiesExpression(parent))
 	) {
 		node = parent;
 		parent = node.parent;
