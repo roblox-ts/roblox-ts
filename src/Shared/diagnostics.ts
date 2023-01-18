@@ -129,6 +129,11 @@ export const errors = {
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
 	noVar: error("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: error("Getters and Setters are not supported!", issue(457)),
+	noAutoAccessorModifiers: error(
+		"Getters and Setters are not supported!",
+		"The `accessor` keyword requires generating get/set accessors",
+		issue(457),
+	),
 	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noComma: error("operator `,` is not supported!"),
