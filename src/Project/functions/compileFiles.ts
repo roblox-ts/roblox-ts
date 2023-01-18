@@ -144,7 +144,12 @@ export function compileFiles(
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
-						updateFile(sourceFile.fileName, ts.createPrinter().printFile(sourceFile));
+						const source = ts.createPrinter().printFile(sourceFile);
+						updateFile(sourceFile.fileName, source);
+						if (data.projectOptions.writeTransformedFiles) {
+							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
+							fs.outputFileSync(outPath, source);
+						}
 					}
 				}
 

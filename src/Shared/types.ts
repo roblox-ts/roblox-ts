@@ -11,6 +11,7 @@ export interface ProjectOptions {
 	verbose: boolean;
 	watch: boolean;
 	writeOnlyChanged: boolean;
+	writeTransformedFiles: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
 }
