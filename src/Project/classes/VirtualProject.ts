@@ -38,11 +38,8 @@ export class VirtualProject {
 
 	constructor() {
 		this.data = {
-			includePath: "",
 			isPackage: false,
-			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			noInclude: false,
 			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 				rojo: "",
 				type: ProjectType.Model,
@@ -50,9 +47,6 @@ export class VirtualProject {
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
-			writeOnlyChanged: false,
-			optimizedLoops: false,
-			watch: false,
 		};
 
 		this.compilerOptions = {

@@ -471,7 +471,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
-	if (state.data.optimizedLoops) {
+	if (state.data.projectOptions.optimizedLoops) {
 		const optimized = transformForStatementOptimized(state, node);
 		if (optimized) {
 			return optimized;
