@@ -157,6 +157,9 @@ function getImportParts(
 
 	if (state.projectType === ProjectType.Game) {
 		if (
+			// in the case of `import("")`, don't do network type check
+			// as the call may be guarded by runtime RunService checks
+			!ts.isImportCall(moduleSpecifier.parent) &&
 			state.rojoResolver.getNetworkType(moduleRbxPath) === NetworkType.Server &&
 			state.rojoResolver.getNetworkType(sourceRbxPath) !== NetworkType.Server
 		) {
