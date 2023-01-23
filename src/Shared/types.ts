@@ -11,23 +11,18 @@ export interface ProjectOptions {
 	verbose: boolean;
 	watch: boolean;
 	writeOnlyChanged: boolean;
+	writeTransformedFiles: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
 }
 
 export interface ProjectData {
-	includePath: string;
 	isPackage: boolean;
-	logTruthyChanges: boolean;
 	nodeModulesPath: string;
-	noInclude: boolean;
 	projectOptions: ProjectOptions;
 	projectPath: string;
 	rojoConfigPath: string | undefined;
 	tsConfigPath: string;
-	writeOnlyChanged: boolean;
-	optimizedLoops: boolean;
-	watch: boolean;
 	transformerWatcher?: TransformerWatcher;
 }
 

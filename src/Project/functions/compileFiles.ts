@@ -102,7 +102,9 @@ export function compileFiles(
 
 	let runtimeLibRbxPath: RbxPath | undefined;
 	if (projectType !== ProjectType.Package) {
-		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
+		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(
+			path.join(data.projectOptions.includePath, "RuntimeLib.lua"),
+		);
 		if (!runtimeLibRbxPath) {
 			return emitResultFailure("Rojo project contained no data for include folder!");
 		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
@@ -142,7 +144,12 @@ export function compileFiles(
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
-						updateFile(sourceFile.fileName, ts.createPrinter().printFile(sourceFile));
+						const source = ts.createPrinter().printFile(sourceFile);
+						updateFile(sourceFile.fileName, source);
+						if (data.projectOptions.writeTransformedFiles) {
+							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
+							fs.outputFileSync(outPath, source);
+						}
 					}
 				}
 
@@ -199,7 +206,7 @@ export function compileFiles(
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
-					!data.writeOnlyChanged ||
+					!data.projectOptions.writeOnlyChanged ||
 					!fs.pathExistsSync(outPath) ||
 					fs.readFileSync(outPath).toString() !== source
 				) {

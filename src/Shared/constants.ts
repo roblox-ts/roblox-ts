@@ -15,6 +15,7 @@ export const TS_EXT = ".ts";
 export const TSX_EXT = ".tsx";
 export const D_EXT = ".d";
 export const DTS_EXT = D_EXT + TS_EXT;
+export const TRANSFORMED_EXT = ".transformed";
 export const LUA_EXT = ".lua";
 export const JSON_EXT = ".json";
 
@@ -50,6 +51,7 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	noInclude: false,
 	logTruthyChanges: false,
 	writeOnlyChanged: false,
+	writeTransformedFiles: false,
 	optimizedLoops: false,
 	allowCommentDirectives: false,
 };
