@@ -430,7 +430,8 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		condition.operatorToken.kind === ts.SyntaxKind.LessThanToken ||
 		condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken
 	) {
-		// for (let i = 0; i < 10; i++)
+		// do not optimize for cases which should never run like:
+		// for (let i = 10; i < 0; i--)
 		if (stepValue < 0) {
 			return undefined;
 		}
@@ -438,12 +439,13 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken ||
 		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken
 	) {
-		// for (let i = 10; i >= 0; i--)
+		// do not optimize for cases which should never run like:
+		// for (let i = 0; i > 10; i++)
 		if (stepValue > 0) {
 			return undefined;
 		}
 	} else {
-		// other comparison operators like !==, ===
+		// do not optimize for other comparison operators like !==, ===
 		return undefined;
 	}
 
