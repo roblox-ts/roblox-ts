@@ -1,0 +1,18 @@
+name: AutoMerge
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    name: AutoMerge
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+
+      - uses: ahmadnassri/action-dependabot-auto-merge@v2
+        with:
+          target: all
+          command: squash and merge
+          github-token: ${{ secrets.PAT }}
