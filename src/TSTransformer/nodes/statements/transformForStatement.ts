@@ -409,21 +409,6 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	// validate condition
-
-	if (!condition || !ts.isBinaryExpression(condition)) {
-		return undefined;
-	}
-
-	if (
-		condition.operatorToken.kind !== ts.SyntaxKind.LessThanToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.LessThanEqualsToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanEqualsToken
-	) {
-		return undefined;
-	}
-
 	// validate incrementor
 
 	if (!incrementor) {
@@ -432,6 +417,33 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 
 	const stepValue = getOptimizedIncrementorStepValue(state, incrementor, idSymbol);
 	if (stepValue === undefined) {
+		return undefined;
+	}
+
+	// validate condition
+
+	if (!condition || !ts.isBinaryExpression(condition)) {
+		return undefined;
+	}
+
+	if (
+		condition.operatorToken.kind === ts.SyntaxKind.LessThanToken ||
+		condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken
+	) {
+		// for (let i = 0; i < 10; i++)
+		if (stepValue < 0) {
+			return undefined;
+		}
+	} else if (
+		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken ||
+		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken
+	) {
+		// for (let i = 10; i >= 0; i--)
+		if (stepValue > 0) {
+			return undefined;
+		}
+	} else {
+		// other comparison operators like !==, ===
 		return undefined;
 	}
 
