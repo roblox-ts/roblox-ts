@@ -393,7 +393,9 @@ function isProbablyInteger(state: TransformState, expression: ts.Expression): bo
 function transformForStatementOptimized(state: TransformState, node: ts.ForStatement) {
 	const { initializer, condition, incrementor, statement } = node;
 
-	// validate initializer
+	// this function is difficult to break up because it uses several type guard functions..
+
+	// validate initializer exists and is a single identifier `x` with a value that is _probably_ an integer
 
 	if (!initializer || !ts.isVariableDeclarationList(initializer) || initializer.declarations.length !== 1) {
 		return undefined;
@@ -409,7 +411,11 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	// validate incrementor
+	if (!isProbablyInteger(state, decInit)) {
+		return undefined;
+	}
+
+	// validate incrementor exists and is _probably_ an integer change in `x`
 
 	if (!incrementor) {
 		return undefined;
@@ -420,7 +426,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	// validate condition
+	// validate condition exists and is a BinaryExpression with an operator that matches the incrementor
 
 	if (!condition || !ts.isBinaryExpression(condition)) {
 		return undefined;
@@ -449,7 +455,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	if (!isProbablyInteger(state, decInit) || !isProbablyInteger(state, condition.right)) {
+	if (!isProbablyInteger(state, condition.right)) {
 		return undefined;
 	}
 
