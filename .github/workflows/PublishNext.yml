@@ -20,8 +20,8 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
-          echo $(cat package.json | jq ".version |= . + \"-dev-$(git rev-parse --short HEAD)\"") > package.json
           echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          npm version --no-git-tag-version $(cat package.json | jq -r .version)-dev-$(git rev-parse --short HEAD)
           npm publish --tag next
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
