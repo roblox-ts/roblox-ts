@@ -86,7 +86,6 @@
 	"files": [
 		"out",
 		"include",
-		"templates",
 		"CHANGELOG.md",
 		"!**/*.js.map",
 		"!**/*.tsbuildinfo"
