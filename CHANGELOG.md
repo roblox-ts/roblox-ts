@@ -1,3 +1,13 @@
+## 2.1.0
+- TypeScript 4.9 Support (#2195)
+	- Adds support for `satisfies` keyword
+	- Adds disagnostic for the `accessor` keyword (requires getters/setters which are not supported)
+- Removed diagnostic for comma operator (#2045)
+- Banned instanceof on roblox types (#2225)
+- Disabled networkType check for dynamic import() (#2197)
+- Added `--writeTransformedFiles` to write transformed TypeScript ASTs to out directory (#2255)
+- Small improvements and fixes for `--optimizedLoops` (#2201, #2265)
+
 ## 2.0.4
 - Updated deprecated APIs for TS 4.8 (#2143)
 
