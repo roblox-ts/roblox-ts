@@ -6,7 +6,7 @@ import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagno
 import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
-import { ProjectData } from "Shared/types";
+import { ProjectData, ProjectOptions } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { hasErrors } from "Shared/util/hasErrors";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
@@ -43,6 +43,7 @@ export class VirtualProject {
 			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 				rojo: "",
 				type: ProjectType.Model,
+				optimizedLoops: true,
 			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
