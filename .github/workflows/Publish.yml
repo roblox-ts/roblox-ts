@@ -20,9 +20,6 @@ jobs:
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
 
-      - name: Compile Source Files
-        run: npm run build
-
       - name: Publish
         run: |
           git config user.name "GitHub Actions"
