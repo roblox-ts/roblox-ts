@@ -17,17 +17,6 @@ Only behavior unique to CLI environments should go here. Any behavior that is co
 -   `--includePath, -i` - Path to where the runtime library files should be stored. _(defaults to "include")_
 -   `--rojo` - Path to the Rojo configuration file. By default this will attempt to find a \*.project.json in your project folder.
 
-**commands/init.ts** - the `init` command, used to create projects from templates
-
-Has the following sub commands:
-
--   `game, place` - create a project to build a Roblox place
--   `model` - create a project to build a Roblox model
--   `plugin` - create a project to build a Roblox Studio plugin
--   `package` - create a project to build an npm package
-
 **modules/** - stores various classes related to running CLI processes
-
-**modules/Initializer.ts** - used to create projects from templates using the `init` command.
 
 **cli.ts** - used to kickstart yargs
