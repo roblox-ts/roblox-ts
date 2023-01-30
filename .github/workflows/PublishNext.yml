@@ -7,7 +7,7 @@ on:
 
 jobs:
   publish:
-    if: github.repository == 'roblox-ts/roblox-ts' && github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
