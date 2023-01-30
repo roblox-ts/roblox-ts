@@ -51,7 +51,6 @@
 	"dependencies": {
 		"@roblox-ts/luau-ast": "^1.0.8",
 		"@roblox-ts/rojo-resolver": "^1.0.4",
-		"ajv": "^8.12.0",
 		"chokidar": "^3.5.3",
 		"fs-extra": "^11.1.0",
 		"kleur": "^4.1.5",
