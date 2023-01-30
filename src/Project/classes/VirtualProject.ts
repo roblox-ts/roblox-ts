@@ -43,6 +43,7 @@ export class VirtualProject {
 			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 				rojo: "",
 				type: ProjectType.Model,
+				optimizedLoops: true,
 			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
