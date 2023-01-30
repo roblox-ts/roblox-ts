@@ -2,6 +2,10 @@ name: Publish
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
 
 jobs:
   publish:
@@ -10,6 +14,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2.3.4
+        with:
+          token: ${{ secrets.pat }}
 
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
@@ -21,7 +27,8 @@ jobs:
         run: |
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > .npmrc
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
+          npm version ${{ inputs.version }}
           npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          git push
+          git push --tags
