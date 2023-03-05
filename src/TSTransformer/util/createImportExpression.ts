@@ -129,11 +129,11 @@ function getNodeModulesImportParts(
 			return [];
 		}
 
-		return getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
+		return getProjectImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
 	}
 }
 
-function getImportParts(
+function getProjectImportParts(
 	state: TransformState,
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
@@ -181,15 +181,11 @@ function getImportParts(
 	}
 }
 
-export function createImportExpression(
-	state: TransformState,
-	sourceFile: ts.SourceFile,
-	moduleSpecifier: ts.Expression,
-): luau.IndexableExpression {
+export function getImportParts(state: TransformState, sourceFile: ts.SourceFile, moduleSpecifier: ts.Expression) {
 	const moduleFile = getSourceFileFromModuleSpecifier(state, moduleSpecifier);
 	if (!moduleFile) {
 		DiagnosticService.addDiagnostic(errors.noModuleSpecifierFile(moduleSpecifier));
-		return luau.none();
+		return [];
 	}
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
@@ -210,10 +206,18 @@ export function createImportExpression(
 			DiagnosticService.addDiagnostic(
 				errors.noRojoData(moduleSpecifier, path.relative(state.data.projectPath, moduleOutPath), false),
 			);
-			return luau.none();
+			return [];
 		}
-		parts.push(...getImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		parts.push(...getProjectImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
 	}
 
-	return luau.call(state.TS(moduleSpecifier.parent, "import"), parts);
+	return parts;
+}
+
+export function createImportExpression(
+	state: TransformState,
+	sourceFile: ts.SourceFile,
+	moduleSpecifier: ts.Expression,
+): luau.IndexableExpression {
+	return luau.call(state.TS(moduleSpecifier.parent, "import"), getImportParts(state, sourceFile, moduleSpecifier));
 }

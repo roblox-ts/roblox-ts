@@ -3,6 +3,7 @@ import { errors } from "Shared/diagnostics";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, MacroList } from "TSTransformer/macros/types";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { getImportParts } from "TSTransformer/util/createImportExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 
 const PRIMITIVE_LUAU_TYPES = new Set([
@@ -49,5 +50,9 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 	$tuple: (state, node) => {
 		DiagnosticService.addDiagnostic(errors.noTupleMacroOutsideReturn(node));
 		return luau.none();
+	},
+
+	$getModule: (state, node) => {
+		return luau.array(getImportParts(state, node.getSourceFile(), node.arguments[0]));
 	},
 };

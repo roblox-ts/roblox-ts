@@ -19,4 +19,14 @@ export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSp
 		assert(declaration && ts.isSourceFile(declaration));
 		return declaration;
 	}
+
+	// WIP for proof of concept - should at least be handled more gracefully in function logic flow
+	if (ts.isStringLiteralLike(moduleSpecifier)) {
+		const sourceFile = moduleSpecifier.getSourceFile();
+		const mode = ts.getModeForUsageLocation(sourceFile, moduleSpecifier);
+		const resolvedModuleInfo = ts.getResolvedModule(sourceFile, moduleSpecifier.text, mode);
+		if (resolvedModuleInfo) {
+			return state.program.getSourceFile(resolvedModuleInfo.resolvedFileName);
+		}
+	}
 }
