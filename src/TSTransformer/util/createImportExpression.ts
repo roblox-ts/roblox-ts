@@ -190,15 +190,12 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 
 	const virtualPath = state.guessVirtualPath(moduleFile.fileName);
 
-	const parts = new Array<luau.Expression>();
-	parts.push(luau.globals.script);
-
 	if (ts.isInsideNodeModules(virtualPath)) {
 		const moduleOutPath = state.pathTranslator.getImportPath(
 			state.nodeModulesPathMapping.get(getCanonicalFileName(path.normalize(virtualPath))) ?? virtualPath,
 			/* isNodeModule */ true,
 		);
-		parts.push(...getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath));
+		return getNodeModulesImportParts(state, sourceFile, moduleSpecifier, moduleOutPath);
 	} else {
 		const moduleOutPath = state.pathTranslator.getImportPath(virtualPath);
 		const moduleRbxPath = state.rojoResolver.getRbxPathFromFilePath(moduleOutPath);
@@ -208,10 +205,8 @@ export function getImportParts(state: TransformState, sourceFile: ts.SourceFile,
 			);
 			return [];
 		}
-		parts.push(...getProjectImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath));
+		return getProjectImportParts(state, sourceFile, moduleSpecifier, moduleOutPath, moduleRbxPath);
 	}
-
-	return parts;
 }
 
 export function createImportExpression(
@@ -219,5 +214,5 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 ): luau.IndexableExpression {
-	return luau.call(state.TS(moduleSpecifier.parent, "import"), getImportParts(state, sourceFile, moduleSpecifier));
+	return luau.call(state.TS(moduleSpecifier.parent, "import"), [luau.globals.script, ...getImportParts(state, sourceFile, moduleSpecifier)]);
 }
