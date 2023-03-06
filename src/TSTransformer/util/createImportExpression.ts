@@ -214,5 +214,7 @@ export function createImportExpression(
 	sourceFile: ts.SourceFile,
 	moduleSpecifier: ts.Expression,
 ): luau.IndexableExpression {
-	return luau.call(state.TS(moduleSpecifier.parent, "import"), [luau.globals.script, ...getImportParts(state, sourceFile, moduleSpecifier)]);
+	const parts = getImportParts(state, sourceFile, moduleSpecifier);
+	parts.unshift(luau.globals.script);
+	return luau.call(state.TS(moduleSpecifier.parent, "import"), parts);
 }
