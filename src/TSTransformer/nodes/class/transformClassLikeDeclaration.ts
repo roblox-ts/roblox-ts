@@ -133,6 +133,14 @@ function createBoilerplate(
 				right: luau.mixedTable(),
 			}),
 		);
+
+		//	local self = className;
+		//	This is an workaround to make `this` work in static contexts
+		//	TODO: Only add this if there is a reference to `this` in a static context
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.id("self"), right: className }),
+		);
 	} else {
 		const metatableFields = luau.list.make<luau.MapField>();
 		luau.list.push(
@@ -202,6 +210,14 @@ function createBoilerplate(
 				operator: "=",
 				right: className,
 			}),
+		);
+
+		//	local self = className;
+		//	This is an workaround to make `this` work in static contexts
+		//	TODO: Only add this if there is a reference to `this` in a static context
+		luau.list.push(
+			statements,
+			luau.create(luau.SyntaxKind.VariableDeclaration, { left: luau.id("self"), right: className }),
 		);
 	}
 
