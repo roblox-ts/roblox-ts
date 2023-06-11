@@ -117,6 +117,16 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			if (isCompilableFile(fsPath)) {
 				filesToCompile.add(fsPath);
 			} else {
+				const transformerWatcher = data.transformerWatcher;
+				if (transformerWatcher) {
+					// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
+					// and is also used by the program host to read files.
+					const contents = ts.sys.readFile(fsPath);
+					if (contents) {
+						transformerWatcher.updateFile(fsPath, contents);
+					}
+				}
+
 				filesToCopy.add(fsPath);
 			}
 		}

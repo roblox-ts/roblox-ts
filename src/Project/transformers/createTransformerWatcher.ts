@@ -12,10 +12,6 @@ function createServiceHost(program: ts.Program) {
 	const overriddenText = new Map<string, string>();
 
 	function updateFile(fileName: string, text: string) {
-		const originalSourceFile = program.getSourceFile(fileName);
-		const currentText = overriddenText.get(fileName) ?? originalSourceFile?.getText();
-		if (text === currentText) return;
-
 		overriddenText.set(fileName, text);
 
 		const currentVersion = files.get(fileName) ?? 0;

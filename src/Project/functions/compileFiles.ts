@@ -142,12 +142,6 @@ export function compileFiles(
 
 				if (transformResult.diagnostics) DiagnosticService.addDiagnostics(transformResult.diagnostics);
 
-				for (const sourceFile of program.getSourceFiles()) {
-					if (sourceFile.isDeclarationFile) {
-						updateFile(sourceFile.fileName, sourceFile.getText());
-					}
-				}
-
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
 						const source = ts.createPrinter().printFile(sourceFile);
