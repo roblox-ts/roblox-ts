@@ -25,10 +25,9 @@ export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSp
 	// Fallback for $getModuleTree when module is not referenced by any regular import
 	if (ts.isStringLiteralLike(moduleSpecifier)) {
 		const sourceFile = moduleSpecifier.getSourceFile();
-		const mode = ts.getModeForUsageLocation(sourceFile, moduleSpecifier);
-		const resolvedModuleInfo = ts.getResolvedModule(sourceFile, moduleSpecifier.text, mode);
-		if (resolvedModuleInfo) {
-			return state.program.getSourceFile(resolvedModuleInfo.resolvedFileName);
+		const result = ts.resolveModuleName(moduleSpecifier.text, sourceFile.path, state.compilerOptions, ts.sys);
+		if (result.resolvedModule) {
+			return state.program.getSourceFile(result.resolvedModule.resolvedFileName);
 		}
 	}
 }
