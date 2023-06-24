@@ -3,7 +3,9 @@ import { TransformState } from "TSTransformer/classes/TransformState";
 import ts from "typescript";
 
 export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSpecifier: ts.Expression) {
-	const symbol = state.typeChecker.getSymbolAtLocation(moduleSpecifier);
+	const symbol =
+		state.typeChecker.getSymbolAtLocation(moduleSpecifier) ??
+		state.typeChecker.resolveExternalModuleName(moduleSpecifier);
 	if (symbol) {
 		const declaration = symbol.valueDeclaration;
 
