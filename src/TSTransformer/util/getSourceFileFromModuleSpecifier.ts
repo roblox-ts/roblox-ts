@@ -22,7 +22,7 @@ export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSp
 		return declaration;
 	}
 
-	// WIP for proof of concept - should at least be handled more gracefully in function logic flow
+	// Fallback for $getModuleTree when module is not referenced by any regular import
 	if (ts.isStringLiteralLike(moduleSpecifier)) {
 		const sourceFile = moduleSpecifier.getSourceFile();
 		const mode = ts.getModeForUsageLocation(sourceFile, moduleSpecifier);
