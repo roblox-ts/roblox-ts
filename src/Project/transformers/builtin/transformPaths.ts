@@ -90,6 +90,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 	}
 
 	function isUrl(s: string) {
+		// eslint-disable-next-line deprecation/deprecation
 		return parse(s).protocol !== null;
 	}
 
