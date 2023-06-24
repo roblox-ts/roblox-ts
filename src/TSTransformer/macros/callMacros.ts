@@ -52,7 +52,7 @@ export const CALL_MACROS: MacroList<CallMacro> = {
 		return luau.none();
 	},
 
-	$getModule: (state, node) => {
+	$getModuleTree: (state, node) => {
 		const parts = getImportParts(state, node.getSourceFile(), node.arguments[0]);
 		// converts the flat array into { root, { "rest", "of", "path" } }
 		return luau.array([parts.shift()!, luau.array(parts)]);
