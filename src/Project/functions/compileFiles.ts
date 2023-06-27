@@ -144,6 +144,8 @@ export function compileFiles(
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
+						// transformed nodes don't have symbol or type information (or they have out of date information)
+						// there's no way to "rebind" an existing file, so we have to reprint it
 						const source = ts.createPrinter().printFile(sourceFile);
 						updateFile(sourceFile.fileName, source);
 						if (data.projectOptions.writeTransformedFiles) {
