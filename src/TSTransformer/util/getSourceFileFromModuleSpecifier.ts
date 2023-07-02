@@ -18,8 +18,9 @@ export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSp
 			}
 		}
 
-		assert(declaration && ts.isSourceFile(declaration));
-		return declaration;
+		if (declaration && ts.isSourceFile(declaration)) {
+			return declaration;
+		}
 	}
 
 	// Fallback for $getModuleTree when module is not referenced by any regular import
