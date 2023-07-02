@@ -1,4 +1,3 @@
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
 import ts from "typescript";
 
