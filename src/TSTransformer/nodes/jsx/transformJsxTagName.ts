@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
+import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import ts from "typescript";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
@@ -24,8 +25,9 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 			DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(node.name));
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
+	} else if (ts.isJsxNamespacedName(node)) {
+		return luau.string(getAttributeNameText(node));
 	} else {
-		assert(!ts.isJsxNamespacedName(node));
 		return transformExpression(state, node);
 	}
 }
