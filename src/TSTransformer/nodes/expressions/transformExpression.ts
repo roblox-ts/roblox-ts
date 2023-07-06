@@ -4,7 +4,6 @@ import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformArrayLiteralExpression } from "TSTransformer/nodes/expressions/transformArrayLiteralExpression";
-import { transformAsExpression } from "TSTransformer/nodes/expressions/transformAsExpression";
 import { transformAwaitExpression } from "TSTransformer/nodes/expressions/transformAwaitExpression";
 import { transformBinaryExpression } from "TSTransformer/nodes/expressions/transformBinaryExpression";
 import { transformFalseKeyword, transformTrueKeyword } from "TSTransformer/nodes/expressions/transformBooleanLiteral";
@@ -19,7 +18,6 @@ import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJs
 import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
-import { transformNonNullExpression } from "TSTransformer/nodes/expressions/transformNonNullExpression";
 import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformOmittedExpression } from "TSTransformer/nodes/expressions/transformOmittedExpression";
@@ -31,7 +29,7 @@ import { transformSuperKeyword } from "TSTransformer/nodes/expressions/transform
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
 import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
-import { transformTypeAssertion } from "TSTransformer/nodes/expressions/transformTypeAssertion";
+import { transformTypeExpression } from "TSTransformer/nodes/expressions/transformTypeExpression";
 import {
 	transformPostfixUnaryExpression,
 	transformPrefixUnaryExpression,
@@ -65,7 +63,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	// regular transforms
 	[ts.SyntaxKind.ArrayLiteralExpression, transformArrayLiteralExpression],
 	[ts.SyntaxKind.ArrowFunction, transformFunctionExpression],
-	[ts.SyntaxKind.AsExpression, transformAsExpression],
+	[ts.SyntaxKind.AsExpression, transformTypeExpression],
 	[ts.SyntaxKind.AwaitExpression, transformAwaitExpression],
 	[ts.SyntaxKind.BinaryExpression, transformBinaryExpression],
 	[ts.SyntaxKind.CallExpression, transformCallExpression],
@@ -80,7 +78,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
-	[ts.SyntaxKind.NonNullExpression, transformNonNullExpression],
+	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
 	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
@@ -89,6 +87,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.PostfixUnaryExpression, transformPostfixUnaryExpression],
 	[ts.SyntaxKind.PrefixUnaryExpression, transformPrefixUnaryExpression],
 	[ts.SyntaxKind.PropertyAccessExpression, transformPropertyAccessExpression],
+	[ts.SyntaxKind.SatisfiesExpression, transformTypeExpression],
 	[ts.SyntaxKind.SpreadElement, transformSpreadElement],
 	[ts.SyntaxKind.StringLiteral, transformStringLiteral],
 	[ts.SyntaxKind.SuperKeyword, transformSuperKeyword],
@@ -96,7 +95,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.TemplateExpression, transformTemplateExpression],
 	[ts.SyntaxKind.ThisKeyword, transformThisExpression],
 	[ts.SyntaxKind.TrueKeyword, transformTrueKeyword],
-	[ts.SyntaxKind.TypeAssertionExpression, transformTypeAssertion],
+	[ts.SyntaxKind.TypeAssertionExpression, transformTypeExpression],
 	[ts.SyntaxKind.VoidExpression, transformVoidExpression],
 	[ts.SyntaxKind.YieldExpression, transformYieldExpression],
 ]);

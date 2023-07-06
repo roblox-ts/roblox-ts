@@ -38,21 +38,16 @@ export class VirtualProject {
 
 	constructor() {
 		this.data = {
-			includePath: "",
 			isPackage: false,
-			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			noInclude: false,
 			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 				rojo: "",
 				type: ProjectType.Model,
+				optimizedLoops: true,
 			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
-			writeOnlyChanged: false,
-			optimizedLoops: false,
-			watch: false,
 		};
 
 		this.compilerOptions = {
@@ -71,7 +66,7 @@ export class VirtualProject {
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
 			jsxFactory: "Roact.createElement",
-			jsxFragmentFactory: "Roact.Fragment",
+			jsxFragmentFactory: "Roact.createFragment",
 		};
 		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
 
@@ -95,7 +90,10 @@ export class VirtualProject {
 			include: {
 				$path: INCLUDE_PATH,
 				node_modules: {
-					$path: RBXTS_SCOPE_PATH,
+					$className: "Folder",
+					"@rbxts": {
+						$path: RBXTS_SCOPE_PATH,
+					},
 				},
 			},
 		} as never);
