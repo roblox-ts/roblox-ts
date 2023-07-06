@@ -1,3 +1,56 @@
+## 2.1.0
+- TypeScript 4.9 Support (#2195)
+	- Adds support for `satisfies` keyword
+	- Adds disagnostic for the `accessor` keyword (requires getters/setters which are not supported)
+- Removed diagnostic for comma operator (#2045)
+- Banned instanceof on roblox types (#2225)
+- Disabled networkType check for dynamic import() (#2197)
+- Added `--writeTransformedFiles` to write transformed TypeScript ASTs to out directory (#2255)
+- Small improvements and fixes for `--optimizedLoops` (#2201, #2265)
+
+## 2.0.4
+- Updated deprecated APIs for TS 4.8 (#2143)
+
+## 2.0.3
+- Fixed new regression with incremental mode (#2138)
+
+## 2.0.2
+- Fixed new regression with Playground environment
+
+## 2.0.1
+- Fixed new regression with Package projects importing package dependencies (#2125)
+
+## 2.0.0
+- **Breaking Changes**
+	- Removed `opcall` in favor of `pcall` (#1991)
+	- Removed `PKG_VERSION` in favor of a transformer plugin (#1990)
+	- Improved npm module resolution (#2011)
+	- Fix incorrect right shift implementation (#2069)
+- **Other Changes**
+	- Fixed bug with `Array.unorderedRemove` for `false` values (#1883)
+	- Added support for `preserveConstEnums` tsconfig.json option (#1894)
+	- Upgraded to TypeScript 4.8.3 (#1903, #2121)
+	- Fixed a bug with `type` keyword and named exports (#1922)
+	- Improved JSX config error messages (#1817)
+	- Improved detection of Roact Change/Event attributes (#1972)
+	- Improved naming of for-of statement temporary identifiers (#1896)
+	- Added experimental compiler flag `--optimizedLoops` to compile some numeric for loops to be Lua for loops (#1977)
+	- Fixed duplicate diagnostics for enum and namespace merging (#1981)
+	- Added `$range` macro (#1979)
+	- Added `$tuple` macro (#1980)
+	- Optimized array destructuring from array literal (#1994)
+	- Added support for `import K = X.Y.Z;` (#2001)
+	- Emit no longer uses `pairs()`/`ipairs()`, in favor of generalized iteration (#2008)
+	- Added diagnostic for non-Server .ts files importing Server .ts files (#1899)
+	- Fixed `npm init` package manager detection bug
+	- Fixed `npm init` not properly exiting on Ctrl+C
+	- Fixed `npm init` existing path recognition (#2019)
+	- Prevent compiler from crashing when identifiers have no symbol (#1987)
+	- Improved support for compiler build flags in `"rbxts"` field of `tsconfig.json` (#2023)
+	- Banned usage of `@ts-ignore` and add --allowCommentDirectives (#2024)
+	- Improved `rbxtsc init plugin` template to use "types" in tsconfig.json instead of triple slash directives (#2028)
+	- Fixed `rbxtsc init` usage with pnpm (#2060)
+
 ## 1.3.3
 - Fixed some regressions for compiling void-returning macros as expressions (#1864, #1876)
 - Improved validation for  `tsconfig.json` `"typeRoots"` field (#1873)

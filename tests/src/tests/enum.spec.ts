@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 // Basic enum test
 enum Fruits {
 	Apple,

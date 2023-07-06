@@ -418,7 +418,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		return buildSetLoop;
 	} else if (isDefinitelyType(type, isMapType(state))) {
 		return buildMapLoop;
-	} else if (isDefinitelyType(type, t => isStringType(t))) {
+	} else if (isDefinitelyType(type, isStringType)) {
 		return buildStringLoop;
 	} else if (isDefinitelyType(type, isIterableFunctionLuaTupleType(state))) {
 		return buildIterableFunctionLuaTupleLoop(type);

@@ -10,10 +10,10 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"@rbxts/compiler-types": "^1.3.3-types.1",
+		"@rbxts/compiler-types": "github:roblox-ts/compiler-types",
 		"@rbxts/roact": "^1.4.2-ts.2",
 		"@rbxts/services": "^1.2.0",
 		"@rbxts/testez": "^0.4.2-ts.0",
-		"@rbxts/types": "^1.0.599"
+		"@rbxts/types": "^1.0.659"
 	}
 }

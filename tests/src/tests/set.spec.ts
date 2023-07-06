@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 declare function getmetatable(obj: object): { __mode: "k" | "v" | "kv" };
 
 export = () => {

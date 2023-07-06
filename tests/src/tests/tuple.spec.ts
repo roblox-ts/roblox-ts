@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should unpack function return tuples", () => {
 		function foo(): [number, number] {
