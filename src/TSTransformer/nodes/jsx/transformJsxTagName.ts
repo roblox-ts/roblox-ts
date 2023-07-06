@@ -25,6 +25,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else {
+		assert(!ts.isJsxNamespacedName(node));
 		return transformExpression(state, node);
 	}
 }

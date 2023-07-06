@@ -12,8 +12,8 @@
 	},
 	"scripts": {
 		"prepublishOnly": "npm run build",
-		"build": "ttsc -b",
-		"build-watch": "ttsc -b -w",
+		"build": "tspc -b",
+		"build-watch": "tspc -b -w",
 		"eslint": "eslint \"src/**/*.ts\" --max-warnings 0",
 		"devlink": "npm run build && cd devlink && npm link",
 		"test": "npm run build && npm run test-compile && npm run test-rojo && npm run test-run",
@@ -57,7 +57,7 @@
 		"lookpath": "^1.2.2",
 		"prompts": "^2.4.2",
 		"resolve": "^1.22.3",
-		"typescript": "=4.9.4",
+		"typescript": "=5.1.6",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
@@ -66,7 +66,7 @@
 		"@types/node": "^20.3.3",
 		"@types/prompts": "^2.4.4",
 		"@types/resolve": "^1.20.2",
-		"@types/ts-expose-internals": "npm:ts-expose-internals@=4.9.4",
+		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.1.6",
 		"@types/yargs": "^17.0.24",
 		"@typescript-eslint/eslint-plugin": "^5.61.0",
 		"@typescript-eslint/parser": "^5.59.5",
@@ -79,7 +79,7 @@
 		"mocha": "^10.2.0",
 		"nyc": "^15.1.0",
 		"prettier": "^2.8.8",
-		"ttypescript": "^1.5.15",
+		"ts-patch": "^3.0.1",
 		"typescript-transform-paths": "^3.4.6"
 	},
 	"files": [

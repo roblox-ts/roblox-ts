@@ -76,7 +76,12 @@ function isFlatObject(expression: ts.ObjectLiteralExpression) {
 }
 
 function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
-	assert(attribute.initializer && ts.isJsxExpression(attribute.initializer) && attribute.initializer.expression);
+	assert(
+		attribute.initializer &&
+			ts.isJsxExpression(attribute.initializer) &&
+			attribute.initializer.expression &&
+			!ts.isJsxNamespacedName(attribute.name),
+	);
 	const expression = attribute.initializer.expression;
 	if (ts.isObjectLiteralExpression(expression) && isFlatObject(expression)) {
 		for (const property of expression.properties) {
@@ -117,7 +122,7 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 }
 
 function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
-	assert(state.services.roactSymbolManager);
+	assert(state.services.roactSymbolManager && !ts.isJsxNamespacedName(attribute.name));
 	const contextualType = state.typeChecker.getContextualType(attribute.parent);
 	if (contextualType) {
 		const symbol = contextualType.getProperty(attribute.name.text);
@@ -135,6 +140,7 @@ function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
 }
 
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
+	assert(!ts.isJsxNamespacedName(attribute.name));
 	const attributeName = attribute.name.text;
 	if (attributeName === KEY_ATTRIBUTE_NAME) return;
 
