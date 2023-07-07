@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "2.1.0",
+	"version": "2.1.1",
 	"description": "A TypeScript-to-Luau Compiler for Roblox",
 	"main": "out/CLI/index.js",
 	"repository": {
@@ -63,7 +63,7 @@
 	"devDependencies": {
 		"@types/fs-extra": "^11.0.1",
 		"@types/mocha": "^10.0.1",
-		"@types/node": "^20.3.3",
+		"@types/node": "^20.4.0",
 		"@types/prompts": "^2.4.4",
 		"@types/resolve": "^1.20.2",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.1.6",
@@ -74,11 +74,11 @@
 		"eslint-config-prettier": "^8.8.0",
 		"eslint-plugin-deprecation": "^1.4.1",
 		"eslint-plugin-no-autofix": "^1.2.3",
-		"eslint-plugin-prettier": "^4.2.1",
+		"eslint-plugin-prettier": "^5.0.0-alpha.2",
 		"eslint-plugin-simple-import-sort": "^10.0.0",
 		"mocha": "^10.2.0",
 		"nyc": "^15.1.0",
-		"prettier": "^2.8.8",
+		"prettier": "^3.0.0",
 		"ts-patch": "^3.0.1",
 		"typescript-transform-paths": "^3.4.6"
 	},
