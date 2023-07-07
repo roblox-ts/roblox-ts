@@ -25,6 +25,6 @@ fs.readJSONSync ??= NOOP;
 fs.realpathSync ??= ((path: fs.PathLike) => path) as typeof fs.realpathSync;
 fs.removeSync ??= NOOP;
 // @ts-ignore
-fs.stat ??= () => ({} as Promise<fs.Stats>);
+fs.stat ??= () => ({}) as Promise<fs.Stats>;
 // @ts-ignore
 fs.statSync ??= () => ({});

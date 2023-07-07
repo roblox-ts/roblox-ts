@@ -3,7 +3,11 @@ import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TRANSFORMED_EXT, TS_EXT
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
-	private constructor(public dirName: string, public fileName: string, public exts: Array<string>) {}
+	private constructor(
+		public dirName: string,
+		public fileName: string,
+		public exts: Array<string>,
+	) {}
 
 	public static from(filePath: string) {
 		const dirName = path.dirname(filePath);
