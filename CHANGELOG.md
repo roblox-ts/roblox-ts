@@ -1,3 +1,8 @@
+## 2.1.1
+- Enable `--optimizedLoops` flag for Playground environment (#2271)
+- Fix for updating non-compiled files in transformer watch mode (#2385)
+- Add `$getModuleTree` macro (#2302)
+
 ## 2.1.0
 - TypeScript 4.9 Support (#2195)
 	- Adds support for `satisfies` keyword
