@@ -19,10 +19,10 @@ import {
 	isArrayType,
 	isBooleanLiteralType,
 	isDefinitelyType,
+	isJSXElementType,
 	isMapType,
 	isNumberType,
 	isPossiblyType,
-	isRoactElementType,
 	isUndefinedType,
 } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
@@ -143,7 +143,7 @@ function createJsxAddChild(
 ): luau.Statement {
 	const isPossiblyUndefinedOrFalse = isPossiblyType(type, isUndefinedType, isBooleanLiteralType(state, false));
 	const isPossiblyTrue = isPossiblyType(type, isBooleanLiteralType(state, true));
-	const isPossiblyElement = isPossiblyType(type, isRoactElementType(state));
+	const isPossiblyElement = isPossiblyType(type, isJSXElementType(state));
 
 	// if map keys are possibly number, we need to add number keys to the end like arrays
 	let areMapKeysPossiblyNumber = false;
@@ -301,7 +301,7 @@ export function transformJsxChildren(
 					state.prereq(createJsxAddArrayChildren(childrenPtr.value, amtSinceUpdate, lengthId, expression));
 				} else {
 					const type = state.getType(innerExp);
-					if (isDefinitelyType(type, isRoactElementType(state))) {
+					if (isDefinitelyType(type, isJSXElementType(state))) {
 						if (luau.isMixedTable(childrenPtr.value)) {
 							luau.list.push(childrenPtr.value.fields, expression);
 						} else {

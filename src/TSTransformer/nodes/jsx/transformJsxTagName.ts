@@ -1,6 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
@@ -12,11 +11,16 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 	if (ts.isIdentifier(node)) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node);
 		if (symbol) {
-			assert(state.services.roactSymbolManager);
-			const className = state.services.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
+			const className = state.services.jsxSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
 			if (className !== undefined) {
 				return luau.string(className);
 			}
+		}
+
+		// host component fallback
+		const firstChar = node.text[0];
+		if (firstChar === firstChar.toLowerCase()) {
+			return luau.string(node.text);
 		}
 	}
 

@@ -1,13 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
-import { ROACT_SYMBOL_NAMES } from "TSTransformer/classes/RoactSymbolManager";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
-import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
+import { getCreateElementIndex, getCreateFragmentIndex } from "TSTransformer/util/jsx/getJsxIndex";
 import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
@@ -19,15 +16,7 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	if (state.compilerOptions.jsxFactory !== "Roact.createElement") {
-		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFactory(node));
-		return luau.none();
-	}
-
-	const isFragment =
-		state.services.roactSymbolManager &&
-		state.typeChecker.getSymbolAtLocation(tagName) ===
-			state.services.roactSymbolManager.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Fragment);
+	const isFragment = false; // TODO?
 
 	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.none();
 	const attributesPtr = createMapPointer("attributes");
@@ -49,7 +38,7 @@ export function transformJsx(
 	}
 
 	let result: luau.Expression = luau.call(
-		isFragment ? createRoactIndex("createFragment") : createRoactIndex("createElement"),
+		isFragment ? getCreateFragmentIndex(state) : getCreateElementIndex(state),
 		args,
 	);
 
@@ -60,7 +49,7 @@ export function transformJsx(
 		if (keyInitializer) {
 			const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
 			state.prereqList(keyPrereqs);
-			result = luau.call(createRoactIndex("createFragment"), [luau.map([[key, result]])]);
+			result = luau.call(getCreateFragmentIndex(state), [luau.map([[key, result]])]);
 		}
 	}
 

@@ -7,7 +7,6 @@ import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/tran
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
-import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
@@ -20,10 +19,9 @@ export function transformClassConstructor(
 ) {
 	const statements = luau.list.make<luau.Statement>();
 
-	let bodyStatements = originNode ? getStatements(originNode.body) : [];
+	const bodyStatements = originNode ? getStatements(originNode.body) : [];
 
-	const isRoact = extendsRoactComponent(state, node);
-	let removeFirstSuper = isRoact;
+	let removeFirstSuper = false;
 
 	let parameters = luau.list.make<luau.AnyIdentifier>();
 	let hasDotDotDot = false;
@@ -36,7 +34,7 @@ export function transformClassConstructor(
 		luau.list.pushList(statements, paramStatements);
 		parameters = constructorParams;
 		hasDotDotDot = constructorHasDotDotDot;
-	} else if (!isRoact && getExtendsNode(node)) {
+	} else if (getExtendsNode(node)) {
 		// if extends + no constructor:
 		// - add ... to params
 		// - add super.constructor(self, ...)
@@ -115,20 +113,12 @@ export function transformClassConstructor(
 		}
 	}
 
-	// if removeFirstSuper and first statement is `super()`, remove it
-	if (removeFirstSuper && bodyStatements.length > 0) {
-		const firstStatement = bodyStatements[0];
-		if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-			bodyStatements = bodyStatements.slice(1);
-		}
-	}
-
 	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {
 			expression: name,
-			name: isRoact ? "init" : "constructor",
+			name: "constructor",
 			statements,
 			parameters,
 			hasDotDotDot,

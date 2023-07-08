@@ -163,7 +163,7 @@ export function compileFiles(
 	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
 
 	const typeChecker = proxyProgram.getTypeChecker();
-	const services = createTransformServices(proxyProgram, typeChecker, data);
+	const services = createTransformServices(typeChecker);
 
 	for (let i = 0; i < sourceFiles.length; i++) {
 		const sourceFile = proxyProgram.getSourceFile(sourceFiles[i].fileName);

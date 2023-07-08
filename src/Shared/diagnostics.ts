@@ -206,17 +206,7 @@ export const errors = {
 		suggestion("Move the file you want to import to a shared location."),
 	),
 
-	// roact jsx
-	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
-	invalidJsxFragmentFactory: error("compilerOptions.jsxFragmentFactory must be `Roact.createFragment`!"),
-	noRoactInheritance: error(
-		"Composition is preferred over inheritance with Roact components.",
-		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
-	),
-	noSuperPropertyCallRoactComponent: error("`super` is not supported inside Roact components!"),
-	missingSuperConstructorRoactComponent: error(
-		"`super(props)` must be the first statement of the constructor in a Roact component!",
-	),
+	// jsx
 	noJsxText: error("JSX text is not supported!"),
 
 	// semantic
