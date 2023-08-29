@@ -71,6 +71,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.ConditionalExpression, transformConditionalExpression],
 	[ts.SyntaxKind.DeleteExpression, transformDeleteExpression],
 	[ts.SyntaxKind.ElementAccessExpression, transformElementAccessExpression],
+	[ts.SyntaxKind.ExpressionWithTypeArguments, transformTypeExpression],
 	[ts.SyntaxKind.FalseKeyword, transformFalseKeyword],
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
