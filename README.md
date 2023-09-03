@@ -14,6 +14,38 @@
 
 **roblox-ts** is an attempt to bridge the abilities of TypeScript to work in a Roblox environment. We break down your code into an abstract syntax tree and emit functionally similar structures in [Luau](https://luau-lang.org/) so that the code behaves the same.
 
+## Example
+Typescript:
+```ts
+import { CollectionService } from "@rbxts/services";
+
+for (const obj of CollectionService.GetTagged("Lava")) {
+    if (obj.IsA("BasePart")) {
+        obj.Touched.Connect(part => part.Parent?.FindFirstChildOfClass("Humanoid")?.TakeDamage(100));
+    }
+}
+```
+Compiled Lua:
+```lua
+local TS = _G[script]
+local CollectionService = TS.import(script, script.Parent, "include", "node_modules", "@rbxts", "services").CollectionService
+for _, obj in CollectionService:GetTagged("Lava") do
+    if obj:IsA("BasePart") then
+        obj.Touched:Connect(function(part)
+            local _result = part.Parent
+            if _result ~= nil then
+                _result = _result:FindFirstChildOfClass("Humanoid")
+                if _result ~= nil then
+                    _result = _result:TakeDamage(100)
+                end
+            end
+            return _result
+        end)
+    end
+end
+return nil
+```
+Test it out with  the [Online Playground.](https://roblox-ts.com/playground)
 ## Quick start & Documentation
 
 Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
