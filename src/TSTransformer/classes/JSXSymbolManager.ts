@@ -34,6 +34,9 @@ export class JSXSymbolManager {
 		}
 
 		// JSX intrinsic elements
+
+		// this requires a location ts.Node, but doesn't actually use it and in this context..
+		// we don't have one anyways! so this should just fetch ambient tag names
 		for (const symbol of typeChecker.getJsxIntrinsicTagNamesAt(undefined!)) {
 			assert(symbol.valueDeclaration && ts.isPropertySignature(symbol.valueDeclaration));
 			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
