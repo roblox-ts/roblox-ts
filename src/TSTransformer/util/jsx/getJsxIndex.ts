@@ -1,10 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import assert from "assert";
 import { TransformState } from "TSTransformer/classes/TransformState";
+import { propertyAccessExpressionChain } from "TSTransformer/util/expressionChain";
 
 function getJsxIndex(factory: string) {
-	const [namespace, index] = factory.split(".");
-	return luau.property(luau.id(namespace), index);
+	const [namespace, ...path] = factory.split(".");
+	return propertyAccessExpressionChain(luau.id(namespace), path);
 }
 
 export function getCreateFragmentIndex(state: TransformState) {

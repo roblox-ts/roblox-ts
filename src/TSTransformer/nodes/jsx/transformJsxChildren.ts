@@ -5,15 +5,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
-import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
 import { offset } from "TSTransformer/util/offset";
-import {
-	assignToMixedTablePointer,
-	disableMapInline,
-	disableMixedTableInline,
-	MapPointer,
-	MixedTablePointer,
-} from "TSTransformer/util/pointer";
+import { disableMapInline, disableMixedTableInline, MapPointer, MixedTablePointer } from "TSTransformer/util/pointer";
 import {
 	getTypeArguments,
 	isArrayType,
@@ -334,29 +327,14 @@ export function transformJsxChildren(
 			}
 			state.prereqList(prereqs);
 
-			const keyInitializer = !ts.isJsxFragment(child) && getKeyAttributeInitializer(child);
-			if (keyInitializer) {
-				const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
-				if (!luau.list.isEmpty(keyPrereqs)) {
-					disableInline();
-				}
-				state.prereqList(keyPrereqs);
-				assignToMixedTablePointer(state, childrenPtr, key, expression);
+			if (luau.isMixedTable(childrenPtr.value)) {
+				luau.list.push(childrenPtr.value.fields, expression);
 			} else {
-				if (luau.isMixedTable(childrenPtr.value)) {
-					luau.list.push(childrenPtr.value.fields, expression);
-				} else {
-					state.prereq(
-						createJsxAddNumericChild(
-							childrenPtr.value,
-							lengthId,
-							luau.number(amtSinceUpdate + 1),
-							expression,
-						),
-					);
-				}
-				amtSinceUpdate++;
+				state.prereq(
+					createJsxAddNumericChild(childrenPtr.value, lengthId, luau.number(amtSinceUpdate + 1), expression),
+				);
 			}
+			amtSinceUpdate++;
 		}
 	}
 }

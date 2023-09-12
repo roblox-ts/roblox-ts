@@ -1,11 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
-import { getCreateElementIndex, getCreateFragmentIndex } from "TSTransformer/util/jsx/getJsxIndex";
-import { getKeyAttributeInitializer } from "TSTransformer/util/jsx/getKeyAttributeInitializer";
+import { getCreateElementIndex } from "TSTransformer/util/jsx/getJsxIndex";
 import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
@@ -32,18 +30,5 @@ export function transformJsx(
 		args.push(childrenPtr.value);
 	}
 
-	let result: luau.Expression = luau.call(getCreateElementIndex(state), args);
-
-	// if this is a top-level element, handle Key here
-	// otherwise, handle in transformJsxChildren
-	if (!ts.isJsxElement(node.parent)) {
-		const keyInitializer = getKeyAttributeInitializer(node);
-		if (keyInitializer) {
-			const [key, keyPrereqs] = state.capture(() => transformExpression(state, keyInitializer));
-			state.prereqList(keyPrereqs);
-			result = luau.call(getCreateFragmentIndex(state), [luau.map([[key, result]])]);
-		}
-	}
-
-	return result;
+	return luau.call(getCreateElementIndex(state), args);
 }
