@@ -1,5 +1,3 @@
-/* eslint-disable no-console */
-import assert from "assert";
 import ts from "typescript";
 
 const JSX_NAMESPACE_NAME = "JSX";
@@ -10,7 +8,6 @@ export enum JSXSymbolNames {
 
 export class JSXSymbolManager {
 	private readonly symbols = new Map<string, ts.Symbol>();
-	private readonly jsxIntrinsicNameMap = new Map<ts.Symbol, string>();
 
 	constructor(typeChecker: ts.TypeChecker) {
 		const jsxNamespaceSymbol = typeChecker.resolveName(
@@ -32,22 +29,6 @@ export class JSXSymbolManager {
 				}
 			}
 		}
-
-		// JSX intrinsic elements
-
-		// this requires a location ts.Node, but doesn't actually use it and in this context..
-		// we don't have one anyways! so this should just fetch ambient tag names
-		for (const symbol of typeChecker.getJsxIntrinsicTagNamesAt(undefined!)) {
-			assert(symbol.valueDeclaration && ts.isPropertySignature(symbol.valueDeclaration));
-			assert(symbol.valueDeclaration.type && ts.isTypeReferenceNode(symbol.valueDeclaration.type));
-			const className = symbol.valueDeclaration.type.typeArguments?.[0].getText();
-			assert(className);
-			this.jsxIntrinsicNameMap.set(ts.skipAlias(symbol, typeChecker), className);
-		}
-	}
-
-	public getIntrinsicElementClassNameFromSymbol(symbol: ts.Symbol) {
-		return this.jsxIntrinsicNameMap.get(symbol);
 	}
 
 	public getSymbol(name: string) {

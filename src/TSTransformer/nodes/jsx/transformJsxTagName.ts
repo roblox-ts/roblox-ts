@@ -8,16 +8,8 @@ import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import ts from "typescript";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
+	// host component
 	if (ts.isIdentifier(node)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(node);
-		if (symbol) {
-			const className = state.services.jsxSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
-			if (className !== undefined) {
-				return luau.string(className);
-			}
-		}
-
-		// host component fallback
 		const firstChar = node.text[0];
 		if (firstChar === firstChar.toLowerCase()) {
 			return luau.string(node.text);
