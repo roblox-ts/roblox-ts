@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { KEY_ATTRIBUTE_NAME } from "TSTransformer/util/jsx/constants";
 import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
@@ -61,16 +60,13 @@ function createJsxAttributeLoop(
 }
 
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
-	const attributeName = getAttributeNameText(attribute.name);
-	if (attributeName === KEY_ATTRIBUTE_NAME) return;
-
 	const [init, initPrereqs] = transformJsxInitializer(state, attribute.initializer);
 	if (!luau.list.isEmpty(initPrereqs)) {
 		disableMapInline(state, attributesPtr);
 		state.prereqList(initPrereqs);
 	}
 
-	const name = luau.string(attributeName);
+	const name = luau.string(getAttributeNameText(attribute.name));
 	assignToMapPointer(state, attributesPtr, name, init);
 }
 
