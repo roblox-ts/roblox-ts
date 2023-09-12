@@ -16,31 +16,23 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	const isFragment = false; // TODO?
-
-	const tagNameExp = !isFragment ? transformJsxTagName(state, tagName) : luau.none();
+	const tagNameExp = transformJsxTagName(state, tagName);
 	const attributesPtr = createMapPointer("attributes");
 	const childrenPtr = createMixedTablePointer("children");
 	transformJsxAttributes(state, attributes, attributesPtr);
 	transformJsxChildren(state, children, attributesPtr, childrenPtr);
 
-	const args = new Array<luau.Expression>();
-	if (!isFragment) {
-		args.push(tagNameExp);
-	}
+	const args = [tagNameExp];
 	const pushAttributes = luau.isAnyIdentifier(attributesPtr.value) || !luau.list.isEmpty(attributesPtr.value.fields);
 	const pushChildren = luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields);
-	if (!isFragment && (pushAttributes || pushChildren)) {
+	if (pushAttributes || pushChildren) {
 		args.push(attributesPtr.value);
 	}
 	if (pushChildren) {
 		args.push(childrenPtr.value);
 	}
 
-	let result: luau.Expression = luau.call(
-		isFragment ? getCreateFragmentIndex(state) : getCreateElementIndex(state),
-		args,
-	);
+	let result: luau.Expression = luau.call(getCreateElementIndex(state), args);
 
 	// if this is a top-level element, handle Key here
 	// otherwise, handle in transformJsxChildren
