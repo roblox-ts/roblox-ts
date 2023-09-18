@@ -33,7 +33,11 @@ export function transformMethodDeclaration(
 	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
 
 	let name = transformPropertyName(state, node.name);
-	if (ts.hasDecorators(node) && !luau.isSimple(name)) {
+
+	if (
+		(ts.hasDecorators(node) || node.parameters.some(parameter => ts.hasDecorators(parameter))) &&
+		!luau.isSimple(name)
+	) {
 		const tempId = luau.tempId("key");
 		luau.list.push(
 			result,
