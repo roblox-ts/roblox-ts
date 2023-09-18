@@ -142,7 +142,7 @@ function transformParameterDecorators(
 	const result = luau.list.make<luau.Statement>();
 
 	const memberName = member.name;
-	if (!memberName || ts.isPrivateIdentifier(memberName)) return result;
+	assert(memberName);
 
 	let key: luau.Expression | undefined = state.getClassElementObjectKey(member);
 	if (!key) {
