@@ -57,7 +57,7 @@
 		"lookpath": "^1.2.2",
 		"prompts": "^2.4.2",
 		"resolve": "^1.22.6",
-		"typescript": "=5.1.6",
+		"typescript": "=5.2.2",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
@@ -66,7 +66,7 @@
 		"@types/node": "^20.6.3",
 		"@types/prompts": "^2.4.4",
 		"@types/resolve": "^1.20.2",
-		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.1.6",
+		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.2.2",
 		"@types/yargs": "^17.0.24",
 		"@typescript-eslint/eslint-plugin": "^6.7.2",
 		"@typescript-eslint/parser": "^6.7.2",
