@@ -219,7 +219,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	const directiveComments = luau.list.make<luau.Statement>();
 	while (statements.head && luau.isComment(statements.head.value) && statements.head.value.text.startsWith("!")) {
 		const comment = luau.list.shift(statements);
-		assert(comment);
+		assert(comment, "Expected comment statement!");
 		luau.list.push(directiveComments, comment);
 	}
 
