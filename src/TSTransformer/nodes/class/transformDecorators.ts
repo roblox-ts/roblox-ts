@@ -142,11 +142,10 @@ function transformParameterDecorators(
 	const result = luau.list.make<luau.Statement>();
 
 	const memberName = member.name;
-	assert(memberName);
-
-	let key: luau.Expression | undefined = state.getClassElementObjectKey(member);
+	let key: luau.Expression | undefined =
+		memberName !== undefined ? state.getClassElementObjectKey(member) : luau.nil();
 	if (!key) {
-		const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, memberName)));
+		const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, memberName!)));
 		luau.list.pushList(result, keyPrereqs);
 	}
 
