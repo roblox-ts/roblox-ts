@@ -4,6 +4,16 @@ import { transformStatement } from "TSTransformer/nodes/statements/transformStat
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
 
+function getLastToken(statements: ReadonlyArray<ts.Statement>) {
+	if (statements.length > 0) {
+		const lastStatement = statements[statements.length - 1];
+		const lastToken = lastStatement.parent.getLastToken();
+		if (lastToken && !ts.isNodeDescendantOf(lastToken, lastStatement)) {
+			return lastToken;
+		}
+	}
+}
+
 /**
  * Convert a ts.Statement array into a luau.list<...> tree
  * @param state The current state of the transformation.
@@ -17,6 +27,7 @@ export function transformStatementList(
 		id: luau.AnyIdentifier;
 		mapping: Map<ts.Statement, Array<string>>;
 	},
+	endOfFileToken?: ts.Token<ts.SyntaxKind.EndOfFileToken>,
 ) {
 	// make a new Luau tree
 	const result = luau.list.make<luau.Statement>();
@@ -66,10 +77,9 @@ export function transformStatementList(
 		}
 	}
 
-	if (state.compilerOptions.removeComments !== true && statements.length > 0) {
-		const lastStatement = statements[statements.length - 1];
-		const lastToken = lastStatement.parent.getLastToken();
-		if (lastToken && !ts.isNodeDescendantOf(lastToken, lastStatement)) {
+	if (state.compilerOptions.removeComments !== true) {
+		const lastToken = getLastToken(statements) ?? endOfFileToken;
+		if (lastToken) {
 			luau.list.pushList(result, state.getLeadingComments(lastToken));
 		}
 	}
