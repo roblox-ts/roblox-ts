@@ -260,7 +260,7 @@ function transformOptionalChainInner(
 				if (item.kind === OptionalChainItemKind.PropertyCall) {
 					baseExpression = luau.property(convertToIndexableExpression(baseExpression), item.name);
 				} else if (item.kind === OptionalChainItemKind.ElementCall) {
-					const [index, prereqs] = state.capture(() => transformExpression(state, item.argumentExpression));
+					const [index] = state.capture(() => transformExpression(state, item.argumentExpression));
 					const expType = state.typeChecker.getNonOptionalType(state.getType(item.expression.expression));
 
 					baseExpression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
