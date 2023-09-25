@@ -10,6 +10,7 @@ import {
 import { transformElementAccessExpressionInner } from "TSTransformer/nodes/expressions/transformElementAccessExpression";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformPropertyAccessExpressionInner } from "TSTransformer/nodes/expressions/transformPropertyAccessExpression";
+import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isMethod } from "TSTransformer/util/isMethod";
@@ -244,6 +245,7 @@ function transformOptionalChainInner(
 		if (isCompoundCall(item)) {
 			isMethodCall = isMethod(state, item.expression);
 			isSuperCall = ts.isSuperProperty(item.expression);
+
 			if (item.callOptional && isMethodCall && !isSuperCall) {
 				selfParam = state.pushToVar(baseExpression, "self");
 				baseExpression = selfParam;
@@ -257,10 +259,13 @@ function transformOptionalChainInner(
 			if (item.callOptional) {
 				if (item.kind === OptionalChainItemKind.PropertyCall) {
 					baseExpression = luau.property(convertToIndexableExpression(baseExpression), item.name);
-				} else {
+				} else if (item.kind === OptionalChainItemKind.ElementCall) {
+					const [index, prereqs] = state.capture(() => transformExpression(state, item.argumentExpression));
+					const expType = state.typeChecker.getNonOptionalType(state.getType(item.expression.expression));
+
 					baseExpression = luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 						expression: convertToIndexableExpression(baseExpression),
-						index: transformExpression(state, item.argumentExpression),
+						index: addOneIfArrayType(state, expType, index),
 					});
 				}
 			}
