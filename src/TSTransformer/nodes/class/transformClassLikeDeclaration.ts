@@ -17,6 +17,7 @@ import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfN
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
+import { transformStaticBlockDeclaration } from "./transformStaticBlockDeclaration";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -361,6 +362,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	const methods = new Array<ts.MethodDeclaration>();
 	const staticProperties = new Array<ts.PropertyDeclaration>();
+	const staticBlockDeclarations = new Array<ts.ClassStaticBlockDeclaration>();
+
 	for (const member of node.members) {
 		validateMethodAssignment(state, member);
 		if (
@@ -379,6 +382,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			staticProperties.push(member);
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
+		} else if (ts.isClassStaticBlockDeclaration(member)) {
+			staticBlockDeclarations.push(member);
 		} else {
 			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
 		}
@@ -434,6 +439,10 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	for (const property of staticProperties) {
 		luau.list.pushList(statementsInner, transformPropertyDeclaration(state, property, internalName));
+	}
+
+	for (const staticBlock of staticBlockDeclarations) {
+		luau.list.pushList(statementsInner, transformStaticBlockDeclaration(state, staticBlock));
 	}
 
 	// if using internal name, assign to return var
