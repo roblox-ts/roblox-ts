@@ -23,6 +23,7 @@ export class TransformState {
 	private readonly sourceFileText: string;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
+	public isInStaticBlockDeclaration = false;
 
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
