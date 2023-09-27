@@ -8,6 +8,7 @@ import { transformDecorators } from "TSTransformer/nodes/class/transformDecorato
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
@@ -17,7 +18,6 @@ import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfN
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
-import { transformStaticBlockDeclaration } from "./transformStaticBlockDeclaration";
 
 const MAGIC_TO_STRING_METHOD = "toString";
 
@@ -317,7 +317,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	} else {
 		internalName = returnVar;
 	}
-
+	state.classIdentifierMap.set(node, internalName);
 	if (!isClassHoisted(state, node)) {
 		luau.list.push(
 			statements,
@@ -442,7 +442,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	for (const staticBlock of staticBlockDeclarations) {
-		luau.list.pushList(statementsInner, transformStaticBlockDeclaration(state, staticBlock));
+		luau.list.pushList(statementsInner, transformBlock(state, staticBlock.body));
 	}
 
 	// if using internal name, assign to return var

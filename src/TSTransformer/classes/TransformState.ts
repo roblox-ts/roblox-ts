@@ -23,8 +23,9 @@ export class TransformState {
 	private readonly sourceFileText: string;
 	public hasExportEquals = false;
 	public hasExportFrom = false;
-	public isInStaticBlockDeclaration = false;
-	
+
+	public classIdentifierMap = new Map<ts.ClassLikeDeclaration, luau.AnyIdentifier>();
+
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
 		solveTempIds(state, node);
@@ -34,6 +35,7 @@ export class TransformState {
 	public debugRenderList(list: luau.List<luau.Statement>) {
 		const state = new RenderState();
 		solveTempIds(state, list);
+
 		return renderStatements(state, list);
 	}
 
