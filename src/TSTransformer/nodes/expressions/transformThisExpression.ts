@@ -4,15 +4,18 @@ import { errors } from "Shared/diagnostics";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
+
 function isInStaticBlockDeclaration(node: ts.Node) {
-	while (!ts.isClassStaticBlockDeclaration(node.parent)) {
-		if (ts.isClassDeclaration(node.parent) || ts.isClassExpression(node.parent)) {
+	while (true) {
+		if (!node.parent) break;
+		const parent = node.parent;
+		if (ts.isClassStaticBlockDeclaration(parent)) return true;
+		if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
 			break;
-		} else {
-			node = node.parent;
 		}
+		node = parent;
 	}
-	return true;
+	return false;
 }
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
