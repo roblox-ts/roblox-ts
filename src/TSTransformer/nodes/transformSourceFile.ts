@@ -192,12 +192,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	state.setModuleIdBySymbol(symbol, luau.globals.exports);
 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`
-	const statements = transformStatementList(state, node.statements, undefined);
-
-	// if node.statements.length > 0, the ending comments should be handled by transformStatementList
-	if (state.compilerOptions.removeComments !== true && node.statements.length === 0) {
-		luau.list.pushList(statements, state.getLeadingComments(node.endOfFileToken));
-	}
+	const statements = transformStatementList(state, node, node.statements, undefined);
 
 	handleExports(state, node, symbol, statements);
 

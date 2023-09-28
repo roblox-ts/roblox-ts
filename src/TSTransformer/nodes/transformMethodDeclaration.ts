@@ -30,7 +30,7 @@ export function transformMethodDeclaration(
 
 	// eslint-disable-next-line no-autofix/prefer-const
 	let { statements, parameters, hasDotDotDot } = transformParameters(state, node);
-	luau.list.pushList(statements, transformStatementList(state, node.body.statements));
+	luau.list.pushList(statements, transformStatementList(state, node.body, node.body.statements));
 
 	let name = transformPropertyName(state, node.name);
 	if (ts.hasDecorators(node) && !luau.isSimple(name)) {
