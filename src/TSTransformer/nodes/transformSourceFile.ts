@@ -2,7 +2,6 @@ import luau from "@roblox-ts/luau-ast";
 import { RbxType } from "@roblox-ts/rojo-resolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
-import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -193,7 +192,12 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	state.setModuleIdBySymbol(symbol, luau.globals.exports);
 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`
-	const statements = transformStatementList(state, node.statements, undefined, node.endOfFileToken);
+	const statements = transformStatementList(state, node.statements, undefined);
+
+	// if node.statements.length > 0, the ending comments should be handled by transformStatementList
+	if (state.compilerOptions.removeComments !== true && node.statements.length === 0) {
+		luau.list.pushList(statements, state.getLeadingComments(node.endOfFileToken));
+	}
 
 	handleExports(state, node, symbol, statements);
 
