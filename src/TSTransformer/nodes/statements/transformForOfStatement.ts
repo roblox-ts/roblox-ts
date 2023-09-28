@@ -319,7 +319,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 				let name = "element";
 				if (tupleType.labeledElementDeclarations) {
 					const label = tupleType.labeledElementDeclarations[i];
-					if (ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+					if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
 						name = label.name.text;
 					}
 				}
