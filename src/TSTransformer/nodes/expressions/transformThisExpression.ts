@@ -17,6 +17,7 @@ function isInStaticBlockDeclaration(node: ts.Node) {
 	}
 	return false;
 }
+
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	if (symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.globalThis)) {
