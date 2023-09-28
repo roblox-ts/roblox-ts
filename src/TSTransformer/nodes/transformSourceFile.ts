@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { RbxType } from "@roblox-ts/rojo-resolver";
 import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
+import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
@@ -219,6 +220,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	const directiveComments = luau.list.make<luau.Statement>();
 	while (statements.head && luau.isComment(statements.head.value) && statements.head.value.text.startsWith("!")) {
 		const comment = luau.list.shift(statements);
+		// safety: statements.head is checked in while condition
 		assert(comment, "Expected comment statement!");
 		luau.list.push(directiveComments, comment);
 	}
