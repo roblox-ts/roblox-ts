@@ -218,10 +218,8 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	// extract Luau directive comments like --!strict so we can put them before headerStatements
 	const directiveComments = luau.list.make<luau.Statement>();
 	while (statements.head && luau.isComment(statements.head.value) && statements.head.value.text.startsWith("!")) {
-		const comment = luau.list.shift(statements);
 		// safety: statements.head is checked in while condition
-		assert(comment, "Expected comment statement!");
-		luau.list.push(directiveComments, comment);
+		luau.list.push(directiveComments, luau.list.shift(statements)!);
 	}
 
 	luau.list.unshiftList(statements, headerStatements);
