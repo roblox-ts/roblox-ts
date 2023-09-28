@@ -6,8 +6,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
 
 function isInStaticBlockDeclaration(node: ts.Node) {
-	while (true) {
-		if (!node.parent) break;
+	while (node.parent) {
 		const parent = node.parent;
 		if (ts.isClassStaticBlockDeclaration(parent)) return true;
 		if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
