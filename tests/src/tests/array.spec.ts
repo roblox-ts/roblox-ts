@@ -1,4 +1,38 @@
 export = () => {
+	it("should call second member with 'foo' with this parameter", () => {
+		let v: { onEnd: Array<(this: defined, arg?: string) => void> } = {
+			onEnd: [
+				function () {
+					assert(false, "first member should not be called");
+				},
+				function (arg) {
+					assert(arg === "foo");
+				},
+			],
+		};
+
+		let n = 1;
+
+		v.onEnd[n]?.("foo");
+		v.onEnd[n]("foo");
+	});
+	it("should call second member with 'foo'", () => {
+		let v: { onEnd: Array<(arg?: string) => void> } = {
+			onEnd: [
+				function () {
+					assert(false, "first member should not be called");
+				},
+				function (arg) {
+					assert(arg === "foo");
+				},
+			],
+		};
+
+		let n = 1;
+
+		v.onEnd[n]?.("foo");
+		v.onEnd[n]("foo");
+	});
 	it("should support element access", () => {
 		const arr = [1, 2, 3];
 		expect(arr[0]).to.equal(1);
@@ -122,7 +156,7 @@ export = () => {
 		expect(b.join(", ")).to.equal("0, 2, 3, 3");
 		b.move(0, 1, 2);
 		expect(b.join(", ")).to.equal("0, 2, 0, 2");
-	})
+	});
 
 	it("should support shift", () => {
 		const a = [1, 2, 3];
@@ -311,15 +345,15 @@ export = () => {
 	});
 
 	it("should allow spread 3", () => {
-		const oldArr = [2]
-		let counter = 0
-		const newArr = [++counter, ...oldArr]
+		const oldArr = [2];
+		let counter = 0;
+		const newArr = [++counter, ...oldArr];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
 	});
 
 	it("should allow spread 4", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ..."abc"];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal("a");
@@ -328,14 +362,14 @@ export = () => {
 	});
 
 	it("should allow spread 5", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ...new Set([2])];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
 	});
 
 	it("should allow spread 6", () => {
-		let counter = 0
+		let counter = 0;
 		const newArr = [["a", ++counter], ...new Map([["b", 2]])];
 		expect(newArr[0][0]).to.equal("a");
 		expect(newArr[0][1]).to.equal(1);
@@ -348,7 +382,7 @@ export = () => {
 			yield 2;
 		}
 
-		let counter = 0
+		let counter = 0;
 		const newArr = [++counter, ...foo()];
 		expect(newArr[0]).to.equal(1);
 		expect(newArr[1]).to.equal(2);
