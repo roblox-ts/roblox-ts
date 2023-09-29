@@ -1,11 +1,11 @@
 export = () => {
-	it("should properly initialize static properties", () => {
+	it("should properly initialize static properties and use `this` in a static context correctly", () => {
 		class X {
 			static value1 = "a";
 			static {
-				X.value1 += "b";
+				this.value1 += "b";
 			}
-			static value2 = X.value1 + "c";
+			static value2 = this.value1 + "c";
 		}
 
 		expect(X.value1).to.equal("ab");

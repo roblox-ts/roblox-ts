@@ -5,16 +5,22 @@ import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
 
-function isInStaticBlockDeclaration(node: ts.Node) {
+type ThisExpressionParent = ts.ClassStaticBlockDeclaration | ts.PropertyDeclaration | ts.MethodDeclaration;
+
+function getThisExpressionParent(node: ts.Node): ThisExpressionParent | undefined {
 	while (node.parent) {
 		const parent = node.parent;
-		if (ts.isClassStaticBlockDeclaration(parent)) return true;
+		if (
+			ts.isClassStaticBlockDeclaration(parent) ||
+			ts.isPropertyDeclaration(parent) ||
+			ts.isMethodDeclaration(parent)
+		)
+			return parent;
 		if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
 			break;
 		}
 		node = parent;
 	}
-	return false;
 }
 
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
@@ -23,9 +29,16 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 		DiagnosticService.addDiagnostic(errors.noGlobalThis(node));
 	}
 
-	if (isInStaticBlockDeclaration(node) && symbol) {
-		const classLikeDeclaration = symbol.valueDeclaration;
+	const parent = getThisExpressionParent(node);
+	if (!parent || !symbol) {
+		return luau.globals.self;
+	}
 
+	if (
+		ts.isClassStaticBlockDeclaration(parent) ||
+		(ts.isPropertyDeclaration(parent) && ts.hasStaticModifier(parent))
+	) {
+		const classLikeDeclaration = symbol.valueDeclaration;
 		assert(classLikeDeclaration);
 		assert(ts.isClassDeclaration(classLikeDeclaration) || ts.isClassExpression(classLikeDeclaration));
 
@@ -34,5 +47,6 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 
 		return ident;
 	}
+	
 	return luau.globals.self;
 }
