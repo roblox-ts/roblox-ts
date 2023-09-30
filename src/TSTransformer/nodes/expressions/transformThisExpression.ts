@@ -12,11 +12,12 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 
 	if (symbol) {
 		const container = ts.getThisContainer(node, false, false);
-		if (
-			// ts.hasStaticModifier doesn't work on static blocks
-			(ts.hasStaticModifier(container) || ts.isClassStaticBlockDeclaration(container)) &&
-			ts.isClassLike(container.parent)
-		) {
+
+		// ts.hasStaticModifier doesn't work on static blocks
+		const isStatic = ts.hasStaticModifier(container) || ts.isClassStaticBlockDeclaration(container);
+
+		// MethodDeclaration creates it's own implicit this
+		if (isStatic && !ts.isMethodDeclaration(container) && ts.isClassLike(container.parent)) {
 			const identifier = state.classIdentifierMap.get(container.parent);
 			if (identifier) {
 				return identifier;
