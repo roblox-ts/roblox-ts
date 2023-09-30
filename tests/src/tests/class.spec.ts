@@ -1,4 +1,16 @@
 export = () => {
+	it("should properly initialize static properties and use `this` in a static context correctly", () => {
+		class X {
+			static value1 = "a";
+			static {
+				this.value1 += "b";
+			}
+			static value2 = this.value1 + "c";
+		}
+
+		expect(X.value1).to.equal("ab");
+		expect(X.value2).to.equal("abc");
+	});
 	it("should create a class with a constructor", () => {
 		class Foo {
 			public bar: string;
@@ -13,7 +25,11 @@ export = () => {
 
 	it("should construct with default parameters and accessors", () => {
 		class Vector {
-			constructor(public readonly x = 0, public readonly y = 0, public readonly z = 0) {}
+			constructor(
+				public readonly x = 0,
+				public readonly y = 0,
+				public readonly z = 0,
+			) {}
 		}
 
 		const v0 = new Vector(1, 2, 3);
