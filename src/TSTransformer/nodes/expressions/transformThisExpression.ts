@@ -14,8 +14,9 @@ function getThisExpressionParent(node: ts.Node): ThisExpressionParent | undefine
 			ts.isClassStaticBlockDeclaration(parent) ||
 			ts.isPropertyDeclaration(parent) ||
 			ts.isMethodDeclaration(parent)
-		)
+		) {
 			return parent;
+		}
 		if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
 			break;
 		}
@@ -47,6 +48,6 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 
 		return ident;
 	}
-	
+
 	return luau.globals.self;
 }
