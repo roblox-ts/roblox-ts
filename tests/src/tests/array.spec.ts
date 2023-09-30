@@ -1,6 +1,6 @@
 export = () => {
-	it("should call second member with 'foo' with this parameter", () => {
-		let v: { onEnd: Array<(this: defined, arg?: string) => void> } = {
+	it("should support optional chain call on array index", () => {
+		let v: { onEnd: Array<(arg?: string) => void> } = {
 			onEnd: [
 				function () {
 					assert(false, "first member should not be called");
@@ -17,8 +17,8 @@ export = () => {
 		v.onEnd[n]("foo");
 	});
 
-	it("should call second member with 'foo'", () => {
-		let v: { onEnd: Array<(arg?: string) => void> } = {
+	it("should support optional chain method call on array index", () => {
+		let v: { onEnd: Array<(this: defined, arg?: string) => void> } = {
 			onEnd: [
 				function () {
 					assert(false, "first member should not be called");
