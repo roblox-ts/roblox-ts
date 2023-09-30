@@ -1,28 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
-import assert from "assert";
 import { errors } from "Shared/diagnostics";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import ts from "typescript";
-
-type ThisExpressionParent = ts.ClassStaticBlockDeclaration | ts.PropertyDeclaration | ts.MethodDeclaration;
-
-function getThisExpressionParent(node: ts.Node): ThisExpressionParent | undefined {
-	while (node.parent) {
-		const parent = node.parent;
-		if (
-			ts.isClassStaticBlockDeclaration(parent) ||
-			ts.isPropertyDeclaration(parent) ||
-			ts.isMethodDeclaration(parent)
-		) {
-			return parent;
-		}
-		if (ts.isClassDeclaration(parent) || ts.isClassExpression(parent)) {
-			break;
-		}
-		node = parent;
-	}
-}
 
 export function transformThisExpression(state: TransformState, node: ts.ThisExpression) {
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
@@ -30,23 +10,18 @@ export function transformThisExpression(state: TransformState, node: ts.ThisExpr
 		DiagnosticService.addDiagnostic(errors.noGlobalThis(node));
 	}
 
-	const parent = getThisExpressionParent(node);
-	if (!parent || !symbol) {
-		return luau.globals.self;
-	}
-
-	if (
-		ts.isClassStaticBlockDeclaration(parent) ||
-		(ts.isPropertyDeclaration(parent) && ts.hasStaticModifier(parent))
-	) {
-		const classLikeDeclaration = symbol.valueDeclaration;
-		assert(classLikeDeclaration);
-		assert(ts.isClassDeclaration(classLikeDeclaration) || ts.isClassExpression(classLikeDeclaration));
-
-		const ident = state.classIdentifierMap.get(classLikeDeclaration);
-		assert(ident);
-
-		return ident;
+	if (symbol) {
+		const container = ts.getThisContainer(node, false, false);
+		if (
+			// ts.hasStaticModifier doesn't work on static blocks
+			(ts.hasStaticModifier(container) || ts.isClassStaticBlockDeclaration(container)) &&
+			ts.isClassLike(container.parent)
+		) {
+			const identifier = state.classIdentifierMap.get(container.parent);
+			if (identifier) {
+				return identifier;
+			}
+		}
 	}
 
 	return luau.globals.self;
