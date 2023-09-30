@@ -9,7 +9,7 @@ import ts from "typescript";
 export function transformIfStatementInner(state: TransformState, node: ts.IfStatement): luau.IfStatement {
 	const condition = createTruthinessChecks(state, transformExpression(state, node.expression), node.expression);
 
-	const statements = transformStatementList(state, getStatements(node.thenStatement));
+	const statements = transformStatementList(state, node.thenStatement, getStatements(node.thenStatement));
 
 	const elseStatement = node.elseStatement;
 
@@ -27,7 +27,7 @@ export function transformIfStatementInner(state: TransformState, node: ts.IfStat
 			elseBody = elseIfStatements;
 		}
 	} else {
-		elseBody = transformStatementList(state, getStatements(elseStatement));
+		elseBody = transformStatementList(state, elseStatement, getStatements(elseStatement));
 	}
 
 	return luau.create(luau.SyntaxKind.IfStatement, {

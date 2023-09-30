@@ -274,7 +274,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		conditionExp = luau.bool(true);
 	}
 
-	luau.list.pushList(whileStatements, transformStatementList(state, getStatements(statement)));
+	luau.list.pushList(whileStatements, transformStatementList(state, statement, getStatements(statement)));
 
 	if (luau.list.isNonEmpty(whileStatements) && luau.list.isNonEmpty(finalizerStatements)) {
 		addFinalizers(whileStatements, whileStatements.head, finalizerStatements);
@@ -477,7 +477,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	luau.list.pushList(result, endPrereqs);
 
 	const step = luau.number(stepValue);
-	const statements = transformStatementList(state, getStatements(statement));
+	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
 		end = offset(end, -1);

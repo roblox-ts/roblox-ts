@@ -4,6 +4,19 @@ import { transformStatement } from "TSTransformer/nodes/statements/transformStat
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
 import ts from "typescript";
 
+function getLastToken(parent: ts.Node | undefined, statements: ReadonlyArray<ts.Statement>) {
+	if (statements.length > 0) {
+		const lastStatement = statements[statements.length - 1];
+		const lastToken = lastStatement.parent.getLastToken();
+		if (lastToken && !ts.isNodeDescendantOf(lastToken, lastStatement)) {
+			return lastToken;
+		}
+	} else if (parent) {
+		// if statements is empty, there still might be an `EOF` or `}` token to look for
+		return parent.getLastToken();
+	}
+}
+
 /**
  * Convert a ts.Statement array into a luau.list<...> tree
  * @param state The current state of the transformation.
@@ -12,6 +25,7 @@ import ts from "typescript";
  */
 export function transformStatementList(
 	state: TransformState,
+	parent: ts.Node | undefined,
 	statements: ReadonlyArray<ts.Statement>,
 	exportInfo?: {
 		id: luau.AnyIdentifier;
@@ -66,10 +80,9 @@ export function transformStatementList(
 		}
 	}
 
-	if (state.compilerOptions.removeComments !== true && statements.length > 0) {
-		const lastStatement = statements[statements.length - 1];
-		const lastToken = lastStatement.parent.getLastToken();
-		if (lastToken && !ts.isNodeDescendantOf(lastToken, lastStatement)) {
+	if (state.compilerOptions.removeComments !== true) {
+		const lastToken = getLastToken(parent, statements);
+		if (lastToken) {
 			luau.list.pushList(result, state.getLeadingComments(lastToken));
 		}
 	}
