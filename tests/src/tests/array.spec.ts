@@ -16,6 +16,7 @@ export = () => {
 		v.onEnd[n]?.("foo");
 		v.onEnd[n]("foo");
 	});
+
 	it("should call second member with 'foo'", () => {
 		let v: { onEnd: Array<(arg?: string) => void> } = {
 			onEnd: [
@@ -33,6 +34,7 @@ export = () => {
 		v.onEnd[n]?.("foo");
 		v.onEnd[n]("foo");
 	});
+
 	it("should support element access", () => {
 		const arr = [1, 2, 3];
 		expect(arr[0]).to.equal(1);
