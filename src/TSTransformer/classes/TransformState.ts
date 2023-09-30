@@ -35,7 +35,6 @@ export class TransformState {
 	public debugRenderList(list: luau.List<luau.Statement>) {
 		const state = new RenderState();
 		solveTempIds(state, list);
-
 		return renderStatements(state, list);
 	}
 
