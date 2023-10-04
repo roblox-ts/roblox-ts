@@ -1,3 +1,5 @@
+_G.LUNE_TEST = true
+
 local roblox = require("@lune/roblox")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")

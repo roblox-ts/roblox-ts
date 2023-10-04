@@ -221,7 +221,10 @@ local Promise = {
 	Error = Error,
 	Status = makeEnum("Promise.Status", { "Started", "Resolved", "Rejected", "Cancelled" }),
 	_getTime = os.clock,
-	-- _timeEvent = game:GetService("RunService").Heartbeat,
+	-- Lune does not support RunService.Heartbeat
+	_timeEvent = if not _G.LUNE_TEST
+		then game:GetService("RunService").Heartbeat
+		else nil,
 	_unhandledRejectionCallbacks = {},
 }
 Promise.prototype = {}
