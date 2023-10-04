@@ -50,7 +50,7 @@ local registeredLibraries = {}
 
 function TS.import(context, module, ...)
 	for i = 1, select("#", ...) do
-		module = module:WaitForChild((select(i, ...)))
+		module = module:FindFirstChild((select(i, ...)))
 	end
 
 	if module.ClassName ~= "ModuleScript" then

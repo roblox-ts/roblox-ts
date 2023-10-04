@@ -20,7 +20,7 @@
 		"test-setup": "cd tests && npm install github:roblox-ts/compiler-types @rbxts/types@latest",
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
-		"test-run": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
+		"test-run": "lune ./tests/test.lua"
 	},
 	"nyc": {
 		"all": true,

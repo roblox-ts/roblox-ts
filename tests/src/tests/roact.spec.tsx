@@ -2,11 +2,11 @@ import Roact from "@rbxts/roact";
 
 const RoactModule = game
 	.GetService("ReplicatedStorage")
-	.WaitForChild("include")
-	.WaitForChild("node_modules")
-	.WaitForChild("@rbxts")
-	.WaitForChild("roact")
-	.WaitForChild("src") as ModuleScript;
+	.FindFirstChild("include")!
+	.FindFirstChild("node_modules")!
+	.FindFirstChild("@rbxts")!
+	.FindFirstChild("roact")!
+	.FindFirstChild("src")! as ModuleScript;
 
 declare interface ElementKind {
 	Portal: symbol;
@@ -16,7 +16,7 @@ declare interface ElementKind {
 	Fragment: symbol;
 	of: (value: unknown) => boolean;
 }
-const ElementKind = require(RoactModule.WaitForChild(
+const ElementKind = require(RoactModule.FindFirstChild(
 	"ElementKind"
 ) as ModuleScript) as ElementKind;
 
@@ -30,7 +30,7 @@ declare interface Type {
 	VirtualTree: symbol;
 	of: (value: unknown) => boolean;
 }
-const Type = require(RoactModule.WaitForChild("Type") as ModuleScript) as Type;
+const Type = require(RoactModule.FindFirstChild("Type") as ModuleScript) as Type;
 
 type ExplicitProps<P = {}> = Partial<P> & {
 	[Roact.Children]: { [name: string]: Roact.Element | undefined };
