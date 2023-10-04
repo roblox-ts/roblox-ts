@@ -1,3 +1,4 @@
 [tools]
 rojo = { source = "rojo-rbx/rojo", version = "=7.3.0" }
 lune = { source = "filiptibell/lune", version = "=0.7.7" }
+run-in-roblox = { source = "rojo-rbx/run-in-roblox", version = "=0.3.0" }

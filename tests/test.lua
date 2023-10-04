@@ -1,8 +1,11 @@
 local roblox = require("@lune/roblox")
 local fs = require("@lune/fs")
 local luau = require("@lune/luau")
+local process = require("@lune/process")
 
-local game = roblox.deserializePlace(fs.readFile("./tests/test.rbxlx"))
+local testPlacePath = process.args[1]
+
+local game = roblox.deserializePlace(fs.readFile(testPlacePath))
 
 local function tableJoin(...)
 	local result = {}
