@@ -23,8 +23,8 @@ jobs:
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
 
-      - name: Setup Tests
-        run: npm run test-setup
+      - name: Update Test Types
+        run: npm run update-test-types
 
       - name: Run Tests
         run: npm test
