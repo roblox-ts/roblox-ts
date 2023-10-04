@@ -21,7 +21,8 @@
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
 		"test-run": "lune ./tests/test.lua ./tests/test.rbxlx",
-		"test-roblox": "npm run build && npm run test-compile && npm run test-rojo && npm run run-in-roblox",
+		"test-roblox": "npm run build && npm run test-roblox-compile && npm run test-rojo && npm run run-in-roblox",
+		"test-roblox-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"run-in-roblox": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
 	},
 	"nyc": {
