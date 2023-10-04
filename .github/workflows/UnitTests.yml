@@ -23,8 +23,11 @@ jobs:
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
 
+      - name: Setup Tests
+        run: npm run test-setup
+
       - name: Run Tests
-        run: npm run test
+        run: npm test
 
       - name: Report Coverage
         continue-on-error: true
