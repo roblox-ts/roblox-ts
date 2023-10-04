@@ -1,5 +1,5 @@
 local function tick()
-	return 0
+	return os.clock()
 end
 
 return tick
