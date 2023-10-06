@@ -213,8 +213,7 @@ export class TransformState {
 				for (let i = 1; i < this.runtimeLibRbxPath.length; i++) {
 					expression = luau.create(luau.SyntaxKind.MethodCallExpression, {
 						expression,
-						// Lune does not support :WaitForChild()
-						name: process.env.npm_lifecycle_event !== "test-compile" ? "WaitForChild" : "FindFirstChild",
+						name: "WaitForChild",
 						args: luau.list.make(luau.string(this.runtimeLibRbxPath[i])),
 					});
 				}

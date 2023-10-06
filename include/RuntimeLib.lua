@@ -50,10 +50,7 @@ local registeredLibraries = {}
 
 function TS.import(context, module, ...)
 	for i = 1, select("#", ...) do
-		-- Lune does not support :WaitForChild()
-		module = if not _G.LUNE_TEST
-			then module:WaitForChild((select(i, ...)))
-			else module:FindFirstChild((select(i, ...)))
+		module = module:WaitForChild((select(i, ...)))
 	end
 
 	if module.ClassName ~= "ModuleScript" then
