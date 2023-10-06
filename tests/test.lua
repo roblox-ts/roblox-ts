@@ -18,45 +18,9 @@ local function tableJoin(...)
 	return result
 end
 
-local shims = {}
-
-for _, fileName in fs.readDir("./tests/shims") do
-	local name = string.match(fileName, "^(.+)%.lua$")
-	assert(name)
-	local callableFn = luau.load(luau.compile(fs.readFile(`./tests/shims/{fileName}`)), { debugName = name })
-	shims[name] = callableFn()
-end
-
-local globals = tableJoin(roblox, shims)
-
-local requireCache = {}
-
-local function robloxRequire(script: LuaSourceContainer)
-	-- the same script instance sometimes gives a different ref
-	-- unsure why, but using :GetFullName() fixes this for now
-	local scriptPath = script:GetFullName()
-	local cached = requireCache[scriptPath]
-	if cached then
-		return table.unpack(cached)
-	end
-
-	local callableFn = luau.load(luau.compile(script.Source), { debugName = script:GetFullName() })
-
-	setfenv(
-		callableFn,
-		setmetatable(
-			tableJoin(globals, {
-				game = game,
-				script = script,
-				require = robloxRequire,
-			}),
-			{ __index = getfenv(callableFn) }
-		)
-	)
-
-	local result = table.pack(callableFn())
-	requireCache[scriptPath] = result
-	return table.unpack(result)
+-- not 100% accurate to tick() functionality, but good enough for TestEZ usage
+local function tick()
+	return os.clock()
 end
 
 -- roblox.spec.ts assumes Workspace already exists
@@ -73,13 +37,34 @@ roblox.implementMethod("TestService", "Error", function(description: string, sou
 end)
 
 -- Promise.lua indexes RunService.Heartbeat, but only uses it in Promise.defer and Promise.delay
-roblox.implementProperty(
-	"RunService",
-	"Heartbeat",
-	function()
-		return {}
-	end,
-	function() end
-)
+roblox.implementProperty("RunService", "Heartbeat", function()
+	return {}
+end, function() end)
+
+local requireCache = {}
+
+local function robloxRequire(script: LuaSourceContainer)
+	-- the same script instance sometimes gives a different ref
+	-- unsure why, but using :GetFullName() fixes this for now
+	local scriptPath = script:GetFullName()
+	local cached = requireCache[scriptPath]
+	if cached then
+		return table.unpack(cached)
+	end
+
+	local callableFn = luau.load(luau.compile(script.Source), {
+		debugName = script:GetFullName(),
+		environment = tableJoin(roblox, {
+			game = game,
+			script = script,
+			require = robloxRequire,
+			tick = tick,
+		}),
+	})
+
+	local result = table.pack(callableFn())
+	requireCache[scriptPath] = result
+	return table.unpack(result)
+end
 
 robloxRequire(game.ServerScriptService.main)
