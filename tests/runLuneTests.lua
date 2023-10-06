@@ -41,6 +41,8 @@ roblox.implementProperty("RunService", "Heartbeat", function()
 	return {}
 end, function() end)
 
+local robloxRequire
+
 local function runRobloxScript(script: LuaSourceContainer)
 	local callableFn = luau.load(luau.compile(script.Source), {
 		debugName = script:GetFullName(),
@@ -57,10 +59,10 @@ end
 
 local requireCache = {}
 
-local function robloxRequire(moduleScript: ModuleScript)
+function robloxRequire(moduleScript: ModuleScript)
 	-- the same script instance sometimes gives a different ref
 	-- unsure why, but using :GetFullName() fixes this for now
-	local scriptPath = script:GetFullName()
+	local scriptPath = moduleScript:GetFullName()
 	local cached = requireCache[scriptPath]
 	if cached then
 		return table.unpack(cached)
