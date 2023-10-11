@@ -74,7 +74,7 @@
 		"eslint-config-prettier": "^9.0.0",
 		"eslint-plugin-deprecation": "^2.0.0",
 		"eslint-plugin-no-autofix": "^1.2.3",
-		"eslint-plugin-prettier": "^5.0.0",
+		"eslint-plugin-prettier": "^5.0.1",
 		"eslint-plugin-simple-import-sort": "^10.0.0",
 		"mocha": "^10.2.0",
 		"nyc": "^15.1.0",
