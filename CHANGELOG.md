@@ -1,3 +1,25 @@
+## 2.2.0
+- TypeScript 5.2.2 Support (#2401, #2466)
+- Support for instantiated expressions (#2445)
+- Support for Luau comment directives like `//!native` (#2465)
+- Fixed incorrect emit with `array[n]?.()` (#2475)
+- Support for class static blocks (#2480)
+
+## 2.1.1
+- Enable `--optimizedLoops` flag for Playground environment (#2271)
+- Fix for updating non-compiled files in transformer watch mode (#2385)
+- Add `$getModuleTree` macro (#2302)
+
+## 2.1.0
+- TypeScript 4.9 Support (#2195)
+	- Adds support for `satisfies` keyword
+	- Adds disagnostic for the `accessor` keyword (requires getters/setters which are not supported)
+- Removed diagnostic for comma operator (#2045)
+- Banned instanceof on roblox types (#2225)
+- Disabled networkType check for dynamic import() (#2197)
+- Added `--writeTransformedFiles` to write transformed TypeScript ASTs to out directory (#2255)
+- Small improvements and fixes for `--optimizedLoops` (#2201, #2265)
+
 ## 2.0.4
 - Updated deprecated APIs for TS 4.8 (#2143)
 

@@ -1,8 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import path from "path";
-import { RBXTS_SCOPE } from "Shared/constants";
 import { errors } from "Shared/diagnostics";
-import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { CallMacro, PropertyCallMacro } from "TSTransformer/macros/types";
@@ -13,9 +10,9 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
-import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
+import { isInsideRoactComponent } from "TSTransformer/util/isInsideRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
-import { getAncestor } from "TSTransformer/util/traversal";
+import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
 import { valueToIdStr } from "TSTransformer/util/valueToIdStr";
@@ -81,20 +78,6 @@ function runCallMacro(
 	return wrapReturnIfLuaTuple(state, node, macro(state, node as never, expression, args));
 }
 
-function isInsideRoactComponent(state: TransformState, node: ts.Node) {
-	const classLikeAncestor = getAncestor(node, ts.isClassLike);
-	if (classLikeAncestor) {
-		return extendsRoactComponent(state, classLikeAncestor);
-	}
-	return false;
-}
-
-function isNodeSymbolFromRobloxTypes(state: TransformState, symbol: ts.Symbol | undefined) {
-	const filePath = symbol?.valueDeclaration?.getSourceFile()?.fileName;
-	const typesPath = path.join(state.data.nodeModulesPath, RBXTS_SCOPE, "types");
-	return filePath !== undefined && isPathDescendantOf(filePath, typesPath);
-}
-
 /**
  * Some C functions like `tonumber()` will error if the given argument is a function that returns nothing.
  * i.e.
@@ -112,7 +95,7 @@ function fixVoidArgumentsForRobloxFunctions(
 	args: Array<luau.Expression>,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	if (isNodeSymbolFromRobloxTypes(state, symbol)) {
+	if (isSymbolFromRobloxTypes(state, symbol)) {
 		for (let i = 0; i < args.length; i++) {
 			const arg = args[i];
 			const nodeArg = nodeArguments[i];

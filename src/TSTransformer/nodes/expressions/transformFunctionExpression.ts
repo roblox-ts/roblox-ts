@@ -18,7 +18,7 @@ export function transformFunctionExpression(state: TransformState, node: ts.Func
 
 	const body = node.body;
 	if (ts.isFunctionBody(body)) {
-		luau.list.pushList(statements, transformStatementList(state, body.statements));
+		luau.list.pushList(statements, transformStatementList(state, body, body.statements));
 	} else {
 		const [returnStatements, prereqs] = state.capture(() => transformReturnStatementInner(state, body));
 		luau.list.pushList(statements, prereqs);

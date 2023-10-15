@@ -27,7 +27,7 @@ export function transformWhileStatement(state: TransformState, node: ts.WhileSta
 		conditionExp = luau.bool(true);
 	}
 
-	luau.list.pushList(whileStatements, transformStatementList(state, getStatements(node.statement)));
+	luau.list.pushList(whileStatements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
 	return luau.list.make(
 		luau.create(luau.SyntaxKind.WhileStatement, {

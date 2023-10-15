@@ -70,10 +70,10 @@ function transformCaseClause(
 
 	const nonEmptyStatements = node.statements.filter(v => !ts.isEmptyStatement(v));
 	const firstStatement = nonEmptyStatements[0];
-	const statements = transformStatementList(
-		state,
-		nonEmptyStatements.length === 1 && ts.isBlock(firstStatement) ? firstStatement.statements : node.statements,
-	);
+	const statements =
+		nonEmptyStatements.length === 1 && ts.isBlock(firstStatement)
+			? transformStatementList(state, firstStatement, firstStatement.statements)
+			: transformStatementList(state, node, node.statements);
 
 	const canFallThroughFrom = statements.tail === undefined || !luau.isFinalStatement(statements.tail.value);
 	if (canFallThroughFrom && shouldUpdateFallThroughFlag) {
@@ -142,7 +142,7 @@ export function transformSwitchStatement(state: TransformState, node: ts.SwitchS
 				isFallThroughFlagNeeded = true;
 			}
 		} else {
-			luau.list.pushList(statements, transformStatementList(state, caseClauseNode.statements));
+			luau.list.pushList(statements, transformStatementList(state, caseClauseNode, caseClauseNode.statements));
 			break;
 		}
 	}

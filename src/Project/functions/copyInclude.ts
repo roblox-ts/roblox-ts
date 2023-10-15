@@ -5,12 +5,12 @@ import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
 export function copyInclude(data: ProjectData) {
 	if (
-		!data.noInclude &&
+		!data.projectOptions.noInclude &&
 		data.projectOptions.type !== ProjectType.Package &&
 		!(data.projectOptions.type === undefined && data.isPackage)
 	) {
 		benchmarkIfVerbose("copy include files", () =>
-			fs.copySync(INCLUDE_PATH, data.includePath, { dereference: true }),
+			fs.copySync(INCLUDE_PATH, data.projectOptions.includePath, { dereference: true }),
 		);
 	}
 }

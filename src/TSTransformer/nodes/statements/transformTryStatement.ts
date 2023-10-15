@@ -18,7 +18,7 @@ function transformCatchClause(state: TransformState, node: ts.CatchClause) {
 		luau.list.push(parameters, transformBindingName(state, node.variableDeclaration.name, statements));
 	}
 
-	luau.list.pushList(statements, transformStatementList(state, node.block.statements));
+	luau.list.pushList(statements, transformStatementList(state, node.block, node.block.statements));
 
 	const catchFunction = luau.create(luau.SyntaxKind.FunctionExpression, {
 		parameters,
@@ -42,7 +42,7 @@ function transformIntoTryCall(
 		luau.create(luau.SyntaxKind.FunctionExpression, {
 			parameters: luau.list.make(),
 			hasDotDotDot: false,
-			statements: transformStatementList(state, node.tryBlock.statements),
+			statements: transformStatementList(state, node.tryBlock, node.tryBlock.statements),
 		}),
 	);
 
@@ -58,7 +58,7 @@ function transformIntoTryCall(
 			luau.create(luau.SyntaxKind.FunctionExpression, {
 				parameters: luau.list.make(),
 				hasDotDotDot: false,
-				statements: transformStatementList(state, node.finallyBlock.statements),
+				statements: transformStatementList(state, node.finallyBlock, node.finallyBlock.statements),
 			}),
 		);
 	}
