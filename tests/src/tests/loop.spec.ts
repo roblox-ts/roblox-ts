@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 function difference<T>(set1: Set<T>, set2: Set<T>): Set<T> {
 	const result = new Set<T>();
 	for (const value of set1) {
@@ -129,6 +127,28 @@ export = () => {
 		expect(hit.has(3)).to.equal(false);
 
 		for (let i = 3; i >= limit; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(3);
+		expect(hit.has(1)).to.equal(true);
+		expect(hit.has(2)).to.equal(true);
+		expect(hit.has(3)).to.equal(true);
+	});
+
+	it("should support optimized simple loops #8", () => {
+		const hit = new Set<number>();
+		let n = 0;
+		for (let i = 3; i <= 1; i -= 1) {
+			hit.add(i);
+			n++;
+		}
+		expect(n).to.equal(0);
+		expect(hit.has(1)).to.equal(false);
+		expect(hit.has(2)).to.equal(false);
+		expect(hit.has(3)).to.equal(false);
+
+		for (let i = 3; i >= 1; i -= 1) {
 			hit.add(i);
 			n++;
 		}

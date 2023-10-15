@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 type fruits = {
 	apples?: number;
 	bananas: number;

@@ -30,6 +30,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanToken, "lshift"],
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanToken, "rshift"],
+	[ts.SyntaxKind.GreaterThanGreaterThanToken, "arshift"],
 
 	// bitwise compound assignment
 	[ts.SyntaxKind.AmpersandEqualsToken, "band"],
@@ -37,6 +38,7 @@ const BITWISE_OPERATOR_MAP = new Map<ts.SyntaxKind, string>([
 	[ts.SyntaxKind.CaretEqualsToken, "bxor"],
 	[ts.SyntaxKind.LessThanLessThanEqualsToken, "lshift"],
 	[ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken, "rshift"],
+	[ts.SyntaxKind.GreaterThanGreaterThanEqualsToken, "arshift"],
 ]);
 
 function createBinaryAdd(left: luau.Expression, leftType: ts.Type, right: luau.Expression, rightType: ts.Type) {
@@ -77,13 +79,6 @@ export function createBinaryFromOperator(
 	const bit32Name = BITWISE_OPERATOR_MAP.get(operatorKind);
 	if (bit32Name !== undefined) {
 		return luau.call(luau.property(luau.globals.bit32, bit32Name), [left, right]);
-	}
-
-	if (
-		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanToken ||
-		operatorKind === ts.SyntaxKind.GreaterThanGreaterThanEqualsToken
-	) {
-		return luau.call(state.TS(node, "bit_lrsh"), [left, right]);
 	}
 
 	if (operatorKind === ts.SyntaxKind.CommaToken) {

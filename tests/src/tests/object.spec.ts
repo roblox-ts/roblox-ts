@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 declare const self: undefined;
 
 namespace N {

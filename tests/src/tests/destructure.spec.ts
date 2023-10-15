@@ -1,4 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
 /* eslint-disable prefer-const */
 
 export = () => {

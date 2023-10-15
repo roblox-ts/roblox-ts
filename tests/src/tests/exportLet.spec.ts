@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 let y = 0;
 namespace Foo {
 	export let x = 1;

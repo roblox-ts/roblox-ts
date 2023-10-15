@@ -932,11 +932,11 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 // comment logic
 
 function header(text: string) {
-	return luau.comment(`▼ ${text} ▼`);
+	return luau.comment(` ▼ ${text} ▼`);
 }
 
 function footer(text: string) {
-	return luau.comment(`▲ ${text} ▲`);
+	return luau.comment(` ▲ ${text} ▲`);
 }
 
 function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: luau.Expression) {
