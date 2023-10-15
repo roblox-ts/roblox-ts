@@ -11,9 +11,7 @@ export function binaryExpressionChain(
 	expressions: Array<luau.Expression>,
 	operator: luau.BinaryOperator,
 ): luau.Expression {
-	const firstExp = expressions.shift();
-	assert(firstExp, "binaryExpressionChain called without any expressions");
-	return expressions.reduce((acc, current) => luau.binary(acc, operator, current), firstExp);
+	return expressions.reduce((acc, current) => luau.binary(acc, operator, current));
 }
 
 /**
