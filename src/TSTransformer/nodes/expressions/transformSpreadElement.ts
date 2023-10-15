@@ -34,7 +34,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	let arrayId: luau.Expression;
 	if (
 		// the only argument to the call, or preceding argument not a spread
-		(index === 0 || ts.isSpreadElement(args[index - 1])) &&
+		(index === 0 || !ts.isSpreadElement(args[index - 1])) &&
 		isDefinitelyType(type, isArrayType(state))
 	) {
 		arrayId = expression;
