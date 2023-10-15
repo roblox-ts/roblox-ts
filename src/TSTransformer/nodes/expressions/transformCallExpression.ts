@@ -134,7 +134,7 @@ export function transformCallExpressionInner(
 		}
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,
-			...ensureTransformOrder(state, node.arguments),
+			...transformFunctionArguments(state, node.arguments),
 		]);
 	}
 
