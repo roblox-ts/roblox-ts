@@ -8,3 +8,7 @@ updates:
       interval: "daily"
     ignore:
       - dependency-name: "typescript"
+    groups:
+      - name: "NPM Packages"
+        patterns:
+          - "*"
