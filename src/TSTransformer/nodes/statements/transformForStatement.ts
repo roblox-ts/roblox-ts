@@ -274,7 +274,7 @@ function transformForStatementFallback(state: TransformState, node: ts.ForStatem
 		conditionExp = luau.bool(true);
 	}
 
-	luau.list.pushList(whileStatements, transformStatementList(state, getStatements(statement)));
+	luau.list.pushList(whileStatements, transformStatementList(state, statement, getStatements(statement)));
 
 	if (luau.list.isNonEmpty(whileStatements) && luau.list.isNonEmpty(finalizerStatements)) {
 		addFinalizers(whileStatements, whileStatements.head, finalizerStatements);
@@ -393,7 +393,9 @@ function isProbablyInteger(state: TransformState, expression: ts.Expression): bo
 function transformForStatementOptimized(state: TransformState, node: ts.ForStatement) {
 	const { initializer, condition, incrementor, statement } = node;
 
-	// validate initializer
+	// this function is difficult to break up because it uses several type guard functions..
+
+	// validate initializer exists and is a single identifier `x` with a value that is _probably_ an integer
 
 	if (!initializer || !ts.isVariableDeclarationList(initializer) || initializer.declarations.length !== 1) {
 		return undefined;
@@ -409,22 +411,11 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	// validate condition
-
-	if (!condition || !ts.isBinaryExpression(condition)) {
+	if (!isProbablyInteger(state, decInit)) {
 		return undefined;
 	}
 
-	if (
-		condition.operatorToken.kind !== ts.SyntaxKind.LessThanToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.LessThanEqualsToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanToken &&
-		condition.operatorToken.kind !== ts.SyntaxKind.GreaterThanEqualsToken
-	) {
-		return undefined;
-	}
-
-	// validate incrementor
+	// validate incrementor exists and is _probably_ an integer change in `x`
 
 	if (!incrementor) {
 		return undefined;
@@ -435,7 +426,36 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 		return undefined;
 	}
 
-	if (!isProbablyInteger(state, decInit) || !isProbablyInteger(state, condition.right)) {
+	// validate condition exists and is a BinaryExpression with an operator that matches the incrementor
+
+	if (!condition || !ts.isBinaryExpression(condition)) {
+		return undefined;
+	}
+
+	if (
+		condition.operatorToken.kind === ts.SyntaxKind.LessThanToken ||
+		condition.operatorToken.kind === ts.SyntaxKind.LessThanEqualsToken
+	) {
+		// do not optimize for cases which should never run like:
+		// for (let i = 10; i < 0; i--)
+		if (stepValue < 0) {
+			return undefined;
+		}
+	} else if (
+		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanToken ||
+		condition.operatorToken.kind === ts.SyntaxKind.GreaterThanEqualsToken
+	) {
+		// do not optimize for cases which should never run like:
+		// for (let i = 0; i > 10; i++)
+		if (stepValue > 0) {
+			return undefined;
+		}
+	} else {
+		// do not optimize for other comparison operators like !==, ===
+		return undefined;
+	}
+
+	if (!isProbablyInteger(state, condition.right)) {
 		return undefined;
 	}
 
@@ -457,7 +477,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 	luau.list.pushList(result, endPrereqs);
 
 	const step = luau.number(stepValue);
-	const statements = transformStatementList(state, getStatements(statement));
+	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	if (condition.operatorToken.kind === ts.SyntaxKind.LessThanToken) {
 		end = offset(end, -1);
@@ -471,7 +491,7 @@ function transformForStatementOptimized(state: TransformState, node: ts.ForState
 }
 
 export function transformForStatement(state: TransformState, node: ts.ForStatement): luau.List<luau.Statement> {
-	if (state.data.optimizedLoops) {
+	if (state.data.projectOptions.optimizedLoops) {
 		const optimized = transformForStatementOptimized(state, node);
 		if (optimized) {
 			return optimized;
