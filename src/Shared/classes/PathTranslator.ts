@@ -1,9 +1,13 @@
 import path from "path";
-import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { D_EXT, DTS_EXT, INDEX_NAME, INIT_NAME, LUA_EXT, TRANSFORMED_EXT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 
 class PathInfo {
-	private constructor(public dirName: string, public fileName: string, public exts: Array<string>) {}
+	private constructor(
+		public dirName: string,
+		public fileName: string,
+		public exts: Array<string>,
+	) {}
 
 	public static from(filePath: string) {
 		const dirName = path.dirname(filePath);
@@ -71,6 +75,27 @@ export class PathTranslator {
 		if ((pathInfo.extsPeek() === TS_EXT || pathInfo.extsPeek() === TSX_EXT) && pathInfo.extsPeek(1) !== D_EXT) {
 			pathInfo.exts.pop(); // pop .tsx?
 			pathInfo.exts.push(DTS_EXT);
+		}
+
+		return makeRelative(pathInfo);
+	}
+
+	/**
+	 * Maps an input path to an output .transformed.tsx? path
+	 * - `.tsx?` -> `.transformed.tsx?`
+	 * - `src/*` -> `out/*`
+	 */
+	public getOutputTransformedPath(filePath: string) {
+		const makeRelative = this.makeRelativeFactory();
+		const pathInfo = PathInfo.from(filePath);
+
+		if (pathInfo.extsPeek(1) === D_EXT) {
+			// Transformers currently never get a chance to transform .d.ts files
+			// But case is covered anyways
+			pathInfo.exts.splice(pathInfo.exts.length - 2, 0, TRANSFORMED_EXT);
+		} else {
+			// splice with deleteCount 0 = insert at index, shift up further elements
+			pathInfo.exts.splice(pathInfo.exts.length - 1, 0, TRANSFORMED_EXT);
 		}
 
 		return makeRelative(pathInfo);

@@ -25,19 +25,15 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		// errors if no pkgJson, so assume not a package
 	}
 
-	const logTruthyChanges = projectOptions.logTruthyChanges;
-	const noInclude = projectOptions.noInclude;
-
 	// intentionally use || here for empty string case
-	const includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
+	projectOptions.includePath = path.resolve(projectOptions.includePath || path.join(projectPath, "include"));
 
 	const nodeModulesPath = path.join(path.dirname(pkgJsonPath), NODE_MODULES);
 
 	let rojoConfigPath: string | undefined;
-	if (projectOptions.rojo !== undefined) {
-		if (projectOptions.rojo !== "") {
-			rojoConfigPath = path.resolve(projectOptions.rojo);
-		}
+	// Checking truthiness covers empty string case
+	if (projectOptions.rojo) {
+		rojoConfigPath = path.resolve(projectOptions.rojo);
 	} else {
 		const { path, warnings } = RojoResolver.findRojoConfigFilePath(projectPath);
 		rojoConfigPath = path;
@@ -46,22 +42,12 @@ export function createProjectData(tsConfigPath: string, projectOptions: ProjectO
 		}
 	}
 
-	const writeOnlyChanged = projectOptions.writeOnlyChanged;
-	const optimizedLoops = projectOptions.optimizedLoops;
-	const watch = projectOptions.watch;
-
 	return {
 		tsConfigPath,
-		includePath,
 		isPackage,
-		logTruthyChanges,
-		noInclude,
 		nodeModulesPath,
 		projectOptions,
 		projectPath,
 		rojoConfigPath,
-		writeOnlyChanged,
-		optimizedLoops,
-		watch,
 	};
 }

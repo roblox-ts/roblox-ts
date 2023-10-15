@@ -41,7 +41,10 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 
 	checks.push(exp);
 
-	if (state.data.logTruthyChanges && (isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString)) {
+	if (
+		state.data.projectOptions.logTruthyChanges &&
+		(isAssignableToZero || isAssignableToNaN || isAssignableToEmptyString)
+	) {
 		const checkStrs = new Array<string>();
 		if (isAssignableToZero) checkStrs.push("0");
 		if (isAssignableToZero || isAssignableToNaN) checkStrs.push("NaN");

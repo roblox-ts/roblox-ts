@@ -130,4 +130,23 @@ export = () => {
 		(o["x"]) = 8;
 		expect(o.x).to.equal(8);
 	});
+
+	it("should support comma operator", () => {
+		let x = 0;
+		expect(
+			(expect(x).to.equal(0),
+			expect((x = 1)).to.equal(1),
+			expect(x).to.equal(1),
+			expect((x = 3)).to.equal(3),
+			x + 2),
+		).to.equal(5);
+
+		function a() {
+			return $tuple(1, 2);
+		}
+		const b = ((x = 8), a());
+		expect(b[0]).to.equal(1);
+		expect(b[1]).to.equal(2);
+		expect(x).to.equal(8);
+	});
 };
