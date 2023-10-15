@@ -35,6 +35,7 @@ export function transformSpreadElement(state: TransformState, node: ts.SpreadEle
 	if (
 		// the only argument to the call, or preceding argument not a spread
 		(index === 0 || !ts.isSpreadElement(args[index - 1])) &&
+		// and must work with regular `unpack(item)`
 		isDefinitelyType(type, isArrayType(state))
 	) {
 		arrayId = expression;
