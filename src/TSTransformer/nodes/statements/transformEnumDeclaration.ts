@@ -11,6 +11,10 @@ import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinition
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
+function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
+	return typeof state.typeChecker.getConstantValue(member) !== "string";
+}
+
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (
 		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
@@ -40,6 +44,20 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	validateIdentifier(state, node.name);
 
 	const id = transformIdentifierDefined(state, node.name);
+
+	if (!node.members.some(member => needsInverseEntry(state, member))) {
+		return luau.list.make<luau.Statement>(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: id,
+				right: luau.map(
+					node.members.map(member => [
+						transformPropertyName(state, member.name),
+						luau.string(state.typeChecker.getConstantValue(member) as string),
+					]),
+				),
+			}),
+		);
+	}
 
 	const statements = state.capturePrereqs(() => {
 		const inverseId = state.pushToVar(luau.map(), "inverse");
@@ -90,16 +108,18 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				}),
 			);
 
-			state.prereq(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: inverseId,
-						index: valueExp,
+			if (needsInverseEntry(state, member)) {
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: inverseId,
+							index: valueExp,
+						}),
+						operator: "=",
+						right: index,
 					}),
-					operator: "=",
-					right: index,
-				}),
-			);
+				);
+			}
 		}
 	});
 
