@@ -150,6 +150,7 @@ export = () => {
 		expect(bar).to.equal(3);
 		expect(r[1]).to.equal(2);
 		expect(result).to.equal(2);
+	});
 
 	it("should support comma operator", () => {
 		let x = 0;
