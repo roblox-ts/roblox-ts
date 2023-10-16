@@ -19,6 +19,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install Lune
+        run: |
+          cargo install --git https://github.com/filiptibell/lune.git
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
 
