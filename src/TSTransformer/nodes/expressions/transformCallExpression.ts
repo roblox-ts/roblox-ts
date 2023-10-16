@@ -9,8 +9,6 @@ import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalCha
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
-import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
 import { isInsideRoactComponent } from "TSTransformer/util/isInsideRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
@@ -120,7 +118,7 @@ export function transformCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
-		if (isInsideRoactComponent(state, node)) {
+		if ((state, node)) {
 			DiagnosticService.addDiagnostic(errors.missingSuperConstructorRoactComponent(node));
 		}
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
@@ -162,7 +160,7 @@ export function transformPropertyCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
+		if ((state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
 		}
 		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
@@ -222,7 +220,7 @@ export function transformElementCallExpressionInner(
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
+		if ((state, node)) {
 			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
 		}
 		return luau.call(
