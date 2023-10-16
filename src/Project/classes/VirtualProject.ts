@@ -57,7 +57,7 @@ export class VirtualProject {
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
-			moduleResolution: ts.ModuleResolutionKind.NodeJs,
+			moduleResolution: ts.ModuleResolutionKind.Node10,
 			moduleDetection: ts.ModuleDetectionKind.Force,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,

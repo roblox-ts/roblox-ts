@@ -8,6 +8,7 @@ import { transformDecorators } from "TSTransformer/nodes/class/transformDecorato
 import { transformPropertyDeclaration } from "TSTransformer/nodes/class/transformPropertyDeclaration";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
+import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
@@ -316,7 +317,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	} else {
 		internalName = returnVar;
 	}
-
+	state.classIdentifierMap.set(node, internalName);
 	if (!isClassHoisted(state, node)) {
 		luau.list.push(
 			statements,
@@ -360,7 +361,8 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 	}
 
 	const methods = new Array<ts.MethodDeclaration>();
-	const staticProperties = new Array<ts.PropertyDeclaration>();
+	const staticDeclarations = new Array<ts.PropertyDeclaration | ts.ClassStaticBlockDeclaration>();
+
 	for (const member of node.members) {
 		validateMethodAssignment(state, member);
 		if (
@@ -376,9 +378,11 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 			if (!ts.hasStaticModifier(member)) {
 				continue;
 			}
-			staticProperties.push(member);
+			staticDeclarations.push(member);
 		} else if (ts.isAccessor(member)) {
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(member));
+		} else if (ts.isClassStaticBlockDeclaration(member)) {
+			staticDeclarations.push(member);
 		} else {
 			assert(false, `ClassMember kind not implemented: ${getKindName(member.kind)}`);
 		}
@@ -432,8 +436,12 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		);
 	}
 
-	for (const property of staticProperties) {
-		luau.list.pushList(statementsInner, transformPropertyDeclaration(state, property, internalName));
+	for (const declaration of staticDeclarations) {
+		if (ts.isClassStaticBlockDeclaration(declaration)) {
+			luau.list.pushList(statementsInner, transformBlock(state, declaration.body));
+		} else {
+			luau.list.pushList(statementsInner, transformPropertyDeclaration(state, declaration, internalName));
+		}
 	}
 
 	// if using internal name, assign to return var
