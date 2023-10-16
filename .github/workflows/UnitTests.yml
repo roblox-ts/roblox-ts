@@ -6,89 +6,27 @@ on:
     branches:
       - master
 
-env:
-  ROBLOSECURITY: ${{ secrets.ROBLOSECURITY || '_|WARNING:-DO-NOT-SHARE-THIS.--Sharing-this-will-allow-someone-to-log-in-as-you-and-to-steal-your-ROBUX-and-items.|_D4EAD3B0A67BBEB83D23CB0A7C9E8F9ED920B887D5E8D623441C940D2120CFF908E00A1FBFDFCCE5E7B7C9A459ED20C4CAD8D80C09ED16A7954FCACC6E086D1957B539BF373CAE4F064FDEABA4C008963158C82CD82A5E5467C962EDF1AACFC29A4B33837B64F9B0FC34E32B92172AD6138AE7FBF48EC23C0F9A996F134C94EB03FB1A9A9A0C9E503C7358FEDDBA22F978C96294B66E285277497F1FA285D2DA0C87B6982B62535EDBD431E3DEAC41C86340C80AD9EB0745688E50C3AE92A74D28F02918A4524D977F0D64A26EB955B3ED4E0914101C970FCD3BB3528ACFEC57C0A890C98A927BA6406F363F60F4C6EFDF2935EBE05939A7391FA56662FD8E61DA2C665000F6FCEEAF637AFBCE23A70D3F9973F2A049670F9EE20D918553B62DEC179DA691061B4F1A8A2CF9933EAF69915537F03CF621F41CD283752134A3611A80E414328ACDE7A5792E96686813C1907E989DDBD2ED5CE335AF7DE33B51B6FF5EE348DE32F99BF2C8BE7507870F2BAF838F8A' }}
-
 jobs:
   unit-tests:
     name: Unit Tests
-    runs-on: windows-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2.3.4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Install Foreman
-        uses: rojo-rbx/setup-foreman@v1.0.1
+        uses: Roblox/setup-foreman@v2.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install NPM dependencies
+      - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
 
-      - name: Compile Source Files
-        run: npm run build
-
-      - name: Install Latest Test Types
-        run: npm run test-setup
-
-      - name: Compile Test Files
-        run: npm run test-compile
-
-      - name: Build Test Place File
-        run: npm run test-rojo
-
-      - name: Download OpenVPN
-        run: choco install openvpn
-
-      - name: Run OpenVPN
-        run: Start-Process -FilePath "C:\\Program Files\\OpenVPN\\bin\\openvpn.exe" -ArgumentList "--config $((Resolve-Path .\\actions.ovpn).Path)"
-
-      - name: Poll for IP Change
-        run: |
-          $elapsed = 0
-          while ($true) {
-            try {
-              $response = Invoke-WebRequest -Uri 'https://httpbin.org/ip' -Method GET -UseBasicParsing
-              $content = ConvertFrom-Json $response.Content
-              if ($content.origin -eq "159.223.100.103") {
-                break
-              }
-            } catch {}
-            if ($elapsed -ge 20) {
-              Write-Error "Timeout reached!"
-              exit 1
-            }
-            Write-Output "Polling.. Elasped: $elapsed, IP: $($content.origin)"
-            Start-Sleep 5
-            $elapsed += 5
-          }
-          Write-Output "Success!"
-
-      - name: Validate Cookie
-        run: |
-          $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
-          $cookie = New-Object System.Net.Cookie
-          $cookie.Name = ".ROBLOSECURITY"
-          $cookie.Value = "${{ env.ROBLOSECURITY }}"
-          $cookie.Domain = ".roblox.com"
-          $session.Cookies.Add($cookie);
-          Invoke-WebRequest "https://avatar.roblox.com/v1/avatar" -WebSession $session -UseBasicParsing
-
-      - name: Install Roblox Studio
-        uses: OrbitalOwen/roblox-win-installer-action@1.1
-        with:
-          cookie: ${{ env.ROBLOSECURITY }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Update Test Types
+        run: npm run update-test-types
 
       - name: Run Tests
-        run: npm run test-run
-
-      - name: Screenshot
-        if: failure()
-        uses: OrbitalOwen/desktop-screenshot-action@0.1
-        with:
-          file-name: 'desktop.jpg'
+        run: npm test
 
       - name: Report Coverage
         continue-on-error: true

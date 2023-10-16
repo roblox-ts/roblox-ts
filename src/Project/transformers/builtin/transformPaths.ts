@@ -90,6 +90,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 	}
 
 	function isUrl(s: string) {
+		// eslint-disable-next-line deprecation/deprecation
 		return parse(s).protocol !== null;
 	}
 
@@ -141,7 +142,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		ts.isStringLiteral(node.arguments[0]) &&
 		node.arguments.length === 1;
 
-	function visit(node: ts.Node): ts.VisitResult<ts.Node> {
+	function visit(node: ts.Node): ts.VisitResult<ts.Node | undefined> {
 		if (isRequire(node) || isAsyncImport(node)) {
 			return unpathRequireAndAsyncImport(node);
 		}
@@ -217,7 +218,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 
 		return ts.factory.updateExternalModuleReference(node, fileLiteral);
 	}
-	function unpathImportDeclaration(node: ts.ImportDeclaration): ts.VisitResult<ts.Statement> {
+	function unpathImportDeclaration(node: ts.ImportDeclaration): ts.VisitResult<ts.ImportDeclaration | undefined> {
 		if (!ts.isStringLiteral(node.moduleSpecifier)) {
 			return node;
 		}
@@ -232,14 +233,16 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 			? ts.factory.updateImportDeclaration(node, node.modifiers, node.importClause, fileLiteral, undefined)
 			: undefined;
 	}
-	function visitImportClause(node: ts.ImportClause): ts.VisitResult<ts.ImportClause> {
+	function visitImportClause(node: ts.ImportClause): ts.VisitResult<ts.ImportClause | undefined> {
 		const name = resolver.isReferencedAliasDeclaration(node) ? node.name : undefined;
 		const namedBindings = ts.visitNode(node.namedBindings, visitNamedImportBindings as any, ts.isNamedImports);
 		return name || namedBindings
 			? ts.factory.updateImportClause(node, node.isTypeOnly, name, namedBindings)
 			: undefined;
 	}
-	function visitNamedImportBindings(node: ts.NamedImportBindings): ts.VisitResult<ts.NamedImportBindings> {
+	function visitNamedImportBindings(
+		node: ts.NamedImportBindings,
+	): ts.VisitResult<ts.NamedImportBindings | undefined> {
 		if (node.kind === ts.SyntaxKind.NamespaceImport) {
 			return resolver.isReferencedAliasDeclaration(node) ? node : undefined;
 		} else {
@@ -247,11 +250,11 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 			return elements.some(e => e) ? ts.factory.updateNamedImports(node, elements) : undefined;
 		}
 	}
-	function visitImportSpecifier(node: ts.ImportSpecifier): ts.VisitResult<ts.ImportSpecifier> {
+	function visitImportSpecifier(node: ts.ImportSpecifier): ts.VisitResult<ts.ImportSpecifier | undefined> {
 		return resolver.isReferencedAliasDeclaration(node) ? node : undefined;
 	}
 
-	function unpathExportDeclaration(node: ts.ExportDeclaration): ts.VisitResult<ts.Statement> {
+	function unpathExportDeclaration(node: ts.ExportDeclaration): ts.VisitResult<ts.Statement | undefined> {
 		if (!node.moduleSpecifier || !ts.isStringLiteral(node.moduleSpecifier)) {
 			return node;
 		}
@@ -290,11 +293,11 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 			  )
 			: undefined;
 	}
-	function visitNamedExports(node: ts.NamedExports): ts.VisitResult<ts.NamedExports> {
+	function visitNamedExports(node: ts.NamedExports): ts.VisitResult<ts.NamedExports | undefined> {
 		const elements = ts.visitNodes(node.elements, visitExportSpecifier as any, ts.isExportSpecifier);
 		return elements.some(e => e) ? ts.factory.updateNamedExports(node, elements) : undefined;
 	}
-	function visitExportSpecifier(node: ts.ExportSpecifier): ts.VisitResult<ts.ExportSpecifier> {
+	function visitExportSpecifier(node: ts.ExportSpecifier): ts.VisitResult<ts.ExportSpecifier | undefined> {
 		return resolver.isValueAliasDeclaration(node) ? node : undefined;
 	}
 
@@ -308,5 +311,5 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		return res;
 	}
 
-	return ts.visitNode(sourceFile, visit);
+	return ts.visitNode(sourceFile, visit) as ts.SourceFile;
 };

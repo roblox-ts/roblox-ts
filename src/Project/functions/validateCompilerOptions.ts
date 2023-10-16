@@ -8,7 +8,7 @@ const ENFORCED_OPTIONS = {
 	target: ts.ScriptTarget.ESNext,
 	module: ts.ModuleKind.CommonJS,
 	moduleDetection: ts.ModuleDetectionKind.Force,
-	moduleResolution: ts.ModuleResolutionKind.NodeJs,
+	moduleResolution: ts.ModuleResolutionKind.Node10,
 	noLib: true,
 	strict: true,
 	allowSyntheticDefaultImports: true,

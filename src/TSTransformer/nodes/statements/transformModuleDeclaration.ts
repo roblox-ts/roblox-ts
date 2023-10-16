@@ -99,7 +99,7 @@ function transformNamespace(state: TransformState, name: ts.Identifier, body: ts
 		}
 		luau.list.pushList(
 			doStatements,
-			transformStatementList(state, body.statements, {
+			transformStatementList(state, body, body.statements, {
 				id: containerId,
 				mapping: exportsMap,
 			}),

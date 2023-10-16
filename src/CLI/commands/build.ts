@@ -87,6 +87,11 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 				boolean: true,
 				hidden: true,
 			})
+			.option("writeTransformedFiles", {
+				boolean: true,
+				hidden: true,
+				describe: "writes resulting TypeScript ASTs after transformers to out directory",
+			})
 			.option("optimizedLoops", {
 				boolean: true,
 				hidden: true,

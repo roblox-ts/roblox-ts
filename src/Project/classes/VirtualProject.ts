@@ -38,21 +38,16 @@ export class VirtualProject {
 
 	constructor() {
 		this.data = {
-			includePath: "",
 			isPackage: false,
-			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			noInclude: false,
 			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 				rojo: "",
 				type: ProjectType.Model,
+				optimizedLoops: true,
 			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
-			writeOnlyChanged: false,
-			optimizedLoops: false,
-			watch: false,
 		};
 
 		this.compilerOptions = {
@@ -62,7 +57,7 @@ export class VirtualProject {
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
-			moduleResolution: ts.ModuleResolutionKind.NodeJs,
+			moduleResolution: ts.ModuleResolutionKind.Node10,
 			moduleDetection: ts.ModuleDetectionKind.Force,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,

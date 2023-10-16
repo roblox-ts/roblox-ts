@@ -136,7 +136,6 @@ export const errors = {
 	),
 	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
-	noComma: error("operator `,` is not supported!"),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
@@ -150,6 +149,10 @@ export const errors = {
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),
 	noSuperProperty: error("super properties are not supported!"),
+	noRobloxSymbolInstanceof: error(
+		"The `instanceof` operator can only be used on roblox-ts classes!",
+		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
+	),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
