@@ -1,0 +1,38 @@
+name: Test create-roblox-ts
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        type: [game, place, model, plugin, package]
+    steps:
+      - name: Checkout roblox-ts repo
+        uses: actions/checkout@v4
+        with:
+          path: roblox-ts
+
+      - name: Setup roblox-ts repo
+        run: |
+          cd roblox-ts
+          npm install
+          npm run build
+
+      - name: Create template project
+        run: npm init roblox-ts@latest ${{ matrix.type }} -y --dir project --skipBuild
+
+      - name: Install local roblox-ts
+        run: |
+          cd project
+          npm install ../roblox-ts
+
+      - name: Build
+        run: |
+          cd project
+          npm run build
