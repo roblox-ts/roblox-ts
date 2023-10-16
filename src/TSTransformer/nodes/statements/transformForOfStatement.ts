@@ -462,7 +462,16 @@ export function transformForOfRangeMacro(
 
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
-	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.NumericForStatement, {
+			id,
+			start,
+			end,
+			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
+			statements,
+		}),
+	);
 
 	return result;
 }
