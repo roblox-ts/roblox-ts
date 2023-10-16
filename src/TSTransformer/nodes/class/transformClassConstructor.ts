@@ -59,7 +59,7 @@ export function transformClassConstructor(
 			if (bodyStatements.length > 0) {
 				const firstStatement = bodyStatements[0];
 				if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-					luau.list.pushList(statements, transformStatementList(state, [firstStatement]));
+					luau.list.pushList(statements, transformStatementList(state, originNode?.body, [firstStatement]));
 				}
 			}
 		}
@@ -123,7 +123,7 @@ export function transformClassConstructor(
 		}
 	}
 
-	luau.list.pushList(statements, transformStatementList(state, bodyStatements));
+	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {

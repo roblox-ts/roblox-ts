@@ -319,7 +319,7 @@ const buildIterableFunctionLuaTupleLoop: (type: ts.Type) => LoopBuilder =
 				let name = "element";
 				if (tupleType.labeledElementDeclarations) {
 					const label = tupleType.labeledElementDeclarations[i];
-					if (ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
+					if (label && ts.isIdentifier(label.name) && luau.isValidIdentifier(label.name.text)) {
 						name = label.name.text;
 					}
 				}
@@ -462,7 +462,7 @@ export function transformForOfRangeMacro(
 	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, node.expression.arguments));
 	luau.list.pushList(result, prereqs);
 
-	luau.list.pushList(statements, transformStatementList(state, getStatements(node.statement)));
+	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
 	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
 
@@ -491,7 +491,7 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 	luau.list.pushList(result, expPrereqs);
 
 	const expType = state.getType(node.expression);
-	const statements = transformStatementList(state, getStatements(node.statement));
+	const statements = transformStatementList(state, node.statement, getStatements(node.statement));
 
 	const loopBuilder = getLoopBuilder(state, node.expression, expType);
 	luau.list.pushList(result, loopBuilder(state, statements, node.initializer, exp));

@@ -24,6 +24,8 @@ export class TransformState {
 	public hasExportEquals = false;
 	public hasExportFrom = false;
 
+	public classIdentifierMap = new Map<ts.ClassLikeDeclaration, luau.AnyIdentifier>();
+
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
 		solveTempIds(state, node);
