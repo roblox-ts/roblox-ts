@@ -9,7 +9,7 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 	const host = ts.createIncrementalCompilerHost(compilerOptions);
 
 	let contentsToHash = "";
-
+	contentsToHash += `version=${COMPILER_VERSION},`;
 	contentsToHash += `type=${String(data.projectOptions.type)},`;
 	contentsToHash += `isPackage=${String(data.isPackage)},`;
 	contentsToHash += `plugins=${JSON.stringify(compilerOptions.plugins ?? [])},`;
@@ -18,15 +18,9 @@ function createCompilerHost(data: ProjectData, compilerOptions: ts.CompilerOptio
 		contentsToHash += fs.readFileSync(data.rojoConfigPath).toString();
 	}
 
-	// super hack!
-	// we set `ts.version` so that new versions of roblox-ts trigger full re-compile for incremental mode
-	// rojoHash makes it so that changes to the rojo config will trigger full re-compile
-
 	assert(host.createHash);
-
-	// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-	// @ts-ignore
-	ts.version = `${COMPILER_VERSION}-hash-${host.createHash(contentsToHash)}`;
+	const origCreateHash = host.createHash;
+	host.createHash = (data: string) => origCreateHash(contentsToHash + data);
 
 	return host;
 }

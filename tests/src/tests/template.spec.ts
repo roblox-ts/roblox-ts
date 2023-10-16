@@ -60,7 +60,7 @@ export = () => {
 				return new Instance("Model");
 			}
 		}
-		game.GetService("Players").GetPlayerFromCharacter(foo());
+		tonumber(foo());
 		expect(`value = ${foo()}`).to.equal("value = nil");
 	});
 

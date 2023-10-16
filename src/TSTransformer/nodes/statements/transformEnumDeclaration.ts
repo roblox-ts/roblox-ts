@@ -11,6 +11,10 @@ import { hasMultipleDefinitions } from "TSTransformer/util/hasMultipleDefinition
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
+function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
+	return typeof state.typeChecker.getConstantValue(member) !== "string";
+}
+
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
 	if (
 		!!ts.getSelectedSyntacticModifierFlags(node, ts.ModifierFlags.Const) &&
@@ -39,13 +43,28 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 	validateIdentifier(state, node.name);
 
-	const id = transformIdentifierDefined(state, node.name);
+	const left = transformIdentifierDefined(state, node.name);
+	const isHoisted = symbol !== undefined && state.isHoisted.get(symbol) === true;
+
+	if (node.members.every(member => !needsInverseEntry(state, member))) {
+		const right = luau.map(
+			node.members.map(member => [
+				state.pushToVarIfComplex(transformPropertyName(state, member.name)),
+				luau.string(state.typeChecker.getConstantValue(member) as string),
+			]),
+		);
+		return luau.list.make<luau.Statement>(
+			isHoisted
+				? luau.create(luau.SyntaxKind.Assignment, { left, operator: "=", right })
+				: luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }),
+		);
+	}
 
 	const statements = state.capturePrereqs(() => {
 		const inverseId = state.pushToVar(luau.map(), "inverse");
 		state.prereq(
 			luau.create(luau.SyntaxKind.Assignment, {
-				left: id,
+				left,
 				operator: "=",
 				right: luau.call(luau.globals.setmetatable, [
 					luau.map(),
@@ -82,7 +101,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 			state.prereq(
 				luau.create(luau.SyntaxKind.Assignment, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: id,
+						expression: left,
 						index,
 					}),
 					operator: "=",
@@ -90,22 +109,24 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				}),
 			);
 
-			state.prereq(
-				luau.create(luau.SyntaxKind.Assignment, {
-					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: inverseId,
-						index: valueExp,
+			if (needsInverseEntry(state, member)) {
+				state.prereq(
+					luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+							expression: inverseId,
+							index: valueExp,
+						}),
+						operator: "=",
+						right: index,
 					}),
-					operator: "=",
-					right: index,
-				}),
-			);
+				);
+			}
 		}
 	});
 
 	const list = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
-	if (symbol && state.isHoisted.get(symbol) !== true) {
-		luau.list.unshift(list, luau.create(luau.SyntaxKind.VariableDeclaration, { left: id, right: undefined }));
+	if (!isHoisted) {
+		luau.list.unshift(list, luau.create(luau.SyntaxKind.VariableDeclaration, { left, right: undefined }));
 	}
 	return list;
 }

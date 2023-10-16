@@ -3,7 +3,7 @@
 <div align="center">A TypeScript-to-Luau Compiler for Roblox</div>
 <br>
 <div align="center">
-	<a href="https://discord.gg/JFvZY5JSBT"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
+	<a href="https://discord.roblox-ts.com"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
 	<a href="https://github.com/roblox-ts/roblox-ts/actions"><img src="https://github.com/roblox-ts/roblox-ts/workflows/CI/badge.svg" alt="CI Status" /></a>
 	<a href="https://coveralls.io/github/roblox-ts/roblox-ts?branch=master"><img src="https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master" alt="Coverage Status" /></a>
 	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
@@ -20,7 +20,7 @@ Ready to dive in? [Check out the documentation.](https://roblox-ts.com/docs)
 
 ## Join the Community!
 
-https://discord.gg/JFvZY5JSBT
+https://discord.roblox-ts.com
 
 ## Games that use roblox-ts
 
@@ -37,6 +37,7 @@ https://discord.gg/JFvZY5JSBT
 <a href="https://www.roblox.com/games/3837841034"><img width=32.9% src="https://i.imgur.com/nffggbO.png" /></a><!-- Deadline 8.8M -->
 <a href="https://www.roblox.com/games/7711635737"><img width=32.9% src="https://i.imgur.com/lmJLoAx.png" /></a><!-- Emergency Hamburg 3.8M -->
 <a href="https://www.roblox.com/games/12851888521"><img width=32.9% src="https://i.imgur.com/K8SvYsc.png" /></a><!-- Punch Wall Simulator 3.6M -->
+<a href="https://www.roblox.com/games/11688361399"><img width=32.9% src="https://i.imgur.com/EDC7xw6.png" /></a><!-- Wealdland Foods 2.8M -->
 <a href="https://www.roblox.com/games/9681195418"><img width=32.9% src="https://i.imgur.com/599Tpu0.png" /></a><!-- popper 2.2M -->
 <a href="https://www.roblox.com/games/2184151436"><img width=32.9% src="https://i.imgur.com/JSFPTA0.png" /></a><!-- Dungeon Life 2.0M -->
 <a href="https://www.roblox.com/games/9655469250"><img width=32.9% src="https://i.imgur.com/GXt8rmT.png" /></a><!-- EarthScape Tycoon 1.3M -->
