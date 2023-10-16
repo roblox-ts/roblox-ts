@@ -1,0 +1,35 @@
+name: Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Foreman
+        uses: Roblox/setup-foreman@v2.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install NPM Dependencies
+        uses: bahmutov/npm-install@v1.7.4
+
+      - name: Update Test Types
+        run: npm run update-test-types
+
+      - name: Run Tests
+        run: npm test
+
+      - name: Report Coverage
+        continue-on-error: true
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

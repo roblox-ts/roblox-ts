@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should understand string templates", () => {
 		const value = "hello";
@@ -62,7 +60,7 @@ export = () => {
 				return new Instance("Model");
 			}
 		}
-		game.GetService("Players").GetPlayerFromCharacter(foo());
+		tonumber(foo());
 		expect(`value = ${foo()}`).to.equal("value = nil");
 	});
 

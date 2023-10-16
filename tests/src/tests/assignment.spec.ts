@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support logical null coalescing assignment statement", () => {
 		let x: boolean | undefined;

@@ -1,0 +1,32 @@
+name: Publish
+run-name: Publish ${{ inputs.version }} (@${{ github.actor }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2.3.4
+        with:
+          token: ${{ secrets.pat }}
+
+      - name: Install NPM Dependencies
+        uses: bahmutov/npm-install@v1.7.4
+
+      - name: Publish
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "noreply@github.com"
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
+          npm version ${{ inputs.version }}
+          npm publish
+          git push
+          git push --tags

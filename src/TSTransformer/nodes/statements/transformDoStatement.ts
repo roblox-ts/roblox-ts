@@ -7,7 +7,7 @@ import { getStatements } from "TSTransformer/util/getStatements";
 import ts from "typescript";
 
 export function transformDoStatement(state: TransformState, { expression, statement }: ts.DoStatement) {
-	const statements = transformStatementList(state, getStatements(statement));
+	const statements = transformStatementList(state, statement, getStatements(statement));
 
 	let conditionIsInvertedInLuau = true;
 	if (ts.isPrefixUnaryExpression(expression) && expression.operator === ts.SyntaxKind.ExclamationToken) {

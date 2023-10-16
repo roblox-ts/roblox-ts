@@ -102,7 +102,9 @@ export function compileFiles(
 
 	let runtimeLibRbxPath: RbxPath | undefined;
 	if (projectType !== ProjectType.Package) {
-		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(path.join(data.includePath, "RuntimeLib.lua"));
+		runtimeLibRbxPath = rojoResolver.getRbxPathFromFilePath(
+			path.join(data.projectOptions.includePath, "RuntimeLib.lua"),
+		);
 		if (!runtimeLibRbxPath) {
 			return emitResultFailure("Rojo project contained no data for include folder!");
 		} else if (rojoResolver.getNetworkType(runtimeLibRbxPath) !== NetworkType.Unknown) {
@@ -142,7 +144,14 @@ export function compileFiles(
 
 				for (const sourceFile of transformResult.transformed) {
 					if (ts.isSourceFile(sourceFile)) {
-						updateFile(sourceFile.fileName, ts.createPrinter().printFile(sourceFile));
+						// transformed nodes don't have symbol or type information (or they have out of date information)
+						// there's no way to "rebind" an existing file, so we have to reprint it
+						const source = ts.createPrinter().printFile(sourceFile);
+						updateFile(sourceFile.fileName, source);
+						if (data.projectOptions.writeTransformedFiles) {
+							const outPath = pathTranslator.getOutputTransformedPath(sourceFile.fileName);
+							fs.outputFileSync(outPath, source);
+						}
 					}
 				}
 
@@ -162,10 +171,11 @@ export function compileFiles(
 		const progress = `${i + 1}/${sourceFiles.length}`.padStart(progressMaxLength);
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
-			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(sourceFile));
+			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
 			if (DiagnosticService.hasErrors()) return;
 
 			const transformState = new TransformState(
+				proxyProgram,
 				data,
 				services,
 				pathTranslator,
@@ -198,7 +208,7 @@ export function compileFiles(
 			for (const { sourceFile, source } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
-					!data.writeOnlyChanged ||
+					!data.projectOptions.writeOnlyChanged ||
 					!fs.pathExistsSync(outPath) ||
 					fs.readFileSync(outPath).toString() !== source
 				) {

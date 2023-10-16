@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support string methods", () => {
 		expect("Hello, world".sub(1, 1)).to.equal("H");

@@ -1,12 +1,13 @@
 import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
+import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type DiagnosticFactory<T extends Array<any> = []> = {
-	(node: ts.Node, ...context: T): ts.DiagnosticWithLocation;
+	(node: ts.Node | SourceFileWithTextRange, ...context: T): ts.DiagnosticWithLocation;
 	id: number;
 };
 
@@ -47,7 +48,7 @@ function diagnosticWithContext<T extends Array<any> = []>(
 	contextFormatter?: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
-	const result = (node: ts.Node, ...context: T) => {
+	const result = (node: ts.Node | SourceFileWithTextRange, ...context: T) => {
 		if (category === ts.DiagnosticCategory.Error) {
 			debugger;
 		}
@@ -128,9 +129,13 @@ export const errors = {
 	noAny: error("Using values of type `any` is not supported!", suggestion("Use `unknown` instead.")),
 	noVar: error("`var` keyword is not supported!", suggestion("Use `let` or `const` instead.")),
 	noGetterSetter: error("Getters and Setters are not supported!", issue(457)),
+	noAutoAccessorModifiers: error(
+		"Getters and Setters are not supported!",
+		"The `accessor` keyword requires generating get/set accessors",
+		issue(457),
+	),
 	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
-	noComma: error("operator `,` is not supported!"),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
@@ -144,6 +149,10 @@ export const errors = {
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),
 	noSuperProperty: error("super properties are not supported!"),
+	noRobloxSymbolInstanceof: error(
+		"The `instanceof` operator can only be used on roblox-ts classes!",
+		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
+	),
 	noNonNumberStringRelationOperator: error("Relation operators can only be used on number or string types!"),
 	noInstanceMethodCollisions: error("Static methods cannot use the same name as instance methods!"),
 	noStaticMethodCollisions: error("Instance methods cannot use the same name as static methods!"),
@@ -163,6 +172,11 @@ export const errors = {
 	noIndexWithoutCall: error(
 		"Cannot index a method without calling it!",
 		suggestion("Use the form `() => a.b()` instead of `a.b`."),
+	),
+	noCommentDirectives: error(
+		"Usage of `@ts-ignore`, `@ts-expect-error`, and `@ts-nocheck` are not supported!",
+		"roblox-ts needs type and symbol info to compile correctly.",
+		suggestion("Consider using type assertions or `declare` statements."),
 	),
 
 	// macro methods
@@ -253,5 +267,4 @@ export const warnings = {
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
-	packageUsedInReplicatedFirst: warning("Packages from node_modules should not be used from ReplicatedFirst."),
 };
