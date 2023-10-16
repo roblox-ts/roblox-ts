@@ -45,13 +45,13 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 
 	const id = transformIdentifierDefined(state, node.name);
 
-	if (!node.members.some(member => needsInverseEntry(state, member))) {
+	if (node.members.every(member => !needsInverseEntry(state, member))) {
 		return luau.list.make<luau.Statement>(
 			luau.create(luau.SyntaxKind.VariableDeclaration, {
 				left: id,
 				right: luau.map(
 					node.members.map(member => [
-						transformPropertyName(state, member.name),
+						state.pushToVarIfComplex(transformPropertyName(state, member.name)),
 						luau.string(state.typeChecker.getConstantValue(member) as string),
 					]),
 				),
