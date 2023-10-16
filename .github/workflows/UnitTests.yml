@@ -19,15 +19,14 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
-          path: ~/.cargo/registry
-          key: cargo-registry
-
-      - uses: actions/cache@v2
-        with:
-          path: ~/.cargo/bin
-          key: cargo-bin
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - run: cargo install --git https://github.com/filiptibell/lune.git || echo "Already cached"
       - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
