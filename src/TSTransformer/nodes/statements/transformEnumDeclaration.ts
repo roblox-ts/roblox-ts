@@ -44,18 +44,20 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	validateIdentifier(state, node.name);
 
 	const id = transformIdentifierDefined(state, node.name);
+	const isHoisted = symbol !== undefined && state.isHoisted.get(symbol) === true;
 
 	if (node.members.every(member => !needsInverseEntry(state, member))) {
+		const left = id;
+		const right = luau.map(
+			node.members.map(member => [
+				state.pushToVarIfComplex(transformPropertyName(state, member.name)),
+				luau.string(state.typeChecker.getConstantValue(member) as string),
+			]),
+		);
 		return luau.list.make<luau.Statement>(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: id,
-				right: luau.map(
-					node.members.map(member => [
-						state.pushToVarIfComplex(transformPropertyName(state, member.name)),
-						luau.string(state.typeChecker.getConstantValue(member) as string),
-					]),
-				),
-			}),
+			isHoisted
+				? luau.create(luau.SyntaxKind.Assignment, { left, operator: "=", right })
+				: luau.create(luau.SyntaxKind.VariableDeclaration, { left, right }),
 		);
 	}
 
@@ -124,7 +126,7 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 	});
 
 	const list = luau.list.make<luau.Statement>(luau.create(luau.SyntaxKind.DoStatement, { statements }));
-	if (symbol && state.isHoisted.get(symbol) !== true) {
+	if (!isHoisted) {
 		luau.list.unshift(list, luau.create(luau.SyntaxKind.VariableDeclaration, { left: id, right: undefined }));
 	}
 	return list;
