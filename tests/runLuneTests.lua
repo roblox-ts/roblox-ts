@@ -32,7 +32,7 @@ roblox.implementMethod("Instance", "WaitForChild", function(self, ...)
 end)
 
 -- TestEZ uses TestService:Error() when tests fail
-roblox.implementMethod("TestService", "Error", function(description: string, source: Instance?, line: number?)
+roblox.implementMethod("TestService", "Error", function(self, description: string, source: Instance?, line: number?)
 	stdio.ewrite(`{description}\n`)
 end)
 
