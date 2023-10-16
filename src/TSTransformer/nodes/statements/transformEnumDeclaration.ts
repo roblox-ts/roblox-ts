@@ -13,13 +13,7 @@ import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import ts from "typescript";
 
 function needsInverseEntry(state: TransformState, member: ts.EnumMember) {
-	const name =
-		ts.isIdentifier(member.name) || ts.isStringLiteral(member.name)
-			? member.name.text
-			: ts.isComputedPropertyName(member.name) && ts.isStringLiteral(member.name.expression)
-			? member.name.expression.text
-			: undefined;
-	return state.typeChecker.getConstantValue(member) !== name;
+	return typeof state.typeChecker.getConstantValue(member) !== "string";
 }
 
 export function transformEnumDeclaration(state: TransformState, node: ts.EnumDeclaration) {
