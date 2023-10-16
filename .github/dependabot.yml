@@ -9,6 +9,6 @@ updates:
     ignore:
       - dependency-name: "typescript"
     groups:
-      - name: "NPM Packages"
+      packages:
         patterns:
           - "*"
