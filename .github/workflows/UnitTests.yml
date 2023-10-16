@@ -19,10 +19,18 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Lune
-        run: |
-          cargo install --git https://github.com/filiptibell/lune.git
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cargo/registry
+          key: cargo-registry
+
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cargo/bin
+          key: cargo-bin
+
+      - run: cargo install --git https://github.com/filiptibell/lune.git || echo "Already cached"
+      - run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Install NPM Dependencies
         uses: bahmutov/npm-install@v1.7.4
