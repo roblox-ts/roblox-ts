@@ -14,7 +14,7 @@ import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexa
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { getStatements } from "TSTransformer/util/getStatements";
-import { skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
+import { skipDownwards } from "TSTransformer/util/traversal";
 import {
 	getFirstDefinedSymbol,
 	isArrayType,
@@ -438,7 +438,7 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 }
 
 function findRangeMacro(state: TransformState, node: ts.ForOfStatement): ts.CallExpression | undefined {
-	const expression = skipUpwards(node.expression);
+	const expression = skipDownwards(node.expression);
 	if (ts.isCallExpression(expression)) {
 		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
 		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
