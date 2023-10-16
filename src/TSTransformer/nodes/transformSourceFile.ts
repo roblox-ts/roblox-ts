@@ -1,10 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
 import { RbxType } from "@roblox-ts/rojo-resolver";
-import { COMPILER_VERSION, ProjectType } from "Shared/constants";
-import { errors } from "Shared/diagnostics";
+import { COMPILER_VERSION } from "Shared/constants";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
@@ -189,10 +187,6 @@ function getLastNonCommentStatement(listNode?: luau.ListNode<luau.Statement>) {
  * @param node The sourcefile to convert to a Luau AST.
  */
 export function transformSourceFile(state: TransformState, node: ts.SourceFile) {
-	if (state.projectType === ProjectType.Package) {
-		DiagnosticService.addDiagnostic(errors.noAny(node));
-	}
-
 	const symbol = state.typeChecker.getSymbolAtLocation(node);
 	assert(symbol);
 	state.setModuleIdBySymbol(symbol, luau.globals.exports);
