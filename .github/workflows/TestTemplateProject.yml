@@ -25,7 +25,7 @@ jobs:
           npm run build
 
       - name: Create template project
-        run: npm init roblox-ts@latest ${{ matrix.type }} -y --dir project --skipBuild
+        run: npm init roblox-ts@latest ${{ matrix.type }} -- -y --dir project --skipBuild
 
       - name: Install local roblox-ts
         run: |
