@@ -252,8 +252,6 @@ export class TransformState {
 				});
 			}
 		} else {
-			DiagnosticService.addDiagnostic(errors.noAny(sourceFile));
-
 			// we pass RuntimeLib access to packages via `_G[script] = TS`
 			// access it here via `local TS = _G[script]`
 			return luau.create(luau.SyntaxKind.VariableDeclaration, {
