@@ -437,34 +437,41 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 	}
 }
 
-function isRangeMacro(
-	state: TransformState,
-	node: ts.ForOfStatement,
-): node is ts.ForOfStatement & { expression: ts.CallExpression } {
-	if (ts.isCallExpression(node.expression)) {
-		const symbol = getFirstDefinedSymbol(state, state.getType(node.expression.expression));
+function findRangeMacro(state: TransformState, node: ts.ForOfStatement): ts.CallExpression | undefined {
+	const expression = skipDownwards(node.expression);
+	if (ts.isCallExpression(expression)) {
+		const symbol = getFirstDefinedSymbol(state, state.getType(expression.expression));
 		if (symbol && symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.$range)) {
-			return true;
+			return expression;
 		}
 	}
-	return false;
 }
 
 export function transformForOfRangeMacro(
 	state: TransformState,
-	node: ts.ForOfStatement & { expression: ts.CallExpression },
+	node: ts.ForOfStatement,
+	macroCall: ts.CallExpression,
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 
 	const statements = luau.list.make<luau.Statement>();
 	const id = transformForInitializer(state, node.initializer, statements);
 
-	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, node.expression.arguments));
+	const [[start, end, step], prereqs] = state.capture(() => ensureTransformOrder(state, macroCall.arguments));
 	luau.list.pushList(result, prereqs);
 
 	luau.list.pushList(statements, transformStatementList(state, node.statement, getStatements(node.statement)));
 
-	luau.list.push(result, luau.create(luau.SyntaxKind.NumericForStatement, { id, start, end, step, statements }));
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.NumericForStatement, {
+			id,
+			start,
+			end,
+			step: step === undefined || luau.isNumberLiteral(step) ? step : luau.binary(step, "or", luau.number(1)),
+			statements,
+		}),
+	);
 
 	return result;
 }
@@ -481,8 +488,9 @@ export function transformForOfStatement(state: TransformState, node: ts.ForOfSta
 		}
 	}
 
-	if (isRangeMacro(state, node)) {
-		return transformForOfRangeMacro(state, node);
+	const rangeMacroCall = findRangeMacro(state, node);
+	if (rangeMacroCall) {
+		return transformForOfRangeMacro(state, node, rangeMacroCall);
 	}
 
 	const result = luau.list.make<luau.Statement>();
