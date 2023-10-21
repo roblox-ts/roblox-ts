@@ -1,3 +1,10 @@
+## 2.2.0
+- TypeScript 5.2.2 Support (#2401, #2466)
+- Support for instantiated expressions (#2445)
+- Support for Luau comment directives like `//!native` (#2465)
+- Fixed incorrect emit with `array[n]?.()` (#2475)
+- Support for class static blocks (#2480)
+
 ## 2.1.1
 - Enable `--optimizedLoops` flag for Playground environment (#2271)
 - Fix for updating non-compiled files in transformer watch mode (#2385)

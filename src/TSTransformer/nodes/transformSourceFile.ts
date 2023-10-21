@@ -192,7 +192,7 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 	state.setModuleIdBySymbol(symbol, luau.globals.exports);
 
 	// transform the `ts.Statements` of the source file into a `list.list<...>`
-	const statements = transformStatementList(state, node.statements);
+	const statements = transformStatementList(state, node, node.statements, undefined);
 
 	handleExports(state, node, symbol, statements);
 
@@ -205,13 +205,25 @@ export function transformSourceFile(state: TransformState, node: ts.SourceFile) 
 		}
 	}
 
-	// add the Runtime library to the tree if it is used
-	if (state.usesRuntimeLib) {
-		luau.list.unshift(statements, state.createRuntimeLibImport(node));
-	}
+	const headerStatements = luau.list.make<luau.Statement>();
 
 	// add build information to the tree
-	luau.list.unshift(statements, luau.comment(`Compiled with roblox-ts v${COMPILER_VERSION}`));
+	luau.list.push(headerStatements, luau.comment(` Compiled with roblox-ts v${COMPILER_VERSION}`));
+
+	// add the Runtime library to the tree if it is used
+	if (state.usesRuntimeLib) {
+		luau.list.push(headerStatements, state.createRuntimeLibImport(node));
+	}
+
+	// extract Luau directive comments like --!strict so we can put them before headerStatements
+	const directiveComments = luau.list.make<luau.Statement>();
+	while (statements.head && luau.isComment(statements.head.value) && statements.head.value.text.startsWith("!")) {
+		// safety: statements.head is checked in while condition
+		luau.list.push(directiveComments, luau.list.shift(statements)!);
+	}
+
+	luau.list.unshiftList(statements, headerStatements);
+	luau.list.unshiftList(statements, directiveComments);
 
 	return statements;
 }
