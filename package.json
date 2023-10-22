@@ -19,10 +19,10 @@
 		"update-test-types": "cd tests && npm install github:roblox-ts/compiler-types @rbxts/types@latest && npm install",
 		"test": "npm run build && npm run test-compile && npm run test-rojo && npm run test-run",
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
-		"test-rojo": "rojo build tests -o ./tests/test.rbxlx",
-		"test-run": "lune ./tests/runLuneTests.lua ./tests/test.rbxlx",
+		"test-rojo": "rojo build tests -o ./tests/test.rbxl",
+		"test-run": "lune ./tests/runLuneTests.lua ./tests/test.rbxl",
 		"test-roblox": "npm run build && npm run test-compile && npm run test-rojo && npm run run-in-roblox",
-		"run-in-roblox": "run-in-roblox --place ./tests/test.rbxlx --script ./tests/out/main.server.lua"
+		"run-in-roblox": "run-in-roblox --place ./tests/test.rbxl --script ./tests/out/main.server.lua"
 	},
 	"nyc": {
 		"all": true,
