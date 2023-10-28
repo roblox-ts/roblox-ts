@@ -18,7 +18,7 @@ import {
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { getAssignedValue } from "TSTransformer/util/getAssignedValue";
+import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
@@ -194,7 +194,12 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			operator === undefined,
 		);
 		if (operator !== undefined) {
-			return createAssignmentExpression(state, writable, operator, getAssignedValue(operator, value, valueType));
+			return createAssignmentExpression(
+				state,
+				writable,
+				operator,
+				getAssignableValue(operator, value, valueType),
+			);
 		} else {
 			return createCompoundAssignmentExpression(
 				state,
