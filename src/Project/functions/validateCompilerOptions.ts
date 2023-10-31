@@ -1,7 +1,7 @@
 import fs from "fs";
 import kleur from "kleur";
 import path from "path";
-import { NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
+import { DTS_EXT, NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import ts from "typescript";
 
@@ -73,7 +73,12 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: s
 		// To avoid "fix one error, get a new one on the next compile"
 		const typeRoots = opts.typeRoots ?? ["node_modules/@rbxts"];
 
-		if (!typeRoots.some(typeRoot => fs.existsSync(path.resolve(projectPath, typeRoot, typesLocation)))) {
+		if (
+			!typeRoots.some(typeRoot => {
+				const typesPath = path.resolve(projectPath, typeRoot, typesLocation);
+				return fs.existsSync(typesPath) || fs.existsSync(typesPath + DTS_EXT);
+			})
+		) {
 			errors.push(
 				`${y(`"types"`)} ${y(typesLocation)} were not found. Make sure the path is relative to \`typeRoots\``,
 			);
