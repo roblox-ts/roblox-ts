@@ -68,7 +68,7 @@ export class VirtualProject {
 			jsxFactory: "Roact.createElement",
 			jsxFragmentFactory: "Roact.createFragment",
 		};
-		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
+		validateCompilerOptions(this.compilerOptions, this.data.projectPath);
 
 		this.vfs = new VirtualFileSystem();
 
