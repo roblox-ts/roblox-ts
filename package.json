@@ -61,7 +61,7 @@
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
-		"@types/fs-extra": "^11.0.3",
+		"@types/fs-extra": "^11.0.4",
 		"@types/mocha": "^10.0.3",
 		"@types/node": "^20.8.7",
 		"@types/prompts": "^2.4.7",
