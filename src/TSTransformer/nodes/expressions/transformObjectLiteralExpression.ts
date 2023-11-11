@@ -5,6 +5,7 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
@@ -79,7 +80,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 
 	if (!definitelyObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: spreadExp,
+			condition: createTruthinessChecks(state, spreadExp, property.expression),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
