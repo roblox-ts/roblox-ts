@@ -160,7 +160,7 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	validateNotAnyType(state, node.expression);
+	validateNotAnyType(state, expression.expression);
 
 	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
@@ -220,7 +220,7 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
-	validateNotAnyType(state, node.expression);
+	validateNotAnyType(state, expression.expression);
 
 	if (ts.isSuperProperty(expression)) {
 		if (isInsideRoactComponent(state, node)) {
