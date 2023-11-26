@@ -119,7 +119,7 @@ export = () => {
 		}
 
 		function bar(): LuaTuple<[[number, string], boolean]> {
-			return ([foo(), true] as unknown) as LuaTuple<[[number, string], boolean]>;
+			return [foo(), true] as unknown as LuaTuple<[[number, string], boolean]>;
 		}
 
 		const [[a, b], c] = bar();
@@ -160,7 +160,7 @@ export = () => {
 
 	it("should allow LuaTuples to have Array<> inside", () => {
 		function foo(): LuaTuple<[number, number, ...Array<string>] | []> {
-			return ([1, 2, "3"] as unknown) as LuaTuple<[number, number, ...Array<string>] | []>;
+			return [1, 2, "3"] as unknown as LuaTuple<[number, number, ...Array<string>] | []>;
 		}
 
 		expect(foo().pop()).to.equal("3");
@@ -225,5 +225,45 @@ export = () => {
 			break;
 		}
 		expect(hasRun1).to.equal(true);
+	});
+
+	it("should support $tuple macro", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		const tuple = luaTupleMacroReturn();
+
+		expect(tuple[0]).to.equal(123);
+		expect(tuple[1]).to.equal("abc");
+		expect(tuple[2]).to.equal(true);
+	});
+
+	it("should support $tuple macro with destructuring", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		const [a, b, c] = luaTupleMacroReturn();
+
+		expect(a).to.equal(123);
+		expect(b).to.equal("abc");
+		expect(c).to.equal(true);
+	});
+
+	it("should support $tuple macro in nested calls", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		function wrapperFunction() {
+			return luaTupleMacroReturn();
+		}
+
+		const [a, b, c] = wrapperFunction();
+
+		expect(a).to.equal(123);
+		expect(b).to.equal("abc");
+		expect(c).to.equal(true);
 	});
 };
