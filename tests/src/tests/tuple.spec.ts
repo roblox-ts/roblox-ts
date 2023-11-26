@@ -119,7 +119,7 @@ export = () => {
 		}
 
 		function bar(): LuaTuple<[[number, string], boolean]> {
-			return [foo(), true] as unknown as LuaTuple<[[number, string], boolean]>;
+			return ([foo(), true] as unknown) as LuaTuple<[[number, string], boolean]>;
 		}
 
 		const [[a, b], c] = bar();
@@ -160,7 +160,7 @@ export = () => {
 
 	it("should allow LuaTuples to have Array<> inside", () => {
 		function foo(): LuaTuple<[number, number, ...Array<string>] | []> {
-			return [1, 2, "3"] as unknown as LuaTuple<[number, number, ...Array<string>] | []>;
+			return ([1, 2, "3"] as unknown) as LuaTuple<[number, number, ...Array<string>] | []>;
 		}
 
 		expect(foo().pop()).to.equal("3");
