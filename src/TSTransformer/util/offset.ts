@@ -19,8 +19,14 @@ export function offset(expression: luau.Expression, value: number) {
 	// special case to handle adding and removing the offset
 	if (expression.kind === luau.SyntaxKind.BinaryExpression) {
 		if (expression.right.kind === luau.SyntaxKind.NumberLiteral) {
-			if (Number(expression.right.value) === value) {
-				return expression.left;
+			if (expression.operator === "+" || expression.operator === "-") {
+				const rightValue = getLiteralNumberValue(expression.right)!;
+				if (rightValue + value === 0) {
+					return expression.left;
+				} else {
+					expression.right.value = (rightValue + value).toString();
+					return expression;
+				}
 			}
 		}
 	}
