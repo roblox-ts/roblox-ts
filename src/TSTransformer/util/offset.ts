@@ -16,6 +16,14 @@ export function offset(expression: luau.Expression, value: number) {
 	if (value === 0) {
 		return expression;
 	}
+	// special case to handle adding and removing the offset
+	if (expression.kind === luau.SyntaxKind.BinaryExpression) {
+		if (expression.right.kind === luau.SyntaxKind.NumberLiteral) {
+			if (Number(expression.right.value) === value) {
+				return expression.left;
+			}
+		}
+	}
 	const literalValue = getLiteralNumberValue(expression);
 	if (literalValue !== undefined) {
 		return luau.number(literalValue + value);
