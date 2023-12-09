@@ -25,7 +25,7 @@ export function offset(expression: luau.Expression, value: number) {
 		luau.isNumberLiteral(expression.right) &&
 		(expression.operator === "+" || expression.operator === "-")
 	) {
-		const rightValue = getLiteralNumberValue(expression.right);
+		const rightValue = getLiteralNumberValue(expression.right) * (expression.operator === "-" ? -1 : 1);
 		if (rightValue + value === 0) {
 			return expression.left;
 		} else {

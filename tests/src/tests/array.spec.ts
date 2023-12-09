@@ -530,4 +530,9 @@ export = () => {
 		}
 		foo(undefined, "A", undefined, "B", undefined, "C", undefined);
 	});
+
+	it("should get the last index of an array", () => {
+		const arr = [1, 2, 3]
+		expect(arr[arr.size() - 1]).to.equal(3);
+	})
 };
