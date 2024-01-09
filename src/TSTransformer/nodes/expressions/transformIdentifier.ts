@@ -5,6 +5,7 @@ import { getOrSetDefault } from "Shared/util/getOrSetDefault";
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { isBlockLike, isNamespace } from "TSTransformer/typeGuards";
+import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { getAncestor, isAncestorOf, skipDownwards, skipUpwards } from "TSTransformer/util/traversal";
 import { getFirstConstructSymbol } from "TSTransformer/util/types";
@@ -129,7 +130,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
-		if (constructorMacro) {
+		if (
+			constructorMacro &&
+			// Inhibit if extending from this identifier - noMacroExtends diagnostic will catch it
+			!(
+				ts.isClassLike(node.parent.parent.parent) &&
+				getExtendsNode(node.parent.parent.parent)?.expression === node
+			)
+		) {
 			DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
 		}
 	}
