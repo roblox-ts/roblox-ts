@@ -112,6 +112,10 @@ export = ts.identity<yargs.CommandModule<{}, BuildFlags & Partial<ProjectOptions
 			.option("allowCommentDirectives", {
 				boolean: true,
 				hidden: true,
+			})
+			.option("emitOnError", {
+				boolean: true,
+				hidden: true,
 			}),
 
 	handler: async argv => {

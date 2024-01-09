@@ -54,4 +54,5 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	writeTransformedFiles: false,
 	optimizedLoops: false,
 	allowCommentDirectives: false,
+	emitOnError: false,
 };

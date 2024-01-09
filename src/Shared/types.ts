@@ -14,6 +14,7 @@ export interface ProjectOptions {
 	writeTransformedFiles: boolean;
 	optimizedLoops: boolean;
 	allowCommentDirectives: boolean;
+	emitOnError: boolean;
 }
 
 export interface ProjectData {
