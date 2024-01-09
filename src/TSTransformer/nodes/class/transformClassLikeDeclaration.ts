@@ -1,7 +1,7 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
-import { SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformClassConstructor } from "TSTransformer/nodes/class/transformClassConstructor";
 import { transformDecorators } from "TSTransformer/nodes/class/transformDecorators";
@@ -252,25 +252,6 @@ function createBoilerplate(
 	return statements;
 }
 
-function extendsMacroClass(state: TransformState, node: ts.ClassLikeDeclaration) {
-	const extendsNode = getExtendsNode(node);
-	if (extendsNode) {
-		const symbol = getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
-		if (symbol) {
-			return (
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ArrayConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.SetConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.MapConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakSetConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.WeakMapConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyMapConstructor) ||
-				symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlySetConstructor)
-			);
-		}
-	}
-	return false;
-}
-
 function isClassHoisted(state: TransformState, node: ts.ClassLikeDeclaration) {
 	if (node.name) {
 		const symbol = state.typeChecker.getSymbolAtLocation(node.name);
@@ -328,7 +309,9 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 		);
 	}
 
-	if (extendsMacroClass(state, node)) {
+	const extendsNode = getExtendsNode(node);
+	const symbol = extendsNode && getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
+	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
