@@ -1,5 +1,5 @@
 function a() {
-	return [1, 2] as LuaTuple<[number, number]>;
+	return $tuple(1, 2);
 }
 
 `${a()}`;

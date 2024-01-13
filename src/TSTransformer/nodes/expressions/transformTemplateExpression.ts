@@ -1,29 +1,35 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
-import { binaryExpressionChain } from "TSTransformer/util/expressionChain";
-import {
-	isDefinitelyType,
-	isLuaTupleType,
-	isPossiblyType,
-	isStringType,
-	isUndefinedType,
-} from "TSTransformer/util/types";
+import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
-	// if there are zero templateSpans, this must be a ts.NoSubstitutionTemplateLiteral
-	// and will be handled in transformStringLiteral
-	assert(node.templateSpans.length > 0);
+function transformInterpolatedStringLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral) {
+	const text = createStringFromLiteral(node).value;
 
-	const expressions = new Array<luau.Expression>();
+	// braces and newlines need to be escaped to match the TS behavior
+	return luau.string(text.replace(/([{}])/g, "\\$1").replace(/\n/g, "\\\n"));
+}
+
+export function transformTemplateExpression(
+	state: TransformState,
+	node: ts.TemplateExpression | ts.NoSubstitutionTemplateLiteral,
+) {
+	// backtick string literals without interpolation expressions should be preserved
+	// as they still are valid in luau
+	if (ts.isNoSubstitutionTemplateLiteral(node)) {
+		return luau.create(luau.SyntaxKind.InterpolatedString, {
+			segments: luau.list.make(transformInterpolatedStringLiteral(node)),
+		});
+	}
+
+	const segments = luau.list.make<luau.Expression>();
 
 	if (node.head.text.length > 0) {
-		expressions.push(createStringFromLiteral(node.head));
+		luau.list.push(segments, transformInterpolatedStringLiteral(node.head));
 	}
 
 	const orderedExpressions = ensureTransformOrder(
@@ -33,23 +39,17 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 
 	for (let i = 0; i < node.templateSpans.length; i++) {
 		const templateSpan = node.templateSpans[i];
-		let expression = orderedExpressions[i];
+		const expression = orderedExpressions[i];
 		const type = state.getType(templateSpan.expression);
-		if (!isDefinitelyType(type, isStringType)) {
-			if (isDefinitelyType(type, isLuaTupleType(state))) {
-				DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
-			}
-			if (ts.isCallExpression(templateSpan.expression) && isPossiblyType(type, isUndefinedType)) {
-				expression = luau.create(luau.SyntaxKind.ParenthesizedExpression, { expression });
-			}
-			expression = luau.call(luau.globals.tostring, [expression]);
+		if (isDefinitelyType(type, isLuaTupleType(state))) {
+			DiagnosticService.addDiagnostic(errors.noLuaTupleInTemplateExpression(templateSpan.expression));
 		}
-		expressions.push(expression);
+		luau.list.push(segments, expression);
 
 		if (templateSpan.literal.text.length > 0) {
-			expressions.push(createStringFromLiteral(templateSpan.literal));
+			luau.list.push(segments, transformInterpolatedStringLiteral(templateSpan.literal));
 		}
 	}
 
-	return binaryExpressionChain(expressions, "..");
+	return luau.create(luau.SyntaxKind.InterpolatedString, { segments });
 }

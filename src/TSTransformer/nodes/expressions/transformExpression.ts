@@ -80,7 +80,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformTemplateExpression],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],

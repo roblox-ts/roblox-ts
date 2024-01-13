@@ -5,6 +5,20 @@ export = () => {
 		expect(`"${value}" world`).to.equal('"hello" world');
 		expect(`${value} "world"`).to.equal('hello "world"');
 		expect(`a${"b"}c${"d"}e`).to.equal("abcde");
+		expect(`1 ${`2 ${`3 ${4}`}`}`).to.equal("1 2 3 4");
+		expect(`${value} {}`).to.equal("hello \{\}");
+		expect(`${value} {world}`).to.equal("hello \{world\}");
+		expect(`${value}\nworld`).to.equal("hello\\nworld");
+		expect(`${value}
+world`).to.equal("hello\\\nworld");
+		expect(`${value} ${{}}`).to.never.throw();
+		expect(`${value} ${0} ${1}`.size()).to.equal(9);
+
+		const tableStrLength = tostring({}).size();
+		expect(`${value} ${{}}`.size()).to.equal(6 + tableStrLength);
+		expect(`${value} ${[]}`.size()).to.equal(6 + tableStrLength);
+		expect(`${value} ${new Map()}`.size()).to.equal(6 + tableStrLength);
+		expect(`${value} ${new Set()}`.size()).to.equal(6 + tableStrLength);
 	});
 
 	it("should support tagged TemplateExpression", () => {
