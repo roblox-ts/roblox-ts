@@ -7,13 +7,6 @@ import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { isDefinitelyType, isLuaTupleType } from "TSTransformer/util/types";
 import ts from "typescript";
 
-function transformInterpolatedStringLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral) {
-	const text = createStringFromLiteral(node).value;
-
-	// braces and newlines need to be escaped to match the TS behavior
-	return luau.string(text.replace(/([{}])/g, "\\$1").replace(/\n/g, "\\\n"));
-}
-
 export function transformTemplateExpression(
 	state: TransformState,
 	node: ts.TemplateExpression | ts.NoSubstitutionTemplateLiteral,
@@ -22,14 +15,14 @@ export function transformTemplateExpression(
 	// as they still are valid in luau
 	if (ts.isNoSubstitutionTemplateLiteral(node)) {
 		return luau.create(luau.SyntaxKind.InterpolatedString, {
-			segments: luau.list.make(transformInterpolatedStringLiteral(node)),
+			segments: luau.list.make(createStringFromLiteral(node)),
 		});
 	}
 
 	const segments = luau.list.make<luau.Expression>();
 
 	if (node.head.text.length > 0) {
-		luau.list.push(segments, transformInterpolatedStringLiteral(node.head));
+		luau.list.push(segments, createStringFromLiteral(node.head));
 	}
 
 	const orderedExpressions = ensureTransformOrder(
@@ -47,7 +40,7 @@ export function transformTemplateExpression(
 		luau.list.push(segments, expression);
 
 		if (templateSpan.literal.text.length > 0) {
-			luau.list.push(segments, transformInterpolatedStringLiteral(templateSpan.literal));
+			luau.list.push(segments, createStringFromLiteral(templateSpan.literal));
 		}
 	}
 
