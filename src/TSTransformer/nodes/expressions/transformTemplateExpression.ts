@@ -29,11 +29,9 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 	);
 
 	for (let i = 0; i < node.templateSpans.length; i++) {
+		luau.list.push(parts, orderedExpressions[i]);
+
 		const templateSpan = node.templateSpans[i];
-		const expression = orderedExpressions[i];
-
-		luau.list.push(parts, expression);
-
 		if (templateSpan.literal.text.length > 0) {
 			luau.list.push(parts, createInterpolatedStringPart(templateSpan.literal));
 		}
