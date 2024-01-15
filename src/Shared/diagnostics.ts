@@ -134,7 +134,7 @@ export const errors = {
 		"The `accessor` keyword requires generating get/set accessors",
 		issue(457),
 	),
-	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
+	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` ins	tead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
@@ -162,10 +162,6 @@ export const errors = {
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
-	noLuaTupleInTemplateExpression: error(
-		"Can't use LuaTuple<T> in a template literal expression!",
-		suggestion("Did you mean to add `[0]`?"),
-	),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),

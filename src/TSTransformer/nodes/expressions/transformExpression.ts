@@ -27,7 +27,10 @@ import { transformSpreadElement } from "TSTransformer/nodes/expressions/transfor
 import { transformStringLiteral } from "TSTransformer/nodes/expressions/transformStringLiteral";
 import { transformSuperKeyword } from "TSTransformer/nodes/expressions/transformSuperKeyword";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
-import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
+import {
+	transformNoSubstitutionTemplateLiteral,
+	transformTemplateExpression,
+} from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
 import { transformTypeExpression } from "TSTransformer/nodes/expressions/transformTypeExpression";
 import {
@@ -80,7 +83,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformTemplateExpression],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformNoSubstitutionTemplateLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],
