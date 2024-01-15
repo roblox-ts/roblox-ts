@@ -134,7 +134,7 @@ export const errors = {
 		"The `accessor` keyword requires generating get/set accessors",
 		issue(457),
 	),
-	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` ins	tead.")),
+	noEqualsEquals: error("operator `==` is not supported!", suggestion("Use `===` instead.")),
 	noExclamationEquals: error("operator `!=` is not supported!", suggestion("Use `!==` instead.")),
 	noEnumMerging: error("Enum merging is not supported!"),
 	noNamespaceMerging: error("Namespace merging is not supported!"),
