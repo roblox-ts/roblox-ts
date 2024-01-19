@@ -585,6 +585,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
+		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
 		if (args.length === 0) {
 			return luau.unary("#", expression);
 		}
