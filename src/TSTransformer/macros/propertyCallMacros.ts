@@ -585,6 +585,10 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
+		if (args.length === 0) {
+			return luau.unary("#", expression);
+		}
+
 		expression = state.pushToVarIfComplex(expression, "exp");
 
 		for (let i = 0; i < args.length; i++) {
