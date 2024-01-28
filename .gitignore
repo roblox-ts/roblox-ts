@@ -9,6 +9,6 @@ out
 .vscode/launch.json
 .vscode/settings.json
 
-/tests/*.rbxlx
-/tests/*.rbxlx.lock
+/tests/*.rbxl
+/tests/*.rbxl.lock
 /tests/include
