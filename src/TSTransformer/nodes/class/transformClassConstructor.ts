@@ -4,8 +4,8 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
-import { transformObjectKey } from "TSTransformer/nodes/transformObjectKey";
 import { transformParameters } from "TSTransformer/nodes/transformParameters";
+import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { transformStatementList } from "TSTransformer/nodes/transformStatementList";
 import { extendsRoactComponent } from "TSTransformer/util/extendsRoactComponent";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
@@ -59,7 +59,7 @@ export function transformClassConstructor(
 			if (bodyStatements.length > 0) {
 				const firstStatement = bodyStatements[0];
 				if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
-					luau.list.pushList(statements, transformStatementList(state, [firstStatement]));
+					luau.list.pushList(statements, transformStatementList(state, originNode?.body, [firstStatement]));
 				}
 			}
 		}
@@ -95,7 +95,7 @@ export function transformClassConstructor(
 				continue;
 			}
 
-			const [index, indexPrereqs] = state.capture(() => transformObjectKey(state, name));
+			const [index, indexPrereqs] = state.capture(() => transformPropertyName(state, name));
 			luau.list.pushList(statements, indexPrereqs);
 
 			const [right, rightPrereqs] = state.capture(() => transformExpression(state, initializer));
@@ -123,7 +123,7 @@ export function transformClassConstructor(
 		}
 	}
 
-	luau.list.pushList(statements, transformStatementList(state, bodyStatements));
+	luau.list.pushList(statements, transformStatementList(state, originNode?.body, bodyStatements));
 
 	return luau.list.make<luau.Statement>(
 		luau.create(luau.SyntaxKind.MethodDeclaration, {

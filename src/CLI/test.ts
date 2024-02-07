@@ -8,7 +8,7 @@ import { createPathTranslator } from "Project/functions/createPathTranslator";
 import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
-import { PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
 import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
@@ -20,17 +20,11 @@ const DIAGNOSTIC_TEST_NAME_REGEX = /^(\w+)(?:\.\d+)?$/;
 describe("should compile tests project", () => {
 	const data = createProjectData(
 		path.join(PACKAGE_ROOT, "tests", "tsconfig.json"),
-		{},
-		{
-			logTruthyChanges: false,
-			noInclude: false,
+		Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
 			project: "",
-			usePolling: false,
-			verbose: false,
-			watch: false,
-			writeOnlyChanged: false,
-			optimizedLoops: false,
-		},
+			allowCommentDirectives: true,
+			optimizedLoops: true,
+		}),
 	);
 	const program = createProjectProgram(data);
 	const pathTranslator = createPathTranslator(program);

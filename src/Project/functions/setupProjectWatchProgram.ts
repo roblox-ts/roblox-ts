@@ -73,18 +73,8 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 	let pathTranslator: PathTranslator | undefined;
 	const createProgram = createProgramFactory(data, options);
 	function refreshProgram() {
-		try {
-			program = createProgram([...fileNamesSet], options);
-			pathTranslator = createPathTranslator(program);
-		} catch (e) {
-			if (e instanceof DiagnosticError) {
-				for (const diagnostic of e.diagnostics) {
-					diagnosticReporter(diagnostic);
-				}
-			} else {
-				throw e;
-			}
-		}
+		program = createProgram([...fileNamesSet], options);
+		pathTranslator = createPathTranslator(program);
 	}
 
 	function runInitialCompile() {
@@ -127,6 +117,18 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			if (isCompilableFile(fsPath)) {
 				filesToCompile.add(fsPath);
 			} else {
+				// Transformers use a separate program that must be updated separately (which is done in compileFiles),
+				// however certain files (such as d.ts files) aren't passed to that function and must be updated here.
+				const transformerWatcher = data.transformerWatcher;
+				if (transformerWatcher) {
+					// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
+					// and is also used by the program host to read files.
+					const contents = ts.sys.readFile(fsPath);
+					if (contents) {
+						transformerWatcher.updateFile(fsPath, contents);
+					}
+				}
+
 				filesToCopy.add(fsPath);
 			}
 		}
@@ -162,19 +164,34 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		return emitResult;
 	}
 
+	function runCompile() {
+		try {
+			if (!initialCompileCompleted) {
+				return runInitialCompile();
+			} else {
+				const additions = filesToAdd;
+				const changes = filesToChange;
+				const removals = filesToDelete;
+				filesToAdd = new Set();
+				filesToChange = new Set();
+				filesToDelete = new Set();
+				return runIncrementalCompile(additions, changes, removals);
+			}
+		} catch (e) {
+			if (e instanceof DiagnosticError) {
+				return {
+					emitSkipped: true,
+					diagnostics: e.diagnostics,
+				};
+			} else {
+				throw e;
+			}
+		}
+	}
+
 	function closeEventCollection() {
 		collecting = false;
-		const additions = filesToAdd;
-		const changes = filesToChange;
-		const removals = filesToDelete;
-		filesToAdd = new Set();
-		filesToChange = new Set();
-		filesToDelete = new Set();
-
-		const emitResult = !initialCompileCompleted
-			? runInitialCompile()
-			: runIncrementalCompile(additions, changes, removals);
-		reportEmitResult(emitResult);
+		reportEmitResult(runCompile());
 	}
 
 	function openEventCollection() {
@@ -211,6 +228,6 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 		.on("unlinkDir", collectDeleteEvent)
 		.once("ready", () => {
 			reportText("Starting compilation in watch mode...");
-			reportEmitResult(runInitialCompile());
+			reportEmitResult(runCompile());
 		});
 }

@@ -4,7 +4,7 @@ import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFi
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { PathTranslator } from "Shared/classes/PathTranslator";
-import { NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
+import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
@@ -38,18 +38,16 @@ export class VirtualProject {
 
 	constructor() {
 		this.data = {
-			includePath: "",
 			isPackage: false,
-			logTruthyChanges: false,
 			nodeModulesPath: NODE_MODULES_PATH,
-			noInclude: false,
-			projectOptions: { includePath: "", rojo: "", type: ProjectType.Model },
+			projectOptions: Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
+				rojo: "",
+				type: ProjectType.Model,
+				optimizedLoops: true,
+			}),
 			projectPath: PROJECT_DIR,
 			rojoConfigPath: undefined,
 			tsConfigPath: "",
-			writeOnlyChanged: false,
-			optimizedLoops: false,
-			watch: false,
 		};
 
 		this.compilerOptions = {
@@ -59,7 +57,7 @@ export class VirtualProject {
 			strict: true,
 			target: ts.ScriptTarget.ESNext,
 			module: ts.ModuleKind.CommonJS,
-			moduleResolution: ts.ModuleResolutionKind.NodeJs,
+			moduleResolution: ts.ModuleResolutionKind.Node10,
 			moduleDetection: ts.ModuleDetectionKind.Force,
 			typeRoots: [RBXTS_SCOPE_PATH],
 			resolveJsonModule: true,
@@ -68,7 +66,7 @@ export class VirtualProject {
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
 			jsxFactory: "Roact.createElement",
-			jsxFragmentFactory: "Roact.Fragment",
+			jsxFragmentFactory: "Roact.createFragment",
 		};
 		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
 
@@ -92,7 +90,10 @@ export class VirtualProject {
 			include: {
 				$path: INCLUDE_PATH,
 				node_modules: {
-					$path: RBXTS_SCOPE_PATH,
+					$className: "Folder",
+					"@rbxts": {
+						$path: RBXTS_SCOPE_PATH,
+					},
 				},
 			},
 		} as never);
@@ -116,7 +117,7 @@ export class VirtualProject {
 
 		const diagnostics = new Array<ts.Diagnostic>();
 		diagnostics.push(...ts.getPreEmitDiagnostics(this.program, sourceFile));
-		diagnostics.push(...getCustomPreEmitDiagnostics(sourceFile));
+		diagnostics.push(...getCustomPreEmitDiagnostics(this.data, sourceFile));
 		if (hasErrors(diagnostics)) throw new DiagnosticError(diagnostics);
 
 		const multiTransformState = new MultiTransformState();
@@ -125,6 +126,7 @@ export class VirtualProject {
 		const projectType = this.data.projectOptions.type!;
 
 		const transformState = new TransformState(
+			this.program,
 			this.data,
 			services,
 			pathTranslator,

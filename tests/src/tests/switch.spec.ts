@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 export = () => {
 	it("should support switch statements with fall through", () => {
 		function foo(s: string) {

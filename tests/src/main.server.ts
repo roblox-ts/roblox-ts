@@ -1,3 +1,5 @@
+/// <reference types="@rbxts/testez/globals" />
+
 import { ServerScriptService } from "@rbxts/services";
 import TestEZ from "@rbxts/testez";
 

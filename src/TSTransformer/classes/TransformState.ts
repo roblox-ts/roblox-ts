@@ -24,6 +24,8 @@ export class TransformState {
 	public hasExportEquals = false;
 	public hasExportFrom = false;
 
+	public classIdentifierMap = new Map<ts.ClassLikeDeclaration, luau.AnyIdentifier>();
+
 	public debugRender(node: luau.Node) {
 		const state = new RenderState();
 		solveTempIds(state, node);
@@ -40,6 +42,7 @@ export class TransformState {
 	private isInReplicatedFirst: boolean;
 
 	constructor(
+		public readonly program: ts.Program,
 		public readonly data: ProjectData,
 		public readonly services: TransformServices,
 		public readonly pathTranslator: PathTranslator,
@@ -228,7 +231,7 @@ export class TransformState {
 				const rbxPath = this.rojoResolver.getRbxPathFromFilePath(sourceOutPath);
 				if (!rbxPath) {
 					DiagnosticService.addDiagnostic(
-						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath)),
+						errors.noRojoData(sourceFile, path.relative(this.data.projectPath, sourceOutPath), false),
 					);
 					return luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: luau.globals.TS,

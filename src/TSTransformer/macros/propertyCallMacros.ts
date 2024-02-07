@@ -42,7 +42,6 @@ const STRING_CALLBACKS: MacroList<PropertyCallMacro> = {
 };
 
 function makeEveryOrSomeMethod(
-	iterator: luau.Identifier,
 	callbackArgsListMaker: (
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
@@ -63,7 +62,7 @@ function makeEveryOrSomeMethod(
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(iterator, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: initialState ? luau.unary("not", callCallback) : callCallback,
@@ -86,25 +85,23 @@ function makeEveryOrSomeMethod(
 }
 
 function makeEveryMethod(
-	iterator: luau.Identifier,
 	callbackArgsListMaker: (
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
 		expression: luau.Expression,
 	) => Array<luau.Expression>,
 ): PropertyCallMacro {
-	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, true);
+	return makeEveryOrSomeMethod(callbackArgsListMaker, true);
 }
 
 function makeSomeMethod(
-	iterator: luau.Identifier,
 	callbackArgsListMaker: (
 		keyId: luau.TemporaryIdentifier,
 		valueId: luau.TemporaryIdentifier,
 		expression: luau.Expression,
 	) => Array<luau.Expression>,
 ): PropertyCallMacro {
-	return makeEveryOrSomeMethod(iterator, callbackArgsListMaker, false);
+	return makeEveryOrSomeMethod(callbackArgsListMaker, false);
 }
 
 function argumentsWithDefaults(
@@ -163,7 +160,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			state.prereq(
 				luau.create(luau.SyntaxKind.ForStatement, {
 					ids: luau.list.make(keyId, valueId),
-					expression: luau.call(luau.globals.ipairs, [expression]),
+					expression,
 					statements: luau.list.make(
 						luau.create(luau.SyntaxKind.Assignment, {
 							left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -216,13 +213,9 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		);
 	},
 
-	every: makeEveryMethod(luau.globals.ipairs, (keyId, valueId, expression) => [
-		valueId,
-		offset(keyId, -1),
-		expression,
-	]),
+	every: makeEveryMethod((keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
-	some: makeSomeMethod(luau.globals.ipairs, (keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
+	some: makeSomeMethod((keyId, valueId, expression) => [valueId, offset(keyId, -1), expression]),
 
 	forEach: (state, node, expression, args) => {
 		expression = state.pushToVarIfComplex(expression, "exp");
@@ -233,7 +226,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, offset(keyId, -1), expression]),
@@ -257,7 +250,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -286,7 +279,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.VariableDeclaration, {
 						left: resultId,
@@ -326,7 +319,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(indexId1),
-				expression: luau.call(luau.globals.pairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.binary(indexId1, ">", lengthId),
@@ -399,7 +392,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.create(luau.SyntaxKind.BinaryExpression, {
@@ -509,7 +502,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				ids: luau.list.make(loopId, valueId),
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.IfStatement, {
@@ -545,7 +538,7 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
-				expression: luau.call(luau.globals.ipairs, [expression]),
+				expression,
 				ids: luau.list.make(loopId, valueId),
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.IfStatement, {
@@ -574,16 +567,6 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
-		if (args.length === 0) {
-			return luau.unary("#", expression);
-		}
-
-		expression = state.pushToVarIfComplex(expression, valueToIdStr(expression) || "exp");
-
-		if (args.length > 1) {
-			args = args.map((arg, i) => state.pushToVarIfComplex(arg, valueToIdStr(arg) || `arg${i}`));
-		}
-
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
@@ -592,7 +575,8 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
+		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
+		return !isUsedAsStatement(node) || args.length === 0 ? luau.unary("#", expression) : luau.none();
 	},
 
 	pop: (state, node, expression) => {
@@ -732,7 +716,7 @@ const READONLY_SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(luau.tempId()),
-				expression: luau.call(luau.globals.pairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: sizeId,
@@ -808,7 +792,7 @@ const READONLY_SET_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(valueId),
-				expression: luau.call(luau.globals.pairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, valueId, expression]),
@@ -855,7 +839,7 @@ const READONLY_MAP_METHODS: MacroList<PropertyCallMacro> = {
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.pairs, [expression]),
+				expression,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
 						expression: luau.call(callbackId, [valueId, keyId, expression]),
@@ -927,11 +911,11 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 // comment logic
 
 function header(text: string) {
-	return luau.comment(`▼ ${text} ▼`);
+	return luau.comment(` ▼ ${text} ▼`);
 }
 
 function footer(text: string) {
-	return luau.comment(`▲ ${text} ▲`);
+	return luau.comment(` ▲ ${text} ▲`);
 }
 
 function wasExpressionPushed(statements: luau.List<luau.Statement>, expression: luau.Expression) {

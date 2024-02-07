@@ -1,68 +1,63 @@
 local Promise = require(script.Parent.Promise)
 
 local RunService = game:GetService("RunService")
-local ReplicatedFirst = game:GetService("ReplicatedFirst")
+
+local OUTPUT_PREFIX = "roblox-ts: "
+local NODE_MODULES = "node_modules"
+local DEFAULT_SCOPE = "@rbxts"
 
 local TS = {}
 
 TS.Promise = Promise
 
-local function isPlugin(object)
-	return RunService:IsStudio() and object:FindFirstAncestorWhichIsA("Plugin") ~= nil
+local function isPlugin(context)
+	return RunService:IsStudio() and context:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
 
-function TS.getModule(object, scope, moduleName)
+function TS.getModule(context, scope, moduleName)
+	-- legacy call signature
 	if moduleName == nil then
 		moduleName = scope
-		scope = "@rbxts"
-	end
-
-	if RunService:IsRunning() and object:IsDescendantOf(ReplicatedFirst) then
-		warn("roblox-ts packages should not be used from ReplicatedFirst!")
+		scope = DEFAULT_SCOPE
 	end
 
 	-- ensure modules have fully replicated
-	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(object) and not game:IsLoaded() then
+	if RunService:IsRunning() and RunService:IsClient() and not isPlugin(context) and not game:IsLoaded() then
 		game.Loaded:Wait()
 	end
 
-	local globalModules = script.Parent:FindFirstChild("node_modules")
-	if not globalModules then
-		error("Could not find any modules!", 2)
-	end
-
+	local object = context
 	repeat
-		local modules = object:FindFirstChild("node_modules")
-		if modules and modules ~= globalModules then
-			modules = modules:FindFirstChild("@rbxts")
-		end
-		if modules then
-			local module = modules:FindFirstChild(moduleName)
-			if module then
-				return module
+		local nodeModulesFolder = object:FindFirstChild(NODE_MODULES)
+		if nodeModulesFolder then
+			local scopeFolder = nodeModulesFolder:FindFirstChild(scope)
+			if scopeFolder then
+				local module = scopeFolder:FindFirstChild(moduleName)
+				if module then
+					return module
+				end
 			end
 		end
 		object = object.Parent
-	until object == nil or object == globalModules
+	until object == nil
 
-	local scopedModules = globalModules:FindFirstChild(scope or "@rbxts");
-	return (scopedModules or globalModules):FindFirstChild(moduleName) or error("Could not find module: " .. moduleName, 2)
+	error(OUTPUT_PREFIX .. "Could not find module: " .. moduleName, 2)
 end
 
 -- This is a hash which TS.import uses as a kind of linked-list-like history of [Script who Loaded] -> Library
 local currentlyLoading = {}
 local registeredLibraries = {}
 
-function TS.import(caller, module, ...)
+function TS.import(context, module, ...)
 	for i = 1, select("#", ...) do
 		module = module:WaitForChild((select(i, ...)))
 	end
 
 	if module.ClassName ~= "ModuleScript" then
-		error("Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
+		error(OUTPUT_PREFIX .. "Failed to import! Expected ModuleScript, got " .. module.ClassName, 2)
 	end
 
-	currentlyLoading[caller] = module
+	currentlyLoading[context] = module
 
 	-- Check to see if a case like this occurs:
 	-- module -> Module1 -> Module2 -> module
@@ -86,14 +81,16 @@ function TS.import(caller, module, ...)
 				str = str .. "  ⇒ " .. currentModule.Name
 			end
 
-			error("Failed to import! Detected a circular dependency chain: " .. str, 2)
+			error(OUTPUT_PREFIX .. "Failed to import! Detected a circular dependency chain: " .. str, 2)
 		end
 	end
 
 	if not registeredLibraries[module] then
 		if _G[module] then
 			error(
-				"Invalid module access! Do you have two TS runtimes trying to import this? " .. module:GetFullName(),
+				OUTPUT_PREFIX
+				.. "Invalid module access! Do you have multiple TS runtimes trying to import this? "
+				.. module:GetFullName(),
 				2
 			)
 		end
@@ -104,8 +101,8 @@ function TS.import(caller, module, ...)
 
 	local data = require(module)
 
-	if currentlyLoading[caller] == module then -- Thread-safe cleanup!
-		currentlyLoading[caller] = nil
+	if currentlyLoading[context] == module then -- Thread-safe cleanup!
+		currentlyLoading[context] = nil
 	end
 
 	return data
@@ -168,14 +165,19 @@ function TS.await(promise)
 	end
 end
 
-function TS.bit_lrsh(a, b)
-	local absA = math.abs(a)
-	local result = bit32.rshift(absA, b)
-	if a == absA then
-		return result
+local SIGN = 2 ^ 31
+local COMPLEMENT = 2 ^ 32
+local function bit_sign(num)
+	-- Restores the sign after an unsigned conversion according to 2s complement.
+	if bit32.btest(num, SIGN) then
+		return num - COMPLEMENT
 	else
-		return -result - 1
+		return num
 	end
+end
+
+function TS.bit_lrsh(a, b)
+	return bit_sign(bit32.arshift(a, b))
 end
 
 TS.TRY_RETURN = 1

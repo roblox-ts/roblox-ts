@@ -9,6 +9,7 @@ import {
 	REF_ATTRIBUTE_NAME,
 } from "TSTransformer/util/jsx/constants";
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
+import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -42,7 +43,7 @@ function createJsxAttributeLoop(
 	const valueId = luau.tempId("v");
 	let statement: luau.Statement = luau.create(luau.SyntaxKind.ForStatement, {
 		ids: luau.list.make(keyId, valueId),
-		expression: luau.call(luau.globals.pairs, [expression]),
+		expression,
 		statements: luau.list.make(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
@@ -86,7 +87,12 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 				disableMapInline(state, attributesPtr);
 			}
 			state.prereqList(initPrereqs);
-			assignToMapPointer(state, attributesPtr, createRoactIndex(attribute.name.text, property.name.text), init);
+			assignToMapPointer(
+				state,
+				attributesPtr,
+				createRoactIndex(getAttributeNameText(attribute.name), property.name.text),
+				init,
+			);
 		}
 	} else {
 		disableMapInline(state, attributesPtr);
@@ -97,13 +103,13 @@ function transformSpecialAttribute(state: TransformState, attribute: ts.JsxAttri
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(keyId, valueId),
-				expression: luau.call(luau.globals.pairs, [init]),
+				expression: init,
 				statements: luau.list.make(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 							expression: attributesPtr.value,
 							index: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-								expression: createRoactIndex(attribute.name.text),
+								expression: createRoactIndex(getAttributeNameText(attribute.name)),
 								index: keyId,
 							}),
 						}),
@@ -120,7 +126,7 @@ function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
 	assert(state.services.roactSymbolManager);
 	const contextualType = state.typeChecker.getContextualType(attribute.parent);
 	if (contextualType) {
-		const symbol = contextualType.getProperty(attribute.name.text);
+		const symbol = contextualType.getProperty(getAttributeNameText(attribute.name));
 		if (symbol) {
 			const targetSymbol = ts.getSymbolTarget(symbol, state.typeChecker);
 			if (
@@ -135,7 +141,7 @@ function isSpecialAttribute(state: TransformState, attribute: ts.JsxAttribute) {
 }
 
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
-	const attributeName = attribute.name.text;
+	const attributeName = getAttributeNameText(attribute.name);
 	if (attributeName === KEY_ATTRIBUTE_NAME) return;
 
 	if (isSpecialAttribute(state, attribute)) {

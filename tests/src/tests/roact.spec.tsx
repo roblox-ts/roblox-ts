@@ -1,13 +1,13 @@
-/// <reference types="@rbxts/testez/globals" />
-
 import Roact from "@rbxts/roact";
 
 const RoactModule = game
 	.GetService("ReplicatedStorage")
-	.WaitForChild("include")
-	.WaitForChild("node_modules")
-	.WaitForChild("roact")
-	.WaitForChild("src") as ModuleScript;
+	.FindFirstChild("include")
+	?.FindFirstChild("node_modules")
+	?.FindFirstChild("@rbxts")
+	?.FindFirstChild("roact")
+	?.FindFirstChild("src") as ModuleScript | undefined;
+assert(RoactModule, "Unable to find @rbxts/roact!");
 
 declare interface ElementKind {
 	Portal: symbol;
@@ -17,9 +17,9 @@ declare interface ElementKind {
 	Fragment: symbol;
 	of: (value: unknown) => boolean;
 }
-const ElementKind = require(RoactModule.WaitForChild(
-	"ElementKind"
-) as ModuleScript) as ElementKind;
+const ElementKindModule = RoactModule.FindFirstChild("ElementKind") as ModuleScript | undefined;
+assert(ElementKindModule, "Unable to find ElementKind module in @rbxts/roact!");
+const ElementKind = require(ElementKindModule) as ElementKind;
 
 declare interface Type {
 	Binding: symbol;
@@ -31,7 +31,9 @@ declare interface Type {
 	VirtualTree: symbol;
 	of: (value: unknown) => boolean;
 }
-const Type = require(RoactModule.WaitForChild("Type") as ModuleScript) as Type;
+const TypeModule = RoactModule.FindFirstChild("Type") as ModuleScript | undefined;
+assert(TypeModule, "Unable to find Type module in @rbxts/roact!");
+const Type = require(TypeModule) as Type;
 
 type ExplicitProps<P = {}> = Partial<P> & {
 	[Roact.Children]: { [name: string]: Roact.Element | undefined };

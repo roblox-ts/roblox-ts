@@ -1,5 +1,3 @@
-/// <reference types="@rbxts/testez/globals" />
-
 // Basic enum test
 enum Fruits {
 	Apple,
@@ -116,5 +114,39 @@ export = () => {
 
 	it("should support const enums with escaped quotes", () => {
 		expect(EnumWithEscapedQuoteConst.Quote).to.equal('"');
+	});
+
+	it("should support computed keys", () => {
+		const constKeyIndex = 4;
+		let constKeyValue = 7;
+		enum ConstComputedKey {
+			// @ts-expect-error computed enum property key
+			[constKeyIndex] = constKeyValue,
+		}
+		expect(ConstComputedKey[4]).to.equal(7);
+
+		let computedKeyIndex = 1;
+		enum ComputedKey {
+			// @ts-expect-error computed enum property key
+			[computedKeyIndex++] = computedKeyIndex,
+		}
+		expect(ComputedKey[1]).to.equal(2);
+		expect(computedKeyIndex).to.equal(2);
+
+		let computedValueIndex = 3;
+		enum PrereqInValue {
+			// @ts-expect-error computed enum property key
+			[computedValueIndex] = (computedValueIndex = 6),
+		}
+		expect(PrereqInValue[3]).to.equal(6);
+		expect(computedValueIndex).to.equal(6);
+
+		let obj = { prop: 8 };
+		enum PrereqValueReference {
+			// @ts-expect-error computed enum property key
+			[obj.prop] = (obj.prop = 6),
+		}
+		expect(PrereqValueReference[8]).to.equal(6);
+		expect(obj.prop).to.equal(6);
 	});
 };
