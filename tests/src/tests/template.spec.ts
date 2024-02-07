@@ -19,6 +19,12 @@ world`).to.equal("hello\\\nworld");
 		expect(`${value} ${[]}`.size()).to.equal(6 + tableStrLength);
 		expect(`${value} ${new Map()}`.size()).to.equal(6 + tableStrLength);
 		expect(`${value} ${new Set()}`.size()).to.equal(6 + tableStrLength);
+
+		function returnsTuple() {
+			return $tuple("Osyris", "rimuy", "Dionysusnu");
+		}
+		
+		expect(`${value} ${returnsTuple()}`.size()).to.equal(6 + tableStrLength);
 	});
 
 	it("should support tagged TemplateExpression", () => {
