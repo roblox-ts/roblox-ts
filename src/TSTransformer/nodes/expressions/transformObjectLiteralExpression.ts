@@ -49,6 +49,7 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		);
 		state.prereq(
 			luau.create(luau.SyntaxKind.CallStatement, {
+				// Explicitly remove metatable because things like classes can be spread
 				expression: luau.call(luau.globals.setmetatable, [ptr.value, luau.nil()]),
 			}),
 		);
