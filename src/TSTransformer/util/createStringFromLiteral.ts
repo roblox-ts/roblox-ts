@@ -10,9 +10,7 @@ const TEMPLATE_EXP_END = "}".length;
  * Cannot just use `node.text` because that converts `\\n` to be `\n`.
  */
 export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral): luau.StringLiteral {
-	// JsxText is converted to a synthetic StringLiteral
-	// .getText() doesn't work on synthetic nodes
-	let text = ts.positionIsSynthesized(node.pos) ? node.text : node.getText();
+	let text = node.getText();
 	if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
 		text = ts.stripQuotes(text);
 	} else if (ts.isTemplateHead(node)) {
