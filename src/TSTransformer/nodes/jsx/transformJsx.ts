@@ -14,8 +14,6 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
-	// TODO: diagnostic for non-terminating JSX child element spreads
-
 	const tagNameExp = transformJsxTagName(state, tagName);
 	const attributesPtr = createMapPointer("attributes");
 	transformJsxAttributes(state, attributes, attributesPtr);
