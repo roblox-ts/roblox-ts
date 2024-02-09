@@ -53,14 +53,14 @@ It is not necessary to run the "devlink" script again.
 Effectively, this folder is a tiny **roblox-ts** game. Testing process is as follows:
 
 1. Compile tests project to create a `/tests/out` folder containing `.lua` files
-2. Use `rojo build` to create `/tests/test.rbxlx`
-3. Use `run-in-roblox` to open studio and execute the tests
+2. Use `rojo build` to create `/tests/test.rbxl`
+3. Use `lune` to execute the tests
 
 You can run this process yourself if you have Roblox Studio and [foreman](https://github.com/Roblox/foreman) installed. (Only works on Windows and MacOS)
 
 ```sh
-# install rojo + run-in-roblox
+# install rojo + lune
 foreman install
-# Compile tests, build .rbxlx, run with run-in-roblox
+# Compile tests, build .rbxl, run with lune
 npm test
 ```
