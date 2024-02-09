@@ -8,12 +8,19 @@ function getJsxIndex(factory: string) {
 	return propertyAccessExpressionChain(luau.id(namespace), path);
 }
 
-export function getCreateFragmentIndex(state: TransformState) {
-	assert(state.compilerOptions.jsxFragmentFactory);
+export function getJsxCreateFragmentIndex(state: TransformState) {
+	if (!state.compilerOptions.jsxFragmentFactory) {
+		// TODO: diagnostic
+		return luau.none();
+	}
 	return getJsxIndex(state.compilerOptions.jsxFragmentFactory);
 }
 
-export function getCreateElementIndex(state: TransformState) {
+export function getJsxCreateElementIndex(state: TransformState) {
 	assert(state.compilerOptions.jsxFactory);
+	if (!state.compilerOptions.jsxFactory) {
+		// TODO: diagnostic
+		return luau.none();
+	}
 	return getJsxIndex(state.compilerOptions.jsxFactory);
 }

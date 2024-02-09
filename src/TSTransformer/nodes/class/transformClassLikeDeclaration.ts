@@ -75,7 +75,7 @@ function createBoilerplate(
 			luau.create(luau.SyntaxKind.Assignment, {
 				left: className,
 				operator: "=",
-				right: luau.mixedTable(),
+				right: luau.map(),
 			}),
 		);
 	} else {

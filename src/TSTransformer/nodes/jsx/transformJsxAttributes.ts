@@ -1,24 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
+import { getJsxNamespacedNameText } from "TSTransformer/util/jsx/getJsxNamespacedNameText";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import ts from "typescript";
-
-function transformJsxInitializer(
-	state: TransformState,
-	initializer: ts.Expression | undefined,
-): [node: luau.Expression, prereqs: luau.List<luau.Statement>] {
-	if (initializer && ts.isJsxExpression(initializer)) {
-		initializer = initializer.expression;
-	}
-	if (initializer) {
-		return state.capture(() => transformExpression(state, initializer!));
-	} else {
-		return [luau.bool(true), luau.list.make<luau.Statement>()];
-	}
-}
 
 function createJsxAttributeLoop(
 	state: TransformState,
@@ -60,13 +46,22 @@ function createJsxAttributeLoop(
 }
 
 function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute, attributesPtr: MapPointer) {
-	const [init, initPrereqs] = transformJsxInitializer(state, attribute.initializer);
+	let initializer: ts.Expression | undefined = attribute.initializer;
+	if (initializer && ts.isJsxExpression(initializer)) {
+		initializer = initializer.expression;
+	}
+
+	const [init, initPrereqs] = initializer
+		? state.capture(() => transformExpression(state, initializer!))
+		: [luau.bool(true), luau.list.make<luau.Statement>()];
+
 	if (!luau.list.isEmpty(initPrereqs)) {
 		disableMapInline(state, attributesPtr);
 		state.prereqList(initPrereqs);
 	}
 
-	const name = luau.string(getAttributeNameText(attribute.name));
+	const text = ts.isIdentifier(attribute.name) ? attribute.name.text : getJsxNamespacedNameText(attribute.name);
+	const name = luau.string(text);
 	assignToMapPointer(state, attributesPtr, name, init);
 }
 
