@@ -9,7 +9,7 @@ import ts from "typescript";
 
 export function transformJsxFragment(state: TransformState, node: ts.JsxFragment) {
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
-	assert(jsxFactoryEntity);
+	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
 	const jsxFragmentFactoryEntity = state.resolver.getJsxFragmentFactoryEntity(node);
 	if (!jsxFragmentFactoryEntity) {
