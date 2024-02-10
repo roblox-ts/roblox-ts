@@ -19,7 +19,7 @@ export function transformClassConstructor(
 ) {
 	const statements = luau.list.make<luau.Statement>();
 
-	const bodyStatements = originNode ? getStatements(originNode.body) : [];
+	let bodyStatements = originNode ? getStatements(originNode.body) : [];
 
 	let removeFirstSuper = false;
 
@@ -110,6 +110,14 @@ export function transformClassConstructor(
 					right,
 				}),
 			);
+		}
+	}
+
+	// if removeFirstSuper and first statement is `super()`, remove it
+	if (removeFirstSuper && bodyStatements.length > 0) {
+		const firstStatement = bodyStatements[0];
+		if (ts.isExpressionStatement(firstStatement) && ts.isSuperCall(firstStatement.expression)) {
+			bodyStatements = bodyStatements.slice(1);
 		}
 	}
 
