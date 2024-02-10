@@ -208,7 +208,6 @@ export const errors = {
 
 	// jsx
 	noPrecedingJsxSpreadElement: error("JSX spread expression must come last in children!"),
-	noJsxFragmentFactory: error("jsxFragmentFactory must be defined to use JSX Fragment expressions!"),
 
 	// semantic
 	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),

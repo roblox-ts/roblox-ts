@@ -1,8 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -12,11 +10,12 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
 	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
-	const jsxFragmentFactoryEntity = state.resolver.getJsxFragmentFactoryEntity(node);
-	if (!jsxFragmentFactoryEntity) {
-		DiagnosticService.addDiagnostic(errors.noJsxFragmentFactory(node));
-		return luau.none();
-	}
+	// getJsxFragmentFactoryEntity() doesn't seem to default to "Fragment"..
+	// but the typechecker does, so we should follow that behavior
+	const jsxFragmentFactoryEntity =
+		state.resolver.getJsxFragmentFactoryEntity(node) ??
+		ts.parseIsolatedEntityName("Fragment", ts.ScriptTarget.ESNext);
+	assert(jsxFragmentFactoryEntity, "Unable to find valid jsxFragmentFactoryEntity");
 
 	const transformedChildren = transformJsxChildren(state, node.children);
 
