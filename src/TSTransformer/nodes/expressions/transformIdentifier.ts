@@ -12,6 +12,8 @@ import ts from "typescript";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
 	// synthetic nodes don't have parents
+	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
+	// and transformEntityName will eventually end up here
 	if (node.parent) {
 		const symbol = ts.isShorthandPropertyAssignment(node.parent)
 			? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
