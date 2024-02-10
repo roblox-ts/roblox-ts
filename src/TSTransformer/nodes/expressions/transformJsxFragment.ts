@@ -5,6 +5,7 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
 export function transformJsxFragment(state: TransformState, node: ts.JsxFragment) {
@@ -17,7 +18,7 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 		return luau.none();
 	}
 
-	return luau.call(transformEntityName(state, jsxFactoryEntity), [
+	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), [
 		transformEntityName(state, jsxFragmentFactoryEntity),
 		luau.map(),
 		...transformJsxChildren(state, node.children),

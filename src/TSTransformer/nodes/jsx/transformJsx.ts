@@ -5,6 +5,7 @@ import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttr
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
 import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createMapPointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
@@ -23,7 +24,7 @@ export function transformJsx(
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
 	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
-	return luau.call(transformEntityName(state, jsxFactoryEntity), [
+	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), [
 		tagNameExp,
 		attributesPtr.value,
 		...transformJsxChildren(state, children),
