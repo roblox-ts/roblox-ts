@@ -11,19 +11,14 @@ import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
-	// synthetic nodes don't have parents
-	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
-	// and transformEntityName will eventually end up here
-	if (node.parent) {
-		const symbol = ts.isShorthandPropertyAssignment(node.parent)
-			? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
-			: state.typeChecker.getSymbolAtLocation(node);
-		assert(symbol);
+	const symbol = ts.isShorthandPropertyAssignment(node.parent)
+		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
+		: state.typeChecker.getSymbolAtLocation(node);
+	assert(symbol);
 
-		const replacementId = state.symbolToIdMap.get(symbol);
-		if (replacementId) {
-			return replacementId;
-		}
+	const replacementId = state.symbolToIdMap.get(symbol);
+	if (replacementId) {
+		return replacementId;
 	}
 
 	return luau.create(luau.SyntaxKind.Identifier, {
@@ -113,6 +108,13 @@ function checkIdentifierHoist(state: TransformState, node: ts.Identifier, symbol
 }
 
 export function transformIdentifier(state: TransformState, node: ts.Identifier) {
+	// synthetic nodes don't have parents or symbols, so skip all the symbol-related logic
+	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
+	// and transformEntityName will eventually end up here
+	if (ts.positionIsSynthesized(node.pos)) {
+		return luau.create(luau.SyntaxKind.Identifier, { name: node.text });
+	}
+
 	const symbol = ts.isShorthandPropertyAssignment(node.parent)
 		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
 		: state.typeChecker.getSymbolAtLocation(node);
