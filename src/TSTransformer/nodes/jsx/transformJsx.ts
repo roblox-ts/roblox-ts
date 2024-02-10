@@ -1,9 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { transformJsxAttributes } from "TSTransformer/nodes/jsx/transformJsxAttributes";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
-import { getJsxCreateElementIndex } from "TSTransformer/util/jsx/getJsxIndex";
+import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
 import { createMapPointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
@@ -18,7 +19,11 @@ export function transformJsx(
 	const attributesPtr = createMapPointer("attributes");
 	transformJsxAttributes(state, attributes, attributesPtr);
 
-	return luau.call(getJsxCreateElementIndex(state), [
+	// jsxFactoryEntity seems to always be defined and will default to `React.createElement`
+	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
+	assert(jsxFactoryEntity);
+
+	return luau.call(transformEntityName(state, jsxFactoryEntity), [
 		tagNameExp,
 		attributesPtr.value,
 		...transformJsxChildren(state, children),

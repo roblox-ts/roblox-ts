@@ -11,14 +11,17 @@ import { getFirstConstructSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 export function transformIdentifierDefined(state: TransformState, node: ts.Identifier) {
-	const symbol = ts.isShorthandPropertyAssignment(node.parent)
-		? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
-		: state.typeChecker.getSymbolAtLocation(node);
-	assert(symbol);
+	// synthetic nodes don't have parents
+	if (node.parent) {
+		const symbol = ts.isShorthandPropertyAssignment(node.parent)
+			? state.typeChecker.getShorthandAssignmentValueSymbol(node.parent)
+			: state.typeChecker.getSymbolAtLocation(node);
+		assert(symbol);
 
-	const replacementId = state.symbolToIdMap.get(symbol);
-	if (replacementId) {
-		return replacementId;
+		const replacementId = state.symbolToIdMap.get(symbol);
+		if (replacementId) {
+			return replacementId;
+		}
 	}
 
 	return luau.create(luau.SyntaxKind.Identifier, {
