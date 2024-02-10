@@ -81,9 +81,9 @@ export function transformEnumDeclaration(state: TransformState, node: ts.EnumDec
 				ts.isComputedPropertyName(member.name) ? member.name.expression : member.name,
 			)
 				? // note: we don't use pushToVarIfComplex here
-				  // because identifier also needs to be pushed
-				  // since the value calculation might reassign the variable
-				  state.pushToVar(name)
+					// because identifier also needs to be pushed
+					// since the value calculation might reassign the variable
+					state.pushToVar(name)
 				: name;
 
 			const value = state.typeChecker.getConstantValue(member);
