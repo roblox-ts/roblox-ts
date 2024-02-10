@@ -1,5 +1,4 @@
 import { SYMBOL_NAMES, TransformState } from "TSTransformer";
-import { JSXSymbolNames } from "TSTransformer/classes/JSXSymbolManager";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 import ts from "typescript";
@@ -186,13 +185,6 @@ export function isEmptyStringType(type: ts.Type) {
 		return type.texts.length === 0 || type.texts.every(v => v.length === 0);
 	}
 	return isStringType(type);
-}
-
-export function isJSXElementType(state: TransformState): TypeCheck {
-	return type => {
-		const symbol = state.services.jsxSymbolManager?.getSymbol(JSXSymbolNames.Element);
-		return symbol !== undefined && type.symbol === symbol;
-	};
 }
 
 // type utilities
