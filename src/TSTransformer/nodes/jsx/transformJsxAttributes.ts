@@ -1,19 +1,29 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createTruthinessChecks, willCreateTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { getJsxNamespacedNameText } from "TSTransformer/util/jsx/getJsxNamespacedNameText";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function createJsxAttributeLoop(
 	state: TransformState,
 	attributesPtrValue: luau.AnyIdentifier,
 	expression: luau.Expression,
-	type: ts.Type,
+	node: ts.Expression,
 ) {
-	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
-	if (possiblyUndefined) {
+	const type = state.getType(node);
+
+	const symbol = getFirstDefinedSymbol(state, type);
+	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
+		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(node));
+	}
+
+	const possiblyFalsy = willCreateTruthinessChecks(type);
+	if (possiblyFalsy) {
 		expression = state.pushToVarIfComplex(expression, "attribute");
 	}
 
@@ -34,9 +44,9 @@ function createJsxAttributeLoop(
 		),
 	});
 
-	if (possiblyUndefined) {
+	if (possiblyFalsy) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: expression,
+			condition: createTruthinessChecks(state, expression, node),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
@@ -73,9 +83,7 @@ export function transformJsxAttributes(state: TransformState, attributes: ts.Jsx
 			// spread attributes
 			disableMapInline(state, attributesPtr);
 			const expression = transformExpression(state, attribute.expression);
-			state.prereq(
-				createJsxAttributeLoop(state, attributesPtr.value, expression, state.getType(attribute.expression)),
-			);
+			state.prereq(createJsxAttributeLoop(state, attributesPtr.value, expression, attribute.expression));
 		}
 	}
 }
