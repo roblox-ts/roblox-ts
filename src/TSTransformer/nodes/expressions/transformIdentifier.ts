@@ -111,7 +111,7 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	// synthetic nodes don't have parents or symbols, so skip all the symbol-related logic
 	// JSX EntityName functions like `getJsxFactoryEntity()` will return synthetic nodes
 	// and transformEntityName will eventually end up here
-	if (ts.positionIsSynthesized(node.pos)) {
+	if (!node.parent || ts.positionIsSynthesized(node.pos)) {
 		return luau.create(luau.SyntaxKind.Identifier, { name: node.text });
 	}
 
