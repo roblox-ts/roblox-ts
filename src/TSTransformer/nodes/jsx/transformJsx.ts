@@ -21,7 +21,7 @@ export function transformJsx(
 
 	// jsxFactoryEntity seems to always be defined and will default to `React.createElement`
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
-	assert(jsxFactoryEntity);
+	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
 	return luau.call(transformEntityName(state, jsxFactoryEntity), [
 		tagNameExp,
