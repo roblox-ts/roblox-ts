@@ -19,7 +19,6 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 
 	return luau.call(transformEntityName(state, jsxFactoryEntity), [
 		transformEntityName(state, jsxFragmentFactoryEntity),
-		// getJsxIndex(state.typeChecker.getJsxFragmentFactory(node) ?? "Fragment"),
 		luau.map(),
 		...transformJsxChildren(state, node.children),
 	]);
