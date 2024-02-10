@@ -18,9 +18,15 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 		return luau.none();
 	}
 
-	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), [
-		transformEntityName(state, jsxFragmentFactoryEntity),
-		luau.map(),
-		...transformJsxChildren(state, node.children),
-	]);
+	const transformedChildren = transformJsxChildren(state, node.children);
+
+	const args = [transformEntityName(state, jsxFragmentFactoryEntity)];
+
+	if (transformedChildren.length > 0) {
+		args.push(luau.nil());
+	}
+
+	args.push(...transformedChildren);
+
+	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), args);
 }

@@ -6,7 +6,7 @@ import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildr
 import { transformJsxTagName } from "TSTransformer/nodes/jsx/transformJsxTagName";
 import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { createMapPointer } from "TSTransformer/util/pointer";
+import { createMapPointer, MapPointer } from "TSTransformer/util/pointer";
 import ts from "typescript";
 
 export function transformJsx(
@@ -17,16 +17,28 @@ export function transformJsx(
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
 	const tagNameExp = transformJsxTagName(state, tagName);
-	const attributesPtr = createMapPointer("attributes");
-	transformJsxAttributes(state, attributes, attributesPtr);
+
+	let attributesPtr: MapPointer | undefined;
+	if (attributes.properties.length > 0) {
+		attributesPtr = createMapPointer("attributes");
+		transformJsxAttributes(state, attributes, attributesPtr);
+	}
 
 	// jsxFactoryEntity seems to always be defined and will default to `React.createElement`
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
 	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
-	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), [
-		tagNameExp,
-		attributesPtr.value,
-		...transformJsxChildren(state, children),
-	]);
+	const transformedChildren = transformJsxChildren(state, children);
+
+	const args = [tagNameExp];
+
+	if (attributesPtr) {
+		args.push(attributesPtr.value);
+	} else if (transformedChildren.length > 0) {
+		args.push(luau.nil());
+	}
+
+	args.push(...transformedChildren);
+
+	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), args);
 }
