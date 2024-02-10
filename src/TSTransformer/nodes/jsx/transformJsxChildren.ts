@@ -30,7 +30,8 @@ export function transformJsxChildren(state: TransformState, children: ReadonlyAr
 			.filter(v => !ts.isJsxExpression(v) || v.expression !== undefined),
 		(state, node) => {
 			if (ts.isJsxText(node)) {
-				return luau.string(fixupWhitespaceAndDecodeEntities(node.text) ?? "");
+				const text = fixupWhitespaceAndDecodeEntities(node.text) ?? "";
+				return luau.string(text.replace(/\\/g, "\\\\"));
 			}
 			return transformExpression(state, node);
 		},
