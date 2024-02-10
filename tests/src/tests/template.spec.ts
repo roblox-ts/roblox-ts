@@ -8,10 +8,10 @@ export = () => {
 		expect(`1 ${`2 ${`3 ${4}`}`}`).to.equal("1 2 3 4");
 		expect(`${value} {}`).to.equal("hello \{\}");
 		expect(`${value} {world}`).to.equal("hello \{world\}");
-		expect(`${value}\nworld`).to.equal("hello\\nworld");
+		expect(`${value}\nworld`).to.equal("hello\nworld");
 		expect(`${value}
-world`).to.equal("hello\\\nworld");
-		expect(`${value} ${{}}`).to.never.throw();
+world`).to.equal("hello\nworld");
+		expect(() => `${value} ${{}}`).to.never.throw();
 		expect(`${value} ${0} ${1}`.size()).to.equal(9);
 
 		const tableStrLength = tostring({}).size();
@@ -23,7 +23,7 @@ world`).to.equal("hello\\\nworld");
 		function returnsTuple() {
 			return $tuple("Osyris", "rimuy", "Dionysusnu");
 		}
-		
+
 		expect(`${value} ${returnsTuple()}`.size()).to.equal(6 + tableStrLength);
 	});
 
