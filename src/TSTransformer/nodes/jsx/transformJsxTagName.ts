@@ -4,7 +4,6 @@ import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { getJsxNamespacedNameText } from "TSTransformer/util/jsx/getJsxNamespacedNameText";
 import ts from "typescript";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
@@ -22,7 +21,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else if (ts.isJsxNamespacedName(node)) {
-		return luau.string(getJsxNamespacedNameText(node));
+		return luau.string(ts.getTextOfJsxNamespacedName(node));
 	} else {
 		return transformExpression(state, node);
 	}

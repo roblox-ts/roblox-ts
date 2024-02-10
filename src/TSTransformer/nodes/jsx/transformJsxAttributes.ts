@@ -1,7 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
-import { getJsxNamespacedNameText } from "TSTransformer/util/jsx/getJsxNamespacedNameText";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
 import ts from "typescript";
@@ -60,7 +59,7 @@ function transformJsxAttribute(state: TransformState, attribute: ts.JsxAttribute
 		state.prereqList(initPrereqs);
 	}
 
-	const text = ts.isIdentifier(attribute.name) ? attribute.name.text : getJsxNamespacedNameText(attribute.name);
+	const text = ts.isIdentifier(attribute.name) ? attribute.name.text : ts.getTextOfJsxNamespacedName(attribute.name);
 	const name = luau.string(text);
 	assignToMapPointer(state, attributesPtr, name, init);
 }
