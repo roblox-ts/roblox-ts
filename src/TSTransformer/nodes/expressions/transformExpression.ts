@@ -18,6 +18,7 @@ import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJs
 import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
+import { transformNoSubstitutionTemplateLiteral } from "TSTransformer/nodes/expressions/transformNoSubstitutionTemplateLiteral";
 import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformOmittedExpression } from "TSTransformer/nodes/expressions/transformOmittedExpression";
@@ -27,10 +28,7 @@ import { transformSpreadElement } from "TSTransformer/nodes/expressions/transfor
 import { transformStringLiteral } from "TSTransformer/nodes/expressions/transformStringLiteral";
 import { transformSuperKeyword } from "TSTransformer/nodes/expressions/transformSuperKeyword";
 import { transformTaggedTemplateExpression } from "TSTransformer/nodes/expressions/transformTaggedTemplateExpression";
-import {
-	transformNoSubstitutionTemplateLiteral,
-	transformTemplateExpression,
-} from "TSTransformer/nodes/expressions/transformTemplateExpression";
+import { transformTemplateExpression } from "TSTransformer/nodes/expressions/transformTemplateExpression";
 import { transformThisExpression } from "TSTransformer/nodes/expressions/transformThisExpression";
 import { transformTypeExpression } from "TSTransformer/nodes/expressions/transformTypeExpression";
 import {

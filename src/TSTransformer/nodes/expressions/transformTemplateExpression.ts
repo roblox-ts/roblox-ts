@@ -1,26 +1,14 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { createStringFromLiteral } from "TSTransformer/util/createStringFromLiteral";
+import { transformInterpolatedStringPart } from "TSTransformer/nodes/transformInterpolatedStringPart";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import ts from "typescript";
-
-function createInterpolatedStringPart(node: ts.TemplateLiteralToken | ts.StringLiteral) {
-	return luau.create(luau.SyntaxKind.InterpolatedStringPart, { text: createStringFromLiteral(node) });
-}
-
-// backtick string literals without interpolation expressions should be preserved
-// as they still are valid in luau
-export function transformNoSubstitutionTemplateLiteral(state: TransformState, node: ts.NoSubstitutionTemplateLiteral) {
-	return luau.create(luau.SyntaxKind.InterpolatedString, {
-		parts: luau.list.make(createInterpolatedStringPart(node)),
-	});
-}
 
 export function transformTemplateExpression(state: TransformState, node: ts.TemplateExpression) {
 	const parts = luau.list.make<luau.InterpolatedStringPart | luau.Expression>();
 
 	if (node.head.text.length > 0) {
-		luau.list.push(parts, createInterpolatedStringPart(node.head));
+		luau.list.push(parts, transformInterpolatedStringPart(node.head));
 	}
 
 	const orderedExpressions = ensureTransformOrder(
@@ -33,7 +21,7 @@ export function transformTemplateExpression(state: TransformState, node: ts.Temp
 
 		const templateSpan = node.templateSpans[i];
 		if (templateSpan.literal.text.length > 0) {
-			luau.list.push(parts, createInterpolatedStringPart(templateSpan.literal));
+			luau.list.push(parts, transformInterpolatedStringPart(templateSpan.literal));
 		}
 	}
 
