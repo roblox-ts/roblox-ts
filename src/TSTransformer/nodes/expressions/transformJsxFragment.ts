@@ -23,6 +23,7 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 
 	const transformedChildren = transformJsxChildren(state, node.children);
 
+	// props parameter
 	if (transformedChildren.length > 0) {
 		args.push(luau.nil());
 	}
