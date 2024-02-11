@@ -18,6 +18,7 @@ import {
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOperator";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
+import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { getKindName } from "TSTransformer/util/getKindName";
 import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
@@ -197,9 +198,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 				state,
 				writable,
 				operator,
-				operator === "..=" && !isDefinitelyType(valueType, isStringType)
-					? luau.call(luau.globals.tostring, [value])
-					: value,
+				getAssignableValue(operator, value, valueType),
 			);
 		} else {
 			return createCompoundAssignmentExpression(
