@@ -58,10 +58,10 @@ export function fixupWhitespaceAndDecodeEntities(text: string): string | undefin
 
 	return firstNonWhitespace !== -1
 		? // Last line had a non-whitespace character. Emit the 'trimLeft', meaning keep trailing whitespace.
-		  // eslint-disable-next-line deprecation/deprecation
-		  addLineOfJsxText(acc, text.substr(firstNonWhitespace))
+			// eslint-disable-next-line deprecation/deprecation
+			addLineOfJsxText(acc, text.substr(firstNonWhitespace))
 		: // Last line was all whitespace, so ignore it
-		  acc;
+			acc;
 }
 function addLineOfJsxText(acc: string | undefined, trimmedLine: string): string {
 	// We do not escape the string here as that is handled by the printer
