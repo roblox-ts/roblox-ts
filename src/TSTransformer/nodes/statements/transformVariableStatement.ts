@@ -8,7 +8,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { arrayBindingPatternContainsHoists } from "TSTransformer/util/arrayBindingPatternContainsHoists";
+import { canInlineArrayBindingPattern } from "TSTransformer/util/canOptimiseArrayBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
@@ -136,14 +136,13 @@ export function transformVariableDeclaration(
 			if (
 				luau.isCall(value) &&
 				isLuaTupleType(state)(state.getType(node.initializer)) &&
-				!arrayBindingPatternContainsHoists(state, name)
+				canInlineArrayBindingPattern(state, name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value));
 			} else if (
 				luau.isArray(value) &&
 				!luau.list.isEmpty(value.members) &&
-				// we can't localize multiple variables at the same time if any of them are hoisted
-				!arrayBindingPatternContainsHoists(state, name)
+				canInlineArrayBindingPattern(state, name)
 			) {
 				luau.list.pushList(statements, transformOptimizedArrayBindingPattern(state, name, value.members));
 			} else {
