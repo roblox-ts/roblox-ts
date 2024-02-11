@@ -16,6 +16,12 @@ export function transformJsx(
 	attributes: ts.JsxAttributes,
 	children: ReadonlyArray<ts.JsxChild>,
 ) {
+	// jsxFactoryEntity seems to always be defined and will default to `React.createElement`
+	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
+	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
+
+	const createElementExpression = convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity));
+
 	const tagNameExp = transformJsxTagName(state, tagName);
 
 	let attributesPtr: MapPointer | undefined;
@@ -23,10 +29,6 @@ export function transformJsx(
 		attributesPtr = createMapPointer("attributes");
 		transformJsxAttributes(state, attributes, attributesPtr);
 	}
-
-	// jsxFactoryEntity seems to always be defined and will default to `React.createElement`
-	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
-	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
 	const transformedChildren = transformJsxChildren(state, children);
 
@@ -40,5 +42,5 @@ export function transformJsx(
 
 	args.push(...transformedChildren);
 
-	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), args);
+	return luau.call(createElementExpression, args);
 }

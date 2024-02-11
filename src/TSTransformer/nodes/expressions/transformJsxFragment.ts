@@ -10,6 +10,8 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
 	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
 
+	const createElementExpression = convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity));
+
 	// getJsxFragmentFactoryEntity() doesn't seem to default to "Fragment"..
 	// but the typechecker does, so we should follow that behavior
 	const jsxFragmentFactoryEntity =
@@ -17,9 +19,9 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 		ts.parseIsolatedEntityName("Fragment", ts.ScriptTarget.ESNext);
 	assert(jsxFragmentFactoryEntity, "Unable to find valid jsxFragmentFactoryEntity");
 
-	const transformedChildren = transformJsxChildren(state, node.children);
-
 	const args = [transformEntityName(state, jsxFragmentFactoryEntity)];
+
+	const transformedChildren = transformJsxChildren(state, node.children);
 
 	if (transformedChildren.length > 0) {
 		args.push(luau.nil());
@@ -27,5 +29,5 @@ export function transformJsxFragment(state: TransformState, node: ts.JsxFragment
 
 	args.push(...transformedChildren);
 
-	return luau.call(convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity)), args);
+	return luau.call(createElementExpression, args);
 }
