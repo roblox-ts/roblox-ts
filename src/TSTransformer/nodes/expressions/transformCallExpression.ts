@@ -118,6 +118,7 @@ export function transformCallExpressionInner(
 		return transformImportExpression(state, node);
 	}
 
+	// a in a()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
