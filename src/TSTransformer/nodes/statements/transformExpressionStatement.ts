@@ -5,8 +5,8 @@ import { transformLogicalOrCoalescingAssignmentExpressionStatement } from "TSTra
 import { transformWritableAssignment, transformWritableExpression } from "TSTransformer/nodes/transformWritable";
 import { isUnaryAssignmentOperator } from "TSTransformer/typeGuards";
 import { createCompoundAssignmentStatement, getSimpleAssignmentOperator } from "TSTransformer/util/assignment";
+import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { skipDownwards } from "TSTransformer/util/traversal";
-import { isDefinitelyType, isStringType } from "TSTransformer/util/types";
 import { wrapExpressionStatement } from "TSTransformer/util/wrapExpressionStatement";
 import ts from "typescript";
 
@@ -55,10 +55,7 @@ export function transformExpressionStatementInner(
 					luau.create(luau.SyntaxKind.Assignment, {
 						left: writable,
 						operator,
-						right:
-							operator === "..=" && !isDefinitelyType(valueType, isStringType)
-								? luau.call(luau.globals.tostring, [value])
-								: value,
+						right: getAssignableValue(operator, value, valueType),
 					}),
 				);
 			} else {
