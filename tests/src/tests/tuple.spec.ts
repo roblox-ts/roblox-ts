@@ -226,4 +226,44 @@ export = () => {
 		}
 		expect(hasRun1).to.equal(true);
 	});
+
+	it("should support $tuple macro", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		const tuple = luaTupleMacroReturn();
+
+		expect(tuple[0]).to.equal(123);
+		expect(tuple[1]).to.equal("abc");
+		expect(tuple[2]).to.equal(true);
+	});
+
+	it("should support $tuple macro with destructuring", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		const [a, b, c] = luaTupleMacroReturn();
+
+		expect(a).to.equal(123);
+		expect(b).to.equal("abc");
+		expect(c).to.equal(true);
+	});
+
+	it("should support $tuple macro in nested calls", () => {
+		function luaTupleMacroReturn() {
+			return $tuple(123, "abc", true);
+		}
+
+		function wrapperFunction() {
+			return luaTupleMacroReturn();
+		}
+
+		const [a, b, c] = wrapperFunction();
+
+		expect(a).to.equal(123);
+		expect(b).to.equal("abc");
+		expect(c).to.equal(true);
+	});
 };
