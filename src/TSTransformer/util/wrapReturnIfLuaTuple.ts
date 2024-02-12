@@ -1,6 +1,6 @@
 import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
-import { canInlineArrayBindingPattern } from "TSTransformer/util/canOptimiseArrayBindingPattern";
+import { canInlineArrayBindingPattern } from "TSTransformer/util/canInlineArrayBindingPattern";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipUpwards } from "TSTransformer/util/traversal";
 import { isLuaTupleType } from "TSTransformer/util/types";

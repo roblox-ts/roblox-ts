@@ -8,7 +8,7 @@ import { transformObjectBindingPattern } from "TSTransformer/nodes/binding/trans
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformInitializer } from "TSTransformer/nodes/transformInitializer";
-import { canInlineArrayBindingPattern } from "TSTransformer/util/canOptimiseArrayBindingPattern";
+import { canInlineArrayBindingPattern } from "TSTransformer/util/canInlineArrayBindingPattern";
 import { checkVariableHoist } from "TSTransformer/util/checkVariableHoist";
 import { isSymbolMutable } from "TSTransformer/util/isSymbolMutable";
 import { isLuaTupleType } from "TSTransformer/util/types";
