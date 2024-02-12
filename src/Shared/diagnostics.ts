@@ -140,7 +140,6 @@ export const errors = {
 	noNamespaceMerging: error("Namespace merging is not supported!"),
 	noSpreadDestructuring: error("Operator `...` is not supported for destructuring!"),
 	noFunctionExpressionName: error("Function expression names are not supported!"),
-	noPrecedingSpreadElement: error("Spread element must come last in a list of arguments!"),
 	noLuaTupleDestructureAssignmentExpression: error(
 		"Cannot destructure LuaTuple<T> expression outside of an ExpressionStatement!",
 	),
