@@ -30,8 +30,8 @@ export function transformPostfixUnaryExpression(state: TransformState, node: ts.
 				node.operator === ts.SyntaxKind.PlusPlusToken
 					? "+="
 					: node.operator === ts.SyntaxKind.MinusMinusToken
-					? "-="
-					: assertNever(node.operator, "transformPostfixUnaryExpression"),
+						? "-="
+						: assertNever(node.operator, "transformPostfixUnaryExpression"),
 			right: luau.number(1),
 		}),
 	);
