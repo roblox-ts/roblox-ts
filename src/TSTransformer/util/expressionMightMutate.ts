@@ -17,6 +17,10 @@ export function expressionMightMutate(
 		return expressionMightMutate(state, expression.expression);
 	} else if (luau.isSimplePrimitive(expression)) {
 		return false;
+	} else if (luau.isFunctionExpression(expression)) {
+		return false;
+	} else if (luau.isVarArgsLiteral(expression)) {
+		return false;
 	} else if (luau.isIfExpression(expression)) {
 		return (
 			expressionMightMutate(state, expression.condition) ||
@@ -57,8 +61,6 @@ export function expressionMightMutate(
 		// PropertyAccessExpression
 		// CallExpression
 		// MethodCallExpression
-		// VarArgsLiteral
-		// FunctionExpression
 		return true;
 	}
 }
