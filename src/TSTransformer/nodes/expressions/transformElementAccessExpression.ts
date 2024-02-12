@@ -18,7 +18,9 @@ export function transformElementAccessExpressionInner(
 	expression: luau.Expression,
 	argumentExpression: ts.Expression,
 ) {
+	// a in a[b]
 	validateNotAnyType(state, node.expression);
+	// b in a[b]
 	validateNotAnyType(state, node.argumentExpression);
 
 	const expType = state.typeChecker.getNonOptionalType(state.getType(node.expression));
