@@ -1,6 +1,8 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import {
@@ -12,7 +14,7 @@ import {
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isDefinitelyType, isObjectType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function transformJsxInitializer(
@@ -167,12 +169,16 @@ export function transformJsxAttributes(state: TransformState, attributes: ts.Jsx
 			transformJsxAttribute(state, attribute, attributesPtr);
 		} else {
 			// spread attributes: `<frame { ...x }/>`
+
+			const expType = state.typeChecker.getNonOptionalType(state.getType(attribute.expression));
+			const symbol = getFirstDefinedSymbol(state, expType);
+			if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
+				DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(attribute));
+			}
+
 			const expression = transformExpression(state, attribute.expression);
 
-			if (
-				attribute === attributes.properties[0] &&
-				isDefinitelyType(state.getType(attribute.expression), isObjectType)
-			) {
+			if (attribute === attributes.properties[0] && isDefinitelyType(expType, isObjectType)) {
 				attributesPtr.value = state.pushToVar(
 					luau.call(luau.globals.table.clone, [expression]),
 					attributesPtr.name,
