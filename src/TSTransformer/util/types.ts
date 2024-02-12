@@ -118,13 +118,20 @@ export function isStringType(type: ts.Type) {
 }
 
 export function isArrayType(state: TransformState): TypeCheck {
-	return type =>
-		state.typeChecker.isTupleType(type) ||
-		state.typeChecker.isArrayLikeType(type) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray);
+	return type => {
+		// typeChecker.isArrayLikeType() will return true for `any`, so rule it out here
+		if (!!(type.flags & ts.TypeFlags.Any)) {
+			return false;
+		}
+		return (
+			state.typeChecker.isTupleType(type) ||
+			state.typeChecker.isArrayLikeType(type) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray)
+		);
+	};
 }
 
 export function isSetType(state: TransformState): TypeCheck {
