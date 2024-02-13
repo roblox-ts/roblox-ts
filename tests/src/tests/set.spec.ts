@@ -219,4 +219,15 @@ export = () => {
 		expect(set.has("bar")).to.equal(true);
 		expect(set.has("baz")).to.equal(true);
 	});
+
+	it("should support delete with with Set constructor", () => {
+		let count = 0;
+		function foo<T>(input: T): T {
+			count++;
+			return input;
+		}
+		const wasRemoved = new Set([foo("a"), foo("b")]).delete("a");
+		expect(wasRemoved).to.equal(true);
+		expect(count).to.equal(2);
+	});
 };

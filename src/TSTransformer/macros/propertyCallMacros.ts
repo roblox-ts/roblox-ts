@@ -769,6 +769,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		const valueIsUsed = !isUsedAsStatement(node);
 		let valueExistedId: luau.TemporaryIdentifier;
 		if (valueIsUsed) {
+			expression = state.pushToVarIfNonId(expression, "exp");
 			valueExistedId = state.pushToVar(
 				luau.create(luau.SyntaxKind.BinaryExpression, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
