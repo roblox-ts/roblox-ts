@@ -16,7 +16,9 @@ export function transformPropertyAccessExpressionInner(
 	expression: luau.Expression,
 	name: string,
 ) {
+	// a in a.b
 	validateNotAnyType(state, node.expression);
+
 	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {

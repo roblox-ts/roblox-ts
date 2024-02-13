@@ -117,6 +117,7 @@ export function transformCallExpressionInner(
 		return transformImportExpression(state, node);
 	}
 
+	// a in a()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
@@ -156,6 +157,9 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	// a in a.b()
+	validateNotAnyType(state, expression.expression);
+	// a.b in a.b()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
@@ -213,6 +217,11 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	// a in a[b]()
+	validateNotAnyType(state, expression.expression);
+	// b in a[b]()
+	validateNotAnyType(state, expression.argumentExpression);
+	// a[b] in a[b]()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {

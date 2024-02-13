@@ -22,9 +22,14 @@ export function validateNotAnyType(state: TransformState, node: ts.Node) {
 	}
 
 	if (isDefinitelyType(type, isAnyType(state))) {
+		// given a type like `a: { [index: string]: any }`, `a["b"]` will not have a symbol
 		const symbol = getOriginalSymbolOfNode(state.typeChecker, node);
-		if (symbol && !state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
-			state.multiTransformState.isReportedByNoAnyCache.add(symbol);
+		if (symbol) {
+			if (!state.multiTransformState.isReportedByNoAnyCache.has(symbol)) {
+				state.multiTransformState.isReportedByNoAnyCache.add(symbol);
+				DiagnosticService.addDiagnostic(errors.noAny(node));
+			}
+		} else {
 			DiagnosticService.addDiagnostic(errors.noAny(node));
 		}
 	}
