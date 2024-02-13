@@ -5,15 +5,9 @@ import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
-import { createTypeCheck } from "TSTransformer/util/createTypeCheck";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import {
-	getFirstDefinedSymbol,
-	isDefinitelyType,
-	isObjectType,
-	isPossiblyType,
-	isUndefinedType,
-} from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
 
@@ -44,14 +38,27 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
 		DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(property));
 	}
-	disableMapInline(state, ptr);
-	let spreadExp = transformExpression(state, property.expression);
 
 	const type = state.getType(property.expression);
+	const definitelyObject = isDefinitelyType(type, isObjectType);
 
-	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
-	const isPossiblyNonObject = !isDefinitelyType(type, isObjectType);
-	if (possiblyUndefined || isPossiblyNonObject) {
+	if (definitelyObject && luau.isMap(ptr.value) && luau.list.isEmpty(ptr.value.fields)) {
+		ptr.value = state.pushToVar(
+			luau.call(luau.globals.table.clone, [transformExpression(state, property.expression)]),
+			ptr.name,
+		);
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				// Explicitly remove metatable because things like classes can be spread
+				expression: luau.call(luau.globals.setmetatable, [ptr.value, luau.nil()]),
+			}),
+		);
+		return;
+	}
+
+	disableMapInline(state, ptr);
+	let spreadExp = transformExpression(state, property.expression);
+	if (!definitelyObject) {
 		spreadExp = state.pushToVarIfComplex(spreadExp, "spread");
 	}
 
@@ -72,15 +79,9 @@ function transformSpreadAssignment(state: TransformState, ptr: MapPointer, prope
 		),
 	});
 
-	if (isPossiblyNonObject) {
+	if (!definitelyObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: createTypeCheck(spreadExp, luau.strings.table),
-			statements: luau.list.make(statement),
-			elseBody: luau.list.make(),
-		});
-	} else if (possiblyUndefined) {
-		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: spreadExp,
+			condition: createTruthinessChecks(state, spreadExp, property.expression),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
