@@ -1,5 +1,5 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { copyItem } from "Project/functions/copyItem";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectData } from "Shared/types";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
 
