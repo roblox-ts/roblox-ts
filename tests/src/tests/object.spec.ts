@@ -119,6 +119,34 @@ export = () => {
 		expect(bar.f).to.equal(6);
 	});
 
+	it("should support spread with non-objects", () => {
+		const foo1 = {
+			a: 1,
+			b: 2,
+			c: 3,
+		} as { a: number; b: number; c: number } | undefined;
+		const foo2 = undefined as { a: number; b: number; c: number } | undefined;
+		const foo3 = "" as { a: number; b: number; c: number } | "";
+		const foo4 = 0 as { a: number; b: number; c: number } | 0;
+
+		const bar = {
+			...foo1,
+			...foo2,
+			...foo3,
+			...foo4,
+			d: 4,
+			e: 5,
+			f: 6,
+		};
+
+		expect(bar.a).to.equal(1);
+		expect(bar.b).to.equal(2);
+		expect(bar.c).to.equal(3);
+		expect(bar.d).to.equal(4);
+		expect(bar.e).to.equal(5);
+		expect(bar.f).to.equal(6);
+	});
+
 	it("should overwrite with object spread", () => {
 		const foo = {
 			a: 1,
@@ -315,7 +343,7 @@ export = () => {
 			return (this.n += n);
 		}
 
-		const mul = function<T extends Numerable>(this: T, n: number) {
+		const mul = function <T extends Numerable>(this: T, n: number) {
 			this.n *= n;
 			return this;
 		};
@@ -336,7 +364,7 @@ export = () => {
 		const o = {
 			count: 1,
 
-			getCount: function() {
+			getCount: function () {
 				return this.count;
 			},
 		};
