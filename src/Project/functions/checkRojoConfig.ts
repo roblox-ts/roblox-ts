@@ -1,7 +1,7 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
 import { ProjectData } from "Project";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { errors } from "Shared/diagnostics";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
