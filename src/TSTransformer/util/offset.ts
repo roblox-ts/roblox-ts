@@ -18,27 +18,21 @@ export function offset(expression: luau.Expression, value: number) {
 	if (value === 0) {
 		return expression;
 	}
-	// this special case handles when the offset function is called next to a binary expression that has a number literal on its right
-	// IE: array[offset - 1 + 1] -> array[offset]
-	if (
-		luau.isBinaryExpression(expression) &&
-		luau.isNumberLiteral(expression.right) &&
-		(expression.operator === "+" || expression.operator === "-")
-	) {
-		value *= expression.operator === "-" ? -1 : 1;
+
+	// this special case handles when the expression is a binary expression with a number literal on its right
+	// i.e. array[offset - 1 + 1] -> array[offset]
+	if (luau.isBinaryExpression(expression) && (expression.operator === "+" || expression.operator === "-")) {
 		const rightValue = getLiteralNumberValue(expression.right);
-		if (rightValue + value === 0) {
-			return expression.left;
-		} else {
-			return luau.create(luau.SyntaxKind.BinaryExpression, {
-				left: expression.left,
-				operator: expression.operator,
-				right: luau.create(luau.SyntaxKind.NumberLiteral, {
-					value: (rightValue + value).toString(),
-				}),
-			});
+		if (rightValue !== undefined) {
+			const newRightValue = rightValue + value * (expression.operator === "-" ? -1 : 1);
+			if (newRightValue === 0) {
+				return expression.left;
+			} else {
+				return luau.binary(expression.left, expression.operator, luau.number(newRightValue));
+			}
 		}
 	}
+
 	const literalValue = getLiteralNumberValue(expression);
 	if (literalValue !== undefined) {
 		return luau.number(literalValue + value);
