@@ -901,6 +901,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Sub: { sub: makeBinaryMacroMethod("-") },
 	Mul: { mul: makeBinaryMacroMethod("*") },
 	Div: { div: makeBinaryMacroMethod("/") },
+	IDiv: { idiv: makeBinaryMacroMethod("//") },
 	Concat: { concat: makeBinaryMacroMethod("..") },
 
 	String: STRING_CALLBACKS,
