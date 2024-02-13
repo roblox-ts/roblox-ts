@@ -556,5 +556,12 @@ export = () => {
 		expect(arr[arr.size() - 1.1 + 0.1]).to.equal(3);
 		expect(arr[arr.size() - 2.1 + 0.1]).to.equal(2);
 		expect(arr[arr.size() - 3.1 + 0.1]).to.equal(1);
+
+		expect(arr[zero - -0.1 + -0.1]).to.equal(1);
+		expect(arr[zero - -1.1 + -0.1]).to.equal(2);
+		expect(arr[zero - -2.1 + -0.1]).to.equal(3);
+		expect(arr[arr.size() + -1.1 - -0.1]).to.equal(3);
+		expect(arr[arr.size() + -2.1 - -0.1]).to.equal(2);
+		expect(arr[arr.size() + -3.1 - -0.1]).to.equal(1);
 	});
 };
