@@ -4,7 +4,7 @@
 <br>
 <div align="center">
 	<a href="https://discord.roblox-ts.com"><img src="https://discordapp.com/api/guilds/476080952636997633/embed.png" alt="Discord server" /></a>
-	<a href="https://github.com/roblox-ts/roblox-ts/actions"><img src="https://github.com/roblox-ts/roblox-ts/workflows/Unit%20Tests/badge.svg" alt="CI Status" /></a>
+	<a href="https://github.com/roblox-ts/roblox-ts/actions"><img src="https://github.com/roblox-ts/roblox-ts/actions/workflows/UnitTests.yml/badge.svg?branch=master" alt="CI Status" /></a>
 	<a href="https://coveralls.io/github/roblox-ts/roblox-ts?branch=master"><img src="https://coveralls.io/repos/github/roblox-ts/roblox-ts/badge.svg?branch=master" alt="Coverage Status" /></a>
 	<a href="https://www.npmjs.com/package/roblox-ts"><img src="https://badge.fury.io/js/roblox-ts.svg"></a>
 </div>
@@ -25,6 +25,7 @@ https://discord.roblox-ts.com
 ## Games that use roblox-ts
 
 <a href="https://www.roblox.com/games/6872265039"><img width=32.9% src="https://i.imgur.com/S2x5isG.png" /></a><!-- BedWars 8.4B -->
+<a href="https://www.roblox.com/games/3260590327"><img width=32.9% src="https://i.imgur.com/SRZa9ht.png" /></a><!-- Tower Defense Simulator 3.0B -->
 <a href="https://www.roblox.com/games/4872321990"><img width=32.9% src="https://i.imgur.com/pkuQfdG.png" /></a><!-- Islands 2.1B -->
 <a href="https://www.roblox.com/games/3759927663"><img width=32.9% src="https://i.imgur.com/OAmrsuz.png" /></a><!-- Zombie Strike 222.9M -->
 <a href="https://www.roblox.com/games/7711635737"><img width=32.9% src="https://i.imgur.com/lmJLoAx.png" /></a><!-- Emergency Hamburg 192.7M -->
