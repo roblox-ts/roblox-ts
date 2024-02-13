@@ -1,7 +1,10 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
+import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import {
 	CHANGE_ATTRIBUTE_NAME,
 	EVENT_ATTRIBUTE_NAME,
@@ -11,7 +14,7 @@ import {
 import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
 import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
-import { isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
+import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import ts from "typescript";
 
 function transformJsxInitializer(
@@ -32,10 +35,10 @@ function createJsxAttributeLoop(
 	state: TransformState,
 	attributesPtrValue: luau.AnyIdentifier,
 	expression: luau.Expression,
-	type: ts.Type,
+	tsExpression: ts.Expression,
 ) {
-	const possiblyUndefined = isPossiblyType(type, isUndefinedType);
-	if (possiblyUndefined) {
+	const definitelyObject = isDefinitelyType(state.getType(tsExpression), isObjectType);
+	if (!definitelyObject) {
 		expression = state.pushToVarIfComplex(expression, "attribute");
 	}
 
@@ -56,9 +59,9 @@ function createJsxAttributeLoop(
 		),
 	});
 
-	if (possiblyUndefined) {
+	if (!definitelyObject) {
 		statement = luau.create(luau.SyntaxKind.IfStatement, {
-			condition: expression,
+			condition: createTruthinessChecks(state, expression, tsExpression),
 			statements: luau.list.make(statement),
 			elseBody: luau.list.make(),
 		});
@@ -165,12 +168,32 @@ export function transformJsxAttributes(state: TransformState, attributes: ts.Jsx
 		if (ts.isJsxAttribute(attribute)) {
 			transformJsxAttribute(state, attribute, attributesPtr);
 		} else {
-			// spread attributes
-			disableMapInline(state, attributesPtr);
+			// spread attributes: `<frame { ...x }/>`
+
+			const expType = state.typeChecker.getNonOptionalType(state.getType(attribute.expression));
+			const symbol = getFirstDefinedSymbol(state, expType);
+			if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
+				DiagnosticService.addDiagnostic(errors.noMacroObjectSpread(attribute));
+			}
+
 			const expression = transformExpression(state, attribute.expression);
-			state.prereq(
-				createJsxAttributeLoop(state, attributesPtr.value, expression, state.getType(attribute.expression)),
-			);
+
+			if (attribute === attributes.properties[0] && isDefinitelyType(expType, isObjectType)) {
+				attributesPtr.value = state.pushToVar(
+					luau.call(luau.globals.table.clone, [expression]),
+					attributesPtr.name,
+				);
+				state.prereq(
+					luau.create(luau.SyntaxKind.CallStatement, {
+						// Explicitly remove metatable because things like classes can be spread
+						expression: luau.call(luau.globals.setmetatable, [attributesPtr.value, luau.nil()]),
+					}),
+				);
+				continue;
+			}
+
+			disableMapInline(state, attributesPtr);
+			state.prereq(createJsxAttributeLoop(state, attributesPtr.value, expression, attribute.expression));
 		}
 	}
 }
