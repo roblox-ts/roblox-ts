@@ -27,4 +27,9 @@ export class LogService {
 	static warn(message: string) {
 		this.writeLine(`${kleur.yellow("Compiler Warning:")} ${message}`);
 	}
+
+	static fatal(message: string): never {
+		this.writeLine(message);
+		process.exit(1);
+	}
 }
