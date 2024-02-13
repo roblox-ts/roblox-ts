@@ -531,4 +531,37 @@ export = () => {
 		}
 		foo(undefined, "A", undefined, "B", undefined, "C", undefined);
 	});
+
+	// this test covers an optimization in offset()
+	it("should support indexing with binary expressions", () => {
+		const arr = [1, 2, 3];
+		expect(arr[arr.size() - 1]).to.equal(3);
+		expect(arr[arr.size() - 2]).to.equal(2);
+		expect(arr[arr.size() - 3]).to.equal(1);
+		expect(arr[arr.size() + -1]).to.equal(3);
+		expect(arr[arr.size() + -2]).to.equal(2);
+		expect(arr[arr.size() + -3]).to.equal(1);
+
+		const zero = 0;
+		expect(arr[zero + 0]).to.equal(1);
+		expect(arr[zero + 1]).to.equal(2);
+		expect(arr[zero + 2]).to.equal(3);
+		expect(arr[zero - -0]).to.equal(1);
+		expect(arr[zero - -1]).to.equal(2);
+		expect(arr[zero - -2]).to.equal(3);
+
+		expect(arr[zero + 0.1 - 0.1]).to.equal(1);
+		expect(arr[zero + 1.1 - 0.1]).to.equal(2);
+		expect(arr[zero + 2.1 - 0.1]).to.equal(3);
+		expect(arr[arr.size() - 1.1 + 0.1]).to.equal(3);
+		expect(arr[arr.size() - 2.1 + 0.1]).to.equal(2);
+		expect(arr[arr.size() - 3.1 + 0.1]).to.equal(1);
+
+		expect(arr[zero - -0.1 + -0.1]).to.equal(1);
+		expect(arr[zero - -1.1 + -0.1]).to.equal(2);
+		expect(arr[zero - -2.1 + -0.1]).to.equal(3);
+		expect(arr[arr.size() + -1.1 - -0.1]).to.equal(3);
+		expect(arr[arr.size() + -2.1 - -0.1]).to.equal(2);
+		expect(arr[arr.size() + -3.1 - -0.1]).to.equal(1);
+	});
 };

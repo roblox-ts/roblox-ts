@@ -194,4 +194,15 @@ export = () => {
 		const map = new Map([foo()]);
 		expect(map.get(123)).to.equal("abc");
 	});
+
+	it("should support delete with with Map constructor", () => {
+		let count = 0;
+		function foo<T>(input: T): T {
+			count++;
+			return input;
+		}
+		const wasRemoved = new Map([[foo("a"), foo("b")]]).delete("a");
+		expect(wasRemoved).to.equal(true);
+		expect(count).to.equal(2);
+	});
 };
