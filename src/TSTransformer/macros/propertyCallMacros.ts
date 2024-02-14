@@ -916,7 +916,7 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Lt: { lt: makeBinaryMacroMethod("<") },
 	Le: { le: makeBinaryMacroMethod("<=") },
 	Gt: { gt: makeBinaryMacroMethod(">") },
-	Ge: { ge: makeBinaryMacroMethod("<=") },
+	Ge: { ge: makeBinaryMacroMethod(">=") },
 
 	Unm: { unm: makeUnaryMacroMethod("-") },
 	Len: { len: makeUnaryMacroMethod("#") },
