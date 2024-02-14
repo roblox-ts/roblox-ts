@@ -181,7 +181,7 @@ export function transformPropertyCallExpressionInner(
 	const [args, prereqs] = state.capture(() => ensureTransformOrder(state, nodeArguments));
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
@@ -249,7 +249,7 @@ export function transformElementCallExpressionInner(
 
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
-	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
+	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, expression.expression)) {
 		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
