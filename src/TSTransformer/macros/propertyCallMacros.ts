@@ -18,6 +18,12 @@ function makeBinaryMacroMethod(operator: luau.BinaryOperator): PropertyCallMacro
 	};
 }
 
+function makeUnaryMacroMethod(operator: luau.UnaryOperator): PropertyCallMacro {
+	return (state, node, expression) => {
+		return luau.unary(operator, expression);
+	};
+}
+
 function makeStringCallback(strCallback: luau.PropertyAccessExpression): PropertyCallMacro {
 	return (state, node, expression, args) => {
 		return luau.call(strCallback, [expression, ...args]);
@@ -904,6 +910,16 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	Div: { div: makeBinaryMacroMethod("/") },
 	IDiv: { idiv: makeBinaryMacroMethod("//") },
 	Concat: { concat: makeBinaryMacroMethod("..") },
+	Mod: { mod: makeBinaryMacroMethod("%") },
+	Pow: { pow: makeBinaryMacroMethod("^") },
+	Eq: { eq: makeBinaryMacroMethod("==") },
+	Lt: { lt: makeBinaryMacroMethod("<") },
+	Le: { le: makeBinaryMacroMethod("<=") },
+	Gt: { gt: makeBinaryMacroMethod(">") },
+	Ge: { ge: makeBinaryMacroMethod("<=") },
+
+	Unm: { unm: makeUnaryMacroMethod("-") },
+	Len: { len: makeUnaryMacroMethod("#") },
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
