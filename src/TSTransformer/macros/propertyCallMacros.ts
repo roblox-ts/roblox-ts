@@ -19,11 +19,12 @@ function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	};
 }
 
-const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div">([
+const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div" | "idiv">([
 	["+", "add"],
 	["-", "sub"],
 	["*", "mul"],
 	["/", "div"],
+	["//", "idiv"],
 ]);
 
 function makeMathSet(...operators: Array<luau.BinaryOperator>) {
@@ -920,10 +921,11 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	CFrame: makeMathSet("+", "-", "*"),
 	UDim: makeMathSet("+", "-"),
 	UDim2: makeMathSet("+", "-"),
-	Vector2: makeMathSet("+", "-", "*", "/"),
+	Vector2: makeMathSet("+", "-", "*", "/", "//"),
 	Vector2int16: makeMathSet("+", "-", "*", "/"),
-	Vector3: makeMathSet("+", "-", "*", "/"),
+	Vector3: makeMathSet("+", "-", "*", "/", "//"),
 	Vector3int16: makeMathSet("+", "-", "*", "/"),
+	Number: makeMathSet("//"),
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,
