@@ -49,6 +49,6 @@ export const DEFAULT_PROJECT_OPTIONS: ProjectOptions = {
 	logTruthyChanges: false,
 	writeOnlyChanged: false,
 	writeTransformedFiles: false,
-	optimizedLoops: false,
+	optimizedLoops: true,
 	allowCommentDirectives: false,
 };
