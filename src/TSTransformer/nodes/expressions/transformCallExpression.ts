@@ -182,7 +182,7 @@ export function transformPropertyCallExpressionInner(
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
@@ -197,7 +197,7 @@ export function transformPropertyCallExpressionInner(
 				args: luau.list.make(...args),
 			});
 		} else {
-			baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
+			baseExpression = state.pushToVarIfComplex(baseExpression);
 			args.unshift(baseExpression);
 			exp = luau.call(luau.property(convertToIndexableExpression(baseExpression), name), args);
 		}
@@ -250,12 +250,12 @@ export function transformElementCallExpressionInner(
 	fixVoidArgumentsForRobloxFunctions(state, symbol, args, nodeArguments);
 
 	if (!luau.list.isEmpty(prereqs) && expressionMightMutate(state, baseExpression, node.expression)) {
-		baseExpression = state.pushToVar(baseExpression, "fn");
+		baseExpression = state.pushToVar(baseExpression);
 	}
 	state.prereqList(prereqs);
 
 	if (isMethod(state, expression)) {
-		baseExpression = state.pushToVarIfComplex(baseExpression, "fn");
+		baseExpression = state.pushToVarIfComplex(baseExpression);
 		args.unshift(baseExpression);
 	}
 
