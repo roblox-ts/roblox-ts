@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: macos-14
     strategy:
       matrix:
         type: [game, place, model, plugin, package]
