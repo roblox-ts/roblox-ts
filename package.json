@@ -1,6 +1,6 @@
 {
 	"name": "roblox-ts",
-	"version": "2.2.0",
+	"version": "2.3.0",
 	"description": "A TypeScript-to-Luau Compiler for Roblox",
 	"main": "out/CLI/index.js",
 	"repository": {
@@ -20,7 +20,7 @@
 		"test": "npm run build && npm run test-compile && npm run test-rojo && npm run test-run",
 		"test-compile": "nyc mocha --timeout 0 --recursive out/CLI/test.js",
 		"test-rojo": "rojo build tests -o ./tests/test.rbxl",
-		"test-run": "lune run ./tests/runLuneTests.lua ./tests/test.rbxl",
+		"test-run": "lune run ./tests/runTestsWithLune.lua ./tests/test.rbxl",
 		"test-roblox": "npm run build && npm run test-compile && npm run test-rojo && npm run run-in-roblox",
 		"run-in-roblox": "run-in-roblox --place ./tests/test.rbxl --script ./tests/out/main.server.lua"
 	},
@@ -49,12 +49,13 @@
 	"license": "MIT",
 	"dependencies": {
 		"@roblox-ts/luau-ast": "^1.0.11",
+		"@roblox-ts/path-translator": "^1.0.0",
 		"@roblox-ts/rojo-resolver": "^1.0.6",
 		"chokidar": "^3.6.0",
 		"fs-extra": "^11.2.0",
 		"kleur": "^4.1.5",
 		"resolve": "^1.22.6",
-		"typescript": "=5.2.2",
+		"typescript": "=5.3.3",
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
@@ -63,10 +64,10 @@
 		"@types/node": "^20.11.17",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
-		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.2.2",
+		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.3.3",
 		"@types/yargs": "^17.0.32",
-		"@typescript-eslint/eslint-plugin": "^6.21.0",
-		"@typescript-eslint/parser": "^6.21.0",
+		"@typescript-eslint/eslint-plugin": "^7.0.1",
+		"@typescript-eslint/parser": "^7.0.1",
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-deprecation": "^2.0.0",

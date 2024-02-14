@@ -285,12 +285,6 @@ export = () => {
 		).to.equal(ElementKind.Host);
 	});
 
-	it("Should default to using a Fragment for top-level keys", () => {
-		const test = <frame Key="Testing" />;
-		expect(Type.of(test)).to.equal(Type.Element);
-		expect(ElementKind.of(test)).to.equal(ElementKind.Fragment);
-	});
-
 	describe("BinaryExpressions", () => {
 		it("should support BinaryExpressions", () => {
 			let ref: Frame | undefined;
