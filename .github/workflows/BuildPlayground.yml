@@ -20,7 +20,6 @@ jobs:
           cd roblox-ts
           npm install
           npm run build
-          npm pack
 
       - name: Checkout roblox-ts.com repo
         uses: actions/checkout@v4
@@ -36,7 +35,7 @@ jobs:
       - name: Update roblox-ts
         run: |
           cd roblox-ts.com/rbxts-worker
-          npm install ../../roblox-ts/roblox-ts-*.tgz
+          npm install --install-links ../../roblox-ts
 
       - name: Build Worker
         run: |
