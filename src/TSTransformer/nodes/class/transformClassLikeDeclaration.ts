@@ -252,7 +252,7 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 
 	let internalName: luau.Identifier | luau.TemporaryIdentifier;
 	if (shouldUseInternalName) {
-		internalName = node.name ? transformIdentifierDefined(state, node.name) : luau.tempId("class");
+		internalName = transformIdentifierDefined(state, node.name);
 	} else {
 		internalName = returnVar;
 	}
