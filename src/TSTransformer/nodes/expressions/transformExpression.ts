@@ -15,6 +15,7 @@ import { transformElementAccessExpression } from "TSTransformer/nodes/expression
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
+import { transformJsxExpression } from "TSTransformer/nodes/expressions/transformJsxExpression";
 import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
@@ -77,6 +78,7 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
 	[ts.SyntaxKind.JsxElement, transformJsxElement],
+	[ts.SyntaxKind.JsxExpression, transformJsxExpression],
 	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
