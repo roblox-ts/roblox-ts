@@ -11,9 +11,9 @@ export function getSourceFileFromModuleSpecifier(state: TransformState, moduleSp
 		if (declaration && ts.isModuleDeclaration(declaration) && ts.isStringLiteralLike(declaration.name)) {
 			const sourceFile = moduleSpecifier.getSourceFile();
 			const mode = ts.getModeForUsageLocation(sourceFile, declaration.name);
-			const resolvedModuleInfo = ts.getResolvedModule(sourceFile, declaration.name.text, mode);
-			if (resolvedModuleInfo) {
-				return state.program.getSourceFile(resolvedModuleInfo.resolvedFileName);
+			const resolvedModuleInfo = state.program.getResolvedModule(sourceFile, declaration.name.text, mode);
+			if (resolvedModuleInfo && resolvedModuleInfo.resolvedModule) {
+				return state.program.getSourceFile(resolvedModuleInfo.resolvedModule.resolvedFileName);
 			}
 		}
 
