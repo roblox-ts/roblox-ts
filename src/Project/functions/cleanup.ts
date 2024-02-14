@@ -1,7 +1,7 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import fs from "fs-extra";
 import path from "path";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 
 function cleanupDirRecursively(pathTranslator: PathTranslator, dir: string) {
 	if (fs.pathExistsSync(dir)) {
