@@ -3,6 +3,21 @@
 		{
 			"type": "node",
 			"request": "launch",
+			"name": "Unit Tests",
+			"preLaunchTask": "npm: build",
+			"runtimeArgs": [
+				"${workspaceRoot}/node_modules/.bin/mocha",
+				"--timeout",
+				"0",
+				"--recursive",
+				"out/CLI/test.js"
+			],
+			"sourceMaps": true,
+			"skipFiles": ["<node_internals>/**"]
+		},
+		{
+			"type": "node",
+			"request": "launch",
 			"name": "demo",
 			"preLaunchTask": "npm: build",
 			"program": "${workspaceFolder}/out/CLI/cli.js",
