@@ -334,6 +334,19 @@ export = () => {
 		expect(c[9]).to.equal(1);
 	});
 
+	it("should support template literal indexes without substitution", () => {
+		const obj = {
+			data: 55,
+			thing: "hello"
+		}
+
+		const a = obj[`data`]
+		const b = obj[`thing`]
+
+		expect(a).to.equal(55)
+		expect(b).to.equal("hello")
+	})
+
 	it("should support composing objects with methods and callbacks", () => {
 		interface Numerable {
 			n: number;

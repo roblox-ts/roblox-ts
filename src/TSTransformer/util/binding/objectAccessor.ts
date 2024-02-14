@@ -23,7 +23,7 @@ export const objectAccessor = (
 			expression: parentId,
 			index: addOneIfArrayType(state, type, transformExpression(state, name.expression)),
 		});
-	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
+	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
 			index: transformExpression(state, name),
