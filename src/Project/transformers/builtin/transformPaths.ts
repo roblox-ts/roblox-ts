@@ -199,7 +199,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		return ts.factory.updateImportTypeNode(
 			node,
 			fileArgument,
-			node.assertions,
+			node.attributes,
 			node.qualifier,
 			node.typeArguments,
 			node.isTypeOf,
