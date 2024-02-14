@@ -1,6 +1,6 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import fs from "fs-extra";
 import { LogService } from "Shared/classes/LogService";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DTS_EXT } from "Shared/constants";
 
 function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) {

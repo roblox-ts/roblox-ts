@@ -1,9 +1,9 @@
 import { renderAST } from "@roblox-ts/luau-ast";
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";

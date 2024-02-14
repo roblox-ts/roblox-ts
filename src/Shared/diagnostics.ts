@@ -2,6 +2,7 @@ import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
+import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
@@ -14,14 +15,8 @@ export type DiagnosticFactory<T extends Array<any> = []> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
-const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
-
 function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
-}
-
-function issue(id: number) {
-	return "More information: " + kleur.grey(`${REPO_URL}/issues/${id}`);
 }
 
 let id = 0;

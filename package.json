@@ -49,6 +49,7 @@
 	"license": "MIT",
 	"dependencies": {
 		"@roblox-ts/luau-ast": "^1.0.11",
+		"@roblox-ts/path-translator": "^1.0.0",
 		"@roblox-ts/rojo-resolver": "^1.0.6",
 		"chokidar": "^3.6.0",
 		"fs-extra": "^11.2.0",
@@ -65,8 +66,8 @@
 		"@types/resolve": "^1.20.6",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.2.2",
 		"@types/yargs": "^17.0.32",
-		"@typescript-eslint/eslint-plugin": "^6.21.0",
-		"@typescript-eslint/parser": "^6.21.0",
+		"@typescript-eslint/eslint-plugin": "^7.0.1",
+		"@typescript-eslint/parser": "^7.0.1",
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-deprecation": "^2.0.0",
