@@ -10,7 +10,6 @@ import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { expressionMightMutate } from "TSTransformer/util/expressionMightMutate";
-import { isInsideRoactComponent } from "TSTransformer/util/isInsideRoactComponent";
 import { isMethod } from "TSTransformer/util/isMethod";
 import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { getFirstDefinedSymbol, isPossiblyType, isUndefinedType } from "TSTransformer/util/types";
@@ -118,12 +117,10 @@ export function transformCallExpressionInner(
 		return transformImportExpression(state, node);
 	}
 
+	// a in a()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperCall(node)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.missingSuperConstructorRoactComponent(node));
-		}
 		return luau.call(luau.property(convertToIndexableExpression(expression), "constructor"), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
@@ -160,12 +157,12 @@ export function transformPropertyCallExpressionInner(
 	name: string,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	// a in a.b()
+	validateNotAnyType(state, expression.expression);
+	// a.b in a.b()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
-		}
 		return luau.call(luau.property(convertToIndexableExpression(baseExpression), expression.name.text), [
 			luau.globals.self,
 			...ensureTransformOrder(state, node.arguments),
@@ -220,12 +217,14 @@ export function transformElementCallExpressionInner(
 	argumentExpression: ts.Expression,
 	nodeArguments: ReadonlyArray<ts.Expression>,
 ) {
+	// a in a[b]()
+	validateNotAnyType(state, expression.expression);
+	// b in a[b]()
+	validateNotAnyType(state, expression.argumentExpression);
+	// a[b] in a[b]()
 	validateNotAnyType(state, node.expression);
 
 	if (ts.isSuperProperty(expression)) {
-		if (isInsideRoactComponent(state, node)) {
-			DiagnosticService.addDiagnostic(errors.noSuperPropertyCallRoactComponent(node));
-		}
 		return luau.call(
 			luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 				expression: convertToIndexableExpression(baseExpression),

@@ -1,11 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assertNever } from "Shared/util/assertNever";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { addOneIfArrayType } from "TSTransformer/util/addOneIfArrayType";
+import { assertNever } from "TSTransformer/util/assertNever";
 import ts from "typescript";
 
 export const objectAccessor = (
@@ -23,7 +23,7 @@ export const objectAccessor = (
 			expression: parentId,
 			index: addOneIfArrayType(state, type, transformExpression(state, name.expression)),
 		});
-	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name)) {
+	} else if (ts.isNumericLiteral(name) || ts.isStringLiteral(name) || ts.isNoSubstitutionTemplateLiteral(name)) {
 		return luau.create(luau.SyntaxKind.ComputedIndexExpression, {
 			expression: parentId,
 			index: transformExpression(state, name),
@@ -32,5 +32,5 @@ export const objectAccessor = (
 		DiagnosticService.addDiagnostic(errors.noPrivateIdentifier(name));
 		return luau.none();
 	}
-	return assertNever(name, "transformPrefixUnaryExpression");
+	return assertNever(name, "objectAccessor");
 };

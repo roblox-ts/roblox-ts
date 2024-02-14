@@ -17,6 +17,10 @@ export function expressionMightMutate(
 		return expressionMightMutate(state, expression.expression);
 	} else if (luau.isSimplePrimitive(expression)) {
 		return false;
+	} else if (luau.isFunctionExpression(expression)) {
+		return false;
+	} else if (luau.isVarArgsLiteral(expression)) {
+		return false;
 	} else if (luau.isIfExpression(expression)) {
 		return (
 			expressionMightMutate(state, expression.condition) ||
@@ -34,14 +38,6 @@ export function expressionMightMutate(
 			expression.fields,
 			field => expressionMightMutate(state, field.index) || expressionMightMutate(state, field.value),
 		);
-	} else if (luau.isMixedTable(expression)) {
-		return luau.list.some(expression.fields, field => {
-			if (luau.isMapField(field)) {
-				return expressionMightMutate(state, field.index) || expressionMightMutate(state, field.value);
-			} else {
-				return expressionMightMutate(state, field);
-			}
-		});
 	} else {
 		if (node) {
 			node = skipDownwards(node);
@@ -57,8 +53,6 @@ export function expressionMightMutate(
 		// PropertyAccessExpression
 		// CallExpression
 		// MethodCallExpression
-		// VarArgsLiteral
-		// FunctionExpression
 		return true;
 	}
 }

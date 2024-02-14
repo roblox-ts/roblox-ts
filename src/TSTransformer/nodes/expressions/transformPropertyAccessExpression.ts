@@ -1,7 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformOptionalChain } from "TSTransformer/nodes/transformOptionalChain";
 import { addIndexDiagnostics } from "TSTransformer/util/addIndexDiagnostics";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -16,7 +14,9 @@ export function transformPropertyAccessExpressionInner(
 	expression: luau.Expression,
 	name: string,
 ) {
+	// a in a.b
 	validateNotAnyType(state, node.expression);
+
 	addIndexDiagnostics(state, node, state.typeChecker.getNonOptionalType(state.getType(node)));
 
 	if (ts.isDeleteExpression(skipUpwards(node).parent)) {
@@ -34,10 +34,6 @@ export function transformPropertyAccessExpressionInner(
 }
 
 export function transformPropertyAccessExpression(state: TransformState, node: ts.PropertyAccessExpression) {
-	if (ts.isSuperProperty(node)) {
-		DiagnosticService.addDiagnostic(errors.noSuperProperty(node));
-	}
-
 	const constantValue = getConstantValueLiteral(state, node);
 	if (constantValue) {
 		return constantValue;

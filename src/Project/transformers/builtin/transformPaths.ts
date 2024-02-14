@@ -43,7 +43,7 @@ export const normalizePath = (p: string) =>
 	/^\\\\\?\\/.test(p) || /[^\u0000-\u0080]+/.test(p)
 		? p
 		: // Normalize to forward slash and remove repeating slashes
-		  p.replace(/[\\/]+/g, "/");
+			p.replace(/[\\/]+/g, "/");
 
 /* ****************************************************************************************************************** *
  * Transformer
@@ -199,7 +199,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		return ts.factory.updateImportTypeNode(
 			node,
 			fileArgument,
-			node.assertions,
+			node.attributes,
 			node.qualifier,
 			node.typeArguments,
 			node.isTypeOf,
@@ -277,7 +277,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 				node.isTypeOnly,
 				node.exportClause,
 				fileLiteral,
-				node.assertClause,
+				node.attributes,
 			);
 		}
 
@@ -289,8 +289,8 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 					node.isTypeOnly,
 					node.exportClause,
 					fileLiteral,
-					node.assertClause,
-			  )
+					node.attributes,
+				)
 			: undefined;
 	}
 	function visitNamedExports(node: ts.NamedExports): ts.VisitResult<ts.NamedExports | undefined> {

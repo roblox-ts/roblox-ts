@@ -1,3 +1,4 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
@@ -14,7 +15,6 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";

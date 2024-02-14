@@ -2,6 +2,7 @@ import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
+import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
@@ -14,14 +15,8 @@ export type DiagnosticFactory<T extends Array<any> = []> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
-const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
-
 function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
-}
-
-function issue(id: number) {
-	return "More information: " + kleur.grey(`${REPO_URL}/issues/${id}`);
 }
 
 let id = 0;
@@ -148,7 +143,6 @@ export const errors = {
 	noGlobalThis: error("`globalThis` is not supported!"),
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),
-	noSuperProperty: error("super properties are not supported!"),
 	noRobloxSymbolInstanceof: error(
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
@@ -162,10 +156,6 @@ export const errors = {
 	noAsyncGeneratorFunctions: error("Async generator functions are not supported!"),
 	noNonStringModuleSpecifier: error("Module specifiers must be a string literal."),
 	noIterableIteration: error("Iterating on Iterable<T> is not supported! You must use a more specific type."),
-	noLuaTupleInTemplateExpression: error(
-		"Can't use LuaTuple<T> in a template literal expression!",
-		suggestion("Did you mean to add `[0]`?"),
-	),
 	noMixedTypeCall: error(
 		"Attempted to call a function with mixed types! All definitions must either be a method or a callback.",
 	),
@@ -206,18 +196,8 @@ export const errors = {
 		suggestion("Move the file you want to import to a shared location."),
 	),
 
-	// roact jsx
-	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
-	invalidJsxFragmentFactory: error("compilerOptions.jsxFragmentFactory must be `Roact.createFragment`!"),
-	noRoactInheritance: error(
-		"Composition is preferred over inheritance with Roact components.",
-		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
-	),
-	noSuperPropertyCallRoactComponent: error("`super` is not supported inside Roact components!"),
-	missingSuperConstructorRoactComponent: error(
-		"`super(props)` must be the first statement of the constructor in a Roact component!",
-	),
-	noJsxText: error("JSX text is not supported!"),
+	// jsx
+	noPrecedingJsxSpreadElement: error("JSX spread expression must come last in children!"),
 
 	// semantic
 	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),

@@ -1,19 +1,11 @@
 import luau from "@roblox-ts/luau-ast";
 import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { transformIdentifierDefined } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformVariable } from "TSTransformer/nodes/statements/transformVariableStatement";
+import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
 import { createImportExpression } from "TSTransformer/util/createImportExpression";
 import { isSymbolOfValue } from "TSTransformer/util/isSymbolOfValue";
 import ts from "typescript";
-
-function transformEntityName(state: TransformState, node: ts.EntityName) {
-	return ts.isIdentifier(node) ? transformIdentifierDefined(state, node) : transformQualifiedName(state, node);
-}
-
-function transformQualifiedName(state: TransformState, node: ts.QualifiedName): luau.PropertyAccessExpression {
-	return luau.property(transformEntityName(state, node.left), node.right.text);
-}
 
 export function transformImportEqualsDeclaration(state: TransformState, node: ts.ImportEqualsDeclaration) {
 	const { moduleReference } = node;

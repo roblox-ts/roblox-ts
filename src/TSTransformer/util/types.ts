@@ -1,4 +1,4 @@
-import { ROACT_SYMBOL_NAMES, SYMBOL_NAMES, TransformState } from "TSTransformer";
+import { SYMBOL_NAMES, TransformState } from "TSTransformer";
 import { NOMINAL_LUA_TUPLE_NAME } from "TSTransformer/classes/MacroManager";
 import { isTemplateLiteralType } from "TSTransformer/typeGuards";
 import ts from "typescript";
@@ -118,13 +118,20 @@ export function isStringType(type: ts.Type) {
 }
 
 export function isArrayType(state: TransformState): TypeCheck {
-	return type =>
-		state.typeChecker.isTupleType(type) ||
-		state.typeChecker.isArrayLikeType(type) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
-		type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray);
+	return type => {
+		// typeChecker.isArrayLikeType() will return true for `any`, so rule it out here
+		if (!!(type.flags & ts.TypeFlags.Any)) {
+			return false;
+		}
+		return (
+			state.typeChecker.isTupleType(type) ||
+			state.typeChecker.isArrayLikeType(type) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadonlyArray) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.Array) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.ReadVoxelsArray) ||
+			type.symbol === state.services.macroManager.getSymbolOrThrow(SYMBOL_NAMES.TemplateStringsArray)
+		);
+	};
 }
 
 export function isSetType(state: TransformState): TypeCheck {
@@ -185,13 +192,6 @@ export function isEmptyStringType(type: ts.Type) {
 		return type.texts.length === 0 || type.texts.every(v => v.length === 0);
 	}
 	return isStringType(type);
-}
-
-export function isRoactElementType(state: TransformState): TypeCheck {
-	return type => {
-		const symbol = state.services.roactSymbolManager?.getSymbolOrThrow(ROACT_SYMBOL_NAMES.Element);
-		return symbol !== undefined && type.symbol === symbol;
-	};
 }
 
 // type utilities

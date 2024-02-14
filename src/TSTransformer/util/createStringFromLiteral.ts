@@ -1,4 +1,3 @@
-import luau from "@roblox-ts/luau-ast";
 import ts from "typescript";
 
 const TEMPLATE_EDGE = "`".length;
@@ -6,10 +5,10 @@ const TEMPLATE_EXP_START = "${".length;
 const TEMPLATE_EXP_END = "}".length;
 
 /**
- * Creates a `luau.StringLiteral` from a `ts.TemplateLiteralToken | ts.StringLiteral`
+ * Returns the transformed text from a `ts.TemplateLiteralToken | ts.StringLiteral`
  * Cannot just use `node.text` because that converts `\\n` to be `\n`.
  */
-export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral): luau.StringLiteral {
+export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.StringLiteral): string {
 	let text = node.getText();
 	if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
 		text = ts.stripQuotes(text);
@@ -23,5 +22,5 @@ export function createStringFromLiteral(node: ts.TemplateLiteralToken | ts.Strin
 		// remove starting } and ending `
 		text = text.slice(TEMPLATE_EXP_END, -TEMPLATE_EDGE);
 	}
-	return luau.string(text);
+	return text;
 }
