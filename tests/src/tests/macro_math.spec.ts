@@ -1,4 +1,14 @@
 export = () => {
+	it("should support number // number = number", () => {
+		expect((1).idiv(2)).to.equal(0);
+		expect((3).idiv(2)).to.equal(1);
+		expect((5).idiv(2)).to.equal(2);
+		const value = 10;
+		expect(value.idiv(2)).to.equal(5);
+		expect(value.idiv(3)).to.equal(3);
+		expect(value.idiv(4)).to.equal(2);
+	});
+
 	it("should support CFrame * CFrame = CFrame", () => {
 		const a = new CFrame(3, 7, 9);
 		const b = new CFrame(1, 2, 3);

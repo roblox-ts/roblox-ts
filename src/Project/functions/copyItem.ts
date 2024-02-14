@@ -1,7 +1,7 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
 import { isCompilableFile } from "Project/util/isCompilableFile";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DTS_EXT } from "Shared/constants";
 
 export function copyItem(data: ProjectData, pathTranslator: PathTranslator, item: string) {

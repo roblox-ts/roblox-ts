@@ -1,8 +1,7 @@
-import { MacroManager, RoactSymbolManager } from "TSTransformer";
+import { MacroManager } from "TSTransformer";
 
 export interface TransformServices {
 	macroManager: MacroManager;
-	roactSymbolManager: RoactSymbolManager | undefined;
 }
 
 export interface TryUses {

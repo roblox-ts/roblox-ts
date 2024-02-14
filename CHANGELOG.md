@@ -1,3 +1,23 @@
+## 2.3.0
+- Removed `rbxtsc init` in favor of `npm create roblox-ts` (#2503)
+- Lune Unit Testing (#2489)
+	- Not user facing, but the compiler should be more stable going forwards! :tada:
+- Removed enum inverse mapping for string values (#2506)
+- $range macro optimizations (#2130, #2196)
+- Added support for `typeIs(value, "buffer")` (#2588)
+- Fixed `Array.push()` inserting multiple values for different tables (#2597)
+- Support interpolated string emit for template expressions (#2591)
+- Removed unnecessary parentheses for chained binary expressions like `a && b && c` (##2242)
+- Better usage analysis for function expressions + `...` (#2527)
+- Fixed `noAny` diagnostic for `a.b()` and `a[b]()` (#2550)
+- Optimized array offset emit so that `x[n - 1]` becomes `x[n]` instead of `x[n - 1 + 1]` (#2567)
+- Optimized object spread assignment when the spread is the first entry in the object, i.e. `{ ...obj, foo: "bar" }` (#2546)
+- Fixed bug related to `new Map( ... ).delete(exp)` and `new Set( ... ).delete(exp)` (#2605)
+- Split off PathTranslator class into it's own package (#2614)
+- Added support integer division operator via macro: `Number.idiv()`, `Vector2.idiv()`, and `Vector3.idiv()` (#2606)
+	- these compile to `a // b`
+	- number literals should be wrapped in parentheses, i.e. `(10).idiv(3)`
+
 ## 2.2.0
 - TypeScript 5.2.2 Support (#2401, #2466)
 - Support for instantiated expressions (#2445)

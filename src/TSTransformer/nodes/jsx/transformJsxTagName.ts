@@ -1,22 +1,17 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
-import { getAttributeNameText } from "TSTransformer/util/jsx/getAttributeName";
 import ts from "typescript";
 
 function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNameExpression) {
+	// host component
 	if (ts.isIdentifier(node)) {
-		const symbol = state.typeChecker.getSymbolAtLocation(node);
-		if (symbol) {
-			assert(state.services.roactSymbolManager);
-			const className = state.services.roactSymbolManager.getIntrinsicElementClassNameFromSymbol(symbol);
-			if (className !== undefined) {
-				return luau.string(className);
-			}
+		const firstChar = node.text[0];
+		if (firstChar === firstChar.toLowerCase()) {
+			return luau.string(node.text);
 		}
 	}
 
@@ -26,7 +21,7 @@ function transformJsxTagNameExpression(state: TransformState, node: ts.JsxTagNam
 		}
 		return luau.property(convertToIndexableExpression(transformExpression(state, node.expression)), node.name.text);
 	} else if (ts.isJsxNamespacedName(node)) {
-		return luau.string(getAttributeNameText(node));
+		return luau.string(ts.getTextOfJsxNamespacedName(node));
 	} else {
 		return transformExpression(state, node);
 	}
