@@ -143,7 +143,6 @@ export const errors = {
 	noGlobalThis: error("`globalThis` is not supported!"),
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),
-	noSuperProperty: error("super properties are not supported!"),
 	noRobloxSymbolInstanceof: error(
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
