@@ -1,7 +1,9 @@
 import luau from "@roblox-ts/luau-ast";
+import { errors } from "Shared/diagnostics";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformExpression } from "TSTransformer/nodes/expressions/transformExpression";
+import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
 import { assignToMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import ts from "typescript";
