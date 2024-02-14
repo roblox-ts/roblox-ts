@@ -1,25 +1,34 @@
 import luau from "@roblox-ts/luau-ast";
-import { errors } from "Shared/diagnostics";
+import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
-import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { transformJsxChildren } from "TSTransformer/nodes/jsx/transformJsxChildren";
-import { createRoactIndex } from "TSTransformer/util/jsx/createRoactIndex";
-import { createMapPointer, createMixedTablePointer } from "TSTransformer/util/pointer";
+import { transformEntityName } from "TSTransformer/nodes/transformEntityName";
+import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
 import ts from "typescript";
 
 export function transformJsxFragment(state: TransformState, node: ts.JsxFragment) {
-	if (state.compilerOptions.jsxFragmentFactory !== "Roact.createFragment") {
-		DiagnosticService.addSingleDiagnostic(errors.invalidJsxFragmentFactory(node));
-		return luau.none();
+	const jsxFactoryEntity = state.resolver.getJsxFactoryEntity(node);
+	assert(jsxFactoryEntity, "Expected jsxFactoryEntity to be defined");
+
+	const createElementExpression = convertToIndexableExpression(transformEntityName(state, jsxFactoryEntity));
+
+	// getJsxFragmentFactoryEntity() doesn't seem to default to "Fragment"..
+	// but the typechecker does, so we should follow that behavior
+	const jsxFragmentFactoryEntity =
+		state.resolver.getJsxFragmentFactoryEntity(node) ??
+		ts.parseIsolatedEntityName("Fragment", ts.ScriptTarget.ESNext);
+	assert(jsxFragmentFactoryEntity, "Unable to find valid jsxFragmentFactoryEntity");
+
+	const args = [transformEntityName(state, jsxFragmentFactoryEntity)];
+
+	const transformedChildren = transformJsxChildren(state, node.children);
+
+	// props parameter
+	if (transformedChildren.length > 0) {
+		args.push(luau.nil());
 	}
 
-	const childrenPtr = createMixedTablePointer("children");
-	transformJsxChildren(state, node.children, createMapPointer("attributes"), childrenPtr);
+	args.push(...transformedChildren);
 
-	const args = new Array<luau.Expression>();
-	if (luau.isAnyIdentifier(childrenPtr.value) || !luau.list.isEmpty(childrenPtr.value.fields)) {
-		args.push(childrenPtr.value);
-	}
-
-	return luau.call(createRoactIndex("createFragment"), args);
+	return luau.call(createElementExpression, args);
 }

@@ -1,16 +1,9 @@
-import { ProjectData } from "Shared/types";
-import { MacroManager, RoactSymbolManager } from "TSTransformer";
+import { MacroManager } from "TSTransformer";
 import { TransformServices } from "TSTransformer/types";
 import ts from "typescript";
 
-export function createTransformServices(
-	program: ts.Program,
-	typeChecker: ts.TypeChecker,
-	data: ProjectData,
-): TransformServices {
+export function createTransformServices(typeChecker: ts.TypeChecker): TransformServices {
 	const macroManager = new MacroManager(typeChecker);
 
-	const roactSymbolManager = RoactSymbolManager.create(data, program, typeChecker);
-
-	return { macroManager, roactSymbolManager };
+	return { macroManager };
 }
