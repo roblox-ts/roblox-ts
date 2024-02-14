@@ -773,7 +773,7 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 			valueExistedId = state.pushToVar(
 				luau.create(luau.SyntaxKind.BinaryExpression, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
+						expression,
 						index: arg,
 					}),
 					operator: "~=",
