@@ -1,4 +1,5 @@
 import { renderAST } from "@roblox-ts/luau-ast";
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
 import path from "path";
@@ -12,7 +13,6 @@ import { createTransformerWatcher } from "Project/transformers/createTransformer
 import { getPluginConfigs } from "Project/transformers/getPluginConfigs";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
 import { LogService } from "Shared/classes/LogService";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
