@@ -137,15 +137,14 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 	const constructSymbol = getFirstConstructSymbol(state, node);
 	if (constructSymbol) {
 		const constructorMacro = state.services.macroManager.getConstructorMacro(constructSymbol);
-		if (
-			constructorMacro &&
-			// Inhibit if extending from this identifier - noMacroExtends diagnostic will catch it
-			!(
+		if (constructorMacro) {
+			const isClassExtendsNode =
 				ts.isClassLike(node.parent.parent.parent) &&
-				getExtendsNode(node.parent.parent.parent)?.expression === node
-			)
-		) {
-			DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
+				getExtendsNode(node.parent.parent.parent)?.expression === node;
+			const diagnostic = isClassExtendsNode
+				? errors.noMacroExtends(node)
+				: errors.noConstructorMacroWithoutNew(node);
+			DiagnosticService.addDiagnostic(diagnostic);
 		}
 	}
 

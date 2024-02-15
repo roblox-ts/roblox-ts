@@ -12,7 +12,6 @@ import { transformBlock } from "TSTransformer/nodes/statements/transformBlock";
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { getExtendsNode } from "TSTransformer/util/getExtendsNode";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { getOriginalSymbolOfNode } from "TSTransformer/util/getOriginalSymbolOfNode";
 import { validateIdentifier } from "TSTransformer/util/validateIdentifier";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
 import ts from "typescript";
@@ -246,12 +245,6 @@ export function transformClassLikeDeclaration(state: TransformState, node: ts.Cl
 				right: undefined,
 			}),
 		);
-	}
-
-	const extendsNode = getExtendsNode(node);
-	const symbol = extendsNode && getOriginalSymbolOfNode(state.typeChecker, extendsNode.expression);
-	if (symbol && state.services.macroManager.isMacroOnlyClass(symbol)) {
-		DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
 	}
 
 	// OOP boilerplate + class functions
