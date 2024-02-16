@@ -141,10 +141,11 @@ export function transformIdentifier(state: TransformState, node: ts.Identifier) 
 			const isClassExtendsNode =
 				ts.isClassLike(node.parent.parent.parent) &&
 				getExtendsNode(node.parent.parent.parent)?.expression === node;
-			const diagnostic = isClassExtendsNode
-				? errors.noMacroExtends(node)
-				: errors.noConstructorMacroWithoutNew(node);
-			DiagnosticService.addDiagnostic(diagnostic);
+			if (isClassExtendsNode) {
+				DiagnosticService.addDiagnostic(errors.noMacroExtends(node));
+			} else {
+				DiagnosticService.addDiagnostic(errors.noConstructorMacroWithoutNew(node));
+			}
 		}
 	}
 
