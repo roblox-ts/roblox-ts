@@ -50,7 +50,7 @@
 	"dependencies": {
 		"@types/fs-extra": "^11.0.4",
 		"@types/mocha": "^10.0.6",
-		"@types/node": "^20.11.17",
+		"@types/node": "^20.11.19",
 		"@types/prompts": "^2.4.9",
 		"@types/resolve": "^1.20.6",
 		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.3.3",
