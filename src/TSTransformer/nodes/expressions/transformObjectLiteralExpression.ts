@@ -6,6 +6,7 @@ import { transformExpression } from "TSTransformer/nodes/expressions/transformEx
 import { transformMethodDeclaration } from "TSTransformer/nodes/transformMethodDeclaration";
 import { transformPropertyName } from "TSTransformer/nodes/transformPropertyName";
 import { createTruthinessChecks } from "TSTransformer/util/createTruthinessChecks";
+import { hasSymbolProperty } from "TSTransformer/util/hasSymbolProperty";
 import { assignToMapPointer, createMapPointer, disableMapInline, MapPointer } from "TSTransformer/util/pointer";
 import { getFirstDefinedSymbol, isDefinitelyType, isObjectType } from "TSTransformer/util/types";
 import { validateMethodAssignment } from "TSTransformer/util/validateMethodAssignment";
@@ -112,5 +113,19 @@ export function transformObjectLiteralExpression(state: TransformState, node: ts
 			DiagnosticService.addDiagnostic(errors.noGetterSetter(property));
 		}
 	}
+
+	if (hasSymbolProperty(state.getType(node), "iterator")) {
+		disableMapInline(state, ptr);
+		// setmetatable(object, { __iter = TS.objectIterator })
+		state.prereq(
+			luau.create(luau.SyntaxKind.CallStatement, {
+				expression: luau.call(luau.globals.setmetatable, [
+					ptr.value,
+					luau.map([[luau.string("__iter"), state.TS(node, "objectIterator")]]),
+				]),
+			}),
+		);
+	}
+
 	return ptr.value;
 }
