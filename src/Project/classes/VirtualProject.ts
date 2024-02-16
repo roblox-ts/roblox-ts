@@ -68,7 +68,7 @@ export class VirtualProject {
 			jsxFactory: "React.createElement",
 			jsxFragmentFactory: "React.Fragment",
 		};
-		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
+		validateCompilerOptions(this.compilerOptions, this.data.projectPath);
 
 		this.vfs = new VirtualFileSystem();
 
