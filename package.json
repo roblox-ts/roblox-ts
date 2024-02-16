@@ -48,6 +48,13 @@
 	"author": "",
 	"license": "MIT",
 	"dependencies": {
+		"@types/fs-extra": "^11.0.4",
+		"@types/mocha": "^10.0.6",
+		"@types/node": "^20.11.19",
+		"@types/prompts": "^2.4.9",
+		"@types/resolve": "^1.20.6",
+		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.3.3",
+		"@types/yargs": "^17.0.32",
 		"@roblox-ts/luau-ast": "^1.0.11",
 		"@roblox-ts/path-translator": "^1.0.0",
 		"@roblox-ts/rojo-resolver": "^1.0.6",
@@ -59,13 +66,6 @@
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
-		"@types/fs-extra": "^11.0.4",
-		"@types/mocha": "^10.0.6",
-		"@types/node": "^20.11.17",
-		"@types/prompts": "^2.4.9",
-		"@types/resolve": "^1.20.6",
-		"@types/ts-expose-internals": "npm:ts-expose-internals@=5.3.3",
-		"@types/yargs": "^17.0.32",
 		"@typescript-eslint/eslint-plugin": "^7.0.1",
 		"@typescript-eslint/parser": "^7.0.1",
 		"eslint": "^8.56.0",
