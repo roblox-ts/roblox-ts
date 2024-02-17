@@ -22,9 +22,8 @@ import {
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
-	isIterableType,
 	isMapType,
-	isPossiblyType,
+	isPossiblyMacroIterationType,
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
@@ -416,19 +415,6 @@ const buildDefaultLoop: LoopBuilder = makeForLoopBuilder((state, initializer, ex
 	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
 	return exp;
 });
-
-function isPossiblyMacroIterationType(state: TransformState, type: ts.Type) {
-	return isPossiblyType(
-		type,
-		isArrayType(state),
-		isSetType(state),
-		isMapType(state),
-		isStringType,
-		isIterableFunctionLuaTupleType(state),
-		isIterableFunctionType(state),
-		isGeneratorType(state),
-	);
-}
 
 function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): LoopBuilder {
 	if (isDefinitelyType(type, isArrayType(state))) {

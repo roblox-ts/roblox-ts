@@ -1,6 +1,5 @@
 import luau from "@roblox-ts/luau-ast";
 import { errors } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
 import { TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
 import { convertToIndexableExpression } from "TSTransformer/util/convertToIndexableExpression";
@@ -10,8 +9,8 @@ import {
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
-	isIterableType,
 	isMapType,
+	isPossiblyMacroIterationType,
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
@@ -345,6 +344,54 @@ const addGenerator: AddIterableToArrayBuilder = (state, expression, arrayId, len
 	return result;
 };
 
+const addDefaultIterable: AddIterableToArrayBuilder = (
+	state,
+	expression,
+	arrayId,
+	lengthId,
+	amtElementsSinceUpdate,
+) => {
+	const result = luau.list.make<luau.Statement>();
+
+	if (amtElementsSinceUpdate > 0) {
+		luau.list.push(
+			result,
+			luau.create(luau.SyntaxKind.Assignment, {
+				left: lengthId,
+				operator: "+=",
+				right: luau.number(amtElementsSinceUpdate),
+			}),
+		);
+	}
+
+	const valueId = luau.tempId("v");
+
+	luau.list.push(
+		result,
+		luau.create(luau.SyntaxKind.ForStatement, {
+			ids: luau.list.make(valueId),
+			expression,
+			statements: luau.list.make(
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: lengthId,
+					operator: "+=",
+					right: luau.number(1),
+				}),
+				luau.create(luau.SyntaxKind.Assignment, {
+					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
+						expression: arrayId,
+						index: lengthId,
+					}),
+					operator: "=",
+					right: valueId,
+				}),
+			),
+		}),
+	);
+
+	return result;
+};
+
 export function getAddIterableToArrayBuilder(
 	state: TransformState,
 	node: ts.Node,
@@ -364,13 +411,10 @@ export function getAddIterableToArrayBuilder(
 		return addIterableFunction;
 	} else if (isDefinitelyType(type, isGeneratorType(state))) {
 		return addGenerator;
-	} else if (isDefinitelyType(type, isIterableType(state))) {
-		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
-		return () => luau.list.make();
-	} else if (type.isUnion()) {
+	} else if (isPossiblyMacroIterationType(state, type)) {
 		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
 	} else {
-		assert(false, `Iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
+		return addDefaultIterable;
 	}
 }
