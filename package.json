@@ -66,8 +66,8 @@
 		"yargs": "^17.7.2"
 	},
 	"devDependencies": {
-		"@typescript-eslint/eslint-plugin": "^7.0.1",
-		"@typescript-eslint/parser": "^7.0.1",
+		"@typescript-eslint/eslint-plugin": "^7.0.2",
+		"@typescript-eslint/parser": "^7.0.2",
 		"eslint": "^8.56.0",
 		"eslint-config-prettier": "^9.1.0",
 		"eslint-plugin-deprecation": "^2.0.0",
@@ -78,7 +78,7 @@
 		"nyc": "^15.1.0",
 		"prettier": "^3.2.5",
 		"ts-patch": "^3.1.2",
-		"typescript-transform-paths": "^3.4.6"
+		"typescript-transform-paths": "^3.4.7"
 	},
 	"files": [
 		"out",
