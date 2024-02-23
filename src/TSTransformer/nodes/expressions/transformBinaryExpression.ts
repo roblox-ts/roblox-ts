@@ -116,7 +116,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 	validateNotAnyType(state, node.left);
 	validateNotAnyType(state, node.right);
 
-	// banned
 	if (operatorKind === ts.SyntaxKind.EqualsEqualsToken) {
 		DiagnosticService.addDiagnostic(errors.noEqualsEquals(node));
 		return luau.none();
@@ -125,7 +124,6 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 		return luau.none();
 	}
 
-	// logical
 	if (
 		operatorKind === ts.SyntaxKind.AmpersandAmpersandToken ||
 		operatorKind === ts.SyntaxKind.BarBarToken ||
@@ -140,6 +138,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 
 	if (ts.isAssignmentOperator(operatorKind)) {
 		// in destructuring, rhs must be executed first
+
 		if (ts.isArrayLiteralExpression(node.left)) {
 			const rightExp = transformExpression(state, node.right);
 
