@@ -184,7 +184,7 @@ export const errors = {
 		"Macro classes cannot be used in an object spread!",
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
-	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noVarArgsMacroSpread: error("Macros which use variadic arguments do not support spread expressions!", issue(1149)),
 	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
 	noTupleMacroOutsideReturn: error("$tuple() macro is only valid as an expression of a return statement!"),
 
