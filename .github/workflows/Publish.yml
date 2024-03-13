@@ -37,3 +37,5 @@ jobs:
           npm publish --provenance
           git push
           git push --tags
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
