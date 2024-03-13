@@ -56,6 +56,10 @@ function getReverseSymlinkMap(program: ts.Program) {
 	return result;
 }
 
+const EMIT_ON_ERROR_WARNING =
+	"--emitOnError was specified, and diagnostics were found. The compiler may crash!" +
+	"\nIf so, please check whether resolving the errors fixes the crash, before reporting it as a bug.";
+
 /**
  * 'transpiles' TypeScript project into a logically identical Luau project.
  *
@@ -114,7 +118,17 @@ export function compileFiles(
 		}
 	}
 
-	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	let hasWarned = false;
+	function warnForEmitOnError() {
+		if (hasWarned) return;
+		LogService.warn(EMIT_ON_ERROR_WARNING);
+		hasWarned = true;
+	}
+
+	if (DiagnosticService.hasErrors()) {
+		if (data.projectOptions.emitOnError) warnForEmitOnError();
+		else return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	}
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
@@ -160,7 +174,10 @@ export function compileFiles(
 		});
 	}
 
-	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	if (DiagnosticService.hasErrors()) {
+		// No warnForEmitOnError() here, since transformer diagnostics shouldn't have a way to cause a compiler crash
+		if (!data.projectOptions.emitOnError) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	}
 
 	const typeChecker = proxyProgram.getTypeChecker();
 	const services = createTransformServices(typeChecker);
@@ -172,7 +189,10 @@ export function compileFiles(
 		benchmarkIfVerbose(`${progress} compile ${path.relative(process.cwd(), sourceFile.fileName)}`, () => {
 			DiagnosticService.addDiagnostics(ts.getPreEmitDiagnostics(proxyProgram, sourceFile));
 			DiagnosticService.addDiagnostics(getCustomPreEmitDiagnostics(data, sourceFile));
-			if (DiagnosticService.hasErrors()) return;
+			if (DiagnosticService.hasErrors()) {
+				if (data.projectOptions.emitOnError) warnForEmitOnError();
+				else return;
+			}
 
 			const transformState = new TransformState(
 				proxyProgram,
@@ -192,7 +212,10 @@ export function compileFiles(
 			);
 
 			const luauAST = transformSourceFile(transformState, sourceFile);
-			if (DiagnosticService.hasErrors()) return;
+			if (DiagnosticService.hasErrors()) {
+				if (data.projectOptions.emitOnError) warnForEmitOnError();
+				else return;
+			}
 
 			const source = renderAST(luauAST);
 
@@ -200,7 +223,10 @@ export function compileFiles(
 		});
 	}
 
-	if (DiagnosticService.hasErrors()) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	if (DiagnosticService.hasErrors()) {
+		// No warnForEmitOnError() here, since file writing itself will be fine, even with diagnostics
+		if (!data.projectOptions.emitOnError) return { emitSkipped: true, diagnostics: DiagnosticService.flush() };
+	}
 
 	const emittedFiles = new Array<string>();
 	if (fileWriteQueue.length > 0) {
