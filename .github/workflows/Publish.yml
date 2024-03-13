@@ -12,6 +12,8 @@ jobs:
   publish:
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -32,6 +34,6 @@ jobs:
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
           npm version ${{ inputs.version }}
-          npm publish
+          npm publish --provenance
           git push
           git push --tags
