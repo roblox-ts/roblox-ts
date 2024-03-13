@@ -14,18 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.pat }}
 
+
+      - uses: actions/setup-node@v4
+        with:
+            node-version: "20.x"
+            registry-url: "https://registry.npmjs.org"
+
       - name: Install NPM Dependencies
-        uses: bahmutov/npm-install@v1.7.4
+        uses: bahmutov/npm-install@v1
 
       - name: Publish
         run: |
           git config user.name "GitHub Actions"
           git config user.email "noreply@github.com"
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
           npm version ${{ inputs.version }}
           npm publish
           git push
