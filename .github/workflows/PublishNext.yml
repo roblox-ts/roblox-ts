@@ -21,7 +21,7 @@ jobs:
 
       - name: Check version
         run: |
-            LATEST_VERSION=$(curl --silent https://registry.npmjs.org/roblox-ts | jq -r '."dist-tags" | .next')
+            LATEST_VERSION=$(npm view roblox-ts dist-tags.next)
             echo "VERSION_CHANGED=$(test ${{ env.VERSION }} != $LATEST_VERSION && echo true || echo false)" >> $GITHUB_ENV
 
   publish:
