@@ -6,20 +6,48 @@ on:
     - cron: '0 7 * * *'
 
 jobs:
-  publish:
+  check:
     if: github.repository == 'roblox-ts/roblox-ts' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ env.VERSION }}
+      version_changed: ${{ env.VERSION_CHANGED }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v4
+
+      - name: Set version
+        run: echo "VERSION=$(cat package.json | jq -r .version)-dev-$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Check version
+        run: |
+            LATEST_VERSION=$(npm view roblox-ts dist-tags.next)
+            echo "VERSION_CHANGED=$(test ${{ env.VERSION }} != $LATEST_VERSION && echo true || echo false)" >> $GITHUB_ENV
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: check
+    if: needs.check.outputs.version_changed == 'true'
+    env:
+      VERSION: ${{ needs.check.outputs.version }}
+    permissions:
+      id-token: write
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+            node-version: "20.x"
+            registry-url: "https://registry.npmjs.org"
 
       - name: Install NPM Dependencies
-        uses: bahmutov/npm-install@v1.7.4
+        uses: bahmutov/npm-install@v1
+
+      - name: Set version
+        run: npm version --no-git-tag-version ${{ env.VERSION }}
 
       - name: Publish @next
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "noreply@github.com"
-          echo "//registry.npmjs.org/:_authToken=${{ secrets.npm_token }}" > .npmrc
-          npm version --no-git-tag-version $(cat package.json | jq -r .version)-dev-$(git rev-parse --short HEAD)
-          npm publish --tag next
+        run: npm publish --tag next --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
