@@ -233,6 +233,9 @@ function Promise._new(traceback, callback, parent)
 	end
 
 	local self = {
+		-- The executor thread.
+		_thread = nil,
+
 		-- Used to locate where a promise was created
 		_source = traceback,
 
@@ -292,13 +295,15 @@ function Promise._new(traceback, callback, parent)
 		return self._status == Promise.Status.Cancelled
 	end
 
-	coroutine.wrap(function()
+	self._thread = coroutine.create(function()
 		local ok, _, result = runExecutor(self._source, callback, resolve, reject, onCancel)
 
 		if not ok then
 			reject(result[1])
 		end
-	end)()
+	end)
+
+	task.spawn(self._thread)
 
 	return self
 end
@@ -331,6 +336,12 @@ end
 	* Calling `onCancel` with no argument will not override a previously set cancellation hook, but it will still return `true` if the Promise is currently cancelled.
 	* You can set the cancellation hook at any time before resolving.
 	* When a promise is cancelled, calls to `resolve` or `reject` will be ignored, regardless of if you set a cancellation hook or not.
+
+	:::caution
+	If the Promise is cancelled, the `executor` thread is closed with `coroutine.close` after the cancellation hook is called.
+
+	You must perform any cleanup code in the cancellation hook: any time your executor yields, it **may never resume**.
+	:::
 
 	@param executor (resolve: (...: any) -> (), reject: (...: any) -> (), onCancel: (abortHandler?: () -> ()) -> boolean) -> ()
 	@return Promise
@@ -1202,8 +1213,16 @@ end
 function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 	self._unhandledRejection = false
 
+	-- If we are already cancelled, we return a cancelled Promise
+	if self._status == Promise.Status.Cancelled then
+		local promise = Promise.new(function() end)
+		promise:cancel()
+
+		return promise
+	end
+
 	-- Create a new promise to follow this part of the chain
-	return Promise._new(traceback, function(resolve, reject)
+	return Promise._new(traceback, function(resolve, reject, onCancel)
 		-- Our default callbacks just pass values onto the next promise.
 		-- This lets success and failure cascade correctly!
 
@@ -1221,20 +1240,21 @@ function Promise.prototype:_andThen(traceback, successHandler, failureHandler)
 			-- If we haven't resolved yet, put ourselves into the queue
 			table.insert(self._queuedResolve, successCallback)
 			table.insert(self._queuedReject, failureCallback)
+
+			onCancel(function()
+				-- These are guaranteed to exist because the cancellation handler is guaranteed to only
+				-- be called at most once
+				if self._status == Promise.Status.Started then
+					table.remove(self._queuedResolve, table.find(self._queuedResolve, successCallback))
+					table.remove(self._queuedReject, table.find(self._queuedReject, failureCallback))
+				end
+			end)
 		elseif self._status == Promise.Status.Resolved then
 			-- This promise has already resolved! Trigger success immediately.
 			successCallback(unpack(self._values, 1, self._valuesLength))
 		elseif self._status == Promise.Status.Rejected then
 			-- This promise died a terrible death! Trigger failure immediately.
 			failureCallback(unpack(self._values, 1, self._valuesLength))
-		elseif self._status == Promise.Status.Cancelled then
-			-- We don't want to call the success handler or the failure handler,
-			-- we just reject this promise outright.
-			reject(Error.new({
-				error = "Promise is cancelled",
-				kind = Error.Kind.AlreadyCancelled,
-				context = "Promise created at\n\n" .. traceback,
-			}))
 		end
 	end, self)
 end
@@ -1246,7 +1266,15 @@ end
 	Within the failure handler, you should never assume that the rejection value is a string. Some rejections within the Promise library are represented by [[Error]] objects. If you want to treat it as a string for debugging, you should call `tostring` on it first.
 	:::
 
-	Return a Promise from the success or failure handler and it will be chained onto.
+	You can return a Promise from the success or failure handler and it will be chained onto.
+
+	Calling `andThen` on a cancelled Promise returns a cancelled Promise.
+
+	:::tip
+	If the Promise returned by `andThen` is cancelled, `successHandler` and `failureHandler` will not run.
+
+	To run code no matter what, use [Promise:finally].
+	:::
 
 	@param successHandler (...: any) -> ...any
 	@param failureHandler? (...: any) -> ...any
@@ -1268,6 +1296,13 @@ end
 	Within the failure handler, you should never assume that the rejection value is a string. Some rejections within the Promise library are represented by [[Error]] objects. If you want to treat it as a string for debugging, you should call `tostring` on it first.
 	:::
 
+	Calling `catch` on a cancelled Promise returns a cancelled Promise.
+
+	:::tip
+	If the Promise returned by `catch` is cancelled,  `failureHandler` will not run.
+
+	To run code no matter what, use [Promise:finally].
+	:::
 
 	@param failureHandler (...: any) -> ...any
 	@return Promise<...any>
@@ -1387,6 +1422,8 @@ function Promise.prototype:cancel()
 		self._cancellationHook()
 	end
 
+	coroutine.close(self._thread)
+
 	if self._parent then
 		self._parent:_consumerCancelled(self)
 	end
@@ -1416,28 +1453,45 @@ end
 
 --[[
 	Used to set a handler for when the promise resolves, rejects, or is
-	cancelled. Returns a new promise chained from this promise.
+	cancelled.
 ]]
-function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
-	if not onlyOk then
-		self._unhandledRejection = false
-	end
+function Promise.prototype:_finally(traceback, finallyHandler)
+	self._unhandledRejection = false
 
-	-- Return a promise chained off of this promise
-	return Promise._new(traceback, function(resolve, reject)
+	local promise = Promise._new(traceback, function(resolve, reject, onCancel)
+		local handlerPromise
+
+		onCancel(function()
+			-- The finally Promise is not a proper consumer of self. We don't care about the resolved value.
+			-- All we care about is running at the end. Therefore, if self has no other consumers, it's safe to
+			-- cancel. We don't need to hold out cancelling just because there's a finally handler.
+			self:_consumerCancelled(self)
+
+			if handlerPromise then
+				handlerPromise:cancel()
+			end
+		end)
+
 		local finallyCallback = resolve
 		if finallyHandler then
-			finallyCallback = createAdvancer(traceback, finallyHandler, resolve, reject)
-		end
-
-		if onlyOk then
-			local callback = finallyCallback
 			finallyCallback = function(...)
-				if self._status == Promise.Status.Rejected then
-					return resolve(self)
-				end
+				local callbackReturn = finallyHandler(...)
 
-				return callback(...)
+				if Promise.is(callbackReturn) then
+					handlerPromise = callbackReturn
+
+					callbackReturn
+						:finally(function(status)
+							if status ~= Promise.Status.Rejected then
+								resolve(self)
+							end
+						end)
+						:catch(function(...)
+							reject(...)
+						end)
+				else
+					resolve(self)
+				end
 			end
 		end
 
@@ -1448,16 +1502,36 @@ function Promise.prototype:_finally(traceback, finallyHandler, onlyOk)
 			-- The promise already settled or was cancelled, run the callback now.
 			finallyCallback(self._status)
 		end
-	end, self)
+	end)
+
+	return promise
 end
 
 --[=[
-	Set a handler that will be called regardless of the promise's fate. The handler is called when the promise is resolved, rejected, *or* cancelled.
+	Set a handler that will be called regardless of the promise's fate. The handler is called when the promise is
+	resolved, rejected, *or* cancelled.
 
-	Returns a new promise chained from this promise.
+	Returns a new Promise that:
+	- resolves with the same values that this Promise resolves with.
+	- rejects with the same values that this Promise rejects with.
+	- is cancelled if this Promise is cancelled.
 
-	:::caution
-	If the Promise is cancelled, any Promises chained off of it with `andThen` won't run. Only Promises chained with `finally` or `done` will run in the case of cancellation.
+	If the value you return from the handler is a Promise:
+	- We wait for the Promise to resolve, but we ultimately discard the resolved value.
+	- If the returned Promise rejects, the Promise returned from `finally` will reject with the rejected value from the
+	*returned* promise.
+	- If the `finally` Promise is cancelled, and you returned a Promise from the handler, we cancel that Promise too.
+
+	Otherwise, the return value from the `finally` handler is entirely discarded.
+
+	:::note Cancellation
+	As of Promise v4, `Promise:finally` does not count as a consumer of the parent Promise for cancellation purposes.
+	This means that if all of a Promise's consumers are cancelled and the only remaining callbacks are finally handlers,
+	the Promise is cancelled and the finally callbacks run then and there.
+
+	Cancellation still propagates through the `finally` Promise though: if you cancel the `finally` Promise, it can cancel
+	its parent Promise if it had no other consumers. Likewise, if the parent Promise is cancelled, the `finally` Promise
+	will also be cancelled.
 	:::
 
 	```lua
@@ -1530,69 +1604,6 @@ function Promise.prototype:finallyReturn(...)
 end
 
 --[=[
-	Set a handler that will be called only if the Promise resolves or is cancelled. This method is similar to `finally`, except it doesn't catch rejections.
-
-	:::caution
-	`done` should be reserved specifically when you want to perform some operation after the Promise is finished (like `finally`), but you don't want to consume rejections (like in <a href="/roblox-lua-promise/lib/Examples.html#cancellable-animation-sequence">this example</a>). You should use `andThen` instead if you only care about the Resolved case.
-	:::
-
-	:::warning
-	Like `finally`, if the Promise is cancelled, any Promises chained off of it with `andThen` won't run. Only Promises chained with `done` and `finally` will run in the case of cancellation.
-	:::
-
-	Returns a new promise chained from this promise.
-
-	@param doneHandler (status: Status) -> ...any
-	@return Promise<...any>
-]=]
-function Promise.prototype:done(doneHandler)
-	assert(doneHandler == nil or isCallable(doneHandler), string.format(ERROR_NON_FUNCTION, "Promise:done"))
-	return self:_finally(debug.traceback(nil, 2), doneHandler, true)
-end
-
---[=[
-	Same as `andThenCall`, except for `done`.
-
-	Attaches a `done` handler to this Promise that calls the given callback with the predefined arguments.
-
-	@param callback (...: any) -> any
-	@param ...? any -- Additional arguments which will be passed to `callback`
-	@return Promise
-]=]
-function Promise.prototype:doneCall(callback, ...)
-	assert(isCallable(callback), string.format(ERROR_NON_FUNCTION, "Promise:doneCall"))
-	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
-		return callback(unpack(values, 1, length))
-	end, true)
-end
-
---[=[
-	Attaches a `done` handler to this Promise that discards the resolved value and returns the given value from it.
-
-	```lua
-		promise:doneReturn("some", "values")
-	```
-
-	This is sugar for
-
-	```lua
-		promise:done(function()
-			return "some", "values"
-		end)
-	```
-
-	@param ... any -- Values to return from the function
-	@return Promise
-]=]
-function Promise.prototype:doneReturn(...)
-	local length, values = pack(...)
-	return self:_finally(debug.traceback(nil, 2), function()
-		return unpack(values, 1, length)
-	end, true)
-end
-
---[=[
 	Yields the current thread until the given Promise completes. Returns the Promise's status, followed by the values that the promise resolved or rejected with.
 
 	@yields
@@ -1603,14 +1614,19 @@ function Promise.prototype:awaitStatus()
 	self._unhandledRejection = false
 
 	if self._status == Promise.Status.Started then
-		local bindable = Instance.new("BindableEvent")
+		local thread = coroutine.running()
 
-		self:finally(function()
-			bindable:Fire()
-		end)
+		self
+			:finally(function()
+				task.spawn(thread)
+			end)
+			-- The finally promise can propagate rejections, so we attach a catch handler to prevent the unhandled
+			-- rejection warning from appearing
+			:catch(
+				function() end
+			)
 
-		bindable.Event:Wait()
-		bindable:Destroy()
+		coroutine.yield()
 	end
 
 	if self._status == Promise.Status.Resolved then
@@ -1850,6 +1866,8 @@ function Promise.prototype:_finalize()
 		self._parent = nil
 		self._consumers = nil
 	end
+
+	task.defer(coroutine.close, self._thread)
 end
 
 --[=[
@@ -1911,6 +1929,7 @@ end
 	@param callback (...: P) -> Promise<T>
 	@param times number
 	@param ...? P
+	@return Promise<T>
 ]=]
 function Promise.retry(callback, times, ...)
 	assert(isCallable(callback), "Parameter #1 to Promise.retry must be a function")
@@ -1938,6 +1957,7 @@ end
 	@param times number
 	@param seconds number
 	@param ...? P
+	@return Promise<T>
 ]=]
 function Promise.retryWithDelay(callback, times, seconds, ...)
 	assert(isCallable(callback), "Parameter #1 to Promise.retry must be a function")
