@@ -141,22 +141,27 @@ function transformParameterDecorators(
 ): luau.List<luau.Statement> {
 	const result = luau.list.make<luau.Statement>();
 
+	const memberName = member.name;
+	let key: luau.Expression | undefined =
+		memberName !== undefined ? state.getClassElementObjectKey(member) : luau.nil();
+	if (!key) {
+		const keyPrereqs = state.capturePrereqs(() => (key = transformPropertyName(state, memberName!)));
+		luau.list.pushList(result, keyPrereqs);
+	}
+
 	for (let i = 0; i < member.parameters.length; i++) {
 		const parameter = member.parameters[i];
-		const name = parameter.name;
-		if (ts.isIdentifier(name)) {
-			luau.list.pushList(
-				result,
-				transformMemberDecorators(state, parameter, expression =>
-					// decorator(Class, "name", 0)
-					luau.list.make(
-						luau.create(luau.SyntaxKind.CallStatement, {
-							expression: luau.call(expression, [classId, luau.string(name.text), luau.number(i)]),
-						}),
-					),
+		luau.list.pushList(
+			result,
+			transformMemberDecorators(state, parameter, expression =>
+				// decorator(Class, "name", 0)
+				luau.list.make(
+					luau.create(luau.SyntaxKind.CallStatement, {
+						expression: luau.call(expression, [classId, key!, luau.number(i)]),
+					}),
 				),
-			);
-		}
+			),
+		);
 	}
 
 	return result;
