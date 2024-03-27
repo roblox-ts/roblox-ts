@@ -22,8 +22,8 @@ import {
 	isGeneratorType,
 	isIterableFunctionLuaTupleType,
 	isIterableFunctionType,
-	isIterableType,
 	isMapType,
+	isPossiblyMacroIterationType,
 	isSetType,
 	isStringType,
 } from "TSTransformer/util/types";
@@ -411,6 +411,11 @@ const buildGeneratorLoop: LoopBuilder = makeForLoopBuilder((state, initializer, 
 	return luau.property(convertToIndexableExpression(exp), "next");
 });
 
+const buildDefaultLoop: LoopBuilder = makeForLoopBuilder((state, initializer, exp, ids, initializers) => {
+	luau.list.push(ids, transformForInitializer(state, initializer, initializers));
+	return exp;
+});
+
 function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): LoopBuilder {
 	if (isDefinitelyType(type, isArrayType(state))) {
 		return buildArrayLoop;
@@ -426,14 +431,11 @@ function getLoopBuilder(state: TransformState, node: ts.Node, type: ts.Type): Lo
 		return buildIterableFunctionLoop;
 	} else if (isDefinitelyType(type, isGeneratorType(state))) {
 		return buildGeneratorLoop;
-	} else if (isDefinitelyType(type, isIterableType(state))) {
-		DiagnosticService.addDiagnostic(errors.noIterableIteration(node));
-		return () => luau.list.make();
-	} else if (type.isUnion()) {
+	} else if (isPossiblyMacroIterationType(state, type)) {
 		DiagnosticService.addDiagnostic(errors.noMacroUnion(node));
 		return () => luau.list.make();
 	} else {
-		assert(false, `ForOf iteration type not implemented: ${state.typeChecker.typeToString(type)}`);
+		return buildDefaultLoop;
 	}
 }
 

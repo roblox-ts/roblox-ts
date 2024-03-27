@@ -10,6 +10,27 @@ local TS = {}
 
 TS.Promise = Promise
 
+local Symbol = {}
+Symbol.__index = Symbol
+
+function Symbol.new(description)
+	local self = setmetatable({}, Symbol)
+	self.description = description
+	return self
+end
+
+function Symbol:__tostring()
+	return "Symbol(" .. self.description .. ")"
+end
+
+Symbol.hasInstance = Symbol.new("hasInstance")
+Symbol.iterator = Symbol.new("iterator")
+Symbol.asyncIterator = Symbol.new("asyncIterator")
+Symbol.dispose = Symbol.new("dispose")
+Symbol.asyncDispose = Symbol.new("asyncDispose")
+
+TS.Symbol = Symbol
+
 local function isPlugin(context)
 	return RunService:IsStudio() and context:FindFirstAncestorWhichIsA("Plugin") ~= nil
 end
@@ -226,6 +247,17 @@ function TS.generator(callback)
 			end
 		end,
 	}
+end
+
+function TS.objectIterator(object)
+	local iterator = object[Symbol.iterator](object)
+	return function()
+		local result = iterator.next()
+		if result.done == true then
+			return nil
+		end
+		return result.value
+	end
 end
 
 return TS
