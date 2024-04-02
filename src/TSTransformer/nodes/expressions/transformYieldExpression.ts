@@ -12,14 +12,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 	const expression = transformExpression(state, node.expression);
 	if (node.asteriskToken) {
 		const loopId = luau.tempId("result");
-		const returnValue = luau.tempId("return");
-
-		state.prereq(
-			luau.create(luau.SyntaxKind.VariableDeclaration, {
-				left: returnValue,
-				right: undefined,
-			}),
-		);
+		const returnValue = state.pushToVar(undefined, "returnValue");
 
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
