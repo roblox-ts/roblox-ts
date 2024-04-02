@@ -12,6 +12,15 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 	const expression = transformExpression(state, node.expression);
 	if (node.asteriskToken) {
 		const loopId = luau.tempId("result");
+		const returnValue = luau.tempId("return");
+
+		state.prereq(
+			luau.create(luau.SyntaxKind.VariableDeclaration, {
+				left: returnValue,
+				right: undefined,
+			}),
+		);
+
 		state.prereq(
 			luau.create(luau.SyntaxKind.ForStatement, {
 				ids: luau.list.make(loopId),
@@ -19,7 +28,14 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 				statements: luau.list.make<luau.Statement>(
 					luau.create(luau.SyntaxKind.IfStatement, {
 						condition: luau.property(loopId, "done"),
-						statements: luau.list.make(luau.create(luau.SyntaxKind.BreakStatement, {})),
+						statements: luau.list.make<luau.Statement>(
+							luau.create(luau.SyntaxKind.Assignment, {
+								left: returnValue,
+								operator: "=",
+								right: luau.property(loopId, "value"),
+							}),
+							luau.create(luau.SyntaxKind.BreakStatement, {}),
+						),
 						elseBody: luau.list.make(),
 					}),
 					luau.create(luau.SyntaxKind.CallStatement, {
@@ -29,7 +45,7 @@ export function transformYieldExpression(state: TransformState, node: ts.YieldEx
 			}),
 		);
 
-		return luau.none();
+		return returnValue;
 	} else {
 		return luau.call(luau.globals.coroutine.yield, [expression]);
 	}
