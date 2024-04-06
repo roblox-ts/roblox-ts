@@ -16,6 +16,15 @@
 						"$path": "node_modules/@rbxts"
 					}
 				}
+			},
+			"diagnostics": {
+				"$path": "out/diagnostics"
+			},
+			"helpers": {
+				"$className": "Folder",
+				"util": {
+					"$path": "out/helpers/util"
+				}
 			}
 		},
 		"ServerScriptService": {
@@ -26,14 +35,8 @@
 			"tests": {
 				"$path": "out/tests"
 			},
-			"diagnostics": {
-				"$path": "out/diagnostics"
-			},
-			"helpers": {
-				"$className": "Folder",
-				"util": {
-					"$path": "out/helpers/util"
-				}
+			"server": {
+				"$path": "out/helpers/rojo/server.lua"
 			}
 		},
 		"StarterGui": {
