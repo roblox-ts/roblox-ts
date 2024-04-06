@@ -9,8 +9,8 @@ import { createProjectData } from "Project/functions/createProjectData";
 import { createProjectProgram } from "Project/functions/createProjectProgram";
 import { getChangedSourceFiles } from "Project/functions/getChangedSourceFiles";
 import { DEFAULT_PROJECT_OPTIONS, PACKAGE_ROOT, TS_EXT, TSX_EXT } from "Shared/constants";
-import { DiagnosticFactory, errors, getDiagnosticId } from "Shared/diagnostics";
-import { assert } from "Shared/util/assert";
+import { errors, warnings } from "Shared/diagnostics";
+import { getDiagnosticCode } from "Shared/util/createDiagnostic";
 import { formatDiagnostics } from "Shared/util/formatDiagnostics";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { isPathDescendantOf } from "Shared/util/isPathDescendantOf";
@@ -47,14 +47,21 @@ describe("should compile tests project", () => {
 			if (ext === TS_EXT || ext === TSX_EXT) {
 				fileBaseName = path.basename(sourceFile.fileName, ext);
 			}
-			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1] as keyof typeof errors;
-			assert(diagnosticName && errors[diagnosticName], `Diagnostic test for unknown diagnostic ${fileBaseName}`);
-			const expectedId = (errors[diagnosticName] as DiagnosticFactory).id;
+			const diagnosticName = fileBaseName.match(DIAGNOSTIC_TEST_NAME_REGEX)?.[1];
 			it(`should compile ${fileName} and report diagnostic ${diagnosticName}`, done => {
+				if (!diagnosticName) {
+					return done(new Error(`${fileBaseName} does not match diagnostic test file format`));
+				}
+				const diagnosticFactory =
+					errors[diagnosticName as keyof typeof errors] || warnings[diagnosticName as keyof typeof warnings];
+				if (!diagnosticFactory) {
+					return done(new Error(`Diagnostic test for unknown diagnostic ${fileBaseName}`));
+				}
+
 				const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
 				if (
 					emitResult.diagnostics.length > 0 &&
-					emitResult.diagnostics.every(d => getDiagnosticId(d) === expectedId)
+					emitResult.diagnostics.every(d => d.code === getDiagnosticCode(diagnosticFactory.id))
 				) {
 					done();
 				} else if (emitResult.diagnostics.length === 0) {
