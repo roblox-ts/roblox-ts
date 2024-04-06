@@ -14,6 +14,9 @@
 					"$className": "Folder",
 					"@rbxts": {
 						"$path": "node_modules/@rbxts"
+					},
+					"incorrectfoldername": {
+						"$path": "node_modules/@flamework"
 					}
 				}
 			},
