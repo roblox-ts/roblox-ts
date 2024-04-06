@@ -41,6 +41,12 @@
 			"isolated": {
 				"$path": "out/helpers/rojo/isolated.lua"
 			}
+		},
+		"ReplicatedFirst": {
+			"$className": "ReplicatedFirst",
+			"testRuntimeLibUsedInReplicatedFirst": {
+				"$path": "out/diagnostics/replicatedfirst"
+			}
 		}
 	}
 }
