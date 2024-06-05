@@ -119,13 +119,15 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			} else {
 				// Transformers use a separate program that must be updated separately (which is done in compileFiles),
 				// however certain files (such as d.ts files) aren't passed to that function and must be updated here.
-				const transformerWatcher = data.transformerWatcher;
-				if (transformerWatcher) {
-					// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
-					// and is also used by the program host to read files.
-					const contents = ts.sys.readFile(fsPath);
-					if (contents) {
-						transformerWatcher.updateFile(fsPath, contents);
+				if (ts.isDeclarationFileName(fsPath)) {
+					const transformerWatcher = data.transformerWatcher;
+					if (transformerWatcher) {
+						// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
+						// and is also used by the program host to read files.
+						const contents = ts.sys.readFile(fsPath);
+						if (contents) {
+							transformerWatcher.updateFile(fsPath, contents);
+						}
 					}
 				}
 
