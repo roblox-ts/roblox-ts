@@ -135,7 +135,6 @@ export class VirtualProject {
 			this.rojoResolver,
 			this.pkgRojoResolvers,
 			this.nodeModulesPathMapping,
-			new Map(),
 			runtimeLibRbxPath,
 			this.typeChecker,
 			projectType,

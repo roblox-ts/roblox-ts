@@ -51,7 +51,6 @@ export class TransformState {
 		public readonly rojoResolver: RojoResolver,
 		public readonly pkgRojoResolvers: Array<RojoResolver>,
 		public readonly nodeModulesPathMapping: Map<string, string>,
-		public readonly reverseSymlinkMap: Map<string, string>,
 		public readonly runtimeLibRbxPath: RbxPath | undefined,
 		public readonly typeChecker: ts.TypeChecker,
 		public readonly projectType: ProjectType,
@@ -365,6 +364,9 @@ export class TransformState {
 
 	/** attempts to reverse symlink lookup */
 	public guessVirtualPath(fsPath: string) {
+		const reverseSymlinkMap = this.program.getSymlinkCache?.().getSymlinkedDirectoriesByRealpath();
+		if (!reverseSymlinkMap) return;
+
 		const original = fsPath;
 		while (true) {
 			// reverseSymlinkMap always has trailing slashes
@@ -372,12 +374,11 @@ export class TransformState {
 			const parent = ts.ensureTrailingDirectorySeparator(path.dirname(fsPath));
 			if (fsPath === parent) break;
 			fsPath = parent;
-			const symlink = this.reverseSymlinkMap.get(fsPath);
+			const symlink = reverseSymlinkMap.get(fsPath as ts.Path)?.[0];
 			if (symlink) {
 				return path.join(symlink, path.relative(fsPath, original));
 			}
 		}
-		return original;
 	}
 
 	public symbolToIdMap = new Map<ts.Symbol, luau.TemporaryIdentifier>();
