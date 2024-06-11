@@ -245,3 +245,16 @@ export function getFirstDefinedSymbol(state: TransformState, type: ts.Type) {
 export function getTypeArguments(state: TransformState, type: ts.Type) {
 	return state.typeChecker.getTypeArguments(type as ts.TypeReference) ?? [];
 }
+
+export function isPossiblyMacroIterationType(state: TransformState, type: ts.Type) {
+	return isPossiblyType(
+		type,
+		isArrayType(state),
+		isSetType(state),
+		isMapType(state),
+		isStringType,
+		isIterableFunctionLuaTupleType(state),
+		isIterableFunctionType(state),
+		isGeneratorType(state),
+	);
+}
