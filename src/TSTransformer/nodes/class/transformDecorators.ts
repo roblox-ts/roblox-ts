@@ -41,10 +41,6 @@ function transformMemberDecorators(
 		if (ts.isMethodDeclaration(node) || ts.isPropertyDeclaration(node)) {
 			key = state.getClassElementObjectKey(node);
 			assert(key);
-
-			// `name` can be `ts.BindingPattern` if it's from a `ts.ParameterDeclaration`
-			// we check against this above
-			assert(!ts.isBindingPattern(name));
 		}
 
 		luau.list.unshiftList(finalizers, callback(convertToIndexableExpression(expression), key));
@@ -151,7 +147,7 @@ function transformParameterDecorators(
 				// decorator(Class, "name", 0)
 				luau.list.make(
 					luau.create(luau.SyntaxKind.CallStatement, {
-						expression: luau.call(expression, [classId, key!, luau.number(i)]),
+						expression: luau.call(expression, [classId, key, luau.number(i)]),
 					}),
 				),
 			),
