@@ -20,14 +20,14 @@ import { createBinaryFromOperator } from "TSTransformer/util/createBinaryFromOpe
 import { ensureTransformOrder } from "TSTransformer/util/ensureTransformOrder";
 import { getAssignableValue } from "TSTransformer/util/getAssignableValue";
 import { getKindName } from "TSTransformer/util/getKindName";
-import { isSymbolFromRobloxTypes } from "TSTransformer/util/isSymbolFromRobloxTypes";
 import { isUsedAsStatement } from "TSTransformer/util/isUsedAsStatement";
 import { skipDownwards } from "TSTransformer/util/traversal";
 import {
-	getFirstDefinedSymbol,
 	isDefinitelyType,
 	isLuaTupleType,
 	isNumberType,
+	isPossiblyType,
+	isRobloxType,
 	isStringType,
 } from "TSTransformer/util/types";
 import { validateNotAnyType } from "TSTransformer/util/validateNotAny";
@@ -226,8 +226,7 @@ export function transformBinaryExpression(state: TransformState, node: ts.Binary
 			luau.nil(),
 		);
 	} else if (operatorKind === ts.SyntaxKind.InstanceOfKeyword) {
-		const symbol = getFirstDefinedSymbol(state, state.getType(node.right));
-		if (isSymbolFromRobloxTypes(state, symbol)) {
+		if (isPossiblyType(state.getType(node.right), isRobloxType(state))) {
 			DiagnosticService.addDiagnostic(errors.noRobloxSymbolInstanceof(node.right));
 		}
 		return luau.call(state.TS(node, "instanceof"), [left, right]);
