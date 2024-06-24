@@ -17,7 +17,7 @@ import { ProjectType } from "Shared/constants";
 import { ProjectData } from "Shared/types";
 import { assert } from "Shared/util/assert";
 import { benchmarkIfVerbose } from "Shared/util/benchmark";
-import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
+import { createTextDiagnostic } from "Shared/util/createDiagnostic";
 import { getRootDirs } from "Shared/util/getRootDirs";
 import { MultiTransformState, transformSourceFile, TransformState } from "TSTransformer";
 import { DiagnosticService } from "TSTransformer/classes/DiagnosticService";
@@ -37,7 +37,9 @@ function inferProjectType(data: ProjectData, rojoResolver: RojoResolver): Projec
 function emitResultFailure(messageText: string): ts.EmitResult {
 	return {
 		emitSkipped: false,
-		diagnostics: [createTextDiagnostic(messageText)],
+		// TODO: Change code to something better
+		// Maybe separate ProjectErrors into dedicated diagnostic factories too?
+		diagnostics: [createTextDiagnostic(ts.DiagnosticCategory.Error, 999, messageText)],
 	};
 }
 

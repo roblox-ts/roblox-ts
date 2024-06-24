@@ -1,35 +1,46 @@
 import { SourceFileWithTextRange } from "Shared/types";
 import ts from "typescript";
 
+const CODE_PREFIX = " roblox-ts ";
+
+export function getDiagnosticCode(id: number) {
+	return (CODE_PREFIX + id) as unknown as number;
+}
+
 export function createDiagnosticWithLocation(
+	category: ts.DiagnosticCategory,
 	id: number,
 	messageText: string,
-	category: ts.DiagnosticCategory,
 	node: ts.Node | SourceFileWithTextRange,
 ): ts.DiagnosticWithLocation {
-	const code = " roblox-ts" as never;
-	const diagnosticType = 0;
 	if ("kind" in node) {
 		return {
 			category,
-			code,
+			code: getDiagnosticCode(id),
 			messageText,
-			diagnosticType,
-			id,
 			file: node.getSourceFile(),
 			start: node.getStart(),
 			length: node.getWidth(),
-		} as ts.DiagnosticWithLocation;
+		};
 	} else {
 		return {
 			category,
-			code,
+			code: getDiagnosticCode(id),
 			messageText,
-			diagnosticType,
-			id,
 			file: node.sourceFile,
 			start: node.range.pos,
 			length: node.range.end,
-		} as ts.DiagnosticWithLocation;
+		};
 	}
+}
+
+export function createTextDiagnostic(category: ts.DiagnosticCategory, id: number, messageText: string): ts.Diagnostic {
+	return {
+		category,
+		code: getDiagnosticCode(id),
+		messageText,
+		file: undefined,
+		start: undefined,
+		length: undefined,
+	};
 }

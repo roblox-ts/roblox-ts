@@ -49,7 +49,7 @@ export function createTruthinessChecks(state: TransformState, exp: luau.Expressi
 		if (isAssignableToZero) checkStrs.push("0");
 		if (isAssignableToZero || isAssignableToNaN) checkStrs.push("NaN");
 		if (isAssignableToEmptyString) checkStrs.push('""');
-		DiagnosticService.addDiagnostic(warnings.truthyChange(checkStrs.join(", "))(node));
+		DiagnosticService.addDiagnostic(warnings.truthyChange(node, checkStrs.join(", ")));
 	}
 
 	return binaryExpressionChain(checks, "and");

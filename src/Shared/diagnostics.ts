@@ -1,9 +1,8 @@
 import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
-import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
+import { createDiagnosticWithLocation, createTextDiagnostic } from "Shared/util/createDiagnostic";
 import { issue } from "Shared/util/createGithubLink";
-import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -19,16 +18,6 @@ function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
 }
 
-let id = 0;
-
-/**
- * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
- * @param messages The list of messages to include in the error report.
- */
-function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string | false>): DiagnosticFactory {
-	return diagnosticWithContext(category, undefined, ...messages);
-}
-
 /**
  * Returns a `DiagnosticFactory` that includes a function used to generate a readable message for the diagnostic.
  * The context is additonal data from the location where the diagnostic occurred that is used to generate dynamic
@@ -40,6 +29,7 @@ function diagnostic(category: ts.DiagnosticCategory, ...messages: Array<string |
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function diagnosticWithContext<T extends Array<any> = []>(
 	category: ts.DiagnosticCategory,
+	id: number,
 	contextFormatter?: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
@@ -52,43 +42,64 @@ function diagnosticWithContext<T extends Array<any> = []>(
 			messages.push(...contextFormatter(...context));
 		}
 
-		return createDiagnosticWithLocation(result.id, messages.filter(v => v !== false).join("\n"), category, node);
+		return createDiagnosticWithLocation(category, id, messages.filter(v => v !== false).join("\n"), node);
 	};
-	result.id = id++;
+	result.id = id;
 	return result;
 }
 
-function diagnosticText(category: ts.DiagnosticCategory, ...messages: Array<string | false>) {
-	return createTextDiagnostic(messages.filter(v => v !== false).join("\n"), category);
+function diagnosticText<T extends Array<unknown>>(
+	category: ts.DiagnosticCategory,
+	id: number,
+	callback: (...args: T) => Array<string | false>,
+) {
+	const result = (...args: T) => {
+		if (category === ts.DiagnosticCategory.Error) {
+			debugger;
+		}
+
+		return createTextDiagnostic(
+			category,
+			id,
+			callback(...args)
+				.filter(v => v !== false)
+				.join("\n"),
+		);
+	};
+	result.id = id;
+	return result;
 }
 
-function error(...messages: Array<string | false>): DiagnosticFactory {
-	return diagnostic(ts.DiagnosticCategory.Error, ...messages);
+// TODO: replace the placeholder IDs with proper error IDs
+
+function error(...messages: Array<string>): DiagnosticFactory {
+	return diagnosticWithContext(ts.DiagnosticCategory.Error, 1, undefined, ...messages);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function errorWithContext<T extends Array<any> = []>(
+function errorWithContext<T extends Array<unknown> = []>(
 	contextFormatter: DiagnosticContextFormatter<T>,
 	...messages: Array<string | false>
 ): DiagnosticFactory<T> {
-	return diagnosticWithContext(ts.DiagnosticCategory.Error, contextFormatter, ...messages);
+	return diagnosticWithContext(ts.DiagnosticCategory.Error, 0, contextFormatter, ...messages);
 }
 
-function errorText(...messages: Array<string>) {
-	return diagnosticText(ts.DiagnosticCategory.Error, ...messages);
+function errorText<T extends Array<unknown>>(callback: (...args: T) => Array<string | false>) {
+	return diagnosticText(ts.DiagnosticCategory.Error, 0, callback);
 }
 
 function warning(...messages: Array<string>): DiagnosticFactory {
-	return diagnostic(ts.DiagnosticCategory.Warning, ...messages);
+	return diagnosticWithContext(ts.DiagnosticCategory.Warning, 0, undefined, ...messages);
 }
 
-function warningText(...messages: Array<string>) {
-	return diagnosticText(ts.DiagnosticCategory.Warning, ...messages);
+function warningWithContext<T extends Array<unknown> = []>(
+	contextFormatter: DiagnosticContextFormatter<T>,
+	...messages: Array<string | false>
+): DiagnosticFactory<T> {
+	return diagnosticWithContext(ts.DiagnosticCategory.Warning, 0, contextFormatter, ...messages);
 }
 
-export function getDiagnosticId(diagnostic: ts.Diagnostic): number {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	return (diagnostic as any).id;
+function warningText<T extends Array<unknown>>(callback: (...args: T) => Array<string | false>) {
+	return diagnosticText(ts.DiagnosticCategory.Warning, 0, callback);
 }
 
 /**
@@ -225,28 +236,24 @@ export const errors = {
 }`,
 		),
 	]),
-	incorrectFileName: (originalFileName: string, suggestedFileName: string, fullPath: string) =>
-		errorText(
-			`Incorrect file name: \`${originalFileName}\`!`,
-			`Full path: ${fullPath}`,
-			suggestion(`Change \`${originalFileName}\` to \`${suggestedFileName}\`.`),
-		),
-	rojoPathInSrc: (partitionPath: string, suggestedPath: string) =>
-		errorText(
-			`Invalid Rojo configuration. $path fields should be relative to out directory.`,
-			suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
-		),
+	incorrectFileName: errorText((originalFileName: string, suggestedFileName: string, fullPath: string) => [
+		`Incorrect file name: \`${originalFileName}\`!`,
+		`Full path: ${fullPath}`,
+		suggestion(`Change \`${originalFileName}\` to \`${suggestedFileName}\`.`),
+	]),
+	rojoPathInSrc: errorText((partitionPath: string, suggestedPath: string) => [
+		`Invalid Rojo configuration. $path fields should be relative to out directory.`,
+		suggestion(`Change the value of $path from "${partitionPath}" to "${suggestedPath}".`),
+	]),
 };
 
 export const warnings = {
-	truthyChange: (checksStr: string) => warning(`Value will be checked against ${checksStr}`),
-	stringOffsetChange: (text: string) => warning(`String macros no longer offset inputs: ${text}`),
-	transformerNotFound: (name: string, err: unknown) =>
-		warningText(
-			`Transformer \`${name}\` was not found!`,
-			"More info: " + err,
-			suggestion("Did you forget to install the package?"),
-		),
+	truthyChange: warningWithContext((checksStr: string) => [`Value will be checked against ${checksStr}`]),
+	transformerNotFound: warningText((name: string, err: unknown) => [
+		`Transformer \`${name}\` was not found!`,
+		"More info: " + err,
+		suggestion("Did you forget to install the package?"),
+	]),
 	runtimeLibUsedInReplicatedFirst: warning(
 		"This statement would generate a call to the runtime library. The runtime library should not be used from ReplicatedFirst.",
 	),
