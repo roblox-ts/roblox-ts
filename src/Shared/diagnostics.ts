@@ -2,6 +2,7 @@ import { RbxPath } from "@roblox-ts/rojo-resolver";
 import kleur from "kleur";
 import { SourceFileWithTextRange } from "Shared/types";
 import { createDiagnosticWithLocation } from "Shared/util/createDiagnosticWithLocation";
+import { issue } from "Shared/util/createGithubLink";
 import { createTextDiagnostic } from "Shared/util/createTextDiagnostic";
 import ts from "typescript";
 
@@ -14,14 +15,8 @@ export type DiagnosticFactory<T extends Array<any> = []> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DiagnosticContextFormatter<T extends Array<any> = []> = (...context: T) => Array<string | false>;
 
-const REPO_URL = "https://github.com/roblox-ts/roblox-ts";
-
 function suggestion(text: string) {
 	return "Suggestion: " + kleur.yellow(text);
-}
-
-function issue(id: number) {
-	return "More information: " + kleur.grey(`${REPO_URL}/issues/${id}`);
 }
 
 let id = 0;
@@ -148,7 +143,6 @@ export const errors = {
 	noGlobalThis: error("`globalThis` is not supported!"),
 	noArguments: error("`arguments` is not supported!"),
 	noPrototype: error("`prototype` is not supported!"),
-	noSuperProperty: error("super properties are not supported!"),
 	noRobloxSymbolInstanceof: error(
 		"The `instanceof` operator can only be used on roblox-ts classes!",
 		suggestion('Use `typeIs(myThing, "TypeToCheck") instead'),
@@ -181,13 +175,16 @@ export const errors = {
 		suggestion("Macros always exist. Use a normal call."),
 	),
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
-	noMacroExtends: error("Cannot extend from a macro class!"),
+	noMacroExtends: error(
+		"Cannot extend from a macro class!",
+		suggestion("Store an instance of the macro class in a property."),
+	),
 	noMacroUnion: error("Macro cannot be applied to a union type!"),
 	noMacroObjectSpread: error(
 		"Macro classes cannot be used in an object spread!",
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
-	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noVarArgsMacroSpread: error("Macros which use variadic arguments do not support spread expressions!", issue(1149)),
 	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
 	noTupleMacroOutsideReturn: error("$tuple() macro is only valid as an expression of a return statement!"),
 
@@ -202,18 +199,8 @@ export const errors = {
 		suggestion("Move the file you want to import to a shared location."),
 	),
 
-	// roact jsx
-	invalidJsxFactory: error("compilerOptions.jsxFactory must be `Roact.createElement`!"),
-	invalidJsxFragmentFactory: error("compilerOptions.jsxFragmentFactory must be `Roact.createFragment`!"),
-	noRoactInheritance: error(
-		"Composition is preferred over inheritance with Roact components.",
-		"More info: https://reactjs.org/docs/composition-vs-inheritance.html",
-	),
-	noSuperPropertyCallRoactComponent: error("`super` is not supported inside Roact components!"),
-	missingSuperConstructorRoactComponent: error(
-		"`super(props)` must be the first statement of the constructor in a Roact component!",
-	),
-	noJsxText: error("JSX text is not supported!"),
+	// jsx
+	noPrecedingJsxSpreadElement: error("JSX spread expression must come last in children!"),
 
 	// semantic
 	expectedMethodGotFunction: error("Attempted to assign non-method where method was expected."),

@@ -1,9 +1,9 @@
 import { renderAST } from "@roblox-ts/luau-ast";
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { RojoResolver } from "@roblox-ts/rojo-resolver";
 import { PATH_SEP, pathJoin, VirtualFileSystem } from "Project/classes/VirtualFileSystem";
 import { validateCompilerOptions } from "Project/functions/validateCompilerOptions";
 import { getCustomPreEmitDiagnostics } from "Project/util/getCustomPreEmitDiagnostics";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { DEFAULT_PROJECT_OPTIONS, NODE_MODULES, ProjectType, RBXTS_SCOPE } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { ProjectData } from "Shared/types";
@@ -65,10 +65,10 @@ export class VirtualProject {
 			rootDir: ROOT_DIR,
 			outDir: OUT_DIR,
 			jsx: ts.JsxEmit.React,
-			jsxFactory: "Roact.createElement",
-			jsxFragmentFactory: "Roact.createFragment",
+			jsxFactory: "React.createElement",
+			jsxFragmentFactory: "React.Fragment",
 		};
-		validateCompilerOptions(this.compilerOptions, this.data.nodeModulesPath);
+		validateCompilerOptions(this.compilerOptions, this.data.projectPath);
 
 		this.vfs = new VirtualFileSystem();
 
@@ -109,7 +109,7 @@ export class VirtualProject {
 		this.program = ts.createProgram(rootNames, this.compilerOptions, this.compilerHost, this.program);
 		this.typeChecker = this.program.getTypeChecker();
 
-		const services = createTransformServices(this.program, this.typeChecker, this.data);
+		const services = createTransformServices(this.typeChecker);
 		const pathTranslator = new PathTranslator(ROOT_DIR, OUT_DIR, undefined, false);
 
 		const sourceFile = this.program.getSourceFile(PLAYGROUND_PATH);

@@ -11,9 +11,9 @@
 	"license": "ISC",
 	"dependencies": {
 		"@rbxts/compiler-types": "github:roblox-ts/compiler-types",
-		"@rbxts/roact": "^1.4.4-ts.0",
-		"@rbxts/services": "^1.5.1",
+		"@rbxts/roact": "github:roblox-ts/roact",
+		"@rbxts/services": "^1.5.3",
 		"@rbxts/testez": "^0.4.2-ts.0",
-		"@rbxts/types": "^1.0.718"
+		"@rbxts/types": "^1.0.751"
 	}
 }

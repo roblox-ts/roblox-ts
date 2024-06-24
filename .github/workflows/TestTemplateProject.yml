@@ -30,7 +30,7 @@ jobs:
       - name: Install local roblox-ts
         run: |
           cd project
-          npm install ../roblox-ts
+          npm install --install-links ../roblox-ts
 
       - name: Build
         run: |

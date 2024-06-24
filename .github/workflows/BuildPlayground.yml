@@ -1,0 +1,43 @@
+name: Build Playground
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-playground:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout roblox-ts repo
+        uses: actions/checkout@v4
+        with:
+          path: roblox-ts
+
+      - name: Setup roblox-ts repo
+        run: |
+          cd roblox-ts
+          npm install
+          npm run build
+
+      - name: Checkout roblox-ts.com repo
+        uses: actions/checkout@v4
+        with:
+          repository: roblox-ts/roblox-ts.com
+          path: roblox-ts.com
+
+      - name: Setup roblox-ts.com repo
+        run: |
+          cd roblox-ts.com
+          npm install
+
+      - name: Update roblox-ts
+        run: |
+          cd roblox-ts.com/rbxts-worker
+          npm install --install-links ../../roblox-ts
+
+      - name: Build Worker
+        run: |
+          cd roblox-ts.com
+          npm run build:rbxts-worker

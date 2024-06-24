@@ -1,3 +1,4 @@
+import { PathTranslator } from "@roblox-ts/path-translator";
 import chokidar from "chokidar";
 import fs from "fs-extra";
 import { ProjectData } from "Project";
@@ -14,7 +15,7 @@ import { getParsedCommandLine } from "Project/functions/getParsedCommandLine";
 import { tryRemoveOutput } from "Project/functions/tryRemoveOutput";
 import { isCompilableFile } from "Project/util/isCompilableFile";
 import { walkDirectorySync } from "Project/util/walkDirectorySync";
-import { PathTranslator } from "Shared/classes/PathTranslator";
+import { DTS_EXT } from "Shared/constants";
 import { DiagnosticError } from "Shared/errors/DiagnosticError";
 import { assert } from "Shared/util/assert";
 import { getRootDirs } from "Shared/util/getRootDirs";
@@ -119,13 +120,15 @@ export function setupProjectWatchProgram(data: ProjectData, usePolling: boolean)
 			} else {
 				// Transformers use a separate program that must be updated separately (which is done in compileFiles),
 				// however certain files (such as d.ts files) aren't passed to that function and must be updated here.
-				const transformerWatcher = data.transformerWatcher;
-				if (transformerWatcher) {
-					// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
-					// and is also used by the program host to read files.
-					const contents = ts.sys.readFile(fsPath);
-					if (contents) {
-						transformerWatcher.updateFile(fsPath, contents);
+				if (fsPath.endsWith(DTS_EXT)) {
+					const transformerWatcher = data.transformerWatcher;
+					if (transformerWatcher) {
+						// Using ts.sys.readFile instead of fs.readFileSync here as it performs some utf conversions implicitly
+						// and is also used by the program host to read files.
+						const contents = ts.sys.readFile(fsPath);
+						if (contents) {
+							transformerWatcher.updateFile(fsPath, contents);
+						}
 					}
 				}
 

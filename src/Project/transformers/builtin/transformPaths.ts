@@ -199,7 +199,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 		return ts.factory.updateImportTypeNode(
 			node,
 			fileArgument,
-			node.assertions,
+			node.attributes,
 			node.qualifier,
 			node.typeArguments,
 			node.isTypeOf,
@@ -277,7 +277,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 				node.isTypeOnly,
 				node.exportClause,
 				fileLiteral,
-				node.assertClause,
+				node.attributes,
 			);
 		}
 
@@ -289,7 +289,7 @@ export const transformPaths = (context: ts.TransformationContext) => (sourceFile
 					node.isTypeOnly,
 					node.exportClause,
 					fileLiteral,
-					node.assertClause,
+					node.attributes,
 				)
 			: undefined;
 	}

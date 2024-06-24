@@ -1,6 +1,7 @@
+import fs from "fs";
 import kleur from "kleur";
 import path from "path";
-import { RBXTS_SCOPE } from "Shared/constants";
+import { DTS_EXT, NODE_MODULES, RBXTS_SCOPE } from "Shared/constants";
 import { ProjectError } from "Shared/errors/ProjectError";
 import ts from "typescript";
 
@@ -29,7 +30,7 @@ function validateTypeRoots(nodeModulesPath: string, typeRoots: Array<string>) {
 	return false;
 }
 
-export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPath: string) {
+export function validateCompilerOptions(opts: ts.CompilerOptions, projectPath: string) {
 	const errors = new Array<string>();
 
 	// required compiler options
@@ -61,9 +62,27 @@ export function validateCompilerOptions(opts: ts.CompilerOptions, nodeModulesPat
 		errors.push(`${y(`"allowSyntheticDefaultImports"`)} must be ${y(`true`)}`);
 	}
 
-	const rbxtsModules = path.join(nodeModulesPath, RBXTS_SCOPE);
+	const rbxtsModules = path.join(projectPath, NODE_MODULES, RBXTS_SCOPE);
 	if (opts.typeRoots === undefined || !validateTypeRoots(rbxtsModules, opts.typeRoots)) {
 		errors.push(`${y(`"typeRoots"`)} must contain ${y(rbxtsModules)}`);
+	}
+
+	for (const typesLocation of opts.types ?? []) {
+		// Technically checked to exist above
+		// But if that's an error, we still want this error too,
+		// To avoid "fix one error, get a new one on the next compile"
+		const typeRoots = opts.typeRoots ?? ["node_modules/@rbxts"];
+
+		if (
+			!typeRoots.some(typeRoot => {
+				const typesPath = path.resolve(projectPath, typeRoot, typesLocation);
+				return fs.existsSync(typesPath) || fs.existsSync(typesPath + DTS_EXT);
+			})
+		) {
+			errors.push(
+				`${y(`"types"`)} ${y(typesLocation)} were not found. Make sure the path is relative to \`typeRoots\``,
+			);
+		}
 	}
 
 	// configurable compiler options
