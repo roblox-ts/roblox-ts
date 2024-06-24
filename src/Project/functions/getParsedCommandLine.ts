@@ -32,6 +32,6 @@ export function getParsedCommandLine(data: ProjectData) {
 		parsedCommandLine.options.tsBuildInfoFile = undefined;
 	}
 
-	validateCompilerOptions(parsedCommandLine.options, data.nodeModulesPath);
+	validateCompilerOptions(parsedCommandLine.options, data.projectPath);
 	return parsedCommandLine;
 }

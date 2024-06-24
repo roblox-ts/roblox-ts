@@ -175,13 +175,16 @@ export const errors = {
 		suggestion("Macros always exist. Use a normal call."),
 	),
 	noConstructorMacroWithoutNew: error("Cannot index a constructor macro without using the `new` operator!"),
-	noMacroExtends: error("Cannot extend from a macro class!"),
+	noMacroExtends: error(
+		"Cannot extend from a macro class!",
+		suggestion("Store an instance of the macro class in a property."),
+	),
 	noMacroUnion: error("Macro cannot be applied to a union type!"),
 	noMacroObjectSpread: error(
 		"Macro classes cannot be used in an object spread!",
 		suggestion("Did you mean to use an array spread? `[ ...exp ]`"),
 	),
-	noVarArgsMacroSpread: error("Macros which use variadric arguments do not support spread expressions!", issue(1149)),
+	noVarArgsMacroSpread: error("Macros which use variadic arguments do not support spread expressions!", issue(1149)),
 	noRangeMacroOutsideForOf: error("$range() macro is only valid as an expression of a for-of loop!"),
 	noTupleMacroOutsideReturn: error("$tuple() macro is only valid as an expression of a return statement!"),
 

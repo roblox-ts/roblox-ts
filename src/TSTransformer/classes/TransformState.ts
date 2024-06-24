@@ -367,7 +367,9 @@ export class TransformState {
 	public guessVirtualPath(fsPath: string) {
 		const original = fsPath;
 		while (true) {
-			const parent = path.dirname(fsPath);
+			// reverseSymlinkMap always has trailing slashes
+			// as it is constructed from `SymlinkedDirectory.real`
+			const parent = ts.ensureTrailingDirectorySeparator(path.dirname(fsPath));
 			if (fsPath === parent) break;
 			fsPath = parent;
 			const symlink = this.reverseSymlinkMap.get(fsPath);
