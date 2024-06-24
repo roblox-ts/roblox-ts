@@ -15,9 +15,11 @@ import { transformElementAccessExpression } from "TSTransformer/nodes/expression
 import { transformFunctionExpression } from "TSTransformer/nodes/expressions/transformFunctionExpression";
 import { transformIdentifier } from "TSTransformer/nodes/expressions/transformIdentifier";
 import { transformJsxElement } from "TSTransformer/nodes/expressions/transformJsxElement";
+import { transformJsxExpression } from "TSTransformer/nodes/expressions/transformJsxExpression";
 import { transformJsxFragment } from "TSTransformer/nodes/expressions/transformJsxFragment";
 import { transformJsxSelfClosingElement } from "TSTransformer/nodes/expressions/transformJsxSelfClosingElement";
 import { transformNewExpression } from "TSTransformer/nodes/expressions/transformNewExpression";
+import { transformNoSubstitutionTemplateLiteral } from "TSTransformer/nodes/expressions/transformNoSubstitutionTemplateLiteral";
 import { transformNumericLiteral } from "TSTransformer/nodes/expressions/transformNumericLiteral";
 import { transformObjectLiteralExpression } from "TSTransformer/nodes/expressions/transformObjectLiteralExpression";
 import { transformOmittedExpression } from "TSTransformer/nodes/expressions/transformOmittedExpression";
@@ -76,11 +78,12 @@ const TRANSFORMER_BY_KIND = new Map<ts.SyntaxKind, ExpressionTransformer>([
 	[ts.SyntaxKind.FunctionExpression, transformFunctionExpression],
 	[ts.SyntaxKind.Identifier, transformIdentifier],
 	[ts.SyntaxKind.JsxElement, transformJsxElement],
+	[ts.SyntaxKind.JsxExpression, transformJsxExpression],
 	[ts.SyntaxKind.JsxFragment, transformJsxFragment],
 	[ts.SyntaxKind.JsxSelfClosingElement, transformJsxSelfClosingElement],
 	[ts.SyntaxKind.NewExpression, transformNewExpression],
 	[ts.SyntaxKind.NonNullExpression, transformTypeExpression],
-	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformStringLiteral],
+	[ts.SyntaxKind.NoSubstitutionTemplateLiteral, transformNoSubstitutionTemplateLiteral],
 	[ts.SyntaxKind.NumericLiteral, transformNumericLiteral],
 	[ts.SyntaxKind.ObjectLiteralExpression, transformObjectLiteralExpression],
 	[ts.SyntaxKind.OmittedExpression, transformOmittedExpression],

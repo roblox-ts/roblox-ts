@@ -19,11 +19,12 @@ function makeMathMethod(operator: luau.BinaryOperator): PropertyCallMacro {
 	};
 }
 
-const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div">([
+const OPERATOR_TO_NAME_MAP = new Map<luau.BinaryOperator, "add" | "sub" | "mul" | "div" | "idiv">([
 	["+", "add"],
 	["-", "sub"],
 	["*", "mul"],
 	["/", "div"],
+	["//", "idiv"],
 ]);
 
 function makeMathSet(...operators: Array<luau.BinaryOperator>) {
@@ -585,6 +586,13 @@ const READONLY_ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 
 const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 	push: (state, node, expression, args) => {
+		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
+		if (args.length === 0) {
+			return luau.unary("#", expression);
+		}
+
+		expression = state.pushToVarIfComplex(expression, "exp");
+
 		for (let i = 0; i < args.length; i++) {
 			state.prereq(
 				luau.create(luau.SyntaxKind.CallStatement, {
@@ -593,8 +601,7 @@ const ARRAY_METHODS: MacroList<PropertyCallMacro> = {
 			);
 		}
 
-		// for `a.push()` always emit luau.unary so the call doesn't disappear in emit
-		return !isUsedAsStatement(node) || args.length === 0 ? luau.unary("#", expression) : luau.none();
+		return !isUsedAsStatement(node) ? luau.unary("#", expression) : luau.none();
 	},
 
 	pop: (state, node, expression) => {
@@ -762,10 +769,11 @@ const SET_MAP_SHARED_METHODS: MacroList<PropertyCallMacro> = {
 		const valueIsUsed = !isUsedAsStatement(node);
 		let valueExistedId: luau.TemporaryIdentifier;
 		if (valueIsUsed) {
+			expression = state.pushToVarIfNonId(expression, "exp");
 			valueExistedId = state.pushToVar(
 				luau.create(luau.SyntaxKind.BinaryExpression, {
 					left: luau.create(luau.SyntaxKind.ComputedIndexExpression, {
-						expression: convertToIndexableExpression(expression),
+						expression,
 						index: arg,
 					}),
 					operator: "~=",
@@ -913,10 +921,11 @@ export const PROPERTY_CALL_MACROS: { [className: string]: MacroList<PropertyCall
 	CFrame: makeMathSet("+", "-", "*"),
 	UDim: makeMathSet("+", "-"),
 	UDim2: makeMathSet("+", "-"),
-	Vector2: makeMathSet("+", "-", "*", "/"),
+	Vector2: makeMathSet("+", "-", "*", "/", "//"),
 	Vector2int16: makeMathSet("+", "-", "*", "/"),
-	Vector3: makeMathSet("+", "-", "*", "/"),
+	Vector3: makeMathSet("+", "-", "*", "/", "//"),
 	Vector3int16: makeMathSet("+", "-", "*", "/"),
+	Number: makeMathSet("//"),
 
 	String: STRING_CALLBACKS,
 	ArrayLike: ARRAY_LIKE_METHODS,

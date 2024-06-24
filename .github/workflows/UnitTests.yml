@@ -28,6 +28,13 @@ jobs:
       - name: Run Tests
         run: npm test
 
+      - name: Upload Test Output
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-output
+          path: tests/out
+
       - name: Report Coverage
         continue-on-error: true
         uses: coverallsapp/github-action@v1.1.2

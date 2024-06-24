@@ -1,7 +1,7 @@
 import luau, { render, RenderState, renderStatements, solveTempIds } from "@roblox-ts/luau-ast";
+import { PathTranslator } from "@roblox-ts/path-translator";
 import { RbxPath, RbxPathParent, RojoResolver } from "@roblox-ts/rojo-resolver";
 import path from "path";
-import { PathTranslator } from "Shared/classes/PathTranslator";
 import { PARENT_FIELD, ProjectType } from "Shared/constants";
 import { errors, warnings } from "Shared/diagnostics";
 import { ProjectData } from "Shared/types";
@@ -367,7 +367,9 @@ export class TransformState {
 	public guessVirtualPath(fsPath: string) {
 		const original = fsPath;
 		while (true) {
-			const parent = path.dirname(fsPath);
+			// reverseSymlinkMap always has trailing slashes
+			// as it is constructed from `SymlinkedDirectory.real`
+			const parent = ts.ensureTrailingDirectorySeparator(path.dirname(fsPath));
 			if (fsPath === parent) break;
 			fsPath = parent;
 			const symlink = this.reverseSymlinkMap.get(fsPath);
