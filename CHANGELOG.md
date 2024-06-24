@@ -25,7 +25,7 @@
 - Lune Unit Testing ([#2489][2489])
 	- Not user facing, but the compiler should be more stable going forwards! :tada:
 - Removed enum inverse mapping for string values ([#2506][2506])
-- $range macro optimizations ([#2130][2130], [#2196][#2196])
+- $range macro optimizations ([#2130][2130], [#2196][2196])
 - Added support for `typeIs(value, "buffer")` ([#2588][2588])
 - Fixed `Array.push()` inserting multiple values for different tables ([#2597][2597])
 - Support interpolated string emit for template expressions ([#2591][2591])
@@ -41,7 +41,7 @@
 	- number literals should be wrapped in parentheses, i.e. `(10).idiv(3)`
 
 ## 2.2.0
-- TypeScript 5.2.2 Support ([#2401][2401], [#2466][#2466])
+- TypeScript 5.2.2 Support ([#2401][2401], [#2466][2466])
 - Support for instantiated expressions ([#2445][2445])
 - Support for Luau comment directives like `//!native` ([#2465][2465])
 - Fixed incorrect emit with `array[n]?.()` ([#2475][2475])
@@ -60,7 +60,7 @@
 - Banned instanceof on roblox types ([#2225][2225])
 - Disabled networkType check for dynamic import() ([#2197][2197])
 - Added `--writeTransformedFiles` to write transformed TypeScript ASTs to out directory ([#2255][2255])
-- Small improvements and fixes for `--optimizedLoops` ([#2201][2201], [#2265][#2265])
+- Small improvements and fixes for `--optimizedLoops` ([#2201][2201], [#2265][2265])
 
 ## 2.0.4
 - Updated deprecated APIs for TS 4.8 ([#2143][2143])
@@ -83,7 +83,7 @@
 - **Other Changes**
 	- Fixed bug with `Array.unorderedRemove` for `false` values ([#1883][1883])
 	- Added support for `preserveConstEnums` tsconfig.json option ([#1894][1894])
-	- Upgraded to TypeScript 4.8.3 ([#1903][1903], [#2121][#2121])
+	- Upgraded to TypeScript 4.8.3 ([#1903][1903], [#2121][2121])
 	- Fixed a bug with `type` keyword and named exports ([#1922][1922])
 	- Improved JSX config error messages ([#1817][1817])
 	- Improved detection of Roact Change/Event attributes ([#1972][1972])
@@ -106,7 +106,7 @@
 	- Fixed `rbxtsc init` usage with pnpm ([#2060][2060])
 
 ## 1.3.3
-- Fixed some regressions for compiling void-returning macros as expressions ([#1864][1864], [#1876][#1876])
+- Fixed some regressions for compiling void-returning macros as expressions ([#1864][1864], [#1876][1876])
 - Improved validation for  `tsconfig.json` `"typeRoots"` field ([#1873][1873])
 - Fixed a crash when referencing global const enums in the same file they're declared in ([#1878][1878])
 
